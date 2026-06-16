@@ -20,6 +20,7 @@ import { Route as AnuncieRouteImport } from './routes/anuncie'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
@@ -27,9 +28,12 @@ import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
 import { Route as AuthenticatedAdminImoveisRouteImport } from './routes/_authenticated.admin.imoveis'
 import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
+import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
 import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
 import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authenticated.admin.imoveis.$id'
+import { Route as AuthenticatedAdminBlogNovoRouteImport } from './routes/_authenticated.admin.blog.novo'
+import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated.admin.blog.$id'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
@@ -85,6 +89,11 @@ const ImovelSlugRoute = ImovelSlugRouteImport.update({
   path: '/imovel/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -122,6 +131,11 @@ const AuthenticatedAdminCorretoresRoute =
     path: '/corretores',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminBairrosRoute =
   AuthenticatedAdminBairrosRouteImport.update({
     id: '/bairros',
@@ -140,26 +154,42 @@ const AuthenticatedAdminImoveisIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminImoveisRoute,
   } as any)
+const AuthenticatedAdminBlogNovoRoute =
+  AuthenticatedAdminBlogNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AuthenticatedAdminBlogRoute,
+  } as any)
+const AuthenticatedAdminBlogIdRoute =
+  AuthenticatedAdminBlogIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminBlogRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRoute
+  '/blog': typeof BlogRouteWithChildren
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/blog/$slug': typeof BlogSlugRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
+  '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
 }
@@ -167,20 +197,24 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRoute
+  '/blog': typeof BlogRouteWithChildren
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
+  '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
 }
@@ -190,21 +224,25 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRoute
+  '/blog': typeof BlogRouteWithChildren
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/blog/$slug': typeof BlogSlugRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/_authenticated/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/_authenticated/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
+  '/_authenticated/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/_authenticated/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/_authenticated/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
 }
@@ -221,14 +259,18 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre'
     | '/admin'
+    | '/blog/$slug'
     | '/imovel/$slug'
     | '/admin/bairros'
+    | '/admin/blog'
     | '/admin/corretores'
     | '/admin/imoveis'
     | '/admin/leads'
     | '/admin/site'
     | '/api/public/bootstrap-admin'
     | '/admin/'
+    | '/admin/blog/$id'
+    | '/admin/blog/novo'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
   fileRoutesByTo: FileRoutesByTo
@@ -242,14 +284,18 @@ export interface FileRouteTypes {
     | '/lancamentos'
     | '/sitemap.xml'
     | '/sobre'
+    | '/blog/$slug'
     | '/imovel/$slug'
     | '/admin/bairros'
+    | '/admin/blog'
     | '/admin/corretores'
     | '/admin/imoveis'
     | '/admin/leads'
     | '/admin/site'
     | '/api/public/bootstrap-admin'
     | '/admin'
+    | '/admin/blog/$id'
+    | '/admin/blog/novo'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
   id:
@@ -265,14 +311,18 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre'
     | '/_authenticated/admin'
+    | '/blog/$slug'
     | '/imovel/$slug'
     | '/_authenticated/admin/bairros'
+    | '/_authenticated/admin/blog'
     | '/_authenticated/admin/corretores'
     | '/_authenticated/admin/imoveis'
     | '/_authenticated/admin/leads'
     | '/_authenticated/admin/site'
     | '/api/public/bootstrap-admin'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/blog/$id'
+    | '/_authenticated/admin/blog/novo'
     | '/_authenticated/admin/imoveis/$id'
     | '/_authenticated/admin/imoveis/novo'
   fileRoutesById: FileRoutesById
@@ -282,7 +332,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AnuncieRoute: typeof AnuncieRoute
   AuthRoute: typeof AuthRoute
-  BlogRoute: typeof BlogRoute
+  BlogRoute: typeof BlogRouteWithChildren
   ContatoRoute: typeof ContatoRoute
   ImoveisRoute: typeof ImoveisRoute
   LancamentosRoute: typeof LancamentosRoute
@@ -371,6 +421,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImovelSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -420,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCorretoresRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/blog': {
+      id: '/_authenticated/admin/blog'
+      path: '/blog'
+      fullPath: '/admin/blog'
+      preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/bairros': {
       id: '/_authenticated/admin/bairros'
       path: '/bairros'
@@ -441,8 +505,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminImoveisIdRouteImport
       parentRoute: typeof AuthenticatedAdminImoveisRoute
     }
+    '/_authenticated/admin/blog/novo': {
+      id: '/_authenticated/admin/blog/novo'
+      path: '/novo'
+      fullPath: '/admin/blog/novo'
+      preLoaderRoute: typeof AuthenticatedAdminBlogNovoRouteImport
+      parentRoute: typeof AuthenticatedAdminBlogRoute
+    }
+    '/_authenticated/admin/blog/$id': {
+      id: '/_authenticated/admin/blog/$id'
+      path: '/$id'
+      fullPath: '/admin/blog/$id'
+      preLoaderRoute: typeof AuthenticatedAdminBlogIdRouteImport
+      parentRoute: typeof AuthenticatedAdminBlogRoute
+    }
   }
 }
+
+interface AuthenticatedAdminBlogRouteChildren {
+  AuthenticatedAdminBlogIdRoute: typeof AuthenticatedAdminBlogIdRoute
+  AuthenticatedAdminBlogNovoRoute: typeof AuthenticatedAdminBlogNovoRoute
+}
+
+const AuthenticatedAdminBlogRouteChildren: AuthenticatedAdminBlogRouteChildren =
+  {
+    AuthenticatedAdminBlogIdRoute: AuthenticatedAdminBlogIdRoute,
+    AuthenticatedAdminBlogNovoRoute: AuthenticatedAdminBlogNovoRoute,
+  }
+
+const AuthenticatedAdminBlogRouteWithChildren =
+  AuthenticatedAdminBlogRoute._addFileChildren(
+    AuthenticatedAdminBlogRouteChildren,
+  )
 
 interface AuthenticatedAdminImoveisRouteChildren {
   AuthenticatedAdminImoveisIdRoute: typeof AuthenticatedAdminImoveisIdRoute
@@ -462,6 +556,7 @@ const AuthenticatedAdminImoveisRouteWithChildren =
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBairrosRoute: typeof AuthenticatedAdminBairrosRoute
+  AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRouteWithChildren
   AuthenticatedAdminCorretoresRoute: typeof AuthenticatedAdminCorretoresRoute
   AuthenticatedAdminImoveisRoute: typeof AuthenticatedAdminImoveisRouteWithChildren
   AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
@@ -471,6 +566,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBairrosRoute: AuthenticatedAdminBairrosRoute,
+  AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRouteWithChildren,
   AuthenticatedAdminCorretoresRoute: AuthenticatedAdminCorretoresRoute,
   AuthenticatedAdminImoveisRoute: AuthenticatedAdminImoveisRouteWithChildren,
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
@@ -493,12 +589,22 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface BlogRouteChildren {
+  BlogSlugRoute: typeof BlogSlugRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogSlugRoute: BlogSlugRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AnuncieRoute: AnuncieRoute,
   AuthRoute: AuthRoute,
-  BlogRoute: BlogRoute,
+  BlogRoute: BlogRouteWithChildren,
   ContatoRoute: ContatoRoute,
   ImoveisRoute: ImoveisRoute,
   LancamentosRoute: LancamentosRoute,

@@ -11,6 +11,7 @@ export const Route = createFileRoute("/blog/$slug")({
   },
   head: ({ params, loaderData }) => {
     const post = loaderData;
+    const autor = post ? (Array.isArray(post.autor) ? post.autor[0] : post.autor) : null;
     const title = post?.meta_title || `${post?.titulo} — Blog RM Prime`;
     const desc = post?.meta_description || post?.resumo || "Artigo do blog RM Prime Imóveis.";
     return {
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/blog/$slug")({
               description: desc,
               image: post.imagem_capa || undefined,
               datePublished: post.publicado_em,
-              author: post.autor?.nome ? { "@type": "Person", name: post.autor.nome } : undefined,
+              author: autor?.nome ? { "@type": "Person", name: autor.nome } : undefined,
             }),
           }]
         : [],

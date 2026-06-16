@@ -43,7 +43,9 @@ function Page() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-          {posts?.map((p) => (
+          {posts?.map((p) => {
+            const cat = Array.isArray(p.categoria) ? p.categoria[0] : p.categoria;
+            return (
             <Link
               key={p.id}
               to="/blog/$slug"
@@ -56,8 +58,8 @@ function Page() {
                 </div>
               )}
               <div className="p-6">
-                {p.categoria?.nome && (
-                  <span className="eyebrow text-gold">{p.categoria.nome}</span>
+                {cat?.nome && (
+                  <span className="eyebrow text-gold">{cat.nome}</span>
                 )}
                 <h2 className="font-display text-xl mt-2 group-hover:text-gold transition-colors">{p.titulo}</h2>
                 {p.resumo && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{p.resumo}</p>}
@@ -68,7 +70,8 @@ function Page() {
                 )}
               </div>
             </Link>
-          ))}
+            );
+          })}
           {posts && posts.length === 0 && (
             <p className="text-muted-foreground col-span-full">Em breve, novos conteúdos.</p>
           )}
