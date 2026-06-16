@@ -48,19 +48,6 @@ export const Route = createFileRoute("/imoveis")({
       context.queryClient.ensureQueryData(bairrosQuery),
     ]);
   },
-  head: () => ({
-    meta: [
-      { title: "Imóveis à venda em Belo Horizonte — RM Prime Imóveis" },
-      {
-        name: "description",
-        content:
-          "Catálogo curado de imóveis de alto padrão em Belo Horizonte: coberturas, garden, casas em condomínio e lançamentos exclusivos.",
-      },
-      { property: "og:title", content: "Imóveis de alto padrão — RM Prime" },
-      { property: "og:url", content: "/imoveis" },
-    ],
-    links: [{ rel: "canonical", href: "/imoveis" }],
-  }),
   errorComponent: ({ error }) => (
     <ErrorState message={error instanceof Error ? error.message : "Erro ao carregar imóveis."} />
   ),
