@@ -29,8 +29,10 @@ export const Route = createFileRoute("/")({
         content:
           "Curadoria de imóveis de alto padrão em Belo Horizonte. Coberturas, mansões e lançamentos exclusivos.",
       },
+      { property: "og:url", content: "/" },
     ],
     links: [
+      { rel: "canonical", href: "/" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

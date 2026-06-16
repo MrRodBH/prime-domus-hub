@@ -6,8 +6,12 @@ export const Route = createFileRoute("/sobre")({
   head: () => ({
     meta: [
       { title: "Sobre — RM Prime Imóveis" },
-      { name: "description", content: "Conheça a RM Prime Imóveis: história, missão e valores." },
+      { name: "description", content: "Conheça a RM Prime Imóveis: boutique imobiliária de alto padrão em Belo Horizonte, com curadoria de coberturas, mansões e lançamentos exclusivos." },
+      { property: "og:title", content: "Sobre — RM Prime Imóveis" },
+      { property: "og:description", content: "Boutique imobiliária dedicada ao alto padrão em Belo Horizonte." },
+      { property: "og:url", content: "/sobre" },
     ],
+    links: [{ rel: "canonical", href: "/sobre" }],
   }),
   component: Page,
 });

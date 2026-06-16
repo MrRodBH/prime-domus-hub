@@ -29,6 +29,27 @@ export const Route = createFileRoute("/imovel/$slug")({
     const desc =
       loaderData?.descricao ??
       `Imóvel de alto padrão${bairro ? ` em ${bairro}` : ""} - RM Prime Imóveis.`;
+    const ogImage = loaderData?.imagem_capa ?? undefined;
+    const preco = loaderData?.preco ? Number(loaderData.preco) : null;
+    const ld: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: titulo,
+      description: desc.slice(0, 300),
+      ...(ogImage ? { image: ogImage } : {}),
+      brand: { "@type": "Brand", name: "RM Prime Imóveis" },
+      category: "Real Estate",
+      ...(preco && !loaderData?.preco_sob_consulta
+        ? {
+            offers: {
+              "@type": "Offer",
+              price: preco,
+              priceCurrency: "BRL",
+              availability: "https://schema.org/InStock",
+            },
+          }
+        : {}),
+    };
     return {
       meta: [
         { title: `${titulo} — RM Prime Imóveis` },
@@ -37,8 +58,15 @@ export const Route = createFileRoute("/imovel/$slug")({
         { property: "og:description", content: desc.slice(0, 160) },
         { property: "og:type", content: "product" },
         { property: "og:url", content: `/imovel/${params.slug}` },
+        ...(ogImage ? [{ property: "og:image", content: ogImage }, { name: "twitter:image", content: ogImage }] : []),
       ],
       links: [{ rel: "canonical", href: `/imovel/${params.slug}` }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(ld),
+        },
+      ],
     };
   },
   errorComponent: ({ error }) => (
