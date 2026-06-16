@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LancamentosRouteImport } from './routes/lancamentos'
 import { Route as ImoveisRouteImport } from './routes/imoveis'
 import { Route as ContatoRouteImport } from './routes/contato'
@@ -33,6 +34,11 @@ import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authe
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
   path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LancamentosRoute = LancamentosRouteImport.update({
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/imovel/$slug': typeof ImovelSlugRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/imovel/$slug': typeof ImovelSlugRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
+    | '/sitemap.xml'
     | '/sobre'
     | '/admin'
     | '/imovel/$slug'
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
+    | '/sitemap.xml'
     | '/sobre'
     | '/imovel/$slug'
     | '/admin/bairros'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
+    | '/sitemap.xml'
     | '/sobre'
     | '/_authenticated/admin'
     | '/imovel/$slug'
@@ -274,6 +286,7 @@ export interface RootRouteChildren {
   ContatoRoute: typeof ContatoRoute
   ImoveisRoute: typeof ImoveisRoute
   LancamentosRoute: typeof LancamentosRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreRoute: typeof SobreRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
@@ -286,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/sobre'
       fullPath: '/sobre'
       preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lancamentos': {
@@ -482,6 +502,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContatoRoute: ContatoRoute,
   ImoveisRoute: ImoveisRoute,
   LancamentosRoute: LancamentosRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreRoute: SobreRoute,
   ImovelSlugRoute: ImovelSlugRoute,
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
