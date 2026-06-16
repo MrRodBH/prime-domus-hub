@@ -300,6 +300,50 @@ function Galeria({ imagens, titulo }: { imagens: string[]; titulo: string }) {
   );
 }
 
+function MediaEmbed({ tourUrl, videoUrl }: { tourUrl: string | null; videoUrl: string | null }) {
+  const tour = toEmbedUrl(tourUrl);
+  const video = toEmbedUrl(videoUrl);
+  if (!tour && !video) return null;
+  return (
+    <section className="mt-12 space-y-10">
+      {tour && (
+        <div>
+          <span className="eyebrow">Visita imersiva</span>
+          <h2 className="font-display text-3xl mt-3 mb-5">Tour virtual 360°</h2>
+          <div className="aspect-[16/9] rounded overflow-hidden border border-foreground/10 bg-muted">
+            <iframe
+              title="Tour virtual 360°"
+              src={tour}
+              loading="lazy"
+              allow="xr-spatial-tracking; gyroscope; accelerometer; fullscreen"
+              allowFullScreen
+              className="w-full h-full"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      )}
+      {video && (
+        <div>
+          <span className="eyebrow">Em movimento</span>
+          <h2 className="font-display text-3xl mt-3 mb-5">Vídeo do imóvel</h2>
+          <div className="aspect-video rounded overflow-hidden border border-foreground/10 bg-muted">
+            <iframe
+              title="Vídeo do imóvel"
+              src={video}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              className="w-full h-full"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Mapa({ bairro, endereco, lat, lng }: { bairro: string; endereco: string | null; lat: number | null; lng: number | null }) {
   const src =
     lat != null && lng != null
