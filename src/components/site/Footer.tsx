@@ -7,9 +7,9 @@ export function Footer() {
     <footer className="bg-secondary/60 pt-24 pb-12 border-t border-foreground/5">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-16 mb-20">
-          <div>
-            <Link to="/" className="inline-flex items-center mb-6" aria-label="RM Prime Imóveis - Início">
-              <img src={logo} alt="RM Prime Imóveis" width={500} height={500} className="h-24 w-auto object-contain" />
+          <div className="flex flex-col items-center text-center">
+            <Link to="/" className="inline-flex items-center justify-center mb-6" aria-label="RM Prime Imóveis - Início">
+              <img src={logo} alt="RM Prime Imóveis" width={500} height={500} className="h-[6.6rem] w-auto object-contain" />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-[32ch]">
               Conectando você ao seu melhor imóvel. Especialistas no mercado de alto padrão em
