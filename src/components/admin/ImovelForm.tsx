@@ -18,6 +18,7 @@ import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Upload, Sparkles } from "lucide-react";
+import { InstagramPostManager } from "./InstagramPostManager";
 import { useEffect } from "react";
 
 
@@ -331,6 +332,21 @@ export function ImovelForm({ initial }: Props) {
           </>
         )}
       </div>
+
+      {form.id && (
+        <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-3">
+          <h2 className="font-display text-lg">Instagram</h2>
+          <p className="text-sm text-muted-foreground">
+            Gere legenda + hashtags com IA, edite e baixe um ZIP com as fotos prontas para postar.
+          </p>
+          <InstagramPostManager
+            imovelId={form.id}
+            titulo={form.titulo}
+            imagens={imagens}
+            signedUrls={signedUrls}
+          />
+        </div>
+      )}
     </form>
   );
 }
