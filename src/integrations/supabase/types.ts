@@ -324,8 +324,10 @@ export type Database = {
           suites: number | null
           tipo: Database["public"]["Enums"]["imovel_tipo"]
           titulo: string
+          tour_url: string | null
           updated_at: string
           vagas: number | null
+          video_url: string | null
           views: number
         }
         Insert: {
@@ -358,8 +360,10 @@ export type Database = {
           suites?: number | null
           tipo?: Database["public"]["Enums"]["imovel_tipo"]
           titulo: string
+          tour_url?: string | null
           updated_at?: string
           vagas?: number | null
+          video_url?: string | null
           views?: number
         }
         Update: {
@@ -392,8 +396,10 @@ export type Database = {
           suites?: number | null
           tipo?: Database["public"]["Enums"]["imovel_tipo"]
           titulo?: string
+          tour_url?: string | null
           updated_at?: string
           vagas?: number | null
+          video_url?: string | null
           views?: number
         }
         Relationships: [
