@@ -21,13 +21,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Curadoria de imóveis de alto padrão em Lourdes, Belvedere, Vila da Serra e demais regiões nobres de Belo Horizonte. Conectando você ao seu melhor imóvel.",
+          "Imóveis de alto padrão em Lourdes, Belvedere, Vila da Serra e demais regiões nobres de Belo Horizonte. Conectando você ao seu melhor imóvel.",
       },
       { property: "og:title", content: "RM Prime Imóveis — Alto padrão em Belo Horizonte" },
       {
         property: "og:description",
         content:
-          "Curadoria de imóveis de alto padrão em Belo Horizonte. Coberturas, mansões e lançamentos exclusivos.",
+          "Imóveis de alto padrão em Belo Horizonte. Coberturas, mansões e lançamentos exclusivos.",
       },
       { property: "og:url", content: "/" },
     ],
@@ -85,7 +85,7 @@ const neighborhoods = [
 ];
 
 const differentials = [
-  { n: "01", title: "Curadoria especializada", desc: "Seleção rigorosa baseada em arquitetura autoral e localização premium." },
+  { n: "01", title: "Seleção especializada", desc: "Portfólio rigorosamente selecionado por arquitetura autoral e localização premium." },
   { n: "02", title: "Atendimento consultivo", desc: "Especialistas dedicados a entender sua necessidade real, sem pressa." },
   { n: "03", title: "Exclusividade total", desc: "Acesso a imóveis off-market que não circulam nos portais comuns." },
   { n: "04", title: "Experiência digital", desc: "Acompanhamento transparente via nossa plataforma proprietária." },
@@ -111,7 +111,7 @@ function Home() {
   const hero = site?.home_hero ?? {};
   const titleLines: string[] = hero.title_lines && hero.title_lines.length > 0
     ? hero.title_lines
-    : ["A curadoria do", "extraordinário em BH."];
+    : ["Imóveis", "extraordinários em BH."];
   const eyebrow = hero.eyebrow || "RM Prime Imóveis";
   const subtitle = hero.subtitle || "";
   const ctaPrimary = hero.cta_primary || "Encontrar imóvel";
@@ -275,7 +275,7 @@ function Home() {
               </h2>
               <p className="text-linen/70 text-lg leading-relaxed max-w-[48ch]">
                 Combinamos a precisão do mercado de capitais com a sensibilidade do mercado de luxo. Cada
-                imóvel em nosso portfólio passa por uma curadoria rigorosa de arquitetura, localização e
+                imóvel em nosso portfólio é avaliado criteriosamente por arquitetura, localização e
                 potencial de valorização.
               </p>
 
@@ -304,7 +304,7 @@ function Home() {
               <div className="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 bg-gold p-7 md:p-9 rounded shadow-elegant">
                 <p className="font-display text-3xl md:text-4xl italic text-petroleum">+1.2 Bi</p>
                 <p className="text-[10px] uppercase tracking-[0.22em] text-petroleum/80 mt-1">
-                  em ativos sob curadoria
+                  em ativos captados
                 </p>
               </div>
             </div>
