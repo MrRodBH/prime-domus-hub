@@ -243,7 +243,7 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
                         className={`relative aspect-square rounded overflow-hidden border-2 transition ${ativo ? "border-gold ring-2 ring-gold/30" : "border-foreground/10"}`}
                       >
                         <img
-                          src={img.url.startsWith("http") ? img.url : ""}
+                          src={img.url.startsWith("http") ? img.url : (signedUrls[img.id] ?? "")}
                           alt=""
                           className="w-full h-full object-cover bg-muted"
                         />
