@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
-// TODO: substituir pelo domínio final quando publicado.
-const BASE_URL = "";
+const BASE_URL = "https://rmprimeimoveis.com.br";
 
 interface SitemapEntry {
   path: string;
