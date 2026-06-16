@@ -5,14 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo-rm-prime.png";
 import { Button } from "@/components/ui/button";
 
-const nav = [
+const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean }> = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
   { to: "/admin/corretores", label: "Corretores", icon: Users },
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
   { to: "/admin/leads", label: "Leads", icon: Inbox },
   { to: "/admin/site", label: "Site & Branding", icon: Settings },
-] as const;
+];
 
 export function AdminShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });

@@ -14,9 +14,12 @@ import { Route as LancamentosRouteImport } from './routes/lancamentos'
 import { Route as ImoveisRouteImport } from './routes/imoveis'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as BlogRouteImport } from './routes/blog'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnuncieRouteImport } from './routes/anuncie'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
@@ -43,9 +46,18 @@ const BlogRoute = BlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnuncieRoute = AnuncieRouteImport.update({
   id: '/anuncie',
   path: '/anuncie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -58,36 +70,48 @@ const ImovelSlugRoute = ImovelSlugRouteImport.update({
   path: '/imovel/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/anuncie': typeof AnuncieRoute
+  '/auth': typeof AuthRoute
   '/blog': typeof BlogRoute
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sobre': typeof SobreRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/imovel/$slug': typeof ImovelSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/anuncie': typeof AnuncieRoute
+  '/auth': typeof AuthRoute
   '/blog': typeof BlogRoute
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sobre': typeof SobreRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/imovel/$slug': typeof ImovelSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/anuncie': typeof AnuncieRoute
+  '/auth': typeof AuthRoute
   '/blog': typeof BlogRoute
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sobre': typeof SobreRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/imovel/$slug': typeof ImovelSlugRoute
 }
 export interface FileRouteTypes {
@@ -95,37 +119,46 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/anuncie'
+    | '/auth'
     | '/blog'
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
     | '/sobre'
+    | '/admin'
     | '/imovel/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/anuncie'
+    | '/auth'
     | '/blog'
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
     | '/sobre'
+    | '/admin'
     | '/imovel/$slug'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/anuncie'
+    | '/auth'
     | '/blog'
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
     | '/sobre'
+    | '/_authenticated/admin'
     | '/imovel/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AnuncieRoute: typeof AnuncieRoute
+  AuthRoute: typeof AuthRoute
   BlogRoute: typeof BlogRoute
   ContatoRoute: typeof ContatoRoute
   ImoveisRoute: typeof ImoveisRoute
@@ -171,11 +204,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/anuncie': {
       id: '/anuncie'
       path: '/anuncie'
       fullPath: '/anuncie'
       preLoaderRoute: typeof AnuncieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -192,12 +239,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImovelSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AnuncieRoute: AnuncieRoute,
+  AuthRoute: AuthRoute,
   BlogRoute: BlogRoute,
   ContatoRoute: ContatoRoute,
   ImoveisRoute: ImoveisRoute,
