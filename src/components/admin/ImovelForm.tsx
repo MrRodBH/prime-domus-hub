@@ -88,7 +88,7 @@ export function ImovelForm({ initial }: Props) {
       adminSalvarImovel({
         data: {
           ...form,
-          caracteristicas: caracTxt.split(",").map((s) => s.trim()).filter(Boolean),
+          caracteristicas: caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean),
         },
       }),
     onSuccess: (r) => {
