@@ -194,6 +194,13 @@ function Page() {
               </section>
             )}
 
+            <MediaEmbed
+              tourUrl={(imovel as { tour_url?: string | null }).tour_url ?? null}
+              videoUrl={(imovel as { video_url?: string | null }).video_url ?? null}
+            />
+
+
+
             {/* Mapa */}
             <section className="mt-12">
               <span className="eyebrow">Localização</span>
