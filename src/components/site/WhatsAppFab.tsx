@@ -9,7 +9,7 @@ export function WhatsAppFab() {
   });
 
   const numero = site?.contato?.whatsapp?.replace(/\D/g, "") || "5531999990001";
-  const nome = site?.nome || "RM Prime Imóveis";
+  const nome = site?.branding?.site_name || "RM Prime Imóveis";
   const msg = encodeURIComponent(
     `Olá, ${nome}! Vim pelo site e gostaria de mais informações.`,
   );
