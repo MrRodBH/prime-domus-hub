@@ -16,10 +16,14 @@ const filtersSchema = z
     tipo: z.string().optional(),
     bairro: z.string().optional(),
     quartos_min: z.number().int().optional(),
+    suites_min: z.number().int().optional(),
+    vagas_min: z.number().int().optional(),
     preco_min: z.number().optional(),
     preco_max: z.number().optional(),
+    area_min: z.number().optional(),
     busca: z.string().optional(),
     apenas_destaque: z.boolean().optional(),
+    ordenar: z.enum(["recentes", "preco_asc", "preco_desc", "area_desc"]).optional(),
     limite: z.number().int().min(1).max(60).optional(),
   })
   .optional()
@@ -34,19 +38,36 @@ export const listarImoveis = createServerFn({ method: "GET" })
       .select(
         "id, codigo, titulo, slug, finalidade, tipo, status, preco, preco_sob_consulta, area_util, quartos, suites, vagas, badge, destaque, exclusivo, imagem_capa, bairro:bairros(nome, slug)",
       )
-      .eq("status", "ativo")
-      .order("destaque", { ascending: false })
-      .order("publicado_em", { ascending: false });
+      .eq("status", "ativo");
 
     if (data.finalidade) q = q.eq("finalidade", data.finalidade);
     if (data.tipo) q = q.eq("tipo", data.tipo);
     if (data.bairro) q = q.eq("bairro.slug", data.bairro);
     if (data.quartos_min) q = q.gte("quartos", data.quartos_min);
+    if (data.suites_min) q = q.gte("suites", data.suites_min);
+    if (data.vagas_min) q = q.gte("vagas", data.vagas_min);
     if (data.preco_min) q = q.gte("preco", data.preco_min);
     if (data.preco_max) q = q.lte("preco", data.preco_max);
-    if (data.busca) q = q.ilike("titulo", `%${data.busca}%`);
+    if (data.area_min) q = q.gte("area_util", data.area_min);
+    if (data.busca) q = q.or(`titulo.ilike.%${data.busca}%,codigo.ilike.%${data.busca}%,endereco.ilike.%${data.busca}%`);
     if (data.apenas_destaque) q = q.eq("destaque", true);
+
+    switch (data.ordenar) {
+      case "preco_asc":
+        q = q.order("preco", { ascending: true, nullsFirst: false });
+        break;
+      case "preco_desc":
+        q = q.order("preco", { ascending: false, nullsFirst: false });
+        break;
+      case "area_desc":
+        q = q.order("area_util", { ascending: false, nullsFirst: false });
+        break;
+      default:
+        q = q.order("destaque", { ascending: false }).order("publicado_em", { ascending: false });
+    }
+
     if (data.limite) q = q.limit(data.limite);
+
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
