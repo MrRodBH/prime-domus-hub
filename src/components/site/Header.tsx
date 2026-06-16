@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { MessageCircle, Menu, X } from "lucide-react";
 import { useState } from "react";
-import logo from "@/assets/logo-rm-prime.png";
+import defaultLogo from "@/assets/logo-rm-prime.png";
+import { obterSiteSettings } from "@/lib/api/site.functions";
 
 const navItems = [
   { to: "/imoveis", label: "Imóveis" },
@@ -14,18 +16,17 @@ const navItems = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const { data: site } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings(), staleTime: 5 * 60 * 1000 });
+
+  const logo = site?.branding?.logo_url || defaultLogo;
+  const siteName = site?.branding?.site_name || "RM Prime Imóveis";
+  const wa = site?.contato?.whatsapp ? `https://wa.me/${site.contato.whatsapp}` : "https://wa.me/5531999990001";
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-foreground/5">
       <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8">
-        <Link to="/" className="flex items-center" aria-label="RM Prime Imóveis - Início">
-          <img
-            src={logo}
-            alt="RM Prime Imóveis"
-            width={500}
-            height={500}
-            className="h-16 w-auto object-contain"
-          />
+        <Link to="/" className="flex items-center" aria-label={`${siteName} - Início`}>
+          <img src={logo} alt={siteName} width={500} height={500} className="h-16 w-auto object-contain" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-8">
@@ -43,7 +44,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <a
-            href="https://wa.me/5531999990001"
+            href={wa}
             target="_blank"
             rel="noreferrer"
             className="hidden sm:inline-flex items-center gap-2 bg-petroleum text-linen text-[11px] font-semibold uppercase tracking-[0.18em] py-3 px-5 rounded-full hover:bg-gold transition-colors duration-300"
@@ -51,12 +52,7 @@ export function Header() {
             <MessageCircle className="size-4" strokeWidth={1.5} />
             <span>Falar com Consultor</span>
           </a>
-          <button
-            type="button"
-            className="lg:hidden p-2 -mr-2 text-foreground"
-            aria-label="Abrir menu"
-            onClick={() => setOpen((v) => !v)}
-          >
+          <button type="button" className="lg:hidden p-2 -mr-2 text-foreground" aria-label="Abrir menu" onClick={() => setOpen((v) => !v)}>
             {open ? <X className="size-6" /> : <Menu className="size-6" />}
           </button>
         </div>
@@ -77,7 +73,7 @@ export function Header() {
               </Link>
             ))}
             <a
-              href="https://wa.me/5531999990001"
+              href={wa}
               target="_blank"
               rel="noreferrer"
               className="sm:hidden mt-2 inline-flex items-center gap-2 bg-petroleum text-linen text-[11px] font-semibold uppercase tracking-[0.18em] py-3 px-5 rounded-full justify-center"
