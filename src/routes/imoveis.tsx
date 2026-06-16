@@ -78,7 +78,7 @@ function Page() {
   const [buscaLocal, setBuscaLocal] = useState(search.busca ?? "");
 
   const update = (patch: Partial<Filtros>) => {
-    navigate({ search: (prev) => ({ ...prev, ...patch }) });
+    navigate({ search: (prev: Filtros) => ({ ...prev, ...patch }) });
   };
 
   return (
