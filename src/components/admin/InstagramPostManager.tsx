@@ -18,6 +18,7 @@ interface Props {
   imovelId: string;
   titulo: string;
   imagens: Imagem[];
+  signedUrls?: Record<string, string>;
 }
 
 export function InstagramPostManager({ imovelId, titulo, imagens }: Props) {
