@@ -6,8 +6,12 @@ export const Route = createFileRoute("/lancamentos")({
   head: () => ({
     meta: [
       { title: "Lançamentos — RM Prime Imóveis" },
-      { name: "description", content: "Empreendimentos exclusivos e lançamentos antecipados em Belo Horizonte." },
+      { name: "description", content: "Acesso antecipado aos principais lançamentos de alto padrão em Belo Horizonte e Nova Lima." },
+      { property: "og:title", content: "Lançamentos — RM Prime Imóveis" },
+      { property: "og:description", content: "Empreendimentos exclusivos com acesso antecipado em BH e Nova Lima." },
+      { property: "og:url", content: "/lancamentos" },
     ],
+    links: [{ rel: "canonical", href: "/lancamentos" }],
   }),
   component: Page,
 });

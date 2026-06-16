@@ -6,8 +6,12 @@ export const Route = createFileRoute("/anuncie")({
   head: () => ({
     meta: [
       { title: "Anuncie seu imóvel — RM Prime Imóveis" },
-      { name: "description", content: "Anuncie seu imóvel de alto padrão com a RM Prime. Marketing personalizado e discrição." },
+      { name: "description", content: "Anuncie seu imóvel de alto padrão com a RM Prime. Avaliação gratuita, marketing personalizado e discrição absoluta." },
+      { property: "og:title", content: "Anuncie seu imóvel — RM Prime Imóveis" },
+      { property: "og:description", content: "Avaliação e marketing personalizado para imóveis de alto padrão." },
+      { property: "og:url", content: "/anuncie" },
     ],
+    links: [{ rel: "canonical", href: "/anuncie" }],
   }),
   component: Page,
 });

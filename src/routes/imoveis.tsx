@@ -32,6 +32,16 @@ const bairrosQuery = queryOptions({
 export const Route = createFileRoute("/imoveis")({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
+  head: () => ({
+    meta: [
+      { title: "Imóveis à venda em Belo Horizonte — RM Prime" },
+      { name: "description", content: "Catálogo de imóveis de alto padrão à venda em Belo Horizonte: coberturas, casas em condomínio, apartamentos e garden em Lourdes, Belvedere e Vila da Serra." },
+      { property: "og:title", content: "Imóveis à venda em Belo Horizonte — RM Prime" },
+      { property: "og:description", content: "Catálogo exclusivo de imóveis de alto padrão em BH." },
+      { property: "og:url", content: "/imoveis" },
+    ],
+    links: [{ rel: "canonical", href: "/imoveis" }],
+  }),
   loader: async ({ context, deps }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(imoveisQuery(deps)),

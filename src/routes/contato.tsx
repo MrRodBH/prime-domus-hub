@@ -7,8 +7,12 @@ export const Route = createFileRoute("/contato")({
   head: () => ({
     meta: [
       { title: "Contato — RM Prime Imóveis" },
-      { name: "description", content: "Fale com a equipe RM Prime Imóveis em Belo Horizonte." },
+      { name: "description", content: "Fale com a equipe RM Prime Imóveis em Belo Horizonte. WhatsApp, telefone e e-mail para atendimento a clientes de alto padrão." },
+      { property: "og:title", content: "Contato — RM Prime Imóveis" },
+      { property: "og:description", content: "Atendimento consultivo para imóveis de alto padrão em Belo Horizonte." },
+      { property: "og:url", content: "/contato" },
     ],
+    links: [{ rel: "canonical", href: "/contato" }],
   }),
   component: Page,
 });
