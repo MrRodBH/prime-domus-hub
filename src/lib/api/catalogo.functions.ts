@@ -63,6 +63,32 @@ export const listarBairros = createServerFn({ method: "GET" }).handler(async () 
   return data ?? [];
 });
 
+export const obterImovel = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ slug: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const supabase = publicClient();
+    const { data: imovel, error } = await supabase
+      .from("imoveis")
+      .select(
+        `id, codigo, titulo, slug, descricao, finalidade, tipo, status, preco, preco_sob_consulta,
+         condominio, iptu, area_total, area_util, quartos, suites, banheiros, vagas, endereco,
+         badge, destaque, exclusivo, caracteristicas, imagem_capa, latitude, longitude, publicado_em,
+         bairro:bairros(id, nome, slug, cidade, estado),
+         corretor:corretores(id, nome, slug, creci, email, telefone, whatsapp, foto_url, bio),
+         imagens:imovel_imagens(id, url, alt, ordem)`,
+      )
+      .eq("slug", data.slug)
+      .eq("status", "ativo")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!imovel) return null;
+    if (imovel.imagens) {
+      imovel.imagens.sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
+    }
+    return imovel;
+  });
+
+
 export const enviarLead = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
