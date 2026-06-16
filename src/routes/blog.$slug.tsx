@@ -65,6 +65,8 @@ export const Route = createFileRoute("/blog/$slug")({
 
 function Page() {
   const post = Route.useLoaderData();
+  const cat = Array.isArray(post.categoria) ? post.categoria[0] : post.categoria;
+  const autor = Array.isArray(post.autor) ? post.autor[0] : post.autor;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -76,12 +78,12 @@ function Page() {
           </div>
         )}
         <article className="max-w-3xl mx-auto px-6 py-16 lg:py-24">
-          {post.categoria?.nome && <span className="eyebrow text-gold">{post.categoria.nome}</span>}
+          {cat?.nome && <span className="eyebrow text-gold">{cat.nome}</span>}
           <h1 className="font-display text-4xl md:text-5xl mt-4 mb-4">{post.titulo}</h1>
           {post.publicado_em && (
             <p className="text-sm text-muted-foreground mb-8">
               {new Date(post.publicado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-              {post.autor?.nome && <> · por {post.autor.nome}</>}
+              {autor?.nome && <> · por {autor.nome}</>}
             </p>
           )}
           {post.resumo && <p className="text-xl text-foreground/80 leading-relaxed mb-10">{post.resumo}</p>}
