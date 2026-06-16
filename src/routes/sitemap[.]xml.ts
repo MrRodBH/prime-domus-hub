@@ -43,6 +43,18 @@ export const Route = createFileRoute("/sitemap.xml")({
               priority: "0.8",
             });
           }
+          const { data: posts } = await supabase
+            .from("blog_posts")
+            .select("slug, updated_at")
+            .eq("status", "publicado");
+          for (const row of posts ?? []) {
+            entries.push({
+              path: `/blog/${row.slug}`,
+              lastmod: row.updated_at?.slice(0, 10),
+              changefreq: "monthly",
+              priority: "0.6",
+            });
+          }
         } catch {
           // se faltar config, ainda retornamos rotas estáticas
         }

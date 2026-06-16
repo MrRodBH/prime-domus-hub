@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo-rm-prime.png";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean }> = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
+  { to: "/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/admin/corretores", label: "Corretores", icon: Users },
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
   { to: "/admin/leads", label: "Leads", icon: Inbox },

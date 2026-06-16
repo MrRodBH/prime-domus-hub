@@ -56,6 +56,105 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_categorias: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          autor_id: string | null
+          categoria_id: string | null
+          conteudo: string
+          created_at: string
+          id: string
+          imagem_capa: string | null
+          meta_description: string | null
+          meta_title: string | null
+          publicado_em: string | null
+          resumo: string | null
+          slug: string
+          status: Database["public"]["Enums"]["blog_post_status"]
+          titulo: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          autor_id?: string | null
+          categoria_id?: string | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          imagem_capa?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          publicado_em?: string | null
+          resumo?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["blog_post_status"]
+          titulo: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          autor_id?: string | null
+          categoria_id?: string | null
+          conteudo?: string
+          created_at?: string
+          id?: string
+          imagem_capa?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          publicado_em?: string | null
+          resumo?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["blog_post_status"]
+          titulo?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "corretores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "blog_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corretores: {
         Row: {
           ativo: boolean
@@ -376,6 +475,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "corretor"
+      blog_post_status: "rascunho" | "publicado"
       imovel_finalidade: "venda" | "aluguel" | "lancamento"
       imovel_status: "rascunho" | "ativo" | "vendido" | "reservado" | "inativo"
       imovel_tipo:
@@ -514,6 +614,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "corretor"],
+      blog_post_status: ["rascunho", "publicado"],
       imovel_finalidade: ["venda", "aluguel", "lancamento"],
       imovel_status: ["rascunho", "ativo", "vendido", "reservado", "inativo"],
       imovel_tipo: [
