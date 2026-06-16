@@ -20,6 +20,14 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
+import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
+import { Route as AuthenticatedAdminImoveisRouteImport } from './routes/_authenticated.admin.imoveis'
+import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
+import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
+import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
+import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authenticated.admin.imoveis.$id'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
@@ -75,6 +83,51 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
+  id: '/site',
+  path: '/site',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminImoveisRoute =
+  AuthenticatedAdminImoveisRouteImport.update({
+    id: '/imoveis',
+    path: '/imoveis',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCorretoresRoute =
+  AuthenticatedAdminCorretoresRouteImport.update({
+    id: '/corretores',
+    path: '/corretores',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminBairrosRoute =
+  AuthenticatedAdminBairrosRouteImport.update({
+    id: '/bairros',
+    path: '/bairros',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminImoveisNovoRoute =
+  AuthenticatedAdminImoveisNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AuthenticatedAdminImoveisRoute,
+  } as any)
+const AuthenticatedAdminImoveisIdRoute =
+  AuthenticatedAdminImoveisIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminImoveisRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -85,8 +138,16 @@ export interface FileRoutesByFullPath {
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sobre': typeof SobreRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
+  '/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
+  '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
+  '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -97,8 +158,15 @@ export interface FileRoutesByTo {
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sobre': typeof SobreRoute
-  '/admin': typeof AuthenticatedAdminRoute
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
+  '/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
+  '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
+  '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -111,8 +179,16 @@ export interface FileRoutesById {
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
   '/sobre': typeof SobreRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/_authenticated/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
+  '/_authenticated/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
+  '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
+  '/_authenticated/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +203,14 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/admin'
     | '/imovel/$slug'
+    | '/admin/bairros'
+    | '/admin/corretores'
+    | '/admin/imoveis'
+    | '/admin/leads'
+    | '/admin/site'
+    | '/admin/'
+    | '/admin/imoveis/$id'
+    | '/admin/imoveis/novo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -137,8 +221,15 @@ export interface FileRouteTypes {
     | '/imoveis'
     | '/lancamentos'
     | '/sobre'
-    | '/admin'
     | '/imovel/$slug'
+    | '/admin/bairros'
+    | '/admin/corretores'
+    | '/admin/imoveis'
+    | '/admin/leads'
+    | '/admin/site'
+    | '/admin'
+    | '/admin/imoveis/$id'
+    | '/admin/imoveis/novo'
   id:
     | '__root__'
     | '/'
@@ -152,6 +243,14 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/_authenticated/admin'
     | '/imovel/$slug'
+    | '/_authenticated/admin/bairros'
+    | '/_authenticated/admin/corretores'
+    | '/_authenticated/admin/imoveis'
+    | '/_authenticated/admin/leads'
+    | '/_authenticated/admin/site'
+    | '/_authenticated/admin/'
+    | '/_authenticated/admin/imoveis/$id'
+    | '/_authenticated/admin/imoveis/novo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -246,15 +345,108 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/site': {
+      id: '/_authenticated/admin/site'
+      path: '/site'
+      fullPath: '/admin/site'
+      preLoaderRoute: typeof AuthenticatedAdminSiteRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/leads': {
+      id: '/_authenticated/admin/leads'
+      path: '/leads'
+      fullPath: '/admin/leads'
+      preLoaderRoute: typeof AuthenticatedAdminLeadsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/imoveis': {
+      id: '/_authenticated/admin/imoveis'
+      path: '/imoveis'
+      fullPath: '/admin/imoveis'
+      preLoaderRoute: typeof AuthenticatedAdminImoveisRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/corretores': {
+      id: '/_authenticated/admin/corretores'
+      path: '/corretores'
+      fullPath: '/admin/corretores'
+      preLoaderRoute: typeof AuthenticatedAdminCorretoresRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/bairros': {
+      id: '/_authenticated/admin/bairros'
+      path: '/bairros'
+      fullPath: '/admin/bairros'
+      preLoaderRoute: typeof AuthenticatedAdminBairrosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/imoveis/novo': {
+      id: '/_authenticated/admin/imoveis/novo'
+      path: '/novo'
+      fullPath: '/admin/imoveis/novo'
+      preLoaderRoute: typeof AuthenticatedAdminImoveisNovoRouteImport
+      parentRoute: typeof AuthenticatedAdminImoveisRoute
+    }
+    '/_authenticated/admin/imoveis/$id': {
+      id: '/_authenticated/admin/imoveis/$id'
+      path: '/$id'
+      fullPath: '/admin/imoveis/$id'
+      preLoaderRoute: typeof AuthenticatedAdminImoveisIdRouteImport
+      parentRoute: typeof AuthenticatedAdminImoveisRoute
+    }
   }
 }
 
+interface AuthenticatedAdminImoveisRouteChildren {
+  AuthenticatedAdminImoveisIdRoute: typeof AuthenticatedAdminImoveisIdRoute
+  AuthenticatedAdminImoveisNovoRoute: typeof AuthenticatedAdminImoveisNovoRoute
+}
+
+const AuthenticatedAdminImoveisRouteChildren: AuthenticatedAdminImoveisRouteChildren =
+  {
+    AuthenticatedAdminImoveisIdRoute: AuthenticatedAdminImoveisIdRoute,
+    AuthenticatedAdminImoveisNovoRoute: AuthenticatedAdminImoveisNovoRoute,
+  }
+
+const AuthenticatedAdminImoveisRouteWithChildren =
+  AuthenticatedAdminImoveisRoute._addFileChildren(
+    AuthenticatedAdminImoveisRouteChildren,
+  )
+
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminBairrosRoute: typeof AuthenticatedAdminBairrosRoute
+  AuthenticatedAdminCorretoresRoute: typeof AuthenticatedAdminCorretoresRoute
+  AuthenticatedAdminImoveisRoute: typeof AuthenticatedAdminImoveisRouteWithChildren
+  AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
+  AuthenticatedAdminSiteRoute: typeof AuthenticatedAdminSiteRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminBairrosRoute: AuthenticatedAdminBairrosRoute,
+  AuthenticatedAdminCorretoresRoute: AuthenticatedAdminCorretoresRoute,
+  AuthenticatedAdminImoveisRoute: AuthenticatedAdminImoveisRouteWithChildren,
+  AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
+  AuthenticatedAdminSiteRoute: AuthenticatedAdminSiteRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
