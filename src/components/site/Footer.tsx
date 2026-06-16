@@ -1,17 +1,35 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Instagram, Facebook, Linkedin, ArrowUpRight } from "lucide-react";
 import logo from "@/assets/logo-rm-prime.png";
+import { obterSiteSettings } from "@/lib/api/site.functions";
+
+function normalizeInstagram(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const handle = trimmed.replace(/^@/, "").replace(/^instagram\.com\//i, "");
+  return `https://instagram.com/${handle}`;
+}
 
 export function Footer() {
+  const { data: site } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: () => obterSiteSettings(),
+  });
+
+  const instagramUrl = normalizeInstagram(site?.contato?.instagram);
+
   return (
     <footer className="bg-secondary/60 pt-24 pb-12 border-t border-foreground/5">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-16 mb-20">
-          <div className="flex flex-col items-center text-center">
-            <Link to="/" className="inline-flex items-center justify-center mb-6" aria-label="RM Prime Imóveis - Início">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-16 mb-20 items-start">
+          <div className="flex flex-col items-center text-center h-full">
+            <Link to="/" className="inline-flex items-center justify-center" aria-label="RM Prime Imóveis - Início">
               <img src={logo} alt="RM Prime Imóveis" width={500} height={500} className="h-[6.6rem] w-auto object-contain" />
             </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-[32ch]">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-[32ch] mt-auto pt-6">
               Conectando você ao seu melhor imóvel. Especialistas no mercado de alto padrão em
               Belo Horizonte e região metropolitana.
             </p>
@@ -54,16 +72,31 @@ export function Footer() {
             </form>
 
             <div className="flex gap-3 mt-8">
-              {[Instagram, Facebook, Linkedin].map((Icon, i) => (
+              {instagramUrl && (
                 <a
-                  key={i}
-                  href="#"
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="size-9 rounded-full border border-foreground/15 grid place-items-center text-foreground/60 hover:bg-petroleum hover:text-linen hover:border-petroleum transition-colors"
-                  aria-label="Social"
+                  aria-label="Instagram"
                 >
-                  <Icon className="size-4" strokeWidth={1.5} />
+                  <Instagram className="size-4" strokeWidth={1.5} />
                 </a>
-              ))}
+              )}
+              <a
+                href="#"
+                className="size-9 rounded-full border border-foreground/15 grid place-items-center text-foreground/60 hover:bg-petroleum hover:text-linen hover:border-petroleum transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook className="size-4" strokeWidth={1.5} />
+              </a>
+              <a
+                href="#"
+                className="size-9 rounded-full border border-foreground/15 grid place-items-center text-foreground/60 hover:bg-petroleum hover:text-linen hover:border-petroleum transition-colors"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="size-4" strokeWidth={1.5} />
+              </a>
             </div>
           </div>
         </div>
