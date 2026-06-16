@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Search, ArrowRight, MapPin, BedDouble, Maximize2, Car, ChevronRight, Quote } from "lucide-react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { obterSiteSettings } from "@/lib/api/site.functions";
 import heroImg from "@/assets/hero.jpg";
 import p1 from "@/assets/property-1.jpg";
 import p2 from "@/assets/property-2.jpg";
@@ -103,28 +105,33 @@ const testimonials = [
 ];
 
 function Home() {
+  const { data: site } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings(), staleTime: 5 * 60 * 1000 });
+  const hero = site?.home_hero ?? {};
+  const titleLines: string[] = hero.title_lines && hero.title_lines.length > 0
+    ? hero.title_lines
+    : ["A curadoria do", "extraordinário em BH."];
+  const eyebrow = hero.eyebrow || "RM Prime Imóveis";
+  const subtitle = hero.subtitle || "";
+  const ctaPrimary = hero.cta_primary || "Encontrar imóvel";
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
       {/* HERO */}
       <section className="relative h-[92vh] min-h-[640px] flex items-end pb-16 md:pb-20 overflow-hidden">
-        <img
-          src={heroImg}
-          alt="Cobertura de alto padrão em Belo Horizonte ao entardecer"
-          width={1920}
-          height={1080}
-          fetchPriority="high"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        <img src={heroImg} alt="Cobertura de alto padrão em Belo Horizonte ao entardecer" width={1920} height={1080} fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-petroleum/80 via-petroleum/30 to-petroleum/10" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
           <div className="max-w-3xl animate-reveal">
-            <span className="eyebrow !text-tiffany">RM Prime Imóveis</span>
-            <h1 className="font-display text-5xl md:text-7xl text-linen leading-[1.05] mt-5 mb-8 text-balance">
-              A curadoria do <em className="text-gold not-italic font-medium">extraordinário</em> em Belo Horizonte.
+            <span className="eyebrow !text-tiffany">{eyebrow}</span>
+            <h1 className="font-display text-5xl md:text-7xl text-linen leading-[1.05] mt-5 mb-6 text-balance">
+              {titleLines.map((line, i) => (
+                <span key={i} className="block">{line}</span>
+              ))}
             </h1>
+            {subtitle && <p className="text-linen/80 text-lg max-w-2xl mb-8">{subtitle}</p>}
           </div>
 
           {/* Search */}
