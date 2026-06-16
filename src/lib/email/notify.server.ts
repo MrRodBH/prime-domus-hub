@@ -1,5 +1,5 @@
 import * as React from "react";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { createClient } from "@supabase/supabase-js";
 import { TEMPLATES } from "@/lib/email-templates/registry";
 
@@ -71,8 +71,8 @@ export async function enqueueTransactional(args: {
   }
 
   const element = React.createElement(tpl.component, templateData);
-  const html = await renderAsync(element);
-  const text = await renderAsync(element, { plainText: true });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
   const subject =
     typeof tpl.subject === "function" ? tpl.subject(templateData) : tpl.subject;
 
