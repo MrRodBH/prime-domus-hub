@@ -24,9 +24,9 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-foreground/5">
-      <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between gap-8">
+      <div className="max-w-7xl mx-auto px-6 h-32 flex items-center justify-between gap-8">
         <Link to="/" className="flex items-center" aria-label={`${siteName} - Início`}>
-          <img src={logo} alt={siteName} width={500} height={500} className="h-16 w-auto object-contain" />
+          <img src={logo} alt={siteName} width={500} height={500} className="h-24 md:h-28 w-auto object-contain" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-8">
