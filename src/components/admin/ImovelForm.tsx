@@ -14,10 +14,12 @@ import {
   adminRemoverImagem,
   adminAssinarUrl,
 } from "@/lib/api/admin.functions";
+import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Sparkles } from "lucide-react";
 import { useEffect } from "react";
+
 
 type Imagem = { id: string; url: string; alt?: string | null; ordem: number };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,6 +68,37 @@ export function ImovelForm({ initial }: Props) {
   const [imagens, setImagens] = useState<Imagem[]>(initial?.imagens ?? []);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+  const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
+
+  const gerarIA = useMutation({
+    mutationFn: () => {
+      const bairroNome = bairros.data?.find((b) => b.id === form.bairro_id)?.nome ?? "";
+      return gerarDescricaoImovel({
+        data: {
+          titulo: form.titulo,
+          tipo: form.tipo,
+          finalidade: form.finalidade,
+          bairro: bairroNome,
+          endereco: form.endereco,
+          quartos: form.quartos,
+          suites: form.suites,
+          banheiros: form.banheiros,
+          vagas: form.vagas,
+          area_util: form.area_util,
+          area_total: form.area_total,
+          preco: form.preco,
+          preco_sob_consulta: form.preco_sob_consulta,
+          caracteristicas: caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean),
+          tom: tomIA,
+        },
+      });
+    },
+    onSuccess: (r) => {
+      setForm((f) => ({ ...f, descricao: r.descricao }));
+      toast.success("Descrição gerada com IA");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   // Assina URLs para preview das imagens existentes
   useEffect(() => {
@@ -160,7 +193,27 @@ export function ImovelForm({ initial }: Props) {
           <div><Label>Código *</Label><Input required value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} /></div>
           <div><Label>Slug (URL) *</Label><Input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></div>
           <div className="md:col-span-2"><Label>Título *</Label><Input required value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} /></div>
-          <div className="md:col-span-2"><Label>Descrição</Label><Textarea rows={4} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
+          <div className="md:col-span-2">
+            <div className="flex items-end justify-between gap-2 mb-1">
+              <Label>Descrição</Label>
+              <div className="flex items-center gap-2">
+                <Select value={tomIA} onValueChange={(v) => setTomIA(v as typeof tomIA)}>
+                  <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sofisticado">Tom sofisticado</SelectItem>
+                    <SelectItem value="objetivo">Tom objetivo</SelectItem>
+                    <SelectItem value="acolhedor">Tom acolhedor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button type="button" size="sm" variant="outline" onClick={() => gerarIA.mutate()} disabled={gerarIA.isPending}>
+                  <Sparkles className="size-3.5 mr-1.5" />
+                  {gerarIA.isPending ? "Gerando…" : "Gerar com IA"}
+                </Button>
+              </div>
+            </div>
+            <Textarea rows={6} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+            <p className="text-xs text-muted-foreground mt-1">A IA usa os campos preenchidos abaixo (tipo, bairro, quartos, área, preço, características).</p>
+          </div>
           <div>
             <Label>Finalidade</Label>
             <Select value={form.finalidade} onValueChange={(v) => setForm({ ...form, finalidade: v })}>
