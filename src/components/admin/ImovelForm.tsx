@@ -278,6 +278,33 @@ export function ImovelForm({ initial }: Props) {
       </div>
 
       <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+        <h2 className="font-display text-lg">Tour virtual e vídeo</h2>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Cole a URL pública. Suportado: YouTube, Vimeo, Matterport, Kuula (ou qualquer URL de embed).
+        </p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <Label>URL do vídeo</Label>
+            <Input
+              type="url"
+              placeholder="https://youtube.com/watch?v=..."
+              value={form.video_url}
+              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>URL do tour 360°</Label>
+            <Input
+              type="url"
+              placeholder="https://my.matterport.com/show/?m=..."
+              value={form.tour_url}
+              onChange={(e) => setForm({ ...form, tour_url: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-display text-lg">Galeria de imagens</h2>
         {!form.id && <p className="text-sm text-muted-foreground">Salve o imóvel para começar a enviar imagens.</p>}
         {form.id && (
