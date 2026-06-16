@@ -175,7 +175,8 @@ function Page() {
                   : (p.bairro as { nome?: string } | null)?.nome;
                 return (
                   <Link
-                    to="/imoveis"
+                    to="/imovel/$slug"
+                    params={{ slug: p.slug }}
                     key={p.id}
                     className="group block"
                     aria-label={p.titulo}
