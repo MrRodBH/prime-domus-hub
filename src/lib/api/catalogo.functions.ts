@@ -50,7 +50,16 @@ export const listarImoveis = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    const list = rows ?? [];
+    // Resolve signed URLs para imagens armazenadas no bucket "imoveis"
+    for (const r of list) {
+      const row = r as { imagem_capa?: string | null };
+      if (row.imagem_capa && !row.imagem_capa.startsWith("http")) {
+        const { data: s } = await supabase.storage.from("imoveis").createSignedUrl(row.imagem_capa, 60 * 60 * 24 * 365);
+        if (s) row.imagem_capa = s.signedUrl;
+      }
+    }
+    return list;
   });
 
 export const listarBairros = createServerFn({ method: "GET" }).handler(async () => {
