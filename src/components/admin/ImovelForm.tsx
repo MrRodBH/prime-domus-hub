@@ -88,7 +88,7 @@ export function ImovelForm({ initial }: Props) {
           area_total: form.area_total,
           preco: form.preco,
           preco_sob_consulta: form.preco_sob_consulta,
-          caracteristicas: caracTxt.split(",").map((s) => s.trim()).filter(Boolean),
+          caracteristicas: caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean),
           tom: tomIA,
         },
       });
