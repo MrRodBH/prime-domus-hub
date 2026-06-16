@@ -10,6 +10,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { obterImovel, enviarLead } from "@/lib/api/catalogo.functions";
 import { imovelImage, formatPreco } from "@/lib/property-images";
+import { toEmbedUrl } from "@/lib/embed-url";
 
 const imovelQuery = (slug: string) =>
   queryOptions({
