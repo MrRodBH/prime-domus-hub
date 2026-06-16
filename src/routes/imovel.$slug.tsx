@@ -10,6 +10,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { obterImovel, enviarLead } from "@/lib/api/catalogo.functions";
 import { imovelImage, formatPreco } from "@/lib/property-images";
+import { toEmbedUrl } from "@/lib/embed-url";
 
 const imovelQuery = (slug: string) =>
   queryOptions({
@@ -193,6 +194,13 @@ function Page() {
               </section>
             )}
 
+            <MediaEmbed
+              tourUrl={(imovel as { tour_url?: string | null }).tour_url ?? null}
+              videoUrl={(imovel as { video_url?: string | null }).video_url ?? null}
+            />
+
+
+
             {/* Mapa */}
             <section className="mt-12">
               <span className="eyebrow">Localização</span>
@@ -286,6 +294,50 @@ function Galeria({ imagens, titulo }: { imagens: string[]; titulo: string }) {
               <img src={src} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MediaEmbed({ tourUrl, videoUrl }: { tourUrl: string | null; videoUrl: string | null }) {
+  const tour = toEmbedUrl(tourUrl);
+  const video = toEmbedUrl(videoUrl);
+  if (!tour && !video) return null;
+  return (
+    <section className="mt-12 space-y-10">
+      {tour && (
+        <div>
+          <span className="eyebrow">Visita imersiva</span>
+          <h2 className="font-display text-3xl mt-3 mb-5">Tour virtual 360°</h2>
+          <div className="aspect-[16/9] rounded overflow-hidden border border-foreground/10 bg-muted">
+            <iframe
+              title="Tour virtual 360°"
+              src={tour}
+              loading="lazy"
+              allow="xr-spatial-tracking; gyroscope; accelerometer; fullscreen"
+              allowFullScreen
+              className="w-full h-full"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      )}
+      {video && (
+        <div>
+          <span className="eyebrow">Em movimento</span>
+          <h2 className="font-display text-3xl mt-3 mb-5">Vídeo do imóvel</h2>
+          <div className="aspect-video rounded overflow-hidden border border-foreground/10 bg-muted">
+            <iframe
+              title="Vídeo do imóvel"
+              src={video}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              className="w-full h-full"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
         </div>
       )}
     </section>

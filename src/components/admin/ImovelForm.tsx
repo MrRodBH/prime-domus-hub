@@ -62,6 +62,8 @@ export function ImovelForm({ initial }: Props) {
     imagem_capa: initial?.imagem_capa ?? "",
     latitude: initial?.latitude ?? null,
     longitude: initial?.longitude ?? null,
+    video_url: initial?.video_url ?? "",
+    tour_url: initial?.tour_url ?? "",
   });
 
   const [caracTxt, setCaracTxt] = useState((initial?.caracteristicas ?? []).join(", "));
@@ -272,6 +274,33 @@ export function ImovelForm({ initial }: Props) {
             <div className="flex items-center gap-2"><Switch checked={form.exclusivo} onCheckedChange={(v) => setForm({ ...form, exclusivo: v })} /><Label>Exclusivo</Label></div>
           </div>
           <div className="md:col-span-2"><Label>Características (separadas por vírgula)</Label><Textarea rows={2} value={caracTxt} onChange={(e) => setCaracTxt(e.target.value)} /></div>
+        </div>
+      </div>
+
+      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+        <h2 className="font-display text-lg">Tour virtual e vídeo</h2>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Cole a URL pública. Suportado: YouTube, Vimeo, Matterport, Kuula (ou qualquer URL de embed).
+        </p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <Label>URL do vídeo</Label>
+            <Input
+              type="url"
+              placeholder="https://youtube.com/watch?v=..."
+              value={form.video_url}
+              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>URL do tour 360°</Label>
+            <Input
+              type="url"
+              placeholder="https://my.matterport.com/show/?m=..."
+              value={form.tour_url}
+              onChange={(e) => setForm({ ...form, tour_url: e.target.value })}
+            />
+          </div>
         </div>
       </div>
 
