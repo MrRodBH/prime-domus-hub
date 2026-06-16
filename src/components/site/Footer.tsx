@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Instagram, Facebook, Linkedin, ArrowUpRight } from "lucide-react";
+import logo from "@/assets/logo-rm-prime.png";
 
 export function Footer() {
   return (
@@ -7,14 +8,8 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-16 mb-20">
           <div>
-            <Link to="/" className="flex flex-col leading-none mb-6">
-              <span className="font-display text-3xl tracking-tight">
-                <span className="text-petroleum">RM</span>
-                <span className="text-gold ml-1">PRIME</span>
-              </span>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.4em] text-muted-foreground mt-1">
-                Imóveis
-              </span>
+            <Link to="/" className="inline-flex items-center mb-6" aria-label="RM Prime Imóveis - Início">
+              <img src={logo} alt="RM Prime Imóveis" width={500} height={500} className="h-24 w-auto object-contain" />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-[32ch]">
               Conectando você ao seu melhor imóvel. Especialistas no mercado de alto padrão em

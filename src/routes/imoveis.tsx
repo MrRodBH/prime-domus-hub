@@ -128,7 +128,7 @@ function Page() {
           <div className="max-w-7xl mx-auto px-6 py-16 md:py-20">
             <span className="eyebrow">Catálogo</span>
             <h1 className="font-display text-4xl md:text-5xl mt-4 mb-3 leading-[1.05] text-balance">
-              Imóveis em curadoria
+              Imóveis em destaque
             </h1>
             <p className="text-muted-foreground max-w-2xl">
               {imoveis.length} {imoveis.length === 1 ? "imóvel encontrado" : "imóveis encontrados"} para
