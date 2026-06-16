@@ -164,7 +164,7 @@ function Home() {
             </div>
             <button className="bg-petroleum hover:bg-gold transition-colors text-linen px-8 py-4 rounded font-medium text-sm inline-flex items-center justify-center gap-2 uppercase tracking-[0.18em]">
               <Search className="size-4" strokeWidth={1.5} />
-              Encontrar imóvel
+              {ctaPrimary}
             </button>
           </div>
         </div>
