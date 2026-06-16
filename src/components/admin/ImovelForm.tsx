@@ -14,10 +14,12 @@ import {
   adminRemoverImagem,
   adminAssinarUrl,
 } from "@/lib/api/admin.functions";
+import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2, Upload, Sparkles } from "lucide-react";
 import { useEffect } from "react";
+import { Select as SelectTom, SelectContent as SelectTomContent, SelectItem as SelectTomItem, SelectTrigger as SelectTomTrigger, SelectValue as SelectTomValue } from "@/components/ui/select";
 
 type Imagem = { id: string; url: string; alt?: string | null; ordem: number };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
