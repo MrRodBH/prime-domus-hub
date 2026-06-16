@@ -68,6 +68,37 @@ export function ImovelForm({ initial }: Props) {
   const [imagens, setImagens] = useState<Imagem[]>(initial?.imagens ?? []);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+  const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
+
+  const gerarIA = useMutation({
+    mutationFn: () => {
+      const bairroNome = bairros.data?.find((b) => b.id === form.bairro_id)?.nome ?? "";
+      return gerarDescricaoImovel({
+        data: {
+          titulo: form.titulo,
+          tipo: form.tipo,
+          finalidade: form.finalidade,
+          bairro: bairroNome,
+          endereco: form.endereco,
+          quartos: form.quartos,
+          suites: form.suites,
+          banheiros: form.banheiros,
+          vagas: form.vagas,
+          area_util: form.area_util,
+          area_total: form.area_total,
+          preco: form.preco,
+          preco_sob_consulta: form.preco_sob_consulta,
+          caracteristicas: caracTxt.split(",").map((s) => s.trim()).filter(Boolean),
+          tom: tomIA,
+        },
+      });
+    },
+    onSuccess: (r) => {
+      setForm((f) => ({ ...f, descricao: r.descricao }));
+      toast.success("Descrição gerada com IA");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   // Assina URLs para preview das imagens existentes
   useEffect(() => {
