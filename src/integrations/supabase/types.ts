@@ -14,16 +14,357 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bairros: {
+        Row: {
+          cidade: string
+          created_at: string
+          descricao: string | null
+          destaque: boolean
+          estado: string
+          id: string
+          imagem_url: string | null
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          cidade?: string
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          estado?: string
+          id?: string
+          imagem_url?: string | null
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          cidade?: string
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          estado?: string
+          id?: string
+          imagem_url?: string | null
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      corretores: {
+        Row: {
+          ativo: boolean
+          bio: string | null
+          created_at: string
+          creci: string | null
+          email: string | null
+          foto_url: string | null
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          telefone: string | null
+          updated_at: string
+          user_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          bio?: string | null
+          created_at?: string
+          creci?: string | null
+          email?: string | null
+          foto_url?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          bio?: string | null
+          created_at?: string
+          creci?: string | null
+          email?: string | null
+          foto_url?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      imoveis: {
+        Row: {
+          area_total: number | null
+          area_util: number | null
+          badge: string | null
+          bairro_id: string | null
+          banheiros: number | null
+          caracteristicas: string[] | null
+          codigo: string | null
+          condominio: number | null
+          corretor_id: string | null
+          created_at: string
+          descricao: string | null
+          destaque: boolean
+          endereco: string | null
+          exclusivo: boolean
+          finalidade: Database["public"]["Enums"]["imovel_finalidade"]
+          id: string
+          imagem_capa: string | null
+          iptu: number | null
+          latitude: number | null
+          longitude: number | null
+          preco: number | null
+          preco_sob_consulta: boolean
+          publicado_em: string | null
+          quartos: number | null
+          slug: string
+          status: Database["public"]["Enums"]["imovel_status"]
+          suites: number | null
+          tipo: Database["public"]["Enums"]["imovel_tipo"]
+          titulo: string
+          updated_at: string
+          vagas: number | null
+          views: number
+        }
+        Insert: {
+          area_total?: number | null
+          area_util?: number | null
+          badge?: string | null
+          bairro_id?: string | null
+          banheiros?: number | null
+          caracteristicas?: string[] | null
+          codigo?: string | null
+          condominio?: number | null
+          corretor_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          endereco?: string | null
+          exclusivo?: boolean
+          finalidade?: Database["public"]["Enums"]["imovel_finalidade"]
+          id?: string
+          imagem_capa?: string | null
+          iptu?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          preco?: number | null
+          preco_sob_consulta?: boolean
+          publicado_em?: string | null
+          quartos?: number | null
+          slug: string
+          status?: Database["public"]["Enums"]["imovel_status"]
+          suites?: number | null
+          tipo?: Database["public"]["Enums"]["imovel_tipo"]
+          titulo: string
+          updated_at?: string
+          vagas?: number | null
+          views?: number
+        }
+        Update: {
+          area_total?: number | null
+          area_util?: number | null
+          badge?: string | null
+          bairro_id?: string | null
+          banheiros?: number | null
+          caracteristicas?: string[] | null
+          codigo?: string | null
+          condominio?: number | null
+          corretor_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          endereco?: string | null
+          exclusivo?: boolean
+          finalidade?: Database["public"]["Enums"]["imovel_finalidade"]
+          id?: string
+          imagem_capa?: string | null
+          iptu?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          preco?: number | null
+          preco_sob_consulta?: boolean
+          publicado_em?: string | null
+          quartos?: number | null
+          slug?: string
+          status?: Database["public"]["Enums"]["imovel_status"]
+          suites?: number | null
+          tipo?: Database["public"]["Enums"]["imovel_tipo"]
+          titulo?: string
+          updated_at?: string
+          vagas?: number | null
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imoveis_bairro_id_fkey"
+            columns: ["bairro_id"]
+            isOneToOne: false
+            referencedRelation: "bairros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imoveis_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "corretores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imovel_imagens: {
+        Row: {
+          alt: string | null
+          created_at: string
+          id: string
+          imovel_id: string
+          ordem: number
+          url: string
+        }
+        Insert: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          imovel_id: string
+          ordem?: number
+          url: string
+        }
+        Update: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          imovel_id?: string
+          ordem?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imovel_imagens_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          corretor_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          imovel_id: string | null
+          mensagem: string | null
+          nome: string
+          origem: string | null
+          status: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          corretor_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          imovel_id?: string | null
+          mensagem?: string | null
+          nome: string
+          origem?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          corretor_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          imovel_id?: string | null
+          mensagem?: string | null
+          nome?: string
+          origem?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "corretores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "corretor"
+      imovel_finalidade: "venda" | "aluguel" | "lancamento"
+      imovel_status: "rascunho" | "ativo" | "vendido" | "reservado" | "inativo"
+      imovel_tipo:
+        | "apartamento"
+        | "cobertura"
+        | "casa"
+        | "casa_condominio"
+        | "terreno"
+        | "comercial"
+        | "garden"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +491,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "corretor"],
+      imovel_finalidade: ["venda", "aluguel", "lancamento"],
+      imovel_status: ["rascunho", "ativo", "vendido", "reservado", "inativo"],
+      imovel_tipo: [
+        "apartamento",
+        "cobertura",
+        "casa",
+        "casa_condominio",
+        "terreno",
+        "comercial",
+        "garden",
+      ],
+    },
   },
 } as const
