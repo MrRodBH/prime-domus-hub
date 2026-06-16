@@ -21,7 +21,7 @@ interface Props {
   signedUrls?: Record<string, string>;
 }
 
-export function InstagramPostManager({ imovelId, titulo, imagens }: Props) {
+export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {} }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [tom, setTom] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
