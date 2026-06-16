@@ -94,6 +94,8 @@ const imovelSchema = z.object({
   imagem_capa: z.string().nullable().optional(),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
+  video_url: z.string().url().nullable().optional().or(z.literal("")),
+  tour_url: z.string().url().nullable().optional().or(z.literal("")),
 });
 
 export const adminListarImoveis = createServerFn({ method: "GET" })
