@@ -454,6 +454,56 @@ export type Database = {
           },
         ]
       }
+      instagram_posts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          hashtags: string
+          id: string
+          imagem_ids: string[]
+          imovel_id: string
+          legenda: string
+          modelo_ia: string | null
+          publicado_em: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          hashtags?: string
+          id?: string
+          imagem_ids?: string[]
+          imovel_id: string
+          legenda?: string
+          modelo_ia?: string | null
+          publicado_em?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          hashtags?: string
+          id?: string
+          imagem_ids?: string[]
+          imovel_id?: string
+          legenda?: string
+          modelo_ia?: string | null
+          publicado_em?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_posts_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           corretor_id: string | null
