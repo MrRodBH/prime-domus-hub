@@ -1,0 +1,82 @@
+import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo-rm-prime.png";
+import { Button } from "@/components/ui/button";
+
+const nav = [
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
+  { to: "/admin/corretores", label: "Corretores", icon: Users },
+  { to: "/admin/bairros", label: "Bairros", icon: MapPin },
+  { to: "/admin/leads", label: "Leads", icon: Inbox },
+  { to: "/admin/site", label: "Site & Branding", icon: Settings },
+] as const;
+
+export function AdminShell() {
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+
+  const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + "/"));
+
+  return (
+    <div className="min-h-screen flex bg-secondary/30">
+      {/* Sidebar */}
+      <aside className={`${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 fixed lg:sticky top-0 left-0 z-40 w-64 h-screen bg-card border-r border-foreground/5 flex flex-col transition-transform`}>
+        <div className="h-20 flex items-center px-6 border-b border-foreground/5">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={logo} alt="" className="h-9 w-auto" />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Admin</span>
+          </Link>
+        </div>
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {nav.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.to, item.exact);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                  active ? "bg-petroleum text-linen" : "text-foreground/70 hover:bg-foreground/5"
+                }`}
+              >
+                <Icon className="size-4" strokeWidth={1.5} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t border-foreground/5">
+          <Button variant="ghost" className="w-full justify-start gap-2" onClick={signOut}>
+            <LogOut className="size-4" /> Sair
+          </Button>
+        </div>
+      </aside>
+
+      {open && <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="h-16 bg-card border-b border-foreground/5 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-20">
+          <button className="lg:hidden p-2" onClick={() => setOpen(!open)} aria-label="Menu">
+            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+          <Link to="/" className="text-xs text-muted-foreground hover:text-foreground ml-auto">
+            ↗ Ver site
+          </Link>
+        </header>
+        <main className="flex-1 p-4 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
