@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
 import { Route as AuthenticatedAdminImoveisRouteImport } from './routes/_authenticated.admin.imoveis'
@@ -88,6 +89,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
+  id: '/api/public/bootstrap-admin',
+  path: '/api/public/bootstrap-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
   id: '/site',
   path: '/site',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/imoveis': typeof AuthenticatedAdminImoveisRouteWithChildren
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/_authenticated/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis'
     | '/admin/leads'
     | '/admin/site'
+    | '/api/public/bootstrap-admin'
     | '/admin/'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis'
     | '/admin/leads'
     | '/admin/site'
+    | '/api/public/bootstrap-admin'
     | '/admin'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/imoveis'
     | '/_authenticated/admin/leads'
     | '/_authenticated/admin/site'
+    | '/api/public/bootstrap-admin'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/imoveis/$id'
     | '/_authenticated/admin/imoveis/novo'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   LancamentosRoute: typeof LancamentosRoute
   SobreRoute: typeof SobreRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
+  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -351,6 +364,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/api/public/bootstrap-admin': {
+      id: '/api/public/bootstrap-admin'
+      path: '/api/public/bootstrap-admin'
+      fullPath: '/api/public/bootstrap-admin'
+      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/site': {
       id: '/_authenticated/admin/site'
@@ -464,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   LancamentosRoute: LancamentosRoute,
   SobreRoute: SobreRoute,
   ImovelSlugRoute: ImovelSlugRoute,
+  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
