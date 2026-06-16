@@ -20,9 +20,11 @@ import { Route as AnuncieRouteImport } from './routes/anuncie'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
@@ -30,6 +32,8 @@ import { Route as AuthenticatedAdminImoveisRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
 import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authenticated.admin.imoveis.$id'
@@ -90,6 +94,11 @@ const ImovelSlugRoute = ImovelSlugRouteImport.update({
   path: '/imovel/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -104,6 +113,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
   id: '/api/public/bootstrap-admin',
@@ -142,6 +156,18 @@ const AuthenticatedAdminBairrosRoute =
     id: '/bairros',
     path: '/bairros',
     getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
@@ -186,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/sobre': typeof SobreRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
@@ -194,12 +221,15 @@ export interface FileRoutesByFullPath {
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -212,6 +242,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
@@ -220,12 +251,15 @@ export interface FileRoutesByTo {
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -241,6 +275,7 @@ export interface FileRoutesById {
   '/sobre': typeof SobreRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
@@ -249,12 +284,15 @@ export interface FileRoutesById {
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/_authenticated/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/_authenticated/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/_authenticated/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -270,6 +308,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/admin'
     | '/blog/$slug'
+    | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/admin/bairros'
     | '/admin/blog'
@@ -278,12 +317,15 @@ export interface FileRouteTypes {
     | '/admin/leads'
     | '/admin/site'
     | '/api/public/bootstrap-admin'
+    | '/lovable/email/suppression'
     | '/admin/'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -296,6 +338,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre'
     | '/blog/$slug'
+    | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/admin/bairros'
     | '/admin/blog'
@@ -304,12 +347,15 @@ export interface FileRouteTypes {
     | '/admin/leads'
     | '/admin/site'
     | '/api/public/bootstrap-admin'
+    | '/lovable/email/suppression'
     | '/admin'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -324,6 +370,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/_authenticated/admin'
     | '/blog/$slug'
+    | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/_authenticated/admin/bairros'
     | '/_authenticated/admin/blog'
@@ -332,12 +379,15 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/leads'
     | '/_authenticated/admin/site'
     | '/api/public/bootstrap-admin'
+    | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/_authenticated/admin/blog/$id'
     | '/_authenticated/admin/blog/novo'
     | '/_authenticated/admin/imoveis/$id'
     | '/_authenticated/admin/imoveis/novo'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -351,9 +401,13 @@ export interface RootRouteChildren {
   LancamentosRoute: typeof LancamentosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreRoute: typeof SobreRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -435,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImovelSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/$slug': {
       id: '/blog/$slug'
       path: '/$slug'
@@ -455,6 +516,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/bootstrap-admin': {
       id: '/api/public/bootstrap-admin'
@@ -504,6 +572,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/bairros'
       preLoaderRoute: typeof AuthenticatedAdminBairrosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -631,9 +713,13 @@ const rootRouteChildren: RootRouteChildren = {
   LancamentosRoute: LancamentosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreRoute: SobreRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ImovelSlugRoute: ImovelSlugRoute,
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
