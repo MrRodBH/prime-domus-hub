@@ -146,14 +146,74 @@ export const enviarLead = createServerFn({ method: "POST" })
       throw new Error("Informe e-mail ou telefone para contato.");
     }
     const supabase = publicClient();
-    const { error } = await supabase.from("leads").insert({
-      nome: data.nome,
-      email: data.email || null,
-      telefone: data.telefone || null,
-      mensagem: data.mensagem || null,
-      origem: data.origem || "site",
-      imovel_id: data.imovel_id || null,
-    });
+    const { data: inserted, error } = await supabase
+      .from("leads")
+      .insert({
+        nome: data.nome,
+        email: data.email || null,
+        telefone: data.telefone || null,
+        mensagem: data.mensagem || null,
+        origem: data.origem || "site",
+        imovel_id: data.imovel_id || null,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+
+    // Notificar corretor por e-mail (não bloqueia resposta do form)
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const admin = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+
+      // Destinatário: site_settings.contato.email
+      const { data: settings } = await admin
+        .from("site_settings")
+        .select("value")
+        .eq("key", "contato")
+        .maybeSingle();
+      const contato = (settings?.value as { email?: string } | null) ?? null;
+      const destino = contato?.email;
+
+      if (destino) {
+        // Buscar dados do imóvel (se aplicável) para enriquecer e-mail
+        let imovel_codigo: string | undefined;
+        let imovel_titulo: string | undefined;
+        if (data.imovel_id) {
+          const { data: im } = await admin
+            .from("imoveis")
+            .select("codigo, titulo")
+            .eq("id", data.imovel_id)
+            .maybeSingle();
+          imovel_codigo = im?.codigo ?? undefined;
+          imovel_titulo = im?.titulo ?? undefined;
+        }
+
+        const { enqueueTransactional } = await import("@/lib/email/notify.server");
+        await enqueueTransactional({
+          templateName: "novo-lead",
+          to: destino,
+          idempotencyKey: `lead-${inserted.id}`,
+          templateData: {
+            nome: data.nome,
+            email: data.email || undefined,
+            telefone: data.telefone || undefined,
+            mensagem: data.mensagem || undefined,
+            origem: data.origem || "site",
+            imovel_codigo,
+            imovel_titulo,
+            recebido_em: new Date().toLocaleString("pt-BR", {
+              timeZone: "America/Sao_Paulo",
+            }),
+          },
+        });
+      }
+    } catch (e) {
+      console.error("Falha ao notificar lead por e-mail:", e);
+    }
+
     return { ok: true };
   });
