@@ -27,23 +27,25 @@ export async function signedUrl(
   return data.signedUrl;
 }
 
-export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async () => {
+export interface SiteSettings {
+  branding: { logo_path?: string | null; logo_url?: string | null; site_name?: string };
+  home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string };
+  contato: { telefone?: string; whatsapp?: string; email?: string; endereco?: string; instagram?: string };
+}
+
+export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
   const supabase = publicClient();
   const { data, error } = await supabase.from("site_settings").select("key, value");
   if (error) throw new Error(error.message);
-  const result: Record<string, Record<string, unknown>> = {
-    branding: {},
-    home_hero: {},
-    contato: {},
-  };
+  const result: SiteSettings = { branding: {}, home_hero: {}, contato: {} };
   for (const row of data ?? []) {
-    result[row.key] = (row.value as Record<string, unknown>) ?? {};
+    if (row.key === "branding" || row.key === "home_hero" || row.key === "contato") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (result as any)[row.key] = (row.value as Record<string, unknown>) ?? {};
+    }
   }
-  // Resolve logo signed URL
-  const branding = result.branding as { logo_path?: string | null };
-  if (branding.logo_path) {
-    const url = await signedUrl(supabase, "site", branding.logo_path);
-    (result.branding as Record<string, unknown>).logo_url = url;
+  if (result.branding.logo_path) {
+    result.branding.logo_url = await signedUrl(supabase, "site", result.branding.logo_path);
   }
   return result;
 });
