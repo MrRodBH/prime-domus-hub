@@ -77,19 +77,39 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "RM Prime Imóveis — Alto padrão em Belo Horizonte" },
+      {
+        name: "description",
+        content:
+          "Boutique imobiliária especializada em imóveis de alto padrão em Belo Horizonte: Lourdes, Belvedere, Vila da Serra e Funcionários.",
+      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { property: "og:site_name", content: "RM Prime Imóveis" },
+      { property: "og:locale", content: "pt_BR" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#0b3a3a" },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
+    ],
+    scripts: [
       {
-        rel: "stylesheet",
-        href: appCss,
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "RealEstateAgent",
+          name: "RM Prime Imóveis",
+          description:
+            "Boutique imobiliária de alto padrão em Belo Horizonte.",
+          areaServed: ["Belo Horizonte", "Nova Lima", "Minas Gerais"],
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "Rua Sergipe, 1234",
+            addressLocality: "Belo Horizonte",
+            addressRegion: "MG",
+            addressCountry: "BR",
+          },
+        }),
       },
     ],
   }),
@@ -101,7 +121,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
