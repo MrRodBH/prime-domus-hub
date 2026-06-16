@@ -62,6 +62,8 @@ export function ImovelForm({ initial }: Props) {
     imagem_capa: initial?.imagem_capa ?? "",
     latitude: initial?.latitude ?? null,
     longitude: initial?.longitude ?? null,
+    video_url: initial?.video_url ?? "",
+    tour_url: initial?.tour_url ?? "",
   });
 
   const [caracTxt, setCaracTxt] = useState((initial?.caracteristicas ?? []).join(", "));
