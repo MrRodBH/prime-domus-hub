@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminImoveisRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
 import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authenticated.admin.imoveis.$id'
 import { Route as AuthenticatedAdminBlogNovoRouteImport } from './routes/_authenticated.admin.blog.novo'
@@ -142,6 +143,12 @@ const AuthenticatedAdminBairrosRoute =
     path: '/bairros',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminImoveisNovoRoute =
   AuthenticatedAdminImoveisNovoRouteImport.update({
     id: '/novo',
@@ -192,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -217,6 +225,7 @@ export interface FileRoutesByTo {
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -245,6 +254,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/_authenticated/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/_authenticated/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/admin/blog/novo'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -298,6 +309,7 @@ export interface FileRouteTypes {
     | '/admin/blog/novo'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -325,6 +337,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/blog/novo'
     | '/_authenticated/admin/imoveis/$id'
     | '/_authenticated/admin/imoveis/novo'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -340,6 +353,7 @@ export interface RootRouteChildren {
   SobreRoute: typeof SobreRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -491,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBairrosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/imoveis/novo': {
       id: '/_authenticated/admin/imoveis/novo'
       path: '/novo'
@@ -612,6 +633,7 @@ const rootRouteChildren: RootRouteChildren = {
   SobreRoute: SobreRoute,
   ImovelSlugRoute: ImovelSlugRoute,
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
