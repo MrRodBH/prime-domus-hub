@@ -416,24 +416,64 @@ export function ImovelForm({ initial }: Props) {
       </div>
 
       <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Galeria de imagens</h2>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="font-display text-lg">Galeria de imagens</h2>
+          <span className="text-xs text-muted-foreground">
+            {imagens.length}/{MAX_IMAGENS} fotos
+          </span>
+        </div>
         {!form.id && <p className="text-sm text-muted-foreground">Salve o imóvel para começar a enviar imagens.</p>}
         {form.id && (
           <>
-            <div className="flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
-                <Upload className="size-4" /> {uploading ? "Enviando…" : "Adicionar imagens"}
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
+            <div className="flex items-center gap-3 flex-wrap">
+              <label
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded text-sm ${
+                  imagens.length >= MAX_IMAGENS || uploading
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-petroleum text-linen cursor-pointer"
+                }`}
+              >
+                <Upload className="size-4" />
+                {uploading ? "Enviando…" : imagens.length >= MAX_IMAGENS ? "Limite atingido" : "Adicionar imagens"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleUpload}
+                  disabled={uploading || imagens.length >= MAX_IMAGENS}
+                />
               </label>
-              <p className="text-xs text-muted-foreground">JPG/PNG. A capa atual é a marcada com 👑.</p>
+              <p className="text-xs text-muted-foreground">
+                Máximo de {MAX_IMAGENS} imagens. Arraste para reordenar — a primeira é a capa (👑).
+              </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {imagens.map((img) => (
-                <div key={img.id} className="relative group rounded overflow-hidden border border-foreground/10 aspect-[4/3] bg-muted">
-                  {signedUrls[img.id] && <img src={signedUrls[img.id]} alt="" className="w-full h-full object-cover" />}
-                  {form.imagem_capa === img.url && <span className="absolute top-1 left-1 bg-gold text-petroleum text-xs px-2 py-0.5 rounded">👑 Capa</span>}
+              {imagens.map((img, idx) => (
+                <div
+                  key={img.id}
+                  draggable
+                  onDragStart={() => setDragIdx(idx)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => onDrop(idx)}
+                  onDragEnd={() => setDragIdx(null)}
+                  className={`relative group rounded overflow-hidden border border-foreground/10 aspect-[4/3] bg-muted cursor-move ${
+                    dragIdx === idx ? "opacity-50" : ""
+                  }`}
+                >
+                  {signedUrls[img.id] && <img src={signedUrls[img.id]} alt="" className="w-full h-full object-cover pointer-events-none" />}
+                  {idx === 0 && (
+                    <span className="absolute top-1 left-1 bg-gold text-petroleum text-xs px-2 py-0.5 rounded inline-flex items-center gap-1">
+                      <Crown className="size-3" /> Capa
+                    </span>
+                  )}
+                  <span className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                    {idx + 1}
+                  </span>
+                  <div className="absolute bottom-1 left-1 bg-black/60 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition">
+                    <GripVertical className="size-3" />
+                  </div>
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button type="button" size="sm" variant="secondary" onClick={() => definirCapa(img)}>Definir capa</Button>
                     <Button type="button" size="icon" variant="destructive" onClick={() => removerImg(img)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
@@ -442,6 +482,7 @@ export function ImovelForm({ initial }: Props) {
           </>
         )}
       </div>
+
 
       {form.id && (
         <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-3">
