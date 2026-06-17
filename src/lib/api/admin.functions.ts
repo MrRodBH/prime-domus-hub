@@ -186,6 +186,35 @@ export const adminRemoverImagem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const adminReordenarImagens = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      imovel_id: z.string().uuid(),
+      ordem: z.array(z.object({ id: z.string().uuid(), ordem: z.number().int() })),
+      imagem_capa: z.string().optional().nullable(),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    for (const item of data.ordem) {
+      const { error } = await context.supabase
+        .from("imovel_imagens")
+        .update({ ordem: item.ordem } as never)
+        .eq("id", item.id)
+        .eq("imovel_id", data.imovel_id);
+      if (error) throw new Error(error.message);
+    }
+    if (data.imagem_capa !== undefined) {
+      const { error } = await context.supabase
+        .from("imoveis")
+        .update({ imagem_capa: data.imagem_capa } as never)
+        .eq("id", data.imovel_id);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
 // ===== CORRETORES =====
 const corretorSchema = z.object({
   id: z.string().uuid().optional(),
