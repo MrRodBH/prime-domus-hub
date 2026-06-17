@@ -106,9 +106,13 @@ function Page() {
     } | null) ?? null;
 
   const galeria =
-    (imovel.imagens as { url: string; alt?: string }[] | null)?.length
-      ? (imovel.imagens as { url: string; alt?: string }[]).map((i) => i.url)
-      : [imovel.imagem_capa || imovelImage(imovel.slug, 0)];
+    (imovel.imagens as { url: string; thumb?: string; alt?: string }[] | null)?.length
+      ? (imovel.imagens as { url: string; thumb?: string; alt?: string }[]).map((i) => ({
+          url: i.url,
+          thumb: i.thumb ?? i.url,
+        }))
+      : [{ url: imovel.imagem_capa || imovelImage(imovel.slug, 0), thumb: imovel.imagem_capa || imovelImage(imovel.slug, 0) }];
+
 
   return (
     <div className="min-h-screen flex flex-col">
