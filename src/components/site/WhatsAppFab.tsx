@@ -1,12 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
+import { useRouterState } from "@tanstack/react-router";
 import { MessageCircle } from "lucide-react";
 import { obterSiteSettings } from "@/lib/api/site.functions";
 
 export function WhatsAppFab() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAdmin = pathname.startsWith("/admin") || pathname.startsWith("/auth");
+
   const { data: site } = useQuery({
     queryKey: ["site-settings"],
     queryFn: () => obterSiteSettings(),
+    enabled: !isAdmin,
   });
+
+  if (isAdmin) return null;
+
 
   const numero = site?.contato?.whatsapp?.replace(/\D/g, "") || "5531999990001";
   const nome = site?.branding?.site_name || "RM Prime Imóveis";
