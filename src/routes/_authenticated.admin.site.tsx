@@ -25,7 +25,7 @@ function AdminSite() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "" });
+  const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -47,6 +47,8 @@ function AdminSite() {
       instagram: data.contato.instagram ?? "",
       facebook: data.contato.facebook ?? "",
       linkedin: data.contato.linkedin ?? "",
+      creci: data.contato.creci ?? "",
+      localizacao: data.contato.localizacao ?? "",
     });
     setLogoPreview(data.branding.logo_url ?? null);
   }, [data]);
@@ -140,6 +142,8 @@ function AdminSite() {
             <div><Label>Instagram</Label><Input value={contato.instagram} onChange={(e) => setContato({ ...contato, instagram: e.target.value })} placeholder="@rmprime_imoveis ou URL" /></div>
             <div><Label>Facebook</Label><Input value={contato.facebook} onChange={(e) => setContato({ ...contato, facebook: e.target.value })} placeholder="https://facebook.com/suapagina" /></div>
             <div><Label>LinkedIn</Label><Input value={contato.linkedin} onChange={(e) => setContato({ ...contato, linkedin: e.target.value })} placeholder="https://linkedin.com/company/sua-empresa" /></div>
+            <div><Label>CRECI (rodapé)</Label><Input value={contato.creci} onChange={(e) => setContato({ ...contato, creci: e.target.value })} placeholder="CRECI-MG J0000" /></div>
+            <div><Label>Localização (rodapé)</Label><Input value={contato.localizacao} onChange={(e) => setContato({ ...contato, localizacao: e.target.value })} placeholder="Lourdes · Belo Horizonte / MG" /></div>
             <div className="md:col-span-2"><Label>Endereço</Label><Input value={contato.endereco} onChange={(e) => setContato({ ...contato, endereco: e.target.value })} /></div>
           </div>
           <Button onClick={() => salvar.mutate({ key: "contato", value: contato })} disabled={salvar.isPending}>Salvar contato</Button>
