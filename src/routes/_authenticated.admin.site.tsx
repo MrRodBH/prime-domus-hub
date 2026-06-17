@@ -139,6 +139,17 @@ function AdminSite() {
             </div>
             <p className="text-xs text-muted-foreground mt-2">Recomendado: PNG transparente, 500×500px ou maior.</p>
           </div>
+          <div>
+            <Label>Favicon</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {faviconPreview && <img src={faviconPreview} alt="Favicon atual" className="h-12 w-12 rounded border border-foreground/10 object-cover" />}
+              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
+                <Upload className="size-4" /> {uploadingFav ? "Enviando…" : "Trocar favicon"}
+                <input type="file" accept="image/png,image/x-icon,image/svg+xml" className="hidden" onChange={uploadFavicon} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Ícone exibido na aba do navegador. Recomendado: PNG quadrado 512×512px (fundo sólido).</p>
+          </div>
           <Button onClick={() => salvar.mutate({ key: "branding", value: branding })} disabled={salvar.isPending}>Salvar branding</Button>
         </TabsContent>
 
