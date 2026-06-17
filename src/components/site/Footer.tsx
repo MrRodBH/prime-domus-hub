@@ -121,11 +121,13 @@ export function Footer() {
 
         <div className="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-foreground/5 gap-6">
           <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-            © {new Date().getFullYear()} RM Prime Imóveis · CRECI-MG J0000
+            © {new Date().getFullYear()} RM Prime Imóveis{site?.contato?.creci ? ` · ${site.contato.creci}` : ""}
           </p>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-            Lourdes · Belo Horizonte / MG
-          </p>
+          {site?.contato?.localizacao && (
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              {site.contato.localizacao}
+            </p>
+          )}
         </div>
       </div>
     </footer>
