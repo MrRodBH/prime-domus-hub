@@ -47,6 +47,8 @@ function AdminSite() {
       instagram: data.contato.instagram ?? "",
       facebook: data.contato.facebook ?? "",
       linkedin: data.contato.linkedin ?? "",
+      creci: data.contato.creci ?? "",
+      localizacao: data.contato.localizacao ?? "",
     });
     setLogoPreview(data.branding.logo_url ?? null);
   }, [data]);
