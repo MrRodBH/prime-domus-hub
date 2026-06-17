@@ -21,7 +21,7 @@ import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Upload, Sparkles } from "lucide-react";
+import { Trash2, Upload, Sparkles, GripVertical, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
 import { useEffect } from "react";
 
