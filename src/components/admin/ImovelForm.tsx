@@ -161,25 +161,40 @@ export function ImovelForm({ initial }: Props) {
       toast.error("Salve o imóvel antes de adicionar imagens.");
       return;
     }
+    const restante = MAX_IMAGENS - imagens.length;
+    if (restante <= 0) {
+      toast.error(`Limite de ${MAX_IMAGENS} imagens atingido.`);
+      e.target.value = "";
+      return;
+    }
+    const arr = Array.from(files);
+    const aEnviar = arr.slice(0, restante);
+    if (arr.length > restante) {
+      toast.warning(`Apenas ${restante} imagem(ns) serão enviadas (limite de ${MAX_IMAGENS}).`);
+    }
     setUploading(true);
     try {
-      for (const file of Array.from(files)) {
+      for (const [idx, file] of aEnviar.entries()) {
         const ext = file.name.split(".").pop();
         const path = `${form.id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("imoveis").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagem({
-          data: { imovel_id: form.id, url: path, alt: form.titulo, ordem: imagens.length },
+          data: { imovel_id: form.id, url: path, alt: form.titulo, ordem: imagens.length + idx },
         });
       }
       toast.success("Imagens enviadas");
-      // refetch
       const { data: imgs } = await supabase
         .from("imovel_imagens")
         .select("id, url, alt, ordem")
         .eq("imovel_id", form.id)
         .order("ordem");
-      setImagens(imgs ?? []);
+      const lista = imgs ?? [];
+      setImagens(lista);
+      // Garante capa = primeira imagem
+      if (lista.length > 0 && form.imagem_capa !== lista[0].url) {
+        setForm((f) => ({ ...f, imagem_capa: lista[0].url }));
+      }
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -191,13 +206,52 @@ export function ImovelForm({ initial }: Props) {
   async function removerImg(img: Imagem) {
     if (!confirm("Remover esta imagem?")) return;
     await adminRemoverImagem({ data: { id: img.id, path: img.url } });
-    setImagens(imagens.filter((i) => i.id !== img.id));
+    const novas = imagens.filter((i) => i.id !== img.id);
+    setImagens(novas);
+    // Re-persistir ordem e capa
+    if (form.id) {
+      const novaCapa = novas[0]?.url ?? null;
+      await adminReordenarImagens({
+        data: {
+          imovel_id: form.id,
+          ordem: novas.map((i, idx) => ({ id: i.id, ordem: idx })),
+          imagem_capa: novaCapa,
+        },
+      });
+      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
+    }
     toast.success("Imagem removida");
   }
 
-  async function definirCapa(img: Imagem) {
-    setForm((f) => ({ ...f, imagem_capa: img.url }));
-    toast.success("Capa definida — clique em Salvar para confirmar.");
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  async function persistirOrdem(lista: Imagem[]) {
+    if (!form.id) return;
+    const novaCapa = lista[0]?.url ?? null;
+    try {
+      await adminReordenarImagens({
+        data: {
+          imovel_id: form.id,
+          ordem: lista.map((i, idx) => ({ id: i.id, ordem: idx })),
+          imagem_capa: novaCapa,
+        },
+      });
+      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
+      toast.success("Ordem atualizada");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  function onDrop(targetIdx: number) {
+    if (dragIdx === null || dragIdx === targetIdx) return;
+    const lista = [...imagens];
+    const [moved] = lista.splice(dragIdx, 1);
+    lista.splice(targetIdx, 0, moved);
+    const reordenadas = lista.map((i, idx) => ({ ...i, ordem: idx }));
+    setImagens(reordenadas);
+    setDragIdx(null);
+    persistirOrdem(reordenadas);
   }
 
   return (
