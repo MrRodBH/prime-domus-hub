@@ -75,6 +75,21 @@ export function ImovelForm({ initial }: Props) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
+  const [novoBairroOpen, setNovoBairroOpen] = useState(false);
+  const [novoBairro, setNovoBairro] = useState({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+
+  const criarBairro = useMutation({
+    mutationFn: () => adminSalvarBairro({ data: { ...novoBairro, destaque: false, ordem: 0 } }),
+    onSuccess: async () => {
+      toast.success("Bairro criado");
+      const r = await qc.fetchQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
+      const created = r?.find((b) => b.slug === novoBairro.slug);
+      if (created) setForm((f) => ({ ...f, bairro_id: created.id }));
+      setNovoBairroOpen(false);
+      setNovoBairro({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const gerarIA = useMutation({
     mutationFn: () => {
