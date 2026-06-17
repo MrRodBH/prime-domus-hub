@@ -21,17 +21,23 @@ function AdminSite() {
   const { data, isLoading } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [branding, setBranding] = useState<any>({ site_name: "RM Prime Imóveis", logo_path: null });
+  const [branding, setBranding] = useState<any>({ site_name: "RM Prime Imóveis", logo_path: null, favicon_path: null });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingFav, setUploadingFav] = useState(false);
 
   useEffect(() => {
     if (!data) return;
-    setBranding({ site_name: data.branding.site_name ?? "", logo_path: data.branding.logo_path ?? null });
+    setBranding({
+      site_name: data.branding.site_name ?? "",
+      logo_path: data.branding.logo_path ?? null,
+      favicon_path: data.branding.favicon_path ?? null,
+    });
     setHero({
       eyebrow: data.home_hero.eyebrow ?? "",
       title_lines: data.home_hero.title_lines ?? [],
@@ -51,6 +57,7 @@ function AdminSite() {
       localizacao: data.contato.localizacao ?? "",
     });
     setLogoPreview(data.branding.logo_url ?? null);
+    setFaviconPreview(data.branding.favicon_url ?? null);
   }, [data]);
 
   const salvar = useMutation({
@@ -78,6 +85,27 @@ function AdminSite() {
       toast.error((err as Error).message);
     } finally {
       setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function uploadFavicon(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFav(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `favicon-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      if (error) throw error;
+      setBranding({ ...branding, favicon_path: path });
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setFaviconPreview(url);
+      toast.success("Favicon enviado — clique em Salvar para aplicar.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingFav(false);
       e.target.value = "";
     }
   }

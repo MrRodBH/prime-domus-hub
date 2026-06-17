@@ -28,7 +28,13 @@ export async function signedUrl(
 }
 
 export interface SiteSettings {
-  branding: { logo_path?: string | null; logo_url?: string | null; site_name?: string };
+  branding: {
+    logo_path?: string | null;
+    logo_url?: string | null;
+    favicon_path?: string | null;
+    favicon_url?: string | null;
+    site_name?: string;
+  };
   home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string };
   contato: { telefone?: string; whatsapp?: string; email?: string; endereco?: string; instagram?: string; facebook?: string; linkedin?: string; creci?: string; localizacao?: string };
 }
@@ -46,6 +52,9 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   }
   if (result.branding.logo_path) {
     result.branding.logo_url = await signedUrl(supabase, "site", result.branding.logo_path);
+  }
+  if (result.branding.favicon_path) {
+    result.branding.favicon_url = await signedUrl(supabase, "site", result.branding.favicon_path);
   }
   return result;
 });
