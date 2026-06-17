@@ -34,7 +34,7 @@ export function Footer() {
   return (
     <footer className="bg-secondary/60 pt-24 pb-12 border-t border-foreground/5">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 mb-20 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-16 mb-20 items-start">
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left h-full">
             <Link to="/" className="inline-flex items-center" aria-label="RM Prime Imóveis - Início">
               <img src={logo} alt="RM Prime Imóveis" width={500} height={500} className="h-[6.6rem] w-auto object-contain" />
@@ -43,7 +43,31 @@ export function Footer() {
               Conectando você ao seu melhor imóvel. Especialistas no mercado de alto padrão em
               Belo Horizonte e região metropolitana.
             </p>
-            <div className="flex gap-3 mt-8">
+          </div>
+
+          <div className="lg:pl-8">
+            <h5 className="text-[10px] font-bold uppercase tracking-[0.25em] mb-6">Explore</h5>
+            <ul className="space-y-3.5 text-sm text-muted-foreground">
+              <li><Link to="/imoveis" className="hover:text-gold transition-colors">Comprar</Link></li>
+              <li><Link to="/lancamentos" className="hover:text-gold transition-colors">Lançamentos</Link></li>
+              <li><Link to="/imoveis" className="hover:text-gold transition-colors">Bairros Premium</Link></li>
+              <li><Link to="/anuncie" className="hover:text-gold transition-colors">Anuncie seu imóvel</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="text-[10px] font-bold uppercase tracking-[0.25em] mb-6">Institucional</h5>
+            <ul className="space-y-3.5 text-sm text-muted-foreground">
+              <li><Link to="/sobre" className="hover:text-gold transition-colors">Nossa história</Link></li>
+              <li><Link to="/blog" className="hover:text-gold transition-colors">Blog editorial</Link></li>
+              <li><Link to="/contato" className="hover:text-gold transition-colors">Contato</Link></li>
+              <li><a href="#" className="hover:text-gold transition-colors">Política de privacidade</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="text-[10px] font-bold uppercase tracking-[0.25em] mb-6">Redes Sociais</h5>
+            <div className="flex gap-3">
               {instagramUrl && (
                 <a
                   href={instagramUrl}
@@ -78,26 +102,6 @@ export function Footer() {
                 </a>
               )}
             </div>
-          </div>
-
-          <div className="lg:pl-8">
-            <h5 className="text-[10px] font-bold uppercase tracking-[0.25em] mb-6">Explore</h5>
-            <ul className="space-y-3.5 text-sm text-muted-foreground">
-              <li><Link to="/imoveis" className="hover:text-gold transition-colors">Comprar</Link></li>
-              <li><Link to="/lancamentos" className="hover:text-gold transition-colors">Lançamentos</Link></li>
-              <li><Link to="/imoveis" className="hover:text-gold transition-colors">Bairros Premium</Link></li>
-              <li><Link to="/anuncie" className="hover:text-gold transition-colors">Anuncie seu imóvel</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="text-[10px] font-bold uppercase tracking-[0.25em] mb-6">Institucional</h5>
-            <ul className="space-y-3.5 text-sm text-muted-foreground">
-              <li><Link to="/sobre" className="hover:text-gold transition-colors">Nossa história</Link></li>
-              <li><Link to="/blog" className="hover:text-gold transition-colors">Blog editorial</Link></li>
-              <li><Link to="/contato" className="hover:text-gold transition-colors">Contato</Link></li>
-              <li><a href="#" className="hover:text-gold transition-colors">Política de privacidade</a></li>
-            </ul>
           </div>
         </div>
 
