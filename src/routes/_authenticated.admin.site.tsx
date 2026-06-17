@@ -21,17 +21,23 @@ function AdminSite() {
   const { data, isLoading } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [branding, setBranding] = useState<any>({ site_name: "RM Prime Imóveis", logo_path: null });
+  const [branding, setBranding] = useState<any>({ site_name: "RM Prime Imóveis", logo_path: null, favicon_path: null });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingFav, setUploadingFav] = useState(false);
 
   useEffect(() => {
     if (!data) return;
-    setBranding({ site_name: data.branding.site_name ?? "", logo_path: data.branding.logo_path ?? null });
+    setBranding({
+      site_name: data.branding.site_name ?? "",
+      logo_path: data.branding.logo_path ?? null,
+      favicon_path: data.branding.favicon_path ?? null,
+    });
     setHero({
       eyebrow: data.home_hero.eyebrow ?? "",
       title_lines: data.home_hero.title_lines ?? [],
@@ -51,6 +57,7 @@ function AdminSite() {
       localizacao: data.contato.localizacao ?? "",
     });
     setLogoPreview(data.branding.logo_url ?? null);
+    setFaviconPreview(data.branding.favicon_url ?? null);
   }, [data]);
 
   const salvar = useMutation({
@@ -78,6 +85,27 @@ function AdminSite() {
       toast.error((err as Error).message);
     } finally {
       setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function uploadFavicon(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFav(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `favicon-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      if (error) throw error;
+      setBranding({ ...branding, favicon_path: path });
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setFaviconPreview(url);
+      toast.success("Favicon enviado — clique em Salvar para aplicar.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingFav(false);
       e.target.value = "";
     }
   }
@@ -110,6 +138,17 @@ function AdminSite() {
               </label>
             </div>
             <p className="text-xs text-muted-foreground mt-2">Recomendado: PNG transparente, 500×500px ou maior.</p>
+          </div>
+          <div>
+            <Label>Favicon</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {faviconPreview && <img src={faviconPreview} alt="Favicon atual" className="h-12 w-12 rounded border border-foreground/10 object-cover" />}
+              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
+                <Upload className="size-4" /> {uploadingFav ? "Enviando…" : "Trocar favicon"}
+                <input type="file" accept="image/png,image/x-icon,image/svg+xml" className="hidden" onChange={uploadFavicon} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Ícone exibido na aba do navegador. Recomendado: PNG quadrado 512×512px (fundo sólido).</p>
           </div>
           <Button onClick={() => salvar.mutate({ key: "branding", value: branding })} disabled={salvar.isPending}>Salvar branding</Button>
         </TabsContent>
