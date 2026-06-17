@@ -45,6 +45,8 @@ function AdminSite() {
       email: data.contato.email ?? "",
       endereco: data.contato.endereco ?? "",
       instagram: data.contato.instagram ?? "",
+      facebook: data.contato.facebook ?? "",
+      linkedin: data.contato.linkedin ?? "",
     });
     setLogoPreview(data.branding.logo_url ?? null);
   }, [data]);
