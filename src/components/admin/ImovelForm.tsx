@@ -14,6 +14,7 @@ import {
   adminRemoverImagem,
   adminAssinarUrl,
   adminSalvarBairro,
+  adminReordenarImagens,
 } from "@/lib/api/admin.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
