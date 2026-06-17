@@ -72,14 +72,21 @@ export const listarImoveis = createServerFn({ method: "GET" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     const list = rows ?? [];
-    // Resolve signed URLs para imagens armazenadas no bucket "imoveis"
-    for (const r of list) {
-      const row = r as { imagem_capa?: string | null };
-      if (row.imagem_capa && !row.imagem_capa.startsWith("http")) {
-        const { data: s } = await supabase.storage.from("imoveis").createSignedUrl(row.imagem_capa, 60 * 60 * 24 * 365);
-        if (s) row.imagem_capa = s.signedUrl;
-      }
-    }
+    // Resolve signed URLs para imagens armazenadas no bucket "imoveis" (com transformação para card)
+    await Promise.all(
+      list.map(async (r) => {
+        const row = r as { imagem_capa?: string | null };
+        if (row.imagem_capa && !row.imagem_capa.startsWith("http")) {
+          const { data: s } = await supabase.storage
+            .from("imoveis")
+            .createSignedUrl(row.imagem_capa, 60 * 60 * 24 * 365, {
+              transform: { width: 800, quality: 75 },
+            });
+          if (s) row.imagem_capa = s.signedUrl;
+        }
+      }),
+    );
+
     return list;
   });
 
@@ -114,18 +121,33 @@ export const obterImovel = createServerFn({ method: "GET" })
     if (!imovel) return null;
     if (imovel.imagens) {
       imovel.imagens.sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
-      for (const img of imovel.imagens as Array<{ url: string }>) {
-        if (img.url && !img.url.startsWith("http")) {
-          const { data: s } = await supabase.storage.from("imoveis").createSignedUrl(img.url, 60 * 60 * 24 * 365);
-          if (s) img.url = s.signedUrl;
-        }
-      }
+      await Promise.all(
+        (imovel.imagens as Array<{ url: string; thumb?: string }>).map(async (img) => {
+          if (!img.url || img.url.startsWith("http")) {
+            img.thumb = img.url;
+            return;
+          }
+          const [big, thumb] = await Promise.all([
+            supabase.storage.from("imoveis").createSignedUrl(img.url, 60 * 60 * 24 * 365, {
+              transform: { width: 1600, quality: 78 },
+            }),
+            supabase.storage.from("imoveis").createSignedUrl(img.url, 60 * 60 * 24 * 365, {
+              transform: { width: 240, quality: 65 },
+            }),
+          ]);
+          if (big.data) img.url = big.data.signedUrl;
+          if (thumb.data) img.thumb = thumb.data.signedUrl;
+        }),
+      );
     }
     const imRow = imovel as { imagem_capa?: string | null };
     if (imRow.imagem_capa && !imRow.imagem_capa.startsWith("http")) {
-      const { data: s } = await supabase.storage.from("imoveis").createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365);
+      const { data: s } = await supabase.storage
+        .from("imoveis")
+        .createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365, { transform: { width: 1600, quality: 78 } });
       if (s) imRow.imagem_capa = s.signedUrl;
     }
+
     return imovel;
   });
 

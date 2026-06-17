@@ -106,9 +106,13 @@ function Page() {
     } | null) ?? null;
 
   const galeria =
-    (imovel.imagens as { url: string; alt?: string }[] | null)?.length
-      ? (imovel.imagens as { url: string; alt?: string }[]).map((i) => i.url)
-      : [imovel.imagem_capa || imovelImage(imovel.slug, 0)];
+    (imovel.imagens as { url: string; thumb?: string; alt?: string }[] | null)?.length
+      ? (imovel.imagens as { url: string; thumb?: string; alt?: string }[]).map((i) => ({
+          url: i.url,
+          thumb: i.thumb ?? i.url,
+        }))
+      : [{ url: imovel.imagem_capa || imovelImage(imovel.slug, 0), thumb: imovel.imagem_capa || imovelImage(imovel.slug, 0) }];
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -238,7 +242,7 @@ function Spec({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-function Galeria({ imagens, titulo }: { imagens: string[]; titulo: string }) {
+function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[]; titulo: string }) {
   const [idx, setIdx] = useState(0);
   const total = imagens.length;
   const prev = () => setIdx((i) => (i - 1 + total) % total);
@@ -248,13 +252,19 @@ function Galeria({ imagens, titulo }: { imagens: string[]; titulo: string }) {
     <section className="max-w-7xl mx-auto px-6">
       <div className="relative overflow-hidden rounded-md aspect-[16/10] bg-muted">
         <img
-          src={imagens[idx]}
+          src={imagens[idx].url}
           alt={`${titulo} — foto ${idx + 1}`}
           width={1600}
           height={1000}
           loading="eager"
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover"
         />
+        {/* Pré-carrega próxima imagem para navegação instantânea */}
+        {total > 1 && (
+          <link rel="preload" as="image" href={imagens[(idx + 1) % total].url} />
+        )}
         {total > 1 && (
           <>
             <button
@@ -281,17 +291,23 @@ function Galeria({ imagens, titulo }: { imagens: string[]; titulo: string }) {
       </div>
       {total > 1 && (
         <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
-          {imagens.map((src, i) => (
+          {imagens.map((img, i) => (
             <button
               type="button"
-              key={src + i}
+              key={img.url + i}
               onClick={() => setIdx(i)}
               className={`relative shrink-0 w-24 h-16 overflow-hidden rounded ${
                 i === idx ? "ring-2 ring-gold" : "opacity-70 hover:opacity-100"
               }`}
               aria-label={`Ver foto ${i + 1}`}
             >
-              <img src={src} alt="" className="w-full h-full object-cover" />
+              <img
+                src={img.thumb}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>
@@ -299,6 +315,7 @@ function Galeria({ imagens, titulo }: { imagens: string[]; titulo: string }) {
     </section>
   );
 }
+
 
 function MediaEmbed({ tourUrl, videoUrl }: { tourUrl: string | null; videoUrl: string | null }) {
   const tour = toEmbedUrl(tourUrl);
