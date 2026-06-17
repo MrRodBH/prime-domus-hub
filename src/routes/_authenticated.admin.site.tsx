@@ -25,7 +25,7 @@ function AdminSite() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "" });
+  const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
