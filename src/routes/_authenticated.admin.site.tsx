@@ -137,7 +137,9 @@ function AdminSite() {
             <div><Label>Telefone</Label><Input value={contato.telefone} onChange={(e) => setContato({ ...contato, telefone: e.target.value })} /></div>
             <div><Label>WhatsApp (com DDI)</Label><Input value={contato.whatsapp} onChange={(e) => setContato({ ...contato, whatsapp: e.target.value })} placeholder="5531999990000" /></div>
             <div><Label>E-mail</Label><Input type="email" value={contato.email} onChange={(e) => setContato({ ...contato, email: e.target.value })} /></div>
-            <div><Label>Instagram</Label><Input value={contato.instagram} onChange={(e) => setContato({ ...contato, instagram: e.target.value })} /></div>
+            <div><Label>Instagram</Label><Input value={contato.instagram} onChange={(e) => setContato({ ...contato, instagram: e.target.value })} placeholder="@rmprime_imoveis ou URL" /></div>
+            <div><Label>Facebook</Label><Input value={contato.facebook} onChange={(e) => setContato({ ...contato, facebook: e.target.value })} placeholder="https://facebook.com/suapagina" /></div>
+            <div><Label>LinkedIn</Label><Input value={contato.linkedin} onChange={(e) => setContato({ ...contato, linkedin: e.target.value })} placeholder="https://linkedin.com/company/sua-empresa" /></div>
             <div className="md:col-span-2"><Label>Endereço</Label><Input value={contato.endereco} onChange={(e) => setContato({ ...contato, endereco: e.target.value })} /></div>
           </div>
           <Button onClick={() => salvar.mutate({ key: "contato", value: contato })} disabled={salvar.isPending}>Salvar contato</Button>
