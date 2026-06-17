@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Instagram, Facebook, Linkedin, ArrowUpRight } from "lucide-react";
+import { Instagram, Facebook, Linkedin } from "lucide-react";
 import logo from "@/assets/logo-rm-prime.png";
 import { obterSiteSettings } from "@/lib/api/site.functions";
 
