@@ -13,7 +13,10 @@ import {
   adminAdicionarImagem,
   adminRemoverImagem,
   adminAssinarUrl,
+  adminSalvarBairro,
 } from "@/lib/api/admin.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
