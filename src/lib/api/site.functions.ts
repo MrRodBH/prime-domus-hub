@@ -30,7 +30,7 @@ export async function signedUrl(
 export interface SiteSettings {
   branding: { logo_path?: string | null; logo_url?: string | null; site_name?: string };
   home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string };
-  contato: { telefone?: string; whatsapp?: string; email?: string; endereco?: string; instagram?: string };
+  contato: { telefone?: string; whatsapp?: string; email?: string; endereco?: string; instagram?: string; facebook?: string; linkedin?: string };
 }
 
 export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {

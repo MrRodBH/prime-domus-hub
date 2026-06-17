@@ -13,6 +13,14 @@ function normalizeInstagram(value?: string | null) {
   return `https://instagram.com/${handle}`;
 }
 
+function normalizeUrl(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export function Footer() {
   const { data: site } = useQuery({
     queryKey: ["site-settings"],
@@ -20,6 +28,8 @@ export function Footer() {
   });
 
   const instagramUrl = normalizeInstagram(site?.contato?.instagram);
+  const facebookUrl = normalizeUrl(site?.contato?.facebook);
+  const linkedinUrl = normalizeUrl(site?.contato?.linkedin);
 
   return (
     <footer className="bg-secondary/60 pt-24 pb-12 border-t border-foreground/5">
@@ -83,20 +93,28 @@ export function Footer() {
                   <Instagram className="size-4" strokeWidth={1.5} />
                 </a>
               )}
-              <a
-                href="#"
-                className="size-9 rounded-full border border-foreground/15 grid place-items-center text-foreground/60 hover:bg-petroleum hover:text-linen hover:border-petroleum transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="size-4" strokeWidth={1.5} />
-              </a>
-              <a
-                href="#"
-                className="size-9 rounded-full border border-foreground/15 grid place-items-center text-foreground/60 hover:bg-petroleum hover:text-linen hover:border-petroleum transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="size-4" strokeWidth={1.5} />
-              </a>
+              {facebookUrl && (
+                <a
+                  href={facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="size-9 rounded-full border border-foreground/15 grid place-items-center text-foreground/60 hover:bg-petroleum hover:text-linen hover:border-petroleum transition-colors"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="size-4" strokeWidth={1.5} />
+                </a>
+              )}
+              {linkedinUrl && (
+                <a
+                  href={linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="size-9 rounded-full border border-foreground/15 grid place-items-center text-foreground/60 hover:bg-petroleum hover:text-linen hover:border-petroleum transition-colors"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="size-4" strokeWidth={1.5} />
+                </a>
+              )}
             </div>
           </div>
         </div>
