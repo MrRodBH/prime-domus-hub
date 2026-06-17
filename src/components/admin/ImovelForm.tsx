@@ -14,13 +14,14 @@ import {
   adminRemoverImagem,
   adminAssinarUrl,
   adminSalvarBairro,
+  adminReordenarImagens,
 } from "@/lib/api/admin.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Upload, Sparkles } from "lucide-react";
+import { Trash2, Upload, Sparkles, GripVertical, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
 import { useEffect } from "react";
 
@@ -34,6 +35,7 @@ interface Props { initial?: ImovelData }
 const tipos = ["apartamento", "cobertura", "casa", "casa_condominio", "terreno", "comercial"];
 const finalidades = ["venda", "aluguel", "lancamento"];
 const statusList = ["ativo", "rascunho", "vendido", "reservado"];
+const MAX_IMAGENS = 20;
 
 export function ImovelForm({ initial }: Props) {
   const navigate = useNavigate();
@@ -159,25 +161,40 @@ export function ImovelForm({ initial }: Props) {
       toast.error("Salve o imóvel antes de adicionar imagens.");
       return;
     }
+    const restante = MAX_IMAGENS - imagens.length;
+    if (restante <= 0) {
+      toast.error(`Limite de ${MAX_IMAGENS} imagens atingido.`);
+      e.target.value = "";
+      return;
+    }
+    const arr = Array.from(files);
+    const aEnviar = arr.slice(0, restante);
+    if (arr.length > restante) {
+      toast.warning(`Apenas ${restante} imagem(ns) serão enviadas (limite de ${MAX_IMAGENS}).`);
+    }
     setUploading(true);
     try {
-      for (const file of Array.from(files)) {
+      for (const [idx, file] of aEnviar.entries()) {
         const ext = file.name.split(".").pop();
         const path = `${form.id}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("imoveis").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagem({
-          data: { imovel_id: form.id, url: path, alt: form.titulo, ordem: imagens.length },
+          data: { imovel_id: form.id, url: path, alt: form.titulo, ordem: imagens.length + idx },
         });
       }
       toast.success("Imagens enviadas");
-      // refetch
       const { data: imgs } = await supabase
         .from("imovel_imagens")
         .select("id, url, alt, ordem")
         .eq("imovel_id", form.id)
         .order("ordem");
-      setImagens(imgs ?? []);
+      const lista = imgs ?? [];
+      setImagens(lista);
+      // Garante capa = primeira imagem
+      if (lista.length > 0 && form.imagem_capa !== lista[0].url) {
+        setForm((f) => ({ ...f, imagem_capa: lista[0].url }));
+      }
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -189,13 +206,52 @@ export function ImovelForm({ initial }: Props) {
   async function removerImg(img: Imagem) {
     if (!confirm("Remover esta imagem?")) return;
     await adminRemoverImagem({ data: { id: img.id, path: img.url } });
-    setImagens(imagens.filter((i) => i.id !== img.id));
+    const novas = imagens.filter((i) => i.id !== img.id);
+    setImagens(novas);
+    // Re-persistir ordem e capa
+    if (form.id) {
+      const novaCapa = novas[0]?.url ?? null;
+      await adminReordenarImagens({
+        data: {
+          imovel_id: form.id,
+          ordem: novas.map((i, idx) => ({ id: i.id, ordem: idx })),
+          imagem_capa: novaCapa,
+        },
+      });
+      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
+    }
     toast.success("Imagem removida");
   }
 
-  async function definirCapa(img: Imagem) {
-    setForm((f) => ({ ...f, imagem_capa: img.url }));
-    toast.success("Capa definida — clique em Salvar para confirmar.");
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  async function persistirOrdem(lista: Imagem[]) {
+    if (!form.id) return;
+    const novaCapa = lista[0]?.url ?? null;
+    try {
+      await adminReordenarImagens({
+        data: {
+          imovel_id: form.id,
+          ordem: lista.map((i, idx) => ({ id: i.id, ordem: idx })),
+          imagem_capa: novaCapa,
+        },
+      });
+      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
+      toast.success("Ordem atualizada");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  function onDrop(targetIdx: number) {
+    if (dragIdx === null || dragIdx === targetIdx) return;
+    const lista = [...imagens];
+    const [moved] = lista.splice(dragIdx, 1);
+    lista.splice(targetIdx, 0, moved);
+    const reordenadas = lista.map((i, idx) => ({ ...i, ordem: idx }));
+    setImagens(reordenadas);
+    setDragIdx(null);
+    persistirOrdem(reordenadas);
   }
 
   return (
@@ -360,24 +416,64 @@ export function ImovelForm({ initial }: Props) {
       </div>
 
       <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Galeria de imagens</h2>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="font-display text-lg">Galeria de imagens</h2>
+          <span className="text-xs text-muted-foreground">
+            {imagens.length}/{MAX_IMAGENS} fotos
+          </span>
+        </div>
         {!form.id && <p className="text-sm text-muted-foreground">Salve o imóvel para começar a enviar imagens.</p>}
         {form.id && (
           <>
-            <div className="flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
-                <Upload className="size-4" /> {uploading ? "Enviando…" : "Adicionar imagens"}
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
+            <div className="flex items-center gap-3 flex-wrap">
+              <label
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded text-sm ${
+                  imagens.length >= MAX_IMAGENS || uploading
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-petroleum text-linen cursor-pointer"
+                }`}
+              >
+                <Upload className="size-4" />
+                {uploading ? "Enviando…" : imagens.length >= MAX_IMAGENS ? "Limite atingido" : "Adicionar imagens"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleUpload}
+                  disabled={uploading || imagens.length >= MAX_IMAGENS}
+                />
               </label>
-              <p className="text-xs text-muted-foreground">JPG/PNG. A capa atual é a marcada com 👑.</p>
+              <p className="text-xs text-muted-foreground">
+                Máximo de {MAX_IMAGENS} imagens. Arraste para reordenar — a primeira é a capa (👑).
+              </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {imagens.map((img) => (
-                <div key={img.id} className="relative group rounded overflow-hidden border border-foreground/10 aspect-[4/3] bg-muted">
-                  {signedUrls[img.id] && <img src={signedUrls[img.id]} alt="" className="w-full h-full object-cover" />}
-                  {form.imagem_capa === img.url && <span className="absolute top-1 left-1 bg-gold text-petroleum text-xs px-2 py-0.5 rounded">👑 Capa</span>}
+              {imagens.map((img, idx) => (
+                <div
+                  key={img.id}
+                  draggable
+                  onDragStart={() => setDragIdx(idx)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => onDrop(idx)}
+                  onDragEnd={() => setDragIdx(null)}
+                  className={`relative group rounded overflow-hidden border border-foreground/10 aspect-[4/3] bg-muted cursor-move ${
+                    dragIdx === idx ? "opacity-50" : ""
+                  }`}
+                >
+                  {signedUrls[img.id] && <img src={signedUrls[img.id]} alt="" className="w-full h-full object-cover pointer-events-none" />}
+                  {idx === 0 && (
+                    <span className="absolute top-1 left-1 bg-gold text-petroleum text-xs px-2 py-0.5 rounded inline-flex items-center gap-1">
+                      <Crown className="size-3" /> Capa
+                    </span>
+                  )}
+                  <span className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                    {idx + 1}
+                  </span>
+                  <div className="absolute bottom-1 left-1 bg-black/60 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition">
+                    <GripVertical className="size-3" />
+                  </div>
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button type="button" size="sm" variant="secondary" onClick={() => definirCapa(img)}>Definir capa</Button>
                     <Button type="button" size="icon" variant="destructive" onClick={() => removerImg(img)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
@@ -386,6 +482,7 @@ export function ImovelForm({ initial }: Props) {
           </>
         )}
       </div>
+
 
       {form.id && (
         <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-3">
