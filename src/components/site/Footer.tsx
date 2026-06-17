@@ -13,6 +13,14 @@ function normalizeInstagram(value?: string | null) {
   return `https://instagram.com/${handle}`;
 }
 
+function normalizeUrl(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export function Footer() {
   const { data: site } = useQuery({
     queryKey: ["site-settings"],
@@ -20,6 +28,8 @@ export function Footer() {
   });
 
   const instagramUrl = normalizeInstagram(site?.contato?.instagram);
+  const facebookUrl = normalizeUrl(site?.contato?.facebook);
+  const linkedinUrl = normalizeUrl(site?.contato?.linkedin);
 
   return (
     <footer className="bg-secondary/60 pt-24 pb-12 border-t border-foreground/5">
