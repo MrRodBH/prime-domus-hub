@@ -13,7 +13,10 @@ import {
   adminAdicionarImagem,
   adminRemoverImagem,
   adminAssinarUrl,
+  adminSalvarBairro,
 } from "@/lib/api/admin.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,6 +75,21 @@ export function ImovelForm({ initial }: Props) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
+  const [novoBairroOpen, setNovoBairroOpen] = useState(false);
+  const [novoBairro, setNovoBairro] = useState({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+
+  const criarBairro = useMutation({
+    mutationFn: () => adminSalvarBairro({ data: { ...novoBairro, destaque: false, ordem: 0 } }),
+    onSuccess: async () => {
+      toast.success("Bairro criado");
+      const r = await qc.fetchQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
+      const created = r?.find((b) => b.slug === novoBairro.slug);
+      if (created) setForm((f) => ({ ...f, bairro_id: created.id }));
+      setNovoBairroOpen(false);
+      setNovoBairro({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const gerarIA = useMutation({
     mutationFn: () => {
@@ -239,7 +257,43 @@ export function ImovelForm({ initial }: Props) {
             </Select>
           </div>
           <div>
-            <Label>Bairro</Label>
+            <div className="flex items-center justify-between mb-1">
+              <Label>Bairro</Label>
+              <Dialog open={novoBairroOpen} onOpenChange={setNovoBairroOpen}>
+                <DialogTrigger asChild>
+                  <button type="button" className="text-xs text-petroleum hover:underline inline-flex items-center gap-1">
+                    <Plus className="size-3" /> Novo bairro
+                  </button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Novo bairro</DialogTitle></DialogHeader>
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Nome *</Label>
+                      <Input
+                        value={novoBairro.nome}
+                        onChange={(e) => {
+                          const nome = e.target.value;
+                          const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                          setNovoBairro({ ...novoBairro, nome, slug });
+                        }}
+                      />
+                    </div>
+                    <div><Label>Slug *</Label><Input value={novoBairro.slug} onChange={(e) => setNovoBairro({ ...novoBairro, slug: e.target.value })} /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label>Cidade</Label><Input value={novoBairro.cidade} onChange={(e) => setNovoBairro({ ...novoBairro, cidade: e.target.value })} /></div>
+                      <div><Label>Estado</Label><Input value={novoBairro.estado} onChange={(e) => setNovoBairro({ ...novoBairro, estado: e.target.value })} /></div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setNovoBairroOpen(false)}>Cancelar</Button>
+                    <Button type="button" disabled={!novoBairro.nome || !novoBairro.slug || criarBairro.isPending} onClick={() => criarBairro.mutate()}>
+                      {criarBairro.isPending ? "Salvando…" : "Criar"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
             <Select value={form.bairro_id ?? ""} onValueChange={(v) => setForm({ ...form, bairro_id: v || null })}>
               <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
               <SelectContent>{bairros.data?.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}</SelectContent>
