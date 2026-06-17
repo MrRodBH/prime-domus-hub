@@ -75,7 +75,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  loader: async () => {
+    try {
+      const { obterSiteSettings } = await import("../lib/api/site.functions");
+      const settings = await obterSiteSettings();
+      return { faviconUrl: settings.branding.favicon_url ?? null };
+    } catch {
+      return { faviconUrl: null };
+    }
+  },
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -93,8 +102,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: faviconAsset.url },
-      { rel: "apple-touch-icon", href: faviconAsset.url },
+      { rel: "icon", type: "image/png", href: loaderData?.faviconUrl ?? faviconAsset.url },
+      { rel: "apple-touch-icon", href: loaderData?.faviconUrl ?? faviconAsset.url },
     ],
     scripts: [
       {
