@@ -35,6 +35,7 @@ interface Props { initial?: ImovelData }
 const tipos = ["apartamento", "cobertura", "casa", "casa_condominio", "terreno", "comercial"];
 const finalidades = ["venda", "aluguel", "lancamento"];
 const statusList = ["ativo", "rascunho", "vendido", "reservado"];
+const MAX_IMAGENS = 20;
 
 export function ImovelForm({ initial }: Props) {
   const navigate = useNavigate();
