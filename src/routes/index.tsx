@@ -35,10 +35,12 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  loader: ({ context }) => {
-    context.queryClient.prefetchQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
-    context.queryClient.prefetchQuery({ queryKey: ["home-destaques"], queryFn: () => listarImoveis({ data: { apenas_destaque: true, limite: 12 } }) });
-    context.queryClient.prefetchQuery({ queryKey: ["home-bairros"], queryFn: () => listarBairros({ data: { limite: 12 } }) });
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() }),
+      context.queryClient.ensureQueryData({ queryKey: ["home-destaques"], queryFn: () => listarImoveis({ data: { apenas_destaque: true, limite: 12 } }) }),
+      context.queryClient.ensureQueryData({ queryKey: ["home-bairros"], queryFn: () => listarBairros({ data: { limite: 12 } }) }),
+    ]);
   },
   component: Home,
 });
