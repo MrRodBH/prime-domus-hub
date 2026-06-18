@@ -560,6 +560,17 @@ export function ImovelForm({ initial }: Props) {
               <Button type="button" size="sm" onClick={salvarOrdem} disabled={!podeSalvarOrdem}>
                 {savingOrdem ? "Salvando…" : "Salvar ordem"}
               </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={apagarTodasImagens}
+                disabled={imagens.length === 0 || apagandoTodas}
+              >
+                <Trash2 className="size-4 mr-1" />
+                {apagandoTodas ? "Apagando…" : "Apagar todas"}
+              </Button>
+
               <p className="text-xs text-muted-foreground">
                 Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto. A posição <strong>1 = Capa <Crown className="inline size-3 -mt-0.5" /></strong>.
               </p>
