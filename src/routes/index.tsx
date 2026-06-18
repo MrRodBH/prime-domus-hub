@@ -191,12 +191,12 @@ function Home() {
           <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
             {properties.map((p) => (
               <article key={p.title} className="group cursor-pointer">
-                <div className="relative overflow-hidden rounded mb-5 aspect-[4/5] bg-muted">
+                <div className="relative overflow-hidden rounded mb-5 aspect-[16/9] bg-muted">
                   <img
                     src={p.img}
                     alt={p.title}
-                    width={800}
-                    height={1000}
+                    width={1600}
+                    height={900}
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-[800ms] group-hover:scale-[1.04]"
                   />
