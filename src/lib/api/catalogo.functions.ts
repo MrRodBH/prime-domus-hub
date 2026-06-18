@@ -279,7 +279,7 @@ export const enviarLead = createServerFn({ method: "POST" })
         await enqueueTransactional({
           templateName: "novo-lead",
           to: destino,
-          idempotencyKey: `lead-${inserted.id}`,
+          idempotencyKey: `lead-${leadId}`,
           templateData: {
             nome: data.nome,
             email: data.email || undefined,
