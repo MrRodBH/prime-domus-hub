@@ -14,18 +14,20 @@ function publicClient() {
 // 1 ano em segundos (URLs assinadas longas para conteúdo público estático)
 const SIGN_TTL = 60 * 60 * 24 * 365;
 
-/** Converte um caminho "bucket/path" em URL assinada. Aceita já URLs http. */
+/** Converte um caminho "bucket/path" em URL assinada. Aceita já URLs http.
+ *  Usa service role apenas para assinar (a URL gerada é pública e expira). */
 export async function signedUrl(
-  supabase: ReturnType<typeof publicClient>,
   bucket: string,
   path: string | null | undefined,
 ): Promise<string | null> {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, SIGN_TTL);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, SIGN_TTL);
   if (error || !data) return null;
   return data.signedUrl;
 }
+
 
 export interface SiteSettings {
   branding: {
@@ -51,11 +53,12 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
     }
   }
   if (result.branding.logo_path) {
-    result.branding.logo_url = await signedUrl(supabase, "site", result.branding.logo_path);
+    result.branding.logo_url = await signedUrl("site", result.branding.logo_path);
   }
   if (result.branding.favicon_path) {
-    result.branding.favicon_url = await signedUrl(supabase, "site", result.branding.favicon_path);
+    result.branding.favicon_url = await signedUrl("site", result.branding.favicon_path);
   }
+
   return result;
 });
 
