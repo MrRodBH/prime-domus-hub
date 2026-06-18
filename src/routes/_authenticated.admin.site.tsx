@@ -51,6 +51,15 @@ function AdminSite() {
       cta_primary: data.home_hero.cta_primary ?? "",
       cta_secondary: data.home_hero.cta_secondary ?? "",
     });
+    setSecoes({
+      destaques_eyebrow: data.home_secoes.destaques_eyebrow ?? "Seleção Exclusiva",
+      destaques_titulo: data.home_secoes.destaques_titulo ?? "Destaques",
+      destaques_qtd: data.home_secoes.destaques_qtd ?? 3,
+      bairros_eyebrow: data.home_secoes.bairros_eyebrow ?? "Os Melhores Endereços",
+      bairros_titulo: data.home_secoes.bairros_titulo ?? "Bairros em destaque",
+      bairros_descricao: data.home_secoes.bairros_descricao ?? "",
+      bairros_qtd: data.home_secoes.bairros_qtd ?? 4,
+    });
     setContato({
       telefone: data.contato.telefone ?? "",
       whatsapp: data.contato.whatsapp ?? "",
