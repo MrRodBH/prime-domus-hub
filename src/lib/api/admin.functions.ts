@@ -215,6 +215,29 @@ export const adminReordenarImagens = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Define apenas a imagem de capa do imóvel, sem alterar ordem.
+export const adminDefinirCapa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ imovel_id: z.string().uuid(), imagem_id: z.string().uuid() }))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { data: img, error: e1 } = await context.supabase
+      .from("imovel_imagens")
+      .select("url")
+      .eq("id", data.imagem_id)
+      .eq("imovel_id", data.imovel_id)
+      .maybeSingle();
+    if (e1) throw new Error(e1.message);
+    const url = (img as { url?: string } | null)?.url;
+    if (!url) throw new Error("Imagem não encontrada.");
+    const { error: e2 } = await context.supabase
+      .from("imoveis")
+      .update({ imagem_capa: url } as never)
+      .eq("id", data.imovel_id);
+    if (e2) throw new Error(e2.message);
+    return { ok: true, imagem_capa: url };
+  });
+
 // ===== CORRETORES =====
 const corretorSchema = z.object({
   id: z.string().uuid().optional(),

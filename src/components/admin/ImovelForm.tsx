@@ -15,6 +15,7 @@ import {
   adminAssinarUrl,
   adminSalvarBairro,
   adminReordenarImagens,
+  adminDefinirCapa,
 } from "@/lib/api/admin.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
@@ -363,6 +364,21 @@ export function ImovelForm({ initial }: Props) {
   }
 
 
+
+  async function definirComoCapa(img: Imagem) {
+    if (!form.id) return;
+    try {
+      const r = await adminDefinirCapa({ data: { imovel_id: form.id, imagem_id: img.id } });
+      setForm((f) => ({ ...f, imagem_capa: r.imagem_capa }));
+      qc.invalidateQueries({ queryKey: ["admin", "imoveis"] });
+      toast.success("Capa definida — visível no site público.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+
+
   async function abrirZoom(img: Imagem) {
     if (img.url.startsWith("http")) {
       setZoomImg({ id: img.id, url: img.url });
@@ -447,9 +463,9 @@ export function ImovelForm({ initial }: Props) {
               <Label>Bairro</Label>
               <Dialog open={novoBairroOpen} onOpenChange={setNovoBairroOpen}>
                 <DialogTrigger asChild>
-                  <button type="button" className="text-xs text-petroleum hover:underline inline-flex items-center gap-1">
-                    <Plus className="size-3" /> Novo bairro
-                  </button>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
+                    <Plus className="size-3 mr-1" /> Novo bairro
+                  </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader><DialogTitle>Novo bairro</DialogTitle></DialogHeader>
@@ -592,8 +608,9 @@ export function ImovelForm({ initial }: Props) {
               </Button>
 
               <p className="text-xs text-muted-foreground">
-                Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto. A posição <strong>1 = Capa <Crown className="inline size-3 -mt-0.5" /></strong>.
+                Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto e clique <strong>Salvar ordem</strong>. Para trocar apenas a <strong>capa <Crown className="inline size-3 -mt-0.5" /></strong> sem mexer na ordem, clique no ícone de coroa na linha da imagem.
               </p>
+
             </div>
 
             {imagens.length > 0 && (
@@ -603,7 +620,7 @@ export function ImovelForm({ initial }: Props) {
                     <tr>
                       <th className="text-left p-2 w-[70%]">Imagem</th>
                       <th className="text-left p-2">Ordem</th>
-                      <th className="p-2 w-12"></th>
+                      <th className="p-2 w-24"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -613,7 +630,7 @@ export function ImovelForm({ initial }: Props) {
                       const ehDup = num !== null && duplicados.has(num);
                       const foraRange =
                         num !== null && (!Number.isInteger(num) || num < 1 || num > imagens.length);
-                      const ehCapa = num === 1;
+                      const ehCapa = form.imagem_capa === img.url;
                       return (
                         <tr key={img.id} className="border-t border-foreground/5">
                           <td className="p-2">
@@ -668,17 +685,31 @@ export function ImovelForm({ initial }: Props) {
                             )}
                           </td>
                           <td className="p-2 align-top">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              tabIndex={-1}
-                              onClick={() => removerImg(img)}
-                              title="Remover"
-                            >
-                              <Trash2 className="size-4 text-destructive" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                tabIndex={-1}
+                                onClick={() => definirComoCapa(img)}
+                                title="Definir como capa"
+                                disabled={form.imagem_capa === img.url}
+                              >
+                                <Crown className={`size-4 ${form.imagem_capa === img.url ? "text-gold" : ""}`} />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                tabIndex={-1}
+                                onClick={() => removerImg(img)}
+                                title="Remover"
+                              >
+                                <Trash2 className="size-4 text-destructive" />
+                              </Button>
+                            </div>
                           </td>
+
                         </tr>
                       );
                     })}
