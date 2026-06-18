@@ -169,16 +169,15 @@ function DraggableCard({ lead }: { lead: Lead }) {
   );
 }
 
-function Card({ lead, dragging = false }: { lead: Lead; dragging?: boolean }) {
+function Card({ lead }: { lead: Lead; dragging?: boolean }) {
   const wa = lead.telefone
     ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}`
     : null;
   return (
     <div
-      className={`rounded-md border border-foreground/10 bg-background p-3 shadow-sm ${
-        dragging ? "rotate-2 shadow-lg" : ""
-      }`}
+      className="rounded-md border border-foreground/10 bg-background p-3 shadow-sm"
     >
+
       <div className="flex items-start justify-between gap-2">
         <div className="font-medium text-sm leading-tight">{lead.nome}</div>
         <span className="text-[10px] text-muted-foreground whitespace-nowrap">
