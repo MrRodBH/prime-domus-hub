@@ -221,54 +221,108 @@ export function ImovelForm({ initial }: Props) {
 
   async function removerImg(img: Imagem) {
     if (!confirm("Remover esta imagem?")) return;
-    await adminRemoverImagem({ data: { id: img.id, path: img.url } });
-    const novas = imagens.filter((i) => i.id !== img.id);
-    setImagens(novas);
-    // Re-persistir ordem e capa
-    if (form.id) {
-      const novaCapa = novas[0]?.url ?? null;
-      await adminReordenarImagens({
-        data: {
-          imovel_id: form.id,
-          ordem: novas.map((i, idx) => ({ id: i.id, ordem: idx })),
-          imagem_capa: novaCapa,
-        },
-      });
-      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
-    }
-    toast.success("Imagem removida");
-  }
-
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-
-  async function persistirOrdem(lista: Imagem[]) {
-    if (!form.id) return;
-    const novaCapa = lista[0]?.url ?? null;
     try {
-      await adminReordenarImagens({
-        data: {
-          imovel_id: form.id,
-          ordem: lista.map((i, idx) => ({ id: i.id, ordem: idx })),
-          imagem_capa: novaCapa,
-        },
+      await adminRemoverImagem({ data: { id: img.id, path: img.url } });
+      setImagens((prev) => prev.filter((i) => i.id !== img.id));
+      setOrdens((prev) => {
+        const next = { ...prev };
+        delete next[img.id];
+        return next;
       });
-      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
-      toast.success("Ordem atualizada");
+      toast.success("Imagem removida");
     } catch (e) {
       toast.error((e as Error).message);
     }
   }
 
-  function onDrop(targetIdx: number) {
-    if (dragIdx === null || dragIdx === targetIdx) return;
-    const lista = [...imagens];
-    const [moved] = lista.splice(dragIdx, 1);
-    lista.splice(targetIdx, 0, moved);
-    const reordenadas = lista.map((i, idx) => ({ ...i, ordem: idx }));
-    setImagens(reordenadas);
-    setDragIdx(null);
-    persistirOrdem(reordenadas);
+  // ===== Validação de ordens =====
+  const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "").trim());
+  const numeros = valoresOrdem.map((v) => (v === "" ? null : Number(v)));
+  const duplicados = new Set<number>();
+  {
+    const seen = new Set<number>();
+    for (const n of numeros) {
+      if (n === null || !Number.isFinite(n)) continue;
+      if (seen.has(n)) duplicados.add(n);
+      else seen.add(n);
+    }
   }
+  const todosValidos =
+    imagens.length > 0 &&
+    numeros.every(
+      (n) => n !== null && Number.isInteger(n) && n >= 1 && n <= imagens.length,
+    );
+  const temCapa = numeros.some((n) => n === 1);
+  const podeSalvarOrdem =
+    !!form.id && todosValidos && duplicados.size === 0 && temCapa && !savingOrdem;
+
+  function numerarSequencial() {
+    const novo: Record<string, string> = {};
+    // Preserva quem já tem ordem; preenche o resto sequencialmente
+    const usados = new Set<number>();
+    imagens.forEach((img) => {
+      const v = Number(ordens[img.id]);
+      if (Number.isInteger(v) && v >= 1 && v <= imagens.length && !usados.has(v)) {
+        novo[img.id] = String(v);
+        usados.add(v);
+      }
+    });
+    let proximo = 1;
+    imagens.forEach((img) => {
+      if (novo[img.id]) return;
+      while (usados.has(proximo)) proximo++;
+      novo[img.id] = String(proximo);
+      usados.add(proximo);
+      proximo++;
+    });
+    setOrdens(novo);
+  }
+
+  async function salvarOrdem() {
+    if (!form.id || !podeSalvarOrdem) return;
+    setSavingOrdem(true);
+    try {
+      const mapeadas = imagens
+        .map((img) => ({ img, ordem: Number(ordens[img.id]) }))
+        .sort((a, b) => a.ordem - b.ordem);
+      const capa = mapeadas.find((m) => m.ordem === 1)?.img.url ?? null;
+      await adminReordenarImagens({
+        data: {
+          imovel_id: form.id,
+          ordem: mapeadas.map((m) => ({ id: m.img.id, ordem: m.ordem })),
+          imagem_capa: capa,
+        },
+      });
+      setImagens(mapeadas.map((m) => ({ ...m.img, ordem: m.ordem })));
+      setForm((f) => ({ ...f, imagem_capa: capa ?? "" }));
+      toast.success("Ordem salva");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingOrdem(false);
+    }
+  }
+
+  async function abrirZoom(img: Imagem) {
+    if (img.url.startsWith("http")) {
+      setZoomImg({ id: img.id, url: img.url });
+      return;
+    }
+    try {
+      const { url } = await adminAssinarUrl({
+        data: { bucket: "imoveis", path: img.url, width: 1600, quality: 85 },
+      });
+      setZoomImg({ id: img.id, url });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  // Grid 5x4 só quando todas as imagens já têm ordem persistida (>0)
+  const ordenadasSalvas = [...imagens]
+    .filter((i) => i.ordem > 0)
+    .sort((a, b) => a.ordem - b.ordem);
+  const mostrarGrid = ordenadasSalvas.length === imagens.length && imagens.length > 0;
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); salvar.mutate(); }} className="space-y-6 max-w-5xl">
