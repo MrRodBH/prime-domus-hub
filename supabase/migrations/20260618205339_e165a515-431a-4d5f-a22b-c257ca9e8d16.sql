@@ -1,0 +1,2 @@
+CREATE POLICY "imoveis storage public read" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'imoveis');
+CREATE POLICY "site storage public read" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'site');
