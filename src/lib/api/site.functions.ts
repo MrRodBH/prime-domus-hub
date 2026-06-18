@@ -38,18 +38,39 @@ export interface SiteSettings {
     site_name?: string;
   };
   home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string };
+  home_secoes: {
+    destaques_eyebrow?: string;
+    destaques_titulo?: string;
+    destaques_qtd?: number;
+    bairros_eyebrow?: string;
+    bairros_titulo?: string;
+    bairros_descricao?: string;
+    bairros_qtd?: number;
+  };
   contato: { telefone?: string; whatsapp?: string; email?: string; endereco?: string; instagram?: string; facebook?: string; linkedin?: string; creci?: string; localizacao?: string };
 }
+
+const DEFAULT_SECOES: SiteSettings["home_secoes"] = {
+  destaques_eyebrow: "Seleção Exclusiva",
+  destaques_titulo: "Destaques",
+  destaques_qtd: 3,
+  bairros_eyebrow: "Os Melhores Endereços",
+  bairros_titulo: "Bairros em destaque",
+  bairros_descricao: "Uma seleção estratégica das regiões mais valorizadas para morar e investir em Belo Horizonte.",
+  bairros_qtd: 4,
+};
 
 export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
   const supabase = publicClient();
   const { data, error } = await supabase.from("site_settings").select("key, value");
   if (error) throw new Error(error.message);
-  const result: SiteSettings = { branding: {}, home_hero: {}, contato: {} };
+  const result: SiteSettings = { branding: {}, home_hero: {}, home_secoes: { ...DEFAULT_SECOES }, contato: {} };
   for (const row of data ?? []) {
     if (row.key === "branding" || row.key === "home_hero" || row.key === "contato") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (result as any)[row.key] = (row.value as Record<string, unknown>) ?? {};
+    } else if (row.key === "home_secoes") {
+      result.home_secoes = { ...DEFAULT_SECOES, ...((row.value as Record<string, unknown>) ?? {}) };
     }
   }
   if (result.branding.logo_path) {
@@ -66,7 +87,7 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      key: z.enum(["branding", "home_hero", "contato"]),
+      key: z.enum(["branding", "home_hero", "home_secoes", "contato"]),
       value: z.record(z.string(), z.unknown()),
     }),
   )
