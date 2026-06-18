@@ -601,6 +601,7 @@ export function ImovelForm({ initial }: Props) {
                               type="button"
                               size="icon"
                               variant="ghost"
+                              tabIndex={-1}
                               onClick={() => removerImg(img)}
                               title="Remover"
                             >
