@@ -162,12 +162,14 @@ function DraggableCard({ lead }: { lead: Lead }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`cursor-grab active:cursor-grabbing ${isDragging ? "opacity-30" : ""}`}
+      className="cursor-grab active:cursor-grabbing"
+      style={{ visibility: isDragging ? "hidden" : "visible" }}
     >
       <Card lead={lead} />
     </div>
   );
 }
+
 
 function Card({ lead }: { lead: Lead; dragging?: boolean }) {
   const wa = lead.telefone
