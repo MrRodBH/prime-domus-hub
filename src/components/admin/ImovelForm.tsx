@@ -608,8 +608,9 @@ export function ImovelForm({ initial }: Props) {
               </Button>
 
               <p className="text-xs text-muted-foreground">
-                Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto. A posição <strong>1 = Capa <Crown className="inline size-3 -mt-0.5" /></strong>.
+                Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto e clique <strong>Salvar ordem</strong>. Para trocar apenas a <strong>capa <Crown className="inline size-3 -mt-0.5" /></strong> sem mexer na ordem, clique no ícone de coroa na linha da imagem.
               </p>
+
             </div>
 
             {imagens.length > 0 && (
