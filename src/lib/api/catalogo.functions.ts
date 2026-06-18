@@ -72,8 +72,6 @@ export const listarImoveis = createServerFn({ method: "GET" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     const list = rows ?? [];
-    // Signed URLs requerem privilégio para ler storage.objects (bucket privado);
-    // usamos service role apenas para assinar (a URL gerada é pública e expira).
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await Promise.all(
       list.map(async (r) => {
@@ -85,7 +83,9 @@ export const listarImoveis = createServerFn({ method: "GET" })
         if (capa && !capa.startsWith("http")) {
           const { data: s } = await supabaseAdmin.storage
             .from("imoveis")
-            .createSignedUrl(capa, 60 * 60 * 24 * 365);
+            .createSignedUrl(capa, 60 * 60 * 24 * 365, {
+              transform: { width: 1280, quality: 72, resize: "contain" },
+            });
           if (s) row.imagem_capa = s.signedUrl;
         } else {
           row.imagem_capa = capa ?? null;
@@ -97,15 +97,53 @@ export const listarImoveis = createServerFn({ method: "GET" })
     return list;
   });
 
-export const listarBairros = createServerFn({ method: "GET" }).handler(async () => {
-  const supabase = publicClient();
-  const { data, error } = await supabase
-    .from("bairros")
-    .select("id, nome, slug, descricao, imagem_url, destaque, ordem")
-    .order("ordem", { ascending: true });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+export const listarBairros = createServerFn({ method: "GET" })
+  .inputValidator(
+    z.object({
+      limite: z.number().int().min(1).max(20).optional(),
+      apenas_destaque: z.boolean().optional(),
+    }).optional().default({}),
+  )
+  .handler(async ({ data }) => {
+    const supabase = publicClient();
+    let q = supabase
+      .from("bairros")
+      .select("id, nome, slug, descricao, imagem_url, destaque, ordem")
+      .order("destaque", { ascending: false })
+      .order("ordem", { ascending: true });
+    if (data.apenas_destaque) q = q.eq("destaque", true);
+    if (data.limite) q = q.limit(data.limite);
+    const { data: bairros, error } = await q;
+    if (error) throw new Error(error.message);
+    const list = bairros ?? [];
+
+    const { data: counts } = await supabase
+      .from("imoveis")
+      .select("bairro_id")
+      .eq("status", "ativo");
+    const countMap = new Map<string, number>();
+    for (const c of counts ?? []) {
+      const id = (c as { bairro_id: string | null }).bairro_id;
+      if (id) countMap.set(id, (countMap.get(id) ?? 0) + 1);
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await Promise.all(
+      list.map(async (b) => {
+        const row = b as { id: string; imagem_url?: string | null; count?: number };
+        row.count = countMap.get(row.id) ?? 0;
+        if (row.imagem_url && !row.imagem_url.startsWith("http")) {
+          const { data: s } = await supabaseAdmin.storage
+            .from("imoveis")
+            .createSignedUrl(row.imagem_url, 60 * 60 * 24 * 365, {
+              transform: { width: 800, quality: 72, resize: "contain" },
+            });
+          if (s) row.imagem_url = s.signedUrl;
+        }
+      }),
+    );
+    return list;
+  });
 
 export const obterImovel = createServerFn({ method: "GET" })
   .inputValidator(z.object({ slug: z.string().min(1) }))

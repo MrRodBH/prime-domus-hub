@@ -25,6 +25,12 @@ function AdminSite() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [secoes, setSecoes] = useState<any>({
+    destaques_eyebrow: "Seleção Exclusiva", destaques_titulo: "Destaques", destaques_qtd: 3,
+    bairros_eyebrow: "Os Melhores Endereços", bairros_titulo: "Bairros em destaque",
+    bairros_descricao: "", bairros_qtd: 4,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
@@ -45,6 +51,15 @@ function AdminSite() {
       cta_primary: data.home_hero.cta_primary ?? "",
       cta_secondary: data.home_hero.cta_secondary ?? "",
     });
+    setSecoes({
+      destaques_eyebrow: data.home_secoes.destaques_eyebrow ?? "Seleção Exclusiva",
+      destaques_titulo: data.home_secoes.destaques_titulo ?? "Destaques",
+      destaques_qtd: data.home_secoes.destaques_qtd ?? 3,
+      bairros_eyebrow: data.home_secoes.bairros_eyebrow ?? "Os Melhores Endereços",
+      bairros_titulo: data.home_secoes.bairros_titulo ?? "Bairros em destaque",
+      bairros_descricao: data.home_secoes.bairros_descricao ?? "",
+      bairros_qtd: data.home_secoes.bairros_qtd ?? 4,
+    });
     setContato({
       telefone: data.contato.telefone ?? "",
       whatsapp: data.contato.whatsapp ?? "",
@@ -62,7 +77,7 @@ function AdminSite() {
 
   const salvar = useMutation({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "contato"; value: any }) =>
+    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "home_secoes" | "contato"; value: any }) =>
       atualizarSiteSettings({ data: { key, value } }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["site-settings"] }); },
     onError: (e: Error) => toast.error(e.message),
@@ -123,6 +138,7 @@ function AdminSite() {
         <TabsList>
           <TabsTrigger value="branding">Logo & Marca</TabsTrigger>
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
+          <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
         </TabsList>
 
@@ -171,6 +187,29 @@ function AdminSite() {
             <div><Label>Botão secundário</Label><Input value={hero.cta_secondary} onChange={(e) => setHero({ ...hero, cta_secondary: e.target.value })} /></div>
           </div>
           <Button onClick={() => salvar.mutate({ key: "home_hero", value: hero })} disabled={salvar.isPending}>Salvar hero</Button>
+        </TabsContent>
+
+        <TabsContent value="secoes" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-6">
+          <div className="space-y-4">
+            <h3 className="font-display text-xl">Seção Destaques</h3>
+            <p className="text-xs text-muted-foreground">Exibe os imóveis marcados como <strong>Destaque</strong> no cadastro. Ordene-os pelo cadastro do imóvel.</p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div><Label>Eyebrow</Label><Input value={secoes.destaques_eyebrow} onChange={(e) => setSecoes({ ...secoes, destaques_eyebrow: e.target.value })} /></div>
+              <div><Label>Título</Label><Input value={secoes.destaques_titulo} onChange={(e) => setSecoes({ ...secoes, destaques_titulo: e.target.value })} /></div>
+              <div><Label>Quantidade de imóveis</Label><Input type="number" min={1} max={12} value={secoes.destaques_qtd} onChange={(e) => setSecoes({ ...secoes, destaques_qtd: Number(e.target.value) || 3 })} /></div>
+            </div>
+          </div>
+          <div className="border-t border-foreground/5 pt-6 space-y-4">
+            <h3 className="font-display text-xl">Seção Bairros</h3>
+            <p className="text-xs text-muted-foreground">Exibe os bairros cadastrados, priorizando os marcados como destaque e respeitando a ordem.</p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div><Label>Eyebrow</Label><Input value={secoes.bairros_eyebrow} onChange={(e) => setSecoes({ ...secoes, bairros_eyebrow: e.target.value })} /></div>
+              <div><Label>Título</Label><Input value={secoes.bairros_titulo} onChange={(e) => setSecoes({ ...secoes, bairros_titulo: e.target.value })} /></div>
+              <div className="md:col-span-2"><Label>Descrição</Label><Textarea rows={2} value={secoes.bairros_descricao} onChange={(e) => setSecoes({ ...secoes, bairros_descricao: e.target.value })} /></div>
+              <div><Label>Quantidade de bairros</Label><Input type="number" min={1} max={12} value={secoes.bairros_qtd} onChange={(e) => setSecoes({ ...secoes, bairros_qtd: Number(e.target.value) || 4 })} /></div>
+            </div>
+          </div>
+          <Button onClick={() => salvar.mutate({ key: "home_secoes", value: secoes })} disabled={salvar.isPending}>Salvar seções</Button>
         </TabsContent>
 
         <TabsContent value="contato" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
