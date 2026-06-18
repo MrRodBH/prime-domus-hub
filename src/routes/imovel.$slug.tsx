@@ -250,7 +250,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
 
   return (
     <section className="max-w-7xl mx-auto px-6">
-      <div className="relative overflow-hidden rounded-md aspect-[16/10] bg-muted">
+      <div className="relative overflow-hidden rounded-md bg-muted">
         <img
           src={imagens[idx].url}
           alt={`${titulo} — foto ${idx + 1}`}
@@ -259,7 +259,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
           loading="eager"
           fetchPriority="high"
           decoding="async"
-          className="w-full h-full object-cover"
+          className="block w-full h-auto"
         />
         {/* Pré-carrega próxima imagem para navegação instantânea */}
         {total > 1 && (
@@ -296,7 +296,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
               type="button"
               key={img.url + i}
               onClick={() => setIdx(i)}
-              className={`relative shrink-0 w-24 h-16 overflow-hidden rounded ${
+              className={`relative shrink-0 w-24 h-16 overflow-hidden rounded bg-muted ${
                 i === idx ? "ring-2 ring-gold" : "opacity-70 hover:opacity-100"
               }`}
               aria-label={`Ver foto ${i + 1}`}
@@ -306,7 +306,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </button>
           ))}

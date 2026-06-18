@@ -191,21 +191,14 @@ function Home() {
           <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
             {properties.map((p) => (
               <article key={p.title} className="group cursor-pointer">
-                <div className="relative overflow-hidden rounded mb-5 aspect-[16/9] bg-muted">
-                  <img
-                    src={p.img}
-                    alt=""
-                    aria-hidden="true"
-                    loading="lazy"
-                    className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-60"
-                  />
+                <div className="relative overflow-hidden rounded mb-5 bg-muted">
                   <img
                     src={p.img}
                     alt={p.title}
                     width={1600}
                     height={900}
                     loading="lazy"
-                    className="relative w-full h-full object-contain transition-transform duration-[800ms] group-hover:scale-[1.04]"
+                    className="block w-full h-auto"
                   />
                   <div className="absolute top-4 left-4 bg-linen/95 backdrop-blur px-3 py-1.5 rounded-full">
                     <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{p.badge}</span>
