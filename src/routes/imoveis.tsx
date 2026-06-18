@@ -246,7 +246,8 @@ function Page() {
                 return (
                   <Link to="/imovel/$slug" params={{ slug: p.slug }} key={p.id} className="group block" aria-label={p.titulo}>
                     <div className="relative overflow-hidden rounded mb-5 aspect-[16/9] bg-muted">
-                      <img src={p.imagem_capa || imovelImage(p.slug, i)} alt={p.titulo} width={1600} height={900} loading="lazy" className="w-full h-full object-contain transition-transform duration-[800ms] group-hover:scale-[1.04]" />
+                      <img src={p.imagem_capa || imovelImage(p.slug, i)} alt="" aria-hidden="true" loading="lazy" className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-60" />
+                      <img src={p.imagem_capa || imovelImage(p.slug, i)} alt={p.titulo} width={1600} height={900} loading="lazy" className="relative w-full h-full object-contain transition-transform duration-[800ms] group-hover:scale-[1.04]" />
                       {p.badge && (
                         <div className="absolute top-4 left-4 bg-linen/95 backdrop-blur px-3 py-1.5 rounded-full">
                           <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{p.badge}</span>
