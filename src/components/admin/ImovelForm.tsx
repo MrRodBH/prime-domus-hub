@@ -360,8 +360,20 @@ export function ImovelForm({ initial }: Props) {
       toast.error((e as Error).message);
     } finally {
       setSavingOrdem(false);
+  }
+
+  async function definirComoCapa(img: Imagem) {
+    if (!form.id) return;
+    try {
+      const r = await adminDefinirCapa({ data: { imovel_id: form.id, imagem_id: img.id } });
+      setForm((f) => ({ ...f, imagem_capa: r.imagem_capa }));
+      qc.invalidateQueries({ queryKey: ["admin", "imoveis"] });
+      toast.success("Capa definida — visível no site público.");
+    } catch (e) {
+      toast.error((e as Error).message);
     }
   }
+
 
 
   async function abrirZoom(img: Imagem) {
