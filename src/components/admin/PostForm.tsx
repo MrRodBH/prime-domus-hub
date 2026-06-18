@@ -219,7 +219,19 @@ export function PostForm({ initial }: { initial?: Post }) {
       </div>
 
       <div className="border-t border-foreground/5 pt-6 space-y-4">
-        <h2 className="font-display text-xl">SEO</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl">SEO</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={gerarSeo.isPending || !form.conteudo || form.conteudo.replace(/<[^>]+>/g, "").trim().length < 20}
+            onClick={() => gerarSeo.mutate()}
+          >
+            {gerarSeo.isPending ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Sparkles className="size-4 mr-1" />}
+            Gerar com IA
+          </Button>
+        </div>
         <div className="space-y-1">
           <Label>Meta Title <span className="text-xs text-muted-foreground">(até 60 caracteres)</span></Label>
           <Input maxLength={70} value={form.meta_title ?? ""} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} />
@@ -229,6 +241,7 @@ export function PostForm({ initial }: { initial?: Post }) {
           <Textarea rows={2} maxLength={180} value={form.meta_description ?? ""} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} />
         </div>
       </div>
+
 
       <div className="flex gap-2">
         <Button type="submit" disabled={salvar.isPending}>{salvar.isPending ? "Salvando..." : "Salvar"}</Button>
