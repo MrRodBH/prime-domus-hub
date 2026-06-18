@@ -537,8 +537,8 @@ export function ImovelForm({ initial }: Props) {
                   </thead>
                   <tbody>
                     {imagens.map((img, idx) => {
-                      const valor = ordens[img.id] ?? "";
-                      const num = valor === "" ? null : Number(valor);
+                      const valor = ordens[img.id] ?? "0";
+                      const num = valor === "" || valor === "0" ? null : Number(valor);
                       const ehDup = num !== null && duplicados.has(num);
                       const foraRange =
                         num !== null && (!Number.isInteger(num) || num < 1 || num > imagens.length);
@@ -579,7 +579,7 @@ export function ImovelForm({ initial }: Props) {
                           <td className="p-2 align-top">
                             <Input
                               type="number"
-                              min={1}
+                              min={0}
                               max={imagens.length}
                               inputMode="numeric"
                               value={valor}
@@ -587,7 +587,7 @@ export function ImovelForm({ initial }: Props) {
                                 setOrdens((p) => ({ ...p, [img.id]: e.target.value }))
                               }
                               className={`w-20 ${ehDup || foraRange ? "border-destructive" : ""}`}
-                              placeholder={String(idx + 1)}
+                              placeholder="0"
                             />
                             {ehDup && (
                               <p className="text-[11px] text-destructive mt-1">Número repetido</p>
