@@ -360,7 +360,10 @@ export function ImovelForm({ initial }: Props) {
       toast.error((e as Error).message);
     } finally {
       setSavingOrdem(false);
+    }
   }
+
+
 
   async function definirComoCapa(img: Imagem) {
     if (!form.id) return;
