@@ -41,7 +41,7 @@ function AuthPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link to="/" className="flex justify-center mb-10">
-          <img src={logo} alt="RM Prime Imóveis" className="h-14 w-auto" />
+          <img src={logo} alt="RM Prime Imóveis" className="h-40 w-auto" />
         </Link>
         <div className="bg-card border border-foreground/5 rounded-lg p-8 shadow-soft">
           <h1 className="font-display text-3xl mb-2">Painel administrativo</h1>
