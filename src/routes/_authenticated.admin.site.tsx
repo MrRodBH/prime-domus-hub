@@ -77,7 +77,7 @@ function AdminSite() {
 
   const salvar = useMutation({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "contato"; value: any }) =>
+    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "home_secoes" | "contato"; value: any }) =>
       atualizarSiteSettings({ data: { key, value } }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["site-settings"] }); },
     onError: (e: Error) => toast.error(e.message),
