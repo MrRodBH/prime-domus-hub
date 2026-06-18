@@ -165,15 +165,53 @@ export function PostForm({ initial }: { initial?: Post }) {
         </div>
       </div>
 
-      <div className="space-y-1">
-        <Label>Imagem de capa (URL)</Label>
-        <Input value={form.imagem_capa ?? ""} onChange={(e) => setForm({ ...form, imagem_capa: e.target.value })} />
+      <div className="space-y-2">
+        <Label>Imagem de capa</Label>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleUploadCapa}
+          />
+          <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
+            {uploading ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Upload className="size-4 mr-1" />}
+            {uploading ? "Enviando..." : "Enviar do computador"}
+          </Button>
+          {form.imagem_capa && (
+            <>
+              <img src={form.imagem_capa} alt="Capa" className="h-16 w-24 object-cover rounded border border-foreground/10" />
+              <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, imagem_capa: "" })}>
+                <X className="size-4 mr-1" /> Remover
+              </Button>
+            </>
+          )}
+        </div>
+        <Input
+          placeholder="Ou cole uma URL"
+          value={form.imagem_capa ?? ""}
+          onChange={(e) => setForm({ ...form, imagem_capa: e.target.value })}
+        />
       </div>
 
       <div className="space-y-1">
-        <Label>Resumo</Label>
-        <Textarea rows={2} value={form.resumo ?? ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} />
+        <div className="flex items-center justify-between">
+          <Label>Resumo</Label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={gerarResumo.isPending || !form.conteudo || form.conteudo.replace(/<[^>]+>/g, "").trim().length < 20}
+            onClick={() => gerarResumo.mutate()}
+          >
+            {gerarResumo.isPending ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Sparkles className="size-4 mr-1" />}
+            Gerar com IA
+          </Button>
+        </div>
+        <Textarea rows={3} value={form.resumo ?? ""} onChange={(e) => setForm({ ...form, resumo: e.target.value })} />
       </div>
+
 
       <div className="space-y-1">
         <Label>Conteúdo *</Label>
