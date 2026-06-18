@@ -123,21 +123,37 @@ export function ImovelForm({ initial }: Props) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Assina URLs para preview das imagens existentes
+  // Assina URLs (miniaturas 400px) para preview das imagens existentes
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const map: Record<string, string> = {};
       for (const img of imagens) {
         if (img.url.startsWith("http")) { map[img.id] = img.url; continue; }
         try {
-          const { url } = await adminAssinarUrl({ data: { bucket: "imoveis", path: img.url } });
+          const { url } = await adminAssinarUrl({ data: { bucket: "imoveis", path: img.url, width: 400, quality: 65 } });
           map[img.id] = url;
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (_e) { /* ignore */ }
       }
-      setSignedUrls(map);
+      if (!cancelled) setSignedUrls(map);
     })();
+    return () => { cancelled = true; };
   }, [imagens]);
+
+  // Estado dos inputs de ordem (string por id de imagem)
+  const [ordens, setOrdens] = useState<Record<string, string>>({});
+  useEffect(() => {
+    setOrdens((prev) => {
+      const next: Record<string, string> = {};
+      for (const img of imagens) {
+        next[img.id] = prev[img.id] ?? (img.ordem > 0 ? String(img.ordem) : "");
+      }
+      return next;
+    });
+  }, [imagens]);
+  const [savingOrdem, setSavingOrdem] = useState(false);
+  const [zoomImg, setZoomImg] = useState<{ id: string; url: string } | null>(null);
 
   const salvar = useMutation({
     mutationFn: () =>
