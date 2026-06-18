@@ -135,18 +135,25 @@ export const listarBairros = createServerFn({ method: "GET" })
       if (id) countMap.set(id, (countMap.get(id) ?? 0) + 1);
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let admin: typeof import("@/integrations/supabase/client.server").supabaseAdmin | null = null;
+    try {
+      admin = (await import("@/integrations/supabase/client.server")).supabaseAdmin;
+    } catch (e) {
+      console.error("supabaseAdmin indisponível em listarBairros:", e);
+    }
     await Promise.all(
       list.map(async (b) => {
         const row = b as { id: string; imagem_url?: string | null; count?: number };
         row.count = countMap.get(row.id) ?? 0;
-        if (row.imagem_url && !row.imagem_url.startsWith("http")) {
-          const { data: s } = await supabaseAdmin.storage
-            .from("imoveis")
-            .createSignedUrl(row.imagem_url, 60 * 60 * 24 * 365, {
-              transform: { width: 800, quality: 72, resize: "contain" },
-            });
-          if (s) row.imagem_url = s.signedUrl;
+        if (row.imagem_url && !row.imagem_url.startsWith("http") && admin) {
+          try {
+            const { data: s } = await admin.storage
+              .from("imoveis")
+              .createSignedUrl(row.imagem_url, 60 * 60 * 24 * 365, {
+                transform: { width: 800, quality: 72, resize: "contain" },
+              });
+            if (s) row.imagem_url = s.signedUrl;
+          } catch { /* keep raw */ }
         }
       }),
     );
