@@ -141,13 +141,13 @@ export function ImovelForm({ initial }: Props) {
     return () => { cancelled = true; };
   }, [imagens]);
 
-  // Estado dos inputs de ordem (string por id de imagem)
+  // Estado dos inputs de ordem (string por id de imagem). 0 = ainda não definido.
   const [ordens, setOrdens] = useState<Record<string, string>>({});
   useEffect(() => {
     setOrdens((prev) => {
       const next: Record<string, string> = {};
       for (const img of imagens) {
-        next[img.id] = prev[img.id] ?? "";
+        next[img.id] = prev[img.id] ?? "0";
       }
       return next;
     });
@@ -236,8 +236,8 @@ export function ImovelForm({ initial }: Props) {
   }
 
   // ===== Validação de ordens =====
-  const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "").trim());
-  const numeros = valoresOrdem.map((v) => (v === "" ? null : Number(v)));
+  const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "0").trim());
+  const numeros = valoresOrdem.map((v) => (v === "" || v === "0" ? null : Number(v)));
   const duplicados = new Set<number>();
   {
     const seen = new Set<number>();
@@ -537,8 +537,8 @@ export function ImovelForm({ initial }: Props) {
                   </thead>
                   <tbody>
                     {imagens.map((img, idx) => {
-                      const valor = ordens[img.id] ?? "";
-                      const num = valor === "" ? null : Number(valor);
+                      const valor = ordens[img.id] ?? "0";
+                      const num = valor === "" || valor === "0" ? null : Number(valor);
                       const ehDup = num !== null && duplicados.has(num);
                       const foraRange =
                         num !== null && (!Number.isInteger(num) || num < 1 || num > imagens.length);
@@ -579,7 +579,7 @@ export function ImovelForm({ initial }: Props) {
                           <td className="p-2 align-top">
                             <Input
                               type="number"
-                              min={1}
+                              min={0}
                               max={imagens.length}
                               inputMode="numeric"
                               value={valor}
@@ -587,7 +587,7 @@ export function ImovelForm({ initial }: Props) {
                                 setOrdens((p) => ({ ...p, [img.id]: e.target.value }))
                               }
                               className={`w-20 ${ehDup || foraRange ? "border-destructive" : ""}`}
-                              placeholder={String(idx + 1)}
+                              placeholder="0"
                             />
                             {ehDup && (
                               <p className="text-[11px] text-destructive mt-1">Número repetido</p>
