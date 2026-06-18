@@ -138,6 +138,7 @@ function AdminSite() {
         <TabsList>
           <TabsTrigger value="branding">Logo & Marca</TabsTrigger>
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
+          <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
         </TabsList>
 
