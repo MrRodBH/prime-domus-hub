@@ -117,9 +117,10 @@ function AdminLeads() {
             <Column key={col.id} col={col} leads={byStatus[col.id]} />
           ))}
         </div>
-        <DragOverlay>
-          {activeLead ? <Card lead={activeLead} dragging /> : null}
+        <DragOverlay dropAnimation={null}>
+          {activeLead ? <Card lead={activeLead} /> : null}
         </DragOverlay>
+
       </DndContext>
     </div>
   );
