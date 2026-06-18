@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { adminSalvarPost, adminListarCategorias } from "@/lib/api/blog.functions";
-import { adminListarCorretores } from "@/lib/api/admin.functions";
+import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost } from "@/lib/api/blog.functions";
+import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Sparkles, Upload, Loader2, X } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
