@@ -196,7 +196,7 @@ export function ImovelForm({ initial }: Props) {
         const { error: upErr } = await supabase.storage.from("imoveis").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagem({
-          data: { imovel_id: form.id, url: path, alt: form.titulo, ordem: imagens.length + idx },
+          data: { imovel_id: form.id, url: path, alt: form.titulo, ordem: 0 },
         });
       }
       toast.success("Imagens enviadas");
