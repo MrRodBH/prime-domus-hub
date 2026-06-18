@@ -147,7 +147,7 @@ export function ImovelForm({ initial }: Props) {
     setOrdens((prev) => {
       const next: Record<string, string> = {};
       for (const img of imagens) {
-        next[img.id] = prev[img.id] ?? (img.ordem > 0 ? String(img.ordem) : "");
+        next[img.id] = prev[img.id] ?? "";
       }
       return next;
     });
