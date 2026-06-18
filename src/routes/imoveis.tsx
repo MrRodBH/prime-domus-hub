@@ -245,8 +245,8 @@ function Page() {
                   : (p.bairro as { nome?: string } | null)?.nome;
                 return (
                   <Link to="/imovel/$slug" params={{ slug: p.slug }} key={p.id} className="group block" aria-label={p.titulo}>
-                    <div className="relative overflow-hidden rounded mb-5 aspect-[4/5] bg-muted">
-                      <img src={p.imagem_capa || imovelImage(p.slug, i)} alt={p.titulo} width={800} height={1000} loading="lazy" className="w-full h-full object-cover transition-transform duration-[800ms] group-hover:scale-[1.04]" />
+                    <div className="relative overflow-hidden rounded mb-5 aspect-[16/9] bg-muted">
+                      <img src={p.imagem_capa || imovelImage(p.slug, i)} alt={p.titulo} width={1600} height={900} loading="lazy" className="w-full h-full object-cover transition-transform duration-[800ms] group-hover:scale-[1.04]" />
                       {p.badge && (
                         <div className="absolute top-4 left-4 bg-linen/95 backdrop-blur px-3 py-1.5 rounded-full">
                           <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{p.badge}</span>
