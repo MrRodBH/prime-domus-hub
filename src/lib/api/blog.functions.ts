@@ -209,3 +209,42 @@ export const adminExcluirPost = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ============ IA: Resumo ============
+
+export const adminGerarResumoPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ conteudo: z.string().min(20), titulo: z.string().optional().default("") }))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada.");
+
+    const texto = data.conteudo.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 6000);
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "raw-fetch",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "Você é um editor de conteúdo imobiliário. Escreve resumos curtos em português do Brasil, com tom profissional e claro, sem emojis e sem markdown." },
+          { role: "user", content: `Gere um resumo de 2 a 3 frases (máximo 280 caracteres) para o post a seguir. Apenas o texto do resumo, sem aspas.\n\nTítulo: ${data.titulo}\n\nConteúdo:\n${texto}` },
+        ],
+      }),
+    });
+
+    if (resp.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente em instantes.");
+    if (resp.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+    if (!resp.ok) throw new Error(`Falha na IA (${resp.status})`);
+
+    const json = await resp.json();
+    const resumo: string = json?.choices?.[0]?.message?.content?.trim() ?? "";
+    if (!resumo) throw new Error("A IA não retornou resumo.");
+    return { resumo };
+  });
+
