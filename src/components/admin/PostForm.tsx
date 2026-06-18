@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost } from "@/lib/api/blog.functions";
+import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost, adminGerarSeoPost } from "@/lib/api/blog.functions";
 import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
@@ -91,6 +91,16 @@ export function PostForm({ initial }: { initial?: Post }) {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const gerarSeo = useMutation({
+    mutationFn: () => adminGerarSeoPost({ data: { conteudo: form.conteudo || "", titulo: form.titulo || "" } }),
+    onSuccess: (res) => {
+      setForm((f: Post) => ({ ...f, meta_title: res.meta_title, meta_description: res.meta_description }));
+      toast.success("Meta tags geradas");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const salvar = useMutation({
     mutationFn: (p: Post) => adminSalvarPost({ data: p }),
@@ -219,7 +229,19 @@ export function PostForm({ initial }: { initial?: Post }) {
       </div>
 
       <div className="border-t border-foreground/5 pt-6 space-y-4">
-        <h2 className="font-display text-xl">SEO</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl">SEO</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={gerarSeo.isPending || !form.conteudo || form.conteudo.replace(/<[^>]+>/g, "").trim().length < 20}
+            onClick={() => gerarSeo.mutate()}
+          >
+            {gerarSeo.isPending ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Sparkles className="size-4 mr-1" />}
+            Gerar com IA
+          </Button>
+        </div>
         <div className="space-y-1">
           <Label>Meta Title <span className="text-xs text-muted-foreground">(até 60 caracteres)</span></Label>
           <Input maxLength={70} value={form.meta_title ?? ""} onChange={(e) => setForm({ ...form, meta_title: e.target.value })} />
@@ -229,6 +251,7 @@ export function PostForm({ initial }: { initial?: Post }) {
           <Textarea rows={2} maxLength={180} value={form.meta_description ?? ""} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} />
         </div>
       </div>
+
 
       <div className="flex gap-2">
         <Button type="submit" disabled={salvar.isPending}>{salvar.isPending ? "Salvando..." : "Salvar"}</Button>

@@ -248,3 +248,45 @@ export const adminGerarResumoPost = createServerFn({ method: "POST" })
     return { resumo };
   });
 
+export const adminGerarSeoPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ conteudo: z.string().min(20), titulo: z.string().optional().default("") }))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada.");
+
+    const texto = data.conteudo.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 6000);
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "raw-fetch",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "Você é um especialista em SEO para sites de imóveis de alto padrão no Brasil. Escreve em português do Brasil, sem emojis e sem markdown. Responde APENAS em JSON válido." },
+          { role: "user", content: `Gere meta tags otimizadas para SEO do post abaixo.\n\nRegras:\n- meta_title: até 60 caracteres, com palavra-chave principal no início.\n- meta_description: até 155 caracteres, persuasivo, com chamada para ação sutil.\n- Sem aspas dentro dos valores.\n\nResponda APENAS com um JSON no formato exato: {"meta_title":"...","meta_description":"..."}\n\nTítulo: ${data.titulo}\n\nConteúdo:\n${texto}` },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (resp.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente em instantes.");
+    if (resp.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+    if (!resp.ok) throw new Error(`Falha na IA (${resp.status})`);
+
+    const json = await resp.json();
+    const raw: string = json?.choices?.[0]?.message?.content?.trim() ?? "";
+    let parsed: { meta_title?: string; meta_description?: string } = {};
+    try { parsed = JSON.parse(raw); } catch { throw new Error("A IA retornou um formato inválido."); }
+    const meta_title = (parsed.meta_title ?? "").slice(0, 60);
+    const meta_description = (parsed.meta_description ?? "").slice(0, 160);
+    if (!meta_title || !meta_description) throw new Error("A IA não retornou meta tags completas.");
+    return { meta_title, meta_description };
+  });
+
+
