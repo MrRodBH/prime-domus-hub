@@ -198,7 +198,7 @@ function Home() {
                     width={1600}
                     height={900}
                     loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-[800ms] group-hover:scale-[1.04]"
+                    className="w-full h-full object-contain transition-transform duration-[800ms] group-hover:scale-[1.04]"
                   />
                   <div className="absolute top-4 left-4 bg-linen/95 backdrop-blur px-3 py-1.5 rounded-full">
                     <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{p.badge}</span>
