@@ -304,7 +304,14 @@ export function ImovelForm({ initial }: Props) {
           imagem_capa: capa,
         },
       });
-      setImagens(mapeadas.map((m) => ({ ...m.img, ordem: m.ordem })));
+      // Atualiza apenas o valor de `ordem` em cada imagem, preservando a
+      // posição atual na tabela do admin. O grid público lê por ordem ASC.
+      setImagens((prev) =>
+        prev.map((i) => {
+          const m = mapeadas.find((x) => x.img.id === i.id);
+          return m ? { ...i, ordem: m.ordem } : i;
+        }),
+      );
       setForm((f) => ({ ...f, imagem_capa: capa ?? "" }));
       toast.success("Ordem salva");
     } catch (e) {
@@ -313,6 +320,7 @@ export function ImovelForm({ initial }: Props) {
       setSavingOrdem(false);
     }
   }
+
 
   async function abrirZoom(img: Imagem) {
     if (img.url.startsWith("http")) {
