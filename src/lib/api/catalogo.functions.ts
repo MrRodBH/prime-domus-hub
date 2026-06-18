@@ -72,12 +72,14 @@ export const listarImoveis = createServerFn({ method: "GET" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     const list = rows ?? [];
-    // Resolve signed URLs para imagens armazenadas no bucket "imoveis" (com transformação para card)
+    // Signed URLs requerem privilégio para ler storage.objects (bucket privado);
+    // usamos service role apenas para assinar (a URL gerada é pública e expira).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await Promise.all(
       list.map(async (r) => {
         const row = r as { imagem_capa?: string | null };
         if (row.imagem_capa && !row.imagem_capa.startsWith("http")) {
-          const { data: s } = await supabase.storage
+          const { data: s } = await supabaseAdmin.storage
             .from("imoveis")
             .createSignedUrl(row.imagem_capa, 60 * 60 * 24 * 365, {
               transform: { width: 800, quality: 75 },
@@ -86,6 +88,7 @@ export const listarImoveis = createServerFn({ method: "GET" })
         }
       }),
     );
+
 
     return list;
   });
