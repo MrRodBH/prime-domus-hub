@@ -33,6 +33,7 @@ import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
 import { Route as AuthenticatedAdminImoveisIndexRouteImport } from './routes/_authenticated.admin.imoveis.index'
+import { Route as AuthenticatedAdminBlogIndexRouteImport } from './routes/_authenticated.admin.blog.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -163,6 +164,12 @@ const AuthenticatedAdminImoveisIndexRoute =
     path: '/imoveis/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminBlogIndexRoute =
+  AuthenticatedAdminBlogIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminBlogRoute,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/blog/': typeof AuthenticatedAdminBlogIndexRoute
   '/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
 }
 export interface FileRoutesByTo {
@@ -253,7 +261,6 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
-  '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
@@ -267,6 +274,7 @@ export interface FileRoutesByTo {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/blog': typeof AuthenticatedAdminBlogIndexRoute
   '/admin/imoveis': typeof AuthenticatedAdminImoveisIndexRoute
 }
 export interface FileRoutesById {
@@ -301,6 +309,7 @@ export interface FileRoutesById {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/_authenticated/admin/blog/': typeof AuthenticatedAdminBlogIndexRoute
   '/_authenticated/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
 }
 export interface FileRouteTypes {
@@ -335,6 +344,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/blog/'
     | '/admin/imoveis/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -352,7 +362,6 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/admin/bairros'
-    | '/admin/blog'
     | '/admin/corretores'
     | '/admin/leads'
     | '/admin/site'
@@ -366,6 +375,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/blog'
     | '/admin/imoveis'
   id:
     | '__root__'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/_authenticated/admin/blog/'
     | '/_authenticated/admin/imoveis/'
   fileRoutesById: FileRoutesById
 }
@@ -593,6 +604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminImoveisIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/blog/': {
+      id: '/_authenticated/admin/blog/'
+      path: '/'
+      fullPath: '/admin/blog/'
+      preLoaderRoute: typeof AuthenticatedAdminBlogIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminBlogRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -648,12 +666,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminBlogRouteChildren {
   AuthenticatedAdminBlogIdRoute: typeof AuthenticatedAdminBlogIdRoute
   AuthenticatedAdminBlogNovoRoute: typeof AuthenticatedAdminBlogNovoRoute
+  AuthenticatedAdminBlogIndexRoute: typeof AuthenticatedAdminBlogIndexRoute
 }
 
 const AuthenticatedAdminBlogRouteChildren: AuthenticatedAdminBlogRouteChildren =
   {
     AuthenticatedAdminBlogIdRoute: AuthenticatedAdminBlogIdRoute,
     AuthenticatedAdminBlogNovoRoute: AuthenticatedAdminBlogNovoRoute,
+    AuthenticatedAdminBlogIndexRoute: AuthenticatedAdminBlogIndexRoute,
   }
 
 const AuthenticatedAdminBlogRouteWithChildren =
