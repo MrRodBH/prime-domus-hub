@@ -87,9 +87,14 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
   const selecionadasObj = selecionadas.map((id) => imgMap.get(id)).filter(Boolean) as Imagem[];
 
   function toggleImg(id: string) {
-    setSelecionadas((s) =>
-      s.includes(id) ? s.filter((x) => x !== id) : s.length >= 10 ? s : [...s, id],
-    );
+    setSelecionadas((s) => {
+      if (s.includes(id)) return s.filter((x) => x !== id);
+      if (s.length >= 10) {
+        toast.error("Limite de 10 fotos no carrossel. Desmarque alguma antes de adicionar outra.");
+        return s;
+      }
+      return [...s, id];
+    });
   }
 
   async function copiar(tipo: "legenda" | "hashtags" | "tudo") {
@@ -227,7 +232,17 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
 
             {/* Seleção de imagens */}
             <div className="space-y-2">
-              <Label>Fotos do carrossel ({selecionadas.length}/10)</Label>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <Label>Fotos do carrossel ({selecionadas.length}/10)</Label>
+                <div className="flex gap-1">
+                  <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelecionadas([])} disabled={selecionadas.length === 0}>
+                    Limpar
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelecionadas(imagens.slice(0, 10).map((i) => i.id))} disabled={imagens.length === 0}>
+                    10 primeiras
+                  </Button>
+                </div>
+              </div>
               {imagens.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Adicione fotos ao imóvel para incluir no post.</p>
               ) : (
