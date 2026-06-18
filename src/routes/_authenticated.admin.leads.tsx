@@ -117,9 +117,10 @@ function AdminLeads() {
             <Column key={col.id} col={col} leads={byStatus[col.id]} />
           ))}
         </div>
-        <DragOverlay>
-          {activeLead ? <Card lead={activeLead} dragging /> : null}
+        <DragOverlay dropAnimation={null}>
+          {activeLead ? <Card lead={activeLead} /> : null}
         </DragOverlay>
+
       </DndContext>
     </div>
   );
@@ -162,23 +163,24 @@ function DraggableCard({ lead }: { lead: Lead }) {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`cursor-grab active:cursor-grabbing ${isDragging ? "opacity-30" : ""}`}
+      className="cursor-grab active:cursor-grabbing"
+      style={{ visibility: isDragging ? "hidden" : "visible" }}
     >
       <Card lead={lead} />
     </div>
   );
 }
 
-function Card({ lead, dragging = false }: { lead: Lead; dragging?: boolean }) {
+
+function Card({ lead }: { lead: Lead; dragging?: boolean }) {
   const wa = lead.telefone
     ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}`
     : null;
   return (
     <div
-      className={`rounded-md border border-foreground/10 bg-background p-3 shadow-sm ${
-        dragging ? "rotate-2 shadow-lg" : ""
-      }`}
+      className="rounded-md border border-foreground/10 bg-background p-3 shadow-sm"
     >
+
       <div className="flex items-start justify-between gap-2">
         <div className="font-medium text-sm leading-tight">{lead.nome}</div>
         <span className="text-[10px] text-muted-foreground whitespace-nowrap">
