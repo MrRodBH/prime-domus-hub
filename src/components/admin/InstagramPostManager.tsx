@@ -87,9 +87,14 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
   const selecionadasObj = selecionadas.map((id) => imgMap.get(id)).filter(Boolean) as Imagem[];
 
   function toggleImg(id: string) {
-    setSelecionadas((s) =>
-      s.includes(id) ? s.filter((x) => x !== id) : s.length >= 10 ? s : [...s, id],
-    );
+    setSelecionadas((s) => {
+      if (s.includes(id)) return s.filter((x) => x !== id);
+      if (s.length >= 10) {
+        toast.error("Limite de 10 fotos no carrossel. Desmarque alguma antes de adicionar outra.");
+        return s;
+      }
+      return [...s, id];
+    });
   }
 
   async function copiar(tipo: "legenda" | "hashtags" | "tudo") {
