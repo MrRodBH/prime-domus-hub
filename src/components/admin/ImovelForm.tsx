@@ -31,6 +31,10 @@ type Imagem = { id: string; url: string; alt?: string | null; ordem: number };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ImovelData = any;
 
+function ordemInicial(img: Imagem) {
+  return Number.isInteger(img.ordem) && img.ordem > 0 ? String(img.ordem) : "0";
+}
+
 interface Props { initial?: ImovelData }
 
 const tipos = ["apartamento", "cobertura", "casa", "casa_condominio", "terreno", "comercial"];
@@ -143,12 +147,14 @@ export function ImovelForm({ initial }: Props) {
   }, [imagens]);
 
   // Estado dos inputs de ordem (string por id de imagem). 0 = ainda não definido.
-  const [ordens, setOrdens] = useState<Record<string, string>>({});
+  const [ordens, setOrdens] = useState<Record<string, string>>(() =>
+    Object.fromEntries((initial?.imagens ?? []).map((img: Imagem) => [img.id, ordemInicial(img)])),
+  );
   useEffect(() => {
     setOrdens((prev) => {
       const next: Record<string, string> = {};
       for (const img of imagens) {
-        next[img.id] = prev[img.id] ?? "0";
+        next[img.id] = prev[img.id] ?? ordemInicial(img);
       }
       return next;
     });
