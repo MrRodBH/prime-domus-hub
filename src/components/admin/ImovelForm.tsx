@@ -267,30 +267,8 @@ export function ImovelForm({ initial }: Props) {
   }
 
 
-  // ===== Validação de ordens =====
-  const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "0").trim());
-  const numeros = valoresOrdem.map((v) => (v === "" || v === "0" ? null : Number(v)));
-  const duplicados = new Set<number>();
-  {
-    const seen = new Set<number>();
-    for (const n of numeros) {
-      if (n === null || !Number.isFinite(n)) continue;
-      if (seen.has(n)) duplicados.add(n);
-      else seen.add(n);
-    }
-  }
-  const todosValidos =
-    imagens.length > 0 &&
-    numeros.every(
-      (n) => n !== null && Number.isInteger(n) && n >= 1 && n <= imagens.length,
-    );
-  const temCapa = numeros.some((n) => n === 1);
-  const podeSalvarOrdem =
-    !!form.id && todosValidos && duplicados.size === 0 && temCapa && !savingOrdem;
-
   function numerarSequencial() {
     const novo: Record<string, string> = {};
-    // Preserva quem já tem ordem; preenche o resto sequencialmente
     const usados = new Set<number>();
     imagens.forEach((img) => {
       const v = Number(ordens[img.id]);
@@ -311,7 +289,36 @@ export function ImovelForm({ initial }: Props) {
   }
 
   async function salvarOrdem() {
-    if (!form.id || !podeSalvarOrdem) return;
+    if (!form.id) return;
+    if (imagens.length === 0) {
+      toast.error("Não há imagens para ordenar.");
+      return;
+    }
+    // Validação no clique (botão fica sempre habilitado)
+    const valores = imagens.map((i) => (ordens[i.id] ?? "0").trim());
+    const nums = valores.map((v) => (v === "" ? NaN : Number(v)));
+    const invalidos = nums.some(
+      (n) => !Number.isInteger(n) || n < 1 || n > imagens.length,
+    );
+    if (invalidos) {
+      toast.error(`Defina um número entre 1 e ${imagens.length} para cada foto.`);
+      return;
+    }
+    const seen = new Set<number>();
+    const dup: number[] = [];
+    for (const n of nums) {
+      if (seen.has(n)) dup.push(n);
+      else seen.add(n);
+    }
+    if (dup.length > 0) {
+      toast.error(`Há números repetidos: ${[...new Set(dup)].join(", ")}.`);
+      return;
+    }
+    if (!nums.includes(1)) {
+      toast.error("Defina a capa atribuindo o número 1 a uma foto.");
+      return;
+    }
+
     setSavingOrdem(true);
     try {
       const mapeadas = imagens
@@ -325,8 +332,6 @@ export function ImovelForm({ initial }: Props) {
           imagem_capa: capa,
         },
       });
-      // Atualiza apenas o valor de `ordem` em cada imagem, preservando a
-      // posição atual na tabela do admin. O grid público lê por ordem ASC.
       setImagens((prev) =>
         prev.map((i) => {
           const m = mapeadas.find((x) => x.img.id === i.id);
@@ -334,7 +339,8 @@ export function ImovelForm({ initial }: Props) {
         }),
       );
       setForm((f) => ({ ...f, imagem_capa: capa ?? "" }));
-      toast.success("Ordem salva");
+      qc.invalidateQueries({ queryKey: ["admin", "imoveis"] });
+      toast.success("Ordem salva — capa definida pela foto nº 1.");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
