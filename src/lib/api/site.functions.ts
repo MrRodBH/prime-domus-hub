@@ -53,11 +53,12 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
     }
   }
   if (result.branding.logo_path) {
-    result.branding.logo_url = await signedUrl(supabase, "site", result.branding.logo_path);
+    result.branding.logo_url = await signedUrl("site", result.branding.logo_path);
   }
   if (result.branding.favicon_path) {
-    result.branding.favicon_url = await signedUrl(supabase, "site", result.branding.favicon_path);
+    result.branding.favicon_url = await signedUrl("site", result.branding.favicon_path);
   }
+
   return result;
 });
 
