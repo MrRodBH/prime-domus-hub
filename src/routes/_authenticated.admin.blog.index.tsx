@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/admin/blog")({
+export const Route = createFileRoute("/_authenticated/admin/blog/")({
   component: AdminBlog,
 });
 
