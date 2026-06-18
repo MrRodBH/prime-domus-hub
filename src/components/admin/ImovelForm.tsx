@@ -619,7 +619,7 @@ export function ImovelForm({ initial }: Props) {
                     <tr>
                       <th className="text-left p-2 w-[70%]">Imagem</th>
                       <th className="text-left p-2">Ordem</th>
-                      <th className="p-2 w-12"></th>
+                      <th className="p-2 w-24"></th>
                     </tr>
                   </thead>
                   <tbody>
