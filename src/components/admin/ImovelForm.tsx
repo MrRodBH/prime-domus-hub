@@ -141,13 +141,13 @@ export function ImovelForm({ initial }: Props) {
     return () => { cancelled = true; };
   }, [imagens]);
 
-  // Estado dos inputs de ordem (string por id de imagem)
+  // Estado dos inputs de ordem (string por id de imagem). 0 = ainda não definido.
   const [ordens, setOrdens] = useState<Record<string, string>>({});
   useEffect(() => {
     setOrdens((prev) => {
       const next: Record<string, string> = {};
       for (const img of imagens) {
-        next[img.id] = prev[img.id] ?? "";
+        next[img.id] = prev[img.id] ?? "0";
       }
       return next;
     });
@@ -236,8 +236,8 @@ export function ImovelForm({ initial }: Props) {
   }
 
   // ===== Validação de ordens =====
-  const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "").trim());
-  const numeros = valoresOrdem.map((v) => (v === "" ? null : Number(v)));
+  const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "0").trim());
+  const numeros = valoresOrdem.map((v) => (v === "" || v === "0" ? null : Number(v)));
   const duplicados = new Set<number>();
   {
     const seen = new Set<number>();
