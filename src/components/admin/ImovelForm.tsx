@@ -190,9 +190,14 @@ export function ImovelForm({ initial }: Props) {
     }
     setUploading(true);
     try {
-      for (const [idx, file] of aEnviar.entries()) {
-        const ext = file.name.split(".").pop();
-        const path = `${form.id}/${crypto.randomUUID()}.${ext}`;
+      for (const file of aEnviar) {
+        const sanitized = file.name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, "-")
+          .replace(/[^a-zA-Z0-9._-]+/g, "_");
+        const prefix = crypto.randomUUID().slice(0, 8);
+        const path = `${form.id}/${prefix}-${sanitized}`;
         const { error: upErr } = await supabase.storage.from("imoveis").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagem({
@@ -203,14 +208,20 @@ export function ImovelForm({ initial }: Props) {
       const { data: imgs } = await supabase
         .from("imovel_imagens")
         .select("id, url, alt, ordem")
-        .eq("imovel_id", form.id)
-        .order("ordem");
+        .eq("imovel_id", form.id);
       const lista = imgs ?? [];
-      setImagens(lista);
-      // Garante capa = primeira imagem
-      if (lista.length > 0 && form.imagem_capa !== lista[0].url) {
-        setForm((f) => ({ ...f, imagem_capa: lista[0].url }));
-      }
+      // Preserva a ordem visual da tabela: mantém as existentes na mesma posição
+      // e adiciona as novas ao final.
+      setImagens((prev) => {
+        const prevIds = new Set(prev.map((p) => p.id));
+        const atualizadas = prev.map((p) => {
+          const fresh = lista.find((l) => l.id === p.id);
+          return fresh ? { ...p, ordem: fresh.ordem, url: fresh.url, alt: fresh.alt } : p;
+        });
+        const novos = lista.filter((i) => !prevIds.has(i.id));
+        return [...atualizadas, ...novos];
+      });
+
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
