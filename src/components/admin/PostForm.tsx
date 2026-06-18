@@ -92,6 +92,16 @@ export function PostForm({ initial }: { initial?: Post }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const gerarSeo = useMutation({
+    mutationFn: () => adminGerarSeoPost({ data: { conteudo: form.conteudo || "", titulo: form.titulo || "" } }),
+    onSuccess: (res) => {
+      setForm((f: Post) => ({ ...f, meta_title: res.meta_title, meta_description: res.meta_description }));
+      toast.success("Meta tags geradas");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const salvar = useMutation({
     mutationFn: (p: Post) => adminSalvarPost({ data: p }),
     onSuccess: (res) => {
