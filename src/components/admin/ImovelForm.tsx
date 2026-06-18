@@ -266,6 +266,20 @@ export function ImovelForm({ initial }: Props) {
     }
   }
 
+  // Conjunto de números duplicados (apenas para destacar visualmente as células)
+  const duplicados = (() => {
+    const seen = new Set<number>();
+    const dups = new Set<number>();
+    for (const img of imagens) {
+      const v = ordens[img.id];
+      const n = v == null || v === "" || v === "0" ? null : Number(v);
+      if (n === null || !Number.isFinite(n)) continue;
+      if (seen.has(n)) dups.add(n);
+      else seen.add(n);
+    }
+    return dups;
+  })();
+
 
   function numerarSequencial() {
     const novo: Record<string, string> = {};
