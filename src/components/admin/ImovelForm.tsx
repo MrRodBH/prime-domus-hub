@@ -246,6 +246,27 @@ export function ImovelForm({ initial }: Props) {
     }
   }
 
+  const [apagandoTodas, setApagandoTodas] = useState(false);
+  async function apagarTodasImagens() {
+    if (imagens.length === 0) return;
+    if (!confirm("Todas as imagens serão apagadas. Confirma?")) return;
+    setApagandoTodas(true);
+    try {
+      for (const img of imagens) {
+        await adminRemoverImagem({ data: { id: img.id, path: img.url } });
+      }
+      setImagens([]);
+      setOrdens({});
+      setForm((f) => ({ ...f, imagem_capa: "" }));
+      toast.success("Todas as imagens foram apagadas");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setApagandoTodas(false);
+    }
+  }
+
+
   // ===== Validação de ordens =====
   const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "0").trim());
   const numeros = valoresOrdem.map((v) => (v === "" || v === "0" ? null : Number(v)));
@@ -539,6 +560,17 @@ export function ImovelForm({ initial }: Props) {
               <Button type="button" size="sm" onClick={salvarOrdem} disabled={!podeSalvarOrdem}>
                 {savingOrdem ? "Salvando…" : "Salvar ordem"}
               </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={apagarTodasImagens}
+                disabled={imagens.length === 0 || apagandoTodas}
+              >
+                <Trash2 className="size-4 mr-1" />
+                {apagandoTodas ? "Apagando…" : "Apagar todas"}
+              </Button>
+
               <p className="text-xs text-muted-foreground">
                 Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto. A posição <strong>1 = Capa <Crown className="inline size-3 -mt-0.5" /></strong>.
               </p>
