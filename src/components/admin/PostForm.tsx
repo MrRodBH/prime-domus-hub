@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost } from "@/lib/api/blog.functions";
+import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost, adminGerarSeoPost } from "@/lib/api/blog.functions";
 import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
