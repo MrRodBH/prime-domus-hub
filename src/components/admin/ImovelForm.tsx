@@ -514,41 +514,150 @@ export function ImovelForm({ initial }: Props) {
                   disabled={uploading || imagens.length >= MAX_IMAGENS}
                 />
               </label>
+              <Button type="button" variant="outline" size="sm" onClick={numerarSequencial} disabled={imagens.length === 0}>
+                Numerar sequencialmente
+              </Button>
+              <Button type="button" size="sm" onClick={salvarOrdem} disabled={!podeSalvarOrdem}>
+                {savingOrdem ? "Salvando…" : "Salvar ordem"}
+              </Button>
               <p className="text-xs text-muted-foreground">
-                Máximo de {MAX_IMAGENS} imagens. Arraste para reordenar — a primeira é a capa (👑).
+                Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto. A posição <strong>1 = Capa <Crown className="inline size-3 -mt-0.5" /></strong>.
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {imagens.map((img, idx) => (
-                <div
-                  key={img.id}
-                  draggable
-                  onDragStart={() => setDragIdx(idx)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => onDrop(idx)}
-                  onDragEnd={() => setDragIdx(null)}
-                  className={`relative group rounded overflow-hidden border border-foreground/10 aspect-[4/3] bg-muted cursor-move ${
-                    dragIdx === idx ? "opacity-50" : ""
-                  }`}
-                >
-                  {signedUrls[img.id] && <img src={signedUrls[img.id]} alt="" className="w-full h-full object-cover pointer-events-none" />}
-                  {idx === 0 && (
-                    <span className="absolute top-1 left-1 bg-gold text-petroleum text-xs px-2 py-0.5 rounded inline-flex items-center gap-1">
-                      <Crown className="size-3" /> Capa
-                    </span>
-                  )}
-                  <span className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-                    {idx + 1}
-                  </span>
-                  <div className="absolute bottom-1 left-1 bg-black/60 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition">
-                    <GripVertical className="size-3" />
-                  </div>
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button type="button" size="icon" variant="destructive" onClick={() => removerImg(img)}><Trash2 className="size-4" /></Button>
-                  </div>
+
+            {imagens.length > 0 && (
+              <div className="border border-foreground/10 rounded-md overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-2 w-[70%]">Imagem</th>
+                      <th className="text-left p-2">Ordem</th>
+                      <th className="p-2 w-12"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {imagens.map((img, idx) => {
+                      const valor = ordens[img.id] ?? "";
+                      const num = valor === "" ? null : Number(valor);
+                      const ehDup = num !== null && duplicados.has(num);
+                      const foraRange =
+                        num !== null && (!Number.isInteger(num) || num < 1 || num > imagens.length);
+                      const ehCapa = num === 1;
+                      return (
+                        <tr key={img.id} className="border-t border-foreground/5">
+                          <td className="p-2">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => abrirZoom(img)}
+                                className="block w-20 h-16 rounded overflow-hidden border border-foreground/10 bg-muted shrink-0"
+                                title="Clique para ampliar"
+                              >
+                                {signedUrls[img.id] && (
+                                  <img
+                                    src={signedUrls[img.id]}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </button>
+                              <div className="min-w-0">
+                                <div className="text-xs text-muted-foreground truncate max-w-[280px]">
+                                  {img.url.split("/").pop()}
+                                </div>
+                                {ehCapa && (
+                                  <span className="inline-flex items-center gap-1 mt-1 bg-gold text-petroleum text-[10px] px-2 py-0.5 rounded">
+                                    <Crown className="size-3" /> Capa
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-2 align-top">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={imagens.length}
+                              inputMode="numeric"
+                              value={valor}
+                              onChange={(e) =>
+                                setOrdens((p) => ({ ...p, [img.id]: e.target.value }))
+                              }
+                              className={`w-20 ${ehDup || foraRange ? "border-destructive" : ""}`}
+                              placeholder={String(idx + 1)}
+                            />
+                            {ehDup && (
+                              <p className="text-[11px] text-destructive mt-1">Número repetido</p>
+                            )}
+                            {foraRange && !ehDup && (
+                              <p className="text-[11px] text-destructive mt-1">Use 1–{imagens.length}</p>
+                            )}
+                          </td>
+                          <td className="p-2 align-top">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removerImg(img)}
+                              title="Remover"
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {mostrarGrid && (
+              <div className="pt-2">
+                <h3 className="text-sm font-medium mb-2">Pré-visualização (ordem salva)</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {ordenadasSalvas.map((img) => (
+                    <button
+                      type="button"
+                      key={img.id}
+                      onClick={() => abrirZoom(img)}
+                      className="relative aspect-[4/3] rounded overflow-hidden border border-foreground/10 bg-muted group"
+                    >
+                      {signedUrls[img.id] && (
+                        <img
+                          src={signedUrls[img.id]}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {img.ordem === 1 && (
+                        <span className="absolute top-1 left-1 bg-gold text-petroleum text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                          <Crown className="size-3" /> Capa
+                        </span>
+                      )}
+                      <span className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                        {img.ordem}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            <Dialog open={!!zoomImg} onOpenChange={(o) => !o && setZoomImg(null)}>
+              <DialogContent className="max-w-5xl p-2">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Visualizar imagem</DialogTitle>
+                </DialogHeader>
+                {zoomImg && (
+                  <img src={zoomImg.url} alt="" className="w-full h-auto max-h-[80vh] object-contain rounded" />
+                )}
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
