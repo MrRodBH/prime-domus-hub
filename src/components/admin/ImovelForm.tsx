@@ -550,6 +550,7 @@ export function ImovelForm({ initial }: Props) {
                               <button
                                 type="button"
                                 onClick={() => abrirZoom(img)}
+                                tabIndex={-1}
                                 className="block w-20 h-16 rounded overflow-hidden border border-foreground/10 bg-muted shrink-0"
                                 title="Clique para ampliar"
                               >
@@ -600,6 +601,7 @@ export function ImovelForm({ initial }: Props) {
                               type="button"
                               size="icon"
                               variant="ghost"
+                              tabIndex={-1}
                               onClick={() => removerImg(img)}
                               title="Remover"
                             >
