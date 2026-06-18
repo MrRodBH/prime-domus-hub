@@ -36,7 +36,7 @@ export const listarImoveis = createServerFn({ method: "GET" })
     let q = supabase
       .from("imoveis")
       .select(
-        "id, codigo, titulo, slug, finalidade, tipo, status, preco, preco_sob_consulta, area_util, quartos, suites, vagas, badge, destaque, exclusivo, imagem_capa, bairro:bairros(nome, slug)",
+        "id, codigo, titulo, slug, finalidade, tipo, status, preco, preco_sob_consulta, area_util, quartos, suites, vagas, badge, destaque, exclusivo, imagem_capa, bairro:bairros(nome, slug), imagens:imovel_imagens(url, ordem)",
       )
       .eq("status", "ativo");
 
@@ -77,14 +77,18 @@ export const listarImoveis = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await Promise.all(
       list.map(async (r) => {
-        const row = r as { imagem_capa?: string | null };
-        if (row.imagem_capa && !row.imagem_capa.startsWith("http")) {
+        const row = r as { imagem_capa?: string | null; imagens?: Array<{ url?: string | null; ordem?: number | null }> };
+        const primeiraFoto = [...(row.imagens ?? [])]
+          .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))[0]?.url;
+        const capa = primeiraFoto || row.imagem_capa;
+        delete row.imagens;
+        if (capa && !capa.startsWith("http")) {
           const { data: s } = await supabaseAdmin.storage
             .from("imoveis")
-            .createSignedUrl(row.imagem_capa, 60 * 60 * 24 * 365, {
-              transform: { width: 800, quality: 75 },
-            });
+            .createSignedUrl(capa, 60 * 60 * 24 * 365);
           if (s) row.imagem_capa = s.signedUrl;
+        } else {
+          row.imagem_capa = capa ?? null;
         }
       }),
     );
@@ -131,16 +135,13 @@ export const obterImovel = createServerFn({ method: "GET" })
             img.thumb = img.url;
             return;
           }
-          const [big, thumb] = await Promise.all([
-            supabaseAdmin.storage.from("imoveis").createSignedUrl(img.url, 60 * 60 * 24 * 365, {
-              transform: { width: 1600, quality: 78 },
-            }),
-            supabaseAdmin.storage.from("imoveis").createSignedUrl(img.url, 60 * 60 * 24 * 365, {
-              transform: { width: 240, quality: 65 },
-            }),
-          ]);
-          if (big.data) img.url = big.data.signedUrl;
-          if (thumb.data) img.thumb = thumb.data.signedUrl;
+          const { data: signed } = await supabaseAdmin.storage
+            .from("imoveis")
+            .createSignedUrl(img.url, 60 * 60 * 24 * 365);
+          if (signed) {
+            img.url = signed.signedUrl;
+            img.thumb = signed.signedUrl;
+          }
         }),
       );
     }
@@ -149,7 +150,7 @@ export const obterImovel = createServerFn({ method: "GET" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: s } = await supabaseAdmin.storage
         .from("imoveis")
-        .createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365, { transform: { width: 1600, quality: 78 } });
+        .createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365);
       if (s) imRow.imagem_capa = s.signedUrl;
     }
 
