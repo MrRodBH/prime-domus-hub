@@ -246,6 +246,27 @@ export function ImovelForm({ initial }: Props) {
     }
   }
 
+  const [apagandoTodas, setApagandoTodas] = useState(false);
+  async function apagarTodasImagens() {
+    if (imagens.length === 0) return;
+    if (!confirm("Todas as imagens serão apagadas. Confirma?")) return;
+    setApagandoTodas(true);
+    try {
+      for (const img of imagens) {
+        await adminRemoverImagem({ data: { id: img.id, path: img.url } });
+      }
+      setImagens([]);
+      setOrdens({});
+      setForm((f) => ({ ...f, imagem_capa: "" }));
+      toast.success("Todas as imagens foram apagadas");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setApagandoTodas(false);
+    }
+  }
+
+
   // ===== Validação de ordens =====
   const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "0").trim());
   const numeros = valoresOrdem.map((v) => (v === "" || v === "0" ? null : Number(v)));
