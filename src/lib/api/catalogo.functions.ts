@@ -227,20 +227,21 @@ export const enviarLead = createServerFn({ method: "POST" })
     if (!data.email && !data.telefone) {
       throw new Error("Informe e-mail ou telefone para contato.");
     }
+    const leadId = crypto.randomUUID();
     const supabase = publicClient();
-    const { data: inserted, error } = await supabase
+    const { error } = await supabase
       .from("leads")
       .insert({
+        id: leadId,
         nome: data.nome,
         email: data.email || null,
         telefone: data.telefone || null,
         mensagem: data.mensagem || null,
         origem: data.origem || "site",
         imovel_id: data.imovel_id || null,
-      })
-      .select("id")
-      .single();
+      });
     if (error) throw new Error(error.message);
+
 
     // Notificar corretor por e-mail (não bloqueia resposta do form)
     try {
