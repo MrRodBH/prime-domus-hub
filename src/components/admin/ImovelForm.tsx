@@ -463,9 +463,9 @@ export function ImovelForm({ initial }: Props) {
               <Label>Bairro</Label>
               <Dialog open={novoBairroOpen} onOpenChange={setNovoBairroOpen}>
                 <DialogTrigger asChild>
-                  <button type="button" className="text-xs text-petroleum hover:underline inline-flex items-center gap-1">
-                    <Plus className="size-3" /> Novo bairro
-                  </button>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
+                    <Plus className="size-3 mr-1" /> Novo bairro
+                  </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader><DialogTitle>Novo bairro</DialogTitle></DialogHeader>
