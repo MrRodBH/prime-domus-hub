@@ -684,17 +684,31 @@ export function ImovelForm({ initial }: Props) {
                             )}
                           </td>
                           <td className="p-2 align-top">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              tabIndex={-1}
-                              onClick={() => removerImg(img)}
-                              title="Remover"
-                            >
-                              <Trash2 className="size-4 text-destructive" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                tabIndex={-1}
+                                onClick={() => definirComoCapa(img)}
+                                title="Definir como capa"
+                                disabled={form.imagem_capa === img.url}
+                              >
+                                <Crown className={`size-4 ${form.imagem_capa === img.url ? "text-gold" : ""}`} />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                tabIndex={-1}
+                                onClick={() => removerImg(img)}
+                                title="Remover"
+                              >
+                                <Trash2 className="size-4 text-destructive" />
+                              </Button>
+                            </div>
                           </td>
+
                         </tr>
                       );
                     })}
