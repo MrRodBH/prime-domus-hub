@@ -189,6 +189,29 @@ function AdminSite() {
           <Button onClick={() => salvar.mutate({ key: "home_hero", value: hero })} disabled={salvar.isPending}>Salvar hero</Button>
         </TabsContent>
 
+        <TabsContent value="secoes" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-6">
+          <div className="space-y-4">
+            <h3 className="font-display text-xl">Seção Destaques</h3>
+            <p className="text-xs text-muted-foreground">Exibe os imóveis marcados como <strong>Destaque</strong> no cadastro. Ordene-os pelo cadastro do imóvel.</p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div><Label>Eyebrow</Label><Input value={secoes.destaques_eyebrow} onChange={(e) => setSecoes({ ...secoes, destaques_eyebrow: e.target.value })} /></div>
+              <div><Label>Título</Label><Input value={secoes.destaques_titulo} onChange={(e) => setSecoes({ ...secoes, destaques_titulo: e.target.value })} /></div>
+              <div><Label>Quantidade de imóveis</Label><Input type="number" min={1} max={12} value={secoes.destaques_qtd} onChange={(e) => setSecoes({ ...secoes, destaques_qtd: Number(e.target.value) || 3 })} /></div>
+            </div>
+          </div>
+          <div className="border-t border-foreground/5 pt-6 space-y-4">
+            <h3 className="font-display text-xl">Seção Bairros</h3>
+            <p className="text-xs text-muted-foreground">Exibe os bairros cadastrados, priorizando os marcados como destaque e respeitando a ordem.</p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div><Label>Eyebrow</Label><Input value={secoes.bairros_eyebrow} onChange={(e) => setSecoes({ ...secoes, bairros_eyebrow: e.target.value })} /></div>
+              <div><Label>Título</Label><Input value={secoes.bairros_titulo} onChange={(e) => setSecoes({ ...secoes, bairros_titulo: e.target.value })} /></div>
+              <div className="md:col-span-2"><Label>Descrição</Label><Textarea rows={2} value={secoes.bairros_descricao} onChange={(e) => setSecoes({ ...secoes, bairros_descricao: e.target.value })} /></div>
+              <div><Label>Quantidade de bairros</Label><Input type="number" min={1} max={12} value={secoes.bairros_qtd} onChange={(e) => setSecoes({ ...secoes, bairros_qtd: Number(e.target.value) || 4 })} /></div>
+            </div>
+          </div>
+          <Button onClick={() => salvar.mutate({ key: "home_secoes", value: secoes })} disabled={salvar.isPending}>Salvar seções</Button>
+        </TabsContent>
+
         <TabsContent value="contato" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
           <div className="grid md:grid-cols-2 gap-3">
             <div><Label>Telefone</Label><Input value={contato.telefone} onChange={(e) => setContato({ ...contato, telefone: e.target.value })} /></div>
