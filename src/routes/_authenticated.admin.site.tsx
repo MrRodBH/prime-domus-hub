@@ -25,6 +25,12 @@ function AdminSite() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [secoes, setSecoes] = useState<any>({
+    destaques_eyebrow: "Seleção Exclusiva", destaques_titulo: "Destaques", destaques_qtd: 3,
+    bairros_eyebrow: "Os Melhores Endereços", bairros_titulo: "Bairros em destaque",
+    bairros_descricao: "", bairros_qtd: 4,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);

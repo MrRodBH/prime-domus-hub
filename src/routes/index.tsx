@@ -4,15 +4,9 @@ import { Search, ArrowRight, MapPin, BedDouble, Maximize2, Car, ChevronRight, Qu
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { obterSiteSettings } from "@/lib/api/site.functions";
+import { listarImoveis, listarBairros } from "@/lib/api/catalogo.functions";
 import heroImg from "@/assets/hero.jpg";
-import p1 from "@/assets/property-1.jpg";
-import p2 from "@/assets/property-2.jpg";
-import p3 from "@/assets/property-3.jpg";
 import feature from "@/assets/feature.jpg";
-import nLourdes from "@/assets/n-lourdes.jpg";
-import nBelvedere from "@/assets/n-belvedere.jpg";
-import nVila from "@/assets/n-vila-da-serra.jpg";
-import nFunc from "@/assets/n-funcionarios.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,48 +35,13 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  loader: ({ context }) => {
+    context.queryClient.prefetchQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
+    context.queryClient.prefetchQuery({ queryKey: ["home-destaques"], queryFn: () => listarImoveis({ data: { apenas_destaque: true, limite: 12 } }) });
+    context.queryClient.prefetchQuery({ queryKey: ["home-bairros"], queryFn: () => listarBairros({ data: { limite: 12 } }) });
+  },
   component: Home,
 });
-
-const properties = [
-  {
-    img: p1,
-    badge: "Exclusivo",
-    neighborhood: "Lourdes",
-    title: "Cobertura Linear Belvedere",
-    area: "420 m²",
-    suites: "4 suítes",
-    parking: "5 vagas",
-    price: "R$ 6.490.000",
-  },
-  {
-    img: p2,
-    badge: "Lançamento",
-    neighborhood: "Vila da Serra",
-    title: "Residencial Aura",
-    area: "280 m²",
-    suites: "3 suítes",
-    parking: "4 vagas",
-    price: "Sob consulta",
-  },
-  {
-    img: p3,
-    badge: "Garden",
-    neighborhood: "Belvedere",
-    title: "Mansão Suspensa Belvedere",
-    area: "510 m²",
-    suites: "5 suítes",
-    parking: "6 vagas",
-    price: "R$ 8.100.000",
-  },
-];
-
-const neighborhoods = [
-  { name: "Lourdes", img: nLourdes, count: 12 },
-  { name: "Belvedere", img: nBelvedere, count: 8 },
-  { name: "Vila da Serra", img: nVila, count: 15 },
-  { name: "Funcionários", img: nFunc, count: 6 },
-];
 
 const differentials = [
   { n: "01", title: "Seleção especializada", desc: "Portfólio rigorosamente selecionado por arquitetura autoral e localização premium." },
@@ -106,9 +65,32 @@ const testimonials = [
   },
 ];
 
+function formatPreco(p: number | null | undefined, sobConsulta?: boolean | null) {
+  if (sobConsulta || !p) return "Sob consulta";
+  return `R$ ${p.toLocaleString("pt-BR")}`;
+}
+
 function Home() {
   const { data: site } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings(), staleTime: 5 * 60 * 1000 });
   const hero = site?.home_hero ?? {};
+  const secoes = site?.home_secoes ?? {};
+  const destaquesQtd = secoes.destaques_qtd ?? 3;
+  const bairrosQtd = secoes.bairros_qtd ?? 4;
+
+  const { data: imoveis } = useQuery({
+    queryKey: ["home-destaques"],
+    queryFn: () => listarImoveis({ data: { apenas_destaque: true, limite: 12 } }),
+    staleTime: 2 * 60 * 1000,
+  });
+  const { data: bairros } = useQuery({
+    queryKey: ["home-bairros"],
+    queryFn: () => listarBairros({ data: { limite: 12 } }),
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const destaques = (imoveis ?? []).slice(0, destaquesQtd);
+  const bairrosLista = (bairros ?? []).slice(0, bairrosQtd);
+
   const titleLines: string[] = hero.title_lines && hero.title_lines.length > 0
     ? hero.title_lines
     : ["Imóveis", "extraordinários em BH."];
@@ -164,10 +146,10 @@ function Home() {
                 <option>Terrenos premium</option>
               </select>
             </div>
-            <button className="bg-petroleum hover:bg-gold transition-colors text-linen px-8 py-4 rounded font-medium text-sm inline-flex items-center justify-center gap-2 uppercase tracking-[0.18em]">
+            <Link to="/imoveis" className="bg-petroleum hover:bg-gold transition-colors text-linen px-8 py-4 rounded font-medium text-sm inline-flex items-center justify-center gap-2 uppercase tracking-[0.18em]">
               <Search className="size-4" strokeWidth={1.5} />
               {ctaPrimary}
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -177,9 +159,9 @@ function Home() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
             <div className="max-w-[48ch]">
-              <span className="eyebrow">Seleção Exclusiva</span>
+              <span className="eyebrow">{secoes.destaques_eyebrow ?? "Seleção Exclusiva"}</span>
               <h2 className="font-display text-4xl md:text-5xl mt-4 leading-[1.1] text-balance">
-                Destaques do Mês
+                {secoes.destaques_titulo ?? "Destaques"}
               </h2>
             </div>
             <Link to="/imoveis" className="group inline-flex items-center gap-2 text-sm font-medium border-b border-foreground/20 pb-1 hover:border-gold hover:text-gold transition-colors">
@@ -188,38 +170,52 @@ function Home() {
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
-            {properties.map((p) => (
-              <article key={p.title} className="group cursor-pointer">
-                <div className="relative overflow-hidden rounded mb-5 bg-muted">
-                  <img
-                    src={p.img}
-                    alt={p.title}
-                    width={1600}
-                    height={900}
-                    loading="lazy"
-                    className="block w-full h-auto"
-                  />
-                  <div className="absolute top-4 left-4 bg-linen/95 backdrop-blur px-3 py-1.5 rounded-full">
-                    <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{p.badge}</span>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.22em] flex items-center gap-1.5">
-                    <MapPin className="size-3" strokeWidth={1.5} />
-                    {p.neighborhood}
-                  </p>
-                  <h3 className="font-display text-2xl group-hover:text-gold transition-colors">{p.title}</h3>
-                  <div className="flex items-center gap-5 text-xs text-muted-foreground pt-3 border-t border-foreground/5">
-                    <span className="flex items-center gap-1.5"><Maximize2 className="size-3" strokeWidth={1.5} />{p.area}</span>
-                    <span className="flex items-center gap-1.5"><BedDouble className="size-3" strokeWidth={1.5} />{p.suites}</span>
-                    <span className="flex items-center gap-1.5"><Car className="size-3" strokeWidth={1.5} />{p.parking}</span>
-                  </div>
-                  <p className="text-lg font-medium text-gold pt-3">{p.price}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+          {destaques.length === 0 ? (
+            <p className="text-center text-muted-foreground py-12">Nenhum imóvel em destaque no momento.</p>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
+              {destaques.map((p) => {
+                const bairroNome = (p.bairro as { nome?: string } | null)?.nome ?? "";
+                const suitesTxt = p.suites ? `${p.suites} suíte${p.suites > 1 ? "s" : ""}` : (p.quartos ? `${p.quartos} quarto${p.quartos > 1 ? "s" : ""}` : "—");
+                const vagasTxt = p.vagas ? `${p.vagas} vaga${p.vagas > 1 ? "s" : ""}` : "—";
+                const areaTxt = p.area_util ? `${p.area_util} m²` : "—";
+                return (
+                  <Link key={p.id} to="/imovel/$slug" params={{ slug: p.slug }} className="group cursor-pointer block">
+                    <div className="relative overflow-hidden rounded mb-5 bg-muted">
+                      {p.imagem_capa ? (
+                        <img
+                          src={p.imagem_capa}
+                          alt={p.titulo}
+                          loading="lazy"
+                          className="block w-full h-auto"
+                        />
+                      ) : (
+                        <div className="aspect-[16/10] w-full bg-muted flex items-center justify-center text-muted-foreground text-sm">Sem foto</div>
+                      )}
+                      {p.badge && (
+                        <div className="absolute top-4 left-4 bg-linen/95 backdrop-blur px-3 py-1.5 rounded-full">
+                          <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{p.badge}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-[0.22em] flex items-center gap-1.5">
+                        <MapPin className="size-3" strokeWidth={1.5} />
+                        {bairroNome}
+                      </p>
+                      <h3 className="font-display text-2xl group-hover:text-gold transition-colors">{p.titulo}</h3>
+                      <div className="flex items-center gap-5 text-xs text-muted-foreground pt-3 border-t border-foreground/5">
+                        <span className="flex items-center gap-1.5"><Maximize2 className="size-3" strokeWidth={1.5} />{areaTxt}</span>
+                        <span className="flex items-center gap-1.5"><BedDouble className="size-3" strokeWidth={1.5} />{suitesTxt}</span>
+                        <span className="flex items-center gap-1.5"><Car className="size-3" strokeWidth={1.5} />{vagasTxt}</span>
+                      </div>
+                      <p className="text-lg font-medium text-gold pt-3">{formatPreco(p.preco, p.preco_sob_consulta)}</p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -227,40 +223,49 @@ function Home() {
       <section className="py-24 md:py-32 bg-secondary/40">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16 max-w-[52ch] mx-auto">
-            <span className="eyebrow">Os Melhores Endereços</span>
+            <span className="eyebrow">{secoes.bairros_eyebrow ?? "Os Melhores Endereços"}</span>
             <h2 className="font-display text-4xl md:text-5xl mt-4 leading-tight text-balance">
-              Bairros em destaque
+              {secoes.bairros_titulo ?? "Bairros em destaque"}
             </h2>
-            <p className="text-muted-foreground mt-5 leading-relaxed">
-              Uma seleção estratégica das regiões mais valorizadas para morar e investir em Belo Horizonte.
-            </p>
+            {secoes.bairros_descricao && (
+              <p className="text-muted-foreground mt-5 leading-relaxed">
+                {secoes.bairros_descricao}
+              </p>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-            {neighborhoods.map((n) => (
-              <Link
-                key={n.name}
-                to="/imoveis"
-                className="relative group overflow-hidden aspect-[3/4] rounded flex items-end p-6"
-              >
-                <img
-                  src={n.img}
-                  alt={`Bairro ${n.name}`}
-                  width={800}
-                  height={800}
-                  loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-[1.06]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-petroleum/85 via-petroleum/30 to-transparent" />
-                <div className="relative z-10 text-linen">
-                  <h4 className="font-display text-2xl md:text-3xl">{n.name}</h4>
-                  <span className="text-[10px] uppercase tracking-[0.22em] text-tiffany mt-1 block">
-                    {n.count} imóveis
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {bairrosLista.length === 0 ? (
+            <p className="text-center text-muted-foreground py-12">Nenhum bairro cadastrado.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+              {bairrosLista.map((n) => {
+                const row = n as { id: string; nome: string; slug: string; imagem_url?: string | null; count?: number };
+                return (
+                  <Link
+                    key={row.id}
+                    to="/imoveis"
+                    className="relative group overflow-hidden aspect-[3/4] rounded flex items-end p-6 bg-muted"
+                  >
+                    {row.imagem_url && (
+                      <img
+                        src={row.imagem_url}
+                        alt={`Bairro ${row.nome}`}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] group-hover:scale-[1.06]"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-petroleum/85 via-petroleum/30 to-transparent" />
+                    <div className="relative z-10 text-linen">
+                      <h4 className="font-display text-2xl md:text-3xl">{row.nome}</h4>
+                      <span className="text-[10px] uppercase tracking-[0.22em] text-tiffany mt-1 block">
+                        {row.count ?? 0} {row.count === 1 ? "imóvel" : "imóveis"}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
