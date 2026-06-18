@@ -629,7 +629,7 @@ export function ImovelForm({ initial }: Props) {
                       const ehDup = num !== null && duplicados.has(num);
                       const foraRange =
                         num !== null && (!Number.isInteger(num) || num < 1 || num > imagens.length);
-                      const ehCapa = num === 1;
+                      const ehCapa = form.imagem_capa === img.url;
                       return (
                         <tr key={img.id} className="border-t border-foreground/5">
                           <td className="p-2">
