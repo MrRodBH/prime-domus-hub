@@ -347,12 +347,22 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
 // ===== STORAGE =====
 export const adminAssinarUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ bucket: z.string(), path: z.string() }))
+  .inputValidator(
+    z.object({
+      bucket: z.string(),
+      path: z.string(),
+      width: z.number().int().positive().optional(),
+      quality: z.number().int().min(20).max(100).optional(),
+    }),
+  )
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
+    const opts = data.width
+      ? { transform: { width: data.width, quality: data.quality ?? 70, resize: "contain" as const } }
+      : undefined;
     const { data: signed, error } = await context.supabase.storage
       .from(data.bucket)
-      .createSignedUrl(data.path, 60 * 60 * 24 * 365);
+      .createSignedUrl(data.path, 60 * 60 * 24 * 365, opts);
     if (error) throw new Error(error.message);
     return { url: signed.signedUrl };
   });

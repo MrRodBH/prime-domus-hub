@@ -21,7 +21,7 @@ import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Upload, Sparkles, GripVertical, Crown } from "lucide-react";
+import { Trash2, Upload, Sparkles, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
 import { useEffect } from "react";
 
@@ -123,21 +123,37 @@ export function ImovelForm({ initial }: Props) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Assina URLs para preview das imagens existentes
+  // Assina URLs (miniaturas 400px) para preview das imagens existentes
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const map: Record<string, string> = {};
       for (const img of imagens) {
         if (img.url.startsWith("http")) { map[img.id] = img.url; continue; }
         try {
-          const { url } = await adminAssinarUrl({ data: { bucket: "imoveis", path: img.url } });
+          const { url } = await adminAssinarUrl({ data: { bucket: "imoveis", path: img.url, width: 400, quality: 65 } });
           map[img.id] = url;
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (_e) { /* ignore */ }
       }
-      setSignedUrls(map);
+      if (!cancelled) setSignedUrls(map);
     })();
+    return () => { cancelled = true; };
   }, [imagens]);
+
+  // Estado dos inputs de ordem (string por id de imagem)
+  const [ordens, setOrdens] = useState<Record<string, string>>({});
+  useEffect(() => {
+    setOrdens((prev) => {
+      const next: Record<string, string> = {};
+      for (const img of imagens) {
+        next[img.id] = prev[img.id] ?? (img.ordem > 0 ? String(img.ordem) : "");
+      }
+      return next;
+    });
+  }, [imagens]);
+  const [savingOrdem, setSavingOrdem] = useState(false);
+  const [zoomImg, setZoomImg] = useState<{ id: string; url: string } | null>(null);
 
   const salvar = useMutation({
     mutationFn: () =>
@@ -205,54 +221,108 @@ export function ImovelForm({ initial }: Props) {
 
   async function removerImg(img: Imagem) {
     if (!confirm("Remover esta imagem?")) return;
-    await adminRemoverImagem({ data: { id: img.id, path: img.url } });
-    const novas = imagens.filter((i) => i.id !== img.id);
-    setImagens(novas);
-    // Re-persistir ordem e capa
-    if (form.id) {
-      const novaCapa = novas[0]?.url ?? null;
-      await adminReordenarImagens({
-        data: {
-          imovel_id: form.id,
-          ordem: novas.map((i, idx) => ({ id: i.id, ordem: idx })),
-          imagem_capa: novaCapa,
-        },
-      });
-      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
-    }
-    toast.success("Imagem removida");
-  }
-
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-
-  async function persistirOrdem(lista: Imagem[]) {
-    if (!form.id) return;
-    const novaCapa = lista[0]?.url ?? null;
     try {
-      await adminReordenarImagens({
-        data: {
-          imovel_id: form.id,
-          ordem: lista.map((i, idx) => ({ id: i.id, ordem: idx })),
-          imagem_capa: novaCapa,
-        },
+      await adminRemoverImagem({ data: { id: img.id, path: img.url } });
+      setImagens((prev) => prev.filter((i) => i.id !== img.id));
+      setOrdens((prev) => {
+        const next = { ...prev };
+        delete next[img.id];
+        return next;
       });
-      setForm((f) => ({ ...f, imagem_capa: novaCapa ?? "" }));
-      toast.success("Ordem atualizada");
+      toast.success("Imagem removida");
     } catch (e) {
       toast.error((e as Error).message);
     }
   }
 
-  function onDrop(targetIdx: number) {
-    if (dragIdx === null || dragIdx === targetIdx) return;
-    const lista = [...imagens];
-    const [moved] = lista.splice(dragIdx, 1);
-    lista.splice(targetIdx, 0, moved);
-    const reordenadas = lista.map((i, idx) => ({ ...i, ordem: idx }));
-    setImagens(reordenadas);
-    setDragIdx(null);
-    persistirOrdem(reordenadas);
+  // ===== Validação de ordens =====
+  const valoresOrdem = imagens.map((i) => (ordens[i.id] ?? "").trim());
+  const numeros = valoresOrdem.map((v) => (v === "" ? null : Number(v)));
+  const duplicados = new Set<number>();
+  {
+    const seen = new Set<number>();
+    for (const n of numeros) {
+      if (n === null || !Number.isFinite(n)) continue;
+      if (seen.has(n)) duplicados.add(n);
+      else seen.add(n);
+    }
   }
+  const todosValidos =
+    imagens.length > 0 &&
+    numeros.every(
+      (n) => n !== null && Number.isInteger(n) && n >= 1 && n <= imagens.length,
+    );
+  const temCapa = numeros.some((n) => n === 1);
+  const podeSalvarOrdem =
+    !!form.id && todosValidos && duplicados.size === 0 && temCapa && !savingOrdem;
+
+  function numerarSequencial() {
+    const novo: Record<string, string> = {};
+    // Preserva quem já tem ordem; preenche o resto sequencialmente
+    const usados = new Set<number>();
+    imagens.forEach((img) => {
+      const v = Number(ordens[img.id]);
+      if (Number.isInteger(v) && v >= 1 && v <= imagens.length && !usados.has(v)) {
+        novo[img.id] = String(v);
+        usados.add(v);
+      }
+    });
+    let proximo = 1;
+    imagens.forEach((img) => {
+      if (novo[img.id]) return;
+      while (usados.has(proximo)) proximo++;
+      novo[img.id] = String(proximo);
+      usados.add(proximo);
+      proximo++;
+    });
+    setOrdens(novo);
+  }
+
+  async function salvarOrdem() {
+    if (!form.id || !podeSalvarOrdem) return;
+    setSavingOrdem(true);
+    try {
+      const mapeadas = imagens
+        .map((img) => ({ img, ordem: Number(ordens[img.id]) }))
+        .sort((a, b) => a.ordem - b.ordem);
+      const capa = mapeadas.find((m) => m.ordem === 1)?.img.url ?? null;
+      await adminReordenarImagens({
+        data: {
+          imovel_id: form.id,
+          ordem: mapeadas.map((m) => ({ id: m.img.id, ordem: m.ordem })),
+          imagem_capa: capa,
+        },
+      });
+      setImagens(mapeadas.map((m) => ({ ...m.img, ordem: m.ordem })));
+      setForm((f) => ({ ...f, imagem_capa: capa ?? "" }));
+      toast.success("Ordem salva");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingOrdem(false);
+    }
+  }
+
+  async function abrirZoom(img: Imagem) {
+    if (img.url.startsWith("http")) {
+      setZoomImg({ id: img.id, url: img.url });
+      return;
+    }
+    try {
+      const { url } = await adminAssinarUrl({
+        data: { bucket: "imoveis", path: img.url, width: 1600, quality: 85 },
+      });
+      setZoomImg({ id: img.id, url });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  // Grid 5x4 só quando todas as imagens já têm ordem persistida (>0)
+  const ordenadasSalvas = [...imagens]
+    .filter((i) => i.ordem > 0)
+    .sort((a, b) => a.ordem - b.ordem);
+  const mostrarGrid = ordenadasSalvas.length === imagens.length && imagens.length > 0;
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); salvar.mutate(); }} className="space-y-6 max-w-5xl">
@@ -444,41 +514,150 @@ export function ImovelForm({ initial }: Props) {
                   disabled={uploading || imagens.length >= MAX_IMAGENS}
                 />
               </label>
+              <Button type="button" variant="outline" size="sm" onClick={numerarSequencial} disabled={imagens.length === 0}>
+                Numerar sequencialmente
+              </Button>
+              <Button type="button" size="sm" onClick={salvarOrdem} disabled={!podeSalvarOrdem}>
+                {savingOrdem ? "Salvando…" : "Salvar ordem"}
+              </Button>
               <p className="text-xs text-muted-foreground">
-                Máximo de {MAX_IMAGENS} imagens. Arraste para reordenar — a primeira é a capa (👑).
+                Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto. A posição <strong>1 = Capa <Crown className="inline size-3 -mt-0.5" /></strong>.
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {imagens.map((img, idx) => (
-                <div
-                  key={img.id}
-                  draggable
-                  onDragStart={() => setDragIdx(idx)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => onDrop(idx)}
-                  onDragEnd={() => setDragIdx(null)}
-                  className={`relative group rounded overflow-hidden border border-foreground/10 aspect-[4/3] bg-muted cursor-move ${
-                    dragIdx === idx ? "opacity-50" : ""
-                  }`}
-                >
-                  {signedUrls[img.id] && <img src={signedUrls[img.id]} alt="" className="w-full h-full object-cover pointer-events-none" />}
-                  {idx === 0 && (
-                    <span className="absolute top-1 left-1 bg-gold text-petroleum text-xs px-2 py-0.5 rounded inline-flex items-center gap-1">
-                      <Crown className="size-3" /> Capa
-                    </span>
-                  )}
-                  <span className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-                    {idx + 1}
-                  </span>
-                  <div className="absolute bottom-1 left-1 bg-black/60 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition">
-                    <GripVertical className="size-3" />
-                  </div>
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <Button type="button" size="icon" variant="destructive" onClick={() => removerImg(img)}><Trash2 className="size-4" /></Button>
-                  </div>
+
+            {imagens.length > 0 && (
+              <div className="border border-foreground/10 rounded-md overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-2 w-[70%]">Imagem</th>
+                      <th className="text-left p-2">Ordem</th>
+                      <th className="p-2 w-12"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {imagens.map((img, idx) => {
+                      const valor = ordens[img.id] ?? "";
+                      const num = valor === "" ? null : Number(valor);
+                      const ehDup = num !== null && duplicados.has(num);
+                      const foraRange =
+                        num !== null && (!Number.isInteger(num) || num < 1 || num > imagens.length);
+                      const ehCapa = num === 1;
+                      return (
+                        <tr key={img.id} className="border-t border-foreground/5">
+                          <td className="p-2">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => abrirZoom(img)}
+                                className="block w-20 h-16 rounded overflow-hidden border border-foreground/10 bg-muted shrink-0"
+                                title="Clique para ampliar"
+                              >
+                                {signedUrls[img.id] && (
+                                  <img
+                                    src={signedUrls[img.id]}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </button>
+                              <div className="min-w-0">
+                                <div className="text-xs text-muted-foreground truncate max-w-[280px]">
+                                  {img.url.split("/").pop()}
+                                </div>
+                                {ehCapa && (
+                                  <span className="inline-flex items-center gap-1 mt-1 bg-gold text-petroleum text-[10px] px-2 py-0.5 rounded">
+                                    <Crown className="size-3" /> Capa
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-2 align-top">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={imagens.length}
+                              inputMode="numeric"
+                              value={valor}
+                              onChange={(e) =>
+                                setOrdens((p) => ({ ...p, [img.id]: e.target.value }))
+                              }
+                              className={`w-20 ${ehDup || foraRange ? "border-destructive" : ""}`}
+                              placeholder={String(idx + 1)}
+                            />
+                            {ehDup && (
+                              <p className="text-[11px] text-destructive mt-1">Número repetido</p>
+                            )}
+                            {foraRange && !ehDup && (
+                              <p className="text-[11px] text-destructive mt-1">Use 1–{imagens.length}</p>
+                            )}
+                          </td>
+                          <td className="p-2 align-top">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removerImg(img)}
+                              title="Remover"
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {mostrarGrid && (
+              <div className="pt-2">
+                <h3 className="text-sm font-medium mb-2">Pré-visualização (ordem salva)</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {ordenadasSalvas.map((img) => (
+                    <button
+                      type="button"
+                      key={img.id}
+                      onClick={() => abrirZoom(img)}
+                      className="relative aspect-[4/3] rounded overflow-hidden border border-foreground/10 bg-muted group"
+                    >
+                      {signedUrls[img.id] && (
+                        <img
+                          src={signedUrls[img.id]}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {img.ordem === 1 && (
+                        <span className="absolute top-1 left-1 bg-gold text-petroleum text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-1">
+                          <Crown className="size-3" /> Capa
+                        </span>
+                      )}
+                      <span className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+                        {img.ordem}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            <Dialog open={!!zoomImg} onOpenChange={(o) => !o && setZoomImg(null)}>
+              <DialogContent className="max-w-5xl p-2">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Visualizar imagem</DialogTitle>
+                </DialogHeader>
+                {zoomImg && (
+                  <img src={zoomImg.url} alt="" className="w-full h-auto max-h-[80vh] object-contain rounded" />
+                )}
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
