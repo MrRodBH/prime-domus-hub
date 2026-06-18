@@ -56,6 +56,42 @@ export function PostForm({ initial }: { initial?: Post }) {
 
   useEffect(() => { if (initial) setForm(initial); }, [initial]);
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleUploadCapa(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const sanitized = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_");
+      const path = `blog/${crypto.randomUUID().slice(0, 8)}-${sanitized}`;
+      const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path, width: 1600, quality: 80 } });
+      setForm((f: Post) => ({ ...f, imagem_capa: url }));
+      toast.success("Imagem enviada");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  const gerarResumo = useMutation({
+    mutationFn: () => adminGerarResumoPost({ data: { conteudo: form.conteudo || "", titulo: form.titulo || "" } }),
+    onSuccess: (res) => {
+      setForm((f: Post) => ({ ...f, resumo: res.resumo }));
+      toast.success("Resumo gerado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const salvar = useMutation({
     mutationFn: (p: Post) => adminSalvarPost({ data: p }),
     onSuccess: (res) => {
@@ -65,6 +101,7 @@ export function PostForm({ initial }: { initial?: Post }) {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
