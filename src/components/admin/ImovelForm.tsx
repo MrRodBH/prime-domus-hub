@@ -563,7 +563,7 @@ export function ImovelForm({ initial }: Props) {
               <Button type="button" variant="outline" size="sm" onClick={numerarSequencial} disabled={imagens.length === 0}>
                 Numerar sequencialmente
               </Button>
-              <Button type="button" size="sm" onClick={salvarOrdem} disabled={!podeSalvarOrdem}>
+              <Button type="button" size="sm" onClick={salvarOrdem} disabled={savingOrdem || imagens.length === 0}>
                 {savingOrdem ? "Salvando…" : "Salvar ordem"}
               </Button>
               <Button
