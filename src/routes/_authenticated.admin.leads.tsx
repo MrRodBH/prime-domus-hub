@@ -118,7 +118,7 @@ function AdminLeads() {
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="grid gap-3 [grid-template-columns:repeat(6,minmax(220px,1fr))] overflow-x-auto pb-4">
           {COLUMNS.map((col) => (
-            <Column key={col.id} col={col} leads={byStatus[col.id]} />
+            <Column key={col.id} col={col} leads={byStatus[col.id]} onOpen={setSelectedId} />
           ))}
         </div>
         <DragOverlay dropAnimation={null}>
@@ -126,6 +126,11 @@ function AdminLeads() {
         </DragOverlay>
 
       </DndContext>
+
+      <LeadDetailDialog
+        lead={(data as Lead[] | undefined)?.find((l) => l.id === selectedId) ?? null}
+        onClose={() => setSelectedId(null)}
+      />
     </div>
   );
 }
