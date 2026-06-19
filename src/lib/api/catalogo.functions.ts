@@ -108,7 +108,7 @@ export const listarImoveis = createServerFn({ method: "GET" })
 export const listarBairros = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
-      limite: z.number().int().min(1).max(20).optional(),
+      limite: z.number().int().min(1).max(50).optional(),
       apenas_destaque: z.boolean().optional(),
     }).optional().default({}),
   )
