@@ -303,7 +303,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
               />
             </button>
           ))}
