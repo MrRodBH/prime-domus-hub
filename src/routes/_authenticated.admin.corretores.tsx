@@ -1,18 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   adminListarCorretores,
   adminSalvarCorretor,
   adminExcluirCorretor,
+  adminAssinarUrl,
 } from "@/lib/api/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/corretores")({
@@ -32,6 +34,9 @@ function AdminCorretores() {
   const [editing, setEditing] = useState<Corretor | null>(null);
   const [open, setOpen] = useState(false);
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const salvar = useMutation({
     mutationFn: (c: Corretor) => adminSalvarCorretor({ data: c }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["admin", "corretores"] }); setOpen(false); },
@@ -43,8 +48,33 @@ function AdminCorretores() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setUploading(true);
+    try {
+      const sanitized = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_");
+      const path = `corretores/${crypto.randomUUID().slice(0, 8)}-${sanitized}`;
+      const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path, width: 600, quality: 85 } });
+      setEditing({ ...editing, foto_url: url });
+      toast.success("Foto enviada");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   return (
     <div className="space-y-6">
+
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Corretores</h1>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -63,8 +93,27 @@ function AdminCorretores() {
                   <div><Label>E-mail</Label><Input type="email" value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></div>
                   <div><Label>Telefone</Label><Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} /></div>
                   <div><Label>WhatsApp</Label><Input value={editing.whatsapp ?? ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="5531999990000" /></div>
-                  <div><Label>Foto (URL)</Label><Input value={editing.foto_url ?? ""} onChange={(e) => setEditing({ ...editing, foto_url: e.target.value })} /></div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Foto</Label>
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleUploadFoto} className="hidden" />
+                  <div className="flex items-center gap-3">
+                    {editing.foto_url ? (
+                      <div className="relative">
+                        <img src={editing.foto_url} alt="" className="size-20 rounded-full object-cover border" />
+                        <button type="button" onClick={() => setEditing({ ...editing, foto_url: "" })} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"><X className="size-3" /></button>
+                      </div>
+                    ) : (
+                      <div className="size-20 rounded-full bg-muted border" />
+                    )}
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                      {uploading ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Upload className="size-4 mr-1" />}
+                      {editing.foto_url ? "Trocar foto" : "Enviar foto"}
+                    </Button>
+                  </div>
+                  <Input placeholder="Ou cole uma URL" value={editing.foto_url ?? ""} onChange={(e) => setEditing({ ...editing, foto_url: e.target.value })} />
+                </div>
+
                 <div><Label>Bio</Label><Textarea value={editing.bio ?? ""} onChange={(e) => setEditing({ ...editing, bio: e.target.value })} /></div>
                 <Button type="submit" disabled={salvar.isPending}>Salvar</Button>
               </form>
