@@ -14,6 +14,9 @@ import {
 } from "@dnd-kit/core";
 import { Mail, MessageCircle, Phone } from "lucide-react";
 import { adminListarLeads, adminAtualizarLead } from "@/lib/api/admin.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
