@@ -100,6 +100,9 @@ function Home() {
   const subtitle = hero.subtitle || "";
   const ctaPrimary = hero.cta_primary || "Encontrar imóvel";
   const heroImage = hero.image_url || heroImg;
+  const searchTipos = hero.search_tipos && hero.search_tipos.length > 0
+    ? hero.search_tipos
+    : ["Coberturas & Garden", "Apartamentos de luxo", "Casas em condomínio", "Terrenos premium"];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
