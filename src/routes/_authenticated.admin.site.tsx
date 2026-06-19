@@ -23,7 +23,7 @@ function AdminSite() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [branding, setBranding] = useState<any>({ site_name: "RM Prime Imóveis", logo_path: null, favicon_path: null });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
+  const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "", image_path: null });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [secoes, setSecoes] = useState<any>({
     destaques_eyebrow: "Seleção Exclusiva", destaques_titulo: "Destaques", destaques_qtd: 3,
