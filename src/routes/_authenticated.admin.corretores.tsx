@@ -34,6 +34,9 @@ function AdminCorretores() {
   const [editing, setEditing] = useState<Corretor | null>(null);
   const [open, setOpen] = useState(false);
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const salvar = useMutation({
     mutationFn: (c: Corretor) => adminSalvarCorretor({ data: c }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["admin", "corretores"] }); setOpen(false); },
@@ -45,7 +48,30 @@ function AdminCorretores() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return (
+  async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setUploading(true);
+    try {
+      const sanitized = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_");
+      const path = `corretores/${crypto.randomUUID().slice(0, 8)}-${sanitized}`;
+      const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
+      if (upErr) throw upErr;
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path, width: 600, quality: 85 } });
+      setEditing({ ...editing, foto_url: url });
+      toast.success("Foto enviada");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Corretores</h1>
