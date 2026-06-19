@@ -57,7 +57,46 @@ export function PostForm({ initial }: { initial?: Post }) {
   useEffect(() => { if (initial) setForm(initial); }, [initial]);
 
   const fileRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [importingPdf, setImportingPdf] = useState(false);
+
+  async function handleImportPdf(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("PDF muito grande (máx. 10 MB).");
+      if (pdfRef.current) pdfRef.current.value = "";
+      return;
+    }
+    setImportingPdf(true);
+    try {
+      const buf = await file.arrayBuffer();
+      let bin = "";
+      const bytes = new Uint8Array(buf);
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      const pdfBase64 = btoa(bin);
+      const res = await adminImportarPdf({ data: { pdfBase64, nomeArquivo: file.name } });
+      setForm((f: Post) => ({
+        ...f,
+        titulo: f.titulo || res.titulo,
+        slug: f.slug || slugify(res.titulo),
+        resumo: f.resumo || res.resumo,
+        meta_title: f.meta_title || res.meta_title,
+        meta_description: f.meta_description || res.meta_description,
+        conteudo: res.conteudo,
+      }));
+      toast.success("PDF importado com sucesso");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setImportingPdf(false);
+      if (pdfRef.current) pdfRef.current.value = "";
+    }
+  }
 
   async function handleUploadCapa(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
