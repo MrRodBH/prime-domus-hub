@@ -308,19 +308,16 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
   }, [imagens]);
 
   const current = imagens[idx];
-  const isCurrentReady = readyUrls.has(current.url);
 
   return (
     <section className="max-w-7xl mx-auto px-6">
       <div className="relative aspect-[16/10] overflow-hidden rounded-md bg-muted">
-        {!isCurrentReady && (
-          <img
-            src={current.thumb}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-contain"
-          />
-        )}
+        <img
+          src={current.thumb}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-contain"
+        />
         <img
           key={current.url}
           src={current.url}
@@ -331,15 +328,8 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
           fetchPriority="high"
           decoding="async"
           onLoad={() => markReady(current.url)}
-          className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${
-            isCurrentReady ? "opacity-100" : "opacity-0"
-          }`}
+          className="absolute inset-0 h-full w-full object-contain"
         />
-        {!isCurrentReady && (
-          <div className="absolute inset-x-0 bottom-0 h-1 bg-foreground/10">
-            <div className="h-full w-1/3 animate-pulse bg-gold" />
-          </div>
-        )}
         {total > 1 && (
           <>
             <button
