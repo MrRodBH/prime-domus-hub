@@ -26,6 +26,9 @@ function AdminBairros() {
   const { data } = useQuery({ queryKey: ["admin", "bairros"], queryFn: () => adminListarBairros() });
   const [editing, setEditing] = useState<Bairro | null>(null);
   const [open, setOpen] = useState(false);
+  const LIMITE_DESTAQUE = 4;
+  const destaquesAtuais = (data ?? []).filter((b: Bairro) => b.destaque && b.id !== editing?.id).length;
+  const limiteAtingido = destaquesAtuais >= LIMITE_DESTAQUE;
 
   const salvar = useMutation({
     mutationFn: (b: Bairro) => adminSalvarBairro({ data: b }),
