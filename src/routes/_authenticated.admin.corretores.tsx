@@ -93,8 +93,27 @@ function AdminCorretores() {
                   <div><Label>E-mail</Label><Input type="email" value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></div>
                   <div><Label>Telefone</Label><Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} /></div>
                   <div><Label>WhatsApp</Label><Input value={editing.whatsapp ?? ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="5531999990000" /></div>
-                  <div><Label>Foto (URL)</Label><Input value={editing.foto_url ?? ""} onChange={(e) => setEditing({ ...editing, foto_url: e.target.value })} /></div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Foto</Label>
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleUploadFoto} className="hidden" />
+                  <div className="flex items-center gap-3">
+                    {editing.foto_url ? (
+                      <div className="relative">
+                        <img src={editing.foto_url} alt="" className="size-20 rounded-full object-cover border" />
+                        <button type="button" onClick={() => setEditing({ ...editing, foto_url: "" })} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"><X className="size-3" /></button>
+                      </div>
+                    ) : (
+                      <div className="size-20 rounded-full bg-muted border" />
+                    )}
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                      {uploading ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Upload className="size-4 mr-1" />}
+                      {editing.foto_url ? "Trocar foto" : "Enviar foto"}
+                    </Button>
+                  </div>
+                  <Input placeholder="Ou cole uma URL" value={editing.foto_url ?? ""} onChange={(e) => setEditing({ ...editing, foto_url: e.target.value })} />
+                </div>
+
                 <div><Label>Bio</Label><Textarea value={editing.bio ?? ""} onChange={(e) => setEditing({ ...editing, bio: e.target.value })} /></div>
                 <Button type="submit" disabled={salvar.isPending}>Salvar</Button>
               </form>
