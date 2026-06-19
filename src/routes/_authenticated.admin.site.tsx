@@ -195,6 +195,17 @@ function AdminSite() {
         </TabsContent>
 
         <TabsContent value="hero" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+          <div>
+            <Label>Imagem de fundo do Hero</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {heroImgPreview && <img src={heroImgPreview} alt="Hero atual" className="h-24 w-40 object-cover rounded border border-foreground/10" />}
+              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
+                <Upload className="size-4" /> {uploadingHero ? "Enviando…" : "Trocar imagem"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadHeroImage} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Recomendado: JPG/WebP em 1920×1080px ou maior (proporção 16:9). A imagem aparece em tela cheia na home.</p>
+          </div>
           <div><Label>Eyebrow (texto pequeno acima)</Label><Input value={hero.eyebrow} onChange={(e) => setHero({ ...hero, eyebrow: e.target.value })} /></div>
           <div>
             <Label>Título principal (uma linha por entrada)</Label>
