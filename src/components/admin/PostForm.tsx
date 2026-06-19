@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost, adminGerarSeoPost } from "@/lib/api/blog.functions";
+import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost, adminGerarSeoPost, adminImportarPdf } from "@/lib/api/blog.functions";
 import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, Upload, Loader2, X } from "lucide-react";
+import { Sparkles, Upload, Loader2, X, FileText } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
@@ -57,7 +57,46 @@ export function PostForm({ initial }: { initial?: Post }) {
   useEffect(() => { if (initial) setForm(initial); }, [initial]);
 
   const fileRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [importingPdf, setImportingPdf] = useState(false);
+
+  async function handleImportPdf(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("PDF muito grande (máx. 10 MB).");
+      if (pdfRef.current) pdfRef.current.value = "";
+      return;
+    }
+    setImportingPdf(true);
+    try {
+      const buf = await file.arrayBuffer();
+      let bin = "";
+      const bytes = new Uint8Array(buf);
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      const pdfBase64 = btoa(bin);
+      const res = await adminImportarPdf({ data: { pdfBase64, nomeArquivo: file.name } });
+      setForm((f: Post) => ({
+        ...f,
+        titulo: f.titulo || res.titulo,
+        slug: f.slug || slugify(res.titulo),
+        resumo: f.resumo || res.resumo,
+        meta_title: f.meta_title || res.meta_title,
+        meta_description: f.meta_description || res.meta_description,
+        conteudo: res.conteudo,
+      }));
+      toast.success("PDF importado com sucesso");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setImportingPdf(false);
+      if (pdfRef.current) pdfRef.current.value = "";
+    }
+  }
 
   async function handleUploadCapa(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -124,6 +163,32 @@ export function PostForm({ initial }: { initial?: Post }) {
 
   return (
     <form onSubmit={submit} className="space-y-6 max-w-4xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-md border border-dashed border-gold/40 bg-gold/5">
+        <div>
+          <p className="text-sm font-medium">Importar de PDF</p>
+          <p className="text-xs text-muted-foreground">
+            Envie um PDF para preencher título, conteúdo, resumo e SEO automaticamente. Você pode editar tudo depois.
+          </p>
+        </div>
+        <input
+          ref={pdfRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={handleImportPdf}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={importingPdf}
+          onClick={() => pdfRef.current?.click()}
+        >
+          {importingPdf ? <Loader2 className="size-4 mr-1 animate-spin" /> : <FileText className="size-4 mr-1" />}
+          {importingPdf ? "Processando PDF..." : "Importar PDF"}
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 space-y-1">
           <Label>Título *</Label>

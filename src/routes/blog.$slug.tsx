@@ -88,7 +88,7 @@ function Page() {
           )}
           {post.resumo && <p className="text-xl text-foreground/80 leading-relaxed mb-10">{post.resumo}</p>}
           <div
-            className="prose prose-lg max-w-none [&_h2]:font-display [&_h2]:text-2xl [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:font-display [&_h3]:text-xl [&_h3]:mt-6 [&_h3]:mb-2 [&_blockquote]:border-l-2 [&_blockquote]:border-gold [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_a]:text-gold [&_a]:underline [&_p]:my-4 [&_p]:leading-relaxed"
+            className="prose prose-lg max-w-none [&_h2]:font-display [&_h2]:text-2xl [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:font-display [&_h3]:text-xl [&_h3]:mt-6 [&_h3]:mb-2 [&_blockquote]:border-l-2 [&_blockquote]:border-gold [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-6 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_a]:text-gold [&_a]:underline [&_p]:my-4 [&_p]:leading-relaxed [&_img]:rounded-md [&_img]:my-6 [&_img]:w-full [&_img]:h-auto [&_figure]:my-8 [&_table]:w-full [&_table]:border-collapse [&_table]:my-6 [&_table]:text-sm [&_th]:border [&_th]:border-foreground/15 [&_th]:bg-secondary/40 [&_th]:p-3 [&_th]:text-left [&_th]:font-medium [&_td]:border [&_td]:border-foreground/15 [&_td]:p-3 [&_td]:align-top"
             dangerouslySetInnerHTML={{ __html: post.conteudo || "" }}
           />
           <div className="mt-16 pt-8 border-t border-foreground/5">
