@@ -163,6 +163,32 @@ export function PostForm({ initial }: { initial?: Post }) {
 
   return (
     <form onSubmit={submit} className="space-y-6 max-w-4xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-md border border-dashed border-gold/40 bg-gold/5">
+        <div>
+          <p className="text-sm font-medium">Importar de PDF</p>
+          <p className="text-xs text-muted-foreground">
+            Envie um PDF para preencher título, conteúdo, resumo e SEO automaticamente. Você pode editar tudo depois.
+          </p>
+        </div>
+        <input
+          ref={pdfRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={handleImportPdf}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={importingPdf}
+          onClick={() => pdfRef.current?.click()}
+        >
+          {importingPdf ? <Loader2 className="size-4 mr-1 animate-spin" /> : <FileText className="size-4 mr-1" />}
+          {importingPdf ? "Processando PDF..." : "Importar PDF"}
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 space-y-1">
           <Label>Título *</Label>
