@@ -259,22 +259,13 @@ function preloadImage(url: string, onReady?: () => void) {
 
 function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[]; titulo: string }) {
   const [idx, setIdx] = useState(0);
-  const [readyUrls, setReadyUrls] = useState<Set<string>>(() => new Set());
   const total = imagens.length;
-  const markReady = (url: string) => {
-    setReadyUrls((prev) => {
-      if (prev.has(url)) return prev;
-      const next = new Set(prev);
-      next.add(url);
-      return next;
-    });
-  };
   const select = (nextIdx: number) => {
     if (nextIdx === idx) return;
     const target = imagens[nextIdx]?.url;
     if (!target) return;
     setIdx(nextIdx);
-    void preloadImage(target, () => markReady(target));
+    void preloadImage(target);
   };
   const prev = () => select((idx - 1 + total) % total);
   const next = () => select((idx + 1) % total);
@@ -282,12 +273,9 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
   useEffect(() => {
     if (!imagens.length) return;
     let cancelled = false;
-    const onReady = (url: string) => {
-      if (!cancelled) markReady(url);
-    };
     const priority = [0, 1, 2].filter((i) => i < imagens.length);
     const run = async () => {
-      await Promise.all(priority.map((i) => preloadImage(imagens[i].url, () => onReady(imagens[i].url))));
+      await Promise.all(priority.map((i) => preloadImage(imagens[i].url)));
       const waitForIdle = () => new Promise<void>((resolve) => {
         if ("requestIdleCallback" in window) {
           window.requestIdleCallback(() => resolve(), { timeout: 1500 });
@@ -298,7 +286,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
       await waitForIdle();
       for (const img of imagens) {
         if (cancelled) return;
-        await preloadImage(img.thumb, () => onReady(img.thumb));
+        await preloadImage(img.thumb);
       }
     };
     void run();
@@ -327,7 +315,6 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
           loading="eager"
           fetchPriority="high"
           decoding="async"
-          onLoad={() => markReady(current.url)}
           className="absolute inset-0 h-full w-full object-contain"
         />
         {total > 1 && (
@@ -361,8 +348,8 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
               type="button"
               key={img.url + i}
               onClick={() => select(i)}
-              onMouseEnter={() => void preloadImage(img.url, () => markReady(img.url))}
-              onFocus={() => void preloadImage(img.url, () => markReady(img.url))}
+              onMouseEnter={() => void preloadImage(img.url)}
+              onFocus={() => void preloadImage(img.url)}
               className={`relative shrink-0 w-28 h-[72px] overflow-hidden rounded bg-muted ${
                 i === idx ? "ring-2 ring-gold" : "opacity-70 hover:opacity-100"
               }`}
@@ -373,7 +360,6 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
                 alt=""
                 loading={i < 8 ? "eager" : "lazy"}
                 decoding="async"
-                onLoad={() => markReady(img.thumb)}
                 className="h-full w-full object-contain"
               />
             </button>
