@@ -193,7 +193,7 @@ export const obterImovel = createServerFn({ method: "GET" })
             supabaseAdmin.storage
               .from("imoveis")
               .createSignedUrl(img.url, 60 * 60 * 24 * 365, {
-                transform: { width: 1600, height: 1000, quality: 72, resize: "contain" },
+                transform: { width: 1280, height: 800, quality: 70, resize: "contain" },
               }),
             supabaseAdmin.storage
               .from("imoveis")
@@ -212,7 +212,7 @@ export const obterImovel = createServerFn({ method: "GET" })
       const { data: s } = await supabaseAdmin.storage
         .from("imoveis")
         .createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365, {
-          transform: { width: 1600, height: 1000, quality: 72, resize: "contain" },
+          transform: { width: 1280, height: 800, quality: 70, resize: "contain" },
         });
       if (s) imRow.imagem_capa = s.signedUrl;
     }

@@ -27,10 +27,11 @@ export const Route = createFileRoute("/imovel/$slug")({
   head: ({ loaderData, params }) => {
     const titulo = loaderData?.titulo ?? "Imóvel";
     const bairro = (loaderData?.bairro as { nome?: string } | null)?.nome;
+    const firstGalleryImage = (loaderData?.imagens as Array<{ url?: string | null }> | null | undefined)?.[0]?.url;
     const desc =
       loaderData?.descricao ??
       `Imóvel de alto padrão${bairro ? ` em ${bairro}` : ""} - RM Prime Imóveis.`;
-    const ogImage = loaderData?.imagem_capa ?? undefined;
+    const ogImage = firstGalleryImage ?? loaderData?.imagem_capa ?? undefined;
     const preco = loaderData?.preco ? Number(loaderData.preco) : null;
     const ld: Record<string, unknown> = {
       "@context": "https://schema.org",
@@ -61,7 +62,10 @@ export const Route = createFileRoute("/imovel/$slug")({
         { property: "og:url", content: `/imovel/${params.slug}` },
         ...(ogImage ? [{ property: "og:image", content: ogImage }, { name: "twitter:image", content: ogImage }] : []),
       ],
-      links: [{ rel: "canonical", href: `/imovel/${params.slug}` }],
+      links: [
+        { rel: "canonical", href: `/imovel/${params.slug}` },
+        ...(ogImage ? [{ rel: "preload", as: "image", href: ogImage, fetchpriority: "high" }] : []),
+      ],
       scripts: [
         {
           type: "application/ld+json",
