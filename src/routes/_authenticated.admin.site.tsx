@@ -34,8 +34,10 @@ function AdminSite() {
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [heroImgPreview, setHeroImgPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingFav, setUploadingFav] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
 
   useEffect(() => {
     if (!data) return;
