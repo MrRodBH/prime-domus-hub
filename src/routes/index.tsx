@@ -91,8 +91,7 @@ function Home() {
   });
 
   const destaques = (imoveis ?? []).slice(0, destaquesQtd);
-  // Exibe todos os bairros marcados como "Destaque", ordenados pelo campo "Ordem".
-  const bairrosLista = bairros ?? [];
+  const bairrosLista = (bairros ?? []).slice(0, bairrosQtd);
 
   const titleLines: string[] = hero.title_lines && hero.title_lines.length > 0
     ? hero.title_lines
