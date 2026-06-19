@@ -129,6 +129,27 @@ function AdminSite() {
     }
   }
 
+  async function uploadHeroImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingHero(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `hero-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      if (error) throw error;
+      setHero({ ...hero, image_path: path });
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setHeroImgPreview(url);
+      toast.success("Imagem do hero enviada — clique em Salvar para aplicar.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingHero(false);
+      e.target.value = "";
+    }
+  }
+
   if (isLoading) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
