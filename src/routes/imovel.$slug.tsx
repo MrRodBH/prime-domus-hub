@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MapPin, BedDouble, Bath, Maximize2, Car, ArrowLeft, Phone, Mail, MessageCircle,
   CheckCircle2, ChevronLeft, ChevronRight, Sparkles,
@@ -243,25 +243,105 @@ function Spec({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
+function preloadImage(url: string, onReady?: () => void) {
+  if (typeof window === "undefined" || !url) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      onReady?.();
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = url;
+  });
+}
+
 function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[]; titulo: string }) {
   const [idx, setIdx] = useState(0);
+  const [pendingIdx, setPendingIdx] = useState<number | null>(null);
+  const [readyUrls, setReadyUrls] = useState<Set<string>>(() => new Set());
+  const requestRef = useRef(0);
   const total = imagens.length;
-  const prev = () => setIdx((i) => (i - 1 + total) % total);
-  const next = () => setIdx((i) => (i + 1) % total);
+  const markReady = (url: string) => {
+    setReadyUrls((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
+  };
+  const select = (nextIdx: number) => {
+    if (nextIdx === idx) return;
+    const target = imagens[nextIdx]?.url;
+    if (!target) return;
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
+    if (readyUrls.has(target)) {
+      setPendingIdx(null);
+      setIdx(nextIdx);
+      return;
+    }
+    setPendingIdx(nextIdx);
+    void preloadImage(target, () => markReady(target)).then(() => {
+      if (requestRef.current !== requestId) return;
+      setPendingIdx(null);
+      setIdx(nextIdx);
+    });
+  };
+  const prev = () => select((idx - 1 + total) % total);
+  const next = () => select((idx + 1) % total);
+
+  useEffect(() => {
+    if (!imagens.length) return;
+    let cancelled = false;
+    const onReady = (url: string) => {
+      if (!cancelled) markReady(url);
+    };
+    const priority = [0, 1, 2].filter((i) => i < imagens.length);
+    const run = async () => {
+      await Promise.all(priority.map((i) => preloadImage(imagens[i].url, () => onReady(imagens[i].url))));
+      const waitForIdle = () => new Promise<void>((resolve) => {
+        if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(() => resolve(), { timeout: 1500 });
+        } else {
+          setTimeout(resolve, 800);
+        }
+      });
+      await waitForIdle();
+      for (const img of imagens) {
+        if (cancelled) return;
+        await preloadImage(img.thumb, () => onReady(img.thumb));
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [imagens]);
+
+  const current = imagens[idx];
+  const isLoadingSelection = pendingIdx != null;
 
   return (
     <section className="max-w-7xl mx-auto px-6">
-      <div className="relative overflow-hidden rounded-md bg-muted">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-md bg-muted">
         <img
-          src={imagens[idx].url}
+          src={current.url}
           alt={`${titulo} — foto ${idx + 1}`}
           width={1600}
           height={1000}
           loading="eager"
           fetchPriority="high"
           decoding="async"
-          className="block w-full h-auto"
+          onLoad={() => markReady(current.url)}
+          className="absolute inset-0 h-full w-full object-contain"
         />
+        {isLoadingSelection && (
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-foreground/10">
+            <div className="h-full w-1/3 animate-pulse bg-gold" />
+          </div>
+        )}
         {total > 1 && (
           <>
             <button
@@ -287,23 +367,26 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
         )}
       </div>
       {total > 1 && (
-        <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+        <div className="flex gap-2 mt-3 overflow-x-auto pb-2 [scrollbar-gutter:stable]">
           {imagens.map((img, i) => (
             <button
               type="button"
               key={img.url + i}
-              onClick={() => setIdx(i)}
-              className={`relative shrink-0 w-24 h-16 overflow-hidden rounded bg-muted ${
-                i === idx ? "ring-2 ring-gold" : "opacity-70 hover:opacity-100"
+              onClick={() => select(i)}
+              onMouseEnter={() => void preloadImage(img.url, () => markReady(img.url))}
+              onFocus={() => void preloadImage(img.url, () => markReady(img.url))}
+              className={`relative shrink-0 w-28 h-[72px] overflow-hidden rounded bg-muted ${
+                i === idx ? "ring-2 ring-gold" : pendingIdx === i ? "ring-2 ring-foreground/25" : "opacity-70 hover:opacity-100"
               }`}
               aria-label={`Ver foto ${i + 1}`}
             >
               <img
                 src={img.thumb}
                 alt=""
-                loading="lazy"
+                loading={i < 8 ? "eager" : "lazy"}
                 decoding="async"
-                className="w-full h-full object-cover"
+                onLoad={() => markReady(img.thumb)}
+                className="h-full w-full object-contain"
               />
             </button>
           ))}
