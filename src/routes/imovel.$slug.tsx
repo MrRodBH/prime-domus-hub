@@ -262,10 +262,6 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
           decoding="async"
           className="block w-full h-auto"
         />
-        {/* Pré-carrega próxima imagem para navegação instantânea */}
-        {total > 1 && (
-          <link rel="preload" as="image" href={imagens[(idx + 1) % total].url} />
-        )}
         {total > 1 && (
           <>
             <button
