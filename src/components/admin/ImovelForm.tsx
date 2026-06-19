@@ -513,7 +513,15 @@ export function ImovelForm({ initial }: Props) {
       <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-display text-lg">Valores e medidas</h2>
         <div className="grid md:grid-cols-3 gap-4">
-          <div><Label>Preço (R$)</Label><Input type="number" value={form.preco ?? ""} onChange={(e) => setForm({ ...form, preco: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div><Label>Preço (R$)</Label><Input
+            inputMode="numeric"
+            value={form.preco != null ? new Intl.NumberFormat("pt-BR").format(form.preco) : ""}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, preco: digits ? Number(digits) : null });
+            }}
+            placeholder="R$ 0"
+          /></div>
           <div className="flex items-center gap-2 pt-7"><Switch checked={form.preco_sob_consulta} onCheckedChange={(v) => setForm({ ...form, preco_sob_consulta: v })} /><Label>Sob consulta</Label></div>
           <div></div>
           <div><Label>Área útil (m²)</Label><Input type="number" value={form.area_util ?? ""} onChange={(e) => setForm({ ...form, area_util: e.target.value ? Number(e.target.value) : null })} /></div>
