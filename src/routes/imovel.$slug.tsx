@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MapPin, BedDouble, Bath, Maximize2, Car, ArrowLeft, Phone, Mail, MessageCircle,
   CheckCircle2, ChevronLeft, ChevronRight, Sparkles,
