@@ -15,11 +15,11 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LancamentosRouteImport } from './routes/lancamentos'
 import { Route as ImoveisRouteImport } from './routes/imoveis'
 import { Route as ContatoRouteImport } from './routes/contato'
-import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnuncieRouteImport } from './routes/anuncie'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
@@ -72,11 +72,6 @@ const ContatoRoute = ContatoRouteImport.update({
   path: '/contato',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -96,6 +91,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ImovelSlugRoute = ImovelSlugRouteImport.update({
   id: '/imovel/$slug',
   path: '/imovel/$slug',
@@ -107,9 +107,9 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => BlogRoute,
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
@@ -217,7 +217,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRouteWithChildren
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
@@ -228,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
@@ -250,7 +250,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRouteWithChildren
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
@@ -260,6 +259,7 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/blog': typeof BlogIndexRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
@@ -283,7 +283,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
-  '/blog': typeof BlogRouteWithChildren
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
@@ -294,6 +293,7 @@ export interface FileRoutesById {
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/_authenticated/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
@@ -318,7 +318,6 @@ export interface FileRouteTypes {
     | '/'
     | '/anuncie'
     | '/auth'
-    | '/blog'
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
@@ -329,6 +328,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
+    | '/blog/'
     | '/admin/bairros'
     | '/admin/blog'
     | '/admin/corretores'
@@ -351,7 +351,6 @@ export interface FileRouteTypes {
     | '/'
     | '/anuncie'
     | '/auth'
-    | '/blog'
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
@@ -361,6 +360,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
+    | '/blog'
     | '/admin/bairros'
     | '/admin/corretores'
     | '/admin/leads'
@@ -383,7 +383,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/anuncie'
     | '/auth'
-    | '/blog'
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
@@ -394,6 +393,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
+    | '/blog/'
     | '/_authenticated/admin/bairros'
     | '/_authenticated/admin/blog'
     | '/_authenticated/admin/corretores'
@@ -418,15 +418,16 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AnuncieRoute: typeof AnuncieRoute
   AuthRoute: typeof AuthRoute
-  BlogRoute: typeof BlogRouteWithChildren
   ContatoRoute: typeof ContatoRoute
   ImoveisRoute: typeof ImoveisRoute
   LancamentosRoute: typeof LancamentosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreRoute: typeof SobreRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -478,13 +479,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContatoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -513,6 +507,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/imovel/$slug': {
       id: '/imovel/$slug'
       path: '/imovel/$slug'
@@ -529,10 +530,10 @@ declare module '@tanstack/react-router' {
     }
     '/blog/$slug': {
       id: '/blog/$slug'
-      path: '/$slug'
+      path: '/blog/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof BlogRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
@@ -720,30 +721,21 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
-interface BlogRouteChildren {
-  BlogSlugRoute: typeof BlogSlugRoute
-}
-
-const BlogRouteChildren: BlogRouteChildren = {
-  BlogSlugRoute: BlogSlugRoute,
-}
-
-const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AnuncieRoute: AnuncieRoute,
   AuthRoute: AuthRoute,
-  BlogRoute: BlogRouteWithChildren,
   ContatoRoute: ContatoRoute,
   ImoveisRoute: ImoveisRoute,
   LancamentosRoute: LancamentosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreRoute: SobreRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  BlogSlugRoute: BlogSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ImovelSlugRoute: ImovelSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
