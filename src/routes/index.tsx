@@ -146,10 +146,9 @@ function Home() {
             <div className="flex-1 px-4 py-2 md:border-r border-foreground/10">
               <label className="block text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Tipo</label>
               <select className="w-full bg-transparent border-none text-petroleum font-medium focus:outline-none appearance-none">
-                <option>Coberturas & Garden</option>
-                <option>Apartamentos de luxo</option>
-                <option>Casas em condomínio</option>
-                <option>Terrenos premium</option>
+                {searchTipos.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
               </select>
             </div>
             <Link to="/imoveis" className="bg-petroleum hover:bg-gold transition-colors text-linen px-8 py-4 rounded font-medium text-sm inline-flex items-center justify-center gap-2 uppercase tracking-[0.18em]">
