@@ -53,6 +53,7 @@ function AdminSite() {
       cta_primary: data.home_hero.cta_primary ?? "",
       cta_secondary: data.home_hero.cta_secondary ?? "",
       image_path: data.home_hero.image_path ?? null,
+      search_tipos: data.home_hero.search_tipos ?? ["Coberturas & Garden", "Apartamentos de luxo", "Casas em condomínio", "Terrenos premium"],
     });
     setSecoes({
       destaques_eyebrow: data.home_secoes.destaques_eyebrow ?? "Seleção Exclusiva",
@@ -221,6 +222,16 @@ function AdminSite() {
           <div className="grid grid-cols-2 gap-3">
             <div><Label>Botão primário</Label><Input value={hero.cta_primary} onChange={(e) => setHero({ ...hero, cta_primary: e.target.value })} /></div>
             <div><Label>Botão secundário</Label><Input value={hero.cta_secondary} onChange={(e) => setHero({ ...hero, cta_secondary: e.target.value })} /></div>
+          </div>
+          <div>
+            <Label>Opções do campo "Tipo" (uma por linha)</Label>
+            <Textarea
+              rows={4}
+              value={(hero.search_tipos as string[] ?? []).join("\n")}
+              onChange={(e) => setHero({ ...hero, search_tipos: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+              placeholder={"Coberturas & Garden\nApartamentos de luxo\nCasas em condomínio\nTerrenos premium"}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Aparecem no combo "Tipo" da busca da home. Uma opção por linha.</p>
           </div>
           <Button onClick={() => salvar.mutate({ key: "home_hero", value: hero })} disabled={salvar.isPending}>Salvar hero</Button>
         </TabsContent>
