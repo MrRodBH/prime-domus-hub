@@ -277,9 +277,17 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
   useEffect(() => {
     if (!imagens.length) return;
     let cancelled = false;
-    const priority = [0, 1, 2].filter((i) => i < imagens.length);
+    const visible = imagens.slice(0, 8);
+    const rest = imagens.slice(8);
+    const loadBatch = async (items: typeof imagens, size = 3) => {
+      for (let i = 0; i < items.length; i += size) {
+        if (cancelled) return;
+        await Promise.all(items.slice(i, i + size).map((img) => preloadImage(img.url)));
+      }
+    };
     const run = async () => {
-      await Promise.all(priority.map((i) => preloadImage(imagens[i].url)));
+      await Promise.all(imagens.map((img) => preloadImage(img.thumb)));
+      await loadBatch(visible);
       const waitForIdle = () => new Promise<void>((resolve) => {
         if ("requestIdleCallback" in window) {
           window.requestIdleCallback(() => resolve(), { timeout: 1500 });
@@ -288,10 +296,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
         }
       });
       await waitForIdle();
-      for (const img of imagens) {
-        if (cancelled) return;
-        await preloadImage(img.thumb);
-      }
+      await loadBatch(rest, 2);
     };
     void run();
     return () => {
@@ -362,7 +367,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
               <img
                 src={img.thumb}
                 alt=""
-                loading={i < 8 ? "eager" : "lazy"}
+                loading="eager"
                 decoding="async"
                 className="h-full w-full object-contain"
               />
