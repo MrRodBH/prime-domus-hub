@@ -129,6 +129,7 @@ function Page() {
           </Link>
         </div>
 
+        <VideoTop videoUrl={(imovel as { video_url?: string | null }).video_url ?? null} />
         <Galeria imagens={galeria} titulo={imovel.titulo} />
 
         <section className="max-w-7xl mx-auto px-6 py-12 grid lg:grid-cols-[1fr_360px] gap-12">
