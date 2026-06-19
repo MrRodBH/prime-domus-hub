@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Sparkles, Upload, Loader2, X } from "lucide-react";
+import { Sparkles, Upload, Loader2, X, FileText } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
