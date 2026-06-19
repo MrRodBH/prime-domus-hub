@@ -79,6 +79,9 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   if (result.branding.favicon_path) {
     result.branding.favicon_url = await signedUrl("site", result.branding.favicon_path);
   }
+  if (result.home_hero.image_path) {
+    result.home_hero.image_url = await signedUrl("site", result.home_hero.image_path);
+  }
 
   return result;
 });
