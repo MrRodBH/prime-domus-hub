@@ -75,6 +75,8 @@ export function ImovelForm({ initial }: Props) {
     longitude: initial?.longitude ?? null,
     video_url: initial?.video_url ?? "",
     tour_url: initial?.tour_url ?? "",
+    mostrar_rua: initial?.mostrar_rua ?? false,
+    mostrar_endereco_completo: initial?.mostrar_endereco_completo ?? false,
   });
 
   const [caracTxt, setCaracTxt] = useState((initial?.caracteristicas ?? []).join(", "));
