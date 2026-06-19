@@ -259,9 +259,7 @@ function preloadImage(url: string, onReady?: () => void) {
 
 function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[]; titulo: string }) {
   const [idx, setIdx] = useState(0);
-  const [pendingIdx, setPendingIdx] = useState<number | null>(null);
   const [readyUrls, setReadyUrls] = useState<Set<string>>(() => new Set());
-  const requestRef = useRef(0);
   const total = imagens.length;
   const markReady = (url: string) => {
     setReadyUrls((prev) => {
@@ -275,19 +273,8 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
     if (nextIdx === idx) return;
     const target = imagens[nextIdx]?.url;
     if (!target) return;
-    const requestId = requestRef.current + 1;
-    requestRef.current = requestId;
-    if (readyUrls.has(target)) {
-      setPendingIdx(null);
-      setIdx(nextIdx);
-      return;
-    }
-    setPendingIdx(nextIdx);
-    void preloadImage(target, () => markReady(target)).then(() => {
-      if (requestRef.current !== requestId) return;
-      setPendingIdx(null);
-      setIdx(nextIdx);
-    });
+    setIdx(nextIdx);
+    void preloadImage(target, () => markReady(target));
   };
   const prev = () => select((idx - 1 + total) % total);
   const next = () => select((idx + 1) % total);
@@ -321,12 +308,21 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
   }, [imagens]);
 
   const current = imagens[idx];
-  const isLoadingSelection = pendingIdx != null;
+  const isCurrentReady = readyUrls.has(current.url);
 
   return (
     <section className="max-w-7xl mx-auto px-6">
       <div className="relative aspect-[16/10] overflow-hidden rounded-md bg-muted">
+        {!isCurrentReady && (
+          <img
+            src={current.thumb}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+        )}
         <img
+          key={current.url}
           src={current.url}
           alt={`${titulo} — foto ${idx + 1}`}
           width={1600}
@@ -335,9 +331,11 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
           fetchPriority="high"
           decoding="async"
           onLoad={() => markReady(current.url)}
-          className="absolute inset-0 h-full w-full object-contain"
+          className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-200 ${
+            isCurrentReady ? "opacity-100" : "opacity-0"
+          }`}
         />
-        {isLoadingSelection && (
+        {!isCurrentReady && (
           <div className="absolute inset-x-0 bottom-0 h-1 bg-foreground/10">
             <div className="h-full w-1/3 animate-pulse bg-gold" />
           </div>
@@ -376,7 +374,7 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
               onMouseEnter={() => void preloadImage(img.url, () => markReady(img.url))}
               onFocus={() => void preloadImage(img.url, () => markReady(img.url))}
               className={`relative shrink-0 w-28 h-[72px] overflow-hidden rounded bg-muted ${
-                i === idx ? "ring-2 ring-gold" : pendingIdx === i ? "ring-2 ring-foreground/25" : "opacity-70 hover:opacity-100"
+                i === idx ? "ring-2 ring-gold" : "opacity-70 hover:opacity-100"
               }`}
               aria-label={`Ver foto ${i + 1}`}
             >
