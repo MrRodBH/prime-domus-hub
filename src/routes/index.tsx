@@ -99,6 +99,7 @@ function Home() {
   const eyebrow = hero.eyebrow || "RM Prime Imóveis";
   const subtitle = hero.subtitle || "";
   const ctaPrimary = hero.cta_primary || "Encontrar imóvel";
+  const heroImage = hero.image_url || heroImg;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -106,7 +107,7 @@ function Home() {
 
       {/* HERO */}
       <section className="relative h-[92vh] min-h-[640px] flex items-end pb-16 md:pb-20 overflow-hidden">
-        <img src={heroImg} alt="Cobertura de alto padrão em Belo Horizonte ao entardecer" width={1920} height={1080} fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={heroImage} alt="Cobertura de alto padrão em Belo Horizonte ao entardecer" width={1920} height={1080} fetchPriority="high" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-petroleum/80 via-petroleum/30 to-petroleum/10" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">

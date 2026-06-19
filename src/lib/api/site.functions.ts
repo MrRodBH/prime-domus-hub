@@ -37,7 +37,7 @@ export interface SiteSettings {
     favicon_url?: string | null;
     site_name?: string;
   };
-  home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string };
+  home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string; image_path?: string | null; image_url?: string | null };
   home_secoes: {
     destaques_eyebrow?: string;
     destaques_titulo?: string;
@@ -78,6 +78,9 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   }
   if (result.branding.favicon_path) {
     result.branding.favicon_url = await signedUrl("site", result.branding.favicon_path);
+  }
+  if (result.home_hero.image_path) {
+    result.home_hero.image_url = await signedUrl("site", result.home_hero.image_path);
   }
 
   return result;

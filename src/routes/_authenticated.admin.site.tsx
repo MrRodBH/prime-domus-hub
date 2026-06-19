@@ -23,7 +23,7 @@ function AdminSite() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [branding, setBranding] = useState<any>({ site_name: "RM Prime Imóveis", logo_path: null, favicon_path: null });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "" });
+  const [hero, setHero] = useState<any>({ title_lines: [], cta_primary: "", cta_secondary: "", eyebrow: "", subtitle: "", image_path: null });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [secoes, setSecoes] = useState<any>({
     destaques_eyebrow: "Seleção Exclusiva", destaques_titulo: "Destaques", destaques_qtd: 3,
@@ -34,8 +34,10 @@ function AdminSite() {
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [heroImgPreview, setHeroImgPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingFav, setUploadingFav] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -50,6 +52,7 @@ function AdminSite() {
       subtitle: data.home_hero.subtitle ?? "",
       cta_primary: data.home_hero.cta_primary ?? "",
       cta_secondary: data.home_hero.cta_secondary ?? "",
+      image_path: data.home_hero.image_path ?? null,
     });
     setSecoes({
       destaques_eyebrow: data.home_secoes.destaques_eyebrow ?? "Seleção Exclusiva",
@@ -73,6 +76,7 @@ function AdminSite() {
     });
     setLogoPreview(data.branding.logo_url ?? null);
     setFaviconPreview(data.branding.favicon_url ?? null);
+    setHeroImgPreview(data.home_hero.image_url ?? null);
   }, [data]);
 
   const salvar = useMutation({
@@ -125,6 +129,27 @@ function AdminSite() {
     }
   }
 
+  async function uploadHeroImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingHero(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `hero-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      if (error) throw error;
+      setHero({ ...hero, image_path: path });
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setHeroImgPreview(url);
+      toast.success("Imagem do hero enviada — clique em Salvar para aplicar.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingHero(false);
+      e.target.value = "";
+    }
+  }
+
   if (isLoading) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
@@ -170,6 +195,17 @@ function AdminSite() {
         </TabsContent>
 
         <TabsContent value="hero" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+          <div>
+            <Label>Imagem de fundo do Hero</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {heroImgPreview && <img src={heroImgPreview} alt="Hero atual" className="h-24 w-40 object-cover rounded border border-foreground/10" />}
+              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
+                <Upload className="size-4" /> {uploadingHero ? "Enviando…" : "Trocar imagem"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadHeroImage} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Recomendado: JPG/WebP em 1920×1080px ou maior (proporção 16:9). A imagem aparece em tela cheia na home.</p>
+          </div>
           <div><Label>Eyebrow (texto pequeno acima)</Label><Input value={hero.eyebrow} onChange={(e) => setHero({ ...hero, eyebrow: e.target.value })} /></div>
           <div>
             <Label>Título principal (uma linha por entrada)</Label>
