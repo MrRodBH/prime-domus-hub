@@ -39,7 +39,7 @@ export const Route = createFileRoute("/")({
     await Promise.all([
       context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() }),
       context.queryClient.ensureQueryData({ queryKey: ["home-destaques"], queryFn: () => listarImoveis({ data: { apenas_destaque: true, limite: 12 } }) }),
-      context.queryClient.ensureQueryData({ queryKey: ["home-bairros"], queryFn: () => listarBairros({ data: { limite: 12 } }) }),
+      context.queryClient.ensureQueryData({ queryKey: ["home-bairros", "destaque"], queryFn: () => listarBairros({ data: { apenas_destaque: true, limite: 24 } }) }),
     ]);
   },
   component: Home,
@@ -85,13 +85,14 @@ function Home() {
     staleTime: 2 * 60 * 1000,
   });
   const { data: bairros } = useQuery({
-    queryKey: ["home-bairros"],
-    queryFn: () => listarBairros({ data: { limite: 12 } }),
+    queryKey: ["home-bairros", "destaque"],
+    queryFn: () => listarBairros({ data: { apenas_destaque: true, limite: 24 } }),
     staleTime: 2 * 60 * 1000,
   });
 
   const destaques = (imoveis ?? []).slice(0, destaquesQtd);
-  const bairrosLista = (bairros ?? []).slice(0, bairrosQtd);
+  // Exibe todos os bairros marcados como "Destaque", ordenados pelo campo "Ordem".
+  const bairrosLista = bairros ?? [];
 
   const titleLines: string[] = hero.title_lines && hero.title_lines.length > 0
     ? hero.title_lines
