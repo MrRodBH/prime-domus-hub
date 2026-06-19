@@ -138,9 +138,11 @@ function AdminLeads() {
 function Column({
   col,
   leads,
+  onOpen,
 }: {
   col: { id: Status; label: string; accent: string };
   leads: Lead[];
+  onOpen: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id });
   return (
@@ -156,7 +158,7 @@ function Column({
         <span className="ml-auto text-xs text-muted-foreground">{leads.length}</span>
       </div>
       <div className="flex-1 p-2 space-y-2">
-        {leads.map((l) => <DraggableCard key={l.id} lead={l} />)}
+        {leads.map((l) => <DraggableCard key={l.id} lead={l} onOpen={onOpen} />)}
         {leads.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6">Vazio</div>
         )}
@@ -165,17 +167,84 @@ function Column({
   );
 }
 
-function DraggableCard({ lead }: { lead: Lead }) {
+function DraggableCard({ lead, onOpen }: { lead: Lead; onOpen: (id: string) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: lead.id });
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing"
+      onClick={() => onOpen(lead.id)}
+      className="cursor-pointer"
       style={{ visibility: isDragging ? "hidden" : "visible" }}
     >
       <Card lead={lead} />
+    </div>
+  );
+}
+
+function LeadDetailDialog({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
+  const wa = lead?.telefone ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}` : null;
+  return (
+    <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        {lead && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{lead.nome}</DialogTitle>
+              <DialogDescription>
+                Recebido em {new Date(lead.created_at).toLocaleString("pt-BR")} · Origem: {lead.origem ?? "—"} · Status: {lead.status}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 text-sm">
+              <Field label="E-mail" value={lead.email ?? "—"} />
+              <Field label="Telefone" value={lead.telefone ?? "—"} />
+              <Field label="Imóvel de interesse" value={lead.imovel?.titulo ?? "—"} />
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Mensagem</div>
+                <p className="rounded-md border border-foreground/10 bg-muted/40 p-3 whitespace-pre-wrap">
+                  {lead.mensagem || "—"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              {lead.email && (
+                <Button asChild variant="outline" size="sm">
+                  <a href={`mailto:${lead.email}`}><Mail className="h-4 w-4 mr-1" />E-mail</a>
+                </Button>
+              )}
+              {lead.telefone && (
+                <Button asChild variant="outline" size="sm">
+                  <a href={`tel:${lead.telefone}`}><Phone className="h-4 w-4 mr-1" />Ligar</a>
+                </Button>
+              )}
+              {wa && (
+                <Button asChild variant="outline" size="sm">
+                  <a href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</a>
+                </Button>
+              )}
+              {(lead.imovel as { slug?: string } | null)?.slug && (
+                <Button asChild size="sm" className="ml-auto">
+                  <Link to="/imovel/$slug" params={{ slug: (lead.imovel as { slug: string }).slug }} target="_blank">
+                    Ver imóvel
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3 border-b border-foreground/5 pb-2">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="text-right">{value}</span>
     </div>
   );
 }
