@@ -60,7 +60,7 @@ function AdminBairros() {
                   <div><Label>Ordem</Label><Input type="number" value={editing.ordem} onChange={(e) => setEditing({ ...editing, ordem: Number(e.target.value) })} /></div>
                 </div>
                 <div><Label>Descrição</Label><Textarea value={editing.descricao ?? ""} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
-                <div className="flex items-center gap-2"><Switch checked={editing.destaque} onCheckedChange={(v) => setEditing({ ...editing, destaque: v })} /><Label>Destaque na home</Label></div>
+                <div className="flex items-center gap-2"><Switch checked={editing.destaque} disabled={limiteAtingido && !editing.destaque} onCheckedChange={(v) => setEditing({ ...editing, destaque: v })} /><Label>Destaque na home {limiteAtingido && !editing.destaque && <span className="text-xs text-muted-foreground">(limite de {LIMITE_DESTAQUE} atingido)</span>}</Label></div>
                 <Button type="submit">Salvar</Button>
               </form>
             )}
