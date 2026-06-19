@@ -289,4 +289,100 @@ export const adminGerarSeoPost = createServerFn({ method: "POST" })
     return { meta_title, meta_description };
   });
 
+// ============ IA: Importar PDF -> HTML ============
+
+export const adminImportarPdf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      pdfBase64: z.string().min(100),
+      nomeArquivo: z.string().optional().default(""),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada.");
+
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const bin = Uint8Array.from(atob(data.pdfBase64), (c) => c.charCodeAt(0));
+    const pdf = await getDocumentProxy(bin);
+    const { text } = await extractText(pdf, { mergePages: false });
+    const textoBruto = Array.isArray(text)
+      ? text.map((p, i) => `\n\n===== PÁGINA ${i + 1} =====\n\n${p}`).join("")
+      : String(text ?? "");
+
+    if (!textoBruto.trim()) throw new Error("Não foi possível extrair texto deste PDF.");
+    const textoLimitado = textoBruto.slice(0, 40000);
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "raw-fetch",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Você converte texto extraído de PDFs em HTML semântico para um editor de blog. NÃO reescreva, NÃO resuma, NÃO adicione informações: apenas estruture o texto recebido. Sempre em português do Brasil. Responda APENAS com JSON válido.",
+          },
+          {
+            role: "user",
+            content: `Você receberá o texto bruto de um PDF (com marcadores "===== PÁGINA N =====" que devem ser removidos). Converta-o em HTML mantendo o conteúdo original na íntegra.
+
+Regras:
+- Use <h2> e <h3> para seções e subseções. NÃO inclua o título principal dentro de "conteudo" (ele vai apenas no campo "titulo").
+- Parágrafos em <p>.
+- Listas em <ul>/<ol>/<li> quando houver marcadores ou itens numerados.
+- Se identificar tabelas (linhas com colunas), reconstrua usando <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table>.
+- Citações/notas destacadas em <blockquote>.
+- Palavras-chave importantes em <strong>.
+- Remova rodapés repetidos, números de página soltos e marcadores "===== PÁGINA =====".
+- NÃO use markdown. NÃO inclua <html>/<head>/<body>.
+
+Responda APENAS com JSON neste formato exato:
+{"titulo":"...","resumo":"...","meta_title":"...","meta_description":"...","conteudo":"<h2>...</h2><p>...</p>..."}
+
+Texto extraído do PDF "${data.nomeArquivo}":
+${textoLimitado}`,
+          },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (resp.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente em instantes.");
+    if (resp.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+    if (!resp.ok) throw new Error(`Falha na IA (${resp.status})`);
+
+    const json = await resp.json();
+    const raw: string = json?.choices?.[0]?.message?.content?.trim() ?? "";
+    let parsed: {
+      titulo?: string;
+      resumo?: string;
+      meta_title?: string;
+      meta_description?: string;
+      conteudo?: string;
+    } = {};
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error("A IA retornou um formato inválido.");
+    }
+    if (!parsed.conteudo || !parsed.titulo) throw new Error("A IA não retornou conteúdo estruturado.");
+
+    return {
+      titulo: parsed.titulo.trim(),
+      resumo: (parsed.resumo ?? "").trim().slice(0, 280),
+      meta_title: (parsed.meta_title ?? "").slice(0, 60),
+      meta_description: (parsed.meta_description ?? "").slice(0, 160),
+      conteudo: parsed.conteudo,
+    };
+  });
+
+
 
