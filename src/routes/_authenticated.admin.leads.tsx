@@ -53,6 +53,7 @@ function AdminLeads() {
     queryFn: () => adminListarLeads(),
   });
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
