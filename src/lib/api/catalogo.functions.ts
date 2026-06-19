@@ -169,7 +169,8 @@ export const obterImovel = createServerFn({ method: "GET" })
       .select(
         `id, codigo, titulo, slug, descricao, finalidade, tipo, status, preco, preco_sob_consulta,
          condominio, iptu, area_total, area_util, quartos, suites, banheiros, vagas, endereco,
-         badge, destaque, exclusivo, caracteristicas, imagem_capa, latitude, longitude, publicado_em,
+         badge, destaque, exclusivo, caracteristicas, imagem_capa, video_url, tour_url,
+         latitude, longitude, publicado_em,
          bairro:bairros(id, nome, slug, cidade, estado),
          corretor:corretores(id, nome, slug, creci, email, telefone, whatsapp, foto_url, bio),
          imagens:imovel_imagens(id, url, alt, ordem)`,
@@ -188,13 +189,20 @@ export const obterImovel = createServerFn({ method: "GET" })
             img.thumb = img.url;
             return;
           }
-          const { data: signed } = await supabaseAdmin.storage
-            .from("imoveis")
-            .createSignedUrl(img.url, 60 * 60 * 24 * 365);
-          if (signed) {
-            img.url = signed.signedUrl;
-            img.thumb = signed.signedUrl;
-          }
+          const [full, thumb] = await Promise.all([
+            supabaseAdmin.storage
+              .from("imoveis")
+              .createSignedUrl(img.url, 60 * 60 * 24 * 365, {
+                transform: { width: 1600, quality: 75, resize: "contain" },
+              }),
+            supabaseAdmin.storage
+              .from("imoveis")
+              .createSignedUrl(img.url, 60 * 60 * 24 * 365, {
+                transform: { width: 240, quality: 60, resize: "cover" },
+              }),
+          ]);
+          if (full.data) img.url = full.data.signedUrl;
+          img.thumb = thumb.data?.signedUrl ?? img.url;
         }),
       );
     }
