@@ -159,6 +159,7 @@ export type Database = {
         Row: {
           ativo: boolean
           bio: string | null
+          cargo: string | null
           created_at: string
           creci: string | null
           email: string | null
@@ -175,6 +176,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           bio?: string | null
+          cargo?: string | null
           created_at?: string
           creci?: string | null
           email?: string | null
@@ -191,6 +193,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           bio?: string | null
+          cargo?: string | null
           created_at?: string
           creci?: string | null
           email?: string | null
