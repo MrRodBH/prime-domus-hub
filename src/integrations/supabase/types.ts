@@ -318,6 +318,8 @@ export type Database = {
           iptu: number | null
           latitude: number | null
           longitude: number | null
+          mostrar_endereco_completo: boolean
+          mostrar_rua: boolean
           preco: number | null
           preco_sob_consulta: boolean
           publicado_em: string | null
@@ -354,6 +356,8 @@ export type Database = {
           iptu?: number | null
           latitude?: number | null
           longitude?: number | null
+          mostrar_endereco_completo?: boolean
+          mostrar_rua?: boolean
           preco?: number | null
           preco_sob_consulta?: boolean
           publicado_em?: string | null
@@ -390,6 +394,8 @@ export type Database = {
           iptu?: number | null
           latitude?: number | null
           longitude?: number | null
+          mostrar_endereco_completo?: boolean
+          mostrar_rua?: boolean
           preco?: number | null
           preco_sob_consulta?: boolean
           publicado_em?: string | null

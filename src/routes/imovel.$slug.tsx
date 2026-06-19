@@ -219,10 +219,22 @@ function Page() {
                 endereco={imovel.endereco}
                 lat={imovel.latitude ? Number(imovel.latitude) : null}
                 lng={imovel.longitude ? Number(imovel.longitude) : null}
+                mostrarRua={(imovel as { mostrar_rua?: boolean }).mostrar_rua ?? false}
+                mostrarCompleto={(imovel as { mostrar_endereco_completo?: boolean }).mostrar_endereco_completo ?? false}
               />
-              {imovel.endereco && (
-                <p className="text-sm text-muted-foreground mt-3">{imovel.endereco}</p>
-              )}
+              {(() => {
+                const completo = (imovel as { mostrar_endereco_completo?: boolean }).mostrar_endereco_completo;
+                const rua = (imovel as { mostrar_rua?: boolean }).mostrar_rua;
+                if (!imovel.endereco) return null;
+                if (completo) {
+                  return <p className="text-sm text-muted-foreground mt-3">{imovel.endereco}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
+                }
+                if (rua) {
+                  const semNumero = imovel.endereco.replace(/,?\s*\d+.*$/, "").trim();
+                  return <p className="text-sm text-muted-foreground mt-3">{semNumero}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
+                }
+                return bairro?.nome ? <p className="text-sm text-muted-foreground mt-3">{bairro.nome}</p> : null;
+              })()}
             </section>
           </article>
 
@@ -423,13 +435,45 @@ function MediaEmbed({ tourUrl }: { tourUrl: string | null; videoUrl?: string | n
   );
 }
 
-function Mapa({ bairro, endereco, lat, lng }: { bairro: string; endereco: string | null; lat: number | null; lng: number | null }) {
-  const src =
-    lat != null && lng != null
-      ? `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`
-      : `https://www.google.com/maps?q=${encodeURIComponent(
-          (endereco ? endereco + ", " : "") + bairro + ", Belo Horizonte, MG",
-        )}&z=14&output=embed`;
+function Mapa({
+  bairro,
+  endereco,
+  lat,
+  lng,
+  mostrarRua,
+  mostrarCompleto,
+}: {
+  bairro: string;
+  endereco: string | null;
+  lat: number | null;
+  lng: number | null;
+  mostrarRua: boolean;
+  mostrarCompleto: boolean;
+}) {
+  // Define o destino do pino conforme a visibilidade configurada no CMS
+  let src: string;
+  if (mostrarCompleto) {
+    // Pino exato: lat/lng se houver, senão endereço completo
+    if (lat != null && lng != null) {
+      src = `https://www.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
+    } else {
+      const q = encodeURIComponent(
+        (endereco ? endereco + ", " : "") + bairro + ", Belo Horizonte, MG",
+      );
+      src = `https://www.google.com/maps?q=${q}&z=16&output=embed`;
+    }
+  } else if (mostrarRua) {
+    // Pino na rua (sem número exato): remove número do endereço
+    const semNumero = (endereco ?? "").replace(/,?\s*\d+.*$/, "").trim();
+    const q = encodeURIComponent(
+      (semNumero ? semNumero + ", " : "") + bairro + ", Belo Horizonte, MG",
+    );
+    src = `https://www.google.com/maps?q=${q}&z=15&output=embed`;
+  } else {
+    // Apenas bairro
+    const q = encodeURIComponent(bairro + ", Belo Horizonte, MG");
+    src = `https://www.google.com/maps?q=${q}&z=14&output=embed`;
+  }
   return (
     <div className="aspect-[16/9] rounded overflow-hidden border border-foreground/10">
       <iframe

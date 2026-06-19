@@ -170,7 +170,7 @@ export const obterImovel = createServerFn({ method: "GET" })
         `id, codigo, titulo, slug, descricao, finalidade, tipo, status, preco, preco_sob_consulta,
          condominio, iptu, area_total, area_util, quartos, suites, banheiros, vagas, endereco,
          badge, destaque, exclusivo, caracteristicas, imagem_capa, video_url, tour_url,
-         latitude, longitude, publicado_em,
+         latitude, longitude, mostrar_rua, mostrar_endereco_completo, publicado_em,
          bairro:bairros(id, nome, slug, cidade, estado),
          corretor:corretores(id, nome, slug, creci, email, telefone, whatsapp, foto_url, bio),
          imagens:imovel_imagens(id, url, alt, ordem)`,
