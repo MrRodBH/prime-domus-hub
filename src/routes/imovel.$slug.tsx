@@ -219,10 +219,22 @@ function Page() {
                 endereco={imovel.endereco}
                 lat={imovel.latitude ? Number(imovel.latitude) : null}
                 lng={imovel.longitude ? Number(imovel.longitude) : null}
+                mostrarRua={(imovel as { mostrar_rua?: boolean }).mostrar_rua ?? false}
+                mostrarCompleto={(imovel as { mostrar_endereco_completo?: boolean }).mostrar_endereco_completo ?? false}
               />
-              {imovel.endereco && (
-                <p className="text-sm text-muted-foreground mt-3">{imovel.endereco}</p>
-              )}
+              {(() => {
+                const completo = (imovel as { mostrar_endereco_completo?: boolean }).mostrar_endereco_completo;
+                const rua = (imovel as { mostrar_rua?: boolean }).mostrar_rua;
+                if (!imovel.endereco) return null;
+                if (completo) {
+                  return <p className="text-sm text-muted-foreground mt-3">{imovel.endereco}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
+                }
+                if (rua) {
+                  const semNumero = imovel.endereco.replace(/,?\s*\d+.*$/, "").trim();
+                  return <p className="text-sm text-muted-foreground mt-3">{semNumero}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
+                }
+                return bairro?.nome ? <p className="text-sm text-muted-foreground mt-3">{bairro.nome}</p> : null;
+              })()}
             </section>
           </article>
 
