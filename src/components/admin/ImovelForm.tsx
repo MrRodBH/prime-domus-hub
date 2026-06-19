@@ -541,6 +541,25 @@ export function ImovelForm({ initial }: Props) {
           <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></div>
           <div><Label>Latitude</Label><Input type="number" step="any" value={form.latitude ?? ""} onChange={(e) => setForm({ ...form, latitude: e.target.value ? Number(e.target.value) : null })} /></div>
           <div><Label>Longitude</Label><Input type="number" step="any" value={form.longitude ?? ""} onChange={(e) => setForm({ ...form, longitude: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div className="md:col-span-2 flex flex-col gap-3 rounded border border-dashed border-foreground/15 p-3">
+            <p className="text-xs text-muted-foreground">
+              Controla o que aparece no site público. Se ambos desmarcados, mostra apenas o bairro no mapa.
+            </p>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={form.mostrar_rua}
+                onCheckedChange={(v) => setForm({ ...form, mostrar_rua: v, mostrar_endereco_completo: v ? false : form.mostrar_endereco_completo })}
+              />
+              <Label>Mostrar endereço (somente nome da Rua/Av + bairro)</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={form.mostrar_endereco_completo}
+                onCheckedChange={(v) => setForm({ ...form, mostrar_endereco_completo: v, mostrar_rua: v ? false : form.mostrar_rua })}
+              />
+              <Label>Mostrar endereço completo (rua + número + bairro)</Label>
+            </div>
+          </div>
           <div><Label>Selo (badge)</Label><Input value={form.badge} onChange={(e) => setForm({ ...form, badge: e.target.value })} placeholder="ex: Lançamento, Exclusivo" /></div>
           <div className="flex items-center gap-6 pt-7">
             <div className="flex items-center gap-2"><Switch checked={form.destaque} onCheckedChange={(v) => setForm({ ...form, destaque: v })} /><Label>Destaque</Label></div>
