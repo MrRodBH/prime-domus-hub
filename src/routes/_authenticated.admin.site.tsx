@@ -76,6 +76,7 @@ function AdminSite() {
     });
     setLogoPreview(data.branding.logo_url ?? null);
     setFaviconPreview(data.branding.favicon_url ?? null);
+    setHeroImgPreview(data.home_hero.image_url ?? null);
   }, [data]);
 
   const salvar = useMutation({
