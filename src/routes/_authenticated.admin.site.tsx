@@ -52,6 +52,7 @@ function AdminSite() {
       subtitle: data.home_hero.subtitle ?? "",
       cta_primary: data.home_hero.cta_primary ?? "",
       cta_secondary: data.home_hero.cta_secondary ?? "",
+      image_path: data.home_hero.image_path ?? null,
     });
     setSecoes({
       destaques_eyebrow: data.home_secoes.destaques_eyebrow ?? "Seleção Exclusiva",
