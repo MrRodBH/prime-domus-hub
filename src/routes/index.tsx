@@ -99,6 +99,7 @@ function Home() {
   const eyebrow = hero.eyebrow || "RM Prime Imóveis";
   const subtitle = hero.subtitle || "";
   const ctaPrimary = hero.cta_primary || "Encontrar imóvel";
+  const heroImage = hero.image_url || heroImg;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
