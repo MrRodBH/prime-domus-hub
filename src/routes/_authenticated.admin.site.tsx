@@ -53,6 +53,7 @@ function AdminSite() {
       cta_primary: data.home_hero.cta_primary ?? "",
       cta_secondary: data.home_hero.cta_secondary ?? "",
       image_path: data.home_hero.image_path ?? null,
+      search_tipos: data.home_hero.search_tipos ?? ["Coberturas & Garden", "Apartamentos de luxo", "Casas em condomínio", "Terrenos premium"],
     });
     setSecoes({
       destaques_eyebrow: data.home_secoes.destaques_eyebrow ?? "Seleção Exclusiva",
