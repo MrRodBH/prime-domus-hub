@@ -317,12 +317,27 @@ export const adminSalvarBairro = createServerFn({ method: "POST" })
   .inputValidator(bairroSchema)
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
+    const friendly = (msg: string) =>
+      msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("unique")
+        ? `Já existe um bairro com o slug "${data.slug}". Edite o existente ou use outro slug.`
+        : msg;
     if (data.id) {
       const { error } = await context.supabase.from("bairros").update(data as never).eq("id", data.id);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(friendly(error.message));
     } else {
+      // Upsert por slug para permitir reusar formulário sem quebrar em duplicidade
+      const { data: existente } = await context.supabase
+        .from("bairros")
+        .select("id")
+        .eq("slug", data.slug)
+        .maybeSingle();
+      if (existente?.id) {
+        throw new Error(
+          `Já existe um bairro com o slug "${data.slug}". Abra o bairro existente para editar.`,
+        );
+      }
       const { error } = await context.supabase.from("bairros").insert(data as never);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(friendly(error.message));
     }
     return { ok: true };
   });
