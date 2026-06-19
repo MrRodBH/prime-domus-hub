@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MapPin, BedDouble, Bath, Maximize2, Car, ArrowLeft, Phone, Mail, MessageCircle,
   CheckCircle2, ChevronLeft, ChevronRight, Sparkles,
@@ -27,10 +27,11 @@ export const Route = createFileRoute("/imovel/$slug")({
   head: ({ loaderData, params }) => {
     const titulo = loaderData?.titulo ?? "Imóvel";
     const bairro = (loaderData?.bairro as { nome?: string } | null)?.nome;
+    const firstGalleryImage = (loaderData?.imagens as Array<{ url?: string | null }> | null | undefined)?.[0]?.url;
     const desc =
       loaderData?.descricao ??
       `Imóvel de alto padrão${bairro ? ` em ${bairro}` : ""} - RM Prime Imóveis.`;
-    const ogImage = loaderData?.imagem_capa ?? undefined;
+    const ogImage = firstGalleryImage ?? loaderData?.imagem_capa ?? undefined;
     const preco = loaderData?.preco ? Number(loaderData.preco) : null;
     const ld: Record<string, unknown> = {
       "@context": "https://schema.org",
@@ -61,7 +62,10 @@ export const Route = createFileRoute("/imovel/$slug")({
         { property: "og:url", content: `/imovel/${params.slug}` },
         ...(ogImage ? [{ property: "og:image", content: ogImage }, { name: "twitter:image", content: ogImage }] : []),
       ],
-      links: [{ rel: "canonical", href: `/imovel/${params.slug}` }],
+      links: [
+        { rel: "canonical", href: `/imovel/${params.slug}` },
+        ...(ogImage ? [{ rel: "preload", as: "image", href: ogImage, fetchpriority: "high" }] : []),
+      ],
       scripts: [
         {
           type: "application/ld+json",
@@ -243,24 +247,84 @@ function Spec({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
+function preloadImage(url: string, onReady?: () => void) {
+  if (typeof window === "undefined" || !url) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      onReady?.();
+      resolve();
+    };
+    img.onerror = () => resolve();
+    img.src = url;
+  });
+}
+
 function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[]; titulo: string }) {
   const [idx, setIdx] = useState(0);
   const total = imagens.length;
-  const prev = () => setIdx((i) => (i - 1 + total) % total);
-  const next = () => setIdx((i) => (i + 1) % total);
+  const select = (nextIdx: number) => {
+    if (nextIdx === idx) return;
+    const target = imagens[nextIdx]?.url;
+    if (!target) return;
+    setIdx(nextIdx);
+    void preloadImage(target);
+  };
+  const prev = () => select((idx - 1 + total) % total);
+  const next = () => select((idx + 1) % total);
+
+  useEffect(() => {
+    if (!imagens.length) return;
+    let cancelled = false;
+    const visible = imagens.slice(0, 8);
+    const rest = imagens.slice(8);
+    const loadBatch = async (items: typeof imagens, size = 3) => {
+      for (let i = 0; i < items.length; i += size) {
+        if (cancelled) return;
+        await Promise.all(items.slice(i, i + size).map((img) => preloadImage(img.url)));
+      }
+    };
+    const run = async () => {
+      await Promise.all(imagens.map((img) => preloadImage(img.thumb)));
+      await loadBatch(visible);
+      const waitForIdle = () => new Promise<void>((resolve) => {
+        if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(() => resolve(), { timeout: 1500 });
+        } else {
+          setTimeout(resolve, 800);
+        }
+      });
+      await waitForIdle();
+      await loadBatch(rest, 2);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [imagens]);
+
+  const current = imagens[idx];
 
   return (
     <section className="max-w-7xl mx-auto px-6">
-      <div className="relative overflow-hidden rounded-md bg-muted">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-md bg-muted">
         <img
-          src={imagens[idx].url}
+          src={current.thumb}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+        <img
+          key={current.url}
+          src={current.url}
           alt={`${titulo} — foto ${idx + 1}`}
           width={1600}
           height={1000}
           loading="eager"
           fetchPriority="high"
           decoding="async"
-          className="block w-full h-auto"
+          className="absolute inset-0 h-full w-full object-contain"
         />
         {total > 1 && (
           <>
@@ -287,13 +351,15 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
         )}
       </div>
       {total > 1 && (
-        <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+        <div className="flex gap-2 mt-3 overflow-x-auto pb-2 [scrollbar-gutter:stable]">
           {imagens.map((img, i) => (
             <button
               type="button"
               key={img.url + i}
-              onClick={() => setIdx(i)}
-              className={`relative shrink-0 w-24 h-16 overflow-hidden rounded bg-muted ${
+              onClick={() => select(i)}
+              onMouseEnter={() => void preloadImage(img.url)}
+              onFocus={() => void preloadImage(img.url)}
+              className={`relative shrink-0 w-28 h-[72px] overflow-hidden rounded bg-muted ${
                 i === idx ? "ring-2 ring-gold" : "opacity-70 hover:opacity-100"
               }`}
               aria-label={`Ver foto ${i + 1}`}
@@ -301,9 +367,9 @@ function Galeria({ imagens, titulo }: { imagens: { url: string; thumb: string }[
               <img
                 src={img.thumb}
                 alt=""
-                loading="lazy"
+                loading="eager"
                 decoding="async"
-                className="w-full h-full object-cover"
+                className="h-full w-full object-contain"
               />
             </button>
           ))}

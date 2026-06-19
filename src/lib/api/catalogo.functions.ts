@@ -193,12 +193,12 @@ export const obterImovel = createServerFn({ method: "GET" })
             supabaseAdmin.storage
               .from("imoveis")
               .createSignedUrl(img.url, 60 * 60 * 24 * 365, {
-                transform: { width: 1600, quality: 75, resize: "contain" },
+                transform: { width: 1280, height: 800, quality: 70, resize: "contain" },
               }),
             supabaseAdmin.storage
               .from("imoveis")
               .createSignedUrl(img.url, 60 * 60 * 24 * 365, {
-                transform: { width: 240, quality: 60, resize: "cover" },
+                transform: { width: 240, height: 160, quality: 58, resize: "contain" },
               }),
           ]);
           if (full.data) img.url = full.data.signedUrl;
@@ -211,7 +211,9 @@ export const obterImovel = createServerFn({ method: "GET" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: s } = await supabaseAdmin.storage
         .from("imoveis")
-        .createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365);
+        .createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365, {
+          transform: { width: 1280, height: 800, quality: 70, resize: "contain" },
+        });
       if (s) imRow.imagem_capa = s.signedUrl;
     }
 
