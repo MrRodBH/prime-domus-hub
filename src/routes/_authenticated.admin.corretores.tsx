@@ -30,6 +30,16 @@ type Role = "admin" | "corretor" | "secretaria";
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", corretor: "Corretor", secretaria: "Secretaria" };
 const ALL_ROLES: Role[] = ["admin", "corretor", "secretaria"];
 
+function slugify(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Corretor = any;
 
@@ -37,6 +47,7 @@ type Editing = Corretor & {
   email_login?: string;
   password?: string;
   roles?: Role[];
+  _slugTouched?: boolean;
 };
 
 function emptyEditing(): Editing {
@@ -54,6 +65,7 @@ function emptyEditing(): Editing {
     email_login: "",
     password: "",
     roles: ["corretor"],
+    _slugTouched: false,
   };
 }
 
@@ -119,23 +131,26 @@ function AdminUsuarios() {
       const wantsLogin = !!e.email_login;
       if (isNew && wantsLogin) {
         if (!e.password || e.password.length < 6) throw new Error("Defina uma senha de pelo menos 6 caracteres");
-        await criarComLogin.mutateAsync(e);
+        const res = await criarComLogin.mutateAsync(e);
+        toast.success(
+          res?.email_sent
+            ? "Usuário criado. E-mail para definir senha enviado."
+            : "Usuário criado. (Não foi possível enviar o e-mail de senha — verifique a configuração de e-mail.)",
+        );
       } else if (!isNew) {
-        // Atualiza dados do corretor
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
+        void _e; void _p; void _r; void _st;
         await salvarSemLogin.mutateAsync(rest);
-        // Se o corretor tem user_id vinculado, sincroniza papéis
         if (e.user_id && e.roles && e.roles.length > 0) {
           await atualizarPapeis.mutateAsync({ user_id: e.user_id, roles: e.roles });
         }
+        toast.success("Salvo");
       } else {
-        // Novo sem login (apenas cadastro do corretor)
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
+        void _e; void _p; void _r; void _st;
         await salvarSemLogin.mutateAsync(rest);
+        toast.success("Salvo");
       }
-      toast.success("Salvo");
       qc.invalidateQueries({ queryKey: ["admin", "corretores"] });
       qc.invalidateQueries({ queryKey: ["admin", "user-roles"] });
       setOpen(false);
@@ -207,11 +222,26 @@ function AdminUsuarios() {
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
                     <Label>Nome *</Label>
-                    <Input required value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
+                    <Input
+                      required
+                      value={editing.nome}
+                      onChange={(e) => {
+                        const nome = e.target.value;
+                        const next: Editing = { ...editing, nome };
+                        if (!editing._slugTouched) next.slug = slugify(nome);
+                        setEditing(next);
+                      }}
+                    />
                   </div>
                   <div>
                     <Label>Slug *</Label>
-                    <Input required value={editing.slug} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} />
+                    <Input
+                      required
+                      value={editing.slug}
+                      onChange={(e) =>
+                        setEditing({ ...editing, slug: slugify(e.target.value), _slugTouched: true })
+                      }
+                    />
                   </div>
                   <div>
                     <Label>CRECI</Label>
@@ -221,11 +251,7 @@ function AdminUsuarios() {
                     <Label>Cargo</Label>
                     <Input value={editing.cargo ?? ""} onChange={(e) => setEditing({ ...editing, cargo: e.target.value })} />
                   </div>
-                  <div>
-                    <Label>Telefone</Label>
-                    <Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} />
-                  </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <Label>WhatsApp</Label>
                     <Input value={editing.whatsapp ?? ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="5531999990000" />
                   </div>
@@ -312,10 +338,15 @@ function AdminUsuarios() {
                   <Textarea value={editing.bio ?? ""} onChange={(e) => setEditing({ ...editing, bio: e.target.value })} />
                 </div>
 
-                <Button type="submit" disabled={isPending}>
-                  {isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
-                  Salvar
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isPending}>
+                    {isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
+                    Salvar
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+                    Cancelar
+                  </Button>
+                </div>
               </form>
             )}
           </DialogContent>

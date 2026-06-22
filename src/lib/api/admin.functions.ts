@@ -350,6 +350,7 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
     // Cria ou recupera o usuário no Auth
     const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
     let userId = existing?.users.find((u) => u.email === data.email)?.id;
+    const isNewAuthUser = !userId;
     if (!userId) {
       const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
         email: data.email,
@@ -359,11 +360,28 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       if (cErr || !created.user) throw new Error(cErr?.message ?? "Falha ao criar usuário");
       userId = created.user.id;
     } else {
-      // Atualiza a senha caso o admin defina uma nova
       await supabaseAdmin.auth.admin.updateUserById(userId, { password: data.password });
     }
 
-    // Cria/atualiza corretor vinculado
+    // Resolve corretor alvo: id fornecido, ou existente por user_id, ou por email, ou cria novo
+    let corretorId = data.corretor_id ?? null;
+    if (!corretorId) {
+      const { data: byUser } = await context.supabase
+        .from("corretores")
+        .select("id")
+        .eq("user_id", userId!)
+        .maybeSingle();
+      corretorId = (byUser as { id?: string } | null)?.id ?? null;
+    }
+    if (!corretorId && data.email) {
+      const { data: byEmail } = await context.supabase
+        .from("corretores")
+        .select("id")
+        .eq("email", data.email)
+        .maybeSingle();
+      corretorId = (byEmail as { id?: string } | null)?.id ?? null;
+    }
+
     const corretorPayload = {
       nome: data.nome,
       slug: data.slug,
@@ -377,15 +395,21 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       ativo: true,
       user_id: userId,
     };
-    if (data.corretor_id) {
+
+    const friendlySlug = (msg: string) =>
+      msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("unique")
+        ? `Já existe um usuário com o slug "${data.slug}". Use outro slug.`
+        : msg;
+
+    if (corretorId) {
       const { error } = await context.supabase
         .from("corretores")
         .update(corretorPayload as never)
-        .eq("id", data.corretor_id);
-      if (error) throw new Error(error.message);
+        .eq("id", corretorId);
+      if (error) throw new Error(friendlySlug(error.message));
     } else {
       const { error } = await context.supabase.from("corretores").insert(corretorPayload as never);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(friendlySlug(error.message));
     }
 
     // Sincroniza papéis: remove os existentes e insere os novos
@@ -394,7 +418,32 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
     const { error: rErr } = await supabaseAdmin.from("user_roles").insert(rolesRows as never);
     if (rErr) throw new Error(rErr.message);
 
-    return { ok: true, user_id: userId };
+    // Envia e-mail para o usuário definir senha definitiva (best-effort)
+    let emailSent = false;
+    try {
+      const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+        type: "recovery",
+        email: data.email,
+      });
+      const link =
+        linkData?.properties?.action_link ??
+        (linkData as { action_link?: string } | null)?.action_link ??
+        "";
+      if (link) {
+        const { enqueueTransactional } = await import("@/lib/email/notify.server");
+        const res = await enqueueTransactional({
+          templateName: "definir-senha",
+          to: data.email,
+          templateData: { nome: data.nome, link },
+          idempotencyKey: `definir-senha-${userId}-${Date.now()}`,
+        });
+        emailSent = !!res.ok;
+      }
+    } catch {
+      // não derruba o cadastro caso o envio falhe
+    }
+
+    return { ok: true, user_id: userId, email_sent: emailSent, created_auth: isNewAuthUser };
   });
 
 // Atualiza apenas os papéis de um usuário existente.
