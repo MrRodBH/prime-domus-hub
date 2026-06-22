@@ -222,11 +222,26 @@ function AdminUsuarios() {
                 <div className="grid md:grid-cols-2 gap-3">
                   <div>
                     <Label>Nome *</Label>
-                    <Input required value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
+                    <Input
+                      required
+                      value={editing.nome}
+                      onChange={(e) => {
+                        const nome = e.target.value;
+                        const next: Editing = { ...editing, nome };
+                        if (!editing._slugTouched) next.slug = slugify(nome);
+                        setEditing(next);
+                      }}
+                    />
                   </div>
                   <div>
                     <Label>Slug *</Label>
-                    <Input required value={editing.slug} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} />
+                    <Input
+                      required
+                      value={editing.slug}
+                      onChange={(e) =>
+                        setEditing({ ...editing, slug: slugify(e.target.value), _slugTouched: true })
+                      }
+                    />
                   </div>
                   <div>
                     <Label>CRECI</Label>
@@ -236,11 +251,7 @@ function AdminUsuarios() {
                     <Label>Cargo</Label>
                     <Input value={editing.cargo ?? ""} onChange={(e) => setEditing({ ...editing, cargo: e.target.value })} />
                   </div>
-                  <div>
-                    <Label>Telefone</Label>
-                    <Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} />
-                  </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <Label>WhatsApp</Label>
                     <Input value={editing.whatsapp ?? ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="5531999990000" />
                   </div>
