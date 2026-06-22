@@ -248,10 +248,42 @@ export const adminDefinirCapa = createServerFn({ method: "POST" })
   });
 
 // ===== CORRETORES =====
+function slugify(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function uniqueSlug(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  base: string,
+  ignoreId?: string,
+): Promise<string> {
+  const root = base || "usuario";
+  let slug = root;
+  let i = 2;
+  while (true) {
+    const { data } = await supabase.from("corretores").select("id").eq("slug", slug).maybeSingle();
+    const row = data as { id?: string } | null;
+    if (!row || row.id === ignoreId) return slug;
+    slug = `${root}-${i++}`;
+  }
+}
+
+const sobrenomeRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,40}$/;
 const corretorSchema = z.object({
   id: z.string().uuid().optional(),
   nome: z.string().min(2),
-  slug: z.string().min(2),
+  sobrenome: z
+    .string()
+    .regex(sobrenomeRegex, "Sobrenome inválido (apenas letras, um único sobrenome)")
+    .optional()
+    .nullable(),
   creci: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   telefone: z.string().optional().nullable(),
@@ -279,11 +311,14 @@ export const adminSalvarCorretor = createServerFn({ method: "POST" })
   .inputValidator(corretorSchema)
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
+    const base = slugify(`${data.nome} ${data.sobrenome ?? ""}`);
+    const slug = await uniqueSlug(context.supabase, base, data.id);
+    const payload = { ...data, slug };
     if (data.id) {
-      const { error } = await context.supabase.from("corretores").update(data as never).eq("id", data.id);
+      const { error } = await context.supabase.from("corretores").update(payload as never).eq("id", data.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await context.supabase.from("corretores").insert(data as never);
+      const { error } = await context.supabase.from("corretores").insert(payload as never);
       if (error) throw new Error(error.message);
     }
     return { ok: true };
