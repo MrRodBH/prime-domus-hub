@@ -47,6 +47,7 @@ export function ImovelForm({ initial }: Props) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const bairros = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
+  const cidades = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
   const [form, setForm] = useState({
     id: initial?.id,
     codigo: initial?.codigo ?? "",
@@ -86,17 +87,32 @@ export function ImovelForm({ initial }: Props) {
   const [uploading, setUploading] = useState(false);
   const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
   const [novoBairroOpen, setNovoBairroOpen] = useState(false);
-  const [novoBairro, setNovoBairro] = useState({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+  const [novoBairro, setNovoBairro] = useState<{ nome: string; slug: string; cidade_id: string | null }>({ nome: "", slug: "", cidade_id: null });
+  const [novaCidadeOpen, setNovaCidadeOpen] = useState(false);
+  const [novaCidade, setNovaCidade] = useState({ nome: "", slug: "", estado: "MG" });
 
   const criarBairro = useMutation({
-    mutationFn: () => adminSalvarBairro({ data: { ...novoBairro, destaque: false, ordem: 0 } }),
+    mutationFn: () => adminSalvarBairro({ data: { ...novoBairro, destaque: false } }),
     onSuccess: async () => {
       toast.success("Bairro criado");
       const r = await qc.fetchQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
       const created = r?.find((b) => b.slug === novoBairro.slug);
       if (created) setForm((f) => ({ ...f, bairro_id: created.id }));
       setNovoBairroOpen(false);
-      setNovoBairro({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+      setNovoBairro({ nome: "", slug: "", cidade_id: null });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const criarCidade = useMutation({
+    mutationFn: () => adminSalvarCidade({ data: novaCidade }),
+    onSuccess: async () => {
+      toast.success("Cidade criada");
+      const r = await qc.fetchQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
+      const created = r?.find((c) => c.slug === novaCidade.slug);
+      if (created) setNovoBairro((b) => ({ ...b, cidade_id: created.id }));
+      setNovaCidadeOpen(false);
+      setNovaCidade({ nome: "", slug: "", estado: "MG" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
