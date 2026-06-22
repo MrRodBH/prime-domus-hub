@@ -151,10 +151,15 @@ function AdminLeads() {
 }
 
 const FUNIL_STAGES: { ids: Status[]; label: string; color: string }[] = [
-  { ids: ["novo"], label: "Novo", color: "#dc2626" },
+  { ids: ["novo"], label: "Novo", color: "#ef4444" },
   { ids: ["conversando"], label: "Conversando", color: "#f59e0b" },
   { ids: ["visita"], label: "Visita", color: "#84cc16" },
   { ids: ["proposta"], label: "Proposta", color: "#10b981" },
+];
+
+const RESULTADO_STAGES: { id: Status; label: string; color: string }[] = [
+  { id: "ganho", label: "Ganho", color: "#10b981" },
+  { id: "perdido", label: "Perdido", color: "#ef4444" },
 ];
 
 function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
@@ -163,6 +168,28 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
     color: s.color,
     total: s.ids.reduce((sum, id) => sum + (byStatus[id]?.length ?? 0), 0),
   }));
+  const totalFunil = stages.reduce((s, x) => s + x.total, 0);
+
+  const resultados = RESULTADO_STAGES.map((s) => ({
+    label: s.label,
+    color: s.color,
+    total: byStatus[s.id]?.length ?? 0,
+  }));
+  const totalResultados = resultados.reduce((s, x) => s + x.total, 0);
+
+  const funnelData = stages.map((s) => {
+    const pct = totalFunil > 0 ? Math.round((s.total / totalFunil) * 100) : 0;
+    return {
+      name: `${s.label} — ${s.total} (${pct}%)`,
+      value: Math.max(s.total, 0.0001), // recharts needs >0 to render
+      fill: s.color,
+    };
+  });
+
+  const barData = resultados.map((r) => {
+    const pct = totalResultados > 0 ? Math.round((r.total / totalResultados) * 100) : 0;
+    return { name: r.label, value: r.total, pct, fill: r.color };
+  });
 
   const [insight, setInsight] = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
@@ -173,7 +200,13 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
     setErrInsight(null);
     try {
       const res = await gerarInsightsFunil({
-        data: { etapas: stages.map((s, i) => ({ id: String(i), label: s.label, total: s.total })) },
+        data: {
+          etapas: [...stages, ...resultados].map((s, i) => ({
+            id: String(i),
+            label: s.label,
+            total: s.total,
+          })),
+        },
       });
       setInsight(res.insight);
     } catch (e) {
@@ -183,119 +216,133 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
     }
   }
 
-  // Geometry: inverted pyramid (trapezoids decreasing width)
-  const W = 720;
-  const H = 360;
-  const stageH = H / stages.length;
-  const minW = 120;
-  const totalLeads = stages.reduce((s, x) => s + x.total, 0);
-
   return (
-    <div className="rounded-xl border border-foreground/10 bg-gradient-to-br from-card to-muted/30 p-6">
-      <div className="flex items-baseline justify-between mb-4">
-        <h2 className="font-display text-xl">Funil de Vendas</h2>
-        <span className="text-xs text-muted-foreground">
-          {totalLeads} leads ativos no funil
-        </span>
+    <div className="rounded-xl border border-foreground/10 bg-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-lg">Funil de Vendas</h2>
+        </div>
       </div>
 
-      <div className="flex justify-center">
-        <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full max-w-3xl h-auto">
-          <defs>
-            {stages.map((s, i) => (
-              <linearGradient key={i} id={`grad-${i}`} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor={s.color} stopOpacity="0.95" />
-                <stop offset="100%" stopColor={s.color} stopOpacity="0.7" />
-              </linearGradient>
-            ))}
-            <filter id="funil-shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="3" stdDeviation="4" floodOpacity="0.18" />
-            </filter>
-          </defs>
-
-          {(() => {
-            const boxW = 160;
-            const boxH = 72;
-            const boxX = 8;
-            const boxY = H - boxH - 6;
-            return (
-              <g>
-                <rect
-                  x={boxX}
-                  y={boxY}
-                  width={boxW}
-                  height={boxH}
-                  rx="10"
-                  fill="hsl(var(--background))"
-                  stroke="hsl(var(--foreground) / 0.15)"
-                  strokeWidth="1"
+      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+        {/* Funil */}
+        <div className="flex flex-col">
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <FunnelChart>
+                <Tooltip
+                  cursor={false}
+                  contentStyle={{
+                    background: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  formatter={(_v: number, _n: string, p: { payload?: { name: string } }) => [
+                    p.payload?.name ?? "",
+                    "",
+                  ]}
                 />
-                <text
-                  x={boxX + boxW / 2}
-                  y={boxY + 26}
-                  textAnchor="middle"
-                  fill="hsl(var(--muted-foreground))"
-                  fontSize="11"
-                  style={{ letterSpacing: "0.08em" }}
-                >
-                  TOTAL DE LEADS
-                </text>
-                <text
-                  x={boxX + boxW / 2}
-                  y={boxY + 54}
-                  textAnchor="middle"
-                  fill="hsl(var(--foreground))"
-                  fontSize="26"
-                  fontWeight="700"
-                >
-                  {totalLeads}
-                </text>
-              </g>
-            );
-          })()}
+                <Funnel dataKey="value" data={funnelData} isAnimationActive>
+                  <LabelList
+                    position="center"
+                    fill="#fff"
+                    stroke="none"
+                    dataKey="name"
+                    style={{ fontSize: 13, fontWeight: 600 }}
+                  />
+                </Funnel>
+              </FunnelChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 flex items-center gap-2 text-sm">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              Total de leads no funil
+            </span>
+            <span className="font-display text-xl font-semibold">{totalFunil}</span>
+          </div>
+        </div>
 
-          {stages.map((s, i) => {
-            const topW = W - (i * (W - minW)) / stages.length;
-            const botW = W - ((i + 1) * (W - minW)) / stages.length;
-            const y1 = i * stageH;
-            const y2 = (i + 1) * stageH - 6;
-            const x1L = (W - topW) / 2;
-            const x1R = x1L + topW;
-            const x2L = (W - botW) / 2;
-            const x2R = x2L + botW;
-            const cy = (y1 + y2) / 2;
-            const pct = totalLeads > 0 ? Math.round((s.total / totalLeads) * 100) : 0;
-            return (
-              <g key={i} filter="url(#funil-shadow)">
-                <polygon
-                  points={`${x1L},${y1} ${x1R},${y1} ${x2R},${y2} ${x2L},${y2}`}
-                  fill={`url(#grad-${i})`}
+        {/* Resultados */}
+        <div className="flex flex-col border-l-0 lg:border-l border-foreground/10 lg:pl-5">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+            Resultados
+          </span>
+          <div className="h-[240px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickLine={false}
                 />
-                <text x={W / 2} y={cy - 4} textAnchor="middle" fill="white" fontWeight="700" fontSize="18" style={{ letterSpacing: "0.02em" }}>
-                  {s.label}
-                </text>
-                <text x={W / 2} y={cy + 18} textAnchor="middle" fill="white" fontSize="14" opacity="0.95">
-                  {s.total} {s.total === 1 ? "lead" : "leads"} — {pct}%
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+                <YAxis
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ fill: "hsl(var(--muted) / 0.4)" }}
+                  contentStyle={{
+                    background: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {barData.map((d, i) => (
+                    <Cell key={i} fill={d.fill} />
+                  ))}
+                  <LabelList
+                    dataKey="value"
+                    position="top"
+                    formatter={(v: number) => {
+                      const item = barData.find((b) => b.value === v);
+                      return item ? `${v} — ${item.pct}%` : `${v}`;
+                    }}
+                    style={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--foreground))" }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-sm">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              Total fechados
+            </span>
+            <span className="font-display text-xl font-semibold">{totalResultados}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-6 rounded-lg border border-foreground/10 bg-background/60 p-4">
+      {/* Insights */}
+      <div className="mt-5 rounded-lg border border-foreground/10 bg-background/60 p-3">
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Insights de IA</span>
           </div>
           <Button size="sm" variant="outline" onClick={carregarInsight} disabled={loadingInsight}>
-            {loadingInsight ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Analisando…</> : insight ? "Atualizar análise" : "Gerar análise"}
+            {loadingInsight ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Analisando…
+              </>
+            ) : insight ? (
+              "Atualizar"
+            ) : (
+              "Gerar análise"
+            )}
           </Button>
         </div>
         {errInsight && <p className="text-sm text-destructive">{errInsight}</p>}
         {!errInsight && insight && (
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{insight}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+            {insight}
+          </p>
         )}
         {!errInsight && !insight && !loadingInsight && (
           <p className="text-sm text-muted-foreground">
