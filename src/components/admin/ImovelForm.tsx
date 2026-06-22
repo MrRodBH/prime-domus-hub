@@ -49,6 +49,7 @@ export function ImovelForm({ initial }: Props) {
   const qc = useQueryClient();
   const bairros = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
   const cidades = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
+  const captadores = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
   const [form, setForm] = useState({
     id: initial?.id,
     codigo: initial?.codigo ?? "",
