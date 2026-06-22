@@ -197,6 +197,7 @@ export type Database = {
           nome: string
           ordem: number
           slug: string
+          sobrenome: string | null
           telefone: string | null
           updated_at: string
           user_id: string | null
@@ -214,6 +215,7 @@ export type Database = {
           nome: string
           ordem?: number
           slug: string
+          sobrenome?: string | null
           telefone?: string | null
           updated_at?: string
           user_id?: string | null
@@ -231,6 +233,7 @@ export type Database = {
           nome?: string
           ordem?: number
           slug?: string
+          sobrenome?: string | null
           telefone?: string | null
           updated_at?: string
           user_id?: string | null

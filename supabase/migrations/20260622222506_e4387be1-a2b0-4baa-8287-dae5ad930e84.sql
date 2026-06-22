@@ -1,0 +1,1 @@
+ALTER TABLE public.corretores ADD COLUMN IF NOT EXISTS sobrenome text;
