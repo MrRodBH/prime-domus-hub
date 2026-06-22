@@ -30,6 +30,7 @@ import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
 import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
+import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authenticated.admin.cidades'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
 import { Route as AuthenticatedAdminImoveisIndexRouteImport } from './routes/_authenticated.admin.imoveis.index'
@@ -147,6 +148,12 @@ const AuthenticatedAdminCorretoresRoute =
     path: '/corretores',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCidadesRoute =
+  AuthenticatedAdminCidadesRouteImport.update({
+    id: '/cidades',
+    path: '/cidades',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
   id: '/blog',
   path: '/blog',
@@ -230,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
+  '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
@@ -261,6 +269,7 @@ export interface FileRoutesByTo {
   '/imovel/$slug': typeof ImovelSlugRoute
   '/blog': typeof BlogIndexRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
@@ -296,6 +305,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
+  '/_authenticated/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/_authenticated/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/admin/bairros'
     | '/admin/blog'
+    | '/admin/cidades'
     | '/admin/corretores'
     | '/admin/leads'
     | '/admin/site'
@@ -362,6 +373,7 @@ export interface FileRouteTypes {
     | '/imovel/$slug'
     | '/blog'
     | '/admin/bairros'
+    | '/admin/cidades'
     | '/admin/corretores'
     | '/admin/leads'
     | '/admin/site'
@@ -396,6 +408,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/_authenticated/admin/bairros'
     | '/_authenticated/admin/blog'
+    | '/_authenticated/admin/cidades'
     | '/_authenticated/admin/corretores'
     | '/_authenticated/admin/leads'
     | '/_authenticated/admin/site'
@@ -584,6 +597,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCorretoresRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/cidades': {
+      id: '/_authenticated/admin/cidades'
+      path: '/cidades'
+      fullPath: '/admin/cidades'
+      preLoaderRoute: typeof AuthenticatedAdminCidadesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/blog': {
       id: '/_authenticated/admin/blog'
       path: '/blog'
@@ -685,6 +705,7 @@ const AuthenticatedAdminBlogRouteWithChildren =
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBairrosRoute: typeof AuthenticatedAdminBairrosRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRouteWithChildren
+  AuthenticatedAdminCidadesRoute: typeof AuthenticatedAdminCidadesRoute
   AuthenticatedAdminCorretoresRoute: typeof AuthenticatedAdminCorretoresRoute
   AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
   AuthenticatedAdminSiteRoute: typeof AuthenticatedAdminSiteRoute
@@ -697,6 +718,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBairrosRoute: AuthenticatedAdminBairrosRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRouteWithChildren,
+  AuthenticatedAdminCidadesRoute: AuthenticatedAdminCidadesRoute,
   AuthenticatedAdminCorretoresRoute: AuthenticatedAdminCorretoresRoute,
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
   AuthenticatedAdminSiteRoute: AuthenticatedAdminSiteRoute,

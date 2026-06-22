@@ -14,13 +14,14 @@ import {
   adminRemoverImagem,
   adminAssinarUrl,
   adminSalvarBairro,
+  adminSalvarCidade,
   adminReordenarImagens,
   adminDefinirCapa,
 } from "@/lib/api/admin.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
-import { listarBairros } from "@/lib/api/catalogo.functions";
+import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Upload, Sparkles, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
