@@ -14,6 +14,7 @@ const filtersSchema = z
   .object({
     finalidade: z.enum(["venda", "aluguel", "lancamento"]).optional(),
     tipo: z.string().optional(),
+    cidade: z.string().optional(),
     bairro: z.string().optional(),
     quartos_min: z.number().int().optional(),
     suites_min: z.number().int().optional(),
