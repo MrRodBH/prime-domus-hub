@@ -30,6 +30,16 @@ type Role = "admin" | "corretor" | "secretaria";
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", corretor: "Corretor", secretaria: "Secretaria" };
 const ALL_ROLES: Role[] = ["admin", "corretor", "secretaria"];
 
+function slugify(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Corretor = any;
 
@@ -37,6 +47,7 @@ type Editing = Corretor & {
   email_login?: string;
   password?: string;
   roles?: Role[];
+  _slugTouched?: boolean;
 };
 
 function emptyEditing(): Editing {
@@ -54,6 +65,7 @@ function emptyEditing(): Editing {
     email_login: "",
     password: "",
     roles: ["corretor"],
+    _slugTouched: false,
   };
 }
 
