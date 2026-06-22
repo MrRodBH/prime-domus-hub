@@ -298,6 +298,118 @@ export const adminExcluirCorretor = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ===== PAPÉIS / USUÁRIOS COM LOGIN =====
+const roleEnum = z.enum(["admin", "corretor", "secretaria"]);
+
+// Retorna os papéis do usuário autenticado atual.
+export const meusPapeis = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (error) return [] as string[];
+    return (data ?? []).map((r) => (r as { role: string }).role);
+  });
+
+// Lista papéis de cada corretor (para a tabela do admin).
+export const adminListarPapeisPorUsuario = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAdmin(context);
+    const { data, error } = await context.supabase.from("user_roles").select("user_id, role");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{ user_id: string; role: string }>;
+  });
+
+// Cria login (auth.users) + papéis + vincula a um corretor existente OU cria novo.
+export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      corretor_id: z.string().uuid().optional(),
+      nome: z.string().min(2),
+      slug: z.string().min(2),
+      email: z.string().email(),
+      password: z.string().min(6),
+      telefone: z.string().optional().nullable(),
+      whatsapp: z.string().optional().nullable(),
+      creci: z.string().optional().nullable(),
+      cargo: z.string().optional().nullable(),
+      foto_url: z.string().optional().nullable(),
+      bio: z.string().optional().nullable(),
+      roles: z.array(roleEnum).min(1),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Cria ou recupera o usuário no Auth
+    const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
+    let userId = existing?.users.find((u) => u.email === data.email)?.id;
+    if (!userId) {
+      const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: data.password,
+        email_confirm: true,
+      });
+      if (cErr || !created.user) throw new Error(cErr?.message ?? "Falha ao criar usuário");
+      userId = created.user.id;
+    } else {
+      // Atualiza a senha caso o admin defina uma nova
+      await supabaseAdmin.auth.admin.updateUserById(userId, { password: data.password });
+    }
+
+    // Cria/atualiza corretor vinculado
+    const corretorPayload = {
+      nome: data.nome,
+      slug: data.slug,
+      email: data.email,
+      telefone: data.telefone ?? null,
+      whatsapp: data.whatsapp ?? null,
+      creci: data.creci ?? null,
+      cargo: data.cargo ?? null,
+      foto_url: data.foto_url ?? null,
+      bio: data.bio ?? null,
+      ativo: true,
+      user_id: userId,
+    };
+    if (data.corretor_id) {
+      const { error } = await context.supabase
+        .from("corretores")
+        .update(corretorPayload as never)
+        .eq("id", data.corretor_id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await context.supabase.from("corretores").insert(corretorPayload as never);
+      if (error) throw new Error(error.message);
+    }
+
+    // Sincroniza papéis: remove os existentes e insere os novos
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+    const rolesRows = data.roles.map((role) => ({ user_id: userId!, role }));
+    const { error: rErr } = await supabaseAdmin.from("user_roles").insert(rolesRows as never);
+    if (rErr) throw new Error(rErr.message);
+
+    return { ok: true, user_id: userId };
+  });
+
+// Atualiza apenas os papéis de um usuário existente.
+export const adminAtualizarPapeis = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ user_id: z.string().uuid(), roles: z.array(roleEnum).min(1) }))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
+    const rows = data.roles.map((role) => ({ user_id: data.user_id, role }));
+    const { error } = await supabaseAdmin.from("user_roles").insert(rows as never);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ===== CIDADES =====
 const cidadeSchema = z.object({
   id: z.string().uuid().optional(),
