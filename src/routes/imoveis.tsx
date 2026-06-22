@@ -58,6 +58,7 @@ export const Route = createFileRoute("/imoveis")({
     await Promise.all([
       context.queryClient.ensureQueryData(imoveisQuery(deps)),
       context.queryClient.ensureQueryData(bairrosQuery),
+      context.queryClient.ensureQueryData(cidadesQuery),
     ]);
   },
   errorComponent: ({ error }) => (
