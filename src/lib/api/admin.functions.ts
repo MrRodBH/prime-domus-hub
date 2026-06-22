@@ -292,24 +292,74 @@ export const adminExcluirCorretor = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ===== CIDADES =====
+const cidadeSchema = z.object({
+  id: z.string().uuid().optional(),
+  nome: z.string().min(2),
+  slug: z.string().min(2),
+  estado: z.string().min(2).default("MG"),
+});
+
+export const adminListarCidades = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAdmin(context);
+    const { data, error } = await context.supabase
+      .from("cidades")
+      .select("*")
+      .order("nome", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const adminSalvarCidade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(cidadeSchema)
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const friendly = (msg: string) =>
+      msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("unique")
+        ? `Já existe uma cidade com o slug "${data.slug}".`
+        : msg;
+    if (data.id) {
+      const { error } = await context.supabase.from("cidades").update(data as never).eq("id", data.id);
+      if (error) throw new Error(friendly(error.message));
+    } else {
+      const { error } = await context.supabase.from("cidades").insert(data as never);
+      if (error) throw new Error(friendly(error.message));
+    }
+    return { ok: true };
+  });
+
+export const adminExcluirCidade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ id: z.string().uuid() }))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { error } = await context.supabase.from("cidades").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ===== BAIRROS =====
 const bairroSchema = z.object({
   id: z.string().uuid().optional(),
   nome: z.string().min(2),
   slug: z.string().min(2),
-  cidade: z.string().default("Belo Horizonte"),
-  estado: z.string().default("MG"),
+  cidade_id: z.string().uuid().nullable().optional(),
   descricao: z.string().optional().nullable(),
   imagem_url: z.string().optional().nullable(),
   destaque: z.boolean().default(false),
-  ordem: z.number().int().default(0),
 });
 
 export const adminListarBairros = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAdmin(context);
-    const { data, error } = await context.supabase.from("bairros").select("*").order("ordem");
+    const { data, error } = await context.supabase
+      .from("bairros")
+      .select("*, cidade:cidades(id, nome, slug, estado)")
+      .order("nome", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
@@ -327,7 +377,6 @@ export const adminSalvarBairro = createServerFn({ method: "POST" })
       const { error } = await context.supabase.from("bairros").update(data as never).eq("id", data.id);
       if (error) throw new Error(friendly(error.message));
     } else {
-      // Upsert por slug para permitir reusar formulário sem quebrar em duplicidade
       const { data: existente } = await context.supabase
         .from("bairros")
         .select("id")
