@@ -366,7 +366,7 @@ function AdminUsuarios() {
               const userRoles = c.user_id ? rolesByUser.get(c.user_id) ?? [] : [];
               return (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome}</TableCell>
+                  <TableCell className="font-medium">{[c.nome, c.sobrenome].filter(Boolean).join(" ")}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {userRoles.length === 0 ? (
