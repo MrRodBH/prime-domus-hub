@@ -12,8 +12,9 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2 } from "lucide-react";
 import { adminListarLeads, adminAtualizarLead } from "@/lib/api/admin.functions";
+import { gerarInsightsFunil } from "@/lib/api/ia.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
