@@ -589,10 +589,21 @@ function CorretorCard({
   );
 }
 
-function FormContato({ imovelId, imovelTitulo }: { imovelId: string; imovelTitulo: string }) {
+function FormContato({
+  imovelId,
+  imovelTitulo,
+  corretor,
+}: {
+  imovelId: string;
+  imovelTitulo: string;
+  corretor: {
+    nome?: string; sobrenome?: string; foto_url?: string; whatsapp?: string;
+  } | null;
+}) {
   const router = useRouter();
   const enviar = useServerFn(enviarLead);
   const [ok, setOk] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -615,6 +626,26 @@ function FormContato({ imovelId, imovelTitulo }: { imovelId: string; imovelTitul
     },
   });
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    const email = form.email.trim();
+    const telDigits = form.telefone.replace(/\D/g, "");
+    if (!email && !telDigits) {
+      setErro("Informe um e-mail ou um WhatsApp para que possamos retornar.");
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErro("E-mail inválido.");
+      return;
+    }
+    if (!email && telDigits.length < 10) {
+      setErro("WhatsApp inválido. Inclua DDD + número (mínimo 10 dígitos).");
+      return;
+    }
+    mut.mutate();
+  }
+
   if (ok) {
     return (
       <div className="bg-tiffany/20 border border-tiffany/40 rounded p-6 text-center">
@@ -625,16 +656,54 @@ function FormContato({ imovelId, imovelTitulo }: { imovelId: string; imovelTitul
     );
   }
 
+  const nomeCompleto = corretor ? [corretor.nome, corretor.sobrenome].filter(Boolean).join(" ") : "";
+  const waDigits = corretor?.whatsapp?.replace(/\D/g, "") ?? "";
+  const waLink = waDigits
+    ? `https://wa.me/${waDigits}?text=${encodeURIComponent(
+        `Olá ${corretor?.nome ?? ""}, tenho interesse no imóvel "${imovelTitulo}".`,
+      )}`
+    : null;
+
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        mut.mutate();
-      }}
+      onSubmit={handleSubmit}
       className="bg-card border border-foreground/5 rounded p-6 shadow-soft space-y-3"
     >
       <span className="eyebrow">Solicite informações</span>
       <h3 className="font-display text-2xl mb-1">Fale com um consultor</h3>
+
+      {corretor && nomeCompleto && (
+        <div className="flex items-center gap-3 p-3 rounded bg-background/60 border border-foreground/5">
+          {corretor.foto_url ? (
+            <img
+              src={corretor.foto_url}
+              alt={nomeCompleto}
+              className="size-12 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div className="size-12 rounded-full bg-gold/15 text-gold flex items-center justify-center font-display text-lg shrink-0">
+              {(corretor.nome ?? "?").charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Atendido por</p>
+            <p className="font-display text-base leading-tight truncate">{nomeCompleto}</p>
+          </div>
+          {waLink && (
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Conversar no WhatsApp com ${nomeCompleto}`}
+              title="Conversar no WhatsApp"
+              className="shrink-0 inline-flex items-center justify-center size-10 rounded-full bg-petroleum hover:bg-gold text-linen transition-colors"
+            >
+              <MessageCircle className="size-5" strokeWidth={1.5} />
+            </a>
+          )}
+        </div>
+      )}
+
       <input
         required
         type="text"
@@ -664,7 +733,8 @@ function FormContato({ imovelId, imovelTitulo }: { imovelId: string; imovelTitul
         onChange={(e) => setForm({ ...form, mensagem: e.target.value })}
         className="w-full bg-background border border-foreground/10 rounded px-3 py-2.5 text-sm focus:outline-none focus:border-gold resize-none"
       />
-      <p className="text-[10px] text-muted-foreground">Informe e-mail ou telefone para que possamos retornar.</p>
+      <p className="text-[10px] text-muted-foreground">Informe e-mail ou WhatsApp para que possamos retornar.</p>
+      {erro && <p className="text-xs text-destructive">{erro}</p>}
       {mut.error && (
         <p className="text-xs text-destructive">{(mut.error as Error).message}</p>
       )}
