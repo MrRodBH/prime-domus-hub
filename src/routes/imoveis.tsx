@@ -154,7 +154,7 @@ function Page() {
             </p>
 
             <form onSubmit={aplicar} className="mt-8 bg-card border border-foreground/5 rounded p-3 md:p-4 space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-2">
                 <div className="flex items-center gap-2 px-3 py-2 border border-foreground/10 rounded">
                   <Search className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   <input
@@ -184,12 +184,22 @@ function Page() {
                   {tipos.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
                 </select>
                 <select
+                  value={search.cidade ?? ""}
+                  onChange={(e) => update({ cidade: e.target.value || undefined, bairro: undefined })}
+                  className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
+                >
+                  <option value="">Cidade (todas)</option>
+                  {cidades.map((c) => (
+                    <option key={c.id} value={c.slug}>{c.nome}</option>
+                  ))}
+                </select>
+                <select
                   value={search.bairro ?? ""}
                   onChange={(e) => update({ bairro: e.target.value || undefined })}
                   className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
                 >
                   <option value="">Bairro (todos)</option>
-                  {bairros.map((b) => (
+                  {bairrosFiltrados.map((b) => (
                     <option key={b.id} value={b.slug}>{b.nome}</option>
                   ))}
                 </select>
