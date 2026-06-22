@@ -30,16 +30,6 @@ type Role = "admin" | "corretor" | "secretaria";
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", corretor: "Corretor", secretaria: "Secretaria" };
 const ALL_ROLES: Role[] = ["admin", "corretor", "secretaria"];
 
-function slugify(input: string): string {
-  return input
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 const SOBRENOME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,40}$/;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
