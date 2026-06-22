@@ -366,7 +366,11 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
     z.object({
       corretor_id: z.string().uuid().optional(),
       nome: z.string().min(2),
-      slug: z.string().min(2),
+      sobrenome: z
+        .string()
+        .regex(sobrenomeRegex, "Sobrenome inválido (apenas letras, um único sobrenome)")
+        .optional()
+        .nullable(),
       email: z.string().email(),
       password: z.string().min(6),
       telefone: z.string().optional().nullable(),
@@ -417,9 +421,13 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       corretorId = (byEmail as { id?: string } | null)?.id ?? null;
     }
 
+    const baseSlug = slugify(`${data.nome} ${data.sobrenome ?? ""}`);
+    const slug = await uniqueSlug(context.supabase, baseSlug, corretorId ?? undefined);
+
     const corretorPayload = {
       nome: data.nome,
-      slug: data.slug,
+      sobrenome: data.sobrenome ?? null,
+      slug,
       email: data.email,
       telefone: data.telefone ?? null,
       whatsapp: data.whatsapp ?? null,
@@ -431,20 +439,15 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       user_id: userId,
     };
 
-    const friendlySlug = (msg: string) =>
-      msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("unique")
-        ? `Já existe um usuário com o slug "${data.slug}". Use outro slug.`
-        : msg;
-
     if (corretorId) {
       const { error } = await context.supabase
         .from("corretores")
         .update(corretorPayload as never)
         .eq("id", corretorId);
-      if (error) throw new Error(friendlySlug(error.message));
+      if (error) throw new Error(error.message);
     } else {
       const { error } = await context.supabase.from("corretores").insert(corretorPayload as never);
-      if (error) throw new Error(friendlySlug(error.message));
+      if (error) throw new Error(error.message);
     }
 
     // Sincroniza papéis: remove os existentes e insere os novos
