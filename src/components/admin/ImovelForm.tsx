@@ -489,89 +489,9 @@ export function ImovelForm({ initial }: Props) {
               <SelectContent>{statusList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label>Bairro</Label>
-              <Dialog open={novoBairroOpen} onOpenChange={setNovoBairroOpen}>
-                <DialogTrigger asChild>
-                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
-                    <Plus className="size-3 mr-1" /> Novo bairro
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Novo bairro</DialogTitle></DialogHeader>
-                  <div className="space-y-3">
-                    <div>
-                      <Label>Nome *</Label>
-                      <Input
-                        value={novoBairro.nome}
-                        onChange={(e) => {
-                          const nome = e.target.value;
-                          const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-                          setNovoBairro({ ...novoBairro, nome, slug });
-                        }}
-                      />
-                    </div>
-                    <div><Label>Slug *</Label><Input value={novoBairro.slug} onChange={(e) => setNovoBairro({ ...novoBairro, slug: e.target.value })} /></div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <Label>Cidade *</Label>
-                        <Dialog open={novaCidadeOpen} onOpenChange={setNovaCidadeOpen}>
-                          <DialogTrigger asChild>
-                            <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
-                              <Plus className="size-3 mr-1" /> Nova cidade
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader><DialogTitle>Nova cidade</DialogTitle></DialogHeader>
-                            <div className="space-y-3">
-                              <div>
-                                <Label>Nome *</Label>
-                                <Input
-                                  value={novaCidade.nome}
-                                  onChange={(e) => {
-                                    const nome = e.target.value;
-                                    const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-                                    setNovaCidade({ ...novaCidade, nome, slug });
-                                  }}
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div><Label>Slug *</Label><Input value={novaCidade.slug} onChange={(e) => setNovaCidade({ ...novaCidade, slug: e.target.value })} /></div>
-                                <div><Label>UF</Label><Input maxLength={2} value={novaCidade.estado} onChange={(e) => setNovaCidade({ ...novaCidade, estado: e.target.value.toUpperCase() })} /></div>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button type="button" variant="outline" onClick={() => setNovaCidadeOpen(false)}>Cancelar</Button>
-                              <Button type="button" disabled={!novaCidade.nome || !novaCidade.slug || criarCidade.isPending} onClick={() => criarCidade.mutate()}>
-                                {criarCidade.isPending ? "Salvando…" : "Criar"}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                      <Select value={novoBairro.cidade_id ?? ""} onValueChange={(v) => setNovoBairro({ ...novoBairro, cidade_id: v || null })}>
-                        <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-                        <SelectContent>{cidades.data?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}/{c.estado}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setNovoBairroOpen(false)}>Cancelar</Button>
-                    <Button type="button" disabled={!novoBairro.nome || !novoBairro.slug || !novoBairro.cidade_id || criarBairro.isPending} onClick={() => criarBairro.mutate()}>
-                      {criarBairro.isPending ? "Salvando…" : "Criar"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-            <Select value={form.bairro_id ?? ""} onValueChange={(v) => setForm({ ...form, bairro_id: v || null })}>
-              <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-              <SelectContent>{bairros.data?.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
+
 
       <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-display text-lg">Valores e medidas</h2>
