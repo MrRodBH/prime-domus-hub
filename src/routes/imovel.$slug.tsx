@@ -105,7 +105,7 @@ function Page() {
   const bairro = (imovel.bairro as { nome?: string; slug?: string } | null) ?? null;
   const corretor =
     (imovel.corretor as {
-      nome?: string; creci?: string; foto_url?: string; whatsapp?: string;
+      nome?: string; sobrenome?: string; creci?: string; foto_url?: string; whatsapp?: string;
       telefone?: string; email?: string; bio?: string;
     } | null) ?? null;
 
