@@ -131,23 +131,26 @@ function AdminUsuarios() {
       const wantsLogin = !!e.email_login;
       if (isNew && wantsLogin) {
         if (!e.password || e.password.length < 6) throw new Error("Defina uma senha de pelo menos 6 caracteres");
-        await criarComLogin.mutateAsync(e);
+        const res = await criarComLogin.mutateAsync(e);
+        toast.success(
+          res?.email_sent
+            ? "Usuário criado. E-mail para definir senha enviado."
+            : "Usuário criado. (Não foi possível enviar o e-mail de senha — verifique a configuração de e-mail.)",
+        );
       } else if (!isNew) {
-        // Atualiza dados do corretor
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
+        void _e; void _p; void _r; void _st;
         await salvarSemLogin.mutateAsync(rest);
-        // Se o corretor tem user_id vinculado, sincroniza papéis
         if (e.user_id && e.roles && e.roles.length > 0) {
           await atualizarPapeis.mutateAsync({ user_id: e.user_id, roles: e.roles });
         }
+        toast.success("Salvo");
       } else {
-        // Novo sem login (apenas cadastro do corretor)
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
+        void _e; void _p; void _r; void _st;
         await salvarSemLogin.mutateAsync(rest);
+        toast.success("Salvo");
       }
-      toast.success("Salvo");
       qc.invalidateQueries({ queryKey: ["admin", "corretores"] });
       qc.invalidateQueries({ queryKey: ["admin", "user-roles"] });
       setOpen(false);
