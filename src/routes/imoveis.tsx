@@ -95,6 +95,17 @@ function Page() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: imoveis } = useSuspenseQuery(imoveisQuery(search));
   const { data: bairros } = useSuspenseQuery(bairrosQuery);
+  const { data: cidades } = useSuspenseQuery(cidadesQuery);
+
+  const bairrosFiltrados = (() => {
+    const lista = search.cidade
+      ? bairros.filter((b) => {
+          const c = (b as { cidade?: { slug?: string } | null }).cidade;
+          return c?.slug === search.cidade;
+        })
+      : bairros;
+    return [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  })();
   const [buscaLocal, setBuscaLocal] = useState(search.busca ?? "");
   const [precoMin, setPrecoMin] = useState(search.preco_min?.toString() ?? "");
   const [precoMax, setPrecoMax] = useState(search.preco_max?.toString() ?? "");
