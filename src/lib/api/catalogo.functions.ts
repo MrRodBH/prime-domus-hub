@@ -119,21 +119,39 @@ export const listarImoveis = createServerFn({ method: "GET" })
     return list;
   });
 
+export const listarCidades = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const supabase = publicClient();
+    const { data, error } = await supabase
+      .from("cidades")
+      .select("id, nome, slug, estado")
+      .order("nome", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
 export const listarBairros = createServerFn({ method: "GET" })
   .inputValidator(
     z.object({
       limite: z.number().int().min(1).max(50).optional(),
       apenas_destaque: z.boolean().optional(),
+      cidade: z.string().optional(),
     }).optional().default({}),
   )
   .handler(async ({ data }) => {
     const supabase = publicClient();
     let q = supabase
       .from("bairros")
-      .select("id, nome, slug, descricao, imagem_url, destaque, ordem")
+      .select("id, nome, slug, descricao, imagem_url, destaque, cidade_id, cidade:cidades(id, nome, slug, estado)")
       .order("destaque", { ascending: false })
-      .order("ordem", { ascending: true });
+      .order("nome", { ascending: true });
     if (data.apenas_destaque) q = q.eq("destaque", true);
+    if (data.cidade) {
+      const { data: cid } = await supabase.from("cidades").select("id").eq("slug", data.cidade).maybeSingle();
+      const cidadeId = (cid as { id?: string } | null)?.id;
+      if (!cidadeId) return [];
+      q = q.eq("cidade_id", cidadeId);
+    }
     if (data.limite) q = q.limit(data.limite);
     const { data: bairros, error } = await q;
     if (error) throw new Error(error.message);
