@@ -264,16 +264,16 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg border bg-card flex flex-col min-h-[400px] transition-colors ${
+      className={`rounded-lg border bg-card flex flex-col h-[460px] transition-colors ${
         isOver ? "border-primary/60 bg-primary/5" : "border-foreground/5"
       }`}
     >
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-foreground/5">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-foreground/5 shrink-0">
         <span className={`h-2 w-2 rounded-full ${col.accent}`} />
         <span className="text-sm font-medium">{col.label}</span>
         <span className="ml-auto text-xs text-muted-foreground">{leads.length}</span>
       </div>
-      <div className="flex-1 p-2 space-y-2">
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto">
         {leads.map((l) => <DraggableCard key={l.id} lead={l} onOpen={onOpen} />)}
         {leads.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6">Vazio</div>
