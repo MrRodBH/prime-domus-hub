@@ -170,8 +170,8 @@ function AdminUsuarios() {
 
   function toggleRole(role: Role) {
     if (!editing) return;
-    const current = editing.roles ?? [];
-    const next = current.includes(role) ? current.filter((r) => r !== role) : [...current, role];
+    const current: Role[] = (editing.roles ?? []) as Role[];
+    const next = current.includes(role) ? current.filter((r: Role) => r !== role) : [...current, role];
     setEditing({ ...editing, roles: next });
   }
 
