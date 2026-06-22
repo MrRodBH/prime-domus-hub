@@ -213,10 +213,12 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] items-start">
         {/* Funil 3D */}
-        <div className="flex flex-col">
-          <Funnel3D stages={stages} totalFunil={totalFunil} />
+        <div className="flex flex-col items-center">
+          <div className="w-full max-w-[420px] mx-auto">
+            <Funnel3D stages={stages} totalFunil={totalFunil} />
+          </div>
           <div className="mt-3 flex items-center gap-2 text-sm">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Total de leads no funil
@@ -225,27 +227,12 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
           </div>
         </div>
 
-        {/* Resultados 3D */}
+        {/* Resultados — barras de crescimento */}
         <div className="flex flex-col border-l-0 lg:border-l border-foreground/10 lg:pl-5">
           <span className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
             Resultados
           </span>
-          <div className="flex items-end justify-around gap-4 h-[220px]">
-            {resultados.map((r) => {
-              const pct = totalResultados > 0 ? Math.round((r.total / totalResultados) * 100) : 0;
-              const maxR = Math.max(...resultados.map((x) => x.total), 1);
-              const h = Math.max((r.total / maxR) * 170, 8);
-              return (
-                <div key={r.label} className="flex flex-col items-center gap-2 flex-1">
-                  <span className="text-xs font-semibold text-foreground">
-                    {r.total} — {pct}%
-                  </span>
-                  <Bar3D height={h} color={r.color} />
-                  <span className="text-sm font-medium text-foreground">{r.label}</span>
-                </div>
-              );
-            })}
-          </div>
+          <ResultadosBars resultados={resultados} totalResultados={totalResultados} />
           <div className="mt-3 flex items-center gap-2 text-sm">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Total fechados
