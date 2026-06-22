@@ -116,7 +116,13 @@ export function ImovelForm({ initial }: Props) {
       toast.success("Cidade criada");
       const r = await qc.fetchQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
       const created = r?.find((c) => c.slug === novaCidade.slug);
-      if (created) setNovoBairro((b) => ({ ...b, cidade_id: created.id }));
+      if (created) {
+        if (novoBairroOpen) {
+          setNovoBairro((b) => ({ ...b, cidade_id: created.id }));
+        } else {
+          setForm((f) => ({ ...f, cidade: created.nome, estado: created.estado ?? f.estado }));
+        }
+      }
       setNovaCidadeOpen(false);
       setNovaCidade({ nome: "", slug: "", estado: "MG" });
     },
@@ -604,7 +610,34 @@ export function ImovelForm({ initial }: Props) {
             </Select>
           </div>
           <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} placeholder="00000-000" /></div>
-          <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} placeholder="Belo Horizonte" /></div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <Label>Cidade</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setNovaCidadeOpen(true)}
+              >
+                <Plus className="size-3 mr-1" /> Nova cidade
+              </Button>
+            </div>
+            <Select
+              value={form.cidade ?? ""}
+              onValueChange={(v) => {
+                const c = cidades.data?.find((x) => x.nome === v);
+                setForm({ ...form, cidade: v, estado: c?.estado ?? form.estado });
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+              <SelectContent>
+                {cidades.data?.map((c) => (
+                  <SelectItem key={c.id} value={c.nome}>{c.nome}/{c.estado}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div><Label>Estado (UF)</Label><Input maxLength={2} value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })} placeholder="MG" /></div>
           <div><Label>Latitude</Label><Input type="number" step="any" value={form.latitude ?? ""} onChange={(e) => setForm({ ...form, latitude: e.target.value ? Number(e.target.value) : null })} /></div>
           <div><Label>Longitude</Label><Input type="number" step="any" value={form.longitude ?? ""} onChange={(e) => setForm({ ...form, longitude: e.target.value ? Number(e.target.value) : null })} /></div>
