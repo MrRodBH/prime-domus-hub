@@ -24,6 +24,8 @@ export function AdminShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { data: papeis } = useQuery({ queryKey: ["meus-papeis"], queryFn: () => meusPapeis(), staleTime: 60_000 });
+  const roles = (papeis ?? ["admin"]) as Role[];
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -31,6 +33,11 @@ export function AdminShell() {
   }
 
   const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + "/"));
+  const visibleNav = nav.filter((n) => {
+    if (!n.hideFor) return true;
+    // hide only when ALL user roles are in hideFor (i.e., no allowed role)
+    return roles.some((r) => !n.hideFor!.includes(r));
+  });
 
   return (
     <div className="min-h-screen flex bg-secondary/30">
