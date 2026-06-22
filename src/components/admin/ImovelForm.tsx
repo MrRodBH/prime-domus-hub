@@ -66,6 +66,12 @@ export function ImovelForm({ initial }: Props) {
     banheiros: initial?.banheiros ?? null,
     vagas: initial?.vagas ?? null,
     endereco: initial?.endereco ?? "",
+    rua: initial?.rua ?? initial?.endereco ?? "",
+    numero: initial?.numero ?? "",
+    complemento: initial?.complemento ?? "",
+    cidade: initial?.cidade ?? "",
+    estado: initial?.estado ?? "",
+    cep: initial?.cep ?? "",
     bairro_id: initial?.bairro_id ?? null,
     corretor_id: initial?.corretor_id ?? null,
     badge: initial?.badge ?? "",
@@ -483,6 +489,39 @@ export function ImovelForm({ initial }: Props) {
               <SelectContent>{statusList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+        </div>
+      </div>
+
+
+      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+        <h2 className="font-display text-lg">Valores e medidas</h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div><Label>Preço (R$)</Label><Input
+            inputMode="numeric"
+            value={form.preco != null ? new Intl.NumberFormat("pt-BR").format(form.preco) : ""}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "");
+              setForm({ ...form, preco: digits ? Number(digits) : null });
+            }}
+            placeholder="R$ 0"
+          /></div>
+          <div className="flex items-center gap-2 pt-7"><Switch checked={form.preco_sob_consulta} onCheckedChange={(v) => setForm({ ...form, preco_sob_consulta: v })} /><Label>Sob consulta</Label></div>
+          <div></div>
+          <div><Label>Área útil (m²)</Label><Input type="number" value={form.area_util ?? ""} onChange={(e) => setForm({ ...form, area_util: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div><Label>Área total (m²)</Label><Input type="number" value={form.area_total ?? ""} onChange={(e) => setForm({ ...form, area_total: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div><Label>Quartos</Label><Input type="number" value={form.quartos ?? ""} onChange={(e) => setForm({ ...form, quartos: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div><Label>Suítes</Label><Input type="number" value={form.suites ?? ""} onChange={(e) => setForm({ ...form, suites: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div><Label>Banheiros</Label><Input type="number" value={form.banheiros ?? ""} onChange={(e) => setForm({ ...form, banheiros: e.target.value ? Number(e.target.value) : null })} /></div>
+          <div><Label>Vagas</Label><Input type="number" value={form.vagas ?? ""} onChange={(e) => setForm({ ...form, vagas: e.target.value ? Number(e.target.value) : null })} /></div>
+        </div>
+      </div>
+
+      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+        <h2 className="font-display text-lg">Localização e marcação</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="md:col-span-2"><Label>Rua / Avenida</Label><Input value={form.rua} onChange={(e) => setForm({ ...form, rua: e.target.value, endereco: e.target.value })} placeholder="Rua, Av., Alameda…" /></div>
+          <div><Label>Número</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} placeholder="123" /></div>
+          <div><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => setForm({ ...form, complemento: e.target.value })} placeholder="Apto, bloco…" /></div>
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label>Bairro</Label>
@@ -564,36 +603,9 @@ export function ImovelForm({ initial }: Props) {
               <SelectContent>{bairros.data?.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-        </div>
-      </div>
-
-      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Valores e medidas</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          <div><Label>Preço (R$)</Label><Input
-            inputMode="numeric"
-            value={form.preco != null ? new Intl.NumberFormat("pt-BR").format(form.preco) : ""}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, "");
-              setForm({ ...form, preco: digits ? Number(digits) : null });
-            }}
-            placeholder="R$ 0"
-          /></div>
-          <div className="flex items-center gap-2 pt-7"><Switch checked={form.preco_sob_consulta} onCheckedChange={(v) => setForm({ ...form, preco_sob_consulta: v })} /><Label>Sob consulta</Label></div>
-          <div></div>
-          <div><Label>Área útil (m²)</Label><Input type="number" value={form.area_util ?? ""} onChange={(e) => setForm({ ...form, area_util: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Área total (m²)</Label><Input type="number" value={form.area_total ?? ""} onChange={(e) => setForm({ ...form, area_total: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Quartos</Label><Input type="number" value={form.quartos ?? ""} onChange={(e) => setForm({ ...form, quartos: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Suítes</Label><Input type="number" value={form.suites ?? ""} onChange={(e) => setForm({ ...form, suites: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Banheiros</Label><Input type="number" value={form.banheiros ?? ""} onChange={(e) => setForm({ ...form, banheiros: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Vagas</Label><Input type="number" value={form.vagas ?? ""} onChange={(e) => setForm({ ...form, vagas: e.target.value ? Number(e.target.value) : null })} /></div>
-        </div>
-      </div>
-
-      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Localização e marcação</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></div>
+          <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} placeholder="00000-000" /></div>
+          <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} placeholder="Belo Horizonte" /></div>
+          <div><Label>Estado (UF)</Label><Input maxLength={2} value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })} placeholder="MG" /></div>
           <div><Label>Latitude</Label><Input type="number" step="any" value={form.latitude ?? ""} onChange={(e) => setForm({ ...form, latitude: e.target.value ? Number(e.target.value) : null })} /></div>
           <div><Label>Longitude</Label><Input type="number" step="any" value={form.longitude ?? ""} onChange={(e) => setForm({ ...form, longitude: e.target.value ? Number(e.target.value) : null })} /></div>
           <div className="md:col-span-2 flex flex-col gap-3 rounded border border-dashed border-foreground/15 p-3">

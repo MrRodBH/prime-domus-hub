@@ -201,6 +201,7 @@ export const obterImovel = createServerFn({ method: "GET" })
       .select(
         `id, codigo, titulo, slug, descricao, finalidade, tipo, status, preco, preco_sob_consulta,
          condominio, iptu, area_total, area_util, quartos, suites, banheiros, vagas, endereco,
+         rua, numero, complemento, cidade, estado, cep,
          badge, destaque, exclusivo, caracteristicas, imagem_capa, video_url, tour_url,
          latitude, longitude, mostrar_rua, mostrar_endereco_completo, publicado_em,
          bairro:bairros(id, nome, slug, cidade, estado),
