@@ -205,7 +205,7 @@ export const obterImovel = createServerFn({ method: "GET" })
          badge, destaque, exclusivo, caracteristicas, imagem_capa, video_url, tour_url,
          latitude, longitude, mostrar_rua, mostrar_endereco_completo, publicado_em,
          bairro:bairros(id, nome, slug, cidade:cidades(id, nome, slug, estado)),
-         corretor:corretores(id, nome, slug, creci, email, telefone, whatsapp, foto_url, bio),
+         corretor:corretores(id, nome, sobrenome, slug, creci, email, telefone, whatsapp, foto_url, bio),
          imagens:imovel_imagens(id, url, alt, ordem)`,
       )
       .eq("slug", data.slug)

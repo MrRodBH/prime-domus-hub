@@ -30,15 +30,7 @@ type Role = "admin" | "corretor" | "secretaria";
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", corretor: "Corretor", secretaria: "Secretaria" };
 const ALL_ROLES: Role[] = ["admin", "corretor", "secretaria"];
 
-function slugify(input: string): string {
-  return input
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+const SOBRENOME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,40}$/;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Corretor = any;
@@ -47,13 +39,12 @@ type Editing = Corretor & {
   email_login?: string;
   password?: string;
   roles?: Role[];
-  _slugTouched?: boolean;
 };
 
 function emptyEditing(): Editing {
   return {
     nome: "",
-    slug: "",
+    sobrenome: "",
     creci: "",
     email: "",
     telefone: "",
@@ -65,7 +56,6 @@ function emptyEditing(): Editing {
     email_login: "",
     password: "",
     roles: ["corretor"],
-    _slugTouched: false,
   };
 }
 
@@ -94,7 +84,7 @@ function AdminUsuarios() {
         data: {
           corretor_id: e.id,
           nome: e.nome,
-          slug: e.slug,
+          sobrenome: e.sobrenome || null,
           email: e.email_login!,
           password: e.password!,
           telefone: e.telefone,
@@ -107,6 +97,7 @@ function AdminUsuarios() {
         },
       }),
   });
+
 
   const atualizarPapeis = useMutation({
     mutationFn: (args: { user_id: string; roles: Role[] }) => adminAtualizarPapeis({ data: args }),
@@ -127,6 +118,9 @@ function AdminUsuarios() {
 
   async function salvar(e: Editing) {
     try {
+      if (e.sobrenome && !SOBRENOME_RE.test(e.sobrenome.trim())) {
+        throw new Error("Sobrenome inválido: use apenas letras e somente um sobrenome.");
+      }
       const isNew = !e.id;
       const wantsLogin = !!e.email_login;
       if (isNew && wantsLogin) {
@@ -138,16 +132,16 @@ function AdminUsuarios() {
             : "Usuário criado. (Não foi possível enviar o e-mail de senha — verifique a configuração de e-mail.)",
         );
       } else if (!isNew) {
-        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
-        void _e; void _p; void _r; void _st;
+        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
+        void _e; void _p; void _r;
         await salvarSemLogin.mutateAsync(rest);
         if (e.user_id && e.roles && e.roles.length > 0) {
           await atualizarPapeis.mutateAsync({ user_id: e.user_id, roles: e.roles });
         }
         toast.success("Salvo");
       } else {
-        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
-        void _e; void _p; void _r; void _st;
+        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
+        void _e; void _p; void _r;
         await salvarSemLogin.mutateAsync(rest);
         toast.success("Salvo");
       }
@@ -157,6 +151,7 @@ function AdminUsuarios() {
     } catch (err) {
       toast.error((err as Error).message);
     }
+
   }
 
   async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -225,23 +220,25 @@ function AdminUsuarios() {
                     <Input
                       required
                       value={editing.nome}
-                      onChange={(e) => {
-                        const nome = e.target.value;
-                        const next: Editing = { ...editing, nome };
-                        if (!editing._slugTouched) next.slug = slugify(nome);
-                        setEditing(next);
-                      }}
+                      onChange={(e) => setEditing({ ...editing, nome: e.target.value })}
                     />
                   </div>
                   <div>
-                    <Label>Slug *</Label>
+                    <Label>Sobrenome *</Label>
                     <Input
                       required
-                      value={editing.slug}
-                      onChange={(e) =>
-                        setEditing({ ...editing, slug: slugify(e.target.value), _slugTouched: true })
-                      }
+                      value={editing.sobrenome ?? ""}
+                      maxLength={40}
+                      onChange={(e) => {
+                        // permite apenas um sobrenome (sem espaços) e somente letras
+                        const v = e.target.value.replace(/\s+/g, "").replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'’-]/g, "");
+                        setEditing({ ...editing, sobrenome: v });
+                      }}
+                      placeholder="Apenas um sobrenome"
                     />
+                    {editing.sobrenome && !SOBRENOME_RE.test(editing.sobrenome) && (
+                      <p className="text-xs text-destructive mt-1">Apenas letras, 2 a 40 caracteres, um único sobrenome.</p>
+                    )}
                   </div>
                   <div>
                     <Label>CRECI</Label>
@@ -369,7 +366,7 @@ function AdminUsuarios() {
               const userRoles = c.user_id ? rolesByUser.get(c.user_id) ?? [] : [];
               return (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome}</TableCell>
+                  <TableCell className="font-medium">{[c.nome, c.sobrenome].filter(Boolean).join(" ")}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {userRoles.length === 0 ? (
