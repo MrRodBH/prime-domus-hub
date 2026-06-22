@@ -531,26 +531,27 @@ function CorretorCard({
   titulo,
 }: {
   corretor: {
-    nome?: string; creci?: string; foto_url?: string;
+    nome?: string; sobrenome?: string; creci?: string; foto_url?: string;
     whatsapp?: string; telefone?: string; email?: string; bio?: string;
   } | null;
   titulo: string;
 }) {
   if (!corretor?.nome) return null;
+  const nomeCompleto = [corretor.nome, corretor.sobrenome].filter(Boolean).join(" ");
   const whatsappMsg = encodeURIComponent(`Olá ${corretor.nome.split(" ")[0]}, tenho interesse no imóvel "${titulo}".`);
   return (
     <div className="bg-card border border-foreground/5 rounded p-6 shadow-soft">
       <span className="eyebrow">Consultor responsável</span>
       <div className="flex items-center gap-4 mt-4">
         {corretor.foto_url ? (
-          <img src={corretor.foto_url} alt={corretor.nome} className="size-14 rounded-full object-cover" />
+          <img src={corretor.foto_url} alt={nomeCompleto} className="size-14 rounded-full object-cover" />
         ) : (
           <div className="size-14 rounded-full bg-gold/15 text-gold flex items-center justify-center font-display text-xl">
             {corretor.nome.charAt(0)}
           </div>
         )}
         <div>
-          <p className="font-display text-xl leading-tight">{corretor.nome}</p>
+          <p className="font-display text-xl leading-tight">{nomeCompleto}</p>
           {corretor.creci && <p className="text-xs text-muted-foreground mt-0.5">{corretor.creci}</p>}
         </div>
       </div>
