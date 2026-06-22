@@ -1,25 +1,31 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { meusPapeis } from "@/lib/api/admin.functions";
 import logo from "@/assets/logo-rm-prime.png";
 import { Button } from "@/components/ui/button";
 
-const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean }> = [
+type Role = "admin" | "corretor" | "secretaria";
+
+const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[] }> = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
   { to: "/admin/blog", label: "Blog", icon: Newspaper },
-  { to: "/admin/corretores", label: "Corretores", icon: Users },
+  { to: "/admin/corretores", label: "Usuários", icon: Users },
   { to: "/admin/cidades", label: "Cidades", icon: MapPin },
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
-  { to: "/admin/leads", label: "Leads", icon: Inbox },
-  { to: "/admin/site", label: "Site & Branding", icon: Settings },
+  { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
+  { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor"] },
 ];
 
 export function AdminShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { data: papeis } = useQuery({ queryKey: ["meus-papeis"], queryFn: () => meusPapeis(), staleTime: 60_000 });
+  const roles = (papeis ?? ["admin"]) as Role[];
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -27,6 +33,11 @@ export function AdminShell() {
   }
 
   const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + "/"));
+  const visibleNav = nav.filter((n) => {
+    if (!n.hideFor) return true;
+    // hide only when ALL user roles are in hideFor (i.e., no allowed role)
+    return roles.some((r) => !n.hideFor!.includes(r));
+  });
 
   return (
     <div className="min-h-screen flex bg-secondary/30">
@@ -39,7 +50,7 @@ export function AdminShell() {
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {nav.map((item) => {
+          {visibleNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.to, item.exact);
             return (

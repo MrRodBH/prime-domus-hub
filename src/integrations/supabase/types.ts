@@ -340,6 +340,7 @@ export type Database = {
           condominio: number | null
           corretor_id: string | null
           created_at: string
+          created_by: string | null
           descricao: string | null
           destaque: boolean
           endereco: string | null
@@ -384,6 +385,7 @@ export type Database = {
           condominio?: number | null
           corretor_id?: string | null
           created_at?: string
+          created_by?: string | null
           descricao?: string | null
           destaque?: boolean
           endereco?: string | null
@@ -428,6 +430,7 @@ export type Database = {
           condominio?: number | null
           corretor_id?: string | null
           created_at?: string
+          created_by?: string | null
           descricao?: string | null
           destaque?: boolean
           endereco?: string | null
@@ -562,6 +565,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          assigned_to: string | null
           corretor_id: string | null
           created_at: string
           email: string | null
@@ -575,6 +579,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           corretor_id?: string | null
           created_at?: string
           email?: string | null
@@ -588,6 +593,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           corretor_id?: string | null
           created_at?: string
           email?: string | null
@@ -722,7 +728,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "corretor"
+      app_role: "admin" | "corretor" | "secretaria"
       blog_post_status: "rascunho" | "publicado"
       imovel_finalidade: "venda" | "aluguel" | "lancamento"
       imovel_status: "rascunho" | "ativo" | "vendido" | "reservado" | "inativo"
@@ -861,7 +867,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "corretor"],
+      app_role: ["admin", "corretor", "secretaria"],
       blog_post_status: ["rascunho", "publicado"],
       imovel_finalidade: ["venda", "aluguel", "lancamento"],
       imovel_status: ["rascunho", "ativo", "vendido", "reservado", "inativo"],
