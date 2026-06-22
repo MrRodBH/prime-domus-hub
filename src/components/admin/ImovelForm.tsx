@@ -555,39 +555,15 @@ export function ImovelForm({ initial }: Props) {
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <Label>Cidade *</Label>
-                        <Dialog open={novaCidadeOpen} onOpenChange={setNovaCidadeOpen}>
-                          <DialogTrigger asChild>
-                            <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
-                              <Plus className="size-3 mr-1" /> Nova cidade
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader><DialogTitle>Nova cidade</DialogTitle></DialogHeader>
-                            <div className="space-y-3">
-                              <div>
-                                <Label>Nome *</Label>
-                                <Input
-                                  value={novaCidade.nome}
-                                  onChange={(e) => {
-                                    const nome = e.target.value;
-                                    const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-                                    setNovaCidade({ ...novaCidade, nome, slug });
-                                  }}
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div><Label>Slug *</Label><Input value={novaCidade.slug} onChange={(e) => setNovaCidade({ ...novaCidade, slug: e.target.value })} /></div>
-                                <div><Label>UF</Label><Input maxLength={2} value={novaCidade.estado} onChange={(e) => setNovaCidade({ ...novaCidade, estado: e.target.value.toUpperCase() })} /></div>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <Button type="button" variant="outline" onClick={() => setNovaCidadeOpen(false)}>Cancelar</Button>
-                              <Button type="button" disabled={!novaCidade.nome || !novaCidade.slug || criarCidade.isPending} onClick={() => criarCidade.mutate()}>
-                                {criarCidade.isPending ? "Salvando…" : "Criar"}
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => setNovaCidadeOpen(true)}
+                        >
+                          <Plus className="size-3 mr-1" /> Nova cidade
+                        </Button>
                       </div>
                       <Select value={novoBairro.cidade_id ?? ""} onValueChange={(v) => setNovoBairro({ ...novoBairro, cidade_id: v || null })}>
                         <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
