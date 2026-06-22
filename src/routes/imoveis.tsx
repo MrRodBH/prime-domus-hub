@@ -5,12 +5,13 @@ import { Search, MapPin, BedDouble, Maximize2, Car, SlidersHorizontal, X } from 
 import { z } from "zod";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { listarImoveis, listarBairros } from "@/lib/api/catalogo.functions";
+import { listarImoveis, listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { imovelImage, formatPreco } from "@/lib/property-images";
 
 const searchSchema = z.object({
   finalidade: z.enum(["venda", "aluguel", "lancamento"]).optional(),
   tipo: z.string().optional(),
+  cidade: z.string().optional(),
   bairro: z.string().optional(),
   quartos_min: z.coerce.number().int().min(1).max(10).optional(),
   suites_min: z.coerce.number().int().min(1).max(10).optional(),
@@ -35,6 +36,11 @@ const bairrosQuery = queryOptions({
   queryFn: () => listarBairros(),
 });
 
+const cidadesQuery = queryOptions({
+  queryKey: ["cidades"],
+  queryFn: () => listarCidades(),
+});
+
 export const Route = createFileRoute("/imoveis")({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
@@ -52,6 +58,7 @@ export const Route = createFileRoute("/imoveis")({
     await Promise.all([
       context.queryClient.ensureQueryData(imoveisQuery(deps)),
       context.queryClient.ensureQueryData(bairrosQuery),
+      context.queryClient.ensureQueryData(cidadesQuery),
     ]);
   },
   errorComponent: ({ error }) => (
@@ -88,6 +95,17 @@ function Page() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: imoveis } = useSuspenseQuery(imoveisQuery(search));
   const { data: bairros } = useSuspenseQuery(bairrosQuery);
+  const { data: cidades } = useSuspenseQuery(cidadesQuery);
+
+  const bairrosFiltrados = (() => {
+    const lista = search.cidade
+      ? bairros.filter((b) => {
+          const c = (b as { cidade?: { slug?: string } | null }).cidade;
+          return c?.slug === search.cidade;
+        })
+      : bairros;
+    return [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  })();
   const [buscaLocal, setBuscaLocal] = useState(search.busca ?? "");
   const [precoMin, setPrecoMin] = useState(search.preco_min?.toString() ?? "");
   const [precoMax, setPrecoMax] = useState(search.preco_max?.toString() ?? "");
@@ -136,7 +154,7 @@ function Page() {
             </p>
 
             <form onSubmit={aplicar} className="mt-8 bg-card border border-foreground/5 rounded p-3 md:p-4 space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-2">
                 <div className="flex items-center gap-2 px-3 py-2 border border-foreground/10 rounded">
                   <Search className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   <input
@@ -166,12 +184,22 @@ function Page() {
                   {tipos.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
                 </select>
                 <select
+                  value={search.cidade ?? ""}
+                  onChange={(e) => update({ cidade: e.target.value || undefined, bairro: undefined })}
+                  className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
+                >
+                  <option value="">Cidade (todas)</option>
+                  {cidades.map((c) => (
+                    <option key={c.id} value={c.slug}>{c.nome}</option>
+                  ))}
+                </select>
+                <select
                   value={search.bairro ?? ""}
                   onChange={(e) => update({ bairro: e.target.value || undefined })}
                   className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
                 >
                   <option value="">Bairro (todos)</option>
-                  {bairros.map((b) => (
+                  {bairrosFiltrados.map((b) => (
                     <option key={b.id} value={b.slug}>{b.nome}</option>
                   ))}
                 </select>

@@ -10,6 +10,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
   { to: "/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/admin/corretores", label: "Corretores", icon: Users },
+  { to: "/admin/cidades", label: "Cidades", icon: MapPin },
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
   { to: "/admin/leads", label: "Leads", icon: Inbox },
   { to: "/admin/site", label: "Site & Branding", icon: Settings },

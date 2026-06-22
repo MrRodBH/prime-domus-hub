@@ -16,45 +16,47 @@ export type Database = {
     Tables: {
       bairros: {
         Row: {
-          cidade: string
+          cidade_id: string | null
           created_at: string
           descricao: string | null
           destaque: boolean
-          estado: string
           id: string
           imagem_url: string | null
           nome: string
-          ordem: number
           slug: string
           updated_at: string
         }
         Insert: {
-          cidade?: string
+          cidade_id?: string | null
           created_at?: string
           descricao?: string | null
           destaque?: boolean
-          estado?: string
           id?: string
           imagem_url?: string | null
           nome: string
-          ordem?: number
           slug: string
           updated_at?: string
         }
         Update: {
-          cidade?: string
+          cidade_id?: string | null
           created_at?: string
           descricao?: string | null
           destaque?: boolean
-          estado?: string
           id?: string
           imagem_url?: string | null
           nome?: string
-          ordem?: number
           slug?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bairros_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       blog_categorias: {
         Row: {
@@ -154,6 +156,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cidades: {
+        Row: {
+          created_at: string
+          estado: string
+          id: string
+          nome: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estado?: string
+          id?: string
+          nome: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          id?: string
+          nome?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       corretores: {
         Row: {

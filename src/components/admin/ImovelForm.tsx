@@ -14,13 +14,14 @@ import {
   adminRemoverImagem,
   adminAssinarUrl,
   adminSalvarBairro,
+  adminSalvarCidade,
   adminReordenarImagens,
   adminDefinirCapa,
 } from "@/lib/api/admin.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
-import { listarBairros } from "@/lib/api/catalogo.functions";
+import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Upload, Sparkles, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
@@ -46,6 +47,7 @@ export function ImovelForm({ initial }: Props) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const bairros = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
+  const cidades = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
   const [form, setForm] = useState({
     id: initial?.id,
     codigo: initial?.codigo ?? "",
@@ -85,17 +87,32 @@ export function ImovelForm({ initial }: Props) {
   const [uploading, setUploading] = useState(false);
   const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
   const [novoBairroOpen, setNovoBairroOpen] = useState(false);
-  const [novoBairro, setNovoBairro] = useState({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+  const [novoBairro, setNovoBairro] = useState<{ nome: string; slug: string; cidade_id: string | null }>({ nome: "", slug: "", cidade_id: null });
+  const [novaCidadeOpen, setNovaCidadeOpen] = useState(false);
+  const [novaCidade, setNovaCidade] = useState({ nome: "", slug: "", estado: "MG" });
 
   const criarBairro = useMutation({
-    mutationFn: () => adminSalvarBairro({ data: { ...novoBairro, destaque: false, ordem: 0 } }),
+    mutationFn: () => adminSalvarBairro({ data: { ...novoBairro, destaque: false } }),
     onSuccess: async () => {
       toast.success("Bairro criado");
       const r = await qc.fetchQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
       const created = r?.find((b) => b.slug === novoBairro.slug);
       if (created) setForm((f) => ({ ...f, bairro_id: created.id }));
       setNovoBairroOpen(false);
-      setNovoBairro({ nome: "", slug: "", cidade: "Belo Horizonte", estado: "MG" });
+      setNovoBairro({ nome: "", slug: "", cidade_id: null });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const criarCidade = useMutation({
+    mutationFn: () => adminSalvarCidade({ data: novaCidade }),
+    onSuccess: async () => {
+      toast.success("Cidade criada");
+      const r = await qc.fetchQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
+      const created = r?.find((c) => c.slug === novaCidade.slug);
+      if (created) setNovoBairro((b) => ({ ...b, cidade_id: created.id }));
+      setNovaCidadeOpen(false);
+      setNovaCidade({ nome: "", slug: "", estado: "MG" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -490,14 +507,52 @@ export function ImovelForm({ initial }: Props) {
                       />
                     </div>
                     <div><Label>Slug *</Label><Input value={novoBairro.slug} onChange={(e) => setNovoBairro({ ...novoBairro, slug: e.target.value })} /></div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><Label>Cidade</Label><Input value={novoBairro.cidade} onChange={(e) => setNovoBairro({ ...novoBairro, cidade: e.target.value })} /></div>
-                      <div><Label>Estado</Label><Input value={novoBairro.estado} onChange={(e) => setNovoBairro({ ...novoBairro, estado: e.target.value })} /></div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <Label>Cidade *</Label>
+                        <Dialog open={novaCidadeOpen} onOpenChange={setNovaCidadeOpen}>
+                          <DialogTrigger asChild>
+                            <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
+                              <Plus className="size-3 mr-1" /> Nova cidade
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader><DialogTitle>Nova cidade</DialogTitle></DialogHeader>
+                            <div className="space-y-3">
+                              <div>
+                                <Label>Nome *</Label>
+                                <Input
+                                  value={novaCidade.nome}
+                                  onChange={(e) => {
+                                    const nome = e.target.value;
+                                    const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                                    setNovaCidade({ ...novaCidade, nome, slug });
+                                  }}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div><Label>Slug *</Label><Input value={novaCidade.slug} onChange={(e) => setNovaCidade({ ...novaCidade, slug: e.target.value })} /></div>
+                                <div><Label>UF</Label><Input maxLength={2} value={novaCidade.estado} onChange={(e) => setNovaCidade({ ...novaCidade, estado: e.target.value.toUpperCase() })} /></div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button type="button" variant="outline" onClick={() => setNovaCidadeOpen(false)}>Cancelar</Button>
+                              <Button type="button" disabled={!novaCidade.nome || !novaCidade.slug || criarCidade.isPending} onClick={() => criarCidade.mutate()}>
+                                {criarCidade.isPending ? "Salvando…" : "Criar"}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      <Select value={novoBairro.cidade_id ?? ""} onValueChange={(v) => setNovoBairro({ ...novoBairro, cidade_id: v || null })}>
+                        <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                        <SelectContent>{cidades.data?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}/{c.estado}</SelectItem>)}</SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setNovoBairroOpen(false)}>Cancelar</Button>
-                    <Button type="button" disabled={!novoBairro.nome || !novoBairro.slug || criarBairro.isPending} onClick={() => criarBairro.mutate()}>
+                    <Button type="button" disabled={!novoBairro.nome || !novoBairro.slug || !novoBairro.cidade_id || criarBairro.isPending} onClick={() => criarBairro.mutate()}>
                       {criarBairro.isPending ? "Salvando…" : "Criar"}
                     </Button>
                   </DialogFooter>
