@@ -333,13 +333,17 @@ export type Database = {
           bairro_id: string | null
           banheiros: number | null
           caracteristicas: string[] | null
+          cep: string | null
+          cidade: string | null
           codigo: string | null
+          complemento: string | null
           condominio: number | null
           corretor_id: string | null
           created_at: string
           descricao: string | null
           destaque: boolean
           endereco: string | null
+          estado: string | null
           exclusivo: boolean
           finalidade: Database["public"]["Enums"]["imovel_finalidade"]
           id: string
@@ -349,10 +353,12 @@ export type Database = {
           longitude: number | null
           mostrar_endereco_completo: boolean
           mostrar_rua: boolean
+          numero: string | null
           preco: number | null
           preco_sob_consulta: boolean
           publicado_em: string | null
           quartos: number | null
+          rua: string | null
           slug: string
           status: Database["public"]["Enums"]["imovel_status"]
           suites: number | null
@@ -371,13 +377,17 @@ export type Database = {
           bairro_id?: string | null
           banheiros?: number | null
           caracteristicas?: string[] | null
+          cep?: string | null
+          cidade?: string | null
           codigo?: string | null
+          complemento?: string | null
           condominio?: number | null
           corretor_id?: string | null
           created_at?: string
           descricao?: string | null
           destaque?: boolean
           endereco?: string | null
+          estado?: string | null
           exclusivo?: boolean
           finalidade?: Database["public"]["Enums"]["imovel_finalidade"]
           id?: string
@@ -387,10 +397,12 @@ export type Database = {
           longitude?: number | null
           mostrar_endereco_completo?: boolean
           mostrar_rua?: boolean
+          numero?: string | null
           preco?: number | null
           preco_sob_consulta?: boolean
           publicado_em?: string | null
           quartos?: number | null
+          rua?: string | null
           slug: string
           status?: Database["public"]["Enums"]["imovel_status"]
           suites?: number | null
@@ -409,13 +421,17 @@ export type Database = {
           bairro_id?: string | null
           banheiros?: number | null
           caracteristicas?: string[] | null
+          cep?: string | null
+          cidade?: string | null
           codigo?: string | null
+          complemento?: string | null
           condominio?: number | null
           corretor_id?: string | null
           created_at?: string
           descricao?: string | null
           destaque?: boolean
           endereco?: string | null
+          estado?: string | null
           exclusivo?: boolean
           finalidade?: Database["public"]["Enums"]["imovel_finalidade"]
           id?: string
@@ -425,10 +441,12 @@ export type Database = {
           longitude?: number | null
           mostrar_endereco_completo?: boolean
           mostrar_rua?: boolean
+          numero?: string | null
           preco?: number | null
           preco_sob_consulta?: boolean
           publicado_em?: string | null
           quartos?: number | null
+          rua?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["imovel_status"]
           suites?: number | null
