@@ -12,8 +12,9 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2 } from "lucide-react";
 import { adminListarLeads, adminAtualizarLead } from "@/lib/api/admin.functions";
+import { gerarInsightsFunil } from "@/lib/api/ia.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
@@ -127,10 +128,125 @@ function AdminLeads() {
 
       </DndContext>
 
+      <FunilChart byStatus={byStatus} />
+
       <LeadDetailDialog
         lead={(data as Lead[] | undefined)?.find((l) => l.id === selectedId) ?? null}
         onClose={() => setSelectedId(null)}
       />
+    </div>
+  );
+}
+
+const FUNIL_STAGES: { ids: Status[]; label: string; color: string }[] = [
+  { ids: ["novo"], label: "Novo", color: "#dc2626" },
+  { ids: ["conversando"], label: "Conversando", color: "#f59e0b" },
+  { ids: ["visita"], label: "Visita", color: "#84cc16" },
+  { ids: ["proposta"], label: "Proposta", color: "#10b981" },
+];
+
+function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
+  const stages = FUNIL_STAGES.map((s) => ({
+    label: s.label,
+    color: s.color,
+    total: s.ids.reduce((sum, id) => sum + (byStatus[id]?.length ?? 0), 0),
+  }));
+
+  const [insight, setInsight] = useState<string | null>(null);
+  const [loadingInsight, setLoadingInsight] = useState(false);
+  const [errInsight, setErrInsight] = useState<string | null>(null);
+
+  async function carregarInsight() {
+    setLoadingInsight(true);
+    setErrInsight(null);
+    try {
+      const res = await gerarInsightsFunil({
+        data: { etapas: stages.map((s, i) => ({ id: String(i), label: s.label, total: s.total })) },
+      });
+      setInsight(res.insight);
+    } catch (e) {
+      setErrInsight(e instanceof Error ? e.message : "Erro ao gerar insight");
+    } finally {
+      setLoadingInsight(false);
+    }
+  }
+
+  // Geometry: inverted pyramid (trapezoids decreasing width)
+  const W = 720;
+  const H = 360;
+  const stageH = H / stages.length;
+  const minW = 120;
+
+  return (
+    <div className="rounded-xl border border-foreground/10 bg-gradient-to-br from-card to-muted/30 p-6">
+      <div className="flex items-baseline justify-between mb-4">
+        <h2 className="font-display text-xl">Funil de Vendas</h2>
+        <span className="text-xs text-muted-foreground">
+          {stages.reduce((s, x) => s + x.total, 0)} leads ativos no funil
+        </span>
+      </div>
+
+      <div className="flex justify-center">
+        <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full max-w-3xl h-auto">
+          <defs>
+            {stages.map((s, i) => (
+              <linearGradient key={i} id={`grad-${i}`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor={s.color} stopOpacity="0.95" />
+                <stop offset="100%" stopColor={s.color} stopOpacity="0.7" />
+              </linearGradient>
+            ))}
+            <filter id="funil-shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="3" stdDeviation="4" floodOpacity="0.18" />
+            </filter>
+          </defs>
+          {stages.map((s, i) => {
+            const topW = W - (i * (W - minW)) / stages.length;
+            const botW = W - ((i + 1) * (W - minW)) / stages.length;
+            const y1 = i * stageH;
+            const y2 = (i + 1) * stageH - 6;
+            const x1L = (W - topW) / 2;
+            const x1R = x1L + topW;
+            const x2L = (W - botW) / 2;
+            const x2R = x2L + botW;
+            const cy = (y1 + y2) / 2;
+            return (
+              <g key={i} filter="url(#funil-shadow)">
+                <polygon
+                  points={`${x1L},${y1} ${x1R},${y1} ${x2R},${y2} ${x2L},${y2}`}
+                  fill={`url(#grad-${i})`}
+                />
+                <text x={W / 2} y={cy - 4} textAnchor="middle" fill="white" fontWeight="700" fontSize="18" style={{ letterSpacing: "0.02em" }}>
+                  {s.label}
+                </text>
+                <text x={W / 2} y={cy + 18} textAnchor="middle" fill="white" fontSize="14" opacity="0.95">
+                  {s.total} {s.total === 1 ? "lead" : "leads"}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-foreground/10 bg-background/60 p-4">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Insights de IA</span>
+          </div>
+          <Button size="sm" variant="outline" onClick={carregarInsight} disabled={loadingInsight}>
+            {loadingInsight ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Analisando…</> : insight ? "Atualizar análise" : "Gerar análise"}
+          </Button>
+        </div>
+        {errInsight && <p className="text-sm text-destructive">{errInsight}</p>}
+        {!errInsight && insight && (
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{insight}</p>
+        )}
+        {!errInsight && !insight && !loadingInsight && (
+          <p className="text-sm text-muted-foreground">
+            Gere uma análise do momento atual do funil com base nos leads em cada etapa.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -148,16 +264,16 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg border bg-card flex flex-col min-h-[400px] transition-colors ${
+      className={`rounded-lg border bg-card flex flex-col h-[460px] transition-colors ${
         isOver ? "border-primary/60 bg-primary/5" : "border-foreground/5"
       }`}
     >
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-foreground/5">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-foreground/5 shrink-0">
         <span className={`h-2 w-2 rounded-full ${col.accent}`} />
         <span className="text-sm font-medium">{col.label}</span>
         <span className="ml-auto text-xs text-muted-foreground">{leads.length}</span>
       </div>
-      <div className="flex-1 p-2 space-y-2">
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto">
         {leads.map((l) => <DraggableCard key={l.id} lead={l} onOpen={onOpen} />)}
         {leads.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-6">Vazio</div>
