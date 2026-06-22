@@ -137,12 +137,13 @@ export const adminSalvarImovel = createServerFn({ method: "POST" })
   .inputValidator(imovelSchema)
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    const payload = { ...data, publicado_em: data.status === "ativo" ? new Date().toISOString() : null };
+    const basePayload = { ...data, publicado_em: data.status === "ativo" ? new Date().toISOString() : null };
     if (data.id) {
-      const { error } = await context.supabase.from("imoveis").update(payload as never).eq("id", data.id);
+      const { error } = await context.supabase.from("imoveis").update(basePayload as never).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     } else {
+      const payload = { ...basePayload, created_by: context.userId };
       const { data: inserted, error } = await context.supabase
         .from("imoveis")
         .insert(payload as never)
