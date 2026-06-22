@@ -392,31 +392,42 @@ function Funnel3D({
   );
 }
 
-function Bar3D({ height, color }: { height: number; color: string }) {
-  const W = 70;
-  const depth = 10;
+function ResultadosBars({
+  resultados,
+  totalResultados,
+}: {
+  resultados: { label: string; color: string; total: number }[];
+  totalResultados: number;
+}) {
+  const maxR = Math.max(...resultados.map((x) => x.total), 1);
+  const H = 180;
   return (
-    <svg width={W + depth} height={height + depth} className="overflow-visible">
-      <defs>
-        <linearGradient id={`bar-${color}`} x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stopColor={shade(color, -0.2)} />
-          <stop offset="50%" stopColor={color} />
-          <stop offset="100%" stopColor={shade(color, -0.3)} />
-        </linearGradient>
-      </defs>
-      {/* Side face */}
-      <polygon
-        points={`${W},0 ${W + depth},${-depth + depth} ${W + depth},${height} ${W},${height}`}
-        fill={shade(color, -0.4)}
-      />
-      {/* Top face */}
-      <polygon
-        points={`0,0 ${W},0 ${W + depth},${0} ${depth},${0}`}
-        fill={shade(color, 0.15)}
-      />
-      {/* Front face */}
-      <rect x={0} y={0} width={W} height={height} fill={`url(#bar-${color})`} rx={2} />
-    </svg>
+    <div className="flex items-end justify-around gap-6 h-[210px] px-2">
+      {resultados.map((r) => {
+        const pct = totalResultados > 0 ? Math.round((r.total / totalResultados) * 100) : 0;
+        const h = Math.max((r.total / maxR) * H, 6);
+        return (
+          <div key={r.label} className="flex flex-col items-center gap-2 flex-1 max-w-[90px]">
+            <span className="text-xs font-semibold text-foreground tabular-nums">
+              {r.total} — {pct}%
+            </span>
+            <div
+              className="relative w-full rounded-t-md shadow-md transition-[height] duration-700 ease-out"
+              style={{
+                height: `${h}px`,
+                background: `linear-gradient(180deg, ${shade(r.color, 0.2)} 0%, ${r.color} 55%, ${shade(r.color, -0.25)} 100%)`,
+              }}
+            >
+              <div
+                className="absolute inset-x-0 top-0 h-1.5 rounded-t-md"
+                style={{ background: shade(r.color, 0.35), opacity: 0.7 }}
+              />
+            </div>
+            <span className="text-sm font-medium text-foreground">{r.label}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
