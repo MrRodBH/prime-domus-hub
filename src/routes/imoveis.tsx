@@ -5,12 +5,13 @@ import { Search, MapPin, BedDouble, Maximize2, Car, SlidersHorizontal, X } from 
 import { z } from "zod";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { listarImoveis, listarBairros } from "@/lib/api/catalogo.functions";
+import { listarImoveis, listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { imovelImage, formatPreco } from "@/lib/property-images";
 
 const searchSchema = z.object({
   finalidade: z.enum(["venda", "aluguel", "lancamento"]).optional(),
   tipo: z.string().optional(),
+  cidade: z.string().optional(),
   bairro: z.string().optional(),
   quartos_min: z.coerce.number().int().min(1).max(10).optional(),
   suites_min: z.coerce.number().int().min(1).max(10).optional(),
@@ -33,6 +34,11 @@ const imoveisQuery = (f: Filtros) =>
 const bairrosQuery = queryOptions({
   queryKey: ["bairros"],
   queryFn: () => listarBairros(),
+});
+
+const cidadesQuery = queryOptions({
+  queryKey: ["cidades"],
+  queryFn: () => listarCidades(),
 });
 
 export const Route = createFileRoute("/imoveis")({
