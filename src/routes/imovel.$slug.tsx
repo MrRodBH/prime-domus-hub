@@ -166,9 +166,36 @@ function Page() {
             <h1 className="font-display text-4xl md:text-5xl leading-[1.05] text-balance mb-4">
               {imovel.titulo}
             </h1>
-            <p className="text-2xl md:text-3xl font-medium text-gold mb-8">
+            <p className="text-2xl md:text-3xl font-medium text-gold mb-3">
               {formatPreco(Number(imovel.preco), imovel.preco_sob_consulta)}
             </p>
+            {(() => {
+              const im = imovel as {
+                rua?: string | null; numero?: string | null; complemento?: string | null;
+                endereco?: string | null; cidade?: string | null; estado?: string | null;
+                cep?: string | null; mostrar_rua?: boolean; mostrar_endereco_completo?: boolean;
+              };
+              const rua = (im.rua || im.endereco || "").trim();
+              let texto: string | null = null;
+              if (im.mostrar_endereco_completo) {
+                texto = [
+                  [rua, im.numero].filter(Boolean).join(", "),
+                  im.complemento,
+                  bairro?.nome,
+                  [im.cidade, im.estado].filter(Boolean).join(" - "),
+                  im.cep,
+                ].filter(Boolean).join(" • ");
+              } else if (im.mostrar_rua && rua) {
+                texto = [rua, bairro?.nome, im.cidade].filter(Boolean).join(", ");
+              }
+              if (!texto) return <div className="mb-8" />;
+              return (
+                <p className="text-sm text-muted-foreground flex items-start gap-1.5 mb-8">
+                  <MapPin className="size-3.5 mt-0.5 shrink-0" strokeWidth={1.5} />
+                  <span>{texto}</span>
+                </p>
+              );
+            })()}
 
             {/* Specs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-foreground/10">
