@@ -128,6 +128,9 @@ function AdminUsuarios() {
 
   async function salvar(e: Editing) {
     try {
+      if (e.sobrenome && !SOBRENOME_RE.test(e.sobrenome.trim())) {
+        throw new Error("Sobrenome inválido: use apenas letras e somente um sobrenome.");
+      }
       const isNew = !e.id;
       const wantsLogin = !!e.email_login;
       if (isNew && wantsLogin) {
@@ -139,16 +142,16 @@ function AdminUsuarios() {
             : "Usuário criado. (Não foi possível enviar o e-mail de senha — verifique a configuração de e-mail.)",
         );
       } else if (!isNew) {
-        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
-        void _e; void _p; void _r; void _st;
+        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
+        void _e; void _p; void _r;
         await salvarSemLogin.mutateAsync(rest);
         if (e.user_id && e.roles && e.roles.length > 0) {
           await atualizarPapeis.mutateAsync({ user_id: e.user_id, roles: e.roles });
         }
         toast.success("Salvo");
       } else {
-        const { email_login: _e, password: _p, roles: _r, _slugTouched: _st, ...rest } = e;
-        void _e; void _p; void _r; void _st;
+        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
+        void _e; void _p; void _r;
         await salvarSemLogin.mutateAsync(rest);
         toast.success("Salvo");
       }
@@ -158,6 +161,7 @@ function AdminUsuarios() {
     } catch (err) {
       toast.error((err as Error).message);
     }
+
   }
 
   async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
