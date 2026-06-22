@@ -338,10 +338,15 @@ function AdminUsuarios() {
                   <Textarea value={editing.bio ?? ""} onChange={(e) => setEditing({ ...editing, bio: e.target.value })} />
                 </div>
 
-                <Button type="submit" disabled={isPending}>
-                  {isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
-                  Salvar
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isPending}>
+                    {isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
+                    Salvar
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+                    Cancelar
+                  </Button>
+                </div>
               </form>
             )}
           </DialogContent>
