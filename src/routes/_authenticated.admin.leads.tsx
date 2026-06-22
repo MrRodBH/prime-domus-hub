@@ -13,18 +13,6 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp } from "lucide-react";
-import {
-  FunnelChart,
-  Funnel,
-  LabelList,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Cell,
-  Tooltip,
-} from "recharts";
 import { adminListarLeads, adminAtualizarLead } from "@/lib/api/admin.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -225,38 +213,11 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-        {/* Funil */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        {/* Funil 3D */}
         <div className="flex flex-col">
-          <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <FunnelChart>
-                <Tooltip
-                  cursor={false}
-                  contentStyle={{
-                    background: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(_v: number, _n: string, p: { payload?: { name: string } }) => [
-                    p.payload?.name ?? "",
-                    "",
-                  ]}
-                />
-                <Funnel dataKey="value" data={funnelData} isAnimationActive>
-                  <LabelList
-                    position="center"
-                    fill="#fff"
-                    stroke="none"
-                    dataKey="name"
-                    style={{ fontSize: 13, fontWeight: 600 }}
-                  />
-                </Funnel>
-              </FunnelChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-2 flex items-center gap-2 text-sm">
+          <Funnel3D stages={stages} totalFunil={totalFunil} />
+          <div className="mt-3 flex items-center gap-2 text-sm">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Total de leads no funil
             </span>
@@ -264,53 +225,28 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
           </div>
         </div>
 
-        {/* Resultados */}
+        {/* Resultados 3D */}
         <div className="flex flex-col border-l-0 lg:border-l border-foreground/10 lg:pl-5">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
             Resultados
           </span>
-          <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={false}
-                  tickLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  cursor={{ fill: "hsl(var(--muted) / 0.4)" }}
-                  contentStyle={{
-                    background: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {barData.map((d, i) => (
-                    <Cell key={i} fill={d.fill} />
-                  ))}
-                  <LabelList
-                    dataKey="value"
-                    position="top"
-                    formatter={(v: number) => {
-                      const item = barData.find((b) => b.value === v);
-                      return item ? `${v} — ${item.pct}%` : `${v}`;
-                    }}
-                    style={{ fontSize: 11, fontWeight: 600, fill: "hsl(var(--foreground))" }}
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex items-end justify-around gap-4 h-[220px]">
+            {resultados.map((r) => {
+              const pct = totalResultados > 0 ? Math.round((r.total / totalResultados) * 100) : 0;
+              const maxR = Math.max(...resultados.map((x) => x.total), 1);
+              const h = Math.max((r.total / maxR) * 170, 8);
+              return (
+                <div key={r.label} className="flex flex-col items-center gap-2 flex-1">
+                  <span className="text-xs font-semibold text-foreground">
+                    {r.total} — {pct}%
+                  </span>
+                  <Bar3D height={h} color={r.color} />
+                  <span className="text-sm font-medium text-foreground">{r.label}</span>
+                </div>
+              );
+            })}
           </div>
-          <div className="mt-1 flex items-center gap-2 text-sm">
+          <div className="mt-3 flex items-center gap-2 text-sm">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Total fechados
             </span>
@@ -353,6 +289,150 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
     </div>
   );
 }
+
+function hexToRgb(hex: string) {
+  const h = hex.replace("#", "");
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+function shade(hex: string, amt: number) {
+  const { r, g, b } = hexToRgb(hex);
+  const m = (v: number) =>
+    Math.max(0, Math.min(255, Math.round(v + (amt > 0 ? (255 - v) * amt : v * amt))));
+  return `rgb(${m(r)}, ${m(g)}, ${m(b)})`;
+}
+
+function Funnel3D({
+  stages,
+  totalFunil,
+}: {
+  stages: { label: string; color: string; total: number }[];
+  totalFunil: number;
+}) {
+  const W = 560;
+  const H = 320;
+  const ellipseRy = 14; // depth perspective
+  const stageH = (H - ellipseRy * 2) / stages.length;
+  const topW = W - 20;
+  const bottomW = 80;
+
+  const widthAt = (i: number) => topW - (topW - bottomW) * (i / stages.length);
+
+  return (
+    <div className="w-full overflow-hidden">
+      <svg
+        viewBox={`0 0 ${W} ${H + 20}`}
+        className="w-full h-auto"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <defs>
+          {stages.map((s, i) => (
+            <linearGradient key={i} id={`fg-${i}`} x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stopColor={shade(s.color, -0.25)} />
+              <stop offset="50%" stopColor={s.color} />
+              <stop offset="100%" stopColor={shade(s.color, -0.35)} />
+            </linearGradient>
+          ))}
+        </defs>
+
+        {stages.map((s, i) => {
+          const wTop = widthAt(i);
+          const wBot = widthAt(i + 1);
+          const y = ellipseRy + i * stageH;
+          const cx = W / 2;
+          const pct = totalFunil > 0 ? Math.round((s.total / totalFunil) * 100) : 0;
+
+          // Trapezoid path + front ellipse for 3D depth
+          const xTopL = cx - wTop / 2;
+          const xTopR = cx + wTop / 2;
+          const xBotL = cx - wBot / 2;
+          const xBotR = cx + wBot / 2;
+
+          return (
+            <g key={i}>
+              {/* Top ellipse rim (back) */}
+              {i === 0 && (
+                <ellipse
+                  cx={cx}
+                  cy={y}
+                  rx={wTop / 2}
+                  ry={ellipseRy}
+                  fill={shade(s.color, -0.45)}
+                />
+              )}
+              {/* Body trapezoid */}
+              <path
+                d={`M ${xTopL} ${y} L ${xTopR} ${y} L ${xBotR} ${y + stageH} L ${xBotL} ${y + stageH} Z`}
+                fill={`url(#fg-${i})`}
+                stroke="rgba(255,255,255,0.15)"
+                strokeWidth={1}
+              />
+              {/* Front ellipse (bottom rim — gives depth) */}
+              <ellipse
+                cx={cx}
+                cy={y + stageH}
+                rx={wBot / 2}
+                ry={ellipseRy * (wBot / wTop)}
+                fill={shade(s.color, -0.3)}
+              />
+              {/* Label */}
+              <text
+                x={cx}
+                y={y + stageH / 2 - 4}
+                textAnchor="middle"
+                fill="#fff"
+                style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.3 }}
+              >
+                {s.label}
+              </text>
+              <text
+                x={cx}
+                y={y + stageH / 2 + 12}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.95)"
+                style={{ fontSize: 12, fontWeight: 600 }}
+              >
+                {s.total} — {pct}%
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function Bar3D({ height, color }: { height: number; color: string }) {
+  const W = 70;
+  const depth = 10;
+  return (
+    <svg width={W + depth} height={height + depth} className="overflow-visible">
+      <defs>
+        <linearGradient id={`bar-${color}`} x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stopColor={shade(color, -0.2)} />
+          <stop offset="50%" stopColor={color} />
+          <stop offset="100%" stopColor={shade(color, -0.3)} />
+        </linearGradient>
+      </defs>
+      {/* Side face */}
+      <polygon
+        points={`${W},0 ${W + depth},${-depth + depth} ${W + depth},${height} ${W},${height}`}
+        fill={shade(color, -0.4)}
+      />
+      {/* Top face */}
+      <polygon
+        points={`0,0 ${W},0 ${W + depth},${0} ${depth},${0}`}
+        fill={shade(color, 0.15)}
+      />
+      {/* Front face */}
+      <rect x={0} y={0} width={W} height={height} fill={`url(#bar-${color})`} rx={2} />
+    </svg>
+  );
+}
+
 
 function Column({
   col,
