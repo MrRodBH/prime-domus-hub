@@ -40,6 +40,8 @@ function slugify(input: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+const SOBRENOME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,40}$/;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Corretor = any;
 
@@ -47,13 +49,12 @@ type Editing = Corretor & {
   email_login?: string;
   password?: string;
   roles?: Role[];
-  _slugTouched?: boolean;
 };
 
 function emptyEditing(): Editing {
   return {
     nome: "",
-    slug: "",
+    sobrenome: "",
     creci: "",
     email: "",
     telefone: "",
@@ -65,7 +66,6 @@ function emptyEditing(): Editing {
     email_login: "",
     password: "",
     roles: ["corretor"],
-    _slugTouched: false,
   };
 }
 
@@ -94,7 +94,7 @@ function AdminUsuarios() {
         data: {
           corretor_id: e.id,
           nome: e.nome,
-          slug: e.slug,
+          sobrenome: e.sobrenome || null,
           email: e.email_login!,
           password: e.password!,
           telefone: e.telefone,
@@ -107,6 +107,7 @@ function AdminUsuarios() {
         },
       }),
   });
+
 
   const atualizarPapeis = useMutation({
     mutationFn: (args: { user_id: string; roles: Role[] }) => adminAtualizarPapeis({ data: args }),
