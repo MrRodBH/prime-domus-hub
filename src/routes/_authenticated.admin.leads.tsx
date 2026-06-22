@@ -176,13 +176,14 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
   const H = 360;
   const stageH = H / stages.length;
   const minW = 120;
+  const totalLeads = stages.reduce((s, x) => s + x.total, 0);
 
   return (
     <div className="rounded-xl border border-foreground/10 bg-gradient-to-br from-card to-muted/30 p-6">
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="font-display text-xl">Funil de Vendas</h2>
         <span className="text-xs text-muted-foreground">
-          {stages.reduce((s, x) => s + x.total, 0)} leads ativos no funil
+          {totalLeads} leads ativos no funil
         </span>
       </div>
 
@@ -199,6 +200,48 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
               <feDropShadow dx="0" dy="3" stdDeviation="4" floodOpacity="0.18" />
             </filter>
           </defs>
+
+          {(() => {
+            const boxW = 160;
+            const boxH = 72;
+            const boxX = 8;
+            const boxY = H - boxH - 6;
+            return (
+              <g>
+                <rect
+                  x={boxX}
+                  y={boxY}
+                  width={boxW}
+                  height={boxH}
+                  rx="10"
+                  fill="hsl(var(--background))"
+                  stroke="hsl(var(--foreground) / 0.15)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={boxX + boxW / 2}
+                  y={boxY + 26}
+                  textAnchor="middle"
+                  fill="hsl(var(--muted-foreground))"
+                  fontSize="11"
+                  style={{ letterSpacing: "0.08em" }}
+                >
+                  TOTAL DE LEADS
+                </text>
+                <text
+                  x={boxX + boxW / 2}
+                  y={boxY + 54}
+                  textAnchor="middle"
+                  fill="hsl(var(--foreground))"
+                  fontSize="26"
+                  fontWeight="700"
+                >
+                  {totalLeads}
+                </text>
+              </g>
+            );
+          })()}
+
           {stages.map((s, i) => {
             const topW = W - (i * (W - minW)) / stages.length;
             const botW = W - ((i + 1) * (W - minW)) / stages.length;
@@ -209,6 +252,7 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
             const x2L = (W - botW) / 2;
             const x2R = x2L + botW;
             const cy = (y1 + y2) / 2;
+            const pct = totalLeads > 0 ? Math.round((s.total / totalLeads) * 100) : 0;
             return (
               <g key={i} filter="url(#funil-shadow)">
                 <polygon
@@ -219,7 +263,7 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
                   {s.label}
                 </text>
                 <text x={W / 2} y={cy + 18} textAnchor="middle" fill="white" fontSize="14" opacity="0.95">
-                  {s.total} {s.total === 1 ? "lead" : "leads"}
+                  {s.total} {s.total === 1 ? "lead" : "leads"} — {pct}%
                 </text>
               </g>
             );
