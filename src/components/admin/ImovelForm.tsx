@@ -116,7 +116,13 @@ export function ImovelForm({ initial }: Props) {
       toast.success("Cidade criada");
       const r = await qc.fetchQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
       const created = r?.find((c) => c.slug === novaCidade.slug);
-      if (created) setNovoBairro((b) => ({ ...b, cidade_id: created.id }));
+      if (created) {
+        if (novoBairroOpen) {
+          setNovoBairro((b) => ({ ...b, cidade_id: created.id }));
+        } else {
+          setForm((f) => ({ ...f, cidade: created.nome, estado: created.estado ?? f.estado }));
+        }
+      }
       setNovaCidadeOpen(false);
       setNovaCidade({ nome: "", slug: "", estado: "MG" });
     },
