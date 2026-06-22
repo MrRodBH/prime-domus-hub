@@ -17,6 +17,7 @@ import {
   adminSalvarCidade,
   adminReordenarImagens,
   adminDefinirCapa,
+  adminListarCorretores,
 } from "@/lib/api/admin.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
@@ -48,6 +49,7 @@ export function ImovelForm({ initial }: Props) {
   const qc = useQueryClient();
   const bairros = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
   const cidades = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
+  const captadores = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
   const [form, setForm] = useState({
     id: initial?.id,
     codigo: initial?.codigo ?? "",
@@ -493,6 +495,22 @@ export function ImovelForm({ initial }: Props) {
             <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{statusList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Captador</Label>
+            <Select
+              value={form.corretor_id ?? "__none__"}
+              onValueChange={(v) => setForm({ ...form, corretor_id: v === "__none__" ? null : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione o usuário responsável" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Sem captador —</SelectItem>
+                {(captadores.data ?? []).map((c) => {
+                  const nome = [c.nome, c.sobrenome].filter(Boolean).join(" ");
+                  return <SelectItem key={c.id} value={c.id}>{nome || c.email || c.id}</SelectItem>;
+                })}
+              </SelectContent>
             </Select>
           </div>
         </div>
