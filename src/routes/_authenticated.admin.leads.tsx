@@ -13,18 +13,6 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp } from "lucide-react";
-import {
-  FunnelChart,
-  Funnel,
-  LabelList,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Cell,
-  Tooltip,
-} from "recharts";
 import { adminListarLeads, adminAtualizarLead } from "@/lib/api/admin.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
