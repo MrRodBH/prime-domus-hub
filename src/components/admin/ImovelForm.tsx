@@ -497,6 +497,22 @@ export function ImovelForm({ initial }: Props) {
               <SelectContent>{statusList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          <div>
+            <Label>Captador</Label>
+            <Select
+              value={form.corretor_id ?? "__none__"}
+              onValueChange={(v) => setForm({ ...form, corretor_id: v === "__none__" ? null : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione o usuário responsável" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Sem captador —</SelectItem>
+                {(captadores.data ?? []).map((c) => {
+                  const nome = [c.nome, c.sobrenome].filter(Boolean).join(" ");
+                  return <SelectItem key={c.id} value={c.id}>{nome || c.email || c.id}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
