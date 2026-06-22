@@ -214,26 +214,38 @@ function Page() {
             <section className="mt-12">
               <span className="eyebrow">Localização</span>
               <h2 className="font-display text-3xl mt-3 mb-5">Como chegar</h2>
-              <Mapa
-                bairro={bairro?.nome ?? "Belo Horizonte"}
-                endereco={imovel.endereco}
-                lat={imovel.latitude ? Number(imovel.latitude) : null}
-                lng={imovel.longitude ? Number(imovel.longitude) : null}
-                mostrarRua={(imovel as { mostrar_rua?: boolean }).mostrar_rua ?? false}
-                mostrarCompleto={(imovel as { mostrar_endereco_completo?: boolean }).mostrar_endereco_completo ?? false}
-              />
               {(() => {
-                const completo = (imovel as { mostrar_endereco_completo?: boolean }).mostrar_endereco_completo;
-                const rua = (imovel as { mostrar_rua?: boolean }).mostrar_rua;
-                if (!imovel.endereco) return null;
-                if (completo) {
-                  return <p className="text-sm text-muted-foreground mt-3">{imovel.endereco}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
-                }
-                if (rua) {
-                  const semNumero = imovel.endereco.replace(/,?\s*\d+.*$/, "").trim();
-                  return <p className="text-sm text-muted-foreground mt-3">{semNumero}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
-                }
-                return bairro?.nome ? <p className="text-sm text-muted-foreground mt-3">{bairro.nome}</p> : null;
+                const im = imovel as {
+                  rua?: string | null; numero?: string | null;
+                  endereco?: string | null;
+                  cidade?: string | null; estado?: string | null;
+                  mostrar_rua?: boolean; mostrar_endereco_completo?: boolean;
+                };
+                const ruaNome = (im.rua || im.endereco || "").trim();
+                const ruaComNumero = [ruaNome, im.numero].filter(Boolean).join(", ");
+                const enderecoFull = ruaComNumero || im.endereco || "";
+                const cidade = im.cidade || "Belo Horizonte";
+                return (
+                  <>
+                    <Mapa
+                      bairro={bairro?.nome ?? cidade}
+                      endereco={enderecoFull}
+                      lat={imovel.latitude ? Number(imovel.latitude) : null}
+                      lng={imovel.longitude ? Number(imovel.longitude) : null}
+                      mostrarRua={im.mostrar_rua ?? false}
+                      mostrarCompleto={im.mostrar_endereco_completo ?? false}
+                    />
+                    {(() => {
+                      if (im.mostrar_endereco_completo && enderecoFull) {
+                        return <p className="text-sm text-muted-foreground mt-3">{enderecoFull}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
+                      }
+                      if (im.mostrar_rua && ruaNome) {
+                        return <p className="text-sm text-muted-foreground mt-3">{ruaNome}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
+                      }
+                      return bairro?.nome ? <p className="text-sm text-muted-foreground mt-3">{bairro.nome}</p> : null;
+                    })()}
+                  </>
+                );
               })()}
             </section>
           </article>
