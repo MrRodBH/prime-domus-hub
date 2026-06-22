@@ -230,23 +230,25 @@ function AdminUsuarios() {
                     <Input
                       required
                       value={editing.nome}
-                      onChange={(e) => {
-                        const nome = e.target.value;
-                        const next: Editing = { ...editing, nome };
-                        if (!editing._slugTouched) next.slug = slugify(nome);
-                        setEditing(next);
-                      }}
+                      onChange={(e) => setEditing({ ...editing, nome: e.target.value })}
                     />
                   </div>
                   <div>
-                    <Label>Slug *</Label>
+                    <Label>Sobrenome *</Label>
                     <Input
                       required
-                      value={editing.slug}
-                      onChange={(e) =>
-                        setEditing({ ...editing, slug: slugify(e.target.value), _slugTouched: true })
-                      }
+                      value={editing.sobrenome ?? ""}
+                      maxLength={40}
+                      onChange={(e) => {
+                        // permite apenas um sobrenome (sem espaços) e somente letras
+                        const v = e.target.value.replace(/\s+/g, "").replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'’-]/g, "");
+                        setEditing({ ...editing, sobrenome: v });
+                      }}
+                      placeholder="Apenas um sobrenome"
                     />
+                    {editing.sobrenome && !SOBRENOME_RE.test(editing.sobrenome) && (
+                      <p className="text-xs text-destructive mt-1">Apenas letras, 2 a 40 caracteres, um único sobrenome.</p>
+                    )}
                   </div>
                   <div>
                     <Label>CRECI</Label>
