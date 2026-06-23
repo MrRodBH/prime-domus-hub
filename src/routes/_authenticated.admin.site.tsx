@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { obterSiteSettings, atualizarSiteSettings } from "@/lib/api/site.functions";
+import { obterMetaConfigAdmin, atualizarMetaConfigAdmin } from "@/lib/api/meta.functions";
 import { adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
