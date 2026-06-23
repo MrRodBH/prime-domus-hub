@@ -673,37 +673,8 @@ function FormContato({
       <span className="eyebrow">Solicite informações</span>
       <h3 className="font-display text-2xl mb-1">Fale com um consultor</h3>
 
-      {corretor && nomeCompleto && (
-        <div className="flex items-center gap-3 p-3 rounded bg-background/60 border border-foreground/5">
-          {corretor.foto_url ? (
-            <img
-              src={corretor.foto_url}
-              alt={nomeCompleto}
-              className="size-12 rounded-full object-cover shrink-0"
-            />
-          ) : (
-            <div className="size-12 rounded-full bg-gold/15 text-gold flex items-center justify-center font-display text-lg shrink-0">
-              {(corretor.nome ?? "?").charAt(0)}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Atendido por</p>
-            <p className="font-display text-base leading-tight truncate">{nomeCompleto}</p>
-          </div>
-          {waLink && (
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Conversar no WhatsApp com ${nomeCompleto}`}
-              title="Conversar no WhatsApp"
-              className="shrink-0 inline-flex items-center justify-center size-10 rounded-full bg-petroleum hover:bg-gold text-linen transition-colors"
-            >
-              <MessageCircle className="size-5" strokeWidth={1.5} />
-            </a>
-          )}
-        </div>
-      )}
+
+
 
       <input
         required
