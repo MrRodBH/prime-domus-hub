@@ -541,7 +541,7 @@ function DraggableCard({ lead, onOpen }: { lead: Lead; onOpen: (id: string) => v
   );
 }
 
-function LeadDetailDialog({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
+function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | null; onClose: () => void; onOpenHistorico: (id: string) => void }) {
   const wa = lead?.telefone ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}` : null;
   return (
     <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
