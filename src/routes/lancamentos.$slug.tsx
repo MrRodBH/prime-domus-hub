@@ -86,11 +86,13 @@ function fmtMesAno(s: string | null | undefined) {
 
 function Page() {
   const { slug } = Route.useParams();
-  const { data: d } = useQuery({
+  const { data } = useQuery({
     queryKey: ["lancamento-publico", slug],
     queryFn: () => obterLancamentoPublico({ data: { slug } }),
     staleTime: 5 * 60 * 1000,
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d = data as any;
 
   if (!d) return null;
 
