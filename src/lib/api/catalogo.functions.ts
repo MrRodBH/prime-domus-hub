@@ -318,7 +318,7 @@ export const enviarLead = createServerFn({ method: "POST" })
         imovel_id: data.imovel_id || null,
         launch_project_id: data.launch_project_id || null,
         corretor_id: corretorId,
-        assigned_to: corretorId,
+
         consent_lgpd: true,
         consent_at: new Date().toISOString(),
       } as never);

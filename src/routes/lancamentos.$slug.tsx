@@ -347,6 +347,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { enviarLead } from "@/lib/api/catalogo.functions";
 import { metaTrack, metaEventId } from "@/lib/meta-pixel";
+import { maskPhoneBR, isValidPhoneBR } from "@/lib/phone-br";
 function LeadFormLancamento({ launchProjectId, nome }: { launchProjectId: string; nome: string }) {
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: `Olá, tenho interesse no ${nome}.`, consent: false });
   const [enviado, setEnviado] = useState(false);
@@ -369,12 +370,18 @@ function LeadFormLancamento({ launchProjectId, nome }: { launchProjectId: string
   }
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); if (!form.consent) { alert("Aceite a Política de Privacidade."); return; } m.mutate(); }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!form.consent) { alert("Aceite a Política de Privacidade."); return; }
+        if (form.telefone && !isValidPhoneBR(form.telefone)) { alert("Telefone inválido. Use (DDD) 9XXXX-XXXX."); return; }
+        if (!form.email && !form.telefone) { alert("Informe e-mail ou WhatsApp."); return; }
+        m.mutate();
+      }}
       className="space-y-2"
     >
       <input required placeholder="Seu nome *" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
       <input type="email" placeholder="E-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
-      <input placeholder="WhatsApp / Telefone" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
+      <input type="tel" inputMode="numeric" maxLength={16} placeholder="(11) 91234-5678" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhoneBR(e.target.value) })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
       <textarea rows={3} value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
       <label className="flex items-start gap-2 text-[11px] text-linen/70">
         <input type="checkbox" checked={form.consent} onChange={(e) => setForm({ ...form, consent: e.target.checked })} className="mt-0.5" />

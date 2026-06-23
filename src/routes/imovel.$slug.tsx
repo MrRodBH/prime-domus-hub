@@ -13,6 +13,7 @@ import { imovelImage, formatPreco } from "@/lib/property-images";
 import { toEmbedUrl } from "@/lib/embed-url";
 import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
 import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
+import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
 
 const imovelQuery = (slug: string) =>
   queryOptions({
@@ -696,7 +697,7 @@ function FormContato({
     e.preventDefault();
     setErro(null);
     const email = form.email.trim();
-    const telDigits = form.telefone.replace(/\D/g, "");
+    const telDigits = digitsOnly(form.telefone);
     if (!email && !telDigits) {
       setErro("Informe um e-mail ou um WhatsApp para que possamos retornar.");
       return;
@@ -705,8 +706,12 @@ function FormContato({
       setErro("E-mail inválido.");
       return;
     }
-    if (!email && telDigits.length < 10) {
-      setErro("WhatsApp inválido. Inclua DDD + número (mínimo 10 dígitos).");
+    if (telDigits && !isValidPhoneBR(form.telefone)) {
+      setErro("Telefone inválido. Use o formato (DDD) 9XXXX-XXXX.");
+      return;
+    }
+    if (!email && !telDigits) {
+      setErro("Informe e-mail ou WhatsApp.");
       return;
     }
     if (!consent) {
@@ -757,9 +762,11 @@ function FormContato({
       />
       <input
         type="tel"
-        placeholder="Telefone / WhatsApp"
+        inputMode="numeric"
+        placeholder="(11) 91234-5678"
         value={form.telefone}
-        onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+        onChange={(e) => setForm({ ...form, telefone: maskPhoneBR(e.target.value) })}
+        maxLength={16}
         className="w-full bg-background border border-foreground/10 rounded px-3 py-2.5 text-sm focus:outline-none focus:border-gold"
       />
       <textarea
