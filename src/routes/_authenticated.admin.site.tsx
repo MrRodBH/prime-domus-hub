@@ -167,6 +167,7 @@ function AdminSite() {
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
           <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
+          <TabsTrigger value="meta">Integrações Meta</TabsTrigger>
         </TabsList>
 
         <TabsContent value="branding" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
