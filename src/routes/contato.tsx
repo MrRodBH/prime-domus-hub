@@ -63,13 +63,13 @@ function Page() {
             }).catch(() => {});
           }}>
             {[
-              { label: "Nome", type: "text" },
-              { label: "E-mail", type: "email" },
-              { label: "Telefone", type: "tel" },
+              { label: "Nome", type: "text", name: "nome" },
+              { label: "E-mail", type: "email", name: "email" },
+              { label: "Telefone", type: "tel", name: "telefone" },
             ].map((f) => (
               <label key={f.label}>
                 <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground block mb-2">{f.label}</span>
-                <input type={f.type} className="w-full bg-background border border-foreground/15 rounded px-4 py-3 focus:border-gold focus:outline-none" />
+                <input name={f.name} type={f.type} className="w-full bg-background border border-foreground/15 rounded px-4 py-3 focus:border-gold focus:outline-none" />
               </label>
             ))}
             <label>
