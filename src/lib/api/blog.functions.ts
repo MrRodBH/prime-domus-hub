@@ -51,8 +51,10 @@ export const listarPostsPublicos = createServerFn({ method: "GET" })
 export const obterPostPublico = createServerFn({ method: "GET" })
   .inputValidator(z.object({ slug: z.string() }))
   .handler(async ({ data }) => {
-    const supabase = publicClient();
-    const { data: post, error } = await supabase
+    // Usa admin client porque o join com `corretores` requer SELECT em colunas
+    // que não estão expostas ao role anon (apenas colunas seguras são públicas).
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: post, error } = await supabaseAdmin
       .from("blog_posts")
       .select(
         "id, titulo, slug, resumo, conteudo, imagem_capa, publicado_em, meta_title, meta_description, categoria:blog_categorias(nome, slug), autor:corretores(nome, foto_url, slug)",
