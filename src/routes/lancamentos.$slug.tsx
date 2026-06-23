@@ -162,7 +162,7 @@ function Page() {
             <section>
               <h2 className="font-display text-3xl mb-6">Galeria</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {d.imagens.map((img) => (
+                {d.imagens.map((img: any) => (
                   img.url && (
                     <a key={img.id} href={img.url} target="_blank" rel="noreferrer" className="block aspect-[4/3] overflow-hidden rounded bg-muted">
                       <img src={img.thumb ?? img.url} alt={img.legenda ?? ""} loading="lazy" className="w-full h-full object-cover hover:scale-105 transition-transform" />
@@ -196,7 +196,7 @@ function Page() {
             <section>
               <h2 className="font-display text-3xl mb-6">Lazer</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {d.amenities.map((a) => (
+                {d.amenities.map((a: any) => (
                   <div key={a.slug} className="flex items-center gap-2 px-3 py-2 rounded border border-foreground/10 text-sm">
                     <span className="size-1.5 rounded-full bg-gold" /> {a.nome}
                   </div>
@@ -223,7 +223,7 @@ function Page() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-foreground/5">
-                    {d.unidades.map((u) => {
+                    {d.unidades.map((u: any) => {
                       const si = STATUS_UNIT[u.status] ?? STATUS_UNIT.disponivel;
                       return (
                         <tr key={u.id}>
@@ -265,7 +265,7 @@ function Page() {
             <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-3">
               <h3 className="font-medium">Documentos</h3>
               <ul className="space-y-2">
-                {d.pdfs.map((p) => p.url && (
+                {d.pdfs.map((p: any) => p.url && (
                   <li key={p.id} className="flex items-center gap-2 text-sm">
                     <FileText className="size-4 text-gold" />
                     <span className="flex-1 truncate">{p.titulo ?? (p.kind === "tabela_precos" ? "Tabela de preços" : "Documento")}</span>
