@@ -762,9 +762,11 @@ function FormContato({
       />
       <input
         type="tel"
-        placeholder="Telefone / WhatsApp"
+        inputMode="numeric"
+        placeholder="(11) 91234-5678"
         value={form.telefone}
-        onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+        onChange={(e) => setForm({ ...form, telefone: maskPhoneBR(e.target.value) })}
+        maxLength={16}
         className="w-full bg-background border border-foreground/10 rounded px-3 py-2.5 text-sm focus:outline-none focus:border-gold"
       />
       <textarea
