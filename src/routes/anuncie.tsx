@@ -28,7 +28,11 @@ function Page() {
           Preencha as informações abaixo e um consultor entrará em contato em até 24h.
         </p>
 
-        <form className="grid gap-5" onSubmit={(e) => e.preventDefault()}>
+        <form className="grid gap-5" onSubmit={(e) => {
+          e.preventDefault();
+          // TODO: validar + enviar para o backend; só disparar Lead após sucesso real.
+          metaTrack("Lead", { content_name: "Formulário Anuncie", source: "/anuncie" }, metaEventId());
+        }}>
           {[
             { label: "Nome completo", type: "text" },
             { label: "Telefone / WhatsApp", type: "tel" },
