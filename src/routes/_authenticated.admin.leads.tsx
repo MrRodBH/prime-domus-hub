@@ -208,7 +208,7 @@ const RESULTADO_STAGES: { id: Status; label: string; color: string }[] = [
   { id: "perdido", label: "Perdido", color: "#ef4444" },
 ];
 
-function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
+function FunilChart({ byStatus, descartesTotal }: { byStatus: Record<Status, Lead[]>; descartesTotal: number }) {
   const stages = FUNIL_STAGES.map((s) => ({
     label: s.label,
     color: s.color,
@@ -216,11 +216,14 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
   }));
   const totalFunil = stages.reduce((s, x) => s + x.total, 0);
 
-  const resultados = RESULTADO_STAGES.map((s) => ({
-    label: s.label,
-    color: s.color,
-    total: byStatus[s.id]?.length ?? 0,
-  }));
+  const resultados = [
+    ...RESULTADO_STAGES.map((s) => ({
+      label: s.label,
+      color: s.color,
+      total: byStatus[s.id]?.length ?? 0,
+    })),
+    { label: "Descartes", color: "#f43f5e", total: descartesTotal },
+  ];
   const totalResultados = resultados.reduce((s, x) => s + x.total, 0);
 
   const funnelData = stages.map((s) => {
