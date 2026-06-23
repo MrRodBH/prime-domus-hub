@@ -657,13 +657,8 @@ function FormContato({
     );
   }
 
-  const nomeCompleto = corretor ? [corretor.nome, corretor.sobrenome].filter(Boolean).join(" ") : "";
-  const waDigits = corretor?.whatsapp?.replace(/\D/g, "") ?? "";
-  const waLink = waDigits
-    ? `https://wa.me/${waDigits}?text=${encodeURIComponent(
-        `Olá ${corretor?.nome ?? ""}, tenho interesse no imóvel "${imovelTitulo}".`,
-      )}`
-    : null;
+
+
 
   return (
     <form
