@@ -89,7 +89,6 @@ function HeroSearch({ searchTipos, ctaPrimary }: { searchTipos: string[]; ctaPri
     }
     const search: Record<string, string> = {};
     if (busca.trim()) search.busca = busca.trim();
-    if (tipo.trim()) search.tipo = tipo.trim();
     navigate({ to: "/imoveis", search });
   }
 
