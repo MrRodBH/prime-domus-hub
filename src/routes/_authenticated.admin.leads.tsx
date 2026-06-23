@@ -584,12 +584,15 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
                 </Button>
               )}
               {(lead.imovel as { slug?: string } | null)?.slug && (
-                <Button asChild size="sm" className="ml-auto">
+                <Button asChild size="sm" variant="outline">
                   <Link to="/imovel/$slug" params={{ slug: (lead.imovel as { slug: string }).slug }} target="_blank">
                     Ver imóvel
                   </Link>
                 </Button>
               )}
+              <Button size="sm" className="ml-auto" onClick={() => onOpenHistorico(lead.id)}>
+                <History className="h-4 w-4 mr-1" /> Histórico
+              </Button>
             </div>
           </>
         )}
