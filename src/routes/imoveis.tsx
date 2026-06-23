@@ -185,7 +185,7 @@ function Page() {
                     type="text"
                     value={buscaLocal}
                     onChange={(e) => setBuscaLocal(e.target.value)}
-                    placeholder="Buscar por código"
+                    placeholder="Título ou código"
                     className="bg-transparent flex-1 text-sm focus:outline-none"
                   />
                 </div>
