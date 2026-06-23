@@ -91,9 +91,16 @@ function Home() {
     queryFn: () => listarBairros({ data: { apenas_destaque: true, limite: 24 } }),
     staleTime: 2 * 60 * 1000,
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: lancamentos } = useQuery<any[]>({
+    queryKey: ["lancamentos-publico"],
+    queryFn: () => listarLancamentosPublico(),
+    staleTime: 2 * 60 * 1000,
+  });
 
   const destaques = (imoveis ?? []).slice(0, destaquesQtd);
   const bairrosLista = (bairros ?? []).slice(0, bairrosQtd);
+  const lancDestaque = (lancamentos ?? []).filter((l) => l.destaque).slice(0, 3);
 
   const titleLines: string[] = hero.title_lines && hero.title_lines.length > 0
     ? hero.title_lines
