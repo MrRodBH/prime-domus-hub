@@ -195,8 +195,12 @@ export const listarBairros = createServerFn({ method: "GET" })
 export const obterImovel = createServerFn({ method: "GET" })
   .inputValidator(z.object({ slug: z.string().min(1) }))
   .handler(async ({ data }) => {
-    const supabase = publicClient();
-    const { data: imovel, error } = await supabase
+    // Usamos admin client server-side porque o anon não tem mais SELECT em colunas
+    // sensíveis (email/telefone/whatsapp) de corretores. Estes campos continuam
+    // sendo exibidos na página pública do imóvel — apenas a leitura granel via
+    // Data API foi bloqueada.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: imovel, error } = await supabaseAdmin
       .from("imoveis")
       .select(
         `id, codigo, titulo, slug, descricao, finalidade, tipo, status, preco, preco_sob_consulta,
