@@ -295,6 +295,16 @@ export const enviarLead = createServerFn({ method: "POST" })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       lancNome = (proj as any)?.nome;
     }
+    // Se for lead de imóvel pronto, atribui ao corretor responsável pelo imóvel
+    if (!corretorId && data.imovel_id) {
+      const { data: im } = await supabase
+        .from("imoveis")
+        .select("corretor_id")
+        .eq("id", data.imovel_id)
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      corretorId = (im as any)?.corretor_id ?? null;
+    }
 
     const { error } = await supabase
       .from("leads")
