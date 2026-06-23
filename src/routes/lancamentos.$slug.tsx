@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, BedDouble, Maximize2, Car, Building2, Calendar, Layers, ArrowUpDown, FileText, Eye, Download, MessageCircle, Phone } from "lucide-react";
