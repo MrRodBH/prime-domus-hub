@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { metaTrack, metaEventId } from "@/lib/meta-pixel";
+import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
+import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 
 export const Route = createFileRoute("/anuncie")({
   head: () => ({
@@ -30,19 +31,40 @@ function Page() {
 
         <form className="grid gap-5" onSubmit={(e) => {
           e.preventDefault();
-          // TODO: validar + enviar para o backend; só disparar Lead após sucesso real.
-          metaTrack("Lead", { content_name: "Formulário Anuncie", source: "/anuncie" }, metaEventId());
+          const fd = new FormData(e.currentTarget as HTMLFormElement);
+          const email = String(fd.get("email") || "") || undefined;
+          const phone = String(fd.get("telefone") || "") || undefined;
+          const nome = String(fd.get("nome") || "");
+          const event_id = metaEventId();
+          metaTrack("Lead", { content_name: "Formulário Anuncie", source: "/anuncie" }, event_id);
+          const ids = metaBrowserIds();
+          enviarEventoMetaCAPI({
+            data: {
+              event_name: "Lead",
+              event_id,
+              event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
+              action_source: "website",
+              user_data: {
+                email, phone,
+                first_name: nome.split(" ")[0] || undefined,
+                last_name: nome.split(" ").slice(1).join(" ") || undefined,
+                client_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+                ...ids,
+              },
+              custom_data: { content_name: "Formulário Anuncie", source: "/anuncie" },
+            },
+          }).catch(() => {});
         }}>
           {[
-            { label: "Nome completo", type: "text" },
-            { label: "Telefone / WhatsApp", type: "tel" },
-            { label: "E-mail", type: "email" },
-            { label: "Endereço do imóvel", type: "text" },
-            { label: "Valor pretendido", type: "text" },
+            { label: "Nome completo", type: "text", name: "nome" },
+            { label: "Telefone / WhatsApp", type: "tel", name: "telefone" },
+            { label: "E-mail", type: "email", name: "email" },
+            { label: "Endereço do imóvel", type: "text", name: "endereco" },
+            { label: "Valor pretendido", type: "text", name: "valor" },
           ].map((f) => (
             <label key={f.label} className="block">
               <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground block mb-2">{f.label}</span>
-              <input type={f.type} className="w-full bg-card border border-foreground/15 rounded px-4 py-3 text-foreground focus:border-gold focus:outline-none transition-colors" />
+              <input name={f.name} type={f.type} className="w-full bg-card border border-foreground/15 rounded px-4 py-3 text-foreground focus:border-gold focus:outline-none transition-colors" />
             </label>
           ))}
           <label className="block">

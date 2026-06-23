@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { MapPin, Phone, Mail } from "lucide-react";
-import { metaTrack, metaEventId } from "@/lib/meta-pixel";
+import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
+import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 
 export const Route = createFileRoute("/contato")({
   head: () => ({
@@ -37,17 +38,38 @@ function Page() {
           </div>
           <form className="bg-card border border-foreground/5 p-8 md:p-10 rounded shadow-soft grid gap-5" onSubmit={(e) => {
             e.preventDefault();
-            // TODO: validar + enviar para o backend; só disparar Lead após sucesso real.
-            metaTrack("Lead", { content_name: "Formulário Contato", source: "/contato" }, metaEventId());
+            const form = e.currentTarget as HTMLFormElement;
+            const fd = new FormData(form);
+            const email = String(fd.get("email") || "") || undefined;
+            const phone = String(fd.get("telefone") || "") || undefined;
+            const first_name = String(fd.get("nome") || "").split(" ")[0] || undefined;
+            const last_name = String(fd.get("nome") || "").split(" ").slice(1).join(" ") || undefined;
+            const event_id = metaEventId();
+            metaTrack("Lead", { content_name: "Formulário Contato", source: "/contato" }, event_id);
+            const ids = metaBrowserIds();
+            enviarEventoMetaCAPI({
+              data: {
+                event_name: "Lead",
+                event_id,
+                event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
+                action_source: "website",
+                user_data: {
+                  email, phone, first_name, last_name,
+                  client_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+                  ...ids,
+                },
+                custom_data: { content_name: "Formulário Contato", source: "/contato" },
+              },
+            }).catch(() => {});
           }}>
             {[
-              { label: "Nome", type: "text" },
-              { label: "E-mail", type: "email" },
-              { label: "Telefone", type: "tel" },
+              { label: "Nome", type: "text", name: "nome" },
+              { label: "E-mail", type: "email", name: "email" },
+              { label: "Telefone", type: "tel", name: "telefone" },
             ].map((f) => (
               <label key={f.label}>
                 <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground block mb-2">{f.label}</span>
-                <input type={f.type} className="w-full bg-background border border-foreground/15 rounded px-4 py-3 focus:border-gold focus:outline-none" />
+                <input name={f.name} type={f.type} className="w-full bg-background border border-foreground/15 rounded px-4 py-3 focus:border-gold focus:outline-none" />
               </label>
             ))}
             <label>

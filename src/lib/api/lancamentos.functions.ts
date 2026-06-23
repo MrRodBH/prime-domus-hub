@@ -424,10 +424,9 @@ export const adminRemoverPdfLancamento = createServerFn({ method: "POST" })
 
 
 // ===== PÚBLICO =====
+import { createClient as createPublicClient } from "@supabase/supabase-js";
 function sbPublic() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createClient } = require("@supabase/supabase-js");
-  return createClient(
+  return createPublicClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_PUBLISHABLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } },
@@ -522,7 +521,7 @@ export const obterLancamentoPublico = createServerFn({ method: "POST" })
       ...proj,
       imagem_capa_url: capaUrl,
       og_image_url: ogImageUrl,
-      amenities: (amenRows ?? []).map((a: { amenity: { slug: string; nome: string } | null }) => a.amenity).filter(Boolean),
+      amenities: ((amenRows ?? []) as Array<{ amenity: { slug: string; nome: string } | { slug: string; nome: string }[] | null }>).flatMap((a) => (Array.isArray(a.amenity) ? a.amenity : a.amenity ? [a.amenity] : [])),
       imagens: imagensSigned,
       pdfs: pdfsSigned,
       tabela_precos_atual: pdfsSigned.find((p) => p.kind === "tabela_precos") ?? null,
