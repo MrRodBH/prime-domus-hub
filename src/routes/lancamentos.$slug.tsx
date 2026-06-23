@@ -341,3 +341,50 @@ function Fato({ icon: Icon, label, value }: { icon: typeof MapPin; label: string
     </div>
   );
 }
+
+// ===== Formulário de lead (lançamento) =====
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { enviarLead } from "@/lib/api/catalogo.functions";
+import { metaTrack, metaEventId } from "@/lib/meta";
+function LeadFormLancamento({ launchProjectId, nome }: { launchProjectId: string; nome: string }) {
+  const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: `Olá, tenho interesse no ${nome}.`, consent: false });
+  const [enviado, setEnviado] = useState(false);
+  const m = useMutation({
+    mutationFn: () => enviarLead({
+      data: {
+        nome: form.nome, email: form.email, telefone: form.telefone, mensagem: form.mensagem,
+        origem: `lancamento:${nome}`,
+        launch_project_id: launchProjectId,
+        consent_lgpd: true,
+      },
+    }),
+    onSuccess: () => {
+      setEnviado(true);
+      try { metaTrack("Lead", { content_name: nome, source: "lancamento" }, metaEventId()); } catch { /* noop */ }
+    },
+  });
+  if (enviado) {
+    return <p className="text-sm bg-gold/20 text-linen p-3 rounded">Recebemos seu contato. Em breve falaremos com você.</p>;
+  }
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); if (!form.consent) { alert("Aceite a Política de Privacidade."); return; } m.mutate(); }}
+      className="space-y-2"
+    >
+      <input required placeholder="Seu nome *" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
+      <input type="email" placeholder="E-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
+      <input placeholder="WhatsApp / Telefone" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
+      <textarea rows={3} value={form.mensagem} onChange={(e) => setForm({ ...form, mensagem: e.target.value })} className="w-full bg-linen/10 border border-linen/20 rounded px-3 py-2 text-sm placeholder:text-linen/40" />
+      <label className="flex items-start gap-2 text-[11px] text-linen/70">
+        <input type="checkbox" checked={form.consent} onChange={(e) => setForm({ ...form, consent: e.target.checked })} className="mt-0.5" />
+        Aceito a Política de Privacidade e o tratamento dos meus dados.
+      </label>
+      <button type="submit" disabled={m.isPending} className="w-full bg-gold hover:bg-gold/90 disabled:opacity-50 text-petroleum px-4 py-3 rounded font-medium text-sm uppercase tracking-[0.18em]">
+        {m.isPending ? "Enviando…" : "Quero saber mais"}
+      </button>
+      {m.isError && <p className="text-xs text-red-300">{(m.error as Error).message}</p>}
+    </form>
+  );
+}
+
