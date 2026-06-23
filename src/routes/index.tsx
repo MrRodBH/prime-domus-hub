@@ -41,6 +41,7 @@ export const Route = createFileRoute("/")({
       context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() }),
       context.queryClient.ensureQueryData({ queryKey: ["home-destaques"], queryFn: () => listarImoveis({ data: { apenas_destaque: true, limite: 12 } }) }),
       context.queryClient.ensureQueryData({ queryKey: ["home-bairros", "destaque"], queryFn: () => listarBairros({ data: { apenas_destaque: true, limite: 24 } }) }),
+      context.queryClient.ensureQueryData({ queryKey: ["lancamentos-publico"], queryFn: () => listarLancamentosPublico() }),
     ]);
   },
   component: Home,
