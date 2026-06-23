@@ -168,6 +168,27 @@ function AdminSite() {
     }
   }
 
+  async function uploadLancImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLanc(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `lancamentos-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      if (error) throw error;
+      setLanc({ ...lanc, image_path: path });
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setLancImgPreview(url);
+      toast.success("Imagem enviada — clique em Salvar para aplicar.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingLanc(false);
+      e.target.value = "";
+    }
+  }
+
   if (isLoading) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
@@ -178,10 +199,11 @@ function AdminSite() {
       </div>
 
       <Tabs defaultValue="branding">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="branding">Logo & Marca</TabsTrigger>
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
           <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
+          <TabsTrigger value="lancamentos">Página Lançamentos</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
           <TabsTrigger value="meta">Integrações Meta</TabsTrigger>
         </TabsList>
