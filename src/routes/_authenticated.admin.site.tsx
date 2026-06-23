@@ -33,12 +33,16 @@ function AdminSite() {
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [lanc, setLanc] = useState<any>({ eyebrow: "", title_lines: [], subtitle: "", cta_primary: "", cta_secondary: "", image_path: null, empty_message: "", meta_title: "", meta_description: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [heroImgPreview, setHeroImgPreview] = useState<string | null>(null);
+  const [lancImgPreview, setLancImgPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingFav, setUploadingFav] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploadingLanc, setUploadingLanc] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -79,11 +83,23 @@ function AdminSite() {
     setLogoPreview(data.branding.logo_url ?? null);
     setFaviconPreview(data.branding.favicon_url ?? null);
     setHeroImgPreview(data.home_hero.image_url ?? null);
+    setLanc({
+      eyebrow: data.pagina_lancamentos.eyebrow ?? "",
+      title_lines: data.pagina_lancamentos.title_lines ?? [],
+      subtitle: data.pagina_lancamentos.subtitle ?? "",
+      cta_primary: data.pagina_lancamentos.cta_primary ?? "",
+      cta_secondary: data.pagina_lancamentos.cta_secondary ?? "",
+      image_path: data.pagina_lancamentos.image_path ?? null,
+      empty_message: data.pagina_lancamentos.empty_message ?? "",
+      meta_title: data.pagina_lancamentos.meta_title ?? "",
+      meta_description: data.pagina_lancamentos.meta_description ?? "",
+    });
+    setLancImgPreview(data.pagina_lancamentos.image_url ?? null);
   }, [data]);
 
   const salvar = useMutation({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "home_secoes" | "contato"; value: any }) =>
+    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "home_secoes" | "contato" | "pagina_lancamentos"; value: any }) =>
       atualizarSiteSettings({ data: { key, value } }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["site-settings"] }); },
     onError: (e: Error) => toast.error(e.message),
@@ -152,6 +168,27 @@ function AdminSite() {
     }
   }
 
+  async function uploadLancImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLanc(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `lancamentos-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      if (error) throw error;
+      setLanc({ ...lanc, image_path: path });
+      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setLancImgPreview(url);
+      toast.success("Imagem enviada — clique em Salvar para aplicar.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingLanc(false);
+      e.target.value = "";
+    }
+  }
+
   if (isLoading) return <p className="text-muted-foreground">Carregando…</p>;
 
   return (
@@ -162,10 +199,11 @@ function AdminSite() {
       </div>
 
       <Tabs defaultValue="branding">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="branding">Logo & Marca</TabsTrigger>
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
           <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
+          <TabsTrigger value="lancamentos">Página Lançamentos</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
           <TabsTrigger value="meta">Integrações Meta</TabsTrigger>
         </TabsList>
@@ -259,6 +297,47 @@ function AdminSite() {
             </div>
           </div>
           <Button onClick={() => salvar.mutate({ key: "home_secoes", value: secoes })} disabled={salvar.isPending}>Salvar seções</Button>
+        </TabsContent>
+
+        <TabsContent value="lancamentos" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Edita o topo da página <strong>/lancamentos</strong>. Os cards exibidos abaixo do hero são os imóveis cadastrados com finalidade <strong>Lançamento</strong> (preencha em Imóveis › Novo). Marcando-os também como <strong>Destaque</strong>, eles aparecem na seção Destaques da Home.
+          </p>
+          <div>
+            <Label>Imagem de fundo do Hero</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {lancImgPreview && <img src={lancImgPreview} alt="Hero lançamentos" className="h-24 w-40 object-cover rounded border border-foreground/10" />}
+              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
+                <Upload className="size-4" /> {uploadingLanc ? "Enviando…" : "Trocar imagem"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadLancImage} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">JPG/WebP em 1920×1080px ou maior.</p>
+          </div>
+          <div><Label>Eyebrow</Label><Input value={lanc.eyebrow} onChange={(e) => setLanc({ ...lanc, eyebrow: e.target.value })} /></div>
+          <div>
+            <Label>Título principal (uma linha por entrada)</Label>
+            <Textarea
+              rows={3}
+              value={(lanc.title_lines as string[]).join("\n")}
+              onChange={(e) => setLanc({ ...lanc, title_lines: e.target.value.split("\n") })}
+              placeholder={"Empreendimentos\nexclusivos"}
+            />
+          </div>
+          <div><Label>Subtítulo</Label><Textarea rows={2} value={lanc.subtitle} onChange={(e) => setLanc({ ...lanc, subtitle: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Botão primário</Label><Input value={lanc.cta_primary} onChange={(e) => setLanc({ ...lanc, cta_primary: e.target.value })} placeholder="Falar com especialista" /></div>
+            <div><Label>Botão secundário</Label><Input value={lanc.cta_secondary} onChange={(e) => setLanc({ ...lanc, cta_secondary: e.target.value })} placeholder="Ver imóveis prontos" /></div>
+          </div>
+          <div>
+            <Label>Mensagem quando não houver lançamentos</Label>
+            <Textarea rows={2} value={lanc.empty_message} onChange={(e) => setLanc({ ...lanc, empty_message: e.target.value })} placeholder="Em breve novos lançamentos…" />
+          </div>
+          <div className="grid md:grid-cols-2 gap-3 border-t border-foreground/5 pt-4">
+            <div><Label>Meta title (SEO)</Label><Input value={lanc.meta_title} onChange={(e) => setLanc({ ...lanc, meta_title: e.target.value })} /></div>
+            <div><Label>Meta description (SEO)</Label><Input value={lanc.meta_description} onChange={(e) => setLanc({ ...lanc, meta_description: e.target.value })} /></div>
+          </div>
+          <Button onClick={() => salvar.mutate({ key: "pagina_lancamentos", value: lanc })} disabled={salvar.isPending}>Salvar página Lançamentos</Button>
         </TabsContent>
 
         <TabsContent value="contato" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
