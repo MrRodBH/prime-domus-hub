@@ -473,6 +473,9 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email: data.email,
+        options: {
+          redirectTo: "https://rmprimeimoveis.com.br/reset-password",
+        },
       });
       const link =
         linkData?.properties?.action_link ??
