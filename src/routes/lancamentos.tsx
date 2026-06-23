@@ -11,9 +11,9 @@ const DEFAULT_META_TITLE = "Lançamentos — RM Prime Imóveis";
 const DEFAULT_META_DESC = "Empreendimentos exclusivos com acesso antecipado em BH e Nova Lima.";
 
 export const Route = createFileRoute("/lancamentos")({
-  head: ({ loaderData }) => {
-    const t = loaderData?.metaTitle ?? DEFAULT_META_TITLE;
-    const d = loaderData?.metaDescription ?? DEFAULT_META_DESC;
+  head: (ctx: { loaderData?: { metaTitle?: string; metaDescription?: string } }) => {
+    const t = ctx.loaderData?.metaTitle ?? DEFAULT_META_TITLE;
+    const d = ctx.loaderData?.metaDescription ?? DEFAULT_META_DESC;
     return {
       meta: [
         { title: t },
