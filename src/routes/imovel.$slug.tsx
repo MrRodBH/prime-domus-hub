@@ -13,6 +13,7 @@ import { imovelImage, formatPreco } from "@/lib/property-images";
 import { toEmbedUrl } from "@/lib/embed-url";
 import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
 import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
+import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
 
 const imovelQuery = (slug: string) =>
   queryOptions({
