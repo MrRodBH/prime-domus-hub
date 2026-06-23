@@ -61,7 +61,7 @@ export function Footer() {
               <li><Link to="/sobre" className="hover:text-gold transition-colors">Nossa história</Link></li>
               <li><Link to="/blog" className="hover:text-gold transition-colors">Blog editorial</Link></li>
               <li><Link to="/contato" className="hover:text-gold transition-colors">Contato</Link></li>
-              <li><a href="#" className="hover:text-gold transition-colors">Política de privacidade</a></li>
+              <li><Link to="/privacidade" className="hover:text-gold transition-colors">Política de privacidade</Link></li>
             </ul>
           </div>
 
