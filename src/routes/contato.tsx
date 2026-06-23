@@ -49,6 +49,16 @@ function Page() {
               <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground block mb-2">Mensagem</span>
               <textarea rows={5} className="w-full bg-background border border-foreground/15 rounded px-4 py-3 focus:border-gold focus:outline-none" />
             </label>
+            <label className="flex items-start gap-2 text-xs text-foreground/80 leading-snug cursor-pointer">
+              <input type="checkbox" required className="mt-0.5 size-4 accent-petroleum shrink-0" />
+              <span>
+                Li e concordo com a{" "}
+                <Link to="/privacidade" className="text-gold hover:underline" target="_blank">
+                  Política de Privacidade
+                </Link>
+                .
+              </span>
+            </label>
             <button className="bg-petroleum hover:bg-gold text-linen py-4 rounded-full text-sm uppercase tracking-[0.18em] font-medium transition-colors">
               Enviar mensagem
             </button>
