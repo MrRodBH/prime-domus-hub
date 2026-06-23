@@ -12,12 +12,15 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp } from "lucide-react";
-import { adminListarLeads, adminAtualizarLead } from "@/lib/api/admin.functions";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History } from "lucide-react";
+import { adminListarLeads, adminAtualizarLead, adminListarCorretores } from "@/lib/api/admin.functions";
+import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
