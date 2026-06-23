@@ -592,14 +592,11 @@ function CorretorCard({
 
 function FormContato({
   imovelId,
+  imovelId,
   imovelTitulo,
-  corretor,
 }: {
   imovelId: string;
   imovelTitulo: string;
-  corretor: {
-    nome?: string; sobrenome?: string; foto_url?: string; whatsapp?: string;
-  } | null;
 }) {
   const router = useRouter();
   const enviar = useServerFn(enviarLead);
