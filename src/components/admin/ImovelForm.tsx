@@ -26,6 +26,8 @@ import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, Upload, Sparkles, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
+import { LazerPicker } from "./LazerPicker";
+import { listarAmenities } from "@/lib/api/lancamentos.functions";
 import { useEffect } from "react";
 
 
@@ -89,7 +91,22 @@ export function ImovelForm({ initial }: Props) {
     mostrar_endereco_completo: initial?.mostrar_endereco_completo ?? false,
   });
 
-  const [caracTxt, setCaracTxt] = useState((initial?.caracteristicas ?? []).join(", "));
+  // Separa caracteristicas iniciais em "lazer" (catálogo) e "extras" (texto livre)
+  const amenitiesQuery = useQuery({ queryKey: ["launch-amenities"], queryFn: () => listarAmenities() });
+  const amenityNames = (amenitiesQuery.data ?? []).map((a) => a.nome);
+  const initialCarac: string[] = initial?.caracteristicas ?? [];
+  const [lazerSel, setLazerSel] = useState<string[]>(initialCarac);
+  const [caracTxt, setCaracTxt] = useState(initialCarac.join(", "));
+  // Quando o catálogo carrega, separa lazer dos extras manuais
+  useEffect(() => {
+    if (!amenitiesQuery.data) return;
+    const set = new Set(amenityNames);
+    const lazer = initialCarac.filter((c) => set.has(c));
+    const extras = initialCarac.filter((c) => !set.has(c));
+    setLazerSel(lazer);
+    setCaracTxt(extras.join(", "));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amenitiesQuery.data]);
   const [imagens, setImagens] = useState<Imagem[]>(initial?.imagens ?? []);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
@@ -149,7 +166,7 @@ export function ImovelForm({ initial }: Props) {
           area_total: form.area_total,
           preco: form.preco,
           preco_sob_consulta: form.preco_sob_consulta,
-          caracteristicas: caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean),
+          caracteristicas: [...lazerSel, ...caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean)],
           tom: tomIA,
         },
       });
@@ -200,7 +217,7 @@ export function ImovelForm({ initial }: Props) {
       adminSalvarImovel({
         data: {
           ...form,
-          caracteristicas: caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean),
+          caracteristicas: [...lazerSel, ...caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean)],
         },
       }),
     onSuccess: (r) => {
@@ -659,7 +676,11 @@ export function ImovelForm({ initial }: Props) {
             <div className="flex items-center gap-2"><Switch checked={form.destaque} onCheckedChange={(v) => setForm({ ...form, destaque: v })} /><Label>Destaque</Label></div>
             <div className="flex items-center gap-2"><Switch checked={form.exclusivo} onCheckedChange={(v) => setForm({ ...form, exclusivo: v })} /><Label>Exclusivo</Label></div>
           </div>
-          <div className="md:col-span-2"><Label>Características (separadas por vírgula)</Label><Textarea rows={2} value={caracTxt} onChange={(e) => setCaracTxt(e.target.value)} /></div>
+          <div className="md:col-span-2 space-y-2">
+            <Label>Lazer</Label>
+            <LazerPicker by="nome" value={lazerSel} onChange={setLazerSel} label="Selecionar itens de lazer" />
+          </div>
+          <div className="md:col-span-2"><Label>Outras características (separadas por vírgula)</Label><Textarea rows={2} value={caracTxt} onChange={(e) => setCaracTxt(e.target.value)} placeholder="Ex.: Sacada gourmet, vista panorâmica…" /></div>
         </div>
       </div>
 

@@ -12,28 +12,28 @@ async function ensureAdmin(context: any) {
 }
 
 const GerarInput = z.object({
-  imovel_id: z.string().uuid(),
+  imovel_id: z.string().uuid().optional(),
+  launch_project_id: z.string().uuid().optional(),
   tom: z.enum(["sofisticado", "objetivo", "acolhedor"]).optional().default("sofisticado"),
   formato: z.enum(["feed", "story", "reels"]).optional().default("feed"),
+}).refine((v) => !!v.imovel_id !== !!v.launch_project_id, {
+  message: "Informe imovel_id OU launch_project_id (apenas um).",
 });
 
-export const igGerarPost = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => GerarInput.parse(i))
-  .handler(async ({ data, context }) => {
-    await ensureAdmin(context);
-
+async function buildFicha(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: any,
+  imovel_id?: string,
+  launch_project_id?: string,
+): Promise<string> {
+  if (imovel_id) {
     const { data: imv, error } = await context.supabase
       .from("imoveis")
       .select("titulo, tipo, finalidade, descricao, preco, preco_sob_consulta, quartos, suites, banheiros, vagas, area_util, area_total, caracteristicas, endereco, bairro:bairros(nome), badge")
-      .eq("id", data.imovel_id)
+      .eq("id", imovel_id)
       .single();
     if (error || !imv) throw new Error("Imóvel não encontrado.");
-
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada.");
-
-    const ficha = [
+    return [
       imv.titulo && `Título: ${imv.titulo}`,
       imv.tipo && `Tipo: ${imv.tipo}`,
       imv.finalidade && `Finalidade: ${imv.finalidade}`,
@@ -53,6 +53,60 @@ export const igGerarPost = createServerFn({ method: "POST" })
         `Características: ${imv.caracteristicas.join(", ")}`,
       imv.descricao && `Descrição do anúncio:\n${imv.descricao}`,
     ].filter(Boolean).join("\n");
+  }
+  // Lançamento
+  const { data: lp, error } = await context.supabase
+    .from("launch_projects")
+    .select("nome, descricao, construtora, entrega, endereco, arquitetura, quartos, suites, vagas, area_apartamentos, numero_unidades, numero_torres, numero_andares, status:launch_statuses(nome)")
+    .eq("id", launch_project_id)
+    .single();
+  if (error || !lp) throw new Error("Lançamento não encontrado.");
+  const { data: amen } = await context.supabase
+    .from("launch_project_amenities")
+    .select("amenity:launch_amenities(nome)")
+    .eq("project_id", launch_project_id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lazer = (amen ?? []).map((r: any) => r.amenity?.nome).filter(Boolean);
+  const { data: units } = await context.supabase
+    .from("launch_units")
+    .select("valor")
+    .eq("project_id", launch_project_id)
+    .not("valor", "is", null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const valores = (units ?? []).map((u: any) => Number(u.valor)).filter((n: number) => Number.isFinite(n) && n > 0);
+  const valorMin = valores.length ? Math.min(...valores) : null;
+  return [
+    lp.nome && `Empreendimento: ${lp.nome}`,
+    "Tipo: Lançamento",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (lp.status as any)?.nome && `Status: ${(lp.status as any).nome}`,
+    lp.construtora && `Construtora: ${lp.construtora}`,
+    lp.arquitetura && `Arquitetura: ${lp.arquitetura}`,
+    lp.entrega && `Entrega: ${String(lp.entrega).slice(0, 7)}`,
+    lp.endereco && `Endereço: ${lp.endereco}`,
+    lp.quartos != null && `${lp.quartos} quartos`,
+    lp.suites != null && `${lp.suites} suítes`,
+    lp.vagas != null && `${lp.vagas} vagas`,
+    lp.area_apartamentos != null && `Área: ${lp.area_apartamentos} m²`,
+    lp.numero_unidades != null && `${lp.numero_unidades} unidades`,
+    lp.numero_torres != null && `${lp.numero_torres} torres`,
+    lp.numero_andares != null && `${lp.numero_andares} andares`,
+    valorMin && `A partir de R$ ${valorMin.toLocaleString("pt-BR")}`,
+    lazer.length > 0 && `Lazer: ${lazer.join(", ")}`,
+    lp.descricao && `Descrição:\n${String(lp.descricao).replace(/<[^>]+>/g, " ").slice(0, 1200)}`,
+  ].filter(Boolean).join("\n");
+}
+
+export const igGerarPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => GerarInput.parse(i))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada.");
+
+    const ficha = await buildFicha(context, data.imovel_id, data.launch_project_id);
 
     const tomDesc: Record<string, string> = {
       sofisticado: "tom sofisticado, alto padrão, elegante",
@@ -72,13 +126,13 @@ export const igGerarPost = createServerFn({ method: "POST" })
 
     const user = `Gere um ${formatoDesc[data.formato]} para Instagram com ${tomDesc[data.tom]}.
 
-Informações do imóvel:
+Informações:
 ${ficha}
 
 Saída em JSON estrito, no formato:
 {
   "legenda": "texto da legenda, com quebras de linha, 4 a 8 linhas, terminando com chamada para ação (DM, link na bio ou WhatsApp). NÃO inclua hashtags aqui.",
-  "hashtags": "string com 12 a 18 hashtags separadas por espaço, começando com # — misture marca (#RMPrimeImoveis), localidade (bairro/cidade), nicho (#imovelaltopadrao, #apartamentodeluxo, etc.) e tipo do imóvel"
+  "hashtags": "string com 12 a 18 hashtags separadas por espaço, começando com # — misture marca (#RMPrimeImoveis), localidade (bairro/cidade), nicho (#imovelaltopadrao, #lancamentoimobiliario, etc.) e tipo"
 }
 
 Responda APENAS o JSON, sem markdown, sem comentários.`;
@@ -124,12 +178,15 @@ Responda APENAS o JSON, sem markdown, sem comentários.`;
 
 const SalvarInput = z.object({
   id: z.string().uuid().optional(),
-  imovel_id: z.string().uuid(),
+  imovel_id: z.string().uuid().optional(),
+  launch_project_id: z.string().uuid().optional(),
   legenda: z.string(),
   hashtags: z.string(),
   imagem_ids: z.array(z.string().uuid()).default([]),
   status: z.enum(["rascunho", "aprovado", "publicado"]).default("rascunho"),
   modelo_ia: z.string().optional().nullable(),
+}).refine((v) => v.id || !!v.imovel_id !== !!v.launch_project_id, {
+  message: "Informe imovel_id OU launch_project_id (apenas um).",
 });
 
 export const igSalvarPost = createServerFn({ method: "POST" })
@@ -156,7 +213,8 @@ export const igSalvarPost = createServerFn({ method: "POST" })
     const { data: ins, error } = await context.supabase
       .from("instagram_posts")
       .insert({
-        imovel_id: data.imovel_id,
+        imovel_id: data.imovel_id ?? null,
+        launch_project_id: data.launch_project_id ?? null,
         legenda: data.legenda,
         hashtags: data.hashtags,
         imagem_ids: data.imagem_ids,
@@ -172,16 +230,22 @@ export const igSalvarPost = createServerFn({ method: "POST" })
     return { id: ins.id };
   });
 
+const ListarInput = z.object({
+  imovel_id: z.string().uuid().optional(),
+  launch_project_id: z.string().uuid().optional(),
+}).refine((v) => !!v.imovel_id !== !!v.launch_project_id, {
+  message: "Informe imovel_id OU launch_project_id.",
+});
+
 export const igListarPosts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ imovel_id: z.string().uuid() }).parse(i))
+  .inputValidator((i: unknown) => ListarInput.parse(i))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
-    const { data: rows, error } = await context.supabase
-      .from("instagram_posts")
-      .select("*")
-      .eq("imovel_id", data.imovel_id)
-      .order("created_at", { ascending: false });
+    let q = context.supabase.from("instagram_posts").select("*").order("created_at", { ascending: false });
+    if (data.imovel_id) q = q.eq("imovel_id", data.imovel_id);
+    else q = q.eq("launch_project_id", data.launch_project_id!);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
