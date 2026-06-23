@@ -135,37 +135,8 @@ function Home() {
           </div>
 
           {/* Search */}
-          <div className="bg-linen/95 backdrop-blur-xl p-2 flex flex-col md:flex-row gap-2 rounded-md shadow-elegant ring-1 ring-foreground/5 animate-reveal" style={{ animationDelay: "200ms" }}>
-            <div className="flex flex-1 gap-1 px-2">
-              <button className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-petroleum border-b-2 border-gold">
-                Comprar
-              </button>
-              <button className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground hover:text-petroleum transition-colors">
-                Lançamentos
-              </button>
-            </div>
-            <div className="hidden md:block w-px bg-foreground/10 my-2" />
-            <div className="flex-1 px-4 py-2 md:border-r border-foreground/10">
-              <label className="block text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Onde</label>
-              <input
-                type="text"
-                placeholder="Lourdes, Vila da Serra…"
-                className="w-full bg-transparent border-none text-petroleum font-medium placeholder:text-muted-foreground/60 focus:outline-none"
-              />
-            </div>
-            <div className="flex-1 px-4 py-2 md:border-r border-foreground/10">
-              <label className="block text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Tipo</label>
-              <select className="w-full bg-transparent border-none text-petroleum font-medium focus:outline-none appearance-none">
-                {searchTipos.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-            <Link to="/imoveis" className="bg-petroleum hover:bg-gold transition-colors text-linen px-8 py-4 rounded font-medium text-sm inline-flex items-center justify-center gap-2 uppercase tracking-[0.18em]">
-              <Search className="size-4" strokeWidth={1.5} />
-              {ctaPrimary}
-            </Link>
-          </div>
+          <HeroSearch searchTipos={searchTipos} ctaPrimary={ctaPrimary} />
+
         </div>
       </section>
 
