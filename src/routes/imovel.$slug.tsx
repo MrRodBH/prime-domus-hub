@@ -279,7 +279,7 @@ function Page() {
 
           <aside className="lg:sticky lg:top-28 self-start space-y-6">
             <CorretorCard corretor={corretor} titulo={imovel.titulo} />
-            <FormContato imovelId={imovel.id} imovelTitulo={imovel.titulo} corretor={corretor} />
+            <FormContato imovelId={imovel.id} imovelTitulo={imovel.titulo} />
           </aside>
         </section>
       </main>
