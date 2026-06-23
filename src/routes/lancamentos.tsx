@@ -120,8 +120,8 @@ function Page() {
               {lista.map((p) => (
                 <Link key={p.id} to="/lancamentos/$slug" params={{ slug: p.slug }} className="group cursor-pointer block">
                   <div className="relative overflow-hidden rounded mb-5 bg-muted aspect-[4/3]">
-                    {p.imagem_capa ? (
-                      <CapaPublica path={p.imagem_capa} alt={p.nome} />
+                    {p.capa_url ? (
+                      <img src={p.capa_url} alt={p.nome} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-sm">Em breve fotos</div>
                     )}
