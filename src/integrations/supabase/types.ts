@@ -1082,6 +1082,7 @@ export type Database = {
           email: string | null
           id: string
           imovel_id: string | null
+          launch_project_id: string | null
           mensagem: string | null
           nome: string
           origem: string | null
@@ -1098,6 +1099,7 @@ export type Database = {
           email?: string | null
           id?: string
           imovel_id?: string | null
+          launch_project_id?: string | null
           mensagem?: string | null
           nome: string
           origem?: string | null
@@ -1114,6 +1116,7 @@ export type Database = {
           email?: string | null
           id?: string
           imovel_id?: string | null
+          launch_project_id?: string | null
           mensagem?: string | null
           nome?: string
           origem?: string | null
@@ -1134,6 +1137,13 @@ export type Database = {
             columns: ["imovel_id"]
             isOneToOne: false
             referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_launch_project_id_fkey"
+            columns: ["launch_project_id"]
+            isOneToOne: false
+            referencedRelation: "launch_projects"
             referencedColumns: ["id"]
           },
         ]
