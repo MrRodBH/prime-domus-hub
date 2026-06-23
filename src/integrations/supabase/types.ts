@@ -566,6 +566,424 @@ export type Database = {
           },
         ]
       }
+      launch_amenities: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      launch_payment_conditions: {
+        Row: {
+          created_at: string
+          entrada: number | null
+          id: string
+          num_parcelas: number
+          observacoes: string | null
+          parcela_30: number | null
+          parcela_60: number | null
+          parcela_90: number | null
+          project_id: string
+          qtd_anuais: number | null
+          qtd_semestrais: number | null
+          sinal: number
+          updated_at: string
+          valor_anual: number | null
+          valor_parcela: number
+          valor_semestral: number | null
+        }
+        Insert: {
+          created_at?: string
+          entrada?: number | null
+          id?: string
+          num_parcelas: number
+          observacoes?: string | null
+          parcela_30?: number | null
+          parcela_60?: number | null
+          parcela_90?: number | null
+          project_id: string
+          qtd_anuais?: number | null
+          qtd_semestrais?: number | null
+          sinal: number
+          updated_at?: string
+          valor_anual?: number | null
+          valor_parcela: number
+          valor_semestral?: number | null
+        }
+        Update: {
+          created_at?: string
+          entrada?: number | null
+          id?: string
+          num_parcelas?: number
+          observacoes?: string | null
+          parcela_30?: number | null
+          parcela_60?: number | null
+          parcela_90?: number | null
+          project_id?: string
+          qtd_anuais?: number | null
+          qtd_semestrais?: number | null
+          sinal?: number
+          updated_at?: string
+          valor_anual?: number | null
+          valor_parcela?: number
+          valor_semestral?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_payment_conditions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "launch_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      launch_pdfs: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["launch_pdf_kind"]
+          project_id: string
+          storage_path: string
+          tamanho_bytes: number | null
+          titulo: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["launch_pdf_kind"]
+          project_id: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          titulo?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["launch_pdf_kind"]
+          project_id?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          titulo?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_pdfs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "launch_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      launch_project_amenities: {
+        Row: {
+          amenity_id: string
+          created_at: string
+          project_id: string
+        }
+        Insert: {
+          amenity_id: string
+          created_at?: string
+          project_id: string
+        }
+        Update: {
+          amenity_id?: string
+          created_at?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_project_amenities_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "launch_amenities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "launch_project_amenities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "launch_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      launch_project_imagens: {
+        Row: {
+          created_at: string
+          id: string
+          legenda: string | null
+          ordem: number
+          project_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          legenda?: string | null
+          ordem?: number
+          project_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          legenda?: string | null
+          ordem?: number
+          project_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_project_imagens_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "launch_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      launch_projects: {
+        Row: {
+          area_apartamentos: number | null
+          arquitetura: string | null
+          bairro_id: string | null
+          cidade_id: string | null
+          construtora: string | null
+          corretor_id: string | null
+          created_at: string
+          descricao: string | null
+          destaque: boolean
+          elevadores: number | null
+          endereco: string | null
+          entrega: string | null
+          id: string
+          imagem_capa: string | null
+          meta_description: string | null
+          meta_title: string | null
+          nome: string
+          numero_andares: number | null
+          numero_torres: number | null
+          numero_unidades: number | null
+          og_image: string | null
+          publicado: boolean
+          quartos: number | null
+          slug: string
+          status_id: string | null
+          suites: number | null
+          unidades_por_andar: number | null
+          updated_at: string
+          vagas: number | null
+          video_url: string | null
+        }
+        Insert: {
+          area_apartamentos?: number | null
+          arquitetura?: string | null
+          bairro_id?: string | null
+          cidade_id?: string | null
+          construtora?: string | null
+          corretor_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          elevadores?: number | null
+          endereco?: string | null
+          entrega?: string | null
+          id?: string
+          imagem_capa?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          nome: string
+          numero_andares?: number | null
+          numero_torres?: number | null
+          numero_unidades?: number | null
+          og_image?: string | null
+          publicado?: boolean
+          quartos?: number | null
+          slug: string
+          status_id?: string | null
+          suites?: number | null
+          unidades_por_andar?: number | null
+          updated_at?: string
+          vagas?: number | null
+          video_url?: string | null
+        }
+        Update: {
+          area_apartamentos?: number | null
+          arquitetura?: string | null
+          bairro_id?: string | null
+          cidade_id?: string | null
+          construtora?: string | null
+          corretor_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          destaque?: boolean
+          elevadores?: number | null
+          endereco?: string | null
+          entrega?: string | null
+          id?: string
+          imagem_capa?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          nome?: string
+          numero_andares?: number | null
+          numero_torres?: number | null
+          numero_unidades?: number | null
+          og_image?: string | null
+          publicado?: boolean
+          quartos?: number | null
+          slug?: string
+          status_id?: string | null
+          suites?: number | null
+          unidades_por_andar?: number | null
+          updated_at?: string
+          vagas?: number | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_projects_bairro_id_fkey"
+            columns: ["bairro_id"]
+            isOneToOne: false
+            referencedRelation: "bairros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "launch_projects_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "launch_projects_corretor_id_fkey"
+            columns: ["corretor_id"]
+            isOneToOne: false
+            referencedRelation: "corretores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "launch_projects_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "launch_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      launch_statuses: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      launch_units: {
+        Row: {
+          area: number | null
+          ativa: boolean
+          bloco: string | null
+          created_at: string
+          id: string
+          project_id: string
+          status: Database["public"]["Enums"]["launch_unit_status"]
+          tipo: Database["public"]["Enums"]["launch_unit_tipo"] | null
+          unidade: number
+          updated_at: string
+          vagas: number | null
+          valor: number | null
+        }
+        Insert: {
+          area?: number | null
+          ativa?: boolean
+          bloco?: string | null
+          created_at?: string
+          id?: string
+          project_id: string
+          status?: Database["public"]["Enums"]["launch_unit_status"]
+          tipo?: Database["public"]["Enums"]["launch_unit_tipo"] | null
+          unidade: number
+          updated_at?: string
+          vagas?: number | null
+          valor?: number | null
+        }
+        Update: {
+          area?: number | null
+          ativa?: boolean
+          bloco?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string
+          status?: Database["public"]["Enums"]["launch_unit_status"]
+          tipo?: Database["public"]["Enums"]["launch_unit_tipo"] | null
+          unidade?: number
+          updated_at?: string
+          vagas?: number | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_units_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "launch_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_atividades: {
         Row: {
           created_at: string
@@ -837,6 +1255,19 @@ export type Database = {
         | "terreno"
         | "comercial"
         | "garden"
+      launch_pdf_kind: "tabela_precos" | "manual"
+      launch_unit_status:
+        | "disponivel"
+        | "reservada"
+        | "vendida"
+        | "indisponivel"
+      launch_unit_tipo:
+        | "1_quarto"
+        | "2_quartos"
+        | "3_quartos"
+        | "4_quartos_mais"
+        | "cobertura"
+        | "garden"
       lead_atividade_tipo:
         | "ligacao"
         | "whatsapp"
@@ -992,6 +1423,21 @@ export const Constants = {
         "casa_condominio",
         "terreno",
         "comercial",
+        "garden",
+      ],
+      launch_pdf_kind: ["tabela_precos", "manual"],
+      launch_unit_status: [
+        "disponivel",
+        "reservada",
+        "vendida",
+        "indisponivel",
+      ],
+      launch_unit_tipo: [
+        "1_quarto",
+        "2_quartos",
+        "3_quartos",
+        "4_quartos_mais",
+        "cobertura",
         "garden",
       ],
       lead_atividade_tipo: [
