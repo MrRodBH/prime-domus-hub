@@ -35,7 +35,11 @@ function Page() {
               <ContactLine icon={Mail} label="E-mail" value="contato@rmprime.com.br" />
             </div>
           </div>
-          <form className="bg-card border border-foreground/5 p-8 md:p-10 rounded shadow-soft grid gap-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="bg-card border border-foreground/5 p-8 md:p-10 rounded shadow-soft grid gap-5" onSubmit={(e) => {
+            e.preventDefault();
+            // TODO: validar + enviar para o backend; só disparar Lead após sucesso real.
+            metaTrack("Lead", { content_name: "Formulário Contato", source: "/contato" }, metaEventId());
+          }}>
             {[
               { label: "Nome", type: "text" },
               { label: "E-mail", type: "email" },
