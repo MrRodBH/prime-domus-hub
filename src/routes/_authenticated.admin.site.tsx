@@ -299,6 +299,47 @@ function AdminSite() {
           <Button onClick={() => salvar.mutate({ key: "home_secoes", value: secoes })} disabled={salvar.isPending}>Salvar seções</Button>
         </TabsContent>
 
+        <TabsContent value="lancamentos" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Edita o topo da página <strong>/lancamentos</strong>. Os cards exibidos abaixo do hero são os imóveis cadastrados com finalidade <strong>Lançamento</strong> (preencha em Imóveis › Novo). Marcando-os também como <strong>Destaque</strong>, eles aparecem na seção Destaques da Home.
+          </p>
+          <div>
+            <Label>Imagem de fundo do Hero</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {lancImgPreview && <img src={lancImgPreview} alt="Hero lançamentos" className="h-24 w-40 object-cover rounded border border-foreground/10" />}
+              <label className="inline-flex items-center gap-2 cursor-pointer bg-petroleum text-linen px-4 py-2 rounded text-sm">
+                <Upload className="size-4" /> {uploadingLanc ? "Enviando…" : "Trocar imagem"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={uploadLancImage} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">JPG/WebP em 1920×1080px ou maior.</p>
+          </div>
+          <div><Label>Eyebrow</Label><Input value={lanc.eyebrow} onChange={(e) => setLanc({ ...lanc, eyebrow: e.target.value })} /></div>
+          <div>
+            <Label>Título principal (uma linha por entrada)</Label>
+            <Textarea
+              rows={3}
+              value={(lanc.title_lines as string[]).join("\n")}
+              onChange={(e) => setLanc({ ...lanc, title_lines: e.target.value.split("\n") })}
+              placeholder={"Empreendimentos\nexclusivos"}
+            />
+          </div>
+          <div><Label>Subtítulo</Label><Textarea rows={2} value={lanc.subtitle} onChange={(e) => setLanc({ ...lanc, subtitle: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Botão primário</Label><Input value={lanc.cta_primary} onChange={(e) => setLanc({ ...lanc, cta_primary: e.target.value })} placeholder="Falar com especialista" /></div>
+            <div><Label>Botão secundário</Label><Input value={lanc.cta_secondary} onChange={(e) => setLanc({ ...lanc, cta_secondary: e.target.value })} placeholder="Ver imóveis prontos" /></div>
+          </div>
+          <div>
+            <Label>Mensagem quando não houver lançamentos</Label>
+            <Textarea rows={2} value={lanc.empty_message} onChange={(e) => setLanc({ ...lanc, empty_message: e.target.value })} placeholder="Em breve novos lançamentos…" />
+          </div>
+          <div className="grid md:grid-cols-2 gap-3 border-t border-foreground/5 pt-4">
+            <div><Label>Meta title (SEO)</Label><Input value={lanc.meta_title} onChange={(e) => setLanc({ ...lanc, meta_title: e.target.value })} /></div>
+            <div><Label>Meta description (SEO)</Label><Input value={lanc.meta_description} onChange={(e) => setLanc({ ...lanc, meta_description: e.target.value })} /></div>
+          </div>
+          <Button onClick={() => salvar.mutate({ key: "pagina_lancamentos", value: lanc })} disabled={salvar.isPending}>Salvar página Lançamentos</Button>
+        </TabsContent>
+
         <TabsContent value="contato" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
           <div className="grid md:grid-cols-2 gap-3">
             <div><Label>Telefone</Label><Input value={contato.telefone} onChange={(e) => setContato({ ...contato, telefone: e.target.value })} /></div>
