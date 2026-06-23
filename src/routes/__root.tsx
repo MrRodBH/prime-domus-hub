@@ -176,11 +176,17 @@ function RootComponent() {
 
   useEffect(() => {
     return router.subscribe("onResolved", ({ toLocation }) => {
-      const w = window as unknown as { gtag?: (...args: unknown[]) => void };
+      const w = window as unknown as {
+        gtag?: (...args: unknown[]) => void;
+        fbq?: (...args: unknown[]) => void;
+      };
       if (typeof w.gtag === "function") {
         w.gtag("config", "G-BYVFRCL0VV", {
           page_path: toLocation.pathname + toLocation.searchStr,
         });
+      }
+      if (typeof w.fbq === "function") {
+        try { w.fbq("track", "PageView"); } catch { /* noop */ }
       }
     });
   }, [router]);
