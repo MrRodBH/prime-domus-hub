@@ -566,6 +566,94 @@ export type Database = {
           },
         ]
       }
+      lead_atividades: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          lead_id: string
+          metadata: Json
+          tipo: Database["public"]["Enums"]["lead_atividade_tipo"]
+          updated_at: string
+          user_id: string | null
+          user_nome: string
+          user_perfil: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          lead_id: string
+          metadata?: Json
+          tipo: Database["public"]["Enums"]["lead_atividade_tipo"]
+          updated_at?: string
+          user_id?: string | null
+          user_nome: string
+          user_perfil: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          lead_id?: string
+          metadata?: Json
+          tipo?: Database["public"]["Enums"]["lead_atividade_tipo"]
+          updated_at?: string
+          user_id?: string | null
+          user_nome?: string
+          user_perfil?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_atividades_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_descartes: {
+        Row: {
+          created_at: string
+          detalhes: string
+          id: string
+          lead_id: string
+          motivo: Database["public"]["Enums"]["lead_descarte_motivo"]
+          user_id: string | null
+          user_nome: string
+          user_perfil: string
+        }
+        Insert: {
+          created_at?: string
+          detalhes: string
+          id?: string
+          lead_id: string
+          motivo: Database["public"]["Enums"]["lead_descarte_motivo"]
+          user_id?: string | null
+          user_nome: string
+          user_perfil: string
+        }
+        Update: {
+          created_at?: string
+          detalhes?: string
+          id?: string
+          lead_id?: string
+          motivo?: Database["public"]["Enums"]["lead_descarte_motivo"]
+          user_id?: string | null
+          user_nome?: string
+          user_perfil?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_descartes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null
@@ -743,6 +831,23 @@ export type Database = {
         | "terreno"
         | "comercial"
         | "garden"
+      lead_atividade_tipo:
+        | "ligacao"
+        | "whatsapp"
+        | "email"
+        | "visita"
+        | "video_chamada"
+        | "reuniao_presencial"
+        | "outros"
+        | "descarte"
+        | "ia_analise"
+      lead_descarte_motivo:
+        | "sem_contato"
+        | "nao_e_lead"
+        | "financeiro"
+        | "desistiu"
+        | "aluguel"
+        | "outros"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -882,6 +987,25 @@ export const Constants = {
         "terreno",
         "comercial",
         "garden",
+      ],
+      lead_atividade_tipo: [
+        "ligacao",
+        "whatsapp",
+        "email",
+        "visita",
+        "video_chamada",
+        "reuniao_presencial",
+        "outros",
+        "descarte",
+        "ia_analise",
+      ],
+      lead_descarte_motivo: [
+        "sem_contato",
+        "nao_e_lead",
+        "financeiro",
+        "desistiu",
+        "aluguel",
+        "outros",
       ],
     },
   },
