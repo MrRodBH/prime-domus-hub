@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { MapPin, Phone, Mail } from "lucide-react";
+import { metaTrack, metaEventId } from "@/lib/meta-pixel";
 
 export const Route = createFileRoute("/contato")({
   head: () => ({
