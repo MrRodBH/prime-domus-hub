@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { MessageCircle } from "lucide-react";
 import { obterSiteSettings } from "@/lib/api/site.functions";
+import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
+import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 
 export function WhatsAppFab() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
