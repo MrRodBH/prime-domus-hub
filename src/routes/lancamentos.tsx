@@ -1,14 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, BedDouble, Maximize2, Car, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight, Calendar, Building2 } from "lucide-react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { obterSiteSettings } from "@/lib/api/site.functions";
-import { listarImoveis } from "@/lib/api/catalogo.functions";
+import { listarLancamentosPublico } from "@/lib/api/lancamentos.functions";
 import heroImg from "@/assets/hero.jpg";
 
 const DEFAULT_META_TITLE = "Lançamentos — RM Prime Imóveis";
 const DEFAULT_META_DESC = "Empreendimentos exclusivos com acesso antecipado em BH e Nova Lima.";
+
+type LancamentoCard = {
+  id: string;
+  slug: string;
+  nome: string;
+  construtora: string | null;
+  entrega: string | null;
+  destaque: boolean;
+  imagem_capa: string | null;
+  endereco: string | null;
+  status: { nome: string; slug: string } | null;
+};
 
 export const Route = createFileRoute("/lancamentos")({
   head: (ctx: { loaderData?: { metaTitle?: string; metaDescription?: string } }) => {
@@ -29,8 +41,8 @@ export const Route = createFileRoute("/lancamentos")({
     const [site] = await Promise.all([
       context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() }),
       context.queryClient.ensureQueryData({
-        queryKey: ["lancamentos-list"],
-        queryFn: () => listarImoveis({ data: { finalidade: "lancamento", limite: 60 } }),
+        queryKey: ["lancamentos-publico"],
+        queryFn: () => listarLancamentosPublico(),
       }),
     ]);
     return {
@@ -41,16 +53,17 @@ export const Route = createFileRoute("/lancamentos")({
   component: Page,
 });
 
-function formatPreco(p: number | null | undefined, sobConsulta?: boolean | null) {
-  if (sobConsulta || !p) return "Sob consulta";
-  return `R$ ${p.toLocaleString("pt-BR")}`;
+function fmtMesAno(s: string | null) {
+  if (!s) return null;
+  const [y, m] = String(s).slice(0, 7).split("-");
+  return `${m}/${y}`;
 }
 
 function Page() {
   const { data: site } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings(), staleTime: 5 * 60 * 1000 });
-  const { data: imoveis } = useQuery({
-    queryKey: ["lancamentos-list"],
-    queryFn: () => listarImoveis({ data: { finalidade: "lancamento", limite: 60 } }),
+  const { data: lista = [] } = useQuery<LancamentoCard[]>({
+    queryKey: ["lancamentos-publico"],
+    queryFn: () => listarLancamentosPublico() as Promise<LancamentoCard[]>,
     staleTime: 2 * 60 * 1000,
   });
 
@@ -62,8 +75,6 @@ function Page() {
   const ctaSecondary = cfg.cta_secondary || "";
   const heroImage = cfg.image_url || heroImg;
   const emptyMsg = cfg.empty_message || "Em breve novos lançamentos.";
-
-  const lista = imoveis ?? [];
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -104,39 +115,40 @@ function Page() {
               </Link>
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
-              {lista.map((p) => {
-                const bairroNome = (p.bairro as { nome?: string } | null)?.nome ?? "";
-                const suitesTxt = p.suites ? `${p.suites} suíte${p.suites > 1 ? "s" : ""}` : (p.quartos ? `${p.quartos} quarto${p.quartos > 1 ? "s" : ""}` : "—");
-                const vagasTxt = p.vagas ? `${p.vagas} vaga${p.vagas > 1 ? "s" : ""}` : "—";
-                const areaTxt = p.area_util ? `${p.area_util} m²` : "—";
-                return (
-                  <Link key={p.id} to="/imovel/$slug" params={{ slug: p.slug }} className="group cursor-pointer block">
-                    <div className="relative overflow-hidden rounded mb-5 bg-muted">
-                      {p.imagem_capa ? (
-                        <img src={p.imagem_capa} alt={p.titulo} loading="lazy" className="block w-full h-auto" />
-                      ) : (
-                        <div className="aspect-[16/10] w-full bg-muted flex items-center justify-center text-muted-foreground text-sm">Sem foto</div>
-                      )}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+              {lista.map((p) => (
+                <Link key={p.id} to="/lancamentos/$slug" params={{ slug: p.slug }} className="group cursor-pointer block">
+                  <div className="relative overflow-hidden rounded mb-5 bg-muted aspect-[4/3]">
+                    {p.imagem_capa ? (
+                      <CapaPublica path={p.imagem_capa} alt={p.nome} />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground text-sm">Em breve fotos</div>
+                    )}
+                    {p.status && (
                       <div className="absolute top-4 left-4 bg-gold px-3 py-1.5 rounded-full">
-                        <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">Lançamento</span>
+                        <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{p.status.nome}</span>
                       </div>
-                    </div>
-                    <div className="space-y-1.5">
+                    )}
+                    {p.destaque && (
+                      <div className="absolute top-4 right-4 bg-petroleum text-linen px-3 py-1.5 rounded-full">
+                        <span className="text-[9px] font-bold uppercase tracking-[0.22em]">Destaque</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {p.endereco && (
                       <p className="text-[10px] text-muted-foreground uppercase tracking-[0.22em] flex items-center gap-1.5">
-                        <MapPin className="size-3" strokeWidth={1.5} />{bairroNome}
+                        <MapPin className="size-3" strokeWidth={1.5} />{p.endereco}
                       </p>
-                      <h3 className="font-display text-2xl group-hover:text-gold transition-colors">{p.titulo}</h3>
-                      <div className="flex items-center gap-5 text-xs text-muted-foreground pt-3 border-t border-foreground/5">
-                        <span className="flex items-center gap-1.5"><Maximize2 className="size-3" strokeWidth={1.5} />{areaTxt}</span>
-                        <span className="flex items-center gap-1.5"><BedDouble className="size-3" strokeWidth={1.5} />{suitesTxt}</span>
-                        <span className="flex items-center gap-1.5"><Car className="size-3" strokeWidth={1.5} />{vagasTxt}</span>
-                      </div>
-                      <p className="text-lg font-medium text-gold pt-3">{formatPreco(p.preco, p.preco_sob_consulta)}</p>
+                    )}
+                    <h3 className="font-display text-2xl group-hover:text-gold transition-colors">{p.nome}</h3>
+                    <div className="flex items-center gap-5 text-xs text-muted-foreground pt-3 border-t border-foreground/5">
+                      {p.construtora && <span className="flex items-center gap-1.5"><Building2 className="size-3" strokeWidth={1.5} />{p.construtora}</span>}
+                      {p.entrega && <span className="flex items-center gap-1.5"><Calendar className="size-3" strokeWidth={1.5} />Entrega {fmtMesAno(p.entrega)}</span>}
                     </div>
-                  </Link>
-                );
-              })}
+                  </div>
+                </Link>
+              ))}
             </div>
           )}
         </div>
@@ -146,3 +158,20 @@ function Page() {
     </div>
   );
 }
+
+import { useEffect, useState } from "react";
+import { adminAssinarUrl } from "@/lib/api/admin.functions";
+function CapaPublica({ path, alt }: { path: string; alt: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    if (path.startsWith("http")) { setUrl(path); return; }
+    adminAssinarUrl({ data: { bucket: "lancamentos", path, width: 800, quality: 70 } })
+      .then((r) => { if (!cancel) setUrl(r.url); })
+      .catch(() => { /* ignore */ });
+    return () => { cancel = true; };
+  }, [path]);
+  if (!url) return <div className="w-full h-full bg-muted" />;
+  return <img src={url} alt={alt} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />;
+}
+
