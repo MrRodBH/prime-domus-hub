@@ -76,13 +76,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async () => {
+    let faviconUrl: string | null = null;
+    let metaPixelId: string | null = null;
     try {
       const { obterSiteSettings } = await import("../lib/api/site.functions");
       const settings = await obterSiteSettings();
-      return { faviconUrl: settings.branding.favicon_url ?? null };
+      faviconUrl = settings.branding.favicon_url ?? null;
     } catch {
-      return { faviconUrl: null };
+      // ignore
     }
+    try {
+      const { obterMetaPixelId } = await import("../lib/api/meta.functions");
+      const r = await obterMetaPixelId();
+      metaPixelId = r.pixel_id;
+    } catch {
+      // ignore
+    }
+    return { faviconUrl, metaPixelId };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -131,6 +141,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           },
         }),
       },
+      ...(loaderData?.metaPixelId
+        ? [
+            {
+              children: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${loaderData.metaPixelId}');fbq('track','PageView');`,
+            },
+          ]
+        : []),
     ],
   }),
   shellComponent: RootShell,
@@ -159,11 +176,17 @@ function RootComponent() {
 
   useEffect(() => {
     return router.subscribe("onResolved", ({ toLocation }) => {
-      const w = window as unknown as { gtag?: (...args: unknown[]) => void };
+      const w = window as unknown as {
+        gtag?: (...args: unknown[]) => void;
+        fbq?: (...args: unknown[]) => void;
+      };
       if (typeof w.gtag === "function") {
         w.gtag("config", "G-BYVFRCL0VV", {
           page_path: toLocation.pathname + toLocation.searchStr,
         });
+      }
+      if (typeof w.fbq === "function") {
+        try { w.fbq("track", "PageView"); } catch { /* noop */ }
       }
     });
   }, [router]);

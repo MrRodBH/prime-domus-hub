@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { obterSiteSettings, atualizarSiteSettings } from "@/lib/api/site.functions";
+import { obterMetaConfigAdmin, atualizarMetaConfigAdmin } from "@/lib/api/meta.functions";
 import { adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,7 @@ function AdminSite() {
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
           <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
+          <TabsTrigger value="meta">Integrações Meta</TabsTrigger>
         </TabsList>
 
         <TabsContent value="branding" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
@@ -273,7 +275,86 @@ function AdminSite() {
           </div>
           <Button onClick={() => salvar.mutate({ key: "contato", value: contato })} disabled={salvar.isPending}>Salvar contato</Button>
         </TabsContent>
+        <TabsContent value="meta" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
+          <MetaIntegracaoForm />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function MetaIntegracaoForm() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["meta-config-admin"],
+    queryFn: () => obterMetaConfigAdmin(),
+  });
+  const [pixelId, setPixelId] = useState("");
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    if (data) setPixelId(data.pixel_id ?? "");
+  }, [data]);
+
+  const salvar = useMutation({
+    mutationFn: () =>
+      atualizarMetaConfigAdmin({
+        data: {
+          pixel_id: pixelId.trim(),
+          conversions_api_token: token.trim() || undefined,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Configurações Meta salvas.");
+      setToken("");
+      qc.invalidateQueries({ queryKey: ["meta-config-admin"] });
+      qc.invalidateQueries({ queryKey: ["site-settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (isLoading) return <p className="text-muted-foreground">Carregando…</p>;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-display text-xl">Meta Pixel & Conversions API</h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Configurações do Meta Pixel (rastreamento no navegador) e da Conversions API (envio server-side de eventos para a Meta).
+        </p>
+      </div>
+
+      <div>
+        <Label>Pixel ID</Label>
+        <Input
+          value={pixelId}
+          onChange={(e) => setPixelId(e.target.value)}
+          placeholder="985976432441241"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          ID do Meta Pixel utilizado em todas as páginas do site.
+        </p>
+      </div>
+
+      <div>
+        <Label>Access Token da Conversions API</Label>
+        <Input
+          type="password"
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          placeholder={data?.token_set ? "•••••••••• (token configurado — preencha para substituir)" : "Insira o Token de Acesso da API de Conversões da Meta."}
+          autoComplete="new-password"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          {data?.token_set
+            ? "Token salvo. Deixe em branco para manter o atual ou digite um novo para substituir."
+            : "Token armazenado de forma segura. Necessário para enviar eventos server-side à Meta."}
+        </p>
+      </div>
+
+      <Button onClick={() => salvar.mutate()} disabled={salvar.isPending || !pixelId.trim()}>
+        Salvar configurações
+      </Button>
     </div>
   );
 }

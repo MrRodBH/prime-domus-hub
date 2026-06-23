@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { metaTrack, metaEventId } from "@/lib/meta-pixel";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Search, MapPin, BedDouble, Maximize2, Car, SlidersHorizontal, X } from "lucide-react";
 import { z } from "zod";
@@ -96,6 +97,29 @@ function Page() {
   const { data: imoveis } = useSuspenseQuery(imoveisQuery(search));
   const { data: bairros } = useSuspenseQuery(bairrosQuery);
   const { data: cidades } = useSuspenseQuery(cidadesQuery);
+
+  const lastSearchKey = useRef<string>("");
+  useEffect(() => {
+    const key = JSON.stringify(search);
+    if (key === lastSearchKey.current) return;
+    lastSearchKey.current = key;
+    const hasFilter = Object.values(search).some((v) => v !== undefined && v !== "");
+    if (!hasFilter) return;
+    metaTrack(
+      "Search",
+      {
+        search_string: search.busca ?? undefined,
+        content_type: "product",
+        tipo: search.tipo,
+        cidade: search.cidade,
+        bairro: search.bairro,
+        preco_min: search.preco_min,
+        preco_max: search.preco_max,
+      },
+      metaEventId(),
+    );
+  }, [search]);
+
 
   const bairrosFiltrados = (() => {
     const lista = search.cidade

@@ -11,6 +11,8 @@ import { Footer } from "@/components/site/Footer";
 import { obterImovel, enviarLead } from "@/lib/api/catalogo.functions";
 import { imovelImage, formatPreco } from "@/lib/property-images";
 import { toEmbedUrl } from "@/lib/embed-url";
+import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
+import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 
 const imovelQuery = (slug: string) =>
   queryOptions({
@@ -100,6 +102,43 @@ function Shell({ children }: { children: React.ReactNode }) {
 function Page() {
   const { slug } = Route.useParams();
   const { data: imovel } = useSuspenseQuery(imovelQuery(slug));
+
+  useEffect(() => {
+    if (!imovel) return;
+    const bairroNome = (imovel.bairro as { nome?: string } | null)?.nome;
+    const cidadeNome = (imovel.cidade as { nome?: string } | null)?.nome;
+    const event_id = metaEventId();
+    const custom = {
+      content_type: "product",
+      content_ids: [imovel.id],
+      content_name: imovel.titulo,
+      property_id: imovel.id,
+      property_title: imovel.titulo,
+      property_type: imovel.tipo ?? undefined,
+      city: cidadeNome,
+      state: undefined as string | undefined,
+      value: imovel.preco ? Number(imovel.preco) : undefined,
+      currency: "BRL",
+      bairro: bairroNome,
+    };
+    metaTrack("ViewContent", custom, event_id);
+    const ids = metaBrowserIds();
+    enviarEventoMetaCAPI({
+      data: {
+        event_name: "ViewContent",
+        event_id,
+        event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
+        action_source: "website",
+        user_data: {
+          client_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+          ...ids,
+        },
+        custom_data: custom as Record<string, unknown>,
+      },
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imovel?.id]);
+
   if (!imovel) return null;
 
   const bairro = (imovel.bairro as { nome?: string; slug?: string } | null) ?? null;
@@ -621,6 +660,34 @@ function FormContato({
       }),
     onSuccess: () => {
       setOk(true);
+      const event_id = metaEventId();
+      const custom = {
+        content_name: imovelTitulo,
+        content_ids: [imovelId],
+        property_id: imovelId,
+        property_title: imovelTitulo,
+        lead_source: "ficha-imovel",
+      };
+      metaTrack("Lead", custom, event_id);
+      const ids = metaBrowserIds();
+      const [first_name, ...rest] = form.nome.trim().split(/\s+/);
+      enviarEventoMetaCAPI({
+        data: {
+          event_name: "Lead",
+          event_id,
+          event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
+          action_source: "website",
+          user_data: {
+            email: form.email || undefined,
+            phone: form.telefone || undefined,
+            first_name: first_name || undefined,
+            last_name: rest.join(" ") || undefined,
+            client_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+            ...ids,
+          },
+          custom_data: custom,
+        },
+      }).catch(() => {});
       router.invalidate();
     },
   });
