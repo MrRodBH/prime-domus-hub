@@ -27,10 +27,10 @@ export const Route = createFileRoute("/_authenticated/admin/leads")({
 type Status = "novo" | "conversando" | "visita" | "proposta" | "ganho" | "perdido";
 
 const COLUMNS: { id: Status; label: string; accent: string }[] = [
-  { id: "novo", label: "Novo", accent: "bg-blue-500" },
-  { id: "conversando", label: "Conversando", accent: "bg-indigo-500" },
-  { id: "visita", label: "Visita", accent: "bg-amber-500" },
-  { id: "proposta", label: "Proposta", accent: "bg-purple-500" },
+  { id: "novo", label: "Novo", accent: "bg-red-500" },
+  { id: "conversando", label: "Conversando", accent: "bg-amber-500" },
+  { id: "visita", label: "Visita", accent: "bg-lime-500" },
+  { id: "proposta", label: "Proposta", accent: "bg-emerald-500" },
   { id: "ganho", label: "Ganho", accent: "bg-emerald-500" },
   { id: "perdido", label: "Perdido", accent: "bg-rose-500" },
 ];
