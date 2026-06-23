@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { metaTrack, metaEventId } from "@/lib/meta-pixel";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Search, MapPin, BedDouble, Maximize2, Car, SlidersHorizontal, X } from "lucide-react";
 import { z } from "zod";
