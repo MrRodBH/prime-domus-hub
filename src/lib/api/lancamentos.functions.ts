@@ -133,10 +133,11 @@ export const adminSalvarLancamento = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       projectId = (created as { id: string }).id;
     }
+    if (!projectId) throw new Error("Falha ao obter id do empreendimento");
     // Replace amenities
     await context.supabase.from("launch_project_amenities").delete().eq("project_id", projectId);
     if (amenity_ids.length > 0) {
-      const rows = amenity_ids.map((aid) => ({ project_id: projectId, amenity_id: aid }));
+      const rows = amenity_ids.map((aid) => ({ project_id: projectId!, amenity_id: aid }));
       const { error: aErr } = await context.supabase.from("launch_project_amenities").insert(rows as never);
       if (aErr) throw new Error(aErr.message);
     }
