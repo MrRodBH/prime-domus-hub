@@ -15,14 +15,19 @@ import JSZip from "jszip";
 type Imagem = { id: string; url: string; alt?: string | null; ordem: number };
 
 interface Props {
-  imovelId: string;
+  imovelId?: string;
+  launchProjectId?: string;
   titulo: string;
   imagens: Imagem[];
   signedUrls?: Record<string, string>;
+  /** Bucket de origem das imagens para gerar URL no download. */
+  bucket?: "imoveis" | "lancamentos";
 }
 
-export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {} }: Props) {
+export function InstagramPostManager({ imovelId, launchProjectId, titulo, imagens, signedUrls = {}, bucket = "imoveis" }: Props) {
   const qc = useQueryClient();
+  const targetKey = imovelId ?? launchProjectId ?? "";
+  const targetPayload = imovelId ? { imovel_id: imovelId } : { launch_project_id: launchProjectId! };
   const [open, setOpen] = useState(false);
   const [tom, setTom] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
   const [formato, setFormato] = useState<"feed" | "story" | "reels">("feed");
@@ -35,13 +40,13 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
   const [copiou, setCopiou] = useState<null | "legenda" | "hashtags" | "tudo">(null);
 
   const posts = useQuery({
-    queryKey: ["ig-posts", imovelId],
-    queryFn: () => igListarPosts({ data: { imovel_id: imovelId } }),
-    enabled: open,
+    queryKey: ["ig-posts", targetKey],
+    queryFn: () => igListarPosts({ data: targetPayload }),
+    enabled: open && !!targetKey,
   });
 
   const gerar = useMutation({
-    mutationFn: () => igGerarPost({ data: { imovel_id: imovelId, tom, formato } }),
+    mutationFn: () => igGerarPost({ data: { ...targetPayload, tom, formato } }),
     onSuccess: (r) => {
       setLegenda(r.legenda);
       setHashtags(r.hashtags);
@@ -57,7 +62,7 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
       igSalvarPost({
         data: {
           id: postId,
-          imovel_id: imovelId,
+          ...targetPayload,
           legenda,
           hashtags,
           imagem_ids: selecionadas,
@@ -67,7 +72,7 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
       }),
     onSuccess: (r, status) => {
       setPostId(r.id);
-      qc.invalidateQueries({ queryKey: ["ig-posts", imovelId] });
+      qc.invalidateQueries({ queryKey: ["ig-posts", targetKey] });
       toast.success(
         status === "publicado" ? "Marcado como publicado" : status === "aprovado" ? "Post aprovado" : "Rascunho salvo",
       );
@@ -78,7 +83,7 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
   const excluir = useMutation({
     mutationFn: (id: string) => igExcluirPost({ data: { id } }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ig-posts", imovelId] });
+      qc.invalidateQueries({ queryKey: ["ig-posts", targetKey] });
       toast.success("Post removido");
     },
   });
@@ -120,7 +125,7 @@ export function InstagramPostManager({ imovelId, titulo, imagens, signedUrls = {
         const img = selecionadasObj[i];
         let url = img.url;
         if (!url.startsWith("http")) {
-          const r = await adminAssinarUrl({ data: { bucket: "imoveis", path: img.url } });
+          const r = await adminAssinarUrl({ data: { bucket, path: img.url } });
           url = r.url;
         }
         const resp = await fetch(url);

@@ -523,7 +523,8 @@ export type Database = {
           hashtags: string
           id: string
           imagem_ids: string[]
-          imovel_id: string
+          imovel_id: string | null
+          launch_project_id: string | null
           legenda: string
           modelo_ia: string | null
           publicado_em: string | null
@@ -536,7 +537,8 @@ export type Database = {
           hashtags?: string
           id?: string
           imagem_ids?: string[]
-          imovel_id: string
+          imovel_id?: string | null
+          launch_project_id?: string | null
           legenda?: string
           modelo_ia?: string | null
           publicado_em?: string | null
@@ -549,7 +551,8 @@ export type Database = {
           hashtags?: string
           id?: string
           imagem_ids?: string[]
-          imovel_id?: string
+          imovel_id?: string | null
+          launch_project_id?: string | null
           legenda?: string
           modelo_ia?: string | null
           publicado_em?: string | null
@@ -562,6 +565,13 @@ export type Database = {
             columns: ["imovel_id"]
             isOneToOne: false
             referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_posts_launch_project_id_fkey"
+            columns: ["launch_project_id"]
+            isOneToOne: false
+            referencedRelation: "launch_projects"
             referencedColumns: ["id"]
           },
         ]

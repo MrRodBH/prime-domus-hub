@@ -1,25 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { GaleriaLancamento } from "@/components/admin/GaleriaLancamento";
 import { UnidadesLancamento } from "@/components/admin/UnidadesLancamento";
 import { CondicoesPagamento } from "@/components/admin/CondicoesPagamento";
 import { PdfsLancamento } from "@/components/admin/PdfsLancamento";
+import { LazerPicker } from "@/components/admin/LazerPicker";
+import { InstagramPostManager } from "@/components/admin/InstagramPostManager";
 import { supabase } from "@/integrations/supabase/client";
 import {
   adminObterLancamento,
   adminSalvarLancamento,
   listarAmenities,
   listarStatusLancamento,
+  adminListarImagensLancamento,
 } from "@/lib/api/lancamentos.functions";
 import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
+import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 
 type Props = { id?: string };
 
@@ -76,15 +81,40 @@ export function LancamentoForm({ id }: Props) {
   const [form, setForm] = useState<FormState>(empty);
   const [capaPreview, setCapaPreview] = useState<string | null>(null);
   const [uploadingCapa, setUploadingCapa] = useState(false);
+  const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
 
   const { data: statuses } = useQuery({ queryKey: ["launch-statuses"], queryFn: () => listarStatusLancamento() });
-  const { data: amenities } = useQuery({ queryKey: ["launch-amenities"], queryFn: () => listarAmenities() });
+  // amenities são buscadas dentro do LazerPicker
   const { data: corretores } = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
   const { data: existing } = useQuery({
     queryKey: ["admin", "lancamento", id],
     queryFn: () => adminObterLancamento({ data: { id: id! } }),
     enabled: !!id,
   });
+  const { data: imagensRaw } = useQuery({
+    queryKey: ["admin", "lancamento-imagens", form.id],
+    queryFn: () => adminListarImagensLancamento({ data: { project_id: form.id! } }),
+    enabled: !!form.id,
+  });
+  const imagensIG = useMemo(
+    () => (imagensRaw ?? []).map((i) => ({ id: i.id, url: i.storage_path, alt: i.legenda, ordem: i.ordem })),
+    [imagensRaw],
+  );
+  const [igSignedUrls, setIgSignedUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      const map: Record<string, string> = {};
+      for (const img of imagensIG) {
+        try {
+          const { url } = await adminAssinarUrl({ data: { bucket: "lancamentos", path: img.url, width: 400, quality: 65 } });
+          map[img.id] = url;
+        } catch { /* ignore */ }
+      }
+      if (!cancel) setIgSignedUrls(map);
+    })();
+    return () => { cancel = true; };
+  }, [imagensIG]);
 
   useEffect(() => {
     if (!existing) return;
@@ -189,14 +219,51 @@ export function LancamentoForm({ id }: Props) {
     }
   }
 
-  function toggleAmenity(aid: string) {
-    setForm((f) => ({
-      ...f,
-      amenity_ids: f.amenity_ids.includes(aid)
-        ? f.amenity_ids.filter((x) => x !== aid)
-        : [...f.amenity_ids, aid],
-    }));
-  }
+  const gerarIA = useMutation({
+    mutationFn: async () => {
+      // Coleta nomes dos amenities selecionados
+      const ams = await listarAmenities();
+      const sel = new Set(form.amenity_ids);
+      const lazer = ams.filter((a) => sel.has(a.id)).map((a) => a.nome);
+      return gerarDescricaoImovel({
+        data: {
+          titulo: form.nome,
+          tipo: "Lançamento (Empreendimento)",
+          finalidade: "lancamento",
+          bairro: "",
+          endereco: form.endereco,
+          quartos: num(form.quartos),
+          suites: num(form.suites),
+          banheiros: null,
+          vagas: num(form.vagas),
+          area_util: num(form.area_apartamentos),
+          area_total: null,
+          preco: null,
+          preco_sob_consulta: true,
+          caracteristicas: [
+            form.construtora && `Construtora: ${form.construtora}`,
+            form.arquitetura && `Arquitetura: ${form.arquitetura}`,
+            form.entrega && `Entrega: ${form.entrega}`,
+            form.numero_unidades && `${form.numero_unidades} unidades`,
+            form.numero_torres && `${form.numero_torres} torres`,
+            form.numero_andares && `${form.numero_andares} andares`,
+            ...lazer,
+          ].filter(Boolean) as string[],
+          tom: tomIA,
+        },
+      });
+    },
+    onSuccess: (r) => {
+      // Converte parágrafos em HTML para o RichTextEditor
+      const html = r.descricao
+        .split(/\n{2,}/)
+        .map((p) => `<p>${p.trim().replace(/\n/g, "<br>")}</p>`)
+        .join("");
+      setForm((f) => ({ ...f, descricao: html }));
+      toast.success("Descrição gerada com IA");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <form
@@ -330,25 +397,54 @@ export function LancamentoForm({ id }: Props) {
 
       {/* Descrição rica */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-medium">Descrição do empreendimento</h2>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="font-medium">Descrição do empreendimento</h2>
+          <div className="flex items-center gap-2">
+            <Select value={tomIA} onValueChange={(v) => setTomIA(v as typeof tomIA)}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sofisticado">Tom sofisticado</SelectItem>
+                <SelectItem value="objetivo">Tom objetivo</SelectItem>
+                <SelectItem value="acolhedor">Tom acolhedor</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button type="button" size="sm" variant="outline" onClick={() => gerarIA.mutate()} disabled={gerarIA.isPending}>
+              <Sparkles className="size-3.5 mr-1.5" />
+              {gerarIA.isPending ? "Gerando…" : "Gerar com IA"}
+            </Button>
+          </div>
+        </div>
         <RichTextEditor value={form.descricao} onChange={(html) => setForm((f) => ({ ...f, descricao: html }))} />
+        <p className="text-xs text-muted-foreground">A IA usa nome, tipologia, lazer selecionado e demais campos preenchidos acima.</p>
       </section>
 
       {/* Lazer */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-medium">Lazer</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-          {amenities?.map((a) => {
-            const checked = form.amenity_ids.includes(a.id);
-            return (
-              <label key={a.id} className={`flex items-center gap-2 px-3 py-2 rounded border text-sm cursor-pointer ${checked ? "border-gold bg-gold/5" : "border-foreground/10 hover:bg-foreground/5"}`}>
-                <input type="checkbox" checked={checked} onChange={() => toggleAmenity(a.id)} className="accent-gold" />
-                {a.nome}
-              </label>
-            );
-          })}
-        </div>
+        <LazerPicker
+          by="id"
+          value={form.amenity_ids}
+          onChange={(ids) => setForm((f) => ({ ...f, amenity_ids: ids }))}
+          label="Selecionar itens de lazer"
+        />
       </section>
+
+      {/* Instagram — só após salvar */}
+      {form.id && (
+        <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-3">
+          <h2 className="font-medium">Instagram</h2>
+          <p className="text-sm text-muted-foreground">
+            Gere legenda + hashtags com IA, edite e baixe um ZIP com as fotos do empreendimento prontas para postar.
+          </p>
+          <InstagramPostManager
+            launchProjectId={form.id}
+            titulo={form.nome}
+            imagens={imagensIG}
+            signedUrls={igSignedUrls}
+            bucket="lancamentos"
+          />
+        </section>
+      )}
 
       {/* SEO */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
