@@ -660,6 +660,34 @@ function FormContato({
       }),
     onSuccess: () => {
       setOk(true);
+      const event_id = metaEventId();
+      const custom = {
+        content_name: imovelTitulo,
+        content_ids: [imovelId],
+        property_id: imovelId,
+        property_title: imovelTitulo,
+        lead_source: "ficha-imovel",
+      };
+      metaTrack("Lead", custom, event_id);
+      const ids = metaBrowserIds();
+      const [first_name, ...rest] = form.nome.trim().split(/\s+/);
+      enviarEventoMetaCAPI({
+        data: {
+          event_name: "Lead",
+          event_id,
+          event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
+          action_source: "website",
+          user_data: {
+            email: form.email || undefined,
+            phone: form.telefone || undefined,
+            first_name: first_name || undefined,
+            last_name: rest.join(" ") || undefined,
+            client_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+            ...ids,
+          },
+          custom_data: custom,
+        },
+      }).catch(() => {});
       router.invalidate();
     },
   });
