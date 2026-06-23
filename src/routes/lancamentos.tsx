@@ -18,6 +18,7 @@ type LancamentoCard = {
   entrega: string | null;
   destaque: boolean;
   imagem_capa: string | null;
+  capa_url: string | null;
   endereco: string | null;
   status: { nome: string; slug: string } | null;
 };
