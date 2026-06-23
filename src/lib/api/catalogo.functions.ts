@@ -268,6 +268,7 @@ export const enviarLead = createServerFn({ method: "POST" })
       mensagem: z.string().optional(),
       origem: z.string().optional(),
       imovel_id: z.string().uuid().optional(),
+      launch_project_id: z.string().uuid().optional(),
       consent_lgpd: z.literal(true, {
         errorMap: () => ({ message: "É necessário aceitar a Política de Privacidade." }),
       }),
@@ -279,6 +280,22 @@ export const enviarLead = createServerFn({ method: "POST" })
     }
     const leadId = crypto.randomUUID();
     const supabase = publicClient();
+
+    // Se for lead de lançamento, pré-resolve corretor responsável (auto-atribuição)
+    let corretorId: string | null = null;
+    let lancNome: string | undefined;
+    if (data.launch_project_id) {
+      const { data: proj } = await supabase
+        .from("launch_projects")
+        .select("nome, corretor_id")
+        .eq("id", data.launch_project_id)
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      corretorId = (proj as any)?.corretor_id ?? null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lancNome = (proj as any)?.nome;
+    }
+
     const { error } = await supabase
       .from("leads")
       .insert({
@@ -289,9 +306,12 @@ export const enviarLead = createServerFn({ method: "POST" })
         mensagem: data.mensagem || null,
         origem: data.origem || "site",
         imovel_id: data.imovel_id || null,
+        launch_project_id: data.launch_project_id || null,
+        corretor_id: corretorId,
+        assigned_to: corretorId,
         consent_lgpd: true,
         consent_at: new Date().toISOString(),
-      });
+      } as never);
     if (error) throw new Error(error.message);
 
 
@@ -304,14 +324,27 @@ export const enviarLead = createServerFn({ method: "POST" })
         { auth: { persistSession: false, autoRefreshToken: false } },
       );
 
-      // Destinatário: site_settings.contato.email
+      // Prioridade do destino:
+      // 1) e-mail do corretor responsável (se houver) - cópia também para o gestor
+      // 2) e-mail geral do site (site_settings.contato.email)
+      let destino: string | undefined;
+      let corretorEmail: string | undefined;
+      let corretorNome: string | undefined;
+      if (corretorId) {
+        const { data: c } = await admin
+          .from("corretores")
+          .select("nome, email")
+          .eq("id", corretorId)
+          .maybeSingle();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        corretorEmail = (c as any)?.email ?? undefined;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        corretorNome = (c as any)?.nome ?? undefined;
+      }
       const { data: settings } = await admin
-        .from("site_settings")
-        .select("value")
-        .eq("key", "contato")
-        .maybeSingle();
+        .from("site_settings").select("value").eq("key", "contato").maybeSingle();
       const contato = (settings?.value as { email?: string } | null) ?? null;
-      const destino = contato?.email;
+      destino = corretorEmail || contato?.email;
 
       if (destino) {
         // Buscar dados do imóvel (se aplicável) para enriquecer e-mail
@@ -340,6 +373,8 @@ export const enviarLead = createServerFn({ method: "POST" })
             origem: data.origem || "site",
             imovel_codigo,
             imovel_titulo,
+            lancamento_nome: lancNome,
+            corretor_nome: corretorNome,
             recebido_em: new Date().toLocaleString("pt-BR", {
               timeZone: "America/Sao_Paulo",
             }),
@@ -352,3 +387,4 @@ export const enviarLead = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
