@@ -233,6 +233,47 @@ function Home() {
         </div>
       </section>
 
+      {/* LANÇAMENTOS EM DESTAQUE */}
+      {lancDestaque.length > 0 && (
+        <section className="py-24 md:py-32 bg-petroleum text-linen">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+              <div>
+                <span className="eyebrow !text-tiffany">Lançamentos</span>
+                <h2 className="font-display text-4xl md:text-5xl mt-4 leading-[1.1]">Empreendimentos em destaque</h2>
+              </div>
+              <Link to="/lancamentos" className="group inline-flex items-center gap-2 text-sm font-medium border-b border-linen/30 pb-1 hover:border-gold hover:text-gold transition-colors">
+                Ver todos os lançamentos
+                <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" strokeWidth={1.5} />
+              </Link>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8 lg:gap-10">
+              {lancDestaque.map((l) => (
+                <Link key={l.id} to="/lancamentos/$slug" params={{ slug: l.slug }} className="group block">
+                  <div className="relative overflow-hidden rounded mb-5 bg-linen/5 aspect-[4/3]">
+                    {l.capa_url ? (
+                      <img src={l.capa_url} alt={l.nome} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-linen/40 text-sm">Em breve</div>
+                    )}
+                    {l.status && (
+                      <div className="absolute top-4 left-4 bg-gold px-3 py-1.5 rounded-full">
+                        <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-petroleum">{l.status.nome}</span>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="font-display text-2xl group-hover:text-gold transition-colors">{l.nome}</h3>
+                  {l.construtora && <p className="text-linen/60 text-xs uppercase tracking-[0.18em] mt-1">{l.construtora}</p>}
+                  {l.endereco && <p className="text-linen/70 text-sm mt-2 flex items-center gap-1.5"><MapPin className="size-3" />{l.endereco}</p>}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+
+
       {/* NEIGHBORHOODS */}
       <section className="py-24 md:py-32 bg-secondary/40">
         <div className="max-w-7xl mx-auto px-6">
