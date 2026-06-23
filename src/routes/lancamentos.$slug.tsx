@@ -346,7 +346,7 @@ function Fato({ icon: Icon, label, value }: { icon: typeof MapPin; label: string
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { enviarLead } from "@/lib/api/catalogo.functions";
-import { metaTrack, metaEventId } from "@/lib/meta";
+import { metaTrack, metaEventId } from "@/lib/meta-pixel";
 function LeadFormLancamento({ launchProjectId, nome }: { launchProjectId: string; nome: string }) {
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: `Olá, tenho interesse no ${nome}.`, consent: false });
   const [enviado, setEnviado] = useState(false);
