@@ -424,10 +424,9 @@ export const adminRemoverPdfLancamento = createServerFn({ method: "POST" })
 
 
 // ===== PÚBLICO =====
+import { createClient as createPublicClient } from "@supabase/supabase-js";
 function sbPublic() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createClient } = require("@supabase/supabase-js");
-  return createClient(
+  return createPublicClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_PUBLISHABLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } },
