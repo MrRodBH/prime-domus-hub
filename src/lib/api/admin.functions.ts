@@ -386,9 +386,25 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Cria ou recupera o usuário no Auth
+    // Verifica se já existe usuário com esse e-mail (no Auth ou em corretores)
     const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
-    let userId = existing?.users.find((u) => u.email === data.email)?.id;
+    const existingUser = existing?.users.find((u) => u.email === data.email);
+
+    const { data: corretorByEmail } = await context.supabase
+      .from("corretores")
+      .select("id, user_id")
+      .eq("email", data.email)
+      .maybeSingle();
+
+    // Se o chamador não indicou um corretor_id específico para vincular,
+    // e já existe um usuário/corretor com esse e-mail, recusa para não sobrescrever.
+    if (!data.corretor_id && (existingUser || corretorByEmail)) {
+      throw new Error(
+        `Já existe um usuário cadastrado com o e-mail ${data.email}. Edite o usuário existente em vez de criar um novo.`,
+      );
+    }
+
+    let userId = existingUser?.id;
     const isNewAuthUser = !userId;
     if (!userId) {
       const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
@@ -402,7 +418,7 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.updateUserById(userId, { password: data.password });
     }
 
-    // Resolve corretor alvo: id fornecido, ou existente por user_id, ou por email, ou cria novo
+    // Resolve corretor alvo: id fornecido, ou existente por user_id, ou por email
     let corretorId = data.corretor_id ?? null;
     if (!corretorId) {
       const { data: byUser } = await context.supabase
@@ -412,13 +428,8 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
         .maybeSingle();
       corretorId = (byUser as { id?: string } | null)?.id ?? null;
     }
-    if (!corretorId && data.email) {
-      const { data: byEmail } = await context.supabase
-        .from("corretores")
-        .select("id")
-        .eq("email", data.email)
-        .maybeSingle();
-      corretorId = (byEmail as { id?: string } | null)?.id ?? null;
+    if (!corretorId) {
+      corretorId = (corretorByEmail as { id?: string } | null)?.id ?? null;
     }
 
     const baseSlug = slugify(`${data.nome} ${data.sobrenome ?? ""}`);
