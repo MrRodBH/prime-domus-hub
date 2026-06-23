@@ -5,6 +5,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { obterSiteSettings } from "@/lib/api/site.functions";
 import { listarImoveis, listarBairros } from "@/lib/api/catalogo.functions";
+import { listarLancamentosPublico } from "@/lib/api/lancamentos.functions";
 import heroImg from "@/assets/hero.jpg";
 import feature from "@/assets/feature.jpg";
 
