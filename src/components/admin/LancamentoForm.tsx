@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { GaleriaLancamento } from "@/components/admin/GaleriaLancamento";
+import { UnidadesLancamento } from "@/components/admin/UnidadesLancamento";
+import { CondicoesPagamento } from "@/components/admin/CondicoesPagamento";
+import { PdfsLancamento } from "@/components/admin/PdfsLancamento";
 import { supabase } from "@/integrations/supabase/client";
 import {
   adminObterLancamento,
@@ -301,6 +305,28 @@ export function LancamentoForm({ id }: Props) {
           )}
         </div>
       </section>
+
+      {/* Galeria — só após salvar (precisa de id) */}
+      {form.id ? (
+        <GaleriaLancamento
+          projectId={form.id}
+          slug={form.slug}
+          imagemCapa={form.imagem_capa}
+          onCapaChange={(p) => setForm((f) => ({ ...f, imagem_capa: p }))}
+        />
+      ) : (
+        <section className="bg-card border border-dashed border-foreground/15 rounded-lg p-6 text-sm text-muted-foreground">
+          Salve o empreendimento para liberar o upload da galeria de fotos.
+        </section>
+      )}
+
+      {/* Unidades — só após salvar */}
+      {form.id && <UnidadesLancamento projectId={form.id} />}
+      {form.id && <CondicoesPagamento projectId={form.id} />}
+      {form.id && <PdfsLancamento projectId={form.id} slug={form.slug} />}
+
+
+
 
       {/* Descrição rica */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">

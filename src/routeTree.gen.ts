@@ -22,6 +22,7 @@ import { Route as AnuncieRouteImport } from './routes/anuncie'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as LancamentosSlugRouteImport } from './routes/lancamentos.$slug'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
@@ -113,6 +114,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LancamentosSlugRoute = LancamentosSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => LancamentosRoute,
 } as any)
 const ImovelSlugRoute = ImovelSlugRouteImport.update({
   id: '/imovel/$slug',
@@ -271,7 +277,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
-  '/lancamentos': typeof LancamentosRoute
+  '/lancamentos': typeof LancamentosRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -281,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/lancamentos/$slug': typeof LancamentosSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
@@ -312,7 +319,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
-  '/lancamentos': typeof LancamentosRoute
+  '/lancamentos': typeof LancamentosRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -321,6 +328,7 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/lancamentos/$slug': typeof LancamentosSlugRoute
   '/blog': typeof BlogIndexRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
@@ -353,7 +361,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
-  '/lancamentos': typeof LancamentosRoute
+  '/lancamentos': typeof LancamentosRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -363,6 +371,7 @@ export interface FileRoutesById {
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
+  '/lancamentos/$slug': typeof LancamentosSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
@@ -406,6 +415,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
+    | '/lancamentos/$slug'
     | '/blog/'
     | '/admin/bairros'
     | '/admin/blog'
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
+    | '/lancamentos/$slug'
     | '/blog'
     | '/admin/bairros'
     | '/admin/cidades'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
+    | '/lancamentos/$slug'
     | '/blog/'
     | '/_authenticated/admin/bairros'
     | '/_authenticated/admin/blog'
@@ -520,7 +532,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContatoRoute: typeof ContatoRoute
   ImoveisRoute: typeof ImoveisRoute
-  LancamentosRoute: typeof LancamentosRoute
+  LancamentosRoute: typeof LancamentosRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -631,6 +643,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/lancamentos/$slug': {
+      id: '/lancamentos/$slug'
+      path: '/$slug'
+      fullPath: '/lancamentos/$slug'
+      preLoaderRoute: typeof LancamentosSlugRouteImport
+      parentRoute: typeof LancamentosRoute
     }
     '/imovel/$slug': {
       id: '/imovel/$slug'
@@ -891,6 +910,18 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface LancamentosRouteChildren {
+  LancamentosSlugRoute: typeof LancamentosSlugRoute
+}
+
+const LancamentosRouteChildren: LancamentosRouteChildren = {
+  LancamentosSlugRoute: LancamentosSlugRoute,
+}
+
+const LancamentosRouteWithChildren = LancamentosRoute._addFileChildren(
+  LancamentosRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
@@ -898,7 +929,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContatoRoute: ContatoRoute,
   ImoveisRoute: ImoveisRoute,
-  LancamentosRoute: LancamentosRoute,
+  LancamentosRoute: LancamentosRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
