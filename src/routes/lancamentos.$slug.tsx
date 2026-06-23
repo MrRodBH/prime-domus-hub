@@ -297,8 +297,8 @@ function Page() {
             </div>
           )}
 
-          {/* Corretor / contato */}
-          <div className="bg-petroleum text-linen rounded-lg p-6 space-y-3">
+          {/* Corretor / formulário de lead */}
+          <div className="bg-petroleum text-linen rounded-lg p-6 space-y-4">
             <h3 className="font-display text-xl">Fale com um especialista</h3>
             {d.corretor && (
               <div className="flex items-center gap-3 pb-3 border-b border-linen/10">
@@ -309,9 +309,7 @@ function Page() {
                 </div>
               </div>
             )}
-            <Link to="/contato" search={{ assunto: `Interesse no lançamento ${d.nome}` }} className="block w-full text-center bg-gold text-petroleum px-4 py-3 rounded font-medium text-sm uppercase tracking-[0.18em]">
-              Solicitar atendimento
-            </Link>
+            <LeadFormLancamento launchProjectId={d.id} nome={d.nome} />
             {whatsappLink && (
               <a href={whatsappLink} target="_blank" rel="noreferrer" className="block w-full text-center bg-linen/10 hover:bg-linen/20 px-4 py-3 rounded font-medium text-sm uppercase tracking-[0.18em] border border-linen/30 inline-flex items-center justify-center gap-2">
                 <MessageCircle className="size-4" /> WhatsApp
@@ -325,6 +323,7 @@ function Page() {
           </div>
         </aside>
       </div>
+
 
       <Footer />
     </div>
