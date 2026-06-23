@@ -11,6 +11,8 @@ import { Footer } from "@/components/site/Footer";
 import { obterImovel, enviarLead } from "@/lib/api/catalogo.functions";
 import { imovelImage, formatPreco } from "@/lib/property-images";
 import { toEmbedUrl } from "@/lib/embed-url";
+import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
+import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 
 const imovelQuery = (slug: string) =>
   queryOptions({
