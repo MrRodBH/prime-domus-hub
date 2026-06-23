@@ -264,6 +264,9 @@ export const enviarLead = createServerFn({ method: "POST" })
       mensagem: z.string().optional(),
       origem: z.string().optional(),
       imovel_id: z.string().uuid().optional(),
+      consent_lgpd: z.literal(true, {
+        errorMap: () => ({ message: "É necessário aceitar a Política de Privacidade." }),
+      }),
     }),
   )
   .handler(async ({ data }) => {
@@ -282,6 +285,8 @@ export const enviarLead = createServerFn({ method: "POST" })
         mensagem: data.mensagem || null,
         origem: data.origem || "site",
         imovel_id: data.imovel_id || null,
+        consent_lgpd: true,
+        consent_at: new Date().toISOString(),
       });
     if (error) throw new Error(error.message);
 
