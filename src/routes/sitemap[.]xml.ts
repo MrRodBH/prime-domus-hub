@@ -54,9 +54,22 @@ export const Route = createFileRoute("/sitemap.xml")({
               priority: "0.6",
             });
           }
+          const { data: lancs } = await supabase
+            .from("launch_projects")
+            .select("slug, updated_at")
+            .eq("publicado", true);
+          for (const row of lancs ?? []) {
+            entries.push({
+              path: `/lancamentos/${row.slug}`,
+              lastmod: row.updated_at?.slice(0, 10),
+              changefreq: "weekly",
+              priority: "0.85",
+            });
+          }
         } catch {
           // se faltar config, ainda retornamos rotas estáticas
         }
+
 
         const urls = entries
           .map((e) =>
