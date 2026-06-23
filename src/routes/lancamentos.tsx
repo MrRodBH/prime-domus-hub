@@ -160,19 +160,5 @@ function Page() {
   );
 }
 
-import { useEffect, useState } from "react";
-import { adminAssinarUrl } from "@/lib/api/admin.functions";
-function CapaPublica({ path, alt }: { path: string; alt: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let cancel = false;
-    if (path.startsWith("http")) { setUrl(path); return; }
-    adminAssinarUrl({ data: { bucket: "lancamentos", path, width: 800, quality: 70 } })
-      .then((r) => { if (!cancel) setUrl(r.url); })
-      .catch(() => { /* ignore */ });
-    return () => { cancel = true; };
-  }, [path]);
-  if (!url) return <div className="w-full h-full bg-muted" />;
-  return <img src={url} alt={alt} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />;
-}
+
 
