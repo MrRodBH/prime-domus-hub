@@ -59,8 +59,20 @@ function AdminLeads() {
     queryKey: ["admin", "leads"],
     queryFn: () => adminListarLeads(),
   });
+  const { data: corretores } = useQuery({
+    queryKey: ["admin", "corretores", "lite"],
+    queryFn: () => adminListarCorretores(),
+    staleTime: 60_000,
+  });
+  const { data: descartesData } = useQuery({
+    queryKey: ["admin", "descartes-count"],
+    queryFn: () => adminContarDescartes(),
+    staleTime: 30_000,
+  });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [historicoId, setHistoricoId] = useState<string | null>(null);
+  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
