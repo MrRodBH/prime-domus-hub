@@ -48,6 +48,18 @@ export interface SiteSettings {
     bairros_qtd?: number;
   };
   contato: { telefone?: string; whatsapp?: string; email?: string; endereco?: string; instagram?: string; facebook?: string; linkedin?: string; creci?: string; localizacao?: string };
+  pagina_lancamentos: {
+    eyebrow?: string;
+    title_lines?: string[];
+    subtitle?: string;
+    cta_primary?: string;
+    cta_secondary?: string;
+    image_path?: string | null;
+    image_url?: string | null;
+    empty_message?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
 }
 
 const DEFAULT_SECOES: SiteSettings["home_secoes"] = {
@@ -60,17 +72,36 @@ const DEFAULT_SECOES: SiteSettings["home_secoes"] = {
   bairros_qtd: 4,
 };
 
+const DEFAULT_LANCAMENTOS: SiteSettings["pagina_lancamentos"] = {
+  eyebrow: "Lançamentos",
+  title_lines: ["Empreendimentos", "exclusivos"],
+  subtitle: "Acesso antecipado aos principais lançamentos de alto padrão em Belo Horizonte e Nova Lima.",
+  cta_primary: "Falar com especialista",
+  cta_secondary: "Ver imóveis prontos",
+  empty_message: "Em breve novos lançamentos. Fale com nossos especialistas para acesso antecipado.",
+  meta_title: "Lançamentos — RM Prime Imóveis",
+  meta_description: "Empreendimentos exclusivos com acesso antecipado em BH e Nova Lima.",
+};
+
 export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
   const supabase = publicClient();
   const { data, error } = await supabase.from("site_settings").select("key, value");
   if (error) throw new Error(error.message);
-  const result: SiteSettings = { branding: {}, home_hero: {}, home_secoes: { ...DEFAULT_SECOES }, contato: {} };
+  const result: SiteSettings = {
+    branding: {},
+    home_hero: {},
+    home_secoes: { ...DEFAULT_SECOES },
+    contato: {},
+    pagina_lancamentos: { ...DEFAULT_LANCAMENTOS },
+  };
   for (const row of data ?? []) {
     if (row.key === "branding" || row.key === "home_hero" || row.key === "contato") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (result as any)[row.key] = (row.value as Record<string, unknown>) ?? {};
     } else if (row.key === "home_secoes") {
       result.home_secoes = { ...DEFAULT_SECOES, ...((row.value as Record<string, unknown>) ?? {}) };
+    } else if (row.key === "pagina_lancamentos") {
+      result.pagina_lancamentos = { ...DEFAULT_LANCAMENTOS, ...((row.value as Record<string, unknown>) ?? {}) };
     }
   }
   if (result.branding.logo_path) {
@@ -82,6 +113,9 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   if (result.home_hero.image_path) {
     result.home_hero.image_url = await signedUrl("site", result.home_hero.image_path);
   }
+  if (result.pagina_lancamentos.image_path) {
+    result.pagina_lancamentos.image_url = await signedUrl("site", result.pagina_lancamentos.image_path);
+  }
 
   return result;
 });
@@ -90,7 +124,7 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      key: z.enum(["branding", "home_hero", "home_secoes", "contato"]),
+      key: z.enum(["branding", "home_hero", "home_secoes", "contato", "pagina_lancamentos"]),
       value: z.record(z.string(), z.unknown()),
     }),
   )
