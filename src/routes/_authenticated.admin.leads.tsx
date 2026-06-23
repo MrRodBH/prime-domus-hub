@@ -96,18 +96,26 @@ function AdminLeads() {
     },
   });
 
+  // Aplica filtro de corretor (admin)
+  const filteredData = useMemo(() => {
+    const all = (data ?? []) as Lead[];
+    if (corretorFilter === "__all__") return all;
+    if (corretorFilter === "__none__") return all.filter((l) => !l.assigned_to);
+    return all.filter((l) => l.assigned_to === corretorFilter);
+  }, [data, corretorFilter]);
+
   const byStatus = useMemo(() => {
     const map: Record<Status, Lead[]> = {
       novo: [], conversando: [], visita: [], proposta: [], ganho: [], perdido: [],
     };
-    for (const l of (data ?? []) as Lead[]) {
+    for (const l of filteredData) {
       const s = (COLUMNS.some((c) => c.id === l.status) ? l.status : "novo") as Status;
       map[s].push(l);
     }
     return map;
-  }, [data]);
+  }, [filteredData]);
 
-  const activeLead = (data as Lead[] | undefined)?.find((l) => l.id === activeId) ?? null;
+  const activeLead = filteredData.find((l) => l.id === activeId) ?? null;
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
@@ -117,18 +125,42 @@ function AdminLeads() {
     const id = String(e.active.id);
     const over = e.over?.id ? String(e.over.id) : null;
     if (!over) return;
-    const lead = (data as Lead[] | undefined)?.find((l) => l.id === id);
+    const lead = filteredData.find((l) => l.id === id);
     if (!lead || lead.status === over) return;
     upd.mutate({ id, status: over as Status });
   }
 
-  const total = (data ?? []).length;
+  const total = filteredData.length;
+  const corretoresLista = (corretores ?? []) as CorretorLite[];
+  const selectedLead = filteredData.find((l) => l.id === selectedId) ?? null;
+  const historicoLead = filteredData.find((l) => l.id === historicoId) ?? null;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="font-display text-3xl">Leads</h1>
-        <span className="text-sm text-muted-foreground">{total} no total</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Corretor:</span>
+            <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+              <SelectTrigger className="h-8 min-w-[200px]">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos os corretores</SelectItem>
+                <SelectItem value="__none__">Sem corretor atribuído</SelectItem>
+                {corretoresLista
+                  .filter((c) => !!c.user_id)
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.user_id!}>
+                      {c.nome}{c.sobrenome ? ` ${c.sobrenome}` : ""}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="text-sm text-muted-foreground">{total} no total</span>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground">
         Arraste os cards entre as colunas para atualizar o status.
@@ -146,11 +178,19 @@ function AdminLeads() {
 
       </DndContext>
 
-      <FunilChart byStatus={byStatus} />
+      <FunilChart byStatus={byStatus} descartesTotal={descartesData?.total ?? 0} />
 
       <LeadDetailDialog
-        lead={(data as Lead[] | undefined)?.find((l) => l.id === selectedId) ?? null}
+        lead={selectedLead}
         onClose={() => setSelectedId(null)}
+        onOpenHistorico={(id) => { setSelectedId(null); setHistoricoId(id); }}
+      />
+
+      <LeadHistoricoDialog
+        leadId={historicoId}
+        leadNome={historicoLead?.nome ?? ""}
+        isAdmin={true}
+        onClose={() => setHistoricoId(null)}
       />
     </div>
   );
