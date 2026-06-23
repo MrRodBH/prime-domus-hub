@@ -47,8 +47,11 @@ type Lead = {
   origem: string | null;
   status: string;
   created_at: string;
+  assigned_to: string | null;
   imovel: { titulo?: string } | null;
 };
+
+type CorretorLite = { id: string; nome: string; sobrenome: string | null; user_id: string | null };
 
 function AdminLeads() {
   const qc = useQueryClient();
