@@ -601,6 +601,7 @@ function FormContato({
   const enviar = useServerFn(enviarLead);
   const [ok, setOk] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -615,6 +616,7 @@ function FormContato({
           ...form,
           origem: "ficha-imovel",
           imovel_id: imovelId,
+          consent_lgpd: true,
         },
       }),
     onSuccess: () => {
@@ -638,6 +640,10 @@ function FormContato({
     }
     if (!email && telDigits.length < 10) {
       setErro("WhatsApp inválido. Inclua DDD + número (mínimo 10 dígitos).");
+      return;
+    }
+    if (!consent) {
+      setErro("É necessário aceitar a Política de Privacidade para enviar.");
       return;
     }
     mut.mutate();
