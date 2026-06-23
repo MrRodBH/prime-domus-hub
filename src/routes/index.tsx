@@ -75,6 +75,62 @@ function formatPreco(p: number | null | undefined, sobConsulta?: boolean | null)
   return `R$ ${p.toLocaleString("pt-BR")}`;
 }
 
+function HeroSearch({ searchTipos, ctaPrimary }: { searchTipos: string[]; ctaPrimary: string }) {
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<"comprar" | "lancamentos">("comprar");
+  const [busca, setBusca] = useState("");
+  const [tipo, setTipo] = useState("");
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (tab === "lancamentos") {
+      navigate({ to: "/lancamentos" });
+      return;
+    }
+    const search: Record<string, string> = {};
+    if (busca.trim()) search.busca = busca.trim();
+    if (tipo.trim()) search.tipo = tipo.trim();
+    navigate({ to: "/imoveis", search });
+  }
+
+  return (
+    <form onSubmit={submit} className="bg-linen/95 backdrop-blur-xl p-2 flex flex-col md:flex-row gap-2 rounded-md shadow-elegant ring-1 ring-foreground/5 animate-reveal" style={{ animationDelay: "200ms" }}>
+      <div className="flex flex-1 gap-1 px-2">
+        <button type="button" onClick={() => setTab("comprar")} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] transition-colors ${tab === "comprar" ? "text-petroleum border-b-2 border-gold" : "text-muted-foreground hover:text-petroleum"}`}>
+          Comprar
+        </button>
+        <button type="button" onClick={() => setTab("lancamentos")} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] transition-colors ${tab === "lancamentos" ? "text-petroleum border-b-2 border-gold" : "text-muted-foreground hover:text-petroleum"}`}>
+          Lançamentos
+        </button>
+      </div>
+      <div className="hidden md:block w-px bg-foreground/10 my-2" />
+      <div className={`flex-1 px-4 py-2 md:border-r border-foreground/10 ${tab === "lancamentos" ? "opacity-50 pointer-events-none" : ""}`}>
+        <label className="block text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Onde / Código</label>
+        <input
+          type="text"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Lourdes, Vila da Serra, RMV-0001…"
+          className="w-full bg-transparent border-none text-petroleum font-medium placeholder:text-muted-foreground/60 focus:outline-none"
+        />
+      </div>
+      <div className={`flex-1 px-4 py-2 md:border-r border-foreground/10 ${tab === "lancamentos" ? "opacity-50 pointer-events-none" : ""}`}>
+        <label className="block text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Tipo</label>
+        <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full bg-transparent border-none text-petroleum font-medium focus:outline-none appearance-none">
+          <option value="">Todos</option>
+          {searchTipos.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+      <button type="submit" className="bg-petroleum hover:bg-gold transition-colors text-linen px-8 py-4 rounded font-medium text-sm inline-flex items-center justify-center gap-2 uppercase tracking-[0.18em]">
+        <Search className="size-4" strokeWidth={1.5} />
+        {tab === "lancamentos" ? "Ver lançamentos" : ctaPrimary}
+      </button>
+    </form>
+  );
+}
+
 function Home() {
   const { data: site } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings(), staleTime: 5 * 60 * 1000 });
   const hero = site?.home_hero ?? {};
