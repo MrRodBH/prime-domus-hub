@@ -12,12 +12,15 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp } from "lucide-react";
-import { adminListarLeads, adminAtualizarLead } from "@/lib/api/admin.functions";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History } from "lucide-react";
+import { adminListarLeads, adminAtualizarLead, adminListarCorretores } from "@/lib/api/admin.functions";
+import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
@@ -44,8 +47,11 @@ type Lead = {
   origem: string | null;
   status: string;
   created_at: string;
+  assigned_to: string | null;
   imovel: { titulo?: string } | null;
 };
+
+type CorretorLite = { id: string; nome: string; sobrenome: string | null; user_id: string | null };
 
 function AdminLeads() {
   const qc = useQueryClient();
@@ -53,8 +59,20 @@ function AdminLeads() {
     queryKey: ["admin", "leads"],
     queryFn: () => adminListarLeads(),
   });
+  const { data: corretores } = useQuery({
+    queryKey: ["admin", "corretores", "lite"],
+    queryFn: () => adminListarCorretores(),
+    staleTime: 60_000,
+  });
+  const { data: descartesData } = useQuery({
+    queryKey: ["admin", "descartes-count"],
+    queryFn: () => adminContarDescartes(),
+    staleTime: 30_000,
+  });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [historicoId, setHistoricoId] = useState<string | null>(null);
+  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
@@ -78,18 +96,26 @@ function AdminLeads() {
     },
   });
 
+  // Aplica filtro de corretor (admin)
+  const filteredData = useMemo(() => {
+    const all = (data ?? []) as Lead[];
+    if (corretorFilter === "__all__") return all;
+    if (corretorFilter === "__none__") return all.filter((l) => !l.assigned_to);
+    return all.filter((l) => l.assigned_to === corretorFilter);
+  }, [data, corretorFilter]);
+
   const byStatus = useMemo(() => {
     const map: Record<Status, Lead[]> = {
       novo: [], conversando: [], visita: [], proposta: [], ganho: [], perdido: [],
     };
-    for (const l of (data ?? []) as Lead[]) {
+    for (const l of filteredData) {
       const s = (COLUMNS.some((c) => c.id === l.status) ? l.status : "novo") as Status;
       map[s].push(l);
     }
     return map;
-  }, [data]);
+  }, [filteredData]);
 
-  const activeLead = (data as Lead[] | undefined)?.find((l) => l.id === activeId) ?? null;
+  const activeLead = filteredData.find((l) => l.id === activeId) ?? null;
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
@@ -99,18 +125,42 @@ function AdminLeads() {
     const id = String(e.active.id);
     const over = e.over?.id ? String(e.over.id) : null;
     if (!over) return;
-    const lead = (data as Lead[] | undefined)?.find((l) => l.id === id);
+    const lead = filteredData.find((l) => l.id === id);
     if (!lead || lead.status === over) return;
     upd.mutate({ id, status: over as Status });
   }
 
-  const total = (data ?? []).length;
+  const total = filteredData.length;
+  const corretoresLista = (corretores ?? []) as CorretorLite[];
+  const selectedLead = filteredData.find((l) => l.id === selectedId) ?? null;
+  const historicoLead = filteredData.find((l) => l.id === historicoId) ?? null;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="font-display text-3xl">Leads</h1>
-        <span className="text-sm text-muted-foreground">{total} no total</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">Corretor:</span>
+            <Select value={corretorFilter} onValueChange={setCorretorFilter}>
+              <SelectTrigger className="h-8 min-w-[200px]">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todos os corretores</SelectItem>
+                <SelectItem value="__none__">Sem corretor atribuído</SelectItem>
+                {corretoresLista
+                  .filter((c) => !!c.user_id)
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.user_id!}>
+                      {c.nome}{c.sobrenome ? ` ${c.sobrenome}` : ""}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="text-sm text-muted-foreground">{total} no total</span>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground">
         Arraste os cards entre as colunas para atualizar o status.
@@ -128,11 +178,19 @@ function AdminLeads() {
 
       </DndContext>
 
-      <FunilChart byStatus={byStatus} />
+      <FunilChart byStatus={byStatus} descartesTotal={descartesData?.total ?? 0} />
 
       <LeadDetailDialog
-        lead={(data as Lead[] | undefined)?.find((l) => l.id === selectedId) ?? null}
+        lead={selectedLead}
         onClose={() => setSelectedId(null)}
+        onOpenHistorico={(id) => { setSelectedId(null); setHistoricoId(id); }}
+      />
+
+      <LeadHistoricoDialog
+        leadId={historicoId}
+        leadNome={historicoLead?.nome ?? ""}
+        isAdmin={true}
+        onClose={() => setHistoricoId(null)}
       />
     </div>
   );
@@ -150,7 +208,7 @@ const RESULTADO_STAGES: { id: Status; label: string; color: string }[] = [
   { id: "perdido", label: "Perdido", color: "#ef4444" },
 ];
 
-function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
+function FunilChart({ byStatus, descartesTotal }: { byStatus: Record<Status, Lead[]>; descartesTotal: number }) {
   const stages = FUNIL_STAGES.map((s) => ({
     label: s.label,
     color: s.color,
@@ -158,11 +216,14 @@ function FunilChart({ byStatus }: { byStatus: Record<Status, Lead[]> }) {
   }));
   const totalFunil = stages.reduce((s, x) => s + x.total, 0);
 
-  const resultados = RESULTADO_STAGES.map((s) => ({
-    label: s.label,
-    color: s.color,
-    total: byStatus[s.id]?.length ?? 0,
-  }));
+  const resultados = [
+    ...RESULTADO_STAGES.map((s) => ({
+      label: s.label,
+      color: s.color,
+      total: byStatus[s.id]?.length ?? 0,
+    })),
+    { label: "Descartes", color: "#f43f5e", total: descartesTotal },
+  ];
   const totalResultados = resultados.reduce((s, x) => s + x.total, 0);
 
   const funnelData = stages.map((s) => {
@@ -480,7 +541,7 @@ function DraggableCard({ lead, onOpen }: { lead: Lead; onOpen: (id: string) => v
   );
 }
 
-function LeadDetailDialog({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
+function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | null; onClose: () => void; onOpenHistorico: (id: string) => void }) {
   const wa = lead?.telefone ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}` : null;
   return (
     <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -523,12 +584,15 @@ function LeadDetailDialog({ lead, onClose }: { lead: Lead | null; onClose: () =>
                 </Button>
               )}
               {(lead.imovel as { slug?: string } | null)?.slug && (
-                <Button asChild size="sm" className="ml-auto">
+                <Button asChild size="sm" variant="outline">
                   <Link to="/imovel/$slug" params={{ slug: (lead.imovel as { slug: string }).slug }} target="_blank">
                     Ver imóvel
                   </Link>
                 </Button>
               )}
+              <Button size="sm" className="ml-auto" onClick={() => onOpenHistorico(lead.id)}>
+                <History className="h-4 w-4 mr-1" /> Histórico
+              </Button>
             </div>
           </>
         )}
