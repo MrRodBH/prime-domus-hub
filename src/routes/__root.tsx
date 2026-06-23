@@ -76,13 +76,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async () => {
+    let faviconUrl: string | null = null;
+    let metaPixelId: string | null = null;
     try {
       const { obterSiteSettings } = await import("../lib/api/site.functions");
       const settings = await obterSiteSettings();
-      return { faviconUrl: settings.branding.favicon_url ?? null };
+      faviconUrl = settings.branding.favicon_url ?? null;
     } catch {
-      return { faviconUrl: null };
+      // ignore
     }
+    try {
+      const { obterMetaPixelId } = await import("../lib/api/meta.functions");
+      const r = await obterMetaPixelId();
+      metaPixelId = r.pixel_id;
+    } catch {
+      // ignore
+    }
+    return { faviconUrl, metaPixelId };
   },
   head: ({ loaderData }) => ({
     meta: [
