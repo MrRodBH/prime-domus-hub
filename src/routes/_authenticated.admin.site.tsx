@@ -33,12 +33,16 @@ function AdminSite() {
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contato, setContato] = useState<any>({ telefone: "", whatsapp: "", email: "", endereco: "", instagram: "", facebook: "", linkedin: "", creci: "", localizacao: "" });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [lanc, setLanc] = useState<any>({ eyebrow: "", title_lines: [], subtitle: "", cta_primary: "", cta_secondary: "", image_path: null, empty_message: "", meta_title: "", meta_description: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [heroImgPreview, setHeroImgPreview] = useState<string | null>(null);
+  const [lancImgPreview, setLancImgPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingFav, setUploadingFav] = useState(false);
   const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploadingLanc, setUploadingLanc] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -79,11 +83,23 @@ function AdminSite() {
     setLogoPreview(data.branding.logo_url ?? null);
     setFaviconPreview(data.branding.favicon_url ?? null);
     setHeroImgPreview(data.home_hero.image_url ?? null);
+    setLanc({
+      eyebrow: data.pagina_lancamentos.eyebrow ?? "",
+      title_lines: data.pagina_lancamentos.title_lines ?? [],
+      subtitle: data.pagina_lancamentos.subtitle ?? "",
+      cta_primary: data.pagina_lancamentos.cta_primary ?? "",
+      cta_secondary: data.pagina_lancamentos.cta_secondary ?? "",
+      image_path: data.pagina_lancamentos.image_path ?? null,
+      empty_message: data.pagina_lancamentos.empty_message ?? "",
+      meta_title: data.pagina_lancamentos.meta_title ?? "",
+      meta_description: data.pagina_lancamentos.meta_description ?? "",
+    });
+    setLancImgPreview(data.pagina_lancamentos.image_url ?? null);
   }, [data]);
 
   const salvar = useMutation({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "home_secoes" | "contato"; value: any }) =>
+    mutationFn: ({ key, value }: { key: "branding" | "home_hero" | "home_secoes" | "contato" | "pagina_lancamentos"; value: any }) =>
       atualizarSiteSettings({ data: { key, value } }),
     onSuccess: () => { toast.success("Salvo"); qc.invalidateQueries({ queryKey: ["site-settings"] }); },
     onError: (e: Error) => toast.error(e.message),
