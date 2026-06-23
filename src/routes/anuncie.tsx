@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { metaTrack, metaEventId } from "@/lib/meta-pixel";
 
 export const Route = createFileRoute("/anuncie")({
   head: () => ({
@@ -27,7 +28,11 @@ function Page() {
           Preencha as informações abaixo e um consultor entrará em contato em até 24h.
         </p>
 
-        <form className="grid gap-5" onSubmit={(e) => e.preventDefault()}>
+        <form className="grid gap-5" onSubmit={(e) => {
+          e.preventDefault();
+          // TODO: validar + enviar para o backend; só disparar Lead após sucesso real.
+          metaTrack("Lead", { content_name: "Formulário Anuncie", source: "/anuncie" }, metaEventId());
+        }}>
           {[
             { label: "Nome completo", type: "text" },
             { label: "Telefone / WhatsApp", type: "tel" },
