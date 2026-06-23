@@ -443,8 +443,23 @@ export const listarLancamentosPublico = createServerFn({ method: "GET" }).handle
     .order("destaque", { ascending: false })
     .order("entrega", { ascending: true });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  const rows = data ?? [];
+  // Assina capas (800px) no servidor para evitar exposição do admin signer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return await Promise.all(rows.map(async (r: any) => {
+    let capa_url: string | null = null;
+    if (r.imagem_capa) {
+      if (r.imagem_capa.startsWith("http")) capa_url = r.imagem_capa;
+      else {
+        const { data: s } = await sb.storage.from("lancamentos")
+          .createSignedUrl(r.imagem_capa, 60 * 60 * 24, { transform: { width: 800, quality: 70, resize: "contain" as const } });
+        capa_url = s?.signedUrl ?? null;
+      }
+    }
+    return { ...r, capa_url };
+  }));
 });
+
 
 export const obterLancamentoPublico = createServerFn({ method: "POST" })
   .inputValidator(z.object({ slug: z.string().min(1) }))
