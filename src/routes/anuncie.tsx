@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 
@@ -43,6 +43,16 @@ function Page() {
           <label className="block">
             <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground block mb-2">Observações</span>
             <textarea rows={4} className="w-full bg-card border border-foreground/15 rounded px-4 py-3 text-foreground focus:border-gold focus:outline-none transition-colors" />
+          </label>
+          <label className="flex items-start gap-2 text-xs text-foreground/80 leading-snug cursor-pointer">
+            <input type="checkbox" required className="mt-0.5 size-4 accent-petroleum shrink-0" />
+            <span>
+              Li e concordo com a{" "}
+              <Link to="/privacidade" className="text-gold hover:underline" target="_blank">
+                Política de Privacidade
+              </Link>
+              .
+            </span>
           </label>
           <button className="mt-4 bg-petroleum hover:bg-gold transition-colors text-linen py-4 rounded-full font-medium uppercase tracking-[0.18em] text-sm">
             Solicitar avaliação

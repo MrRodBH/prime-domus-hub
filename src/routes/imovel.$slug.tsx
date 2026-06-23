@@ -601,6 +601,7 @@ function FormContato({
   const enviar = useServerFn(enviarLead);
   const [ok, setOk] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -615,6 +616,7 @@ function FormContato({
           ...form,
           origem: "ficha-imovel",
           imovel_id: imovelId,
+          consent_lgpd: true,
         },
       }),
     onSuccess: () => {
@@ -638,6 +640,10 @@ function FormContato({
     }
     if (!email && telDigits.length < 10) {
       setErro("WhatsApp inválido. Inclua DDD + número (mínimo 10 dígitos).");
+      return;
+    }
+    if (!consent) {
+      setErro("É necessário aceitar a Política de Privacidade para enviar.");
       return;
     }
     mut.mutate();
@@ -697,6 +703,22 @@ function FormContato({
         className="w-full bg-background border border-foreground/10 rounded px-3 py-2.5 text-sm focus:outline-none focus:border-gold resize-none"
       />
       <p className="text-[10px] text-muted-foreground">Informe e-mail ou WhatsApp para que possamos retornar.</p>
+      <label className="flex items-start gap-2 text-xs text-foreground/80 leading-snug cursor-pointer">
+        <input
+          type="checkbox"
+          required
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-0.5 size-4 accent-petroleum shrink-0"
+        />
+        <span>
+          Li e concordo com a{" "}
+          <Link to="/privacidade" className="text-gold hover:underline" target="_blank">
+            Política de Privacidade
+          </Link>
+          .
+        </span>
+      </label>
       {erro && <p className="text-xs text-destructive">{erro}</p>}
       {mut.error && (
         <p className="text-xs text-destructive">{(mut.error as Error).message}</p>

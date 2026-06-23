@@ -13,6 +13,7 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as LancamentosRouteImport } from './routes/lancamentos'
 import { Route as ImoveisRouteImport } from './routes/imoveis'
 import { Route as ContatoRouteImport } from './routes/contato'
@@ -62,6 +63,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LancamentosRoute = LancamentosRouteImport.update({
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
@@ -268,6 +275,7 @@ export interface FileRoutesByTo {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
@@ -303,6 +311,7 @@ export interface FileRoutesById {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
@@ -340,6 +349,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
+    | '/privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sobre'
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
+    | '/privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sobre'
@@ -409,6 +420,7 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
+    | '/privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sobre'
@@ -446,6 +458,7 @@ export interface RootRouteChildren {
   ContatoRoute: typeof ContatoRoute
   ImoveisRoute: typeof ImoveisRoute
   LancamentosRoute: typeof LancamentosRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreRoute: typeof SobreRoute
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lancamentos': {
@@ -771,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContatoRoute: ContatoRoute,
   ImoveisRoute: ImoveisRoute,
   LancamentosRoute: LancamentosRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreRoute: SobreRoute,
