@@ -1,5 +1,6 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper } from "lucide-react";
+import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ type Role = "admin" | "corretor" | "secretaria";
 const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[] }> = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
+  { to: "/admin/lancamentos", label: "Lançamentos", icon: Sparkles },
   { to: "/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/admin/corretores", label: "Usuários", icon: Users },
   { to: "/admin/cidades", label: "Cidades", icon: MapPin },
