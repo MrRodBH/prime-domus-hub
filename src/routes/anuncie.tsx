@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { metaTrack, metaEventId } from "@/lib/meta-pixel";
+import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
+import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 
 export const Route = createFileRoute("/anuncie")({
   head: () => ({
