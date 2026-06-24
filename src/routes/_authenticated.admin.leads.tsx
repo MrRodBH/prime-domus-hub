@@ -12,8 +12,8 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History } from "lucide-react";
-import { adminListarLeads, adminAtualizarLead, adminListarCorretores } from "@/lib/api/admin.functions";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus } from "lucide-react";
+import { adminListarLeads, adminAtualizarLead, adminListarCorretores, adminListarImoveisLite, criarLeadManual, meusPapeis } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
