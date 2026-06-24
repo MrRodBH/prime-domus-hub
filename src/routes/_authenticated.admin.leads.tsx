@@ -16,12 +16,16 @@ import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plu
 import { adminListarLeads, adminAtualizarLead, adminListarCorretores, adminListarImoveisLite, criarLeadManual, meusPapeis } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Link } from "@tanstack/react-router";
 import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 import { toast } from "sonner";
+import { maskPhoneBR, digitsOnly, isValidPhoneBR } from "@/lib/phone-br";
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
   component: AdminLeads,
