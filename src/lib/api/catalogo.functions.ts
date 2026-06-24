@@ -279,13 +279,21 @@ export const enviarLead = createServerFn({ method: "POST" })
       throw new Error("Informe e-mail ou telefone para contato.");
     }
     const leadId = crypto.randomUUID();
-    const supabase = publicClient();
 
-    // Se for lead de lançamento, pré-resolve corretor responsável (auto-atribuição)
+    // Usa service role para poder gravar corretor_id + assigned_to derivados do imóvel/lançamento.
+    // Inputs já validados via zod acima; segurança preservada.
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+
+    // Resolve corretor responsável (lançamento tem prioridade, depois imóvel)
     let corretorId: string | null = null;
     let lancNome: string | undefined;
     if (data.launch_project_id) {
-      const { data: proj } = await supabase
+      const { data: proj } = await admin
         .from("launch_projects")
         .select("nome, corretor_id")
         .eq("id", data.launch_project_id)
@@ -295,9 +303,8 @@ export const enviarLead = createServerFn({ method: "POST" })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       lancNome = (proj as any)?.nome;
     }
-    // Se for lead de imóvel pronto, atribui ao corretor responsável pelo imóvel
     if (!corretorId && data.imovel_id) {
-      const { data: im } = await supabase
+      const { data: im } = await admin
         .from("imoveis")
         .select("corretor_id")
         .eq("id", data.imovel_id)
@@ -306,7 +313,19 @@ export const enviarLead = createServerFn({ method: "POST" })
       corretorId = (im as any)?.corretor_id ?? null;
     }
 
-    const { error } = await supabase
+    // Resolve o auth.users.id do corretor para popular assigned_to (filtro do Kanban)
+    let assignedTo: string | null = null;
+    if (corretorId) {
+      const { data: c } = await admin
+        .from("corretores")
+        .select("user_id")
+        .eq("id", corretorId)
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedTo = (c as any)?.user_id ?? null;
+    }
+
+    const { error } = await admin
       .from("leads")
       .insert({
         id: leadId,
@@ -318,7 +337,8 @@ export const enviarLead = createServerFn({ method: "POST" })
         imovel_id: data.imovel_id || null,
         launch_project_id: data.launch_project_id || null,
         corretor_id: corretorId,
-
+        assigned_to: assignedTo,
+        status: "novo",
         consent_lgpd: true,
         consent_at: new Date().toISOString(),
       } as never);

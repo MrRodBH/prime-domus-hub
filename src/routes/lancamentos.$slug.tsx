@@ -305,7 +305,7 @@ function Page() {
                 {d.corretor.foto_url && <img src={d.corretor.foto_url} alt="" className="size-12 rounded-full object-cover" />}
                 <div>
                   <p className="text-sm font-medium">{d.corretor.nome}</p>
-                  {d.corretor.creci && <p className="text-[10px] text-linen/60 uppercase tracking-wider">CRECI {d.corretor.creci}</p>}
+                  {d.corretor.creci && <p className="text-[10px] text-linen/60 uppercase tracking-wider">CRECI MG {d.corretor.creci}</p>}
                 </div>
               </div>
             )}
