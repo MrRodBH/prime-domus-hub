@@ -143,7 +143,8 @@ function AdminLeads() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="font-display text-3xl">Leads</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <NovoLeadButton corretores={corretoresLista} />
           <div className="flex items-center gap-2">
             <span className="text-xs uppercase tracking-wide text-muted-foreground">Corretor:</span>
             <Select value={corretorFilter} onValueChange={setCorretorFilter}>
@@ -166,6 +167,7 @@ function AdminLeads() {
           <span className="text-sm text-muted-foreground">{total} no total</span>
         </div>
       </div>
+
       <p className="text-sm text-muted-foreground">
         Arraste os cards entre as colunas para atualizar o status.
       </p>
