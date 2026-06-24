@@ -140,7 +140,9 @@ function fallbackSeo(data: z.infer<typeof SeoInputSchema>) {
     data.area_apartamentos != null && `${data.area_apartamentos} m²`,
     data.endereco,
   ].filter(Boolean).join(", ");
-  const meta_description = `${data.nome}${data.construtora ? `, da ${data.construtora}` : ""}. ${detalhes || "Empreendimento exclusivo"}. Conheça este lançamento com a RM Prime Imóveis.`.slice(0, 160);
+  const meta_description = (
+    `${data.nome}${data.construtora ? `, da ${data.construtora}` : ""}. ${detalhes || "Empreendimento exclusivo"}. Conheça este lançamento com a RM Prime Imóveis.`
+  ).slice(0, 160);
   return { meta_title, meta_description };
 }
 
