@@ -563,7 +563,7 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
   })();
   return (
     <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl">
         {lead && (
           <>
             <DialogHeader>
@@ -587,7 +587,7 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
             </div>
 
             {/* Botões: desktop sempre em uma linha; mobile usa rolagem horizontal sem sobreposição. */}
-            <div className="mt-4 border-t border-foreground/5 pt-4 -mx-1 overflow-x-auto pb-1">
+            <div className="mt-4 border-t border-foreground/5 pt-4 -mx-1 overflow-x-auto pb-1 sm:overflow-visible">
               <div className="flex min-w-max flex-nowrap items-center gap-2 px-1 sm:min-w-0 sm:overflow-visible">
               {lead.email && (
                 <Button asChild variant="outline" size="sm" className="shrink-0 min-w-[84px] px-3">

@@ -113,6 +113,19 @@ function ResetPasswordPage() {
       setFormError(translatePasswordError(error));
       return;
     }
+    const { data: userData } = await supabase.auth.getUser();
+    const email = userData.user?.email;
+    if (email) {
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) {
+        const { data: current } = await supabase.auth.getSession();
+        if (!current.session) {
+          setLoading(false);
+          setFormError("Senha definida, mas não foi possível iniciar a sessão automaticamente. Use o login com a nova senha.");
+          return;
+        }
+      }
+    }
     const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
     if (refreshError || !refreshed.session) {
       const { data: current } = await supabase.auth.getSession();
