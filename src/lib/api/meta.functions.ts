@@ -11,11 +11,11 @@ function publicClient() {
   );
 }
 
-/** Pixel ID público — usado pelo client para inicializar o fbq. */
+/** Pixel ID — lido no servidor via service role (não há mais leitura pública na tabela). */
 export const obterMetaPixelId = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ pixel_id: string | null }> => {
-    const supabase = publicClient();
-    const { data } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
       .from("site_settings")
       .select("value")
       .eq("key", "meta_integracao")
@@ -24,6 +24,7 @@ export const obterMetaPixelId = createServerFn({ method: "GET" }).handler(
     return { pixel_id: v?.pixel_id ? String(v.pixel_id) : null };
   },
 );
+
 
 /** Admin: lê config completa (pixel + indica se token está configurado). Nunca expõe o token. */
 export const obterMetaConfigAdmin = createServerFn({ method: "GET" })
@@ -140,14 +141,15 @@ export const enviarEventoMetaCAPI = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     try {
-      const supabase = publicClient();
-      const { data: pixelRow } = await supabase
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: pixelRow } = await supabaseAdmin
         .from("site_settings")
         .select("value")
         .eq("key", "meta_integracao")
         .maybeSingle();
       const pixel_id = (pixelRow?.value as { pixel_id?: string } | null)?.pixel_id;
       if (!pixel_id) return { ok: false, reason: "no-pixel-id" };
+
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: credRow } = await supabaseAdmin
