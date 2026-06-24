@@ -1,0 +1,1 @@
+UPDATE public.launch_amenities SET nome = 'Churrasqueira' WHERE nome = 'Quadra';
