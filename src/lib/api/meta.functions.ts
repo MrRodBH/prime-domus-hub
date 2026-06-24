@@ -150,9 +150,8 @@ export const enviarEventoMetaCAPI = createServerFn({ method: "POST" })
       const pixel_id = (pixelRow?.value as { pixel_id?: string } | null)?.pixel_id;
       if (!pixel_id) return { ok: false, reason: "no-pixel-id" };
 
-
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: credRow } = await supabaseAdmin
+
         .from("site_settings")
         .select("value")
         .eq("key", "meta_credenciais")
