@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { maskPhoneBR, digitsOnly } from "@/lib/phone-br";
 
 export const Route = createFileRoute("/_authenticated/admin/corretores")({
   component: AdminUsuarios,
