@@ -24,7 +24,7 @@ import {
   adminListarImagensLancamento,
 } from "@/lib/api/lancamentos.functions";
 import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
-import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
+import { gerarDescricaoImovel, gerarSeoLancamento } from "@/lib/api/ia.functions";
 
 type Props = { id?: string };
 
@@ -225,7 +225,7 @@ export function LancamentoForm({ id }: Props) {
       const ams = await listarAmenities();
       const sel = new Set(form.amenity_ids);
       const lazer = ams.filter((a) => sel.has(a.id)).map((a) => a.nome);
-      return gerarDescricaoImovel({
+      const descricao = await gerarDescricaoImovel({
         data: {
           titulo: form.nome,
           tipo: "Lançamento (Empreendimento)",
@@ -252,6 +252,21 @@ export function LancamentoForm({ id }: Props) {
           tom: tomIA,
         },
       });
+      const seo = await gerarSeoLancamento({
+        data: {
+          nome: form.nome,
+          descricao: descricao.descricao,
+          construtora: form.construtora,
+          endereco: form.endereco,
+          quartos: num(form.quartos),
+          suites: num(form.suites),
+          vagas: num(form.vagas),
+          area_apartamentos: num(form.area_apartamentos),
+          entrega: form.entrega,
+          amenidades: lazer,
+        },
+      });
+      return { ...descricao, ...seo };
     },
     onSuccess: (r) => {
       // Converte parágrafos em HTML para o RichTextEditor
@@ -259,8 +274,13 @@ export function LancamentoForm({ id }: Props) {
         .split(/\n{2,}/)
         .map((p) => `<p>${p.trim().replace(/\n/g, "<br>")}</p>`)
         .join("");
-      setForm((f) => ({ ...f, descricao: html }));
-      toast.success("Descrição gerada com IA");
+      setForm((f) => ({
+        ...f,
+        descricao: html,
+        meta_title: r.meta_title || f.meta_title,
+        meta_description: r.meta_description || f.meta_description,
+      }));
+      toast.success("Descrição e SEO gerados com IA");
     },
     onError: (e: Error) => toast.error(e.message),
   });

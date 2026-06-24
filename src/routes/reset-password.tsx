@@ -25,6 +25,7 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,31 +75,69 @@ function ResetPasswordPage() {
   const passwordValid =
     password.length >= 6 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
 
+  function translatePasswordError(error: { message?: string; code?: string }) {
+    const msg = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
+    if (
+      msg.includes("weak") ||
+      msg.includes("easy to guess") ||
+      msg.includes("hibp") ||
+      msg.includes("password")
+    ) {
+      return "Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.";
+    }
+    return "Não foi possível definir a senha. Tente novamente ou solicite um novo link ao administrador.";
+  }
+
+  async function redirectToDashboard() {
+    await navigate({ to: "/admin", replace: true });
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/admin") window.location.assign("/admin");
+    }, 300);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
     if (!passwordValid) {
-      toast.error("Sua senha deve ter pelo menos 6 caracteres, contendo letras e números.");
+      setFormError("Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.");
       return;
     }
     if (password !== confirm) {
-      toast.error("As senhas não coincidem.");
+      setFormError("As senhas não coincidem.");
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setLoading(false);
-      toast.error(error.message);
+      setFormError(translatePasswordError(error));
       return;
     }
-    // Mantém a sessão criada pelo link de recuperação e atualiza tokens.
-    await supabase.auth.refreshSession();
+    const { data: userData } = await supabase.auth.getUser();
+    const email = userData.user?.email;
+    if (email) {
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) {
+        const { data: current } = await supabase.auth.getSession();
+        if (!current.session) {
+          setLoading(false);
+          setFormError("Senha definida, mas não foi possível iniciar a sessão automaticamente. Use o login com a nova senha.");
+          return;
+        }
+      }
+    }
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshed.session) {
+      const { data: current } = await supabase.auth.getSession();
+      if (!current.session) {
+        setLoading(false);
+        setFormError("Senha definida, mas não foi possível iniciar a sessão automaticamente. Use o login com a nova senha.");
+        return;
+      }
+    }
     toast.success("Senha definida com sucesso. Redirecionando…");
     setDone(true);
-    // Aguarda 600ms para o usuário ver o feedback e então leva ao painel.
-    setTimeout(() => {
-      navigate({ to: "/admin" });
-    }, 600);
+    await redirectToDashboard();
   }
 
   return (
@@ -118,7 +157,7 @@ function ResetPasswordPage() {
                   Você já está autenticado. Redirecionando para o painel…
                 </p>
               </div>
-              <Button className="w-full" onClick={() => navigate({ to: "/admin" })}>
+              <Button className="w-full" onClick={() => redirectToDashboard()}>
                 Ir para o painel
               </Button>
             </div>
@@ -149,7 +188,7 @@ function ResetPasswordPage() {
                   required
                   minLength={6}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
                   autoComplete="new-password"
                   aria-describedby="password-help"
                 />
@@ -163,7 +202,7 @@ function ResetPasswordPage() {
                         : "text-destructive"
                   }`}
                 >
-                  Sua senha deve ter pelo menos 6 caracteres, contendo letras e números.
+                  Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.
                 </p>
               </div>
               <div>
@@ -174,13 +213,18 @@ function ResetPasswordPage() {
                   required
                   minLength={6}
                   value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
+                  onChange={(e) => { setConfirm(e.target.value); setFormError(null); }}
                   autoComplete="new-password"
                 />
                 {confirm.length > 0 && confirm !== password && (
                   <p className="text-xs mt-1 text-destructive">As senhas não coincidem.</p>
                 )}
               </div>
+              {formError && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                  {formError}
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={loading || !passwordValid || password !== confirm}>
                 {loading ? "Salvando…" : "Salvar senha e entrar"}
               </Button>

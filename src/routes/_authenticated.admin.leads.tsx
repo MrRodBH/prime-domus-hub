@@ -563,7 +563,7 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
   })();
   return (
     <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl">
         {lead && (
           <>
             <DialogHeader>
@@ -586,33 +586,35 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
               </div>
             </div>
 
-            {/* Botões: em desktop ficam todos na mesma linha; em mobile fazem wrap suave. */}
-            <div className="flex flex-nowrap overflow-x-auto sm:overflow-visible sm:flex-wrap gap-2 pt-2 items-center">
+            {/* Botões: desktop sempre em uma linha; mobile usa rolagem horizontal sem sobreposição. */}
+            <div className="mt-4 border-t border-foreground/5 pt-4 -mx-1 overflow-x-auto pb-1 sm:overflow-visible">
+              <div className="flex min-w-max flex-nowrap items-center gap-2 px-1 sm:min-w-0 sm:overflow-visible">
               {lead.email && (
-                <Button asChild variant="outline" size="sm" className="shrink-0">
-                  <a href={`mailto:${lead.email}`}><Mail className="h-4 w-4 mr-1" />E-mail</a>
+                <Button asChild variant="outline" size="sm" className="shrink-0 min-w-[84px] px-3">
+                  <a href={`mailto:${lead.email}`}><Mail className="h-4 w-4" />E-mail</a>
                 </Button>
               )}
               {lead.telefone && (
-                <Button asChild variant="outline" size="sm" className="shrink-0">
-                  <a href={`tel:${lead.telefone}`}><Phone className="h-4 w-4 mr-1" />Ligar</a>
+                <Button asChild variant="outline" size="sm" className="shrink-0 min-w-[76px] px-3">
+                  <a href={`tel:${lead.telefone}`}><Phone className="h-4 w-4" />Ligar</a>
                 </Button>
               )}
               {wa && (
-                <Button asChild variant="outline" size="sm" className="shrink-0">
-                  <a href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</a>
+                <Button asChild variant="outline" size="sm" className="shrink-0 min-w-[108px] px-3">
+                  <a href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-4 w-4" />WhatsApp</a>
                 </Button>
               )}
               {(lead.imovel as { slug?: string } | null)?.slug && (
-                <Button asChild size="sm" variant="outline" className="shrink-0">
+                <Button asChild size="sm" variant="outline" className="shrink-0 min-w-[100px] px-3">
                   <Link to="/imovel/$slug" params={{ slug: (lead.imovel as { slug: string }).slug }} target="_blank">
                     Ver imóvel
                   </Link>
                 </Button>
               )}
-              <Button size="sm" className="shrink-0 ml-auto" onClick={() => onOpenHistorico(lead.id)}>
-                <History className="h-4 w-4 mr-1" /> Histórico
+              <Button size="sm" className="shrink-0 min-w-[104px] px-3 sm:ml-auto" onClick={() => onOpenHistorico(lead.id)}>
+                <History className="h-4 w-4" /> Histórico
               </Button>
+              </div>
             </div>
           </>
         )}
