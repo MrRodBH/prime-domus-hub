@@ -630,7 +630,7 @@ export const adminListarLeads = createServerFn({ method: "GET" })
     await ensureAdmin(context);
     const { data, error } = await context.supabase
       .from("leads")
-      .select("*, imovel:imoveis(titulo, slug)")
+      .select("*, imovel:imoveis(titulo, slug, preco, preco_sob_consulta)")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];

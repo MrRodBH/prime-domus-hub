@@ -592,7 +592,7 @@ function CorretorCard({
         )}
         <div>
           <p className="font-display text-xl leading-tight">{nomeCompleto}</p>
-          {corretor.creci && <p className="text-xs text-muted-foreground mt-0.5">{corretor.creci}</p>}
+          {corretor.creci && <p className="text-xs text-muted-foreground mt-0.5">CRECI MG {corretor.creci}</p>}
         </div>
       </div>
       <div className="grid gap-2 mt-5">
