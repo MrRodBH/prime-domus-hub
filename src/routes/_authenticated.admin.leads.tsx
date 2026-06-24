@@ -48,7 +48,7 @@ type Lead = {
   status: string;
   created_at: string;
   assigned_to: string | null;
-  imovel: { titulo?: string } | null;
+  imovel: { titulo?: string; slug?: string; preco?: number | null; preco_sob_consulta?: boolean | null } | null;
 };
 
 type CorretorLite = { id: string; nome: string; sobrenome: string | null; user_id: string | null };
@@ -224,6 +224,8 @@ function FunilChart({ byStatus, descartesTotal }: { byStatus: Record<Status, Lea
     })),
     { label: "Descartes", color: "#f43f5e", total: descartesTotal },
   ];
+  // "Total fechados" = somente leads em GANHO (regra de negócio).
+  const totalFechados = byStatus.ganho?.length ?? 0;
   const totalResultados = resultados.reduce((s, x) => s + x.total, 0);
 
   const funnelData = stages.map((s) => {
@@ -290,7 +292,7 @@ function FunilChart({ byStatus, descartesTotal }: { byStatus: Record<Status, Lea
 
         {/* Resultados — barras de crescimento */}
         <div className="flex flex-col border-l-0 lg:border-l border-foreground/10 lg:pl-5">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground mb-6 block">
             Resultados
           </span>
           <ResultadosBars resultados={resultados} totalResultados={totalResultados} />
@@ -298,7 +300,7 @@ function FunilChart({ byStatus, descartesTotal }: { byStatus: Record<Status, Lea
             <span className="text-xs uppercase tracking-wider text-muted-foreground">
               Total fechados
             </span>
-            <span className="font-display text-xl font-semibold">{totalResultados}</span>
+            <span className="font-display text-xl font-semibold">{totalFechados}</span>
           </div>
         </div>
       </div>
@@ -463,7 +465,7 @@ function ResultadosBars({
   const maxR = Math.max(...resultados.map((x) => x.total), 1);
   const H = 180;
   return (
-    <div className="flex items-end justify-around gap-6 h-[210px] px-2">
+    <div className="flex items-end justify-around gap-6 h-[210px] px-2 pt-6">
       {resultados.map((r) => {
         const pct = totalResultados > 0 ? Math.round((r.total / totalResultados) * 100) : 0;
         const h = Math.max((r.total / maxR) * H, 6);
@@ -541,8 +543,18 @@ function DraggableCard({ lead, onOpen }: { lead: Lead; onOpen: (id: string) => v
   );
 }
 
+function formatBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
+
 function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | null; onClose: () => void; onOpenHistorico: (id: string) => void }) {
   const wa = lead?.telefone ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}` : null;
+  const valorNegocio = (() => {
+    if (!lead?.imovel) return "Não informado";
+    if (lead.imovel.preco_sob_consulta) return "Sob consulta";
+    if (typeof lead.imovel.preco === "number" && lead.imovel.preco > 0) return formatBRL(lead.imovel.preco);
+    return "Não informado";
+  })();
   return (
     <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-lg">
@@ -559,6 +571,7 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
               <Field label="E-mail" value={lead.email ?? "—"} />
               <Field label="Telefone" value={lead.telefone ?? "—"} />
               <Field label="Imóvel de interesse" value={lead.imovel?.titulo ?? "—"} />
+              <Field label="Valor do negócio" value={valorNegocio} />
               <div>
                 <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Mensagem</div>
                 <p className="rounded-md border border-foreground/10 bg-muted/40 p-3 whitespace-pre-wrap">
@@ -567,30 +580,31 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 pt-2">
+            {/* Botões: em desktop ficam todos na mesma linha; em mobile fazem wrap suave. */}
+            <div className="flex flex-nowrap overflow-x-auto sm:overflow-visible sm:flex-wrap gap-2 pt-2 items-center">
               {lead.email && (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="shrink-0">
                   <a href={`mailto:${lead.email}`}><Mail className="h-4 w-4 mr-1" />E-mail</a>
                 </Button>
               )}
               {lead.telefone && (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="shrink-0">
                   <a href={`tel:${lead.telefone}`}><Phone className="h-4 w-4 mr-1" />Ligar</a>
                 </Button>
               )}
               {wa && (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline" size="sm" className="shrink-0">
                   <a href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</a>
                 </Button>
               )}
               {(lead.imovel as { slug?: string } | null)?.slug && (
-                <Button asChild size="sm" variant="outline">
+                <Button asChild size="sm" variant="outline" className="shrink-0">
                   <Link to="/imovel/$slug" params={{ slug: (lead.imovel as { slug: string }).slug }} target="_blank">
                     Ver imóvel
                   </Link>
                 </Button>
               )}
-              <Button size="sm" className="ml-auto" onClick={() => onOpenHistorico(lead.id)}>
+              <Button size="sm" className="shrink-0 ml-auto" onClick={() => onOpenHistorico(lead.id)}>
                 <History className="h-4 w-4 mr-1" /> Histórico
               </Button>
             </div>
