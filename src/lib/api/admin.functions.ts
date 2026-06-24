@@ -329,8 +329,27 @@ export const adminExcluirCorretor = createServerFn({ method: "POST" })
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
+    // Busca o user_id vinculado (se houver) antes de excluir o corretor
+    const { data: row } = await context.supabase
+      .from("corretores")
+      .select("user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    const userId = (row as { user_id?: string | null } | null)?.user_id ?? null;
+
     const { error } = await context.supabase.from("corretores").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    // Remove papéis e o próprio usuário do Auth para liberar o e-mail
+    if (userId) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+      const { error: delAuthErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (delAuthErr && !/not.?found/i.test(delAuthErr.message)) {
+        // não falha a operação principal, mas avisa no log do servidor
+        console.error("[adminExcluirCorretor] auth.deleteUser:", delAuthErr.message);
+      }
+    }
     return { ok: true };
   });
 
