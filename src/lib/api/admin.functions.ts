@@ -653,6 +653,75 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ===== LEAD MANUAL (admin ou corretor) =====
+export const adminListarImoveisLite = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    // qualquer usuário autenticado pode listar imóveis para vincular ao lead
+    const { data, error } = await context.supabase
+      .from("imoveis")
+      .select("id, codigo, titulo, corretor_id")
+      .eq("status", "ativo")
+      .order("titulo", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{ id: string; codigo: string; titulo: string; corretor_id: string | null }>;
+  });
+
+export const criarLeadManual = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      nome: z.string().min(2),
+      email: z.string().email().optional().nullable(),
+      telefone: z.string().optional().nullable(),
+      imovel_id: z.string().uuid().optional().nullable(),
+      observacoes: z.string().optional().nullable(),
+      assigned_to: z.string().uuid().optional().nullable(),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    const { data: isCorretor } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "corretor",
+    });
+    if (!isAdmin && !isCorretor) {
+      throw new Error("Acesso negado.");
+    }
+    // Corretor sempre força para si mesmo; admin pode escolher.
+    const assigned = isAdmin ? (data.assigned_to ?? context.userId) : context.userId;
+
+    // Resolve corretor_id da tabela corretores pelo user_id atribuído
+    const { data: corretorRow } = await context.supabase
+      .from("corretores")
+      .select("id")
+      .eq("user_id", assigned)
+      .maybeSingle();
+    const corretor_id = (corretorRow as { id?: string } | null)?.id ?? null;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const payload = {
+      nome: data.nome,
+      email: data.email ?? null,
+      telefone: data.telefone ?? null,
+      imovel_id: data.imovel_id ?? null,
+      mensagem: data.observacoes ?? null,
+      origem: "Cadastro Manual",
+      status: "novo",
+      assigned_to: assigned,
+      corretor_id,
+      consent_lgpd: true,
+      consent_at: new Date().toISOString(),
+    };
+    const { error } = await supabaseAdmin.from("leads").insert(payload as never);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 // ===== STORAGE =====
 export const adminAssinarUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
