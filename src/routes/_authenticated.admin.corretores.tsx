@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { maskPhoneBR, digitsOnly } from "@/lib/phone-br";
 
 export const Route = createFileRoute("/_authenticated/admin/corretores")({
   component: AdminUsuarios,
@@ -181,7 +182,19 @@ function AdminUsuarios() {
   function toggleRole(role: Role) {
     if (!editing) return;
     const current: Role[] = (editing.roles ?? []) as Role[];
-    const next = current.includes(role) ? current.filter((r: Role) => r !== role) : [...current, role];
+    let next: Role[];
+    if (current.includes(role)) {
+      next = current.filter((r: Role) => r !== role);
+    } else {
+      // Hierarquia: Secretaria não pode coexistir com Admin/Corretor.
+      // Admin + Corretor é permitido.
+      if (role === "secretaria") {
+        next = ["secretaria"];
+      } else {
+        next = [...current.filter((r) => r !== "secretaria"), role];
+      }
+    }
+    if (next.length === 0) next = [role];
     setEditing({ ...editing, roles: next });
   }
 
@@ -249,9 +262,36 @@ function AdminUsuarios() {
                     <Input value={editing.cargo ?? ""} onChange={(e) => setEditing({ ...editing, cargo: e.target.value })} />
                   </div>
                   <div className="md:col-span-2">
-                    <Label>WhatsApp</Label>
-                    <Input value={editing.whatsapp ?? ""} onChange={(e) => setEditing({ ...editing, whatsapp: e.target.value })} placeholder="5531999990000" />
+                    <Label>WhatsApp / Celular</Label>
+                    <Input
+                      value={maskPhoneBR(editing.whatsapp ?? "")}
+                      onChange={(e) => {
+                        const d = digitsOnly(e.target.value).slice(0, 11);
+                        setEditing({ ...editing, whatsapp: d });
+                      }}
+                      placeholder="(31) 98888-7777"
+                      inputMode="tel"
+                    />
+                    {(() => {
+                      const d = digitsOnly(editing.whatsapp ?? "");
+                      if (d.length === 0) {
+                        return (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Apenas celular com 11 dígitos. Ex.: (31) 98888-7777
+                          </p>
+                        );
+                      }
+                      const ok = d.length === 11 && d[2] === "9";
+                      return (
+                        <p className={`text-xs mt-1 ${ok ? "text-emerald-600" : "text-destructive"}`}>
+                          {ok
+                            ? "Celular válido."
+                            : "Informe um celular com 11 dígitos começando com 9 após o DDD."}
+                        </p>
+                      );
+                    })()}
                   </div>
+
                 </div>
 
                 <div className="border-t pt-4 space-y-3">

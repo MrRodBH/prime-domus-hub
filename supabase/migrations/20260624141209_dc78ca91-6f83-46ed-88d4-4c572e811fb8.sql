@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.tg_user_roles_enforce_hierarchy() FROM PUBLIC, anon, authenticated;

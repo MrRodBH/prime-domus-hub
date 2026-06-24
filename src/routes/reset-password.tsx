@@ -71,10 +71,13 @@ function ResetPasswordPage() {
     };
   }, []);
 
+  const passwordValid =
+    password.length >= 6 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("A senha deve ter pelo menos 8 caracteres.");
+    if (!passwordValid) {
+      toast.error("Sua senha deve ter pelo menos 6 caracteres, contendo letras e números.");
       return;
     }
     if (password !== confirm) {
@@ -83,15 +86,19 @@ function ResetPasswordPage() {
     }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       return;
     }
-    // Encerra a sessão de recuperação para forçar login com a nova senha
-    await supabase.auth.signOut();
+    // Mantém a sessão criada pelo link de recuperação e atualiza tokens.
+    await supabase.auth.refreshSession();
+    toast.success("Senha definida com sucesso. Redirecionando…");
     setDone(true);
-    toast.success("Senha definida com sucesso.");
+    // Aguarda 600ms para o usuário ver o feedback e então leva ao painel.
+    setTimeout(() => {
+      navigate({ to: "/admin" });
+    }, 600);
   }
 
   return (
@@ -108,11 +115,11 @@ function ResetPasswordPage() {
               <div>
                 <h1 className="font-display text-3xl mb-2">Senha definida</h1>
                 <p className="text-sm text-muted-foreground">
-                  Sua nova senha foi salva. Use-a para acessar o painel.
+                  Você já está autenticado. Redirecionando para o painel…
                 </p>
               </div>
-              <Button className="w-full" onClick={() => navigate({ to: "/auth" })}>
-                Ir para Login
+              <Button className="w-full" onClick={() => navigate({ to: "/admin" })}>
+                Ir para o painel
               </Button>
             </div>
           ) : !sessionOk ? (
@@ -140,11 +147,24 @@ function ResetPasswordPage() {
                   id="password"
                   type="password"
                   required
-                  minLength={8}
+                  minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
+                  aria-describedby="password-help"
                 />
+                <p
+                  id="password-help"
+                  className={`text-xs mt-1 ${
+                    password.length === 0
+                      ? "text-muted-foreground"
+                      : passwordValid
+                        ? "text-emerald-600"
+                        : "text-destructive"
+                  }`}
+                >
+                  Sua senha deve ter pelo menos 6 caracteres, contendo letras e números.
+                </p>
               </div>
               <div>
                 <Label htmlFor="confirm">Confirmar senha</Label>
@@ -152,14 +172,17 @@ function ResetPasswordPage() {
                   id="confirm"
                   type="password"
                   required
-                  minLength={8}
+                  minLength={6}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   autoComplete="new-password"
                 />
+                {confirm.length > 0 && confirm !== password && (
+                  <p className="text-xs mt-1 text-destructive">As senhas não coincidem.</p>
+                )}
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Salvando…" : "Salvar senha"}
+              <Button type="submit" className="w-full" disabled={loading || !passwordValid || password !== confirm}>
+                {loading ? "Salvando…" : "Salvar senha e entrar"}
               </Button>
             </form>
           )}
@@ -173,3 +196,4 @@ function ResetPasswordPage() {
     </div>
   );
 }
+
