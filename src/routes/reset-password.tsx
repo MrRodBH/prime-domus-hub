@@ -188,7 +188,7 @@ function ResetPasswordPage() {
                   required
                   minLength={6}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
                   autoComplete="new-password"
                   aria-describedby="password-help"
                 />
@@ -213,7 +213,7 @@ function ResetPasswordPage() {
                   required
                   minLength={6}
                   value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
+                  onChange={(e) => { setConfirm(e.target.value); setFormError(null); }}
                   autoComplete="new-password"
                 />
                 {confirm.length > 0 && confirm !== password && (
