@@ -118,6 +118,84 @@ Limite: 900 a 1300 caracteres no total. Não use listas, títulos ou markdown.`;
     return { descricao };
   });
 
+const SeoInputSchema = z.object({
+  nome: z.string().min(1),
+  descricao: z.string().optional().default(""),
+  construtora: z.string().optional().default(""),
+  endereco: z.string().optional().default(""),
+  quartos: z.number().nullable().optional(),
+  suites: z.number().nullable().optional(),
+  vagas: z.number().nullable().optional(),
+  area_apartamentos: z.number().nullable().optional(),
+  entrega: z.string().optional().default(""),
+  amenidades: z.array(z.string()).optional().default([]),
+});
+
+function fallbackSeo(data: z.infer<typeof SeoInputSchema>) {
+  const meta_title = `${data.nome} — RM Prime Imóveis`.slice(0, 60);
+  const detalhes = [
+    data.quartos != null && `${data.quartos} quartos`,
+    data.suites != null && `${data.suites} suítes`,
+    data.vagas != null && `${data.vagas} vagas`,
+    data.area_apartamentos != null && `${data.area_apartamentos} m²`,
+    data.endereco,
+  ].filter(Boolean).join(", ");
+  const meta_description = `${data.nome}${data.construtora ? `, da ${data.construtora}` : ""}. ${detalhes || "Empreendimento exclusivo"}. Conheça este lançamento com a RM Prime Imóveis.`.slice(0, 160);
+  return { meta_title, meta_description };
+}
+
+export const gerarSeoLancamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SeoInputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) return fallbackSeo(data);
+
+    const ficha = [
+      `Nome: ${data.nome}`,
+      data.construtora && `Construtora: ${data.construtora}`,
+      data.endereco && `Endereço: ${data.endereco}`,
+      data.quartos != null && `${data.quartos} quartos`,
+      data.suites != null && `${data.suites} suítes`,
+      data.vagas != null && `${data.vagas} vagas`,
+      data.area_apartamentos != null && `${data.area_apartamentos} m²`,
+      data.entrega && `Entrega: ${data.entrega}`,
+      data.amenidades.length > 0 && `Lazer: ${data.amenidades.join(", ")}`,
+      data.descricao && `Descrição: ${data.descricao.replace(/<[^>]*>/g, " ").slice(0, 800)}`,
+    ].filter(Boolean).join("\n");
+
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Lovable-API-Key": apiKey,
+        "X-Lovable-AIG-SDK": "raw-fetch",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "Você é especialista em SEO imobiliário no Brasil. Responda somente JSON válido, sem markdown." },
+          { role: "user", content: `Gere SEO para a página de detalhe deste lançamento imobiliário.\n\nRegras:\n- meta_title com até 60 caracteres.\n- meta_description com até 155 caracteres.\n- Português do Brasil.\n- Sem aspas internas, emojis ou promessas de rentabilidade.\n\nResponda APENAS neste formato JSON: {"meta_title":"...","meta_description":"..."}\n\n${ficha}` },
+        ],
+      }),
+    });
+
+    if (!resp.ok) return fallbackSeo(data);
+    const json = await resp.json();
+    const content: string = json?.choices?.[0]?.message?.content?.trim() ?? "";
+    try {
+      const parsed = JSON.parse(content.replace(/^```json\s*/i, "").replace(/```$/i, "")) as { meta_title?: string; meta_description?: string };
+      const meta_title = (parsed.meta_title ?? "").trim().slice(0, 60);
+      const meta_description = (parsed.meta_description ?? "").trim().slice(0, 160);
+      if (meta_title && meta_description) return { meta_title, meta_description };
+    } catch {
+      // usa fallback abaixo
+    }
+    return fallbackSeo(data);
+  });
+
 const FunilInput = z.object({
   etapas: z.array(z.object({
     id: z.string(),
