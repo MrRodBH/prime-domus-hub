@@ -182,7 +182,19 @@ function AdminUsuarios() {
   function toggleRole(role: Role) {
     if (!editing) return;
     const current: Role[] = (editing.roles ?? []) as Role[];
-    const next = current.includes(role) ? current.filter((r: Role) => r !== role) : [...current, role];
+    let next: Role[];
+    if (current.includes(role)) {
+      next = current.filter((r: Role) => r !== role);
+    } else {
+      // Hierarquia: Secretaria não pode coexistir com Admin/Corretor.
+      // Admin + Corretor é permitido.
+      if (role === "secretaria") {
+        next = ["secretaria"];
+      } else {
+        next = [...current.filter((r) => r !== "secretaria"), role];
+      }
+    }
+    if (next.length === 0) next = [role];
     setEditing({ ...editing, roles: next });
   }
 
