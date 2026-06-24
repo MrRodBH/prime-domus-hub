@@ -694,3 +694,138 @@ function Card({ lead }: { lead: Lead; dragging?: boolean }) {
     </div>
   );
 }
+
+function NovoLeadButton({ corretores }: { corretores: CorretorLite[] }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [imovelId, setImovelId] = useState<string>("__none__");
+  const [observacoes, setObservacoes] = useState("");
+  const [assignedTo, setAssignedTo] = useState<string>("__self__");
+
+  const { data: papeis } = useQuery({ queryKey: ["meus-papeis"], queryFn: () => meusPapeis(), staleTime: 60_000 });
+  const isAdmin = (papeis ?? []).includes("admin");
+  const isCorretor = (papeis ?? []).includes("corretor");
+  const canCreate = isAdmin || isCorretor;
+
+  const { data: imoveis } = useQuery({
+    queryKey: ["imoveis-lite"],
+    queryFn: () => adminListarImoveisLite(),
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  const criar = useMutation({
+    mutationFn: () =>
+      criarLeadManual({
+        data: {
+          nome,
+          email: email || null,
+          telefone: telefone ? digitsOnly(telefone) : null,
+          imovel_id: imovelId !== "__none__" ? imovelId : null,
+          observacoes: observacoes || null,
+          assigned_to: isAdmin && assignedTo !== "__self__" ? assignedTo : null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Lead criado.");
+      qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+      setOpen(false);
+      setNome(""); setEmail(""); setTelefone(""); setImovelId("__none__"); setObservacoes(""); setAssignedTo("__self__");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!canCreate) return null;
+
+  const telOk = telefone.length === 0 || isValidPhoneBR(telefone);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Lead</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Novo lead manual</DialogTitle>
+          <DialogDescription>Origem: Cadastro Manual</DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!nome.trim()) return toast.error("Informe o nome.");
+            if (telefone && !isValidPhoneBR(telefone)) return toast.error("Telefone inválido.");
+            criar.mutate();
+          }}
+        >
+          <div>
+            <Label>Nome *</Label>
+            <Input required value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label>E-mail</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div>
+              <Label>Telefone / WhatsApp</Label>
+              <Input
+                value={maskPhoneBR(telefone)}
+                onChange={(e) => setTelefone(digitsOnly(e.target.value).slice(0, 11))}
+                placeholder="(31) 98888-7777"
+                inputMode="tel"
+              />
+              {!telOk && <p className="text-xs text-destructive mt-1">Telefone inválido.</p>}
+            </div>
+          </div>
+          <div>
+            <Label>Imóvel de interesse</Label>
+            <Select value={imovelId} onValueChange={setImovelId}>
+              <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhum —</SelectItem>
+                {(imoveis ?? []).map((i) => (
+                  <SelectItem key={i.id} value={i.id}>
+                    {i.codigo} — {i.titulo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {isAdmin && (
+            <div>
+              <Label>Atribuir ao corretor</Label>
+              <Select value={assignedTo} onValueChange={setAssignedTo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__self__">Eu mesmo</SelectItem>
+                  {corretores.filter((c) => !!c.user_id).map((c) => (
+                    <SelectItem key={c.id} value={c.user_id!}>
+                      {c.nome}{c.sobrenome ? ` ${c.sobrenome}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div>
+            <Label>Observações</Label>
+            <Textarea rows={3} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" disabled={criar.isPending}>
+              {criar.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Salvar
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={criar.isPending}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
