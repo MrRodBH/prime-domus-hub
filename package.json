@@ -98,5 +98,17 @@
     "overrides": {
       "entities": "4.5.0"
     }
+  },
+  "overrides": {
+    "undici": "^7.16.0",
+    "ws": "^8.18.3",
+    "brace-expansion": "^2.0.2",
+    "js-yaml": "^4.1.0"
+  },
+  "resolutions": {
+    "undici": "^7.16.0",
+    "ws": "^8.18.3",
+    "brace-expansion": "^2.0.2",
+    "js-yaml": "^4.1.0"
   }
 }
