@@ -418,8 +418,7 @@ function MetaIntegracaoForm() {
 
       <div>
         <Label>Access Token da Conversions API</Label>
-        <Input
-          type="password"
+        <PasswordInput
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder={data?.token_set ? "•••••••••• (token configurado — preencha para substituir)" : "Insira o Token de Acesso da API de Conversões da Meta."}
