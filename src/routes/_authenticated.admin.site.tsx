@@ -7,6 +7,7 @@ import { adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -417,8 +418,7 @@ function MetaIntegracaoForm() {
 
       <div>
         <Label>Access Token da Conversions API</Label>
-        <Input
-          type="password"
+        <PasswordInput
           value={token}
           onChange={(e) => setToken(e.target.value)}
           placeholder={data?.token_set ? "•••••••••• (token configurado — preencha para substituir)" : "Insira o Token de Acesso da API de Conversões da Meta."}
