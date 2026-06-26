@@ -35,7 +35,7 @@ export const Route = createFileRoute("/blog/$slug")({
               description: desc,
               image: post.imagem_capa || undefined,
               datePublished: post.publicado_em,
-              author: autor?.nome ? { "@type": "Person", name: autor.nome } : undefined,
+              author: autor?.nome ? { "@type": "Person", name: [autor.nome, (autor as { sobrenome?: string }).sobrenome].filter(Boolean).join(" ") } : undefined,
             }),
           }]
         : [],
@@ -83,7 +83,7 @@ function Page() {
           {post.publicado_em && (
             <p className="text-sm text-muted-foreground mb-8">
               {new Date(post.publicado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-              {autor?.nome && <> · por {autor.nome}</>}
+              {autor?.nome && <> · por {[autor.nome, (autor as { sobrenome?: string }).sobrenome].filter(Boolean).join(" ")}</>}
             </p>
           )}
           {post.resumo && <p className="text-xl text-foreground/80 leading-relaxed mb-10">{post.resumo}</p>}
