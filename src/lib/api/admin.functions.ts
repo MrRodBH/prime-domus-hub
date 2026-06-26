@@ -364,7 +364,7 @@ export const meusPapeis = createServerFn({ method: "GET" })
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId);
-    if (error) return [] as string[];
+    if (error) throw new Error(error.message);
     return (data ?? []).map((r) => (r as { role: string }).role);
   });
 
