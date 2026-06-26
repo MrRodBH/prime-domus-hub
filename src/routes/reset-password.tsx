@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,21 +75,36 @@ function ResetPasswordPage() {
     };
   }, []);
 
-  const passwordValid =
-    password.length >= 6 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+  const hasLetters = /[A-Za-z]/.test(password);
+  const hasNumbers = /[0-9]/.test(password);
+  const hasMinLength = password.length >= 6;
+  const passwordValid = hasMinLength; // Supabase mínimo é 6; letras+números são recomendados
+  const passwordStrong = hasMinLength && hasLetters && hasNumbers;
 
   function translatePasswordError(error: { message?: string; code?: string }) {
-    const msg = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
-    if (
-      msg.includes("weak") ||
-      msg.includes("easy to guess") ||
-      msg.includes("hibp") ||
-      msg.includes("password")
-    ) {
-      return "Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.";
+    const code = (error.code ?? "").toLowerCase();
+    const msg = (error.message ?? "").toLowerCase();
+    const all = `${code} ${msg}`;
+    if (all.includes("pwned") || all.includes("hibp") || all.includes("compromised") || all.includes("data breach")) {
+      return "Esta senha apareceu em vazamentos públicos de dados e não pode ser usada. Escolha outra senha (sugestão: combine letras maiúsculas, minúsculas, números e um símbolo).";
     }
-    return "Não foi possível definir a senha. Tente novamente ou solicite um novo link ao administrador.";
+    if (all.includes("short") || all.includes("at least") || all.includes("minimum") || all.includes("length") || all.includes("6 characters")) {
+      return "Sua senha deve ter no mínimo 6 caracteres.";
+    }
+    if (all.includes("weak") || all.includes("easy to guess")) {
+      return "Senha muito fraca. Use letras, números e, de preferência, um símbolo.";
+    }
+    if (all.includes("same_password") || all.includes("should be different")) {
+      return "A nova senha deve ser diferente da senha atual.";
+    }
+    if (all.includes("session") || all.includes("jwt") || all.includes("expired") || all.includes("invalid")) {
+      return "Sessão de redefinição expirou. Solicite um novo link de acesso.";
+    }
+    return error.message
+      ? `Não foi possível definir a senha: ${error.message}`
+      : "Não foi possível definir a senha. Tente novamente ou solicite um novo link ao administrador.";
   }
+
 
   async function redirectToDashboard() {
     await navigate({ to: "/admin", replace: true });
@@ -99,7 +117,7 @@ function ResetPasswordPage() {
     e.preventDefault();
     setFormError(null);
     if (!passwordValid) {
-      setFormError("Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.");
+      setFormError("Sua senha deve ter no mínimo 6 caracteres.");
       return;
     }
     if (password !== confirm) {
@@ -182,40 +200,64 @@ function ResetPasswordPage() {
               </div>
               <div>
                 <Label htmlFor="password">Nova senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
-                  autoComplete="new-password"
-                  aria-describedby="password-help"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
+                    autoComplete="new-password"
+                    aria-describedby="password-help"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 <p
                   id="password-help"
                   className={`text-xs mt-1 ${
                     password.length === 0
                       ? "text-muted-foreground"
                       : passwordValid
-                        ? "text-emerald-600"
+                        ? passwordStrong ? "text-emerald-600" : "text-amber-600"
                         : "text-destructive"
                   }`}
                 >
-                  Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.
+                  Mínimo de 6 caracteres. Recomendado: misture letras maiúsculas, minúsculas, números e símbolos. Senhas comuns ou que apareceram em vazamentos públicos serão recusadas.
                 </p>
               </div>
               <div>
                 <Label htmlFor="confirm">Confirmar senha</Label>
-                <Input
-                  id="confirm"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={confirm}
-                  onChange={(e) => { setConfirm(e.target.value); setFormError(null); }}
-                  autoComplete="new-password"
-                />
+                <div className="relative">
+                  <Input
+                    id="confirm"
+                    type={showConfirm ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={confirm}
+                    onChange={(e) => { setConfirm(e.target.value); setFormError(null); }}
+                    autoComplete="new-password"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                    aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                    tabIndex={-1}
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {confirm.length > 0 && confirm !== password && (
                   <p className="text-xs mt-1 text-destructive">As senhas não coincidem.</p>
                 )}
