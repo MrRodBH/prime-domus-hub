@@ -453,3 +453,74 @@ function AdminUsuarios() {
     </div>
   );
 }
+
+function ChangePasswordBlock({ userId, email }: { userId: string; email: string }) {
+  const [pw1, setPw1] = useState("");
+  const [pw2, setPw2] = useState("");
+  const mut = useMutation({
+    mutationFn: (new_password: string) =>
+      adminAlterarSenhaUsuario({ data: { user_id: userId, new_password } }),
+    onSuccess: (res) => {
+      setPw1("");
+      setPw2("");
+      toast.success(
+        res?.email_sent
+          ? "Senha alterada. E-mail de notificação enviado ao usuário."
+          : "Senha alterada. (Não foi possível enviar o e-mail informativo.)",
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const minLen = 6;
+  const valid = pw1.length >= minLen && pw1 === pw2;
+  const mismatch = pw2.length > 0 && pw1 !== pw2;
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium">Alterar senha</h3>
+        {email && <span className="text-xs text-muted-foreground">{email}</span>}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        A nova senha é gravada imediatamente, sem envio de e-mail de validação. O
+        usuário receberá um e-mail informativo sobre a alteração.
+      </p>
+      <div className="grid md:grid-cols-2 gap-3">
+        <div>
+          <Label>Nova senha</Label>
+          <PasswordInput
+            value={pw1}
+            minLength={minLen}
+            onChange={(e) => setPw1(e.target.value)}
+            placeholder={`mínimo ${minLen} caracteres`}
+            autoComplete="new-password"
+          />
+        </div>
+        <div>
+          <Label>Confirmar nova senha</Label>
+          <PasswordInput
+            value={pw2}
+            minLength={minLen}
+            onChange={(e) => setPw2(e.target.value)}
+            placeholder="repita a nova senha"
+            autoComplete="new-password"
+          />
+          {mismatch && (
+            <p className="text-xs text-destructive mt-1">As senhas não conferem.</p>
+          )}
+        </div>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={!valid || mut.isPending}
+        onClick={() => mut.mutate(pw1)}
+      >
+        {mut.isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
+        Alterar senha
+      </Button>
+    </div>
+  );
+}
+
