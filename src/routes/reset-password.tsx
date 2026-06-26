@@ -79,17 +79,29 @@ function ResetPasswordPage() {
     password.length >= 6 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
 
   function translatePasswordError(error: { message?: string; code?: string }) {
-    const msg = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
-    if (
-      msg.includes("weak") ||
-      msg.includes("easy to guess") ||
-      msg.includes("hibp") ||
-      msg.includes("password")
-    ) {
-      return "Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.";
+    const code = (error.code ?? "").toLowerCase();
+    const msg = (error.message ?? "").toLowerCase();
+    const all = `${code} ${msg}`;
+    if (all.includes("pwned") || all.includes("hibp") || all.includes("compromised") || all.includes("data breach")) {
+      return "Esta senha apareceu em vazamentos públicos de dados e não pode ser usada. Escolha outra senha (sugestão: combine letras maiúsculas, minúsculas, números e um símbolo).";
     }
-    return "Não foi possível definir a senha. Tente novamente ou solicite um novo link ao administrador.";
+    if (all.includes("short") || all.includes("at least") || all.includes("minimum") || all.includes("length") || all.includes("6 characters")) {
+      return "Sua senha deve ter no mínimo 6 caracteres.";
+    }
+    if (all.includes("weak") || all.includes("easy to guess")) {
+      return "Senha muito fraca. Use letras, números e, de preferência, um símbolo.";
+    }
+    if (all.includes("same_password") || all.includes("should be different")) {
+      return "A nova senha deve ser diferente da senha atual.";
+    }
+    if (all.includes("session") || all.includes("jwt") || all.includes("expired") || all.includes("invalid")) {
+      return "Sessão de redefinição expirou. Solicite um novo link de acesso.";
+    }
+    return error.message
+      ? `Não foi possível definir a senha: ${error.message}`
+      : "Não foi possível definir a senha. Tente novamente ou solicite um novo link ao administrador.";
   }
+
 
   async function redirectToDashboard() {
     await navigate({ to: "/admin", replace: true });
