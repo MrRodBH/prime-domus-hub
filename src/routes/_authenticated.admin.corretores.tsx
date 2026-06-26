@@ -315,8 +315,7 @@ function AdminUsuarios() {
                     {!editing.id && (
                       <div>
                         <Label>Senha provisória *</Label>
-                        <Input
-                          type="text"
+                        <PasswordInput
                           required
                           minLength={6}
                           value={editing.password ?? ""}
