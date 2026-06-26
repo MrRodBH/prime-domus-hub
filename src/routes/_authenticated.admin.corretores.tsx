@@ -9,6 +9,7 @@ import {
   adminCriarUsuarioComLogin,
   adminAtualizarPapeis,
   adminListarPapeisPorUsuario,
+  adminAlterarSenhaUsuario,
 } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
