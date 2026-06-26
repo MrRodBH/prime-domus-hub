@@ -200,40 +200,64 @@ function ResetPasswordPage() {
               </div>
               <div>
                 <Label htmlFor="password">Nova senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
-                  autoComplete="new-password"
-                  aria-describedby="password-help"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
+                    autoComplete="new-password"
+                    aria-describedby="password-help"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 <p
                   id="password-help"
                   className={`text-xs mt-1 ${
                     password.length === 0
                       ? "text-muted-foreground"
                       : passwordValid
-                        ? "text-emerald-600"
+                        ? passwordStrong ? "text-emerald-600" : "text-amber-600"
                         : "text-destructive"
                   }`}
                 >
-                  Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.
+                  Mínimo de 6 caracteres. Recomendado: misture letras maiúsculas, minúsculas, números e símbolos. Senhas comuns ou que apareceram em vazamentos públicos serão recusadas.
                 </p>
               </div>
               <div>
                 <Label htmlFor="confirm">Confirmar senha</Label>
-                <Input
-                  id="confirm"
-                  type="password"
-                  required
-                  minLength={6}
-                  value={confirm}
-                  onChange={(e) => { setConfirm(e.target.value); setFormError(null); }}
-                  autoComplete="new-password"
-                />
+                <div className="relative">
+                  <Input
+                    id="confirm"
+                    type={showConfirm ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={confirm}
+                    onChange={(e) => { setConfirm(e.target.value); setFormError(null); }}
+                    autoComplete="new-password"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                    aria-label={showConfirm ? "Ocultar senha" : "Mostrar senha"}
+                    tabIndex={-1}
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {confirm.length > 0 && confirm !== password && (
                   <p className="text-xs mt-1 text-destructive">As senhas não coincidem.</p>
                 )}
