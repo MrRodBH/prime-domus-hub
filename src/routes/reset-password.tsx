@@ -75,8 +75,11 @@ function ResetPasswordPage() {
     };
   }, []);
 
-  const passwordValid =
-    password.length >= 6 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
+  const hasLetters = /[A-Za-z]/.test(password);
+  const hasNumbers = /[0-9]/.test(password);
+  const hasMinLength = password.length >= 6;
+  const passwordValid = hasMinLength; // Supabase mínimo é 6; letras+números são recomendados
+  const passwordStrong = hasMinLength && hasLetters && hasNumbers;
 
   function translatePasswordError(error: { message?: string; code?: string }) {
     const code = (error.code ?? "").toLowerCase();
