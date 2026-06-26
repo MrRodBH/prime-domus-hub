@@ -346,6 +346,12 @@ function AdminUsuarios() {
                   </div>
                 </div>
 
+                {editing.user_id && (
+                  <ChangePasswordBlock userId={editing.user_id} email={editing.email ?? editing.email_login ?? ""} />
+                )}
+
+
+
                 <div className="space-y-2 border-t pt-4">
                   <Label>Foto</Label>
                   <input ref={fileRef} type="file" accept="image/*" onChange={handleUploadFoto} className="hidden" />
