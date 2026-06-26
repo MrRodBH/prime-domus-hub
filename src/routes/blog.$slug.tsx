@@ -35,7 +35,7 @@ export const Route = createFileRoute("/blog/$slug")({
               description: desc,
               image: post.imagem_capa || undefined,
               datePublished: post.publicado_em,
-              author: autor?.nome ? { "@type": "Person", name: autor.nome } : undefined,
+              author: autor?.nome ? { "@type": "Person", name: [autor.nome, (autor as { sobrenome?: string }).sobrenome].filter(Boolean).join(" ") } : undefined,
             }),
           }]
         : [],
