@@ -26,7 +26,9 @@ export function AdminShell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { data: papeis } = useQuery({ queryKey: ["meus-papeis"], queryFn: () => meusPapeis(), staleTime: 60_000 });
-  const roles = (papeis ?? ["admin"]) as Role[];
+  // Enquanto carrega (undefined) OU se a leitura falhar e vier vazia, não esconda nada.
+  const rolesLoaded = Array.isArray(papeis) && papeis.length > 0;
+  const roles = (rolesLoaded ? papeis : ["admin"]) as Role[];
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -36,7 +38,7 @@ export function AdminShell() {
   const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + "/"));
   const visibleNav = nav.filter((n) => {
     if (!n.hideFor) return true;
-    // hide only when ALL user roles are in hideFor (i.e., no allowed role)
+    // mostra se pelo menos um papel do usuário NÃO está na lista de hideFor
     return roles.some((r) => !n.hideFor!.includes(r));
   });
 
