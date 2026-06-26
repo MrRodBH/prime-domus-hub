@@ -19,8 +19,10 @@ export interface TemplateEntry {
  */
 import { template as novoLeadTemplate } from './novo-lead'
 import { template as definirSenhaTemplate } from './definir-senha'
+import { template as senhaAlteradaTemplate } from './senha-alterada'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'novo-lead': novoLeadTemplate,
   'definir-senha': definirSenhaTemplate,
+  'senha-alterada': senhaAlteradaTemplate,
 }
