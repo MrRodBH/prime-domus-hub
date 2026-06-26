@@ -57,7 +57,7 @@ export const obterPostPublico = createServerFn({ method: "GET" })
     const { data: post, error } = await supabaseAdmin
       .from("blog_posts")
       .select(
-        "id, titulo, slug, resumo, conteudo, imagem_capa, publicado_em, meta_title, meta_description, categoria:blog_categorias(nome, slug), autor:corretores(nome, foto_url, slug)",
+        "id, titulo, slug, resumo, conteudo, imagem_capa, publicado_em, meta_title, meta_description, categoria:blog_categorias(nome, slug), autor:corretores(nome, sobrenome, foto_url, slug)",
       )
       .eq("slug", data.slug)
       .eq("status", "publicado")
