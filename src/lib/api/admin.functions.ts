@@ -531,6 +531,65 @@ export const adminAtualizarPapeis = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Admin: altera a senha de qualquer usuário (não exige e-mail de validação).
+// Envia notificação informativa ao usuário avisando da alteração.
+export const adminAlterarSenhaUsuario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      user_id: z.string().uuid(),
+      new_password: z.string().min(6, "A senha deve ter ao menos 6 caracteres"),
+    }),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: userRes, error: getErr } = await supabaseAdmin.auth.admin.getUserById(
+      data.user_id,
+    );
+    if (getErr || !userRes?.user) throw new Error(getErr?.message ?? "Usuário não encontrado");
+    const targetEmail = userRes.user.email;
+
+    const { error: upErr } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      password: data.new_password,
+    });
+    if (upErr) throw new Error(upErr.message);
+
+    // Busca nome do corretor para personalizar e-mail
+    let nome = "";
+    if (targetEmail) {
+      const { data: cor } = await supabaseAdmin
+        .from("corretores")
+        .select("nome")
+        .eq("user_id", data.user_id)
+        .maybeSingle();
+      nome = (cor as { nome?: string } | null)?.nome ?? "";
+    }
+
+    let emailSent = false;
+    if (targetEmail) {
+      try {
+        const { enqueueTransactional } = await import("@/lib/email/notify.server");
+        const res = await enqueueTransactional({
+          templateName: "senha-alterada",
+          to: targetEmail,
+          templateData: {
+            nome,
+            alterado_por: "um administrador",
+            quando: new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+          },
+          idempotencyKey: `senha-alterada-${data.user_id}-${Date.now()}`,
+        });
+        emailSent = !!res.ok;
+      } catch {
+        // não falha o fluxo se o e-mail não puder ser enviado
+      }
+    }
+
+    return { ok: true, email_sent: emailSent };
+  });
+
 // ===== CIDADES =====
 const cidadeSchema = z.object({
   id: z.string().uuid().optional(),
