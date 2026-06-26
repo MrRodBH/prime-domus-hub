@@ -117,7 +117,7 @@ function ResetPasswordPage() {
     e.preventDefault();
     setFormError(null);
     if (!passwordValid) {
-      setFormError("Sua senha deve possuir pelo menos 6 caracteres contendo letras e números.");
+      setFormError("Sua senha deve ter no mínimo 6 caracteres.");
       return;
     }
     if (password !== confirm) {
