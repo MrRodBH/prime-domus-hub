@@ -142,15 +142,17 @@ function DashboardCRM() {
 
   const d = stats.data;
 
-  // Base search params carried into every drill-down link
+  // Base search params carried into every drill-down link.
+  // Note: corretorId from this page references corretores.id, while /admin/leads
+  // filters by assigned_to (user_id). We only carry corretor_id when set from
+  // the ranking rows, which provide the proper user_id.
   const baseSearch = useMemo(() => {
     const s: Record<string, string> = {};
     if (range.inicio) s.inicio = range.inicio.slice(0, 10);
     if (range.fim) s.fim = range.fim.slice(0, 10);
-    if (corretorId) s.corretor_id = corretorId;
     if (origemFiltro) s.origem = origemFiltro;
     return s;
-  }, [range, corretorId, origemFiltro]);
+  }, [range, origemFiltro]);
 
   const buildSearch = (extra: Record<string, string | undefined>) => {
     const merged: Record<string, string> = { ...baseSearch };
