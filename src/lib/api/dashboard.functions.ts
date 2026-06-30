@@ -291,6 +291,7 @@ export const dashboardStats = createServerFn({ method: "POST" })
     // ---- BLOCO 9 — Ranking da equipe (apenas privilegiados) ----
     let ranking: Array<{
       corretor_id: string;
+      user_id: string | null;
       nome: string;
       leads: number;
       visitas: number;
@@ -300,14 +301,15 @@ export const dashboardStats = createServerFn({ method: "POST" })
       vgv: number;
     }> = [];
     if (isPrivileged) {
-      const { data: corretoresRaw } = await supabase.from("corretores").select("id, nome, sobrenome");
-      const corretores = (corretoresRaw ?? []) as Array<{ id: string; nome: string; sobrenome: string | null }>;
+      const { data: corretoresRaw } = await supabase.from("corretores").select("id, user_id, nome, sobrenome");
+      const corretores = (corretoresRaw ?? []) as Array<{ id: string; user_id: string | null; nome: string; sobrenome: string | null }>;
       ranking = corretores
         .map((c) => {
           const seus = atuais.filter((l) => l.corretor_id === c.id);
           const v = countByStatus(seus, "ganho");
           return {
             corretor_id: c.id,
+            user_id: c.user_id,
             nome: [c.nome, c.sobrenome].filter(Boolean).join(" "),
             leads: seus.length,
             visitas: countAtLeast(seus, "visita"),
@@ -321,6 +323,7 @@ export const dashboardStats = createServerFn({ method: "POST" })
         .sort((a, b) => b.vgv - a.vgv)
         .slice(0, 10);
     }
+
 
     // ---- BLOCO 2 — IA Comercial (motor de regras) ----
     const insights: Array<{ tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao"; mensagem: string }> = [];
