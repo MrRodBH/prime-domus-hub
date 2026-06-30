@@ -1,63 +1,567 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { adminListarImoveis, adminListarLeads, adminListarCorretores } from "@/lib/api/admin.functions";
-import { Building2, Users, Inbox, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { dashboardStats } from "@/lib/api/dashboard.functions";
+import { adminListarCorretores } from "@/lib/api/admin.functions";
+import {
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  LineChart,
+  Line,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  CalendarCheck,
+  FileText,
+  Trophy,
+  Sparkles,
+  Flame,
+  AlertTriangle,
+  Lightbulb,
+  ChartLine,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
-  component: AdminDashboard,
+  component: DashboardCRM,
 });
 
-function AdminDashboard() {
-  const imoveis = useQuery({ queryKey: ["admin", "imoveis"], queryFn: () => adminListarImoveis() });
-  const leads = useQuery({ queryKey: ["admin", "leads"], queryFn: () => adminListarLeads() });
-  const corretores = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
+type Periodo = "hoje" | "ontem" | "7d" | "30d" | "este_mes" | "mes_anterior" | "este_ano" | "custom";
 
-  const novos = leads.data?.filter((l) => l.status === "novo").length ?? 0;
-  const ativos = imoveis.data?.filter((i) => i.status === "ativo").length ?? 0;
-  const destaques = imoveis.data?.filter((i) => i.destaque).length ?? 0;
+function rangeFor(p: Periodo, custom?: { ini: string; fim: string }): { inicio: string; fim: string } {
+  const now = new Date();
+  const fim = new Date(now);
+  fim.setHours(23, 59, 59, 999);
+  const inicio = new Date(now);
+  inicio.setHours(0, 0, 0, 0);
 
-  const cards = [
-    { label: "Imóveis ativos", value: ativos, icon: Building2, to: "/admin/imoveis" },
-    { label: "Em destaque", value: destaques, icon: TrendingUp, to: "/admin/imoveis" },
-    { label: "Leads novos", value: novos, icon: Inbox, to: "/admin/leads" },
-    { label: "Corretores", value: corretores.data?.length ?? 0, icon: Users, to: "/admin/corretores" },
-  ];
+  switch (p) {
+    case "hoje":
+      return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+    case "ontem": {
+      inicio.setDate(inicio.getDate() - 1);
+      const f = new Date(inicio);
+      f.setHours(23, 59, 59, 999);
+      return { inicio: inicio.toISOString(), fim: f.toISOString() };
+    }
+    case "7d":
+      inicio.setDate(inicio.getDate() - 6);
+      return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+    case "30d":
+      inicio.setDate(inicio.getDate() - 29);
+      return { inicio: inicio.toISOString(), fim: fim.toISOString() };
+    case "este_mes": {
+      const i = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { inicio: i.toISOString(), fim: fim.toISOString() };
+    }
+    case "mes_anterior": {
+      const i = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const f = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      return { inicio: i.toISOString(), fim: f.toISOString() };
+    }
+    case "este_ano": {
+      const i = new Date(now.getFullYear(), 0, 1);
+      return { inicio: i.toISOString(), fim: fim.toISOString() };
+    }
+    case "custom":
+      return {
+        inicio: custom?.ini ? new Date(custom.ini).toISOString() : inicio.toISOString(),
+        fim: custom?.fim ? new Date(custom.fim + "T23:59:59").toISOString() : fim.toISOString(),
+      };
+  }
+}
+
+const PERIODOS: { id: Periodo; label: string }[] = [
+  { id: "hoje", label: "Hoje" },
+  { id: "ontem", label: "Ontem" },
+  { id: "7d", label: "Últimos 7 dias" },
+  { id: "30d", label: "Últimos 30 dias" },
+  { id: "este_mes", label: "Este mês" },
+  { id: "mes_anterior", label: "Mês anterior" },
+  { id: "este_ano", label: "Este ano" },
+  { id: "custom", label: "Personalizado" },
+];
+
+const moeda = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+const STATUS_QUERY_MAP: Record<string, string[]> = {
+  "Lead Captado": ["novo"],
+  "Contato Realizado": ["conversando", "visita", "proposta", "ganho"],
+  Qualificado: ["conversando", "visita", "proposta", "ganho"],
+  "Visita Agendada": ["visita", "proposta", "ganho"],
+  Proposta: ["proposta", "ganho"],
+  Venda: ["ganho"],
+  Descartados: ["perdido"],
+};
+
+function DashboardCRM() {
+  const [periodo, setPeriodo] = useState<Periodo>("30d");
+  const [custom, setCustom] = useState<{ ini: string; fim: string }>({ ini: "", fim: "" });
+  const [corretorId, setCorretorId] = useState<string>("");
+  const [origemFiltro, setOrigemFiltro] = useState<string>("");
+  const [serieMetricas, setSerieMetricas] = useState<Record<string, boolean>>({
+    leads: true,
+    visitas: true,
+    propostas: true,
+    vendas: true,
+    vgv: false,
+  });
+
+  const range = useMemo(() => rangeFor(periodo, custom), [periodo, custom]);
+  const callStats = useServerFn(dashboardStats);
+
+  const stats = useQuery({
+    queryKey: ["dashboard", range.inicio, range.fim, corretorId, origemFiltro],
+    queryFn: () =>
+      callStats({
+        data: {
+          inicio: range.inicio,
+          fim: range.fim,
+          corretor_id: corretorId || null,
+          origem: origemFiltro || null,
+        },
+      }),
+  });
+
+  const corretores = useQuery({
+    queryKey: ["admin", "corretores", "lite"],
+    queryFn: () => adminListarCorretores(),
+    enabled: !!stats.data?.isPrivileged,
+  });
+
+  const d = stats.data;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Visão geral do portfólio e dos leads recebidos.</p>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          return (
-            <Link key={c.label} to={c.to} className="bg-card border border-foreground/5 rounded-lg p-5 hover:border-gold transition-colors">
-              <Icon className="size-5 text-gold mb-3" strokeWidth={1.5} />
-              <p className="text-3xl font-display">{c.value}</p>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">{c.label}</p>
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="bg-card border border-foreground/5 rounded-lg p-6">
-        <h2 className="font-display text-xl mb-4">Últimos leads</h2>
-        <div className="space-y-3">
-          {(leads.data ?? []).slice(0, 5).map((l) => (
-            <div key={l.id} className="flex items-center justify-between py-2 border-b border-foreground/5 last:border-0">
-              <div>
-                <p className="font-medium text-sm">{l.nome}</p>
-                <p className="text-xs text-muted-foreground">{l.email || l.telefone} · {l.origem}</p>
-              </div>
-              <span className="text-xs px-2 py-1 rounded bg-secondary">{l.status}</span>
+    <div className="space-y-6">
+      {/* Header + filtros globais */}
+      <div className="flex flex-col gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Dashboard Comercial</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Indicadores em tempo real, gargalos e oportunidades.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3 bg-card border border-foreground/5 rounded-lg p-4">
+          <div className="flex flex-wrap gap-1">
+            {PERIODOS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPeriodo(p.id)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  periodo === p.id
+                    ? "bg-gold/20 border-gold text-gold"
+                    : "border-foreground/10 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {periodo === "custom" && (
+            <div className="flex gap-2 items-center">
+              <input
+                type="date"
+                value={custom.ini}
+                onChange={(e) => setCustom((c) => ({ ...c, ini: e.target.value }))}
+                className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <input
+                type="date"
+                value={custom.fim}
+                onChange={(e) => setCustom((c) => ({ ...c, fim: e.target.value }))}
+                className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
+              />
             </div>
-          ))}
-          {leads.data?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum lead ainda.</p>}
+          )}
+          {d?.isPrivileged && (
+            <select
+              value={corretorId}
+              onChange={(e) => setCorretorId(e.target.value)}
+              className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
+            >
+              <option value="">Todos os corretores</option>
+              {corretores.data?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {[c.nome, c.sobrenome].filter(Boolean).join(" ")}
+                </option>
+              ))}
+            </select>
+          )}
+          <select
+            value={origemFiltro}
+            onChange={(e) => setOrigemFiltro(e.target.value)}
+            className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
+          >
+            <option value="">Todas as origens</option>
+            {d?.origens.map((o) => (
+              <option key={o.nome} value={o.nome}>
+                {o.nome}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
+
+      {stats.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+      {stats.error && <p className="text-sm text-destructive">Erro ao carregar indicadores.</p>}
+
+      {d && (
+        <>
+          {/* BLOCO 1 — Resumo Executivo */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <ResumoCard
+              label="Leads Recebidos"
+              valor={d.resumo.leads.atual}
+              extra={
+                <DeltaBadge delta={d.resumo.leads.deltaPct} suffix="em relação ao período anterior" />
+              }
+              icon={Users}
+              to="/admin/leads"
+            />
+            <ResumoCard
+              label="Visitas Agendadas"
+              valor={d.resumo.visitas.atual}
+              extra={<span className="text-xs text-muted-foreground">{d.resumo.visitas.conversao}% de conversão</span>}
+              icon={CalendarCheck}
+              to="/admin/leads"
+            />
+            <ResumoCard
+              label="Propostas Enviadas"
+              valor={d.resumo.propostas.atual}
+              extra={<span className="text-xs text-muted-foreground">{d.resumo.propostas.conversao}% de conversão</span>}
+              icon={FileText}
+              to="/admin/leads"
+            />
+            <ResumoCard
+              label="Vendas Fechadas"
+              valor={d.resumo.vendas.atual}
+              extra={<span className="text-xs text-gold">{moeda(d.resumo.vendas.vgv)} em VGV</span>}
+              icon={Trophy}
+              to="/admin/leads"
+            />
+          </div>
+
+          {/* BLOCO 2 — IA Comercial */}
+          <div className="bg-gradient-to-br from-gold/10 via-card to-card border border-gold/30 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="size-5 text-gold" />
+              <h2 className="font-display text-xl">Assistente Comercial</h2>
+            </div>
+            {d.insights.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Ainda não há dados suficientes para gerar insights neste período.
+              </p>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-3">
+                {d.insights.map((ins, i) => (
+                  <div key={i} className="flex gap-3 items-start text-sm">
+                    <InsightIcon tipo={ins.tipo} />
+                    <p className="text-foreground/90">{ins.mensagem}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* BLOCO 3 — Funil de Vendas */}
+            <div className="lg:col-span-2 bg-card border border-foreground/5 rounded-lg p-6">
+              <h2 className="font-display text-xl mb-4">Funil de Vendas</h2>
+              <div className="space-y-2">
+                {d.funil.map((etapa, i) => {
+                  const max = d.funil[0]?.quantidade || 1;
+                  const pct = max > 0 ? (etapa.quantidade / max) * 100 : 0;
+                  const isDescarte = etapa.etapa === "Descartados";
+                  return (
+                    <Link
+                      key={etapa.etapa}
+                      to="/admin/leads"
+                      search={{ status: STATUS_QUERY_MAP[etapa.etapa]?.join(",") || "" } as never}
+                      className="block group"
+                    >
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-medium">{etapa.etapa}</span>
+                        <span className="text-muted-foreground">
+                          {etapa.quantidade} {!isDescarte && i > 0 && <>· {etapa.conversao}%</>}
+                          {etapa.perda > 0 && !isDescarte && (
+                            <span className="text-destructive ml-2">−{etapa.perda}</span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="h-7 bg-secondary rounded overflow-hidden">
+                        <div
+                          className={`h-full ${isDescarte ? "bg-destructive/40" : "bg-gold/70 group-hover:bg-gold"} transition-colors`}
+                          style={{ width: `${Math.max(pct, 2)}%` }}
+                        />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* BLOCO 4 — Alertas Inteligentes */}
+            <div className="bg-card border border-foreground/5 rounded-lg p-6">
+              <h2 className="font-display text-xl mb-4 flex items-center gap-2">
+                <Flame className="size-5 text-destructive" /> Alertas
+              </h2>
+              <div className="space-y-3">
+                <AlertaItem n={d.alertas.semAtendimento} label="Leads sem primeiro contato (+48h)" />
+                <AlertaItem n={d.alertas.semFollowup} label="Clientes sem follow-up (+7 dias)" />
+                <AlertaItem n={d.alertas.visitasSemFeedback} label="Visitas sem feedback (+7 dias)" />
+                <AlertaItem n={d.alertas.propostasParadas} label="Propostas sem atualização (+7 dias)" />
+              </div>
+            </div>
+          </div>
+
+          {/* BLOCO 5 — Evolução Comercial */}
+          <div className="bg-card border border-foreground/5 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <h2 className="font-display text-xl flex items-center gap-2">
+                <ChartLine className="size-5 text-gold" /> Evolução Comercial
+              </h2>
+              <div className="flex gap-2 flex-wrap">
+                {(["leads", "visitas", "propostas", "vendas", "vgv"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setSerieMetricas((s) => ({ ...s, [m]: !s[m] }))}
+                    className={`text-xs px-2 py-1 rounded border ${
+                      serieMetricas[m]
+                        ? "bg-gold/20 border-gold text-gold"
+                        : "border-foreground/10 text-muted-foreground"
+                    }`}
+                  >
+                    {m === "vgv" ? "VGV" : m.charAt(0).toUpperCase() + m.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer>
+                <LineChart data={d.serie}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="data" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                  />
+                  <Legend />
+                  {serieMetricas.leads && <Line type="monotone" dataKey="leads" stroke="#3b82f6" strokeWidth={2} />}
+                  {serieMetricas.visitas && <Line type="monotone" dataKey="visitas" stroke="#a855f7" strokeWidth={2} />}
+                  {serieMetricas.propostas && <Line type="monotone" dataKey="propostas" stroke="#f59e0b" strokeWidth={2} />}
+                  {serieMetricas.vendas && <Line type="monotone" dataKey="vendas" stroke="#10b981" strokeWidth={2} />}
+                  {serieMetricas.vgv && <Line type="monotone" dataKey="vgv" stroke="#d4af37" strokeWidth={2} />}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* BLOCO 6 — Origem dos leads */}
+            <div className="bg-card border border-foreground/5 rounded-lg p-6">
+              <h2 className="font-display text-xl mb-4">Origem dos Leads</h2>
+              {d.origens.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem leads no período.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 items-center">
+                  <div className="h-56">
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie data={d.origens} dataKey="quantidade" nameKey="nome" innerRadius={45} outerRadius={80}>
+                          {d.origens.map((_, i) => (
+                            <Cell
+                              key={i}
+                              fill={["#d4af37", "#3b82f6", "#10b981", "#f59e0b", "#a855f7", "#ef4444", "#64748b"][i % 7]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-1.5 text-xs">
+                    {d.origens.map((o, i) => (
+                      <div key={o.nome} className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-2 rounded-full"
+                            style={{
+                              background: ["#d4af37", "#3b82f6", "#10b981", "#f59e0b", "#a855f7", "#ef4444", "#64748b"][i % 7],
+                            }}
+                          />
+                          {o.nome}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {o.quantidade} · {o.percentual}% · conv. {o.conversao}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BLOCO 7 — Taxas de Conversão */}
+            <div className="bg-card border border-foreground/5 rounded-lg p-6">
+              <h2 className="font-display text-xl mb-4">Taxas de Conversão</h2>
+              <div className="space-y-3">
+                {d.taxas.map((t) => {
+                  const atingiu = t.atual >= t.meta;
+                  return (
+                    <div key={t.label}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>{t.label}</span>
+                        <span className={atingiu ? "text-gold" : "text-muted-foreground"}>
+                          {t.atual}% <span className="text-muted-foreground/70">/ meta {t.meta}%</span>
+                        </span>
+                      </div>
+                      <div className="h-2 bg-secondary rounded overflow-hidden">
+                        <div
+                          className={`h-full ${atingiu ? "bg-gold" : "bg-foreground/40"}`}
+                          style={{ width: `${Math.min((t.atual / t.meta) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* BLOCO 8 — Desempenho Individual */}
+          {d.desempenho && (
+            <div className="bg-card border border-foreground/5 rounded-lg p-6">
+              <h2 className="font-display text-xl mb-4">Seu Desempenho</h2>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <Mini label="Leads" v={d.desempenho.leads} />
+                <Mini label="Visitas" v={d.desempenho.visitas} />
+                <Mini label="Propostas" v={d.desempenho.propostas} />
+                <Mini label="Vendas" v={d.desempenho.vendas} />
+                <Mini label="VGV" v={moeda(d.desempenho.vgv)} />
+              </div>
+            </div>
+          )}
+
+          {/* BLOCO 9 — Ranking */}
+          {d.isPrivileged && d.ranking.length > 0 && (
+            <div className="bg-card border border-foreground/5 rounded-lg p-6">
+              <h2 className="font-display text-xl mb-4">Ranking da Equipe (Top 10)</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-muted-foreground uppercase">
+                    <tr className="border-b border-foreground/5">
+                      <th className="text-left py-2">#</th>
+                      <th className="text-left py-2">Corretor</th>
+                      <th className="text-right py-2">Leads</th>
+                      <th className="text-right py-2">Visitas</th>
+                      <th className="text-right py-2">Propostas</th>
+                      <th className="text-right py-2">Vendas</th>
+                      <th className="text-right py-2">Conv.</th>
+                      <th className="text-right py-2">VGV</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.ranking.map((r, i) => (
+                      <tr key={r.corretor_id} className="border-b border-foreground/5 last:border-0">
+                        <td className="py-2">{i + 1}</td>
+                        <td className="py-2 font-medium">{r.nome}</td>
+                        <td className="py-2 text-right">{r.leads}</td>
+                        <td className="py-2 text-right">{r.visitas}</td>
+                        <td className="py-2 text-right">{r.propostas}</td>
+                        <td className="py-2 text-right">{r.vendas}</td>
+                        <td className="py-2 text-right">{r.conversao}%</td>
+                        <td className="py-2 text-right text-gold">{moeda(r.vgv)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
+}
+
+function ResumoCard({
+  label,
+  valor,
+  extra,
+  icon: Icon,
+  to,
+}: {
+  label: string;
+  valor: number;
+  extra: React.ReactNode;
+  icon: typeof Users;
+  to: string;
+}) {
+  return (
+    <Link to={to} className="bg-card border border-foreground/5 rounded-lg p-5 hover:border-gold transition-colors block">
+      <Icon className="size-5 text-gold mb-3" strokeWidth={1.5} />
+      <p className="text-3xl font-display">{valor}</p>
+      <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">{label}</p>
+      <div className="mt-2">{extra}</div>
+    </Link>
+  );
+}
+
+function DeltaBadge({ delta, suffix }: { delta: number; suffix: string }) {
+  const up = delta >= 0;
+  const Icon = up ? TrendingUp : TrendingDown;
+  return (
+    <span className={`text-xs flex items-center gap-1 ${up ? "text-emerald-500" : "text-destructive"}`}>
+      <Icon className="size-3" />
+      {up ? "+" : ""}
+      {delta}% <span className="text-muted-foreground">{suffix}</span>
+    </span>
+  );
+}
+
+function AlertaItem({ n, label }: { n: number; label: string }) {
+  if (n === 0) return null;
+  return (
+    <Link to="/admin/leads" className="flex items-center justify-between gap-3 group">
+      <span className="text-sm">{label}</span>
+      <span className="bg-destructive/15 text-destructive text-xs font-bold px-2 py-0.5 rounded-full group-hover:bg-destructive/25">
+        {n}
+      </span>
+    </Link>
+  );
+}
+
+function Mini({ label, v }: { label: string; v: number | string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-2xl font-display mt-1">{v}</p>
+    </div>
+  );
+}
+
+function InsightIcon({ tipo }: { tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao" }) {
+  const map = {
+    performance: { I: TrendingUp, c: "text-emerald-500" },
+    gargalo: { I: TrendingDown, c: "text-amber-500" },
+    oportunidade: { I: Lightbulb, c: "text-gold" },
+    alerta: { I: AlertTriangle, c: "text-destructive" },
+    previsao: { I: ChartLine, c: "text-blue-500" },
+  };
+  const { I, c } = map[tipo];
+  return <I className={`size-4 mt-0.5 shrink-0 ${c}`} />;
 }
