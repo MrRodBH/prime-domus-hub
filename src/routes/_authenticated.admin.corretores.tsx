@@ -446,7 +446,37 @@ function AdminUsuarios() {
                       Qualquer tipo pode também ser Admin (basta marcar os dois).
                     </p>
                   </div>
+
+                  {editing.user_id && customProfiles.length > 0 && (
+                    <div>
+                      <Label className="mb-2 block">Perfis personalizados</Label>
+                      <div className="flex flex-wrap gap-3">
+                        {customProfiles.map((p) => {
+                          const checked = (editing.custom_profile_ids ?? []).includes(p.id);
+                          return (
+                            <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(v) => {
+                                  const cur = editing.custom_profile_ids ?? [];
+                                  setEditing({
+                                    ...editing,
+                                    custom_profile_ids: v ? [...cur, p.id] : cur.filter((x) => x !== p.id),
+                                  });
+                                }}
+                              />
+                              <span className="text-sm">{p.nome}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Perfis criados em <strong>Perfis & Permissões</strong>. Somam-se ao tipo principal.
+                      </p>
+                    </div>
+                  )}
                 </div>
+
 
                 {editing.user_id && (
                   <ChangePasswordBlock userId={editing.user_id} email={editing.email ?? editing.email_login ?? ""} />
