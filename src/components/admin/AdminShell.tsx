@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, Sparkles } from "lucide-react";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, Sparkles, ShieldCheck, UsersRound, History } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { meusPapeis } from "@/lib/api/admin.functions";
 import logo from "@/assets/logo-rm-prime.png";
 import { Button } from "@/components/ui/button";
 
-type Role = "admin" | "corretor" | "secretaria";
+type Role = "admin" | "corretor" | "secretaria" | "gerente" | "captador";
 
 const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[] }> = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -15,10 +15,13 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/lancamentos", label: "Lançamentos", icon: Sparkles },
   { to: "/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/admin/corretores", label: "Usuários", icon: Users },
+  { to: "/admin/perfis", label: "Perfis & Permissões", icon: ShieldCheck, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+  { to: "/admin/equipes", label: "Equipes", icon: UsersRound, hideFor: ["secretaria", "corretor", "captador"] },
+  { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/cidades", label: "Cidades", icon: MapPin },
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
   { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
-  { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor"] },
+  { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"] },
 ];
 
 export function AdminShell() {
