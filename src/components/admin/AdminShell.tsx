@@ -11,17 +11,17 @@ type Role = "admin" | "corretor" | "secretaria" | "gerente" | "captador";
 
 const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[] }> = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
   { to: "/admin/lancamentos", label: "Lançamentos", icon: Sparkles },
-  { to: "/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/admin/corretores", label: "Usuários", icon: Users },
-  { to: "/admin/perfis", label: "Perfis & Permissões", icon: ShieldCheck, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/equipes", label: "Equipes", icon: UsersRound, hideFor: ["secretaria", "corretor", "captador"] },
-  { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+  { to: "/admin/perfis", label: "Perfis & Permissões", icon: ShieldCheck, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+  { to: "/admin/blog", label: "Blog", icon: Newspaper },
   { to: "/admin/cidades", label: "Cidades", icon: MapPin },
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
-  { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
   { to: "/admin/origens", label: "Origens de Leads", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+  { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"] },
 ];
 
