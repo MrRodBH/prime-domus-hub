@@ -32,6 +32,8 @@ export function WhatsAppFab() {
       rel="noopener noreferrer"
       aria-label="Fale conosco no WhatsApp"
       onClick={() => {
+        // Marca origem "sticky" caso o usuário volte e preencha um formulário.
+        import("@/lib/attribution").then((m) => m.setOriginOverride("WhatsApp", 60)).catch(() => {});
         const event_id = metaEventId();
         metaTrack("Contact", { content_name: "whatsapp_fab" }, event_id);
         const ids = metaBrowserIds();
