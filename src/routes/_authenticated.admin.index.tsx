@@ -96,7 +96,7 @@ const PERIODOS: { id: Periodo; label: string }[] = [
 const moeda = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const STATUS_QUERY_MAP: Record<string, string[]> = {
-  "Lead Captado": ["novo"],
+  Novo: ["novo"],
   "Contato Realizado": ["conversando", "visita", "proposta", "ganho"],
   Qualificado: ["conversando", "visita", "proposta", "ganho"],
   "Visita Agendada": ["visita", "proposta", "ganho"],
