@@ -82,7 +82,6 @@ function emptyEditing(): Editing {
 function AdminUsuarios() {
   const qc = useQueryClient();
   const { data: corretores } = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
-  const { data: papeis } = useQuery({ queryKey: ["admin", "user-roles"], queryFn: () => adminListarPapeisPorUsuario() });
   const { data: equipes } = useQuery({ queryKey: ["rbac", "equipes"], queryFn: () => listarEquipes() });
   const { data: perfis } = useQuery({ queryKey: ["rbac", "perfis"], queryFn: () => listarPerfis() });
   const { data: perfisUsuarios } = useQuery({ queryKey: ["rbac", "perfis-usuarios"], queryFn: () => listarPerfisPorUsuario() });
@@ -91,24 +90,19 @@ function AdminUsuarios() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const rolesByUser = useMemo(() => {
-    const map = new Map<string, Role[]>();
-    (papeis ?? []).forEach((r) => {
-      const arr = map.get(r.user_id) ?? [];
-      arr.push(r.role as Role);
-      map.set(r.user_id, arr);
-    });
-    return map;
-  }, [papeis]);
-
-  const customProfilesByUser = useMemo(() => {
-    const map = new Map<string, string[]>();
+  // Perfil principal por usuário (primeiro perfil vinculado).
+  const profileByUser = useMemo(() => {
+    const map = new Map<string, { id: string; nome: string; sistema: boolean }>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (perfisUsuarios ?? []).forEach((r: any) => {
-      if (!r.rbac_profiles || r.rbac_profiles.sistema) return;
-      const arr = map.get(r.user_id) ?? [];
-      arr.push(r.rbac_profiles.id);
-      map.set(r.user_id, arr);
+      if (!r.rbac_profiles) return;
+      if (!map.has(r.user_id)) {
+        map.set(r.user_id, {
+          id: r.rbac_profiles.id,
+          nome: r.rbac_profiles.nome,
+          sistema: r.rbac_profiles.sistema,
+        });
+      }
     });
     return map;
   }, [perfisUsuarios]);
@@ -119,8 +113,13 @@ function AdminUsuarios() {
     return m;
   }, [equipes]);
 
-  const customProfiles = useMemo(
-    () => (perfis ?? []).filter((p) => !p.sistema),
+  // Todos os perfis (sistema + custom) — dropdown carregado dinamicamente
+  const perfisOrdenados = useMemo(
+    () =>
+      (perfis ?? []).slice().sort((a, b) => {
+        if (a.sistema !== b.sistema) return a.sistema ? -1 : 1;
+        return a.nome.localeCompare(b.nome);
+      }),
     [perfis],
   );
 
@@ -139,18 +138,14 @@ function AdminUsuarios() {
           cargo: e.cargo,
           foto_url: e.foto_url,
           bio: e.bio,
-          roles: (e.roles ?? ["corretor"]) as Role[],
+          profile_id: e.profile_id!,
         },
       }),
   });
 
-
-  const atualizarPapeis = useMutation({
-    mutationFn: (args: { user_id: string; roles: Role[] }) => adminAtualizarPapeis({ data: args }),
-  });
-
-  const atualizarPerfisCustom = useMutation({
-    mutationFn: (args: { user_id: string; profile_ids: string[] }) => setUserPerfisCustom({ data: args }),
+  const definirPerfil = useMutation({
+    mutationFn: (args: { user_id: string; profile_id: string }) =>
+      adminDefinirPerfilUsuario({ data: args }),
   });
 
   const salvarSemLogin = useMutation({
@@ -166,7 +161,6 @@ function AdminUsuarios() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-
   async function salvar(e: Editing) {
     try {
       if (e.sobrenome && !SOBRENOME_RE.test(e.sobrenome.trim())) {
@@ -176,6 +170,7 @@ function AdminUsuarios() {
       const wantsLogin = !!e.email_login;
       if (isNew && wantsLogin) {
         if (!e.password || e.password.length < 6) throw new Error("Defina uma senha de pelo menos 6 caracteres");
+        if (!e.profile_id) throw new Error("Selecione um Perfil de Acesso.");
         const res = await criarComLogin.mutateAsync(e);
         toast.success(
           res?.email_sent
@@ -183,22 +178,16 @@ function AdminUsuarios() {
             : "Usuário criado. (Não foi possível enviar o e-mail de senha — verifique a configuração de e-mail.)",
         );
       } else if (!isNew) {
-        const { email_login: _e, password: _p, roles: _r, custom_profile_ids: _cp, ...rest } = e;
-        void _e; void _p; void _r; void _cp;
+        const { email_login: _e, password: _p, profile_id: _pid, ...rest } = e;
+        void _e; void _p; void _pid;
         await salvarSemLogin.mutateAsync(rest);
-        if (e.user_id && e.roles && e.roles.length > 0) {
-          await atualizarPapeis.mutateAsync({ user_id: e.user_id, roles: e.roles });
-        }
-        if (e.user_id) {
-          await atualizarPerfisCustom.mutateAsync({
-            user_id: e.user_id,
-            profile_ids: e.custom_profile_ids ?? [],
-          });
+        if (e.user_id && e.profile_id) {
+          await definirPerfil.mutateAsync({ user_id: e.user_id, profile_id: e.profile_id });
         }
         toast.success("Salvo");
       } else {
-        const { email_login: _e, password: _p, roles: _r, custom_profile_ids: _cp, ...rest } = e;
-        void _e; void _p; void _r; void _cp;
+        const { email_login: _e, password: _p, profile_id: _pid, ...rest } = e;
+        void _e; void _p; void _pid;
         await salvarSemLogin.mutateAsync(rest);
         toast.success("Salvo");
       }
@@ -209,9 +198,7 @@ function AdminUsuarios() {
     } catch (err) {
       toast.error((err as Error).message);
     }
-
   }
-
 
   async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -237,26 +224,9 @@ function AdminUsuarios() {
     }
   }
 
-  function toggleRole(role: Role) {
-    if (!editing) return;
-    const current: Role[] = (editing.roles ?? []) as Role[];
-    let next: Role[];
-    if (current.includes(role)) {
-      next = current.filter((r: Role) => r !== role);
-    } else {
-      // Hierarquia: Secretaria não pode coexistir com Admin/Corretor.
-      // Admin + Corretor é permitido.
-      if (role === "secretaria") {
-        next = ["secretaria"];
-      } else {
-        next = [...current.filter((r) => r !== "secretaria"), role];
-      }
-    }
-    if (next.length === 0) next = [role];
-    setEditing({ ...editing, roles: next });
-  }
+  const isPending = criarComLogin.isPending || salvarSemLogin.isPending || definirPerfil.isPending;
 
-  const isPending = criarComLogin.isPending || salvarSemLogin.isPending || atualizarPapeis.isPending || atualizarPerfisCustom.isPending;
+
 
   return (
     <div className="space-y-6">
