@@ -725,6 +725,7 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
       id: z.string().uuid(),
       status: z.enum(["novo", "conversando", "visita", "proposta", "ganho", "perdido"]).optional(),
       observacoes: z.string().optional(),
+      valor_estimado: z.number().nullable().optional(),
     }),
   )
   .handler(async ({ data, context }) => {
