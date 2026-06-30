@@ -187,7 +187,11 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    // Captura inicial de atribuição (UTM / gclid / fbclid / referrer).
+    import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
     return router.subscribe("onResolved", ({ toLocation }) => {
+      // Recaptura em cada navegação SPA — novos paid touches sobrescrevem.
+      import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
       const w = window as unknown as {
         gtag?: (...args: unknown[]) => void;
         fbq?: (...args: unknown[]) => void;

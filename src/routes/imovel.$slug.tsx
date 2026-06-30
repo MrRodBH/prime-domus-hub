@@ -650,15 +650,18 @@ function FormContato({
   });
 
   const mut = useMutation({
-    mutationFn: () =>
-      enviar({
+    mutationFn: async () => {
+      const { attributionPayload } = await import("@/lib/attribution");
+      const attrib = attributionPayload();
+      return enviar({
         data: {
           ...form,
-          origem: "ficha-imovel",
+          ...attrib,
           imovel_id: imovelId,
           consent_lgpd: true,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       setOk(true);
       const event_id = metaEventId();

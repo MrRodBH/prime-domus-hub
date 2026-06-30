@@ -272,6 +272,16 @@ export const enviarLead = createServerFn({ method: "POST" })
       consent_lgpd: z.literal(true, {
         errorMap: () => ({ message: "É necessário aceitar a Política de Privacidade." }),
       }),
+      // Atribuição (capturada no client)
+      utm_source: z.string().max(200).optional(),
+      utm_medium: z.string().max(200).optional(),
+      utm_campaign: z.string().max(200).optional(),
+      utm_term: z.string().max(200).optional(),
+      utm_content: z.string().max(200).optional(),
+      gclid: z.string().max(400).optional(),
+      fbclid: z.string().max(400).optional(),
+      referrer: z.string().max(500).optional(),
+      landing_url: z.string().max(500).optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -333,7 +343,7 @@ export const enviarLead = createServerFn({ method: "POST" })
         email: data.email || null,
         telefone: data.telefone || null,
         mensagem: data.mensagem || null,
-        origem: data.origem || "site",
+        origem: data.origem || "Site",
         imovel_id: data.imovel_id || null,
         launch_project_id: data.launch_project_id || null,
         corretor_id: corretorId,
@@ -341,6 +351,15 @@ export const enviarLead = createServerFn({ method: "POST" })
         status: "novo",
         consent_lgpd: true,
         consent_at: new Date().toISOString(),
+        utm_source: data.utm_source || null,
+        utm_medium: data.utm_medium || null,
+        utm_campaign: data.utm_campaign || null,
+        utm_term: data.utm_term || null,
+        utm_content: data.utm_content || null,
+        gclid: data.gclid || null,
+        fbclid: data.fbclid || null,
+        referrer: data.referrer || null,
+        landing_url: data.landing_url || null,
       } as never);
     if (error) throw new Error(error.message);
 
@@ -400,7 +419,7 @@ export const enviarLead = createServerFn({ method: "POST" })
             email: data.email || undefined,
             telefone: data.telefone || undefined,
             mensagem: data.mensagem || undefined,
-            origem: data.origem || "site",
+            origem: data.origem || "Site",
             imovel_codigo,
             imovel_titulo,
             lancamento_nome: lancNome,

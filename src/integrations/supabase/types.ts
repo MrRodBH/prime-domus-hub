@@ -1182,15 +1182,24 @@ export type Database = {
           corretor_id: string | null
           created_at: string
           email: string | null
+          fbclid: string | null
+          gclid: string | null
           id: string
           imovel_id: string | null
+          landing_url: string | null
           launch_project_id: string | null
           mensagem: string | null
           nome: string
           origem: string | null
+          referrer: string | null
           status: string
           telefone: string | null
           updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           valor_estimado: number | null
         }
         Insert: {
@@ -1200,15 +1209,24 @@ export type Database = {
           corretor_id?: string | null
           created_at?: string
           email?: string | null
+          fbclid?: string | null
+          gclid?: string | null
           id?: string
           imovel_id?: string | null
+          landing_url?: string | null
           launch_project_id?: string | null
           mensagem?: string | null
           nome: string
           origem?: string | null
+          referrer?: string | null
           status?: string
           telefone?: string | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           valor_estimado?: number | null
         }
         Update: {
@@ -1218,15 +1236,24 @@ export type Database = {
           corretor_id?: string | null
           created_at?: string
           email?: string | null
+          fbclid?: string | null
+          gclid?: string | null
           id?: string
           imovel_id?: string | null
+          landing_url?: string | null
           launch_project_id?: string | null
           mensagem?: string | null
           nome?: string
           origem?: string | null
+          referrer?: string | null
           status?: string
           telefone?: string | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           valor_estimado?: number | null
         }
         Relationships: [

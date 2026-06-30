@@ -352,14 +352,18 @@ function LeadFormLancamento({ launchProjectId, nome }: { launchProjectId: string
   const [form, setForm] = useState({ nome: "", email: "", telefone: "", mensagem: `Olá, tenho interesse no ${nome}.`, consent: false });
   const [enviado, setEnviado] = useState(false);
   const m = useMutation({
-    mutationFn: () => enviarLead({
-      data: {
-        nome: form.nome, email: form.email, telefone: form.telefone, mensagem: form.mensagem,
-        origem: `lancamento:${nome}`,
-        launch_project_id: launchProjectId,
-        consent_lgpd: true,
-      },
-    }),
+    mutationFn: async () => {
+      const { attributionPayload } = await import("@/lib/attribution");
+      const attrib = attributionPayload();
+      return enviarLead({
+        data: {
+          nome: form.nome, email: form.email, telefone: form.telefone, mensagem: form.mensagem,
+          ...attrib,
+          launch_project_id: launchProjectId,
+          consent_lgpd: true,
+        },
+      });
+    },
     onSuccess: () => {
       setEnviado(true);
       try { metaTrack("Lead", { content_name: nome, source: "lancamento" }, metaEventId()); } catch { /* noop */ }
