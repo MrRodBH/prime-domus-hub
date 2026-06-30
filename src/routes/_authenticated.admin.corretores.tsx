@@ -11,6 +11,7 @@ import {
   adminListarPapeisPorUsuario,
   adminAlterarSenhaUsuario,
 } from "@/lib/api/admin.functions";
+import { listarEquipes, listarPerfis, listarPerfisPorUsuario, setUserPerfisCustom } from "@/lib/api/rbac.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -33,7 +35,23 @@ type Role = "admin" | "corretor" | "secretaria";
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", corretor: "Corretor", secretaria: "Secretaria" };
 const ALL_ROLES: Role[] = ["admin", "corretor", "secretaria"];
 
+type UserStatus = "ativo" | "inativo" | "bloqueado" | "pendente";
+const STATUS_LABEL: Record<UserStatus, string> = {
+  ativo: "Ativo", inativo: "Inativo", bloqueado: "Bloqueado", pendente: "Pendente",
+};
+const STATUS_VARIANT: Record<UserStatus, "default" | "secondary" | "destructive" | "outline"> = {
+  ativo: "default", inativo: "secondary", bloqueado: "destructive", pendente: "outline",
+};
+
 const SOBRENOME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,40}$/;
+// CPF mask + lightweight validation (formatação visual; validação algorítmica opcional)
+function maskCPF(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Corretor = any;
@@ -42,12 +60,14 @@ type Editing = Corretor & {
   email_login?: string;
   password?: string;
   roles?: Role[];
+  custom_profile_ids?: string[];
 };
 
 function emptyEditing(): Editing {
   return {
     nome: "",
     sobrenome: "",
+    cpf: "",
     creci: "",
     email: "",
     telefone: "",
@@ -56,16 +76,23 @@ function emptyEditing(): Editing {
     bio: "",
     foto_url: "",
     ativo: true,
+    status: "ativo" as UserStatus,
+    team_id: null,
     email_login: "",
     password: "",
     roles: ["corretor"],
+    custom_profile_ids: [],
   };
 }
+
 
 function AdminUsuarios() {
   const qc = useQueryClient();
   const { data: corretores } = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
   const { data: papeis } = useQuery({ queryKey: ["admin", "user-roles"], queryFn: () => adminListarPapeisPorUsuario() });
+  const { data: equipes } = useQuery({ queryKey: ["rbac", "equipes"], queryFn: () => listarEquipes() });
+  const { data: perfis } = useQuery({ queryKey: ["rbac", "perfis"], queryFn: () => listarPerfis() });
+  const { data: perfisUsuarios } = useQuery({ queryKey: ["rbac", "perfis-usuarios"], queryFn: () => listarPerfisPorUsuario() });
   const [editing, setEditing] = useState<Editing | null>(null);
   const [open, setOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -80,6 +107,29 @@ function AdminUsuarios() {
     });
     return map;
   }, [papeis]);
+
+  const customProfilesByUser = useMemo(() => {
+    const map = new Map<string, string[]>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (perfisUsuarios ?? []).forEach((r: any) => {
+      if (!r.rbac_profiles || r.rbac_profiles.sistema) return;
+      const arr = map.get(r.user_id) ?? [];
+      arr.push(r.rbac_profiles.id);
+      map.set(r.user_id, arr);
+    });
+    return map;
+  }, [perfisUsuarios]);
+
+  const teamNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    (equipes ?? []).forEach((t) => m.set(t.id, t.nome));
+    return m;
+  }, [equipes]);
+
+  const customProfiles = useMemo(
+    () => (perfis ?? []).filter((p) => !p.sistema),
+    [perfis],
+  );
 
   const criarComLogin = useMutation({
     mutationFn: (e: Editing) =>
@@ -106,6 +156,10 @@ function AdminUsuarios() {
     mutationFn: (args: { user_id: string; roles: Role[] }) => adminAtualizarPapeis({ data: args }),
   });
 
+  const atualizarPerfisCustom = useMutation({
+    mutationFn: (args: { user_id: string; profile_ids: string[] }) => setUserPerfisCustom({ data: args }),
+  });
+
   const salvarSemLogin = useMutation({
     mutationFn: (c: Corretor) => adminSalvarCorretor({ data: c }),
   });
@@ -118,6 +172,7 @@ function AdminUsuarios() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   async function salvar(e: Editing) {
     try {
@@ -135,27 +190,35 @@ function AdminUsuarios() {
             : "Usuário criado. (Não foi possível enviar o e-mail de senha — verifique a configuração de e-mail.)",
         );
       } else if (!isNew) {
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, custom_profile_ids: _cp, ...rest } = e;
+        void _e; void _p; void _r; void _cp;
         await salvarSemLogin.mutateAsync(rest);
         if (e.user_id && e.roles && e.roles.length > 0) {
           await atualizarPapeis.mutateAsync({ user_id: e.user_id, roles: e.roles });
         }
+        if (e.user_id) {
+          await atualizarPerfisCustom.mutateAsync({
+            user_id: e.user_id,
+            profile_ids: e.custom_profile_ids ?? [],
+          });
+        }
         toast.success("Salvo");
       } else {
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, custom_profile_ids: _cp, ...rest } = e;
+        void _e; void _p; void _r; void _cp;
         await salvarSemLogin.mutateAsync(rest);
         toast.success("Salvo");
       }
       qc.invalidateQueries({ queryKey: ["admin", "corretores"] });
       qc.invalidateQueries({ queryKey: ["admin", "user-roles"] });
+      qc.invalidateQueries({ queryKey: ["rbac", "perfis-usuarios"] });
       setOpen(false);
     } catch (err) {
       toast.error((err as Error).message);
     }
 
   }
+
 
   async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -200,7 +263,7 @@ function AdminUsuarios() {
     setEditing({ ...editing, roles: next });
   }
 
-  const isPending = criarComLogin.isPending || salvarSemLogin.isPending || atualizarPapeis.isPending;
+  const isPending = criarComLogin.isPending || salvarSemLogin.isPending || atualizarPapeis.isPending || atualizarPerfisCustom.isPending;
 
   return (
     <div className="space-y-6">
@@ -256,6 +319,15 @@ function AdminUsuarios() {
                     )}
                   </div>
                   <div>
+                    <Label>CPF</Label>
+                    <Input
+                      value={maskCPF(editing.cpf ?? "")}
+                      onChange={(e) => setEditing({ ...editing, cpf: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+                      placeholder="000.000.000-00"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div>
                     <Label>CRECI</Label>
                     <Input value={editing.creci ?? ""} onChange={(e) => setEditing({ ...editing, creci: e.target.value })} />
                   </div>
@@ -263,6 +335,36 @@ function AdminUsuarios() {
                     <Label>Cargo</Label>
                     <Input value={editing.cargo ?? ""} onChange={(e) => setEditing({ ...editing, cargo: e.target.value })} />
                   </div>
+                  <div>
+                    <Label>Status</Label>
+                    <Select
+                      value={(editing.status as UserStatus) ?? "ativo"}
+                      onValueChange={(v) => setEditing({ ...editing, status: v as UserStatus })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(["ativo","inativo","bloqueado","pendente"] as UserStatus[]).map((s) => (
+                          <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Equipe</Label>
+                    <Select
+                      value={editing.team_id ?? "__none__"}
+                      onValueChange={(v) => setEditing({ ...editing, team_id: v === "__none__" ? null : v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Sem equipe"/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— sem equipe —</SelectItem>
+                        {(equipes ?? []).map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="md:col-span-2">
                     <Label>WhatsApp / Celular</Label>
                     <Input
@@ -344,7 +446,37 @@ function AdminUsuarios() {
                       Qualquer tipo pode também ser Admin (basta marcar os dois).
                     </p>
                   </div>
+
+                  {editing.user_id && customProfiles.length > 0 && (
+                    <div>
+                      <Label className="mb-2 block">Perfis personalizados</Label>
+                      <div className="flex flex-wrap gap-3">
+                        {customProfiles.map((p) => {
+                          const checked = (editing.custom_profile_ids ?? []).includes(p.id);
+                          return (
+                            <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(v) => {
+                                  const cur = editing.custom_profile_ids ?? [];
+                                  setEditing({
+                                    ...editing,
+                                    custom_profile_ids: v ? [...cur, p.id] : cur.filter((x: string) => x !== p.id),
+                                  });
+                                }}
+                              />
+                              <span className="text-sm">{p.nome}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Perfis criados em <strong>Perfis & Permissões</strong>. Somam-se ao tipo principal.
+                      </p>
+                    </div>
+                  )}
                 </div>
+
 
                 {editing.user_id && (
                   <ChangePasswordBlock userId={editing.user_id} email={editing.email ?? editing.email_login ?? ""} />
@@ -403,6 +535,8 @@ function AdminUsuarios() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Equipe</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>WhatsApp</TableHead>
               <TableHead></TableHead>
@@ -411,6 +545,8 @@ function AdminUsuarios() {
           <TableBody>
             {corretores?.map((c) => {
               const userRoles = c.user_id ? rolesByUser.get(c.user_id) ?? [] : [];
+              const status = (c.status ?? "ativo") as UserStatus;
+              const teamNome = c.team_id ? teamNameById.get(c.team_id) ?? "—" : "—";
               return (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{[c.nome, c.sobrenome].filter(Boolean).join(" ")}</TableCell>
@@ -427,6 +563,8 @@ function AdminUsuarios() {
                       )}
                     </div>
                   </TableCell>
+                  <TableCell><Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{teamNome}</TableCell>
                   <TableCell>{c.email}</TableCell>
                   <TableCell>{c.whatsapp}</TableCell>
                   <TableCell className="flex gap-1">
@@ -434,7 +572,12 @@ function AdminUsuarios() {
                       size="icon"
                       variant="ghost"
                       onClick={() => {
-                        setEditing({ ...c, roles: userRoles.length > 0 ? userRoles : ["corretor"] });
+                        const customIds = c.user_id ? customProfilesByUser.get(c.user_id) ?? [] : [];
+                        setEditing({
+                          ...c,
+                          roles: userRoles.length > 0 ? userRoles : ["corretor"],
+                          custom_profile_ids: customIds,
+                        });
                         setOpen(true);
                       }}
                     >
@@ -447,6 +590,7 @@ function AdminUsuarios() {
                 </TableRow>
               );
             })}
+
           </TableBody>
         </Table>
       </div>

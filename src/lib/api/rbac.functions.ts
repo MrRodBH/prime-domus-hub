@@ -184,6 +184,47 @@ export const setUserPerfis = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Define apenas os perfis CUSTOM (não-sistema) de um usuário, preservando os perfis
+// de sistema (admin/corretor/secretaria/gerente/captador), que são sincronizados
+// via trigger a partir da tabela user_roles.
+export const setUserPerfisCustom = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ user_id: z.string().uuid(), profile_ids: z.array(z.string().uuid()) }))
+  .handler(async ({ context, data }) => {
+    await ensureAdmin(context);
+    // Apenas perfis não-sistema podem ser gerenciados aqui
+    const { data: customProfiles } = await context.supabase
+      .from("rbac_profiles").select("id").eq("sistema", false);
+    const customIds = new Set((customProfiles ?? []).map((p: { id: string }) => p.id));
+    const desired = data.profile_ids.filter((id) => customIds.has(id));
+
+    // Remove os custom atuais do usuário
+    if (customIds.size) {
+      await context.supabase.from("user_profiles")
+        .delete().eq("user_id", data.user_id).in("profile_id", Array.from(customIds));
+    }
+    if (desired.length) {
+      const rows = desired.map((pid) => ({ user_id: data.user_id, profile_id: pid }));
+      const { error } = await context.supabase.from("user_profiles").insert(rows);
+      if (error) throw new Error(error.message);
+    }
+    await logAudit(context, "usuario.perfis_custom", "user_profiles", data.user_id, null, desired);
+    return { ok: true };
+  });
+
+// Lista perfis (id, nome, sistema) por usuário — para exibir badges/seletor.
+export const listarPerfisPorUsuario = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("user_profiles")
+      .select("user_id, rbac_profiles(id, nome, sistema)");
+    if (error) throw new Error(error.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data ?? []) as any[];
+  });
+
+
 // ===== EQUIPES =====
 export const listarEquipes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
