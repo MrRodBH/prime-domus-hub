@@ -1158,6 +1158,7 @@ export type Database = {
           status: string
           telefone: string | null
           updated_at: string
+          valor_estimado: number | null
         }
         Insert: {
           assigned_to?: string | null
@@ -1175,6 +1176,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           updated_at?: string
+          valor_estimado?: number | null
         }
         Update: {
           assigned_to?: string | null
@@ -1192,6 +1194,7 @@ export type Database = {
           status?: string
           telefone?: string | null
           updated_at?: string
+          valor_estimado?: number | null
         }
         Relationships: [
           {
