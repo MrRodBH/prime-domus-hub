@@ -579,6 +579,8 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
               <Field label="Telefone" value={lead.telefone ?? "—"} />
               <Field label="Imóvel de interesse" value={lead.imovel?.titulo ?? "—"} />
               <Field label="Valor do negócio" value={valorNegocio} />
+              <ValorEstimadoEditor lead={lead} />
+
               <div>
                 <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Mensagem</div>
                 <p className="rounded-md border border-foreground/10 bg-muted/40 p-3 whitespace-pre-wrap">
