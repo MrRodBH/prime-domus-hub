@@ -90,6 +90,9 @@ function AdminUsuarios() {
   const qc = useQueryClient();
   const { data: corretores } = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
   const { data: papeis } = useQuery({ queryKey: ["admin", "user-roles"], queryFn: () => adminListarPapeisPorUsuario() });
+  const { data: equipes } = useQuery({ queryKey: ["rbac", "equipes"], queryFn: () => listarEquipes() });
+  const { data: perfis } = useQuery({ queryKey: ["rbac", "perfis"], queryFn: () => listarPerfis() });
+  const { data: perfisUsuarios } = useQuery({ queryKey: ["rbac", "perfis-usuarios"], queryFn: () => listarPerfisPorUsuario() });
   const [editing, setEditing] = useState<Editing | null>(null);
   const [open, setOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -104,6 +107,29 @@ function AdminUsuarios() {
     });
     return map;
   }, [papeis]);
+
+  const customProfilesByUser = useMemo(() => {
+    const map = new Map<string, string[]>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (perfisUsuarios ?? []).forEach((r: any) => {
+      if (!r.rbac_profiles || r.rbac_profiles.sistema) return;
+      const arr = map.get(r.user_id) ?? [];
+      arr.push(r.rbac_profiles.id);
+      map.set(r.user_id, arr);
+    });
+    return map;
+  }, [perfisUsuarios]);
+
+  const teamNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    (equipes ?? []).forEach((t) => m.set(t.id, t.nome));
+    return m;
+  }, [equipes]);
+
+  const customProfiles = useMemo(
+    () => (perfis ?? []).filter((p) => !p.sistema),
+    [perfis],
+  );
 
   const criarComLogin = useMutation({
     mutationFn: (e: Editing) =>
@@ -130,6 +156,10 @@ function AdminUsuarios() {
     mutationFn: (args: { user_id: string; roles: Role[] }) => adminAtualizarPapeis({ data: args }),
   });
 
+  const atualizarPerfisCustom = useMutation({
+    mutationFn: (args: { user_id: string; profile_ids: string[] }) => setUserPerfisCustom({ data: args }),
+  });
+
   const salvarSemLogin = useMutation({
     mutationFn: (c: Corretor) => adminSalvarCorretor({ data: c }),
   });
@@ -142,6 +172,7 @@ function AdminUsuarios() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   async function salvar(e: Editing) {
     try {
