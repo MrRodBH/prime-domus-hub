@@ -85,13 +85,22 @@ function AdminLeads() {
     queryFn: () => adminContarDescartes(),
     staleTime: 30_000,
   });
+  const search = Route.useSearch();
+  const navigate = useNavigate();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historicoId, setHistoricoId] = useState<string | null>(null);
-  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
+  const [corretorFilter, setCorretorFilter] = useState<string>(search.corretor_id ?? "__all__");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
+
+  // Sync corretor filter from URL search params
+  useEffect(() => {
+    if (search.corretor_id && search.corretor_id !== corretorFilter) {
+      setCorretorFilter(search.corretor_id);
+    }
+  }, [search.corretor_id]);
 
   const upd = useMutation({
     mutationFn: (p: { id: string; status: Status }) => adminAtualizarLead({ data: p }),
@@ -112,13 +121,69 @@ function AdminLeads() {
     },
   });
 
-  // Aplica filtro de corretor (admin)
+  // Aplica filtros (corretor + URL search params: status, origem, período, alerta)
   const filteredData = useMemo(() => {
-    const all = (data ?? []) as Lead[];
-    if (corretorFilter === "__all__") return all;
-    if (corretorFilter === "__none__") return all.filter((l) => !l.assigned_to);
-    return all.filter((l) => l.assigned_to === corretorFilter);
-  }, [data, corretorFilter]);
+    let list = (data ?? []) as Lead[];
+    if (corretorFilter === "__none__") list = list.filter((l) => !l.assigned_to);
+    else if (corretorFilter !== "__all__") list = list.filter((l) => l.assigned_to === corretorFilter);
+
+    if (search.status) {
+      const statuses = search.status.split(",");
+      list = list.filter((l) => statuses.includes(l.status));
+    }
+    if (search.origem) {
+      const origem = search.origem.toLowerCase();
+      list = list.filter((l) => (l.origem ?? "").toLowerCase() === origem);
+    }
+    if (search.inicio) {
+      const ini = new Date(search.inicio).getTime();
+      list = list.filter((l) => new Date(l.created_at).getTime() >= ini);
+    }
+    if (search.fim) {
+      const fim = new Date(search.fim).getTime() + 86_400_000;
+      list = list.filter((l) => new Date(l.created_at).getTime() <= fim);
+    }
+    if (search.alerta) {
+      const now = Date.now();
+      const day = 86_400_000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedAt = (l: any) => new Date(l.updated_at ?? l.created_at).getTime();
+      if (search.alerta === "sem_atendimento") {
+        list = list.filter((l) => l.status === "novo" && now - new Date(l.created_at).getTime() > day);
+      } else if (search.alerta === "sem_followup") {
+        list = list.filter(
+          (l) => ["conversando", "visita", "proposta"].includes(l.status) && now - updatedAt(l) > 3 * day,
+        );
+      } else if (search.alerta === "visitas_sem_feedback") {
+        list = list.filter((l) => l.status === "visita" && now - updatedAt(l) > 3 * day);
+      } else if (search.alerta === "propostas_paradas") {
+        list = list.filter((l) => l.status === "proposta" && now - updatedAt(l) > 5 * day);
+      }
+    }
+    return list;
+  }, [data, corretorFilter, search]);
+
+  const activeFilters = useMemo(() => {
+    const chips: { key: string; label: string }[] = [];
+    if (search.status) chips.push({ key: "status", label: `Status: ${search.status}` });
+    if (search.origem) chips.push({ key: "origem", label: `Origem: ${search.origem}` });
+    if (search.inicio || search.fim)
+      chips.push({ key: "periodo", label: `Período: ${search.inicio ?? "…"} → ${search.fim ?? "…"}` });
+    if (search.alerta) chips.push({ key: "alerta", label: `Alerta: ${search.alerta.replace(/_/g, " ")}` });
+    return chips;
+  }, [search]);
+
+  function clearFilter(key: string) {
+    const next = { ...search } as Record<string, unknown>;
+    if (key === "periodo") {
+      delete next.inicio;
+      delete next.fim;
+    } else {
+      delete next[key];
+    }
+    navigate({ to: "/admin/leads", search: next });
+  }
+
 
   const byStatus = useMemo(() => {
     const map: Record<Status, Lead[]> = {
