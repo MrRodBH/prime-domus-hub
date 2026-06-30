@@ -7,18 +7,16 @@ import {
   adminExcluirCorretor,
   adminAssinarUrl,
   adminCriarUsuarioComLogin,
-  adminAtualizarPapeis,
-  adminListarPapeisPorUsuario,
+  adminDefinirPerfilUsuario,
   adminAlterarSenhaUsuario,
 } from "@/lib/api/admin.functions";
-import { listarEquipes, listarPerfis, listarPerfisPorUsuario, setUserPerfisCustom } from "@/lib/api/rbac.functions";
+import { listarEquipes, listarPerfis, listarPerfisPorUsuario } from "@/lib/api/rbac.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,10 +29,6 @@ export const Route = createFileRoute("/_authenticated/admin/corretores")({
   component: AdminUsuarios,
 });
 
-type Role = "admin" | "corretor" | "secretaria";
-const ROLE_LABEL: Record<Role, string> = { admin: "Admin", corretor: "Corretor", secretaria: "Secretaria" };
-const ALL_ROLES: Role[] = ["admin", "corretor", "secretaria"];
-
 type UserStatus = "ativo" | "inativo" | "bloqueado" | "pendente";
 const STATUS_LABEL: Record<UserStatus, string> = {
   ativo: "Ativo", inativo: "Inativo", bloqueado: "Bloqueado", pendente: "Pendente",
@@ -44,7 +38,6 @@ const STATUS_VARIANT: Record<UserStatus, "default" | "secondary" | "destructive"
 };
 
 const SOBRENOME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,40}$/;
-// CPF mask + lightweight validation (formatação visual; validação algorítmica opcional)
 function maskCPF(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 11);
   return d
@@ -59,8 +52,7 @@ type Corretor = any;
 type Editing = Corretor & {
   email_login?: string;
   password?: string;
-  roles?: Role[];
-  custom_profile_ids?: string[];
+  profile_id?: string;
 };
 
 function emptyEditing(): Editing {
@@ -80,10 +72,11 @@ function emptyEditing(): Editing {
     team_id: null,
     email_login: "",
     password: "",
-    roles: ["corretor"],
-    custom_profile_ids: [],
+    profile_id: "",
   };
 }
+
+
 
 
 function AdminUsuarios() {
