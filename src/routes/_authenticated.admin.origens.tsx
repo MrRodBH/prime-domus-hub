@@ -187,23 +187,16 @@ function OrigemDialog({
   const [ativo, setAtivo] = useState(editing?.ativo ?? true);
   const [ordem, setOrdem] = useState(String(editing?.ordem ?? 0));
 
-  // sync when editing changes
-  useState(() => {
+  // Re-sync when target changes or dialog opens
+  useEffect(() => {
+    if (!open) return;
     setNome(editing?.nome ?? "");
     setDescricao(editing?.descricao ?? "");
     setCor(editing?.cor ?? "#3b82f6");
     setAtivo(editing?.ativo ?? true);
     setOrdem(String(editing?.ordem ?? 0));
-  });
+  }, [editing, open]);
 
-  // Reset state whenever the dialog opens with a different record
-  if (open && editing && editing.id && nome === "") {
-    setNome(editing.nome);
-    setDescricao(editing.descricao ?? "");
-    setCor(editing.cor ?? "#3b82f6");
-    setAtivo(editing.ativo);
-    setOrdem(String(editing.ordem));
-  }
 
   const salvar = useMutation({
     mutationFn: () =>
