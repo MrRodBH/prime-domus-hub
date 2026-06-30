@@ -96,7 +96,7 @@ const PERIODOS: { id: Periodo; label: string }[] = [
 const moeda = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const STATUS_QUERY_MAP: Record<string, string[]> = {
-  "Lead Captado": ["novo"],
+  Novo: ["novo"],
   "Contato Realizado": ["conversando", "visita", "proposta", "ganho"],
   Qualificado: ["conversando", "visita", "proposta", "ganho"],
   "Visita Agendada": ["visita", "proposta", "ganho"],
@@ -141,6 +141,26 @@ function DashboardCRM() {
   });
 
   const d = stats.data;
+
+  // Base search params carried into every drill-down link.
+  // Note: corretorId from this page references corretores.id, while /admin/leads
+  // filters by assigned_to (user_id). We only carry corretor_id when set from
+  // the ranking rows, which provide the proper user_id.
+  const baseSearch = useMemo(() => {
+    const s: Record<string, string> = {};
+    if (range.inicio) s.inicio = range.inicio.slice(0, 10);
+    if (range.fim) s.fim = range.fim.slice(0, 10);
+    if (origemFiltro) s.origem = origemFiltro;
+    return s;
+  }, [range, origemFiltro]);
+
+  const buildSearch = (extra: Record<string, string | undefined>) => {
+    const merged: Record<string, string> = { ...baseSearch };
+    for (const [k, v] of Object.entries(extra)) {
+      if (v) merged[k] = v;
+    }
+    return merged;
+  };
 
   return (
     <div className="space-y-6">
@@ -228,30 +248,31 @@ function DashboardCRM() {
                 <DeltaBadge delta={d.resumo.leads.deltaPct} suffix="em relação ao período anterior" />
               }
               icon={Users}
-              to="/admin/leads"
+              search={buildSearch({})}
             />
             <ResumoCard
               label="Visitas Agendadas"
               valor={d.resumo.visitas.atual}
               extra={<span className="text-xs text-muted-foreground">{d.resumo.visitas.conversao}% de conversão</span>}
               icon={CalendarCheck}
-              to="/admin/leads"
+              search={buildSearch({ status: "visita,proposta,ganho" })}
             />
             <ResumoCard
               label="Propostas Enviadas"
               valor={d.resumo.propostas.atual}
               extra={<span className="text-xs text-muted-foreground">{d.resumo.propostas.conversao}% de conversão</span>}
               icon={FileText}
-              to="/admin/leads"
+              search={buildSearch({ status: "proposta,ganho" })}
             />
             <ResumoCard
               label="Vendas Fechadas"
               valor={d.resumo.vendas.atual}
               extra={<span className="text-xs text-gold">{moeda(d.resumo.vendas.vgv)} em VGV</span>}
               icon={Trophy}
-              to="/admin/leads"
+              search={buildSearch({ status: "ganho" })}
             />
           </div>
+
 
           {/* BLOCO 2 — IA Comercial */}
           <div className="bg-gradient-to-br from-gold/10 via-card to-card border border-gold/30 rounded-lg p-6">
@@ -288,7 +309,7 @@ function DashboardCRM() {
                     <Link
                       key={etapa.etapa}
                       to="/admin/leads"
-                      search={{ status: STATUS_QUERY_MAP[etapa.etapa]?.join(",") || "" } as never}
+                      search={buildSearch({ status: STATUS_QUERY_MAP[etapa.etapa]?.join(",") }) as never}
                       className="block group"
                     >
                       <div className="flex items-center justify-between text-xs mb-1">
@@ -318,10 +339,10 @@ function DashboardCRM() {
                 <Flame className="size-5 text-destructive" /> Alertas
               </h2>
               <div className="space-y-3">
-                <AlertaItem n={d.alertas.semAtendimento} label="Leads sem primeiro contato (+48h)" />
-                <AlertaItem n={d.alertas.semFollowup} label="Clientes sem follow-up (+7 dias)" />
-                <AlertaItem n={d.alertas.visitasSemFeedback} label="Visitas sem feedback (+7 dias)" />
-                <AlertaItem n={d.alertas.propostasParadas} label="Propostas sem atualização (+7 dias)" />
+                <AlertaItem n={d.alertas.semAtendimento} label="Leads sem primeiro contato (+24h)" search={buildSearch({ alerta: "sem_atendimento" })} />
+                <AlertaItem n={d.alertas.semFollowup} label="Clientes sem follow-up (+3 dias)" search={buildSearch({ alerta: "sem_followup" })} />
+                <AlertaItem n={d.alertas.visitasSemFeedback} label="Visitas sem feedback (+3 dias)" search={buildSearch({ alerta: "visitas_sem_feedback" })} />
+                <AlertaItem n={d.alertas.propostasParadas} label="Propostas sem atualização (+5 dias)" search={buildSearch({ alerta: "propostas_paradas" })} />
               </div>
             </div>
           </div>
@@ -379,7 +400,21 @@ function DashboardCRM() {
                   <div className="h-56">
                     <ResponsiveContainer>
                       <PieChart>
-                        <Pie data={d.origens} dataKey="quantidade" nameKey="nome" innerRadius={45} outerRadius={80}>
+                        <Pie
+                          data={d.origens}
+                          dataKey="quantidade"
+                          nameKey="nome"
+                          innerRadius={45}
+                          outerRadius={80}
+                          onClick={(slice: { nome?: string }) => {
+                            if (slice?.nome) {
+                              window.location.href =
+                                "/admin/leads?" +
+                                new URLSearchParams(buildSearch({ origem: slice.nome })).toString();
+                            }
+                          }}
+                          className="cursor-pointer"
+                        >
                           {d.origens.map((_, i) => (
                             <Cell
                               key={i}
@@ -395,7 +430,12 @@ function DashboardCRM() {
                   </div>
                   <div className="space-y-1.5 text-xs">
                     {d.origens.map((o, i) => (
-                      <div key={o.nome} className="flex items-center justify-between gap-2">
+                      <Link
+                        key={o.nome}
+                        to="/admin/leads"
+                        search={buildSearch({ origem: o.nome }) as never}
+                        className="flex items-center justify-between gap-2 hover:bg-muted/40 rounded px-1 py-0.5"
+                      >
                         <span className="flex items-center gap-2">
                           <span
                             className="size-2 rounded-full"
@@ -408,7 +448,7 @@ function DashboardCRM() {
                         <span className="text-muted-foreground">
                           {o.quantidade} · {o.percentual}% · conv. {o.conversao}%
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -475,18 +515,27 @@ function DashboardCRM() {
                     </tr>
                   </thead>
                   <tbody>
-                    {d.ranking.map((r, i) => (
-                      <tr key={r.corretor_id} className="border-b border-foreground/5 last:border-0">
-                        <td className="py-2">{i + 1}</td>
-                        <td className="py-2 font-medium">{r.nome}</td>
-                        <td className="py-2 text-right">{r.leads}</td>
-                        <td className="py-2 text-right">{r.visitas}</td>
-                        <td className="py-2 text-right">{r.propostas}</td>
-                        <td className="py-2 text-right">{r.vendas}</td>
-                        <td className="py-2 text-right">{r.conversao}%</td>
-                        <td className="py-2 text-right text-gold">{moeda(r.vgv)}</td>
-                      </tr>
-                    ))}
+                    {d.ranking.map((r, i) => {
+                      const rowSearch = buildSearch({ corretor_id: r.user_id ?? undefined });
+                      const goTo = () =>
+                        (window.location.href = "/admin/leads?" + new URLSearchParams(rowSearch).toString());
+                      return (
+                        <tr
+                          key={r.corretor_id}
+                          onClick={goTo}
+                          className="border-b border-foreground/5 last:border-0 cursor-pointer hover:bg-muted/40"
+                        >
+                          <td className="py-2">{i + 1}</td>
+                          <td className="py-2 font-medium">{r.nome}</td>
+                          <td className="py-2 text-right">{r.leads}</td>
+                          <td className="py-2 text-right">{r.visitas}</td>
+                          <td className="py-2 text-right">{r.propostas}</td>
+                          <td className="py-2 text-right">{r.vendas}</td>
+                          <td className="py-2 text-right">{r.conversao}%</td>
+                          <td className="py-2 text-right text-gold">{moeda(r.vgv)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -503,16 +552,20 @@ function ResumoCard({
   valor,
   extra,
   icon: Icon,
-  to,
+  search,
 }: {
   label: string;
   valor: number;
   extra: React.ReactNode;
   icon: typeof Users;
-  to: string;
+  search: Record<string, string>;
 }) {
   return (
-    <Link to={to} className="bg-card border border-foreground/5 rounded-lg p-5 hover:border-gold transition-colors block">
+    <Link
+      to="/admin/leads"
+      search={search as never}
+      className="bg-card border border-foreground/5 rounded-lg p-5 hover:border-gold transition-colors block"
+    >
       <Icon className="size-5 text-gold mb-3" strokeWidth={1.5} />
       <p className="text-3xl font-display">{valor}</p>
       <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">{label}</p>
@@ -520,6 +573,7 @@ function ResumoCard({
     </Link>
   );
 }
+
 
 function DeltaBadge({ delta, suffix }: { delta: number; suffix: string }) {
   const up = delta >= 0;
@@ -533,10 +587,10 @@ function DeltaBadge({ delta, suffix }: { delta: number; suffix: string }) {
   );
 }
 
-function AlertaItem({ n, label }: { n: number; label: string }) {
+function AlertaItem({ n, label, search }: { n: number; label: string; search: Record<string, string> }) {
   if (n === 0) return null;
   return (
-    <Link to="/admin/leads" className="flex items-center justify-between gap-3 group">
+    <Link to="/admin/leads" search={search as never} className="flex items-center justify-between gap-3 group">
       <span className="text-sm">{label}</span>
       <span className="bg-destructive/15 text-destructive text-xs font-bold px-2 py-0.5 rounded-full group-hover:bg-destructive/25">
         {n}

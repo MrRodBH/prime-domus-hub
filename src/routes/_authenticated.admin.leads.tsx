@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +12,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus } from "lucide-react";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus, X } from "lucide-react";
 import { adminListarLeads, adminAtualizarLead, adminListarCorretores, adminListarImoveisLite, criarLeadManual, meusPapeis } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
@@ -22,12 +22,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 import { toast } from "sonner";
 import { maskPhoneBR, digitsOnly, isValidPhoneBR } from "@/lib/phone-br";
+import { z } from "zod";
+
+const leadsSearchSchema = z.object({
+  status: z.string().optional(),
+  origem: z.string().optional(),
+  corretor_id: z.string().optional(),
+  inicio: z.string().optional(),
+  fim: z.string().optional(),
+  alerta: z.enum(["sem_atendimento", "sem_followup", "visitas_sem_feedback", "propostas_paradas"]).optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
+  validateSearch: (s) => leadsSearchSchema.parse(s),
   component: AdminLeads,
 });
 
@@ -74,13 +85,22 @@ function AdminLeads() {
     queryFn: () => adminContarDescartes(),
     staleTime: 30_000,
   });
+  const search = Route.useSearch();
+  const navigate = useNavigate();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historicoId, setHistoricoId] = useState<string | null>(null);
-  const [corretorFilter, setCorretorFilter] = useState<string>("__all__");
+  const [corretorFilter, setCorretorFilter] = useState<string>(search.corretor_id ?? "__all__");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
+
+  // Sync corretor filter from URL search params
+  useEffect(() => {
+    if (search.corretor_id && search.corretor_id !== corretorFilter) {
+      setCorretorFilter(search.corretor_id);
+    }
+  }, [search.corretor_id]);
 
   const upd = useMutation({
     mutationFn: (p: { id: string; status: Status }) => adminAtualizarLead({ data: p }),
@@ -101,13 +121,69 @@ function AdminLeads() {
     },
   });
 
-  // Aplica filtro de corretor (admin)
+  // Aplica filtros (corretor + URL search params: status, origem, período, alerta)
   const filteredData = useMemo(() => {
-    const all = (data ?? []) as Lead[];
-    if (corretorFilter === "__all__") return all;
-    if (corretorFilter === "__none__") return all.filter((l) => !l.assigned_to);
-    return all.filter((l) => l.assigned_to === corretorFilter);
-  }, [data, corretorFilter]);
+    let list = (data ?? []) as Lead[];
+    if (corretorFilter === "__none__") list = list.filter((l) => !l.assigned_to);
+    else if (corretorFilter !== "__all__") list = list.filter((l) => l.assigned_to === corretorFilter);
+
+    if (search.status) {
+      const statuses = search.status.split(",");
+      list = list.filter((l) => statuses.includes(l.status));
+    }
+    if (search.origem) {
+      const origem = search.origem.toLowerCase();
+      list = list.filter((l) => (l.origem ?? "").toLowerCase() === origem);
+    }
+    if (search.inicio) {
+      const ini = new Date(search.inicio).getTime();
+      list = list.filter((l) => new Date(l.created_at).getTime() >= ini);
+    }
+    if (search.fim) {
+      const fim = new Date(search.fim).getTime() + 86_400_000;
+      list = list.filter((l) => new Date(l.created_at).getTime() <= fim);
+    }
+    if (search.alerta) {
+      const now = Date.now();
+      const day = 86_400_000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedAt = (l: any) => new Date(l.updated_at ?? l.created_at).getTime();
+      if (search.alerta === "sem_atendimento") {
+        list = list.filter((l) => l.status === "novo" && now - new Date(l.created_at).getTime() > day);
+      } else if (search.alerta === "sem_followup") {
+        list = list.filter(
+          (l) => ["conversando", "visita", "proposta"].includes(l.status) && now - updatedAt(l) > 3 * day,
+        );
+      } else if (search.alerta === "visitas_sem_feedback") {
+        list = list.filter((l) => l.status === "visita" && now - updatedAt(l) > 3 * day);
+      } else if (search.alerta === "propostas_paradas") {
+        list = list.filter((l) => l.status === "proposta" && now - updatedAt(l) > 5 * day);
+      }
+    }
+    return list;
+  }, [data, corretorFilter, search]);
+
+  const activeFilters = useMemo(() => {
+    const chips: { key: string; label: string }[] = [];
+    if (search.status) chips.push({ key: "status", label: `Status: ${search.status}` });
+    if (search.origem) chips.push({ key: "origem", label: `Origem: ${search.origem}` });
+    if (search.inicio || search.fim)
+      chips.push({ key: "periodo", label: `Período: ${search.inicio ?? "…"} → ${search.fim ?? "…"}` });
+    if (search.alerta) chips.push({ key: "alerta", label: `Alerta: ${search.alerta.replace(/_/g, " ")}` });
+    return chips;
+  }, [search]);
+
+  function clearFilter(key: string) {
+    const next = { ...search } as Record<string, unknown>;
+    if (key === "periodo") {
+      delete next.inicio;
+      delete next.fim;
+    } else {
+      delete next[key];
+    }
+    navigate({ to: "/admin/leads", search: next });
+  }
+
 
   const byStatus = useMemo(() => {
     const map: Record<Status, Lead[]> = {
@@ -169,9 +245,33 @@ function AdminLeads() {
         </div>
       </div>
 
+      {activeFilters.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap rounded-md border border-foreground/10 bg-muted/30 px-3 py-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">Filtros vindos do dashboard:</span>
+          {activeFilters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => clearFilter(f.key)}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2.5 py-0.5 text-xs hover:bg-primary/25"
+              title="Remover filtro"
+            >
+              {f.label}
+              <X className="size-3" />
+            </button>
+          ))}
+          <button
+            onClick={() => navigate({ to: "/admin/leads", search: {} })}
+            className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
+          >
+            Limpar todos
+          </button>
+        </div>
+      )}
+
       <p className="text-sm text-muted-foreground">
         Arraste os cards entre as colunas para atualizar o status.
       </p>
+
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="grid gap-3 [grid-template-columns:repeat(6,minmax(220px,1fr))] overflow-x-auto pb-4">
