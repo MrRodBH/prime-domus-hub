@@ -307,7 +307,7 @@ function DashboardCRM() {
                     <Link
                       key={etapa.etapa}
                       to="/admin/leads"
-                      search={{ status: STATUS_QUERY_MAP[etapa.etapa]?.join(",") || "" } as never}
+                      search={buildSearch({ status: STATUS_QUERY_MAP[etapa.etapa]?.join(",") }) as never}
                       className="block group"
                     >
                       <div className="flex items-center justify-between text-xs mb-1">
