@@ -319,6 +319,15 @@ function AdminUsuarios() {
                     )}
                   </div>
                   <div>
+                    <Label>CPF</Label>
+                    <Input
+                      value={maskCPF(editing.cpf ?? "")}
+                      onChange={(e) => setEditing({ ...editing, cpf: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+                      placeholder="000.000.000-00"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div>
                     <Label>CRECI</Label>
                     <Input value={editing.creci ?? ""} onChange={(e) => setEditing({ ...editing, creci: e.target.value })} />
                   </div>
@@ -326,6 +335,36 @@ function AdminUsuarios() {
                     <Label>Cargo</Label>
                     <Input value={editing.cargo ?? ""} onChange={(e) => setEditing({ ...editing, cargo: e.target.value })} />
                   </div>
+                  <div>
+                    <Label>Status</Label>
+                    <Select
+                      value={(editing.status as UserStatus) ?? "ativo"}
+                      onValueChange={(v) => setEditing({ ...editing, status: v as UserStatus })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(["ativo","inativo","bloqueado","pendente"] as UserStatus[]).map((s) => (
+                          <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Equipe</Label>
+                    <Select
+                      value={editing.team_id ?? "__none__"}
+                      onValueChange={(v) => setEditing({ ...editing, team_id: v === "__none__" ? null : v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Sem equipe"/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— sem equipe —</SelectItem>
+                        {(equipes ?? []).map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="md:col-span-2">
                     <Label>WhatsApp / Celular</Label>
                     <Input
