@@ -461,7 +461,7 @@ function AdminUsuarios() {
                                   const cur = editing.custom_profile_ids ?? [];
                                   setEditing({
                                     ...editing,
-                                    custom_profile_ids: v ? [...cur, p.id] : cur.filter((x) => x !== p.id),
+                                    custom_profile_ids: v ? [...cur, p.id] : cur.filter((x: string) => x !== p.id),
                                   });
                                 }}
                               />
