@@ -535,6 +535,8 @@ function AdminUsuarios() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Equipe</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>WhatsApp</TableHead>
               <TableHead></TableHead>
@@ -543,6 +545,8 @@ function AdminUsuarios() {
           <TableBody>
             {corretores?.map((c) => {
               const userRoles = c.user_id ? rolesByUser.get(c.user_id) ?? [] : [];
+              const status = (c.status ?? "ativo") as UserStatus;
+              const teamNome = c.team_id ? teamNameById.get(c.team_id) ?? "—" : "—";
               return (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{[c.nome, c.sobrenome].filter(Boolean).join(" ")}</TableCell>
@@ -559,6 +563,8 @@ function AdminUsuarios() {
                       )}
                     </div>
                   </TableCell>
+                  <TableCell><Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{teamNome}</TableCell>
                   <TableCell>{c.email}</TableCell>
                   <TableCell>{c.whatsapp}</TableCell>
                   <TableCell className="flex gap-1">
@@ -566,7 +572,12 @@ function AdminUsuarios() {
                       size="icon"
                       variant="ghost"
                       onClick={() => {
-                        setEditing({ ...c, roles: userRoles.length > 0 ? userRoles : ["corretor"] });
+                        const customIds = c.user_id ? customProfilesByUser.get(c.user_id) ?? [] : [];
+                        setEditing({
+                          ...c,
+                          roles: userRoles.length > 0 ? userRoles : ["corretor"],
+                          custom_profile_ids: customIds,
+                        });
                         setOpen(true);
                       }}
                     >
@@ -579,6 +590,7 @@ function AdminUsuarios() {
                 </TableRow>
               );
             })}
+
           </TableBody>
         </Table>
       </div>
