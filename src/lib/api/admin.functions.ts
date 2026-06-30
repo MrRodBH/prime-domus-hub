@@ -358,7 +358,7 @@ export const adminExcluirCorretor = createServerFn({ method: "POST" })
   });
 
 // ===== PAPÉIS / USUÁRIOS COM LOGIN =====
-const roleEnum = z.enum(["admin", "corretor", "secretaria"]);
+const roleEnum = z.enum(["admin", "corretor", "secretaria", "gerente", "captador"]);
 
 // Retorna os papéis do usuário autenticado atual.
 export const meusPapeis = createServerFn({ method: "GET" })
@@ -372,6 +372,18 @@ export const meusPapeis = createServerFn({ method: "GET" })
     return (data ?? []).map((r) => (r as { role: string }).role);
   });
 
+// Verifica se o usuário atual tem acesso ao admin (possui pelo menos
+// um papel de sistema OU um perfil RBAC vinculado).
+export const meuAcessoAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [{ data: roles }, { data: profs }] = await Promise.all([
+      context.supabase.from("user_roles").select("role").eq("user_id", context.userId),
+      context.supabase.from("user_profiles").select("profile_id").eq("user_id", context.userId),
+    ]);
+    return (roles?.length ?? 0) > 0 || (profs?.length ?? 0) > 0;
+  });
+
 // Lista papéis de cada corretor (para a tabela do admin).
 export const adminListarPapeisPorUsuario = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -381,6 +393,7 @@ export const adminListarPapeisPorUsuario = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return (data ?? []) as Array<{ user_id: string; role: string }>;
   });
+
 
 // Cria login (auth.users) + papéis + vincula a um corretor existente OU cria novo.
 export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
