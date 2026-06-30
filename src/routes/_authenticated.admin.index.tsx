@@ -557,10 +557,10 @@ function DeltaBadge({ delta, suffix }: { delta: number; suffix: string }) {
   );
 }
 
-function AlertaItem({ n, label }: { n: number; label: string }) {
+function AlertaItem({ n, label, search }: { n: number; label: string; search: Record<string, string> }) {
   if (n === 0) return null;
   return (
-    <Link to="/admin/leads" className="flex items-center justify-between gap-3 group">
+    <Link to="/admin/leads" search={search as never} className="flex items-center justify-between gap-3 group">
       <span className="text-sm">{label}</span>
       <span className="bg-destructive/15 text-destructive text-xs font-bold px-2 py-0.5 rounded-full group-hover:bg-destructive/25">
         {n}
