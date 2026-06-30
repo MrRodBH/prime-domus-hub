@@ -246,30 +246,31 @@ function DashboardCRM() {
                 <DeltaBadge delta={d.resumo.leads.deltaPct} suffix="em relação ao período anterior" />
               }
               icon={Users}
-              to="/admin/leads"
+              search={buildSearch({})}
             />
             <ResumoCard
               label="Visitas Agendadas"
               valor={d.resumo.visitas.atual}
               extra={<span className="text-xs text-muted-foreground">{d.resumo.visitas.conversao}% de conversão</span>}
               icon={CalendarCheck}
-              to="/admin/leads"
+              search={buildSearch({ status: "visita,proposta,ganho" })}
             />
             <ResumoCard
               label="Propostas Enviadas"
               valor={d.resumo.propostas.atual}
               extra={<span className="text-xs text-muted-foreground">{d.resumo.propostas.conversao}% de conversão</span>}
               icon={FileText}
-              to="/admin/leads"
+              search={buildSearch({ status: "proposta,ganho" })}
             />
             <ResumoCard
               label="Vendas Fechadas"
               valor={d.resumo.vendas.atual}
               extra={<span className="text-xs text-gold">{moeda(d.resumo.vendas.vgv)} em VGV</span>}
               icon={Trophy}
-              to="/admin/leads"
+              search={buildSearch({ status: "ganho" })}
             />
           </div>
+
 
           {/* BLOCO 2 — IA Comercial */}
           <div className="bg-gradient-to-br from-gold/10 via-card to-card border border-gold/30 rounded-lg p-6">
