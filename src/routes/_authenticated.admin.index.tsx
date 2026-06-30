@@ -337,10 +337,10 @@ function DashboardCRM() {
                 <Flame className="size-5 text-destructive" /> Alertas
               </h2>
               <div className="space-y-3">
-                <AlertaItem n={d.alertas.semAtendimento} label="Leads sem primeiro contato (+48h)" />
-                <AlertaItem n={d.alertas.semFollowup} label="Clientes sem follow-up (+7 dias)" />
-                <AlertaItem n={d.alertas.visitasSemFeedback} label="Visitas sem feedback (+7 dias)" />
-                <AlertaItem n={d.alertas.propostasParadas} label="Propostas sem atualização (+7 dias)" />
+                <AlertaItem n={d.alertas.semAtendimento} label="Leads sem primeiro contato (+24h)" search={buildSearch({ alerta: "sem_atendimento" })} />
+                <AlertaItem n={d.alertas.semFollowup} label="Clientes sem follow-up (+3 dias)" search={buildSearch({ alerta: "sem_followup" })} />
+                <AlertaItem n={d.alertas.visitasSemFeedback} label="Visitas sem feedback (+3 dias)" search={buildSearch({ alerta: "visitas_sem_feedback" })} />
+                <AlertaItem n={d.alertas.propostasParadas} label="Propostas sem atualização (+5 dias)" search={buildSearch({ alerta: "propostas_paradas" })} />
               </div>
             </div>
           </div>
