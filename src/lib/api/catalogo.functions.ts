@@ -419,7 +419,7 @@ export const enviarLead = createServerFn({ method: "POST" })
             email: data.email || undefined,
             telefone: data.telefone || undefined,
             mensagem: data.mensagem || undefined,
-            origem: data.origem || "site",
+            origem: data.origem || "Site",
             imovel_codigo,
             imovel_titulo,
             lancamento_nome: lancNome,
