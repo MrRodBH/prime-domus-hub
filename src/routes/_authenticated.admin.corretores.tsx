@@ -485,24 +485,18 @@ function AdminUsuarios() {
           </TableHeader>
           <TableBody>
             {corretores?.map((c) => {
-              const userRoles = c.user_id ? rolesByUser.get(c.user_id) ?? [] : [];
+              const perfil = c.user_id ? profileByUser.get(c.user_id) : undefined;
               const status = (c.status ?? "ativo") as UserStatus;
               const teamNome = c.team_id ? teamNameById.get(c.team_id) ?? "—" : "—";
               return (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{[c.nome, c.sobrenome].filter(Boolean).join(" ")}</TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {userRoles.length === 0 ? (
-                        <Badge variant="outline" className="text-muted-foreground">sem login</Badge>
-                      ) : (
-                        userRoles.map((r) => (
-                          <Badge key={r} variant={r === "admin" ? "default" : "secondary"}>
-                            {ROLE_LABEL[r]}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
+                    {perfil ? (
+                      <Badge variant={perfil.sistema ? "default" : "secondary"}>{perfil.nome}</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">sem perfil</Badge>
+                    )}
                   </TableCell>
                   <TableCell><Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground">{teamNome}</TableCell>
@@ -513,11 +507,9 @@ function AdminUsuarios() {
                       size="icon"
                       variant="ghost"
                       onClick={() => {
-                        const customIds = c.user_id ? customProfilesByUser.get(c.user_id) ?? [] : [];
                         setEditing({
                           ...c,
-                          roles: userRoles.length > 0 ? userRoles : ["corretor"],
-                          custom_profile_ids: customIds,
+                          profile_id: perfil?.id ?? "",
                         });
                         setOpen(true);
                       }}
@@ -531,6 +523,7 @@ function AdminUsuarios() {
                 </TableRow>
               );
             })}
+
 
           </TableBody>
         </Table>
