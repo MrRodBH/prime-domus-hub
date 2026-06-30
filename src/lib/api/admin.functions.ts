@@ -395,7 +395,56 @@ export const adminListarPapeisPorUsuario = createServerFn({ method: "GET" })
   });
 
 
-// Cria login (auth.users) + papéis + vincula a um corretor existente OU cria novo.
+// Aplica o perfil principal de um usuário, sincronizando user_roles e user_profiles.
+// - Se o perfil é de sistema (codigo == app_role), define user_roles=[codigo] e
+//   o trigger sincroniza user_profiles automaticamente.
+// - Se o perfil é custom, limpa user_roles e grava user_profiles=[profile_id].
+async function aplicarPerfilUsuario(userId: string, profileId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: prof, error: pErr } = await supabaseAdmin
+    .from("rbac_profiles")
+    .select("id, codigo, sistema")
+    .eq("id", profileId)
+    .single();
+  if (pErr || !prof) throw new Error(pErr?.message ?? "Perfil não encontrado");
+
+  const SYS_CODES = new Set(["admin", "corretor", "secretaria", "gerente", "captador"]);
+  await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+  await supabaseAdmin.from("user_profiles").delete().eq("user_id", userId);
+
+  if (prof.sistema && prof.codigo && SYS_CODES.has(prof.codigo)) {
+    const { error } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: userId, role: prof.codigo } as never);
+    if (error) throw new Error(error.message);
+    // Trigger tg_user_roles_sync_profiles preenche user_profiles.
+    // Garante o vínculo direto também (idempotente).
+    await supabaseAdmin
+      .from("user_profiles")
+      .upsert({ user_id: userId, profile_id: profileId } as never, {
+        onConflict: "user_id,profile_id",
+      });
+  } else {
+    const { error } = await supabaseAdmin
+      .from("user_profiles")
+      .insert({ user_id: userId, profile_id: profileId } as never);
+    if (error) throw new Error(error.message);
+  }
+}
+
+// Define o perfil principal de um usuário existente (Admin).
+export const adminDefinirPerfilUsuario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({ user_id: z.string().uuid(), profile_id: z.string().uuid() }),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    await aplicarPerfilUsuario(data.user_id, data.profile_id);
+    return { ok: true };
+  });
+
+// Cria login (auth.users) + perfil + vincula a um corretor existente OU cria novo.
 export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -415,7 +464,7 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       cargo: z.string().optional().nullable(),
       foto_url: z.string().optional().nullable(),
       bio: z.string().optional().nullable(),
-      roles: z.array(roleEnum).min(1),
+      profile_id: z.string().uuid(),
     }),
   )
   .handler(async ({ data, context }) => {
@@ -432,8 +481,6 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       .eq("email", data.email)
       .maybeSingle();
 
-    // Se o chamador não indicou um corretor_id específico para vincular,
-    // e já existe um usuário/corretor com esse e-mail, recusa para não sobrescrever.
     if (!data.corretor_id && (existingUser || corretorByEmail)) {
       throw new Error(
         `Já existe um usuário cadastrado com o e-mail ${data.email}. Edite o usuário existente em vez de criar um novo.`,
@@ -454,7 +501,6 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       await supabaseAdmin.auth.admin.updateUserById(userId, { password: data.password });
     }
 
-    // Resolve corretor alvo: id fornecido, ou existente por user_id, ou por email
     let corretorId = data.corretor_id ?? null;
     if (!corretorId) {
       const { data: byUser } = await context.supabase
@@ -497,11 +543,8 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    // Sincroniza papéis: remove os existentes e insere os novos
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-    const rolesRows = data.roles.map((role) => ({ user_id: userId!, role }));
-    const { error: rErr } = await supabaseAdmin.from("user_roles").insert(rolesRows as never);
-    if (rErr) throw new Error(rErr.message);
+    // Aplica perfil principal (sincroniza user_roles + user_profiles)
+    await aplicarPerfilUsuario(userId!, data.profile_id);
 
     // Envia e-mail para o usuário definir senha definitiva (best-effort)
     let emailSent = false;
@@ -534,7 +577,7 @@ export const adminCriarUsuarioComLogin = createServerFn({ method: "POST" })
     return { ok: true, user_id: userId, email_sent: emailSent, created_auth: isNewAuthUser };
   });
 
-// Atualiza apenas os papéis de um usuário existente.
+// Atualiza apenas os papéis de um usuário existente (compat — não usado pela UI nova).
 export const adminAtualizarPapeis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ user_id: z.string().uuid(), roles: z.array(roleEnum).min(1) }))
@@ -547,6 +590,7 @@ export const adminAtualizarPapeis = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
 
 // Admin: altera a senha de qualquer usuário (não exige e-mail de validação).
 // Envia notificação informativa ao usuário avisando da alteração.
