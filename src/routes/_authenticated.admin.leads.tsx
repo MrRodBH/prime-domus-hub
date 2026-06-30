@@ -52,6 +52,7 @@ type Lead = {
   status: string;
   created_at: string;
   assigned_to: string | null;
+  valor_estimado: number | null;
   imovel: { titulo?: string; slug?: string; preco?: number | null; preco_sob_consulta?: boolean | null } | null;
 };
 
