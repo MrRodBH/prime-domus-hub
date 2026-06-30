@@ -11,6 +11,7 @@ import {
   adminListarPapeisPorUsuario,
   adminAlterarSenhaUsuario,
 } from "@/lib/api/admin.functions";
+import { listarEquipes, listarPerfis, listarPerfisPorUsuario, setUserPerfisCustom } from "@/lib/api/rbac.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -33,7 +35,23 @@ type Role = "admin" | "corretor" | "secretaria";
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", corretor: "Corretor", secretaria: "Secretaria" };
 const ALL_ROLES: Role[] = ["admin", "corretor", "secretaria"];
 
+type UserStatus = "ativo" | "inativo" | "bloqueado" | "pendente";
+const STATUS_LABEL: Record<UserStatus, string> = {
+  ativo: "Ativo", inativo: "Inativo", bloqueado: "Bloqueado", pendente: "Pendente",
+};
+const STATUS_VARIANT: Record<UserStatus, "default" | "secondary" | "destructive" | "outline"> = {
+  ativo: "default", inativo: "secondary", bloqueado: "destructive", pendente: "outline",
+};
+
 const SOBRENOME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]{2,40}$/;
+// CPF mask + lightweight validation (formatação visual; validação algorítmica opcional)
+function maskCPF(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Corretor = any;
@@ -42,12 +60,14 @@ type Editing = Corretor & {
   email_login?: string;
   password?: string;
   roles?: Role[];
+  custom_profile_ids?: string[];
 };
 
 function emptyEditing(): Editing {
   return {
     nome: "",
     sobrenome: "",
+    cpf: "",
     creci: "",
     email: "",
     telefone: "",
@@ -56,11 +76,15 @@ function emptyEditing(): Editing {
     bio: "",
     foto_url: "",
     ativo: true,
+    status: "ativo" as UserStatus,
+    team_id: null,
     email_login: "",
     password: "",
     roles: ["corretor"],
+    custom_profile_ids: [],
   };
 }
+
 
 function AdminUsuarios() {
   const qc = useQueryClient();
