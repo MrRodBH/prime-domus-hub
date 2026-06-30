@@ -392,53 +392,31 @@ function AdminUsuarios() {
                     )}
                   </div>
 
-                  <div>
-                    <Label className="mb-2 block">Tipo de usuário *</Label>
-                    <div className="flex flex-wrap gap-4">
-                      {ALL_ROLES.map((r) => (
-                        <label key={r} className="flex items-center gap-2 cursor-pointer">
-                          <Checkbox
-                            checked={(editing.roles ?? []).includes(r)}
-                            onCheckedChange={() => toggleRole(r)}
-                          />
-                          <span className="text-sm">{ROLE_LABEL[r]}</span>
-                        </label>
-                      ))}
-                    </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block">Perfil de Acesso *</Label>
+                    <Select
+                      value={editing.profile_id ?? ""}
+                      onValueChange={(v) => setEditing({ ...editing, profile_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar Perfil" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {perfisOrdenados.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.nome}
+                            {p.sistema ? "" : "  (personalizado)"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Qualquer tipo pode também ser Admin (basta marcar os dois).
+                      Lista carregada automaticamente em <strong>Perfis & Permissões</strong>.
+                      Todas as permissões são herdadas do perfil selecionado.
                     </p>
                   </div>
-
-                  {editing.user_id && customProfiles.length > 0 && (
-                    <div>
-                      <Label className="mb-2 block">Perfis personalizados</Label>
-                      <div className="flex flex-wrap gap-3">
-                        {customProfiles.map((p) => {
-                          const checked = (editing.custom_profile_ids ?? []).includes(p.id);
-                          return (
-                            <label key={p.id} className="flex items-center gap-2 cursor-pointer">
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(v) => {
-                                  const cur = editing.custom_profile_ids ?? [];
-                                  setEditing({
-                                    ...editing,
-                                    custom_profile_ids: v ? [...cur, p.id] : cur.filter((x: string) => x !== p.id),
-                                  });
-                                }}
-                              />
-                              <span className="text-sm">{p.nome}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Perfis criados em <strong>Perfis & Permissões</strong>. Somam-se ao tipo principal.
-                      </p>
-                    </div>
-                  )}
                 </div>
+
 
 
                 {editing.user_id && (
