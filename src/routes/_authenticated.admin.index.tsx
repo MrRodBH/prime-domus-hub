@@ -398,7 +398,21 @@ function DashboardCRM() {
                   <div className="h-56">
                     <ResponsiveContainer>
                       <PieChart>
-                        <Pie data={d.origens} dataKey="quantidade" nameKey="nome" innerRadius={45} outerRadius={80}>
+                        <Pie
+                          data={d.origens}
+                          dataKey="quantidade"
+                          nameKey="nome"
+                          innerRadius={45}
+                          outerRadius={80}
+                          onClick={(slice: { nome?: string }) => {
+                            if (slice?.nome) {
+                              window.location.href =
+                                "/admin/leads?" +
+                                new URLSearchParams(buildSearch({ origem: slice.nome })).toString();
+                            }
+                          }}
+                          className="cursor-pointer"
+                        >
                           {d.origens.map((_, i) => (
                             <Cell
                               key={i}
@@ -414,7 +428,12 @@ function DashboardCRM() {
                   </div>
                   <div className="space-y-1.5 text-xs">
                     {d.origens.map((o, i) => (
-                      <div key={o.nome} className="flex items-center justify-between gap-2">
+                      <Link
+                        key={o.nome}
+                        to="/admin/leads"
+                        search={buildSearch({ origem: o.nome }) as never}
+                        className="flex items-center justify-between gap-2 hover:bg-muted/40 rounded px-1 py-0.5"
+                      >
                         <span className="flex items-center gap-2">
                           <span
                             className="size-2 rounded-full"
@@ -427,7 +446,7 @@ function DashboardCRM() {
                         <span className="text-muted-foreground">
                           {o.quantidade} · {o.percentual}% · conv. {o.conversao}%
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
