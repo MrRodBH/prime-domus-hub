@@ -142,6 +142,24 @@ function DashboardCRM() {
 
   const d = stats.data;
 
+  // Base search params carried into every drill-down link
+  const baseSearch = useMemo(() => {
+    const s: Record<string, string> = {};
+    if (range.inicio) s.inicio = range.inicio.slice(0, 10);
+    if (range.fim) s.fim = range.fim.slice(0, 10);
+    if (corretorId) s.corretor_id = corretorId;
+    if (origemFiltro) s.origem = origemFiltro;
+    return s;
+  }, [range, corretorId, origemFiltro]);
+
+  const buildSearch = (extra: Record<string, string | undefined>) => {
+    const merged: Record<string, string> = { ...baseSearch };
+    for (const [k, v] of Object.entries(extra)) {
+      if (v) merged[k] = v;
+    }
+    return merged;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header + filtros globais */}
