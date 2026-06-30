@@ -245,9 +245,33 @@ function AdminLeads() {
         </div>
       </div>
 
+      {activeFilters.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap rounded-md border border-foreground/10 bg-muted/30 px-3 py-2">
+          <span className="text-xs uppercase tracking-wide text-muted-foreground">Filtros vindos do dashboard:</span>
+          {activeFilters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => clearFilter(f.key)}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2.5 py-0.5 text-xs hover:bg-primary/25"
+              title="Remover filtro"
+            >
+              {f.label}
+              <X className="size-3" />
+            </button>
+          ))}
+          <button
+            onClick={() => navigate({ to: "/admin/leads", search: {} })}
+            className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
+          >
+            Limpar todos
+          </button>
+        </div>
+      )}
+
       <p className="text-sm text-muted-foreground">
         Arraste os cards entre as colunas para atualizar o status.
       </p>
+
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="grid gap-3 [grid-template-columns:repeat(6,minmax(220px,1fr))] overflow-x-auto pb-4">
