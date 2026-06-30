@@ -190,27 +190,35 @@ function AdminUsuarios() {
             : "Usuário criado. (Não foi possível enviar o e-mail de senha — verifique a configuração de e-mail.)",
         );
       } else if (!isNew) {
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, custom_profile_ids: _cp, ...rest } = e;
+        void _e; void _p; void _r; void _cp;
         await salvarSemLogin.mutateAsync(rest);
         if (e.user_id && e.roles && e.roles.length > 0) {
           await atualizarPapeis.mutateAsync({ user_id: e.user_id, roles: e.roles });
         }
+        if (e.user_id) {
+          await atualizarPerfisCustom.mutateAsync({
+            user_id: e.user_id,
+            profile_ids: e.custom_profile_ids ?? [],
+          });
+        }
         toast.success("Salvo");
       } else {
-        const { email_login: _e, password: _p, roles: _r, ...rest } = e;
-        void _e; void _p; void _r;
+        const { email_login: _e, password: _p, roles: _r, custom_profile_ids: _cp, ...rest } = e;
+        void _e; void _p; void _r; void _cp;
         await salvarSemLogin.mutateAsync(rest);
         toast.success("Salvo");
       }
       qc.invalidateQueries({ queryKey: ["admin", "corretores"] });
       qc.invalidateQueries({ queryKey: ["admin", "user-roles"] });
+      qc.invalidateQueries({ queryKey: ["rbac", "perfis-usuarios"] });
       setOpen(false);
     } catch (err) {
       toast.error((err as Error).message);
     }
 
   }
+
 
   async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
