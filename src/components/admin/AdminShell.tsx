@@ -21,6 +21,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/cidades", label: "Cidades", icon: MapPin },
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
   { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
+  { to: "/admin/origens", label: "Origens de Leads", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"] },
 ];
 
