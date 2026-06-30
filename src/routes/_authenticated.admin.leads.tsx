@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -12,7 +12,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus } from "lucide-react";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus, X } from "lucide-react";
 import { adminListarLeads, adminAtualizarLead, adminListarCorretores, adminListarImoveisLite, criarLeadManual, meusPapeis } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
@@ -22,12 +22,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 import { toast } from "sonner";
 import { maskPhoneBR, digitsOnly, isValidPhoneBR } from "@/lib/phone-br";
+import { z } from "zod";
+
+const leadsSearchSchema = z.object({
+  status: z.string().optional(),
+  origem: z.string().optional(),
+  corretor_id: z.string().optional(),
+  inicio: z.string().optional(),
+  fim: z.string().optional(),
+  alerta: z.enum(["sem_atendimento", "sem_followup", "visitas_sem_feedback", "propostas_paradas"]).optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
+  validateSearch: (s) => leadsSearchSchema.parse(s),
   component: AdminLeads,
 });
 
