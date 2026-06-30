@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity: string | null
+          entity_id: string | null
+          id: string
+          ip: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       bairros: {
         Row: {
           cidade_id: string | null
@@ -189,6 +231,7 @@ export type Database = {
           ativo: boolean
           bio: string | null
           cargo: string | null
+          cpf: string | null
           created_at: string
           creci: string | null
           email: string | null
@@ -198,6 +241,8 @@ export type Database = {
           ordem: number
           slug: string
           sobrenome: string | null
+          status: Database["public"]["Enums"]["user_status"]
+          team_id: string | null
           telefone: string | null
           updated_at: string
           user_id: string | null
@@ -207,6 +252,7 @@ export type Database = {
           ativo?: boolean
           bio?: string | null
           cargo?: string | null
+          cpf?: string | null
           created_at?: string
           creci?: string | null
           email?: string | null
@@ -216,6 +262,8 @@ export type Database = {
           ordem?: number
           slug: string
           sobrenome?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
+          team_id?: string | null
           telefone?: string | null
           updated_at?: string
           user_id?: string | null
@@ -225,6 +273,7 @@ export type Database = {
           ativo?: boolean
           bio?: string | null
           cargo?: string | null
+          cpf?: string | null
           created_at?: string
           creci?: string | null
           email?: string | null
@@ -234,12 +283,22 @@ export type Database = {
           ordem?: number
           slug?: string
           sobrenome?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
+          team_id?: string | null
           telefone?: string | null
           updated_at?: string
           user_id?: string | null
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "corretores_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_send_log: {
         Row: {
@@ -1158,6 +1217,105 @@ export type Database = {
           },
         ]
       }
+      rbac_modules: {
+        Row: {
+          codigo: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      rbac_permissions: {
+        Row: {
+          action: Database["public"]["Enums"]["rbac_action"]
+          created_at: string
+          id: string
+          module_id: string
+          profile_id: string
+          scope: Database["public"]["Enums"]["rbac_scope"]
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["rbac_action"]
+          created_at?: string
+          id?: string
+          module_id: string
+          profile_id: string
+          scope?: Database["public"]["Enums"]["rbac_scope"]
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["rbac_action"]
+          created_at?: string
+          id?: string
+          module_id?: string
+          profile_id?: string
+          scope?: Database["public"]["Enums"]["rbac_scope"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rbac_permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rbac_permissions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rbac_profiles: {
+        Row: {
+          codigo: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          sistema: boolean
+          updated_at: string
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          sistema?: boolean
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          sistema?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           key: string
@@ -1203,6 +1361,94 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          lider_user_id: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lider_user_id?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lider_user_id?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1237,6 +1483,18 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      has_any_permission: {
+        Args: { _module_codigo: string; _user_id: string }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: {
+          _action: Database["public"]["Enums"]["rbac_action"]
+          _module_codigo: string
+          _user_id: string
+        }
+        Returns: Database["public"]["Enums"]["rbac_scope"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1261,9 +1519,10 @@ export type Database = {
           read_ct: number
         }[]
       }
+      user_team_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
-      app_role: "admin" | "corretor" | "secretaria"
+      app_role: "admin" | "corretor" | "secretaria" | "gerente" | "captador"
       blog_post_status: "rascunho" | "publicado"
       imovel_finalidade: "venda" | "aluguel" | "lancamento"
       imovel_status: "rascunho" | "ativo" | "vendido" | "reservado" | "inativo"
@@ -1305,6 +1564,17 @@ export type Database = {
         | "desistiu"
         | "aluguel"
         | "outros"
+      rbac_action:
+        | "visualizar"
+        | "criar"
+        | "editar"
+        | "excluir"
+        | "exportar"
+        | "importar"
+        | "aprovar"
+        | "gerenciar"
+      rbac_scope: "proprio" | "equipe" | "global"
+      user_status: "ativo" | "inativo" | "bloqueado" | "pendente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1432,7 +1702,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "corretor", "secretaria"],
+      app_role: ["admin", "corretor", "secretaria", "gerente", "captador"],
       blog_post_status: ["rascunho", "publicado"],
       imovel_finalidade: ["venda", "aluguel", "lancamento"],
       imovel_status: ["rascunho", "ativo", "vendido", "reservado", "inativo"],
@@ -1479,6 +1749,18 @@ export const Constants = {
         "aluguel",
         "outros",
       ],
+      rbac_action: [
+        "visualizar",
+        "criar",
+        "editar",
+        "excluir",
+        "exportar",
+        "importar",
+        "aprovar",
+        "gerenciar",
+      ],
+      rbac_scope: ["proprio", "equipe", "global"],
+      user_status: ["ativo", "inativo", "bloqueado", "pendente"],
     },
   },
 } as const
