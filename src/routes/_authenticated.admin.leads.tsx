@@ -635,6 +635,46 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ValorEstimadoEditor({ lead }: { lead: Lead }) {
+  const qc = useQueryClient();
+  const [val, setVal] = useState<string>(lead.valor_estimado != null ? String(lead.valor_estimado) : "");
+  const save = useMutation({
+    mutationFn: () =>
+      adminAtualizarLead({
+        data: { id: lead.id, valor_estimado: val.trim() === "" ? null : Number(val) },
+      }),
+    onSuccess: () => {
+      toast.success("Valor atualizado.");
+      qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const dirty = (lead.valor_estimado ?? null) !== (val.trim() === "" ? null : Number(val));
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-foreground/5 pb-2">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">Valor estimado (VGV)</span>
+      <div className="flex items-center gap-2">
+        <Input
+          type="number"
+          inputMode="decimal"
+          step="1000"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          className="h-8 w-36 text-right"
+          placeholder="R$"
+        />
+        {dirty && (
+          <Button size="sm" variant="outline" className="h-8" disabled={save.isPending} onClick={() => save.mutate()}>
+            Salvar
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
 function Card({ lead }: { lead: Lead; dragging?: boolean }) {
   const wa = lead.telefone
