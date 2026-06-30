@@ -513,18 +513,27 @@ function DashboardCRM() {
                     </tr>
                   </thead>
                   <tbody>
-                    {d.ranking.map((r, i) => (
-                      <tr key={r.corretor_id} className="border-b border-foreground/5 last:border-0">
-                        <td className="py-2">{i + 1}</td>
-                        <td className="py-2 font-medium">{r.nome}</td>
-                        <td className="py-2 text-right">{r.leads}</td>
-                        <td className="py-2 text-right">{r.visitas}</td>
-                        <td className="py-2 text-right">{r.propostas}</td>
-                        <td className="py-2 text-right">{r.vendas}</td>
-                        <td className="py-2 text-right">{r.conversao}%</td>
-                        <td className="py-2 text-right text-gold">{moeda(r.vgv)}</td>
-                      </tr>
-                    ))}
+                    {d.ranking.map((r, i) => {
+                      const rowSearch = buildSearch({ corretor_id: r.user_id ?? undefined });
+                      const goTo = () =>
+                        (window.location.href = "/admin/leads?" + new URLSearchParams(rowSearch).toString());
+                      return (
+                        <tr
+                          key={r.corretor_id}
+                          onClick={goTo}
+                          className="border-b border-foreground/5 last:border-0 cursor-pointer hover:bg-muted/40"
+                        >
+                          <td className="py-2">{i + 1}</td>
+                          <td className="py-2 font-medium">{r.nome}</td>
+                          <td className="py-2 text-right">{r.leads}</td>
+                          <td className="py-2 text-right">{r.visitas}</td>
+                          <td className="py-2 text-right">{r.propostas}</td>
+                          <td className="py-2 text-right">{r.vendas}</td>
+                          <td className="py-2 text-right">{r.conversao}%</td>
+                          <td className="py-2 text-right text-gold">{moeda(r.vgv)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
