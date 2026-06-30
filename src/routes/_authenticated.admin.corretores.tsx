@@ -475,7 +475,7 @@ function AdminUsuarios() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Tipo</TableHead>
+              <TableHead>Perfil</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Equipe</TableHead>
               <TableHead>E-mail</TableHead>
