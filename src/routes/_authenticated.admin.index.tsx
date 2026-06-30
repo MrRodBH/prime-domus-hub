@@ -522,16 +522,20 @@ function ResumoCard({
   valor,
   extra,
   icon: Icon,
-  to,
+  search,
 }: {
   label: string;
   valor: number;
   extra: React.ReactNode;
   icon: typeof Users;
-  to: string;
+  search: Record<string, string>;
 }) {
   return (
-    <Link to={to} className="bg-card border border-foreground/5 rounded-lg p-5 hover:border-gold transition-colors block">
+    <Link
+      to="/admin/leads"
+      search={search as never}
+      className="bg-card border border-foreground/5 rounded-lg p-5 hover:border-gold transition-colors block"
+    >
       <Icon className="size-5 text-gold mb-3" strokeWidth={1.5} />
       <p className="text-3xl font-display">{valor}</p>
       <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">{label}</p>
@@ -539,6 +543,7 @@ function ResumoCard({
     </Link>
   );
 }
+
 
 function DeltaBadge({ delta, suffix }: { delta: number; suffix: string }) {
   const up = delta >= 0;
