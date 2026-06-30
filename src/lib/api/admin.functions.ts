@@ -284,6 +284,7 @@ const corretorSchema = z.object({
     .regex(sobrenomeRegex, "Sobrenome inválido (apenas letras, um único sobrenome)")
     .optional()
     .nullable(),
+  cpf: z.string().optional().nullable(),
   creci: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   telefone: z.string().optional().nullable(),
@@ -292,7 +293,10 @@ const corretorSchema = z.object({
   bio: z.string().optional().nullable(),
   foto_url: z.string().optional().nullable(),
   ativo: z.boolean().default(true),
+  status: z.enum(["ativo", "inativo", "bloqueado", "pendente"]).optional(),
+  team_id: z.string().uuid().nullable().optional(),
 });
+
 
 export const adminListarCorretores = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
