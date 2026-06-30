@@ -263,7 +263,7 @@ function AdminUsuarios() {
     setEditing({ ...editing, roles: next });
   }
 
-  const isPending = criarComLogin.isPending || salvarSemLogin.isPending || atualizarPapeis.isPending;
+  const isPending = criarComLogin.isPending || salvarSemLogin.isPending || atualizarPapeis.isPending || atualizarPerfisCustom.isPending;
 
   return (
     <div className="space-y-6">
