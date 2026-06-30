@@ -155,7 +155,7 @@ export const dashboardStats = createServerFn({ method: "POST" })
     const descartadoCount = countByStatus(atuais, "perdido");
 
     const funil = [
-      { etapa: "Lead Captado", quantidade: captado, conversao: 100, perda: 0 },
+      { etapa: "Novo", quantidade: captado, conversao: 100, perda: 0 },
       {
         etapa: "Contato Realizado",
         quantidade: contato,
