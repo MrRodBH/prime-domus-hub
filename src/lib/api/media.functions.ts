@@ -73,6 +73,8 @@ export const registrarMidia = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.midias", "criar");
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("media_library")
@@ -93,6 +95,7 @@ export const registrarMidia = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "media_library", "cms.midia.upload", row.id, null, row);
     return row;
   });
 
