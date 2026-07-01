@@ -649,6 +649,42 @@ export type Database = {
           },
         ]
       }
+      deal_lost_reasons: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          padrao: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          padrao?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          padrao?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1656,6 +1692,8 @@ export type Database = {
           id: string
           lead_id: string
           motivo: Database["public"]["Enums"]["lead_descarte_motivo"]
+          motivo_nome: string | null
+          reason_id: string | null
           tenant_id: string
           user_id: string | null
           user_nome: string
@@ -1667,6 +1705,8 @@ export type Database = {
           id?: string
           lead_id: string
           motivo: Database["public"]["Enums"]["lead_descarte_motivo"]
+          motivo_nome?: string | null
+          reason_id?: string | null
           tenant_id?: string
           user_id?: string | null
           user_nome: string
@@ -1678,6 +1718,8 @@ export type Database = {
           id?: string
           lead_id?: string
           motivo?: Database["public"]["Enums"]["lead_descarte_motivo"]
+          motivo_nome?: string | null
+          reason_id?: string | null
           tenant_id?: string
           user_id?: string | null
           user_nome?: string
@@ -1692,6 +1734,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_descartes_reason_id_fkey"
+            columns: ["reason_id"]
+            isOneToOne: false
+            referencedRelation: "lead_discard_reasons"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_descartes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1699,6 +1748,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_discard_reasons: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+          padrao: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          padrao?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          padrao?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       lead_origens: {
         Row: {
@@ -1744,6 +1829,69 @@ export type Database = {
           },
         ]
       }
+      lead_perdas: {
+        Row: {
+          created_at: string
+          detalhes: string
+          id: string
+          imovel_id: string | null
+          launch_project_id: string | null
+          lead_id: string
+          motivo_nome: string
+          reason_id: string | null
+          tenant_id: string
+          user_id: string | null
+          user_nome: string
+          user_perfil: string
+          valor_estimado: number | null
+        }
+        Insert: {
+          created_at?: string
+          detalhes?: string
+          id?: string
+          imovel_id?: string | null
+          launch_project_id?: string | null
+          lead_id: string
+          motivo_nome: string
+          reason_id?: string | null
+          tenant_id?: string
+          user_id?: string | null
+          user_nome: string
+          user_perfil: string
+          valor_estimado?: number | null
+        }
+        Update: {
+          created_at?: string
+          detalhes?: string
+          id?: string
+          imovel_id?: string | null
+          launch_project_id?: string | null
+          lead_id?: string
+          motivo_nome?: string
+          reason_id?: string | null
+          tenant_id?: string
+          user_id?: string | null
+          user_nome?: string
+          user_perfil?: string
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_perdas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_perdas_reason_id_fkey"
+            columns: ["reason_id"]
+            isOneToOne: false
+            referencedRelation: "deal_lost_reasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null
@@ -1751,16 +1899,22 @@ export type Database = {
           consent_lgpd: boolean
           corretor_id: string | null
           created_at: string
+          descartado_at: string | null
+          discard_reason_id: string | null
           email: string | null
           fbclid: string | null
+          ganho_at: string | null
           gclid: string | null
           id: string
           imovel_id: string | null
           landing_url: string | null
           launch_project_id: string | null
+          lost_reason_id: string | null
           mensagem: string | null
           nome: string
           origem: string | null
+          perdido_at: string | null
+          proposta_at: string | null
           referrer: string | null
           status: string
           telefone: string | null
@@ -1779,16 +1933,22 @@ export type Database = {
           consent_lgpd?: boolean
           corretor_id?: string | null
           created_at?: string
+          descartado_at?: string | null
+          discard_reason_id?: string | null
           email?: string | null
           fbclid?: string | null
+          ganho_at?: string | null
           gclid?: string | null
           id?: string
           imovel_id?: string | null
           landing_url?: string | null
           launch_project_id?: string | null
+          lost_reason_id?: string | null
           mensagem?: string | null
           nome: string
           origem?: string | null
+          perdido_at?: string | null
+          proposta_at?: string | null
           referrer?: string | null
           status?: string
           telefone?: string | null
@@ -1807,16 +1967,22 @@ export type Database = {
           consent_lgpd?: boolean
           corretor_id?: string | null
           created_at?: string
+          descartado_at?: string | null
+          discard_reason_id?: string | null
           email?: string | null
           fbclid?: string | null
+          ganho_at?: string | null
           gclid?: string | null
           id?: string
           imovel_id?: string | null
           landing_url?: string | null
           launch_project_id?: string | null
+          lost_reason_id?: string | null
           mensagem?: string | null
           nome?: string
           origem?: string | null
+          perdido_at?: string | null
+          proposta_at?: string | null
           referrer?: string | null
           status?: string
           telefone?: string | null
@@ -2474,6 +2640,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      seed_default_lead_reasons: {
+        Args: { _tenant: string }
+        Returns: undefined
       }
       user_belongs_to_tenant: { Args: { _tenant: string }; Returns: boolean }
       user_team_ids: { Args: { _user_id: string }; Returns: string[] }
