@@ -279,6 +279,101 @@ export type Database = {
           },
         ]
       }
+      cms_campaign_events: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: number
+          rota: string | null
+          session_id: string | null
+          tenant_id: string
+          tipo: string
+          user_agent: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: number
+          rota?: string | null
+          session_id?: string | null
+          tenant_id?: string
+          tipo: string
+          user_agent?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: number
+          rota?: string | null
+          session_id?: string | null
+          tenant_id?: string
+          tipo?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_campaign_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "cms_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_campaigns: {
+        Row: {
+          agendamento: Json
+          conteudo: Json
+          created_at: string
+          created_by: string | null
+          end_at: string | null
+          frequencia: Json
+          id: string
+          nome: string
+          prioridade: number
+          segmentacao: Json
+          start_at: string | null
+          status: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          agendamento?: Json
+          conteudo?: Json
+          created_at?: string
+          created_by?: string | null
+          end_at?: string | null
+          frequencia?: Json
+          id?: string
+          nome: string
+          prioridade?: number
+          segmentacao?: Json
+          start_at?: string | null
+          status?: string
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          agendamento?: Json
+          conteudo?: Json
+          created_at?: string
+          created_by?: string | null
+          end_at?: string | null
+          frequencia?: Json
+          id?: string
+          nome?: string
+          prioridade?: number
+          segmentacao?: Json
+          start_at?: string | null
+          status?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cms_form_fields: {
         Row: {
           ajuda: string | null
