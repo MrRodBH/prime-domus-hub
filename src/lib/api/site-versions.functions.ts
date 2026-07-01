@@ -205,6 +205,8 @@ export const obterSiteSettingsPreview = createServerFn({ method: "GET" })
 export const publicarTodosRascunhos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { assertCmsPermission } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "publicar");
     const { supabase, userId } = context;
     const { data: drafts, error } = await supabase
       .from("site_settings_versions")
