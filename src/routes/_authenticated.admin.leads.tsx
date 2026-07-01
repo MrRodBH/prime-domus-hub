@@ -298,29 +298,42 @@ function AdminLeads() {
         </div>
       )}
 
-      <p className="text-sm text-muted-foreground">
-        Arraste os cards entre as colunas para atualizar o status.
-      </p>
+      <Tabs value={currentTab} onValueChange={(v) => setTab(v as "kanban" | "descartados")}>
+        <TabsList>
+          <TabsTrigger value="kanban">Kanban (ativos)</TabsTrigger>
+          <TabsTrigger value="descartados">Descartados</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="kanban" className="space-y-4 pt-3">
+          <p className="text-sm text-muted-foreground">
+            Arraste os cards entre as colunas para atualizar o status. Para marcar como <strong>Perdido</strong>, o lead precisa estar em <strong>Proposta</strong>. Caso contrário, use <strong>Descartar</strong>.
+          </p>
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className="grid gap-3 [grid-template-columns:repeat(6,minmax(220px,1fr))] overflow-x-auto pb-4">
+              {COLUMNS.map((col) => (
+                <Column key={col.id} col={col} leads={byStatus[col.id]} onOpen={setSelectedId} />
+              ))}
+            </div>
+            <DragOverlay dropAnimation={null}>
+              {activeLead ? <Card lead={activeLead} /> : null}
+            </DragOverlay>
+          </DndContext>
 
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="grid gap-3 [grid-template-columns:repeat(6,minmax(220px,1fr))] overflow-x-auto pb-4">
-          {COLUMNS.map((col) => (
-            <Column key={col.id} col={col} leads={byStatus[col.id]} onOpen={setSelectedId} />
-          ))}
-        </div>
-        <DragOverlay dropAnimation={null}>
-          {activeLead ? <Card lead={activeLead} /> : null}
-        </DragOverlay>
+          <FunilChart byStatus={byStatus} descartesTotal={descartesData?.total ?? 0} />
+          <PerformanceComercialPanel />
+        </TabsContent>
 
-      </DndContext>
-
-      <FunilChart byStatus={byStatus} descartesTotal={descartesData?.total ?? 0} />
+        <TabsContent value="descartados" className="pt-3">
+          <DescartadosTab onOpen={setSelectedId} />
+        </TabsContent>
+      </Tabs>
 
       <LeadDetailDialog
         lead={selectedLead}
         onClose={() => setSelectedId(null)}
         onOpenHistorico={(id) => { setSelectedId(null); setHistoricoId(id); }}
+        onDescartar={(id) => { setSelectedId(null); setDescarteLeadId(id); }}
+        onPerder={(id) => { setSelectedId(null); setPerdaLeadId(id); }}
       />
 
       <LeadHistoricoDialog
@@ -328,6 +341,26 @@ function AdminLeads() {
         leadNome={historicoLead?.nome ?? ""}
         isAdmin={true}
         onClose={() => setHistoricoId(null)}
+      />
+
+      <DescarteDialog
+        leadId={descarteLeadId}
+        onClose={() => setDescarteLeadId(null)}
+        onDone={() => {
+          setDescarteLeadId(null);
+          qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+          qc.invalidateQueries({ queryKey: ["admin", "descartados"] });
+          qc.invalidateQueries({ queryKey: ["admin", "performance"] });
+        }}
+      />
+      <PerdaDialog
+        leadId={perdaLeadId}
+        onClose={() => setPerdaLeadId(null)}
+        onDone={() => {
+          setPerdaLeadId(null);
+          qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+          qc.invalidateQueries({ queryKey: ["admin", "performance"] });
+        }}
       />
     </div>
   );
