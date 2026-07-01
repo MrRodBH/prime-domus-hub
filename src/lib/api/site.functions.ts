@@ -102,6 +102,63 @@ export interface SiteSettings {
     meta_title?: string;
     meta_description?: string;
   };
+  /** Home — bloco de Diferenciais (numerados). */
+  home_diferenciais: {
+    eyebrow?: string;
+    titulo?: string;
+    itens?: { n: string; title: string; desc: string }[];
+  };
+  /** Home — bloco de Depoimentos. */
+  home_depoimentos: {
+    eyebrow?: string;
+    titulo?: string;
+    itens?: { quote: string; name: string; role: string }[];
+  };
+  /** Página Sobre. */
+  pagina_sobre: {
+    hero_eyebrow?: string;
+    hero_titulo?: string;
+    hero_subtitle?: string;
+    hero_image_path?: string | null;
+    hero_image_url?: string | null;
+    blocos?: { titulo?: string; texto: string }[];
+    stats?: { valor: string; label: string }[];
+    cta_titulo?: string;
+    cta_texto?: string;
+    cta_label?: string;
+    cta_url?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
+  /** Página Contato — apenas textos institucionais (contatos vêm de `empresa`/`contato`). */
+  pagina_contato: {
+    hero_eyebrow?: string;
+    hero_titulo?: string;
+    hero_subtitle?: string;
+    form_titulo?: string;
+    form_texto?: string;
+    form_botao?: string;
+    mapa_url?: string;
+    horario_atendimento?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
+  /** Página Anuncie. */
+  pagina_anuncie: {
+    hero_eyebrow?: string;
+    hero_titulo?: string;
+    hero_subtitle?: string;
+    hero_image_path?: string | null;
+    hero_image_url?: string | null;
+    beneficios_eyebrow?: string;
+    beneficios_titulo?: string;
+    beneficios?: { titulo: string; desc: string }[];
+    form_titulo?: string;
+    form_texto?: string;
+    form_botao?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
 }
 
 
