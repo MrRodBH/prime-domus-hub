@@ -717,7 +717,7 @@ function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
-function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | null; onClose: () => void; onOpenHistorico: (id: string) => void }) {
+function LeadDetailDialog({ lead, onClose, onOpenHistorico, onDescartar, onPerder }: { lead: Lead | null; onClose: () => void; onOpenHistorico: (id: string) => void; onDescartar?: (id: string) => void; onPerder?: (id: string) => void }) {
   const wa = lead?.telefone ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}` : null;
   const valorNegocio = (() => {
     if (!lead?.imovel) return "Não informado";
