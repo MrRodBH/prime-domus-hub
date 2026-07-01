@@ -780,6 +780,16 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico, onDescartar, onPerde
               <Button size="sm" className="shrink-0 min-w-[104px] px-3 sm:ml-auto" onClick={() => onOpenHistorico(lead.id)}>
                 <History className="h-4 w-4" /> Histórico
               </Button>
+              {onDescartar && lead.status !== "descartado" && lead.status !== "ganho" && lead.status !== "perdido" && (
+                <Button size="sm" variant="outline" className="shrink-0 px-3 text-destructive" onClick={() => onDescartar(lead.id)}>
+                  <Ban className="h-4 w-4" /> Descartar
+                </Button>
+              )}
+              {onPerder && lead.status === "proposta" && (
+                <Button size="sm" variant="outline" className="shrink-0 px-3 text-destructive" onClick={() => onPerder(lead.id)}>
+                  <Trash2 className="h-4 w-4" /> Marcar como Perdido
+                </Button>
+              )}
               </div>
             </div>
           </>
