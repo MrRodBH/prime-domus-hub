@@ -22,6 +22,7 @@ import { Route as AnuncieRouteImport } from './routes/anuncie'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as LancamentosSlugRouteImport } from './routes/lancamentos.$slug'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -43,6 +44,7 @@ import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated.admin.auditoria'
+import { Route as AuthenticatedAdminPaginasIndexRouteImport } from './routes/_authenticated.admin.paginas.index'
 import { Route as AuthenticatedAdminLancamentosIndexRouteImport } from './routes/_authenticated.admin.lancamentos.index'
 import { Route as AuthenticatedAdminImoveisIndexRouteImport } from './routes/_authenticated.admin.imoveis.index'
 import { Route as AuthenticatedAdminFormulariosIndexRouteImport } from './routes/_authenticated.admin.formularios.index'
@@ -52,6 +54,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as AuthenticatedAdminPaginasIdRouteImport } from './routes/_authenticated.admin.paginas.$id'
 import { Route as AuthenticatedAdminLancamentosNovoRouteImport } from './routes/_authenticated.admin.lancamentos.novo'
 import { Route as AuthenticatedAdminLancamentosIdRouteImport } from './routes/_authenticated.admin.lancamentos.$id'
 import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
@@ -122,6 +125,11 @@ const IndexRoute = IndexRouteImport.update({
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LancamentosSlugRoute = LancamentosSlugRouteImport.update({
@@ -237,6 +245,12 @@ const AuthenticatedAdminAuditoriaRoute =
     path: '/auditoria',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminPaginasIndexRoute =
+  AuthenticatedAdminPaginasIndexRouteImport.update({
+    id: '/paginas/',
+    path: '/paginas/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminLancamentosIndexRoute =
   AuthenticatedAdminLancamentosIndexRouteImport.update({
     id: '/lancamentos/',
@@ -289,6 +303,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminPaginasIdRoute =
+  AuthenticatedAdminPaginasIdRouteImport.update({
+    id: '/paginas/$id',
+    path: '/paginas/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminLancamentosNovoRoute =
   AuthenticatedAdminLancamentosNovoRouteImport.update({
     id: '/lancamentos/novo',
@@ -350,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
@@ -373,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
+  '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -382,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/admin/formularios/': typeof AuthenticatedAdminFormulariosIndexRoute
   '/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
+  '/admin/paginas/': typeof AuthenticatedAdminPaginasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -399,6 +422,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/p/$slug': typeof PSlugRoute
   '/blog': typeof BlogIndexRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
@@ -421,6 +445,7 @@ export interface FileRoutesByTo {
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
+  '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -430,6 +455,7 @@ export interface FileRoutesByTo {
   '/admin/formularios': typeof AuthenticatedAdminFormulariosIndexRoute
   '/admin/imoveis': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos': typeof AuthenticatedAdminLancamentosIndexRoute
+  '/admin/paginas': typeof AuthenticatedAdminPaginasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -451,6 +477,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
@@ -474,6 +501,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
   '/_authenticated/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/_authenticated/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
+  '/_authenticated/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -483,6 +511,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/formularios/': typeof AuthenticatedAdminFormulariosIndexRoute
   '/_authenticated/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/_authenticated/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
+  '/_authenticated/admin/paginas/': typeof AuthenticatedAdminPaginasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -504,6 +533,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/p/$slug'
     | '/blog/'
     | '/admin/auditoria'
     | '/admin/bairros'
@@ -527,6 +557,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis/novo'
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
+    | '/admin/paginas/$id'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -536,6 +567,7 @@ export interface FileRouteTypes {
     | '/admin/formularios/'
     | '/admin/imoveis/'
     | '/admin/lancamentos/'
+    | '/admin/paginas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -553,6 +585,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/p/$slug'
     | '/blog'
     | '/admin/auditoria'
     | '/admin/bairros'
@@ -575,6 +608,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis/novo'
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
+    | '/admin/paginas/$id'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -584,6 +618,7 @@ export interface FileRouteTypes {
     | '/admin/formularios'
     | '/admin/imoveis'
     | '/admin/lancamentos'
+    | '/admin/paginas'
   id:
     | '__root__'
     | '/'
@@ -604,6 +639,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/p/$slug'
     | '/blog/'
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/bairros'
@@ -627,6 +663,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/imoveis/novo'
     | '/_authenticated/admin/lancamentos/$id'
     | '/_authenticated/admin/lancamentos/novo'
+    | '/_authenticated/admin/paginas/$id'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -636,6 +673,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/formularios/'
     | '/_authenticated/admin/imoveis/'
     | '/_authenticated/admin/lancamentos/'
+    | '/_authenticated/admin/paginas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -654,6 +692,7 @@ export interface RootRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
+  PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -755,6 +794,13 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lancamentos/$slug': {
@@ -904,6 +950,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/paginas/': {
+      id: '/_authenticated/admin/paginas/'
+      path: '/paginas'
+      fullPath: '/admin/paginas/'
+      preLoaderRoute: typeof AuthenticatedAdminPaginasIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/lancamentos/': {
       id: '/_authenticated/admin/lancamentos/'
       path: '/lancamentos'
@@ -966,6 +1019,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/lovable/email/auth/preview'
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/paginas/$id': {
+      id: '/_authenticated/admin/paginas/$id'
+      path: '/paginas/$id'
+      fullPath: '/admin/paginas/$id'
+      preLoaderRoute: typeof AuthenticatedAdminPaginasIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/lancamentos/novo': {
       id: '/_authenticated/admin/lancamentos/novo'
@@ -1055,9 +1115,11 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminImoveisNovoRoute: typeof AuthenticatedAdminImoveisNovoRoute
   AuthenticatedAdminLancamentosIdRoute: typeof AuthenticatedAdminLancamentosIdRoute
   AuthenticatedAdminLancamentosNovoRoute: typeof AuthenticatedAdminLancamentosNovoRoute
+  AuthenticatedAdminPaginasIdRoute: typeof AuthenticatedAdminPaginasIdRoute
   AuthenticatedAdminFormulariosIndexRoute: typeof AuthenticatedAdminFormulariosIndexRoute
   AuthenticatedAdminImoveisIndexRoute: typeof AuthenticatedAdminImoveisIndexRoute
   AuthenticatedAdminLancamentosIndexRoute: typeof AuthenticatedAdminLancamentosIndexRoute
+  AuthenticatedAdminPaginasIndexRoute: typeof AuthenticatedAdminPaginasIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -1079,11 +1141,13 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminLancamentosIdRoute: AuthenticatedAdminLancamentosIdRoute,
   AuthenticatedAdminLancamentosNovoRoute:
     AuthenticatedAdminLancamentosNovoRoute,
+  AuthenticatedAdminPaginasIdRoute: AuthenticatedAdminPaginasIdRoute,
   AuthenticatedAdminFormulariosIndexRoute:
     AuthenticatedAdminFormulariosIndexRoute,
   AuthenticatedAdminImoveisIndexRoute: AuthenticatedAdminImoveisIndexRoute,
   AuthenticatedAdminLancamentosIndexRoute:
     AuthenticatedAdminLancamentosIndexRoute,
+  AuthenticatedAdminPaginasIndexRoute: AuthenticatedAdminPaginasIndexRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
@@ -1142,6 +1206,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ImovelSlugRoute: ImovelSlugRoute,
+  PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,

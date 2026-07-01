@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History, Crown, Image as ImageIcon, FileText } from "lucide-react";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History, Crown, Image as ImageIcon, FileText, FileCode } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/midias", label: "Mídias", icon: ImageIcon, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/formularios", label: "Formulários", icon: FileText, hideFor: ["secretaria", "corretor", "captador"] },
+  { to: "/admin/paginas", label: "Páginas", icon: FileCode, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"] },
 ];
 
