@@ -6,13 +6,14 @@ import {
   restaurarVersao,
   publicarRascunho,
   descartarRascunho,
+  publicarTodosRascunhos,
   type SiteVersionRow,
 } from "@/lib/api/site-versions.functions";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { History, Undo2, Rocket, Trash2, RefreshCw } from "lucide-react";
+import { History, Undo2, Rocket, Trash2, RefreshCw, Eye } from "lucide-react";
 
 const KEYS: { value: string; label: string }[] = [
   { value: "branding", label: "Logo & Marca" },
