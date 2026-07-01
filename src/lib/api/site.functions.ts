@@ -186,7 +186,18 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      key: z.enum(["branding", "home_hero", "home_secoes", "contato", "pagina_lancamentos"]),
+      key: z.enum([
+        "branding",
+        "branding_v2",
+        "empresa",
+        "footer",
+        "seo_global",
+        "home_hero",
+        "home_secoes",
+        "contato",
+        "pagina_lancamentos",
+      ]),
+
       value: z.record(z.string(), z.unknown()),
     }),
   )
