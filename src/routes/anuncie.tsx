@@ -29,6 +29,8 @@ export const Route = createFileRoute("/anuncie")({
 });
 
 function Page() {
+  const { data: site } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings(), staleTime: 5 * 60 * 1000 });
+  const pag = site?.pagina_anuncie ?? {};
   const [telefone, setTelefone] = useState("");
   const [consent, setConsent] = useState(false);
 
