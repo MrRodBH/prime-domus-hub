@@ -198,7 +198,7 @@ function AdminLeads() {
 
   const byStatus = useMemo(() => {
     const map: Record<Status, Lead[]> = {
-      novo: [], conversando: [], visita: [], proposta: [], ganho: [], perdido: [],
+      novo: [], conversando: [], visita: [], proposta: [], ganho: [], perdido: [], descartado: [],
     };
     for (const l of filteredData) {
       const s = (COLUMNS.some((c) => c.id === l.status) ? l.status : "novo") as Status;
