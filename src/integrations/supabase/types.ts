@@ -1496,6 +1496,101 @@ export type Database = {
           },
         ]
       }
+      media_library: {
+        Row: {
+          arquivo: string
+          arquivo_medium: string | null
+          arquivo_thumbnail: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          height: number | null
+          id: string
+          mime_type: string
+          nome: string
+          tags: string[]
+          tamanho: number
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          arquivo: string
+          arquivo_medium?: string | null
+          arquivo_thumbnail?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          height?: number | null
+          id?: string
+          mime_type: string
+          nome: string
+          tags?: string[]
+          tamanho?: number
+          tenant_id?: string
+          tipo: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          arquivo?: string
+          arquivo_medium?: string | null
+          arquivo_thumbnail?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          height?: number | null
+          id?: string
+          mime_type?: string
+          nome?: string
+          tags?: string[]
+          tamanho?: number
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: []
+      }
+      media_usage: {
+        Row: {
+          campo: string | null
+          created_at: string
+          entidade: string
+          entidade_id: string | null
+          id: string
+          media_id: string
+          tenant_id: string
+        }
+        Insert: {
+          campo?: string | null
+          created_at?: string
+          entidade: string
+          entidade_id?: string | null
+          id?: string
+          media_id: string
+          tenant_id?: string
+        }
+        Update: {
+          campo?: string | null
+          created_at?: string
+          entidade?: string
+          entidade_id?: string | null
+          id?: string
+          media_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_usage_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media_library"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rbac_modules: {
         Row: {
           codigo: string
