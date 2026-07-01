@@ -243,9 +243,6 @@ function AdminLeads() {
   function setTab(t: "kanban" | "descartados") {
     navigate({ to: "/admin/leads", search: { ...search, tab: t } });
   }
-  const corretoresLista = (corretores ?? []) as CorretorLite[];
-  const selectedLead = filteredData.find((l) => l.id === selectedId) ?? null;
-  const historicoLead = filteredData.find((l) => l.id === historicoId) ?? null;
 
   return (
     <div className="space-y-4">
