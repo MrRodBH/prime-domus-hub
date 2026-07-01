@@ -132,13 +132,25 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   if (error) throw new Error(error.message);
   const result: SiteSettings = {
     branding: {},
+    branding_v2: {},
+    empresa: {},
+    footer: {},
+    seo_global: {},
     home_hero: {},
     home_secoes: { ...DEFAULT_SECOES },
     contato: {},
     pagina_lancamentos: { ...DEFAULT_LANCAMENTOS },
   };
   for (const row of data ?? []) {
-    if (row.key === "branding" || row.key === "home_hero" || row.key === "contato") {
+    if (
+      row.key === "branding" ||
+      row.key === "branding_v2" ||
+      row.key === "empresa" ||
+      row.key === "footer" ||
+      row.key === "seo_global" ||
+      row.key === "home_hero" ||
+      row.key === "contato"
+    ) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (result as any)[row.key] = (row.value as Record<string, unknown>) ?? {};
     } else if (row.key === "home_secoes") {
@@ -153,6 +165,12 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   if (result.branding.favicon_path) {
     result.branding.favicon_url = await signedUrl("site", result.branding.favicon_path);
   }
+  if (result.branding_v2.logo_mobile_path) {
+    result.branding_v2.logo_mobile_url = await signedUrl("site", result.branding_v2.logo_mobile_path);
+  }
+  if (result.seo_global.default_og_image_path) {
+    result.seo_global.default_og_image_url = await signedUrl("site", result.seo_global.default_og_image_path);
+  }
   if (result.home_hero.image_path) {
     result.home_hero.image_url = await signedUrl("site", result.home_hero.image_path);
   }
@@ -162,6 +180,7 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
 
   return result;
 });
+
 
 export const atualizarSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
