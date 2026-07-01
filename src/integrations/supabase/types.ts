@@ -1627,6 +1627,50 @@ export type Database = {
           },
         ]
       }
+      site_settings_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          key: string
+          notes: string | null
+          published_at: string | null
+          status: string
+          tenant_id: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key: string
+          notes?: string | null
+          published_at?: string | null
+          status: string
+          tenant_id?: string
+          value: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key?: string
+          notes?: string | null
+          published_at?: string | null
+          status?: string
+          tenant_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppressed_emails: {
         Row: {
           created_at: string

@@ -335,5 +335,23 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
       .from("site_settings")
       .upsert({ key: data.key, value: data.value as never, updated_by: userId });
     if (error) throw new Error(error.message);
+    // snapshot histórico (published) — best-effort, não bloqueia a operação
+    try {
+      await supabase.from("site_settings_versions").insert({
+        key: data.key,
+        value: data.value as never,
+        status: "published",
+        created_by: userId,
+        published_at: new Date().toISOString(),
+      });
+      // consome o rascunho pendente (se houver) desta chave
+      await supabase
+        .from("site_settings_versions")
+        .delete()
+        .eq("key", data.key)
+        .eq("status", "draft");
+    } catch (e) {
+      console.warn("[site-versions] snapshot skipped:", (e as Error).message);
+    }
     return { ok: true };
   });
