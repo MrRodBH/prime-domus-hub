@@ -14,6 +14,7 @@ import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
 import { CmsPreviewOverlay } from "../components/site/CmsPreviewOverlay";
+import { CampaignRenderer } from "../components/site/CampaignRenderer";
 import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
@@ -258,6 +259,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <WhatsAppFab />
+      <CampaignRenderer />
       <Toaster />
     </QueryClientProvider>
   );
