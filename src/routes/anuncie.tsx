@@ -67,10 +67,10 @@ function Page() {
       email: email || undefined,
       telefone: tel || undefined,
       mensagem,
+      ...attr,
       origem: "Anúncio (Avaliação)",
       consent_lgpd: true,
       notificar_gestores: true,
-      ...attr,
     });
 
     // Meta events (não bloqueia)
