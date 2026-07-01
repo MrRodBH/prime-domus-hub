@@ -2392,6 +2392,14 @@ export type Database = {
         Args: { _module_codigo: string; _user_id: string }
         Returns: boolean
       }
+      has_cms_permission: {
+        Args: {
+          _action: Database["public"]["Enums"]["rbac_action"]
+          _module_codigo: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_permission: {
         Args: {
           _action: Database["public"]["Enums"]["rbac_action"]
