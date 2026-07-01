@@ -48,6 +48,7 @@ import { Route as AuthenticatedAdminPaginasIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminLancamentosIndexRouteImport } from './routes/_authenticated.admin.lancamentos.index'
 import { Route as AuthenticatedAdminImoveisIndexRouteImport } from './routes/_authenticated.admin.imoveis.index'
 import { Route as AuthenticatedAdminFormulariosIndexRouteImport } from './routes/_authenticated.admin.formularios.index'
+import { Route as AuthenticatedAdminCampanhasIndexRouteImport } from './routes/_authenticated.admin.campanhas.index'
 import { Route as AuthenticatedAdminBlogIndexRouteImport } from './routes/_authenticated.admin.blog.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -269,6 +270,12 @@ const AuthenticatedAdminFormulariosIndexRoute =
     path: '/formularios/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCampanhasIndexRoute =
+  AuthenticatedAdminCampanhasIndexRouteImport.update({
+    id: '/campanhas/',
+    path: '/campanhas/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBlogIndexRoute =
   AuthenticatedAdminBlogIndexRouteImport.update({
     id: '/',
@@ -401,6 +408,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/blog/': typeof AuthenticatedAdminBlogIndexRoute
+  '/admin/campanhas/': typeof AuthenticatedAdminCampanhasIndexRoute
   '/admin/formularios/': typeof AuthenticatedAdminFormulariosIndexRoute
   '/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
@@ -452,6 +460,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/admin/blog': typeof AuthenticatedAdminBlogIndexRoute
+  '/admin/campanhas': typeof AuthenticatedAdminCampanhasIndexRoute
   '/admin/formularios': typeof AuthenticatedAdminFormulariosIndexRoute
   '/admin/imoveis': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos': typeof AuthenticatedAdminLancamentosIndexRoute
@@ -508,6 +517,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/admin/blog/': typeof AuthenticatedAdminBlogIndexRoute
+  '/_authenticated/admin/campanhas/': typeof AuthenticatedAdminCampanhasIndexRoute
   '/_authenticated/admin/formularios/': typeof AuthenticatedAdminFormulariosIndexRoute
   '/_authenticated/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/_authenticated/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/blog/'
+    | '/admin/campanhas/'
     | '/admin/formularios/'
     | '/admin/imoveis/'
     | '/admin/lancamentos/'
@@ -615,6 +626,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/admin/blog'
+    | '/admin/campanhas'
     | '/admin/formularios'
     | '/admin/imoveis'
     | '/admin/lancamentos'
@@ -670,6 +682,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/_authenticated/admin/blog/'
+    | '/_authenticated/admin/campanhas/'
     | '/_authenticated/admin/formularios/'
     | '/_authenticated/admin/imoveis/'
     | '/_authenticated/admin/lancamentos/'
@@ -978,6 +991,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFormulariosIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/campanhas/': {
+      id: '/_authenticated/admin/campanhas/'
+      path: '/campanhas'
+      fullPath: '/admin/campanhas/'
+      preLoaderRoute: typeof AuthenticatedAdminCampanhasIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/blog/': {
       id: '/_authenticated/admin/blog/'
       path: '/'
@@ -1116,6 +1136,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminLancamentosIdRoute: typeof AuthenticatedAdminLancamentosIdRoute
   AuthenticatedAdminLancamentosNovoRoute: typeof AuthenticatedAdminLancamentosNovoRoute
   AuthenticatedAdminPaginasIdRoute: typeof AuthenticatedAdminPaginasIdRoute
+  AuthenticatedAdminCampanhasIndexRoute: typeof AuthenticatedAdminCampanhasIndexRoute
   AuthenticatedAdminFormulariosIndexRoute: typeof AuthenticatedAdminFormulariosIndexRoute
   AuthenticatedAdminImoveisIndexRoute: typeof AuthenticatedAdminImoveisIndexRoute
   AuthenticatedAdminLancamentosIndexRoute: typeof AuthenticatedAdminLancamentosIndexRoute
@@ -1142,6 +1163,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminLancamentosNovoRoute:
     AuthenticatedAdminLancamentosNovoRoute,
   AuthenticatedAdminPaginasIdRoute: AuthenticatedAdminPaginasIdRoute,
+  AuthenticatedAdminCampanhasIndexRoute: AuthenticatedAdminCampanhasIndexRoute,
   AuthenticatedAdminFormulariosIndexRoute:
     AuthenticatedAdminFormulariosIndexRoute,
   AuthenticatedAdminImoveisIndexRoute: AuthenticatedAdminImoveisIndexRoute,
