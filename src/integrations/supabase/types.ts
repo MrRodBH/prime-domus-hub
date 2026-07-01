@@ -1852,6 +1852,66 @@ export type Database = {
         }
         Relationships: []
       }
+      website_menu_items: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          location: string
+          ordem: number
+          parent_id: string | null
+          target: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          url: string
+          visivel: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          location?: string
+          ordem?: number
+          parent_id?: string | null
+          target?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          url: string
+          visivel?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          location?: string
+          ordem?: number
+          parent_id?: string | null
+          target?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          url?: string
+          visivel?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "website_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_menu_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
