@@ -223,7 +223,10 @@ function AdminSite() {
           <TabsTrigger value="lancamentos">Página Lançamentos</TabsTrigger>
           <TabsTrigger value="contato">Contato (global)</TabsTrigger>
           <TabsTrigger value="meta">Integrações Meta</TabsTrigger>
+          <TabsTrigger value="versoes">Versões</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="versoes"><CmsVersoesTab /></TabsContent>
 
         <TabsContent value="empresa"><CmsEmpresaTab data={data} /></TabsContent>
         <TabsContent value="branding_v2"><CmsBrandingDinamicoTab data={data} /></TabsContent>
