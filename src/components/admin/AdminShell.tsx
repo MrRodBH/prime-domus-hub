@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History, Crown, Image as ImageIcon, FileText, FileCode, Megaphone, FileClock } from "lucide-react";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History, Crown, Image as ImageIcon, FileText, FileCode, Megaphone, FileClock, Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/campanhas", label: "Banners & Popups", icon: Megaphone, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.campanhas" },
   { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.configuracoes" },
   { to: "/admin/cms-auditoria", label: "Auditoria CMS", icon: FileClock, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.versoes" },
+  { to: "/admin/cms-transferencia", label: "Exportar / Importar", icon: Archive, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
 ];
 
 export function AdminShell() {

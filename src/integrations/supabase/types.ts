@@ -475,6 +475,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cms_import_snapshots: {
+        Row: {
+          contagem: Json
+          created_at: string
+          created_by: string | null
+          escopo: Json
+          id: string
+          modo: string
+          motivo: string
+          payload: Json
+          restored_at: string | null
+          restored_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          contagem?: Json
+          created_at?: string
+          created_by?: string | null
+          escopo?: Json
+          id?: string
+          modo: string
+          motivo: string
+          payload: Json
+          restored_at?: string | null
+          restored_by?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          contagem?: Json
+          created_at?: string
+          created_by?: string | null
+          escopo?: Json
+          id?: string
+          modo?: string
+          motivo?: string
+          payload?: Json
+          restored_at?: string | null
+          restored_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       cms_pages: {
         Row: {
           blocks: Json
