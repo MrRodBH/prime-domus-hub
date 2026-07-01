@@ -403,14 +403,14 @@ function Home() {
       <section className="py-24 md:py-32">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="eyebrow">Depoimentos</span>
+            <span className="eyebrow">{site?.home_depoimentos?.eyebrow ?? "Depoimentos"}</span>
             <h2 className="font-display text-4xl md:text-5xl mt-4 text-balance">
-              Quem confiou, conta a história.
+              {site?.home_depoimentos?.titulo ?? "Quem confiou, conta a história."}
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-10">
-            {testimonials.map((t) => (
-              <figure key={t.name} className="bg-card border border-foreground/5 p-10 rounded shadow-soft">
+            {(site?.home_depoimentos?.itens ?? testimonials).map((t, i) => (
+              <figure key={i} className="bg-card border border-foreground/5 p-10 rounded shadow-soft">
                 <Quote className="size-7 text-gold mb-6" strokeWidth={1.2} />
                 <blockquote className="font-display text-2xl leading-snug text-pretty mb-8">
                   "{t.quote}"
