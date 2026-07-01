@@ -1,56 +1,140 @@
 
-# Plano de homologação RM Prime — 12 itens
+# Fase 1 — Fundação Multi-Tenant
 
-Antes de executar, quero alinhar o escopo. São 12 frentes (UI, regras de negócio, auth, banco e novo módulo). Vou agrupar por área e executar em sequência, validando cada item.
+Objetivo: transformar a base single-tenant atual (RM Prime) numa fundação SaaS multi-tenant limpa, com isolamento total de dados via `tenant_id` + RLS + Storage por tenant. Nenhum módulo novo (CMS/CRM/Portais/IA) será tocado nesta fase — apenas a fundação.
 
-## Grupos de trabalho
+Ambiente é dev/homologação, então a estratégia é **recriar limpo** ao invés de migrar preservando dados.
 
-### A. Painel de Leads / CRM (itens 1, 2, 3, 11)
-- **Item 1 — Gráfico Resultados**: corrigir sobreposição título×barras (padding/min-height no container do gráfico) e mudar regra `TOTAL FECHADOS` para contar apenas `status = 'ganho'`. Deixar estrutura preparada para somar valor financeiro futuramente.
-- **Item 2 — Valor do Negócio no card de Lead**: nova linha abaixo de "Imóvel de Interesse" exibindo `imoveis.preco` formatado em BRL; "Não informado" quando nulo/sem imóvel.
-- **Item 3 — Botões do card de Lead**: rodapé com `flex flex-wrap` controlado (sem wrap no desktop, wrap suave no mobile), gap consistente, sem o "Histórico" cair em linha separada.
-- **Item 11 — Novo Lead manual**: botão "Novo Lead" em CRM/Leads. Admin escolhe corretor; corretor cria apenas para si. Campos: nome, e-mail, telefone (máscara BR), origem (default "Cadastro Manual"), imóvel de interesse (select), observações. Server function com `requireSupabaseAuth` + checagem de role.
+---
 
-### B. Autenticação (itens 4, 5, 6)
-- **Item 4 — Login após reset**: na `/reset-password`, após `updateUser({ password })` chamar `getSession()`/`refreshSession()` e redirecionar para `/admin` (Dashboard) sem novo login. Confirmar listener `onAuthStateChange` no root.
-- **Item 5 — Validação de senha**: mensagens permanentes em PT-BR no formulário (helper text + erro inline). Regra nova: mín. 6 chars, letras + números, sem exigir maiúsculas/especiais. Desativar `password_hibp_enabled` se estiver ligado e conflitar.
-- **Item 6 — Máscara de telefone no cadastro de usuário**: aplicar `maskPhoneBR` (já existe em `src/lib/phone-br.ts`) no form de cadastro/edição de corretores/usuários. Validar apenas celular (11 dígitos começando com 9 no 3º dígito). Validação só client-side.
+## 1. Novas estruturas
 
-### C. Atribuição de Leads (item 7)
-Investigar por que leads novos não estão entrando com `corretor_id` correto. A correção anterior fazia lookup do `corretor_id` em `imoveis` no `enviarLead`, mas o filtro do Kanban provavelmente usa `assigned_to` (auth user_id), não `corretor_id` (FK em `corretores`). Plano:
-1. Confirmar schema (`leads.corretor_id` vs `leads.assigned_to`, e `corretores.user_id`).
-2. Em `enviarLead`, após obter `corretor_id`, buscar `corretores.user_id` e preencher também `assigned_to` (a RLS atual exige `assigned_to IS NULL`; ajustar política para permitir o backend público setar `assigned_to` derivado do imóvel — via server function autenticada com service role, mantendo segurança).
-3. Backfill: rodar UPDATE para preencher `assigned_to` dos leads existentes do Rodolfo com base no `corretor_id`.
-4. Validar Kanban + filtro Admin.
+### 1.1 Tabela `tenants`
+Campos de domínio: `slug` (único, ex: `rm-prime`), `nome`, `status` (`ativo|suspenso|cancelado|trial`), `dominio_principal` (nullable), `plano_codigo` (nullable, para Fase 3), `owner_user_id` (nullable), `metadata jsonb`.
 
-### D. Página pública (item 9)
-- Prefixar "CRECI MG " antes do número do CRECI no banner Consultor Responsável em `imovel.$slug.tsx` e `lancamentos.$slug.tsx`.
+RLS: leitura restrita a membros do tenant + super_admin; escrita apenas super_admin.
 
-### E. Lançamentos (itens 8, 10)
-- **Item 8**: substituir amenity "Quadra" por "Churrasqueira" via migration de UPDATE (mantém id e relações). Confirmar que não existe "Churrasqueira" duplicado.
-- **Item 10**: verificar estado atual — `PdfsLancamento`, `UnidadesLancamento`, `CondicoesPagamento`, `InstagramPostManager` parecem existir. Vou auditar cada um e completar o que faltar (provavelmente já 90% pronto; identificar o gap real após inspeção). **Não vou recriar do zero o que já funciona.**
+### 1.2 Tabela `tenant_members`
+Vincula `user_id` ↔ `tenant_id` (many-to-many, um usuário pode pertencer a mais de um tenant no futuro). Campos: `tenant_id`, `user_id`, `is_owner boolean`, `joined_at`. PK composta.
 
-### F. Hierarquia de perfis (item 12)
-- Migration na enum `app_role` (já tem `admin`, `corretor`, ...). Adicionar `secretaria` se faltar. Trigger de validação em `user_roles` que impeça combinações inválidas:
-  - `secretaria` não coexiste com `admin`/`corretor`.
-  - `corretor` não coexiste com `secretaria`.
-  - `admin` pode coexistir com `corretor` (admin atua como ambos).
-- Atualizar `has_role` continua igual; criar helper `is_secretaria(uid)`.
-- Telas: bloquear menu Leads/CRM/Kanban para `secretaria`; permitir visualizar Imóveis e Usuários.
-- UI de gestão de usuários: trocar checkboxes livres por radio "Admin / Corretor / Secretaria" + checkbox extra "também é Corretor" só quando Admin.
+### 1.3 Enum `app_role` recebe novo valor `super_admin`
+`super_admin` = operador da plataforma SaaS (nós). Não pertence a nenhum tenant, enxerga tudo.
 
-## Ordem de execução proposta
-1. Grupo C (atribuição de leads) — bloqueador de negócio
-2. Grupo A (CRM/Leads UI + novo lead manual)
-3. Grupo B (auth)
-4. Grupo D (CRECI público) — trivial
-5. Grupo E (lançamentos) — auditar primeiro
-6. Grupo F (perfis) — mais invasivo, por último
+### 1.4 Funções auxiliares (SECURITY DEFINER)
+- `get_current_tenant_id()` → resolve o tenant do usuário atual. Estratégia:
+  1. Se `super_admin` e header/JWT claim `x-tenant-id` presente → usa esse (impersonação — implementado na Fase 2, mas função já suporta).
+  2. Caso contrário, retorna o único `tenant_id` de `tenant_members` para `auth.uid()`.
+  3. Se usuário pertence a múltiplos, retorna o marcado como default (coluna `is_default` em `tenant_members`) ou o primeiro.
+- `is_super_admin()` → wrapper sobre `has_role(auth.uid(), 'super_admin')`.
+- `user_belongs_to_tenant(_tenant uuid)` → boolean.
 
-## Perguntas antes de começar
-1. **Item 7 — assigned_to**: confirmar que o filtro do Kanban filtra por `leads.assigned_to = auth.uid()` do corretor. Se sim, ok preencher `assigned_to` automaticamente no envio público (via service role no backend). Confirma?
-2. **Item 11 — Imóvel de Interesse no Lead manual**: pode ser select buscável só entre imóveis publicados? Ou também lançamentos?
-3. **Item 12 — Migração de usuários atuais**: hoje algum usuário tem combinação `admin+secretaria` ou `corretor+secretaria`? Se sim, qual prevalece na migração? (sugestão: promover para `corretor` se tiver corretor, senão manter admin; remover secretaria nesses casos)
-4. **Item 10 — Gerador de Post Instagram**: o `InstagramPostManager` atual já gera post para imóveis. Você quer **a mesma experiência** dentro do form de Lançamento (botão "Gerar post" que cria post Instagram usando dados do empreendimento) ou algo diferente?
+---
 
-Confirma o plano e me responde as 4 perguntas? Aí executo tudo de uma vez, item por item, com validação ao final.
+## 2. Refatoração das tabelas existentes
+
+**Todas as tabelas de domínio recebem `tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE`** e todas as RLS são reescritas para filtrar por `tenant_id = get_current_tenant_id() OR is_super_admin()`.
+
+Tabelas afetadas (todas as `public.*` de negócio):
+- `corretores`, `user_roles`, `user_profiles`, `rbac_profiles`, `rbac_permissions`, `rbac_modules` (modules ficam globais, permissions/profiles por tenant), `teams`, `team_members`
+- `imoveis`, `imovel_imagens`, `cidades`, `bairros`
+- `launch_projects`, `launch_units`, `launch_amenities`, `launch_project_amenities`, `launch_project_imagens`, `launch_payment_conditions`, `launch_pdfs`, `launch_statuses`
+- `leads`, `lead_atividades`, `lead_descartes`, `lead_origens`
+- `blog_posts`, `blog_categorias`
+- `instagram_posts`
+- `site_settings` (vira 1 linha por tenant)
+- `audit_log`, `email_send_log`, `email_send_state`, `email_unsubscribe_tokens`, `suppressed_emails`
+
+Tabelas **globais** (sem `tenant_id`):
+- `tenants`, `tenant_members`
+- `rbac_modules` (catálogo de módulos do sistema é global)
+- Filas `pgmq.*`, `cron.*`, `email_queue_*`
+
+RBAC: `rbac_profiles` e `rbac_permissions` passam a ter `tenant_id` — cada tenant define seus próprios perfis. Os perfis-sistema (`admin`, `corretor`, `secretaria`, `gerente`, `captador`) serão criados **por tenant** via seed automático ao criar o tenant.
+
+---
+
+## 3. Storage multi-tenant
+
+Buckets atuais: `imoveis`, `site`, `lancamentos` (todos privados).
+
+Estratégia: manter os 3 buckets, mudar a **convenção de path** para prefixo `{tenant_id}/...`:
+- `imoveis/{tenant_id}/{imovel_id}/{arquivo}`
+- `site/{tenant_id}/{arquivo}`
+- `lancamentos/{tenant_id}/{launch_id}/{arquivo}`
+
+Policies de Storage: `(storage.foldername(name))[1]::uuid = get_current_tenant_id() OR is_super_admin()`.
+
+Arquivos existentes serão descartados (ambiente dev).
+
+---
+
+## 4. Seed inicial — RM Prime como "tenant 1"
+
+Migração final:
+1. Cria `tenants` com `slug='rm-prime'`, `nome='RM Prime Imóveis'`, `status='ativo'`, `dominio_principal='rmprimeimoveis.com.br'`.
+2. Cria `tenant_members` para todos os usuários existentes em `auth.users` apontando para esse tenant, `is_owner=true` para `rodolfovaz882@gmail.com`.
+3. Concede `super_admin` a `rodolfovaz882@gmail.com` (além de `admin` do tenant).
+4. Copia catálogo global de `rbac_modules` como está.
+5. Cria os 5 perfis-sistema do RM Prime em `rbac_profiles` com as permissões atuais.
+
+Como não há dados reais a preservar, **todas as tabelas de negócio são truncadas** antes da adição do `tenant_id NOT NULL`. Isso evita backfill frágil.
+
+---
+
+## 5. Camada de código (`src/lib/api/*.functions.ts`)
+
+- Nova função `getCurrentTenantId()` em `src/lib/tenant.server.ts` que chama a RPC `get_current_tenant_id()` via `context.supabase`.
+- Middleware `requireTenant` que compõe com `requireSupabaseAuth` e injeta `tenantId` no contexto.
+- Todas as server functions de negócio passam a usar `requireTenant`. Inserts recebem `tenant_id: context.tenantId` automaticamente.
+- Rotas públicas SSR (`/`, `/imoveis`, `/imovel/$slug`, `/lancamentos`, `/blog`, etc.) resolvem o tenant por **domínio** (Host header):
+  - Novo helper `resolveTenantByHost(host)` — consulta `tenants.dominio_principal` e `domains` (tabela criada na Fase 5, por enquanto só `tenants.dominio_principal`).
+  - Fallback: `rm-prime` se host = `*.lovable.app` ou localhost.
+- Cliente server publishable passa `x-tenant-id` como header no request para que RLS público funcione — implementado via helper `publicSupabaseForTenant(tenantId)`.
+
+---
+
+## 6. Rotas admin
+
+Sem mudança visível nesta fase — o usuário admin do RM Prime continua vendo apenas os dados do RM Prime porque `get_current_tenant_id()` resolve para ele automaticamente. Super Admin UI e switcher entram só na Fase 2.
+
+---
+
+## 7. Ordem de execução (migrações separadas)
+
+Todas via `supabase--migration`, aprovadas uma por uma:
+
+1. **M1** — Criar `tenants`, `tenant_members`, enum `super_admin`, funções `get_current_tenant_id`, `is_super_admin`, `user_belongs_to_tenant`. GRANTs. Inserir tenant `rm-prime` e vincular usuários existentes. Conceder `super_admin` ao owner.
+2. **M2** — Truncar tabelas de negócio, adicionar `tenant_id NOT NULL` em todas, dropar policies antigas, criar policies novas por tenant, índices em `(tenant_id, ...)`.
+3. **M3** — Storage: dropar policies antigas dos buckets, criar policies novas com prefixo `{tenant_id}/`.
+4. **M4** — Seed dos 5 perfis-sistema e permissões para o tenant `rm-prime`.
+
+## 8. Refactor de código (após M1–M4 aprovadas)
+
+- Criar `src/lib/tenant.server.ts` (`getCurrentTenantId`, `requireTenant` middleware, `resolveTenantByHost`, `publicSupabaseForTenant`).
+- Adicionar `tenant_id` em todos os `insert(...)` e filtros implícitos (RLS já filtra, mas mantemos código explícito onde crítico).
+- Ajustar upload paths de Storage nos formulários e server fns para incluir `{tenant_id}/`.
+- Ajustar SSR loaders públicos para receber o `Host` header e resolver tenant.
+- Nenhuma UI nova.
+
+## 9. Fora do escopo desta Fase
+
+- Super Admin UI, tenant switcher, impersonação → Fase 2
+- Planos, limites, feature flags → Fase 3
+- Onboarding automático, webhook Hotmart → Fase 4
+- Tabela `domains`, validação DNS → Fase 5
+- Auditoria expandida, LGPD, observabilidade → Fase 6
+
+---
+
+## Riscos e mitigações
+
+- **Reset destrutivo**: confirmado pelo usuário (ambiente dev). Cada migração `TRUNCATE` será executada apenas após aprovação explícita.
+- **RLS recursiva**: todas as checagens usam funções `SECURITY DEFINER` (`get_current_tenant_id`, `is_super_admin`), evitando loops.
+- **SSR sem tenant**: `resolveTenantByHost` sempre retorna um tenant (fallback `rm-prime` em preview/dev), garantindo que build/prerender não quebre.
+- **Bearer sem tenant claim**: `get_current_tenant_id()` deriva do `tenant_members` do `auth.uid()`, não depende de claim JWT — funciona no fluxo atual sem mudar Auth.
+
+---
+
+## Próximo passo
+
+Aprovar este plano. Em seguida disparo a **Migração M1** (tenants + funções + seed RM Prime) e aguardo aprovação antes de M2.
