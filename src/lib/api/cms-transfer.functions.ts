@@ -49,7 +49,8 @@ export const exportarCms = createServerFn({ method: "POST" })
     const wanted = new Set<Entity>((data?.entities ?? ENTITIES) as Entity[]);
     const tenantId = await currentTenantId(context);
 
-    const bundle: Record<string, unknown> = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bundle: Record<string, any> = {
       version: BUNDLE_VERSION,
       exported_at: new Date().toISOString(),
       tenant_id: tenantId,
