@@ -165,8 +165,10 @@ export const salvarCampos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw) => fieldsPayloadSchema.parse(raw))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.formularios", "editar");
     const { supabase } = context;
-    // estratégia: apagar todos os campos do form e reinserir (simples e atômico o suficiente pro admin)
+    const { data: before } = await supabase.from("cms_form_fields").select("*").eq("form_id", data.form_id);
     const { error: e1 } = await supabase.from("cms_form_fields").delete().eq("form_id", data.form_id);
     if (e1) throw new Error(e1.message);
     if (data.fields.length) {
@@ -187,6 +189,7 @@ export const salvarCampos = createServerFn({ method: "POST" })
       const { error: e2 } = await supabase.from("cms_form_fields").insert(rows);
       if (e2) throw new Error(e2.message);
     }
+    await logCmsAudit(context, "cms_form_fields", "cms.formulario.campos.editar", data.form_id, before, data.fields);
     return { ok: true };
   });
 
