@@ -32,6 +32,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/paginas", label: "Páginas", icon: FileCode, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.paginas" },
   { to: "/admin/campanhas", label: "Banners & Popups", icon: Megaphone, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.campanhas" },
   { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.configuracoes" },
+  { to: "/admin/cms-auditoria", label: "Auditoria CMS", icon: FileClock, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.versoes" },
 ];
 
 export function AdminShell() {
