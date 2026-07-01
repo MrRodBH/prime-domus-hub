@@ -21,9 +21,9 @@ export const Route = createFileRoute("/_authenticated/admin/perfis")({
   component: PerfisPage,
 });
 
-const ACTIONS: RbacAction[] = ["visualizar","criar","editar","excluir","exportar","importar","aprovar","gerenciar"];
+const ACTIONS: RbacAction[] = ["visualizar","criar","editar","excluir","publicar","exportar","importar","aprovar","gerenciar"];
 const ACTION_LABEL: Record<RbacAction,string> = {
-  visualizar:"Ver", criar:"Criar", editar:"Editar", excluir:"Excluir",
+  visualizar:"Ver", criar:"Criar", editar:"Editar", excluir:"Excluir", publicar:"Publicar",
   exportar:"Exportar", importar:"Importar", aprovar:"Aprovar", gerenciar:"Gerenciar",
 };
 const SCOPE_LABEL: Record<RbacScope,string> = { proprio:"Próprios", equipe:"Equipe", global:"Global" };

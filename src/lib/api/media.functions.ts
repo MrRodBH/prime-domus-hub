@@ -73,6 +73,8 @@ export const registrarMidia = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.midias", "criar");
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("media_library")
@@ -93,6 +95,7 @@ export const registrarMidia = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "media_library", "cms.midia.upload", row.id, null, row);
     return row;
   });
 
@@ -109,9 +112,13 @@ export const atualizarMidia = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.midias", "editar");
     const { id, ...patch } = data;
-    const { error } = await context.supabase.from("media_library").update(patch).eq("id", id);
+    const { data: before } = await context.supabase.from("media_library").select("*").eq("id", id).maybeSingle();
+    const { data: row, error } = await context.supabase.from("media_library").update(patch).eq("id", id).select("*").single();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "media_library", "cms.midia.editar", id, before, row);
     return { ok: true };
   });
 
@@ -119,8 +126,9 @@ export const excluirMidia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw) => z.object({ id: z.string().uuid(), force: z.boolean().optional().default(false) }).parse(raw))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.midias", "excluir");
     const { supabase } = context;
-    // Checa uso antes
     const { count: usos } = await supabase
       .from("media_usage")
       .select("id", { count: "exact", head: true })
@@ -130,7 +138,7 @@ export const excluirMidia = createServerFn({ method: "POST" })
     }
     const { data: row, error: e1 } = await supabase
       .from("media_library")
-      .select("arquivo, arquivo_medium, arquivo_thumbnail")
+      .select("*")
       .eq("id", data.id)
       .single();
     if (e1) throw new Error(e1.message);
@@ -139,6 +147,7 @@ export const excluirMidia = createServerFn({ method: "POST" })
     if (paths.length) await supabaseAdmin.storage.from("site").remove(paths);
     const { error: e2 } = await supabase.from("media_library").delete().eq("id", data.id);
     if (e2) throw new Error(e2.message);
+    await logCmsAudit(context, "media_library", "cms.midia.excluir", data.id, row, null);
     return { ok: true };
   });
 

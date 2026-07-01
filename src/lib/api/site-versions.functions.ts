@@ -41,8 +41,10 @@ export const salvarRascunho = createServerFn({ method: "POST" })
     notes: z.string().optional().nullable(),
   }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    const modulo = (data.key === "branding" || data.key === "branding_v2") ? "cms.branding" : "cms.configuracoes";
+    await assertCmsPermission(context, modulo, "editar");
     const { supabase, userId } = context;
-    // remove drafts existentes desta chave e insere o novo
     await supabase
       .from("site_settings_versions")
       .delete()
@@ -60,14 +62,16 @@ export const salvarRascunho = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "site_settings_versions", `cms.rascunho.salvar:${data.key}`, row.id as string, null, data.value);
     return { ok: true, id: row.id };
   });
 
-/** Descarta o rascunho pendente da chave. */
 export const descartarRascunho = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ key: KEY_ENUM }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "editar");
     const { supabase } = context;
     const { error } = await supabase
       .from("site_settings_versions")
@@ -75,6 +79,7 @@ export const descartarRascunho = createServerFn({ method: "POST" })
       .eq("key", data.key)
       .eq("status", "draft");
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "site_settings_versions", `cms.rascunho.descartar:${data.key}`, data.key, null, null);
     return { ok: true };
   });
 
@@ -83,6 +88,8 @@ export const publicarRascunho = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ key: KEY_ENUM }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "publicar");
     const { supabase, userId } = context;
     const { data: draft, error: eDraft } = await supabase
       .from("site_settings_versions")
@@ -107,7 +114,7 @@ export const publicarRascunho = createServerFn({ method: "POST" })
         created_by: userId,
         published_at: new Date().toISOString(),
       });
-    await supabase.from("site_settings_versions").delete().eq("id", draft.id);
+    await logCmsAudit(context, "site_settings_versions", `cms.rascunho.publicar:${data.key}`, draft.id as string, null, draft.value);
     return { ok: true };
   });
 
@@ -116,6 +123,8 @@ export const restaurarVersao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "publicar");
     const { supabase, userId } = context;
     const { data: ver, error } = await supabase
       .from("site_settings_versions")
@@ -139,6 +148,7 @@ export const restaurarVersao = createServerFn({ method: "POST" })
         created_by: userId,
       });
     if (eIns) throw new Error(eIns.message);
+    await logCmsAudit(context, "site_settings_versions", `cms.versao.restaurar:${ver.key}`, data.id, null, ver.value);
     return { ok: true, key: ver.key };
   });
 
@@ -203,6 +213,8 @@ export const obterSiteSettingsPreview = createServerFn({ method: "GET" })
 export const publicarTodosRascunhos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "publicar");
     const { supabase, userId } = context;
     const { data: drafts, error } = await supabase
       .from("site_settings_versions")
@@ -224,5 +236,6 @@ export const publicarTodosRascunhos = createServerFn({ method: "POST" })
       });
       await supabase.from("site_settings_versions").delete().eq("id", d.id);
     }
+    await logCmsAudit(context, "site_settings_versions", "cms.rascunho.publicar-todos", "bulk", null, { count: list.length, keys: list.map((d) => d.key) });
     return { ok: true, count: list.length };
   });

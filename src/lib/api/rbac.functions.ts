@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type RbacAction =
   | "visualizar" | "criar" | "editar" | "excluir"
-  | "exportar" | "importar" | "aprovar" | "gerenciar";
+  | "exportar" | "importar" | "aprovar" | "gerenciar" | "publicar";
 export type RbacScope = "proprio" | "equipe" | "global";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,7 +129,7 @@ export const excluirPerfil = createServerFn({ method: "POST" })
 const permissaoSchema = z.object({
   profile_id: z.string().uuid(),
   module_id: z.string().uuid(),
-  action: z.enum(["visualizar","criar","editar","excluir","exportar","importar","aprovar","gerenciar"]),
+  action: z.enum(["visualizar","criar","editar","excluir","exportar","importar","aprovar","gerenciar","publicar"]),
   scope: z.enum(["proprio","equipe","global"]),
   enabled: z.boolean(),
 });
@@ -156,7 +156,7 @@ export const atualizarEscopo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({
     profile_id: z.string().uuid(), module_id: z.string().uuid(),
-    action: z.enum(["visualizar","criar","editar","excluir","exportar","importar","aprovar","gerenciar"]),
+    action: z.enum(["visualizar","criar","editar","excluir","exportar","importar","aprovar","gerenciar","publicar"]),
     scope: z.enum(["proprio","equipe","global"]),
   }))
   .handler(async ({ context, data }) => {

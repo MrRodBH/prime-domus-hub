@@ -46,9 +46,13 @@ function statusBadge(status: SiteVersionRow["status"]) {
   return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
 }
 
+import { useCmsPermissions } from "@/hooks/use-cms-permissions";
+
 export function CmsVersoesTab() {
   const qc = useQueryClient();
   const [key, setKey] = useState<Key>("home_hero");
+  const cms = useCmsPermissions();
+  const canPublish = cms.can("cms.versoes", "publicar");
 
   const pendentes = useQuery({
     queryKey: ["site-drafts-pendentes"],
@@ -136,7 +140,7 @@ export function CmsVersoesTab() {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {drafts.length > 0 && (
+            {drafts.length > 0 && canPublish && (
               <Button
                 size="sm"
                 onClick={() => publicarTudo.mutate()}
@@ -164,14 +168,16 @@ export function CmsVersoesTab() {
                   </span>
                 </span>
                 <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    onClick={() => publicar.mutate(d.key as Key)}
-                    disabled={publicar.isPending}
-                  >
-                    <Rocket className="size-3.5 mr-1" />
-                    Publicar
-                  </Button>
+                  {canPublish && (
+                    <Button
+                      size="sm"
+                      onClick={() => publicar.mutate(d.key as Key)}
+                      disabled={publicar.isPending}
+                    >
+                      <Rocket className="size-3.5 mr-1" />
+                      Publicar
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -234,8 +240,8 @@ export function CmsVersoesTab() {
                   size="sm"
                   variant="outline"
                   onClick={() => restaurar.mutate(v.id)}
-                  disabled={restaurar.isPending || v.status === "draft"}
-                  title={v.status === "draft" ? "Já é o rascunho atual" : "Restaurar como rascunho"}
+                  disabled={restaurar.isPending || v.status === "draft" || !canPublish}
+                  title={!canPublish ? "Requer permissão de publicar" : v.status === "draft" ? "Já é o rascunho atual" : "Restaurar como rascunho"}
                 >
                   <Undo2 className="size-3.5 mr-1" />
                   Restaurar

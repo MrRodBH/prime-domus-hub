@@ -2392,6 +2392,14 @@ export type Database = {
         Args: { _module_codigo: string; _user_id: string }
         Returns: boolean
       }
+      has_cms_permission: {
+        Args: {
+          _action: Database["public"]["Enums"]["rbac_action"]
+          _module_codigo: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_permission: {
         Args: {
           _action: Database["public"]["Enums"]["rbac_action"]
@@ -2486,6 +2494,7 @@ export type Database = {
         | "importar"
         | "aprovar"
         | "gerenciar"
+        | "publicar"
       rbac_scope: "proprio" | "equipe" | "global"
       user_status: "ativo" | "inativo" | "bloqueado" | "pendente"
     }
@@ -2678,6 +2687,7 @@ export const Constants = {
         "importar",
         "aprovar",
         "gerenciar",
+        "publicar",
       ],
       rbac_scope: ["proprio", "equipe", "global"],
       user_status: ["ativo", "inativo", "bloqueado", "pendente"],
