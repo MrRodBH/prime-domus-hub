@@ -17,20 +17,16 @@ export type CmsModule =
 
 export type CmsAction = "visualizar" | "criar" | "editar" | "excluir" | "publicar";
 
-interface AuthedCtx {
-  supabase: {
-    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-  };
-  userId: string;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AuthedCtx = { supabase: any; userId: string };
 
 /** Lança erro se o usuário autenticado não tiver a permissão CMS solicitada. */
 export async function assertCmsPermission(ctx: AuthedCtx, modulo: CmsModule, action: CmsAction) {
   // Super admin e admin passam sempre
   const isAdmin = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
-  if ((isAdmin.data as boolean | null) === true) return;
-  const isSuper = await ctx.supabase.rpc("is_super_admin", {});
-  if ((isSuper.data as boolean | null) === true) return;
+  if (isAdmin?.data === true) return;
+  const isSuper = await ctx.supabase.rpc("is_super_admin");
+  if (isSuper?.data === true) return;
 
   const { data, error } = await ctx.supabase.rpc("has_cms_permission", {
     _user_id: ctx.userId,
