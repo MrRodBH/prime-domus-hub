@@ -227,7 +227,7 @@ function TransferPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(snapshots.data ?? []).map((s) => {
+              {(snapshots.data ?? []).map((s: { id: string; motivo: string; escopo: unknown; contagem: unknown; created_at: string; restored_at: string | null }) => {
                 const escopo = Array.isArray(s.escopo) ? (s.escopo as string[]) : [];
                 const contagem = (s.contagem ?? {}) as Record<string, number>;
                 return (

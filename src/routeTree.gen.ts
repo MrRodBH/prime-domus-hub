@@ -40,6 +40,7 @@ import { Route as AuthenticatedAdminMidiasRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
 import { Route as AuthenticatedAdminEquipesRouteImport } from './routes/_authenticated.admin.equipes'
 import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
+import { Route as AuthenticatedAdminCmsTransferenciaRouteImport } from './routes/_authenticated.admin.cms-transferencia'
 import { Route as AuthenticatedAdminCmsAuditoriaRouteImport } from './routes/_authenticated.admin.cms-auditoria'
 import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authenticated.admin.cidades'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
@@ -225,6 +226,12 @@ const AuthenticatedAdminCorretoresRoute =
     path: '/corretores',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCmsTransferenciaRoute =
+  AuthenticatedAdminCmsTransferenciaRouteImport.update({
+    id: '/cms-transferencia',
+    path: '/cms-transferencia',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCmsAuditoriaRoute =
   AuthenticatedAdminCmsAuditoriaRouteImport.update({
     id: '/cms-auditoria',
@@ -398,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
+  '/admin/cms-transferencia': typeof AuthenticatedAdminCmsTransferenciaRoute
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
@@ -452,6 +460,7 @@ export interface FileRoutesByTo {
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
+  '/admin/cms-transferencia': typeof AuthenticatedAdminCmsTransferenciaRoute
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
@@ -511,6 +520,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/_authenticated/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/_authenticated/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
+  '/_authenticated/admin/cms-transferencia': typeof AuthenticatedAdminCmsTransferenciaRoute
   '/_authenticated/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/_authenticated/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
@@ -570,6 +580,7 @@ export interface FileRouteTypes {
     | '/admin/blog'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
+    | '/admin/cms-transferencia'
     | '/admin/corretores'
     | '/admin/equipes'
     | '/admin/leads'
@@ -624,6 +635,7 @@ export interface FileRouteTypes {
     | '/admin/bairros'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
+    | '/admin/cms-transferencia'
     | '/admin/corretores'
     | '/admin/equipes'
     | '/admin/leads'
@@ -682,6 +694,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/blog'
     | '/_authenticated/admin/cidades'
     | '/_authenticated/admin/cms-auditoria'
+    | '/_authenticated/admin/cms-transferencia'
     | '/_authenticated/admin/corretores'
     | '/_authenticated/admin/equipes'
     | '/_authenticated/admin/leads'
@@ -961,6 +974,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCorretoresRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/cms-transferencia': {
+      id: '/_authenticated/admin/cms-transferencia'
+      path: '/cms-transferencia'
+      fullPath: '/admin/cms-transferencia'
+      preLoaderRoute: typeof AuthenticatedAdminCmsTransferenciaRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/cms-auditoria': {
       id: '/_authenticated/admin/cms-auditoria'
       path: '/cms-auditoria'
@@ -1163,6 +1183,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRouteWithChildren
   AuthenticatedAdminCidadesRoute: typeof AuthenticatedAdminCidadesRoute
   AuthenticatedAdminCmsAuditoriaRoute: typeof AuthenticatedAdminCmsAuditoriaRoute
+  AuthenticatedAdminCmsTransferenciaRoute: typeof AuthenticatedAdminCmsTransferenciaRoute
   AuthenticatedAdminCorretoresRoute: typeof AuthenticatedAdminCorretoresRoute
   AuthenticatedAdminEquipesRoute: typeof AuthenticatedAdminEquipesRoute
   AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
@@ -1191,6 +1212,8 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRouteWithChildren,
   AuthenticatedAdminCidadesRoute: AuthenticatedAdminCidadesRoute,
   AuthenticatedAdminCmsAuditoriaRoute: AuthenticatedAdminCmsAuditoriaRoute,
+  AuthenticatedAdminCmsTransferenciaRoute:
+    AuthenticatedAdminCmsTransferenciaRoute,
   AuthenticatedAdminCorretoresRoute: AuthenticatedAdminCorretoresRoute,
   AuthenticatedAdminEquipesRoute: AuthenticatedAdminEquipesRoute,
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
