@@ -41,8 +41,10 @@ export const salvarRascunho = createServerFn({ method: "POST" })
     notes: z.string().optional().nullable(),
   }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    const modulo = (data.key === "branding" || data.key === "branding_v2") ? "cms.branding" : "cms.configuracoes";
+    await assertCmsPermission(context, modulo, "editar");
     const { supabase, userId } = context;
-    // remove drafts existentes desta chave e insere o novo
     await supabase
       .from("site_settings_versions")
       .delete()
@@ -60,14 +62,16 @@ export const salvarRascunho = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "site_settings_versions", `cms.rascunho.salvar:${data.key}`, row.id as string, null, data.value);
     return { ok: true, id: row.id };
   });
 
-/** Descarta o rascunho pendente da chave. */
 export const descartarRascunho = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ key: KEY_ENUM }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "editar");
     const { supabase } = context;
     const { error } = await supabase
       .from("site_settings_versions")
@@ -75,6 +79,7 @@ export const descartarRascunho = createServerFn({ method: "POST" })
       .eq("key", data.key)
       .eq("status", "draft");
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "site_settings_versions", `cms.rascunho.descartar:${data.key}`, data.key, null, null);
     return { ok: true };
   });
 
