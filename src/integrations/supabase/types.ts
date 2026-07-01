@@ -1483,6 +1483,77 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_members: {
+        Row: {
+          is_default: boolean
+          is_owner: boolean
+          joined_at: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          is_default?: boolean
+          is_owner?: boolean
+          joined_at?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          is_default?: boolean
+          is_owner?: boolean
+          joined_at?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          dominio_principal: string | null
+          id: string
+          metadata: Json
+          nome: string
+          owner_user_id: string | null
+          plano_codigo: string | null
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dominio_principal?: string | null
+          id?: string
+          metadata?: Json
+          nome: string
+          owner_user_id?: string | null
+          plano_codigo?: string | null
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dominio_principal?: string | null
+          id?: string
+          metadata?: Json
+          nome?: string
+          owner_user_id?: string | null
+          plano_codigo?: string | null
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           created_at: string
@@ -1547,6 +1618,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_current_tenant_id: { Args: never; Returns: string }
       has_any_permission: {
         Args: { _module_codigo: string; _user_id: string }
         Returns: boolean
@@ -1566,6 +1638,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: never; Returns: boolean }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -1583,6 +1656,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      user_belongs_to_tenant: { Args: { _tenant: string }; Returns: boolean }
       user_team_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
