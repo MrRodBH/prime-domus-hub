@@ -279,6 +279,107 @@ export type Database = {
           },
         ]
       }
+      cms_form_fields: {
+        Row: {
+          ajuda: string | null
+          created_at: string
+          form_id: string
+          id: string
+          label: string
+          largura: string
+          nome: string
+          obrigatorio: boolean
+          opcoes: Json
+          ordem: number
+          placeholder: string | null
+          tenant_id: string
+          tipo: string
+          validacao: Json
+          valor_padrao: string | null
+        }
+        Insert: {
+          ajuda?: string | null
+          created_at?: string
+          form_id: string
+          id?: string
+          label: string
+          largura?: string
+          nome: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          placeholder?: string | null
+          tenant_id?: string
+          tipo: string
+          validacao?: Json
+          valor_padrao?: string | null
+        }
+        Update: {
+          ajuda?: string | null
+          created_at?: string
+          form_id?: string
+          id?: string
+          label?: string
+          largura?: string
+          nome?: string
+          obrigatorio?: boolean
+          opcoes?: Json
+          ordem?: number
+          placeholder?: string | null
+          tenant_id?: string
+          tipo?: string
+          validacao?: Json
+          valor_padrao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_form_fields_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "cms_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_forms: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          slug: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          slug: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          slug?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       corretores: {
         Row: {
           ativo: boolean
@@ -449,6 +550,84 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: []
+      }
+      form_submissions: {
+        Row: {
+          created_at: string
+          dados: Json
+          fbclid: string | null
+          form_id: string
+          form_slug: string
+          gclid: string | null
+          id: string
+          ip_address: string | null
+          lead_id: string | null
+          page_url: string | null
+          referrer: string | null
+          tenant_id: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          created_at?: string
+          dados?: Json
+          fbclid?: string | null
+          form_id: string
+          form_slug: string
+          gclid?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          page_url?: string | null
+          referrer?: string | null
+          tenant_id: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          created_at?: string
+          dados?: Json
+          fbclid?: string | null
+          form_id?: string
+          form_slug?: string
+          gclid?: string | null
+          id?: string
+          ip_address?: string | null
+          lead_id?: string | null
+          page_url?: string | null
+          referrer?: string | null
+          tenant_id?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "cms_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_submissions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       imoveis: {
         Row: {
