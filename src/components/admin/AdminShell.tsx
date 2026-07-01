@@ -27,6 +27,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/midias", label: "Mídias", icon: ImageIcon, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/formularios", label: "Formulários", icon: FileText, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/paginas", label: "Páginas", icon: FileCode, hideFor: ["secretaria", "corretor", "captador"] },
+  { to: "/admin/campanhas", label: "Banners & Popups", icon: Megaphone, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"] },
 ];
 
