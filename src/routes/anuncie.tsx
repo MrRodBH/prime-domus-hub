@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
 import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 import { enviarLead } from "@/lib/api/catalogo.functions";
+import { obterSiteSettings } from "@/lib/api/site.functions";
 import { attributionPayload } from "@/lib/attribution";
 import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
 
@@ -14,13 +15,16 @@ export const Route = createFileRoute("/anuncie")({
   head: () => ({
     meta: [
       { title: "Anuncie seu imóvel — RM Prime Imóveis" },
-      { name: "description", content: "Anuncie seu imóvel de alto padrão com a RM Prime. Avaliação gratuita, marketing personalizado e discrição absoluta." },
+      { name: "description", content: "Anuncie seu imóvel de alto padrão com a RM Prime." },
       { property: "og:title", content: "Anuncie seu imóvel — RM Prime Imóveis" },
       { property: "og:description", content: "Avaliação e marketing personalizado para imóveis de alto padrão." },
-      { property: "og:url", content: "/anuncie" },
+      { property: "og:url", content: "https://rmprimeimoveis.com.br/anuncie" },
     ],
-    links: [{ rel: "canonical", href: "/anuncie" }],
+    links: [{ rel: "canonical", href: "https://rmprimeimoveis.com.br/anuncie" }],
   }),
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
+  },
   component: Page,
 });
 
