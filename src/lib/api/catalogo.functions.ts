@@ -282,6 +282,7 @@ export const enviarLead = createServerFn({ method: "POST" })
       fbclid: z.string().max(400).optional(),
       referrer: z.string().max(500).optional(),
       landing_url: z.string().max(500).optional(),
+      notificar_gestores: z.boolean().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -374,9 +375,10 @@ export const enviarLead = createServerFn({ method: "POST" })
       );
 
       // Prioridade do destino:
-      // 1) e-mail do corretor responsável (se houver) - cópia também para o gestor
-      // 2) e-mail geral do site (site_settings.contato.email)
-      let destino: string | undefined;
+      // 1) notificar_gestores=true → todos os e-mails de usuários com role admin ou gerente
+      // 2) e-mail do corretor responsável (se houver)
+      // 3) e-mail geral do site (site_settings.contato.email)
+      let destino: string | string[] | undefined;
       let corretorEmail: string | undefined;
       let corretorNome: string | undefined;
       if (corretorId) {
@@ -393,7 +395,25 @@ export const enviarLead = createServerFn({ method: "POST" })
       const { data: settings } = await admin
         .from("site_settings").select("value").eq("key", "contato").maybeSingle();
       const contato = (settings?.value as { email?: string } | null) ?? null;
-      destino = corretorEmail || contato?.email;
+
+      if (data.notificar_gestores) {
+        const { data: rows } = await admin
+          .from("user_roles")
+          .select("user_id, role")
+          .in("role", ["admin", "gerente"] as never);
+        const userIds = Array.from(new Set((rows ?? []).map((r) => (r as { user_id: string }).user_id)));
+        if (userIds.length) {
+          const { data: gestores } = await admin
+            .from("corretores")
+            .select("email")
+            .in("user_id", userIds);
+          const emails = (gestores ?? [])
+            .map((g) => (g as { email: string | null }).email)
+            .filter((e): e is string => !!e);
+          if (emails.length) destino = emails;
+        }
+      }
+      if (!destino) destino = corretorEmail || contato?.email;
 
       if (destino) {
         // Buscar dados do imóvel (se aplicável) para enriquecer e-mail
@@ -410,25 +430,29 @@ export const enviarLead = createServerFn({ method: "POST" })
         }
 
         const { enqueueTransactional } = await import("@/lib/email/notify.server");
-        await enqueueTransactional({
-          templateName: "novo-lead",
-          to: destino,
-          idempotencyKey: `lead-${leadId}`,
-          templateData: {
-            nome: data.nome,
-            email: data.email || undefined,
-            telefone: data.telefone || undefined,
-            mensagem: data.mensagem || undefined,
-            origem: data.origem || "Site",
-            imovel_codigo,
-            imovel_titulo,
-            lancamento_nome: lancNome,
-            corretor_nome: corretorNome,
-            recebido_em: new Date().toLocaleString("pt-BR", {
-              timeZone: "America/Sao_Paulo",
-            }),
-          },
-        });
+        const recipients = Array.isArray(destino) ? destino : [destino];
+        const templateData = {
+          nome: data.nome,
+          email: data.email || undefined,
+          telefone: data.telefone || undefined,
+          mensagem: data.mensagem || undefined,
+          origem: data.origem || "Site",
+          imovel_codigo,
+          imovel_titulo,
+          lancamento_nome: lancNome,
+          corretor_nome: corretorNome,
+          recebido_em: new Date().toLocaleString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+          }),
+        };
+        for (const to of recipients) {
+          await enqueueTransactional({
+            templateName: "novo-lead",
+            to,
+            idempotencyKey: `lead-${leadId}-${to}`,
+            templateData,
+          });
+        }
       }
     } catch (e) {
       console.error("Falha ao notificar lead por e-mail:", e);

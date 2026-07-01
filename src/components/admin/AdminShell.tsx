@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, Sparkles, ShieldCheck, UsersRound, History } from "lucide-react";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
-  { to: "/admin/lancamentos", label: "Lançamentos", icon: Sparkles },
+  
   { to: "/admin/corretores", label: "Usuários", icon: Users },
   { to: "/admin/equipes", label: "Equipes", icon: UsersRound, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/perfis", label: "Perfis & Permissões", icon: ShieldCheck, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
