@@ -367,8 +367,8 @@ function Home() {
               </p>
 
               <div className="grid sm:grid-cols-2 gap-10 mt-14">
-                {differentials.map((d) => (
-                  <div key={d.n} className="border-l border-gold/40 pl-5">
+                {(site?.home_diferenciais?.itens ?? differentials).map((d, i) => (
+                  <div key={i} className="border-l border-gold/40 pl-5">
                     <span className="font-display text-3xl text-gold italic block mb-2">{d.n}</span>
                     <h4 className="text-sm font-semibold uppercase tracking-[0.18em] mb-2">{d.title}</h4>
                     <p className="text-sm text-linen/60 leading-relaxed">{d.desc}</p>
