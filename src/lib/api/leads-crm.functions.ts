@@ -9,16 +9,28 @@ async function ensureAdmin(ctx: any) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function currentUserBrief(ctx: any) {
-  const { data } = await ctx.supabase
-    .from("profiles")
-    .select("nome, papel_principal")
-    .eq("id", ctx.userId)
+async function currentUserBrief(ctx: any): Promise<{ nome: string; perfil: string }> {
+  const { data: roles } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId);
+  const rolesList = (roles ?? []).map((r: { role: string }) => r.role);
+  const perfil = rolesList.includes("admin")
+    ? "admin"
+    : rolesList.includes("gerente")
+      ? "gerente"
+      : rolesList.includes("corretor")
+        ? "corretor"
+        : rolesList.includes("secretaria")
+          ? "secretaria"
+          : "usuario";
+  const { data: corretor } = await ctx.supabase
+    .from("corretores")
+    .select("nome, sobrenome, email")
+    .eq("user_id", ctx.userId)
     .maybeSingle();
-  return {
-    nome: (data?.nome as string) || "Usuário",
-    perfil: (data?.papel_principal as string) || "sem-perfil",
-  };
+  const c = corretor as { nome?: string; sobrenome?: string | null; email?: string } | null;
+  const nome = c?.nome
+    ? `${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`
+    : (c?.email ?? ctx.claims?.email ?? "Usuário");
+  return { nome, perfil };
 }
 
 /** Descarta um lead (motivo de desqualificação). */
