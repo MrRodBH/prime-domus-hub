@@ -187,9 +187,10 @@ function Page() {
             disabled={enviar.isPending}
             className="mt-4 bg-petroleum hover:bg-gold transition-colors text-linen py-4 rounded-full font-medium uppercase tracking-[0.18em] text-sm disabled:opacity-60"
           >
-            {enviar.isPending ? "Enviando…" : "Confirmar Informações"}
+            {enviar.isPending ? "Enviando…" : (pag.form_botao ?? "Confirmar Informações")}
           </button>
         </form>
+        </div>
       </main>
       <Footer />
     </div>
