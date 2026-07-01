@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export type RbacAction =
   | "visualizar" | "criar" | "editar" | "excluir"
-  | "exportar" | "importar" | "aprovar" | "gerenciar";
+  | "exportar" | "importar" | "aprovar" | "gerenciar" | "publicar";
 export type RbacScope = "proprio" | "equipe" | "global";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
