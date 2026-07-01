@@ -37,6 +37,48 @@ export interface SiteSettings {
     favicon_url?: string | null;
     site_name?: string;
   };
+  /** Novo: branding dinâmico (cores/fontes) aplicado em runtime via CSS vars. */
+  branding_v2: {
+    color_primary?: string;      // hex/oklch
+    color_secondary?: string;
+    color_accent?: string;
+    color_button?: string;
+    color_link?: string;
+    font_primary?: string;       // ex: "Inter"
+    font_secondary?: string;     // ex: "Cormorant Garamond"
+    logo_mobile_path?: string | null;
+    logo_mobile_url?: string | null;
+  };
+  /** Dados institucionais da empresa. */
+  empresa: {
+    razao_social?: string;
+    nome_fantasia?: string;
+    cnpj?: string;
+    creci?: string;
+    responsavel_tecnico?: string;
+    fundacao?: string;
+    slogan?: string;
+    sobre_curto?: string;
+  };
+  /** Config do rodapé (colunas de links + texto). */
+  footer: {
+    copyright?: string;
+    coluna1_titulo?: string;
+    coluna1_links?: { label: string; url: string }[];
+    coluna2_titulo?: string;
+    coluna2_links?: { label: string; url: string }[];
+    mostrar_redes?: boolean;
+    texto_legal?: string;
+  };
+  /** SEO global padrão (fallback quando página não define). */
+  seo_global: {
+    default_title?: string;
+    default_description?: string;
+    default_og_image_path?: string | null;
+    default_og_image_url?: string | null;
+    keywords?: string;
+    twitter_handle?: string;
+  };
   home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string; image_path?: string | null; image_url?: string | null; search_tipos?: string[] };
   home_secoes: {
     destaques_eyebrow?: string;
@@ -61,6 +103,7 @@ export interface SiteSettings {
     meta_description?: string;
   };
 }
+
 
 const DEFAULT_SECOES: SiteSettings["home_secoes"] = {
   destaques_eyebrow: "Seleção Exclusiva",
