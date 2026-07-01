@@ -1053,3 +1053,344 @@ function NovoLeadButton({ corretores }: { corretores: CorretorLite[] }) {
     </Dialog>
   );
 }
+
+// ==================================================================
+// CRM — Descarte, Perda, Descartados e Performance Comercial
+// ==================================================================
+
+function ReasonSelect({
+  kind,
+  value,
+  onChange,
+}: {
+  kind: "discard" | "lost";
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { data } = useQuery({
+    queryKey: ["motivos", kind, "ativos"],
+    queryFn: () => listarMotivos({ data: { kind, apenasAtivos: true } }),
+    staleTime: 60_000,
+  });
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder="Selecione um motivo…" />
+      </SelectTrigger>
+      <SelectContent>
+        {(data ?? []).map((m) => (
+          <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function DescarteDialog({
+  leadId,
+  onClose,
+  onDone,
+}: {
+  leadId: string | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [motivoId, setMotivoId] = useState("");
+  const [detalhes, setDetalhes] = useState("");
+  useEffect(() => {
+    if (leadId) { setMotivoId(""); setDetalhes(""); }
+  }, [leadId]);
+  const mut = useMutation({
+    mutationFn: () =>
+      descartarLead({ data: { lead_id: leadId!, motivo_id: motivoId, detalhes: detalhes || null } }),
+    onSuccess: () => { toast.success("Lead descartado."); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={!!leadId} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Descartar lead</DialogTitle>
+          <DialogDescription>
+            Use para leads desqualificados <strong>antes</strong> da apresentação de proposta.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Motivo *</Label>
+            <ReasonSelect kind="discard" value={motivoId} onChange={setMotivoId} />
+          </div>
+          <div>
+            <Label>Observação (opcional)</Label>
+            <Textarea rows={3} value={detalhes} onChange={(e) => setDetalhes(e.target.value)} maxLength={1000} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button
+            variant="destructive"
+            disabled={!motivoId || mut.isPending}
+            onClick={() => mut.mutate()}
+          >
+            {mut.isPending ? "Salvando…" : "Confirmar descarte"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PerdaDialog({
+  leadId,
+  onClose,
+  onDone,
+}: {
+  leadId: string | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [motivoId, setMotivoId] = useState("");
+  const [detalhes, setDetalhes] = useState("");
+  useEffect(() => {
+    if (leadId) { setMotivoId(""); setDetalhes(""); }
+  }, [leadId]);
+  const mut = useMutation({
+    mutationFn: () =>
+      perderLead({ data: { lead_id: leadId!, motivo_id: motivoId, detalhes: detalhes || null } }),
+    onSuccess: () => { toast.success("Negócio marcado como perdido."); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={!!leadId} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Marcar negócio como perdido</DialogTitle>
+          <DialogDescription>
+            Somente leads que já receberam <strong>Proposta</strong> podem ser marcados como Perdidos.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Motivo *</Label>
+            <ReasonSelect kind="lost" value={motivoId} onChange={setMotivoId} />
+          </div>
+          <div>
+            <Label>Observação (opcional)</Label>
+            <Textarea rows={3} value={detalhes} onChange={(e) => setDetalhes(e.target.value)} maxLength={1000} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button
+            variant="destructive"
+            disabled={!motivoId || mut.isPending}
+            onClick={() => mut.mutate()}
+          >
+            {mut.isPending ? "Salvando…" : "Confirmar perda"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type DescartadoRow = Lead & {
+  descartado_at?: string | null;
+  discard_reason_id?: string | null;
+  motivo?: { nome: string } | null;
+};
+
+function DescartadosTab({ onOpen }: { onOpen: (id: string) => void }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "descartados"],
+    queryFn: () => listarLeadsDescartados(),
+  });
+  const rows = (data ?? []) as DescartadoRow[];
+  const reabrir = useMutation({
+    mutationFn: (lead_id: string) => reabrirLead({ data: { lead_id } }),
+    onSuccess: () => {
+      toast.success("Lead reaberto (Novo).");
+      qc.invalidateQueries({ queryKey: ["admin", "descartados"] });
+      qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="rounded-lg border border-foreground/10 bg-card overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50 text-xs uppercase tracking-wide">
+          <tr className="text-left">
+            <th className="px-3 py-2">Descartado em</th>
+            <th className="px-3 py-2">Nome</th>
+            <th className="px-3 py-2">Motivo</th>
+            <th className="px-3 py-2">Imóvel</th>
+            <th className="px-3 py-2 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-foreground/10">
+          {isLoading && (
+            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>
+          )}
+          {!isLoading && rows.length === 0 && (
+            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum lead descartado.</td></tr>
+          )}
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                {r.descartado_at ? new Date(r.descartado_at).toLocaleString("pt-BR") : "—"}
+              </td>
+              <td className="px-3 py-2">
+                <button className="font-medium hover:underline" onClick={() => onOpen(r.id)}>{r.nome}</button>
+                {r.origem && <div className="text-[10px] uppercase text-muted-foreground">{r.origem}</div>}
+              </td>
+              <td className="px-3 py-2">{r.motivo?.nome ?? "—"}</td>
+              <td className="px-3 py-2 truncate max-w-[240px]">{r.imovel?.titulo ?? "—"}</td>
+              <td className="px-3 py-2 text-right">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => reabrir.mutate(r.id)}
+                  disabled={reabrir.isPending}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Reabrir
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PerformanceComercialPanel() {
+  const [dias, setDias] = useState(30);
+  const { data } = useQuery({
+    queryKey: ["admin", "performance", dias],
+    queryFn: () => performanceComercial({ data: { dias } }),
+    staleTime: 60_000,
+  });
+  const [insight, setInsight] = useState<string | null>(null);
+  const [loadingInsight, setLoadingInsight] = useState(false);
+
+  async function carregar() {
+    if (!data) return;
+    setLoadingInsight(true);
+    try {
+      const res = await gerarInsightsPerformance({ data });
+      setInsight(res.insight);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar insight");
+    } finally {
+      setLoadingInsight(false);
+    }
+  }
+
+  const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+
+  return (
+    <div className="rounded-xl border border-foreground/10 bg-card p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-lg">Performance comercial</h2>
+        </div>
+        <Select value={String(dias)} onValueChange={(v) => setDias(parseInt(v, 10))}>
+          <SelectTrigger className="h-8 w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Últimos 7 dias</SelectItem>
+            <SelectItem value="30">Últimos 30 dias</SelectItem>
+            <SelectItem value="90">Últimos 90 dias</SelectItem>
+            <SelectItem value="180">Últimos 180 dias</SelectItem>
+            <SelectItem value="365">Últimos 365 dias</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!data ? (
+        <div className="text-sm text-muted-foreground">Carregando métricas…</div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <MetricCard label="Total" value={String(data.totais.total)} />
+            <MetricCard label="Em andamento" value={String(data.totais.emAndamento)} />
+            <MetricCard label="Propostas" value={String(data.totais.propostas)} />
+            <MetricCard label="Ganhos" value={String(data.totais.ganhos)} tone="pos" />
+            <MetricCard label="Perdidos" value={String(data.totais.perdidos)} tone="neg" />
+            <MetricCard label="Descartados" value={String(data.totais.descartados)} tone="neg" />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard label="Taxa de conversão" value={pct(data.taxas.conversao)} tone="pos" />
+            <MetricCard label="Taxa de descarte" value={pct(data.taxas.descarteRate)} tone="neg" />
+            <MetricCard label="VGV proposta" value={brl(data.vgv.propostas)} />
+            <MetricCard label="VGV ganho" value={brl(data.vgv.ganhos)} tone="pos" />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ReasonsList title="Motivos de Descarte" items={data.motivosDescarte} />
+            <ReasonsList title="Motivos de Perda" items={data.motivosPerda} />
+          </div>
+
+          <div className="rounded-lg border border-foreground/10 bg-background/60 p-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Insight de IA</span>
+              </div>
+              <Button size="sm" variant="outline" onClick={carregar} disabled={loadingInsight}>
+                {loadingInsight ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />Analisando…</> : insight ? "Atualizar" : "Gerar análise"}
+              </Button>
+            </div>
+            {insight ? (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{insight}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Gere uma análise sobre gargalos, motivos recorrentes e ações recomendadas.</p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, tone }: { label: string; value: string; tone?: "pos" | "neg" }) {
+  const color = tone === "pos" ? "text-emerald-600" : tone === "neg" ? "text-rose-600" : "text-foreground";
+  return (
+    <div className="rounded-lg border border-foreground/10 bg-background/60 p-3">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`text-xl font-semibold tabular-nums ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+function ReasonsList({ title, items }: { title: string; items: { nome: string; total: number }[] }) {
+  const total = items.reduce((a, b) => a + b.total, 0) || 1;
+  return (
+    <div className="rounded-lg border border-foreground/10 bg-background/60 p-3">
+      <div className="text-sm font-medium mb-2">{title}</div>
+      {items.length === 0 && <div className="text-xs text-muted-foreground">Sem registros no período.</div>}
+      <ul className="space-y-1.5">
+        {items.slice(0, 6).map((r) => {
+          const p = (r.total / total) * 100;
+          return (
+            <li key={r.nome}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="truncate">{r.nome}</span>
+                <span className="tabular-nums text-muted-foreground">{r.total} · {p.toFixed(0)}%</span>
+              </div>
+              <div className="h-1.5 rounded bg-muted overflow-hidden mt-0.5">
+                <div className="h-full bg-primary/70" style={{ width: `${p}%` }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
