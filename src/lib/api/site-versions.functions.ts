@@ -23,7 +23,8 @@ export interface SiteVersionRow {
   id: string;
   key: string;
   status: "draft" | "published" | "archived";
-  value: unknown;
+  /** JSON serializado — parse no cliente com JSON.parse(row.value_json). */
+  value_json: string;
   notes: string | null;
   created_by: string | null;
   created_at: string;
