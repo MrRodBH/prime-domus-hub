@@ -12,12 +12,22 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus, X } from "lucide-react";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus, X, Ban, Trash2, RotateCcw } from "lucide-react";
 import { adminListarLeads, adminAtualizarLead, adminListarCorretores, adminListarImoveisLite, criarLeadManual, meusPapeis } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { listarMotivos } from "@/lib/api/lead-reasons.functions";
+import {
+  descartarLead,
+  perderLead,
+  listarLeadsDescartados,
+  reabrirLead,
+  performanceComercial,
+  gerarInsightsPerformance,
+} from "@/lib/api/leads-crm.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +45,7 @@ const leadsSearchSchema = z.object({
   inicio: z.string().optional(),
   fim: z.string().optional(),
   alerta: z.enum(["sem_atendimento", "sem_followup", "visitas_sem_feedback", "propostas_paradas"]).optional(),
+  tab: z.enum(["kanban", "descartados"]).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
@@ -42,7 +53,7 @@ export const Route = createFileRoute("/_authenticated/admin/leads")({
   component: AdminLeads,
 });
 
-type Status = "novo" | "conversando" | "visita" | "proposta" | "ganho" | "perdido";
+type Status = "novo" | "conversando" | "visita" | "proposta" | "ganho" | "perdido" | "descartado";
 
 const COLUMNS: { id: Status; label: string; accent: string }[] = [
   { id: "novo", label: "Novo", accent: "bg-red-500" },
@@ -50,7 +61,7 @@ const COLUMNS: { id: Status; label: string; accent: string }[] = [
   { id: "visita", label: "Visita", accent: "bg-lime-500" },
   { id: "proposta", label: "Proposta", accent: "bg-emerald-500" },
   { id: "ganho", label: "Ganho", accent: "bg-emerald-500" },
-  { id: "perdido", label: "Perdido / Descartado", accent: "bg-rose-500" },
+  { id: "perdido", label: "Perdido", accent: "bg-rose-500" },
 ];
 
 type Lead = {
@@ -90,6 +101,8 @@ function AdminLeads() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historicoId, setHistoricoId] = useState<string | null>(null);
+  const [perdaLeadId, setPerdaLeadId] = useState<string | null>(null);
+  const [descarteLeadId, setDescarteLeadId] = useState<string | null>(null);
   const [corretorFilter, setCorretorFilter] = useState<string>(search.corretor_id ?? "__all__");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -187,7 +200,7 @@ function AdminLeads() {
 
   const byStatus = useMemo(() => {
     const map: Record<Status, Lead[]> = {
-      novo: [], conversando: [], visita: [], proposta: [], ganho: [], perdido: [],
+      novo: [], conversando: [], visita: [], proposta: [], ganho: [], perdido: [], descartado: [],
     };
     for (const l of filteredData) {
       const s = (COLUMNS.some((c) => c.id === l.status) ? l.status : "novo") as Status;
@@ -208,6 +221,19 @@ function AdminLeads() {
     if (!over) return;
     const lead = filteredData.find((l) => l.id === id);
     if (!lead || lead.status === over) return;
+
+    if (over === "perdido") {
+      if (lead.status !== "proposta") {
+        toast.error("Só é possível marcar como Perdido leads que estão em Proposta. Use Descartar para desqualificar.");
+        return;
+      }
+      setPerdaLeadId(id);
+      return;
+    }
+    if (over === "descartado") {
+      setDescarteLeadId(id);
+      return;
+    }
     upd.mutate({ id, status: over as Status });
   }
 
@@ -215,6 +241,10 @@ function AdminLeads() {
   const corretoresLista = (corretores ?? []) as CorretorLite[];
   const selectedLead = filteredData.find((l) => l.id === selectedId) ?? null;
   const historicoLead = filteredData.find((l) => l.id === historicoId) ?? null;
+  const currentTab = (search.tab ?? "kanban") as "kanban" | "descartados";
+  function setTab(t: "kanban" | "descartados") {
+    navigate({ to: "/admin/leads", search: { ...search, tab: t } });
+  }
 
   return (
     <div className="space-y-4">
@@ -268,29 +298,42 @@ function AdminLeads() {
         </div>
       )}
 
-      <p className="text-sm text-muted-foreground">
-        Arraste os cards entre as colunas para atualizar o status.
-      </p>
+      <Tabs value={currentTab} onValueChange={(v) => setTab(v as "kanban" | "descartados")}>
+        <TabsList>
+          <TabsTrigger value="kanban">Kanban (ativos)</TabsTrigger>
+          <TabsTrigger value="descartados">Descartados</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="kanban" className="space-y-4 pt-3">
+          <p className="text-sm text-muted-foreground">
+            Arraste os cards entre as colunas para atualizar o status. Para marcar como <strong>Perdido</strong>, o lead precisa estar em <strong>Proposta</strong>. Caso contrário, use <strong>Descartar</strong>.
+          </p>
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className="grid gap-3 [grid-template-columns:repeat(6,minmax(220px,1fr))] overflow-x-auto pb-4">
+              {COLUMNS.map((col) => (
+                <Column key={col.id} col={col} leads={byStatus[col.id]} onOpen={setSelectedId} />
+              ))}
+            </div>
+            <DragOverlay dropAnimation={null}>
+              {activeLead ? <Card lead={activeLead} /> : null}
+            </DragOverlay>
+          </DndContext>
 
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="grid gap-3 [grid-template-columns:repeat(6,minmax(220px,1fr))] overflow-x-auto pb-4">
-          {COLUMNS.map((col) => (
-            <Column key={col.id} col={col} leads={byStatus[col.id]} onOpen={setSelectedId} />
-          ))}
-        </div>
-        <DragOverlay dropAnimation={null}>
-          {activeLead ? <Card lead={activeLead} /> : null}
-        </DragOverlay>
+          <FunilChart byStatus={byStatus} descartesTotal={descartesData?.total ?? 0} />
+          <PerformanceComercialPanel />
+        </TabsContent>
 
-      </DndContext>
-
-      <FunilChart byStatus={byStatus} descartesTotal={descartesData?.total ?? 0} />
+        <TabsContent value="descartados" className="pt-3">
+          <DescartadosTab onOpen={setSelectedId} />
+        </TabsContent>
+      </Tabs>
 
       <LeadDetailDialog
         lead={selectedLead}
         onClose={() => setSelectedId(null)}
         onOpenHistorico={(id) => { setSelectedId(null); setHistoricoId(id); }}
+        onDescartar={(id) => { setSelectedId(null); setDescarteLeadId(id); }}
+        onPerder={(id) => { setSelectedId(null); setPerdaLeadId(id); }}
       />
 
       <LeadHistoricoDialog
@@ -298,6 +341,26 @@ function AdminLeads() {
         leadNome={historicoLead?.nome ?? ""}
         isAdmin={true}
         onClose={() => setHistoricoId(null)}
+      />
+
+      <DescarteDialog
+        leadId={descarteLeadId}
+        onClose={() => setDescarteLeadId(null)}
+        onDone={() => {
+          setDescarteLeadId(null);
+          qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+          qc.invalidateQueries({ queryKey: ["admin", "descartados"] });
+          qc.invalidateQueries({ queryKey: ["admin", "performance"] });
+        }}
+      />
+      <PerdaDialog
+        leadId={perdaLeadId}
+        onClose={() => setPerdaLeadId(null)}
+        onDone={() => {
+          setPerdaLeadId(null);
+          qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+          qc.invalidateQueries({ queryKey: ["admin", "performance"] });
+        }}
       />
     </div>
   );
@@ -654,7 +717,7 @@ function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
-function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | null; onClose: () => void; onOpenHistorico: (id: string) => void }) {
+function LeadDetailDialog({ lead, onClose, onOpenHistorico, onDescartar, onPerder }: { lead: Lead | null; onClose: () => void; onOpenHistorico: (id: string) => void; onDescartar?: (id: string) => void; onPerder?: (id: string) => void }) {
   const wa = lead?.telefone ? `https://wa.me/${lead.telefone.replace(/\D/g, "")}` : null;
   const valorNegocio = (() => {
     if (!lead?.imovel) return "Não informado";
@@ -717,6 +780,16 @@ function LeadDetailDialog({ lead, onClose, onOpenHistorico }: { lead: Lead | nul
               <Button size="sm" className="shrink-0 min-w-[104px] px-3 sm:ml-auto" onClick={() => onOpenHistorico(lead.id)}>
                 <History className="h-4 w-4" /> Histórico
               </Button>
+              {onDescartar && lead.status !== "descartado" && lead.status !== "ganho" && lead.status !== "perdido" && (
+                <Button size="sm" variant="outline" className="shrink-0 px-3 text-destructive" onClick={() => onDescartar(lead.id)}>
+                  <Ban className="h-4 w-4" /> Descartar
+                </Button>
+              )}
+              {onPerder && lead.status === "proposta" && (
+                <Button size="sm" variant="outline" className="shrink-0 px-3 text-destructive" onClick={() => onPerder(lead.id)}>
+                  <Trash2 className="h-4 w-4" /> Marcar como Perdido
+                </Button>
+              )}
               </div>
             </div>
           </>
@@ -978,5 +1051,346 @@ function NovoLeadButton({ corretores }: { corretores: CorretorLite[] }) {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ==================================================================
+// CRM — Descarte, Perda, Descartados e Performance Comercial
+// ==================================================================
+
+function ReasonSelect({
+  kind,
+  value,
+  onChange,
+}: {
+  kind: "discard" | "lost";
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { data } = useQuery({
+    queryKey: ["motivos", kind, "ativos"],
+    queryFn: () => listarMotivos({ data: { kind, apenasAtivos: true } }),
+    staleTime: 60_000,
+  });
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder="Selecione um motivo…" />
+      </SelectTrigger>
+      <SelectContent>
+        {(data ?? []).map((m) => (
+          <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function DescarteDialog({
+  leadId,
+  onClose,
+  onDone,
+}: {
+  leadId: string | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [motivoId, setMotivoId] = useState("");
+  const [detalhes, setDetalhes] = useState("");
+  useEffect(() => {
+    if (leadId) { setMotivoId(""); setDetalhes(""); }
+  }, [leadId]);
+  const mut = useMutation({
+    mutationFn: () =>
+      descartarLead({ data: { lead_id: leadId!, motivo_id: motivoId, detalhes: detalhes || null } }),
+    onSuccess: () => { toast.success("Lead descartado."); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={!!leadId} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Descartar lead</DialogTitle>
+          <DialogDescription>
+            Use para leads desqualificados <strong>antes</strong> da apresentação de proposta.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Motivo *</Label>
+            <ReasonSelect kind="discard" value={motivoId} onChange={setMotivoId} />
+          </div>
+          <div>
+            <Label>Observação (opcional)</Label>
+            <Textarea rows={3} value={detalhes} onChange={(e) => setDetalhes(e.target.value)} maxLength={1000} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button
+            variant="destructive"
+            disabled={!motivoId || mut.isPending}
+            onClick={() => mut.mutate()}
+          >
+            {mut.isPending ? "Salvando…" : "Confirmar descarte"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PerdaDialog({
+  leadId,
+  onClose,
+  onDone,
+}: {
+  leadId: string | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [motivoId, setMotivoId] = useState("");
+  const [detalhes, setDetalhes] = useState("");
+  useEffect(() => {
+    if (leadId) { setMotivoId(""); setDetalhes(""); }
+  }, [leadId]);
+  const mut = useMutation({
+    mutationFn: () =>
+      perderLead({ data: { lead_id: leadId!, motivo_id: motivoId, detalhes: detalhes || null } }),
+    onSuccess: () => { toast.success("Negócio marcado como perdido."); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={!!leadId} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Marcar negócio como perdido</DialogTitle>
+          <DialogDescription>
+            Somente leads que já receberam <strong>Proposta</strong> podem ser marcados como Perdidos.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Motivo *</Label>
+            <ReasonSelect kind="lost" value={motivoId} onChange={setMotivoId} />
+          </div>
+          <div>
+            <Label>Observação (opcional)</Label>
+            <Textarea rows={3} value={detalhes} onChange={(e) => setDetalhes(e.target.value)} maxLength={1000} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button
+            variant="destructive"
+            disabled={!motivoId || mut.isPending}
+            onClick={() => mut.mutate()}
+          >
+            {mut.isPending ? "Salvando…" : "Confirmar perda"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type DescartadoRow = Lead & {
+  descartado_at?: string | null;
+  discard_reason_id?: string | null;
+  motivo?: { nome: string } | null;
+};
+
+function DescartadosTab({ onOpen }: { onOpen: (id: string) => void }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "descartados"],
+    queryFn: () => listarLeadsDescartados(),
+  });
+  const rows = (data ?? []) as DescartadoRow[];
+  const reabrir = useMutation({
+    mutationFn: (lead_id: string) => reabrirLead({ data: { lead_id } }),
+    onSuccess: () => {
+      toast.success("Lead reaberto (Novo).");
+      qc.invalidateQueries({ queryKey: ["admin", "descartados"] });
+      qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="rounded-lg border border-foreground/10 bg-card overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50 text-xs uppercase tracking-wide">
+          <tr className="text-left">
+            <th className="px-3 py-2">Descartado em</th>
+            <th className="px-3 py-2">Nome</th>
+            <th className="px-3 py-2">Motivo</th>
+            <th className="px-3 py-2">Imóvel</th>
+            <th className="px-3 py-2 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-foreground/10">
+          {isLoading && (
+            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Carregando…</td></tr>
+          )}
+          {!isLoading && rows.length === 0 && (
+            <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum lead descartado.</td></tr>
+          )}
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                {r.descartado_at ? new Date(r.descartado_at).toLocaleString("pt-BR") : "—"}
+              </td>
+              <td className="px-3 py-2">
+                <button className="font-medium hover:underline" onClick={() => onOpen(r.id)}>{r.nome}</button>
+                {r.origem && <div className="text-[10px] uppercase text-muted-foreground">{r.origem}</div>}
+              </td>
+              <td className="px-3 py-2">{r.motivo?.nome ?? "—"}</td>
+              <td className="px-3 py-2 truncate max-w-[240px]">{r.imovel?.titulo ?? "—"}</td>
+              <td className="px-3 py-2 text-right">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => reabrir.mutate(r.id)}
+                  disabled={reabrir.isPending}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Reabrir
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PerformanceComercialPanel() {
+  const [dias, setDias] = useState(30);
+  const { data } = useQuery({
+    queryKey: ["admin", "performance", dias],
+    queryFn: () => performanceComercial({ data: { dias } }),
+    staleTime: 60_000,
+  });
+  const [insight, setInsight] = useState<string | null>(null);
+  const [loadingInsight, setLoadingInsight] = useState(false);
+
+  async function carregar() {
+    if (!data) return;
+    setLoadingInsight(true);
+    try {
+      const res = await gerarInsightsPerformance({ data });
+      setInsight(res.insight);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar insight");
+    } finally {
+      setLoadingInsight(false);
+    }
+  }
+
+  const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+
+  return (
+    <div className="rounded-xl border border-foreground/10 bg-card p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-lg">Performance comercial</h2>
+        </div>
+        <Select value={String(dias)} onValueChange={(v) => setDias(parseInt(v, 10))}>
+          <SelectTrigger className="h-8 w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Últimos 7 dias</SelectItem>
+            <SelectItem value="30">Últimos 30 dias</SelectItem>
+            <SelectItem value="90">Últimos 90 dias</SelectItem>
+            <SelectItem value="180">Últimos 180 dias</SelectItem>
+            <SelectItem value="365">Últimos 365 dias</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {!data ? (
+        <div className="text-sm text-muted-foreground">Carregando métricas…</div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <MetricCard label="Total" value={String(data.totais.total)} />
+            <MetricCard label="Em andamento" value={String(data.totais.emAndamento)} />
+            <MetricCard label="Propostas" value={String(data.totais.propostas)} />
+            <MetricCard label="Ganhos" value={String(data.totais.ganhos)} tone="pos" />
+            <MetricCard label="Perdidos" value={String(data.totais.perdidos)} tone="neg" />
+            <MetricCard label="Descartados" value={String(data.totais.descartados)} tone="neg" />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard label="Taxa de conversão" value={pct(data.taxas.conversao)} tone="pos" />
+            <MetricCard label="Taxa de descarte" value={pct(data.taxas.descarteRate)} tone="neg" />
+            <MetricCard label="VGV proposta" value={brl(data.vgv.propostas)} />
+            <MetricCard label="VGV ganho" value={brl(data.vgv.ganhos)} tone="pos" />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ReasonsList title="Motivos de Descarte" items={data.motivosDescarte} />
+            <ReasonsList title="Motivos de Perda" items={data.motivosPerda} />
+          </div>
+
+          <div className="rounded-lg border border-foreground/10 bg-background/60 p-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Insight de IA</span>
+              </div>
+              <Button size="sm" variant="outline" onClick={carregar} disabled={loadingInsight}>
+                {loadingInsight ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />Analisando…</> : insight ? "Atualizar" : "Gerar análise"}
+              </Button>
+            </div>
+            {insight ? (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{insight}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Gere uma análise sobre gargalos, motivos recorrentes e ações recomendadas.</p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, tone }: { label: string; value: string; tone?: "pos" | "neg" }) {
+  const color = tone === "pos" ? "text-emerald-600" : tone === "neg" ? "text-rose-600" : "text-foreground";
+  return (
+    <div className="rounded-lg border border-foreground/10 bg-background/60 p-3">
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className={`text-xl font-semibold tabular-nums ${color}`}>{value}</div>
+    </div>
+  );
+}
+
+function ReasonsList({ title, items }: { title: string; items: { nome: string; total: number }[] }) {
+  const total = items.reduce((a, b) => a + b.total, 0) || 1;
+  return (
+    <div className="rounded-lg border border-foreground/10 bg-background/60 p-3">
+      <div className="text-sm font-medium mb-2">{title}</div>
+      {items.length === 0 && <div className="text-xs text-muted-foreground">Sem registros no período.</div>}
+      <ul className="space-y-1.5">
+        {items.slice(0, 6).map((r) => {
+          const p = (r.total / total) * 100;
+          return (
+            <li key={r.nome}>
+              <div className="flex items-center justify-between text-xs">
+                <span className="truncate">{r.nome}</span>
+                <span className="tabular-nums text-muted-foreground">{r.total} · {p.toFixed(0)}%</span>
+              </div>
+              <div className="h-1.5 rounded bg-muted overflow-hidden mt-0.5">
+                <div className="h-full bg-primary/70" style={{ width: `${p}%` }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

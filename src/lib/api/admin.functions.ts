@@ -780,7 +780,7 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       id: z.string().uuid(),
-      status: z.enum(["novo", "conversando", "visita", "proposta", "ganho", "perdido"]).optional(),
+      status: z.enum(["novo", "conversando", "visita", "proposta", "ganho", "perdido", "descartado"]).optional(),
       observacoes: z.string().optional(),
       valor_estimado: z.number().nullable().optional(),
     }),
