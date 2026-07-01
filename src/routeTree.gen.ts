@@ -61,6 +61,7 @@ import { Route as AuthenticatedAdminLancamentosIdRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
 import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authenticated.admin.imoveis.$id'
 import { Route as AuthenticatedAdminFormulariosIdRouteImport } from './routes/_authenticated.admin.formularios.$id'
+import { Route as AuthenticatedAdminCampanhasIdRouteImport } from './routes/_authenticated.admin.campanhas.$id'
 import { Route as AuthenticatedAdminBlogNovoRouteImport } from './routes/_authenticated.admin.blog.novo'
 import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated.admin.blog.$id'
 
@@ -346,6 +347,12 @@ const AuthenticatedAdminFormulariosIdRoute =
     path: '/formularios/$id',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCampanhasIdRoute =
+  AuthenticatedAdminCampanhasIdRouteImport.update({
+    id: '/campanhas/$id',
+    path: '/campanhas/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBlogNovoRoute =
   AuthenticatedAdminBlogNovoRouteImport.update({
     id: '/novo',
@@ -396,6 +403,7 @@ export interface FileRoutesByFullPath {
   '/super/': typeof AuthenticatedSuperIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
+  '/admin/campanhas/$id': typeof AuthenticatedAdminCampanhasIdRoute
   '/admin/formularios/$id': typeof AuthenticatedAdminFormulariosIdRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
@@ -448,6 +456,7 @@ export interface FileRoutesByTo {
   '/super': typeof AuthenticatedSuperIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
+  '/admin/campanhas/$id': typeof AuthenticatedAdminCampanhasIdRoute
   '/admin/formularios/$id': typeof AuthenticatedAdminFormulariosIdRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
@@ -505,6 +514,7 @@ export interface FileRoutesById {
   '/_authenticated/super/': typeof AuthenticatedSuperIndexRoute
   '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/_authenticated/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
+  '/_authenticated/admin/campanhas/$id': typeof AuthenticatedAdminCampanhasIdRoute
   '/_authenticated/admin/formularios/$id': typeof AuthenticatedAdminFormulariosIdRoute
   '/_authenticated/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
   '/_authenticated/admin/imoveis/novo': typeof AuthenticatedAdminImoveisNovoRoute
@@ -562,6 +572,7 @@ export interface FileRouteTypes {
     | '/super/'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
+    | '/admin/campanhas/$id'
     | '/admin/formularios/$id'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
@@ -614,6 +625,7 @@ export interface FileRouteTypes {
     | '/super'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
+    | '/admin/campanhas/$id'
     | '/admin/formularios/$id'
     | '/admin/imoveis/$id'
     | '/admin/imoveis/novo'
@@ -670,6 +682,7 @@ export interface FileRouteTypes {
     | '/_authenticated/super/'
     | '/_authenticated/admin/blog/$id'
     | '/_authenticated/admin/blog/novo'
+    | '/_authenticated/admin/campanhas/$id'
     | '/_authenticated/admin/formularios/$id'
     | '/_authenticated/admin/imoveis/$id'
     | '/_authenticated/admin/imoveis/novo'
@@ -1082,6 +1095,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFormulariosIdRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/campanhas/$id': {
+      id: '/_authenticated/admin/campanhas/$id'
+      path: '/campanhas/$id'
+      fullPath: '/admin/campanhas/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCampanhasIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/blog/novo': {
       id: '/_authenticated/admin/blog/novo'
       path: '/novo'
@@ -1130,6 +1150,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPerfisRoute: typeof AuthenticatedAdminPerfisRoute
   AuthenticatedAdminSiteRoute: typeof AuthenticatedAdminSiteRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminCampanhasIdRoute: typeof AuthenticatedAdminCampanhasIdRoute
   AuthenticatedAdminFormulariosIdRoute: typeof AuthenticatedAdminFormulariosIdRoute
   AuthenticatedAdminImoveisIdRoute: typeof AuthenticatedAdminImoveisIdRoute
   AuthenticatedAdminImoveisNovoRoute: typeof AuthenticatedAdminImoveisNovoRoute
@@ -1156,6 +1177,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPerfisRoute: AuthenticatedAdminPerfisRoute,
   AuthenticatedAdminSiteRoute: AuthenticatedAdminSiteRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminCampanhasIdRoute: AuthenticatedAdminCampanhasIdRoute,
   AuthenticatedAdminFormulariosIdRoute: AuthenticatedAdminFormulariosIdRoute,
   AuthenticatedAdminImoveisIdRoute: AuthenticatedAdminImoveisIdRoute,
   AuthenticatedAdminImoveisNovoRoute: AuthenticatedAdminImoveisNovoRoute,
