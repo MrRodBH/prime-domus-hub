@@ -12,12 +12,22 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus, X } from "lucide-react";
+import { Mail, MessageCircle, Phone, Sparkles, Loader2, TrendingUp, History, Plus, X, Ban, Trash2, RotateCcw } from "lucide-react";
 import { adminListarLeads, adminAtualizarLead, adminListarCorretores, adminListarImoveisLite, criarLeadManual, meusPapeis } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { gerarInsightsFunil } from "@/lib/api/ia.functions";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { listarMotivos } from "@/lib/api/lead-reasons.functions";
+import {
+  descartarLead,
+  perderLead,
+  listarLeadsDescartados,
+  reabrirLead,
+  performanceComercial,
+  gerarInsightsPerformance,
+} from "@/lib/api/leads-crm.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +45,7 @@ const leadsSearchSchema = z.object({
   inicio: z.string().optional(),
   fim: z.string().optional(),
   alerta: z.enum(["sem_atendimento", "sem_followup", "visitas_sem_feedback", "propostas_paradas"]).optional(),
+  tab: z.enum(["kanban", "descartados"]).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/admin/leads")({
@@ -42,7 +53,7 @@ export const Route = createFileRoute("/_authenticated/admin/leads")({
   component: AdminLeads,
 });
 
-type Status = "novo" | "conversando" | "visita" | "proposta" | "ganho" | "perdido";
+type Status = "novo" | "conversando" | "visita" | "proposta" | "ganho" | "perdido" | "descartado";
 
 const COLUMNS: { id: Status; label: string; accent: string }[] = [
   { id: "novo", label: "Novo", accent: "bg-red-500" },
@@ -50,7 +61,7 @@ const COLUMNS: { id: Status; label: string; accent: string }[] = [
   { id: "visita", label: "Visita", accent: "bg-lime-500" },
   { id: "proposta", label: "Proposta", accent: "bg-emerald-500" },
   { id: "ganho", label: "Ganho", accent: "bg-emerald-500" },
-  { id: "perdido", label: "Perdido / Descartado", accent: "bg-rose-500" },
+  { id: "perdido", label: "Perdido", accent: "bg-rose-500" },
 ];
 
 type Lead = {
