@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 
 type Role = "admin" | "corretor" | "secretaria" | "gerente" | "captador";
 
-const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[] }> = [
+import { useCmsPermissions, type CmsModuleCode } from "@/hooks/use-cms-permissions";
+
+type CmsGate = CmsModuleCode;
+const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[]; cms?: CmsGate }> = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
@@ -24,11 +27,11 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
   { to: "/admin/origens", label: "Origens de Leads", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
-  { to: "/admin/midias", label: "Mídias", icon: ImageIcon, hideFor: ["secretaria", "corretor", "captador"] },
-  { to: "/admin/formularios", label: "Formulários", icon: FileText, hideFor: ["secretaria", "corretor", "captador"] },
-  { to: "/admin/paginas", label: "Páginas", icon: FileCode, hideFor: ["secretaria", "corretor", "captador"] },
-  { to: "/admin/campanhas", label: "Banners & Popups", icon: Megaphone, hideFor: ["secretaria", "corretor", "captador"] },
-  { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"] },
+  { to: "/admin/midias", label: "Mídias", icon: ImageIcon, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.midias" },
+  { to: "/admin/formularios", label: "Formulários", icon: FileText, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.formularios" },
+  { to: "/admin/paginas", label: "Páginas", icon: FileCode, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.paginas" },
+  { to: "/admin/campanhas", label: "Banners & Popups", icon: Megaphone, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.campanhas" },
+  { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.configuracoes" },
 ];
 
 export function AdminShell() {
@@ -42,6 +45,7 @@ export function AdminShell() {
   const impersonating = typeof window !== "undefined" ? localStorage.getItem("impersonate_tenant_id") : null;
   const rolesLoaded = Array.isArray(papeis) && papeis.length > 0;
   const roles = (rolesLoaded ? papeis : ["admin"]) as Role[];
+  const cms = useCmsPermissions();
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -50,8 +54,9 @@ export function AdminShell() {
 
   const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + "/"));
   const visibleNav = nav.filter((n) => {
-    if (!n.hideFor) return true;
-    return roles.some((r) => !n.hideFor!.includes(r));
+    if (n.hideFor && !roles.some((r) => !n.hideFor!.includes(r))) return false;
+    if (n.cms && !cms.can(n.cms, "visualizar")) return false;
+    return true;
   });
 
   return (
