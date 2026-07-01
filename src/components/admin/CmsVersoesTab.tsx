@@ -240,8 +240,8 @@ export function CmsVersoesTab() {
                   size="sm"
                   variant="outline"
                   onClick={() => restaurar.mutate(v.id)}
-                  disabled={restaurar.isPending || v.status === "draft"}
-                  title={v.status === "draft" ? "Já é o rascunho atual" : "Restaurar como rascunho"}
+                  disabled={restaurar.isPending || v.status === "draft" || !canPublish}
+                  title={!canPublish ? "Requer permissão de publicar" : v.status === "draft" ? "Já é o rascunho atual" : "Restaurar como rascunho"}
                 >
                   <Undo2 className="size-3.5 mr-1" />
                   Restaurar
