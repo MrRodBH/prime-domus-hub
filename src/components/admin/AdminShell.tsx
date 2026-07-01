@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History, Crown, Image as ImageIcon, FileText, FileCode, Megaphone } from "lucide-react";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History, Crown, Image as ImageIcon, FileText, FileCode, Megaphone, FileClock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
