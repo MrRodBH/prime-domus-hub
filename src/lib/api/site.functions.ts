@@ -337,11 +337,17 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    const modulo = (data.key === "branding" || data.key === "branding_v2") ? "cms.branding" : "cms.configuracoes";
+    await assertCmsPermission(context, modulo, "editar");
+    await assertCmsPermission(context, modulo, "publicar");
     const { supabase, userId } = context;
+    const { data: before } = await supabase.from("site_settings").select("value").eq("key", data.key).maybeSingle();
     const { error } = await supabase
       .from("site_settings")
       .upsert({ key: data.key, value: data.value as never, updated_by: userId });
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "site_settings", `cms.settings.publicar:${data.key}`, data.key, before?.value ?? null, data.value);
     // snapshot histórico (published) — best-effort, não bloqueia a operação
     try {
       await supabase.from("site_settings_versions").insert({
@@ -351,7 +357,6 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
         created_by: userId,
         published_at: new Date().toISOString(),
       });
-      // consome o rascunho pendente (se houver) desta chave
       await supabase
         .from("site_settings_versions")
         .delete()
