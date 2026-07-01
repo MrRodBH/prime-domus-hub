@@ -148,6 +148,7 @@ export const restaurarVersao = createServerFn({ method: "POST" })
         created_by: userId,
       });
     if (eIns) throw new Error(eIns.message);
+    await logCmsAudit(context, "site_settings_versions", `cms.versao.restaurar:${ver.key}`, data.id, null, ver.value);
     return { ok: true, key: ver.key };
   });
 
