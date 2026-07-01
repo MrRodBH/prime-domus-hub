@@ -251,10 +251,10 @@ const DEFAULT_ANUNCIE: SiteSettings["pagina_anuncie"] = {
   meta_description: "Anuncie seu imóvel de alto padrão com a RM Prime.",
 };
 
-export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
-  const supabase = publicClient();
-  const { data, error } = await supabase.from("site_settings").select("key, value");
-  if (error) throw new Error(error.message);
+/** Hidrata SiteSettings a partir de linhas [{key, value}] — reutilizado por preview. */
+export async function hydrateSiteSettings(
+  rows: { key: string; value: unknown }[],
+): Promise<SiteSettings> {
   const result: SiteSettings = {
     branding: {},
     branding_v2: {},
@@ -283,7 +283,7 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   const simpleKeys = new Set([
     "branding","branding_v2","empresa","footer","seo_global","home_hero","contato",
   ]);
-  for (const row of data ?? []) {
+  for (const row of rows) {
     if (simpleKeys.has(row.key)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (result as any)[row.key] = (row.value as Record<string, unknown>) ?? {};
@@ -302,6 +302,13 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   if (result.pagina_anuncie.hero_image_path) result.pagina_anuncie.hero_image_url = await signedUrl("site", result.pagina_anuncie.hero_image_path);
 
   return result;
+}
+
+export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
+  const supabase = publicClient();
+  const { data, error } = await supabase.from("site_settings").select("key, value");
+  if (error) throw new Error(error.message);
+  return hydrateSiteSettings(data ?? []);
 });
 
 
