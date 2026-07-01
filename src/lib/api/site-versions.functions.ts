@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { hydrateSiteSettings, type SiteSettings } from "./site.functions";
 
 const KEY_ENUM = z.enum([
   "branding",
