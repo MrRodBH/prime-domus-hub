@@ -219,10 +219,30 @@ function AdminLeads() {
     if (!over) return;
     const lead = filteredData.find((l) => l.id === id);
     if (!lead || lead.status === over) return;
+
+    if (over === "perdido") {
+      if (lead.status !== "proposta") {
+        toast.error("Só é possível marcar como Perdido leads que estão em Proposta. Use Descartar para desqualificar.");
+        return;
+      }
+      setPerdaLeadId(id);
+      return;
+    }
+    if (over === "descartado") {
+      setDescarteLeadId(id);
+      return;
+    }
     upd.mutate({ id, status: over as Status });
   }
 
   const total = filteredData.length;
+  const corretoresLista = (corretores ?? []) as CorretorLite[];
+  const selectedLead = filteredData.find((l) => l.id === selectedId) ?? null;
+  const historicoLead = filteredData.find((l) => l.id === historicoId) ?? null;
+  const currentTab = (search.tab ?? "kanban") as "kanban" | "descartados";
+  function setTab(t: "kanban" | "descartados") {
+    navigate({ to: "/admin/leads", search: { ...search, tab: t } });
+  }
   const corretoresLista = (corretores ?? []) as CorretorLite[];
   const selectedLead = filteredData.find((l) => l.id === selectedId) ?? null;
   const historicoLead = filteredData.find((l) => l.id === historicoId) ?? null;
