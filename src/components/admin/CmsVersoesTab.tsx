@@ -140,7 +140,7 @@ export function CmsVersoesTab() {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            {drafts.length > 0 && (
+            {drafts.length > 0 && canPublish && (
               <Button
                 size="sm"
                 onClick={() => publicarTudo.mutate()}
