@@ -380,6 +380,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cms_pages: {
+        Row: {
+          blocks: Json
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          published_at: string | null
+          seo: Json
+          slug: string
+          status: string
+          tenant_id: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          published_at?: string | null
+          seo?: Json
+          slug: string
+          status?: string
+          tenant_id?: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          published_at?: string | null
+          seo?: Json
+          slug?: string
+          status?: string
+          tenant_id?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       corretores: {
         Row: {
           ativo: boolean
