@@ -83,6 +83,8 @@ export const publicarRascunho = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ key: KEY_ENUM }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "publicar");
     const { supabase, userId } = context;
     const { data: draft, error: eDraft } = await supabase
       .from("site_settings_versions")
