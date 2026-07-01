@@ -46,9 +46,13 @@ function statusBadge(status: SiteVersionRow["status"]) {
   return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
 }
 
+import { useCmsPermissions } from "@/hooks/use-cms-permissions";
+
 export function CmsVersoesTab() {
   const qc = useQueryClient();
   const [key, setKey] = useState<Key>("home_hero");
+  const cms = useCmsPermissions();
+  const canPublish = cms.can("cms.versoes", "publicar");
 
   const pendentes = useQuery({
     queryKey: ["site-drafts-pendentes"],
