@@ -58,18 +58,23 @@ export const salvarMenuItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => itemSchema.parse(d))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
     const { id, ...rest } = data;
+    await assertCmsPermission(context, "cms.menu", id ? "editar" : "criar");
     if (id) {
-      const { error } = await context.supabase.from("website_menu_items").update(rest).eq("id", id);
+      const { data: before } = await context.supabase.from("website_menu_items").select("*").eq("id", id).maybeSingle();
+      const { data: row, error } = await context.supabase.from("website_menu_items").update(rest).eq("id", id).select("*").single();
       if (error) throw new Error(error.message);
+      await logCmsAudit(context, "website_menu_items", "cms.menu.editar", id, before, row);
       return { id };
     }
     const { data: inserted, error } = await context.supabase
       .from("website_menu_items")
       .insert(rest)
-      .select("id")
+      .select("*")
       .single();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "website_menu_items", "cms.menu.criar", inserted!.id as string, null, inserted);
     return { id: inserted!.id as string };
   });
 
@@ -77,8 +82,12 @@ export const excluirMenuItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.menu", "excluir");
+    const { data: before } = await context.supabase.from("website_menu_items").select("*").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("website_menu_items").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "website_menu_items", "cms.menu.excluir", data.id, before, null);
     return { ok: true };
   });
 
@@ -88,6 +97,8 @@ export const reordenarMenu = createServerFn({ method: "POST" })
     z.object({ items: z.array(z.object({ id: z.string().uuid(), ordem: z.number().int() })) }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.menu", "editar");
     for (const it of data.items) {
       const { error } = await context.supabase
         .from("website_menu_items")
@@ -95,5 +106,6 @@ export const reordenarMenu = createServerFn({ method: "POST" })
         .eq("id", it.id);
       if (error) throw new Error(error.message);
     }
+    await logCmsAudit(context, "website_menu_items", "cms.menu.reordenar", "bulk", null, data.items);
     return { ok: true };
   });
