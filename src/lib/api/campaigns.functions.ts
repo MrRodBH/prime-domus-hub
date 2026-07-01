@@ -184,7 +184,7 @@ export const listarCampanhasAtivas = createServerFn({ method: "GET" })
       .eq("status", "active")
       .order("prioridade", { ascending: false });
     if (error) return [];
-    return (rows ?? []) as Campaign[];
+    return (rows ?? []) as unknown as Campaign[];
   });
 
 export const registrarEventoCampanha = createServerFn({ method: "POST" })
