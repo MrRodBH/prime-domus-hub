@@ -101,6 +101,8 @@ function AdminLeads() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [historicoId, setHistoricoId] = useState<string | null>(null);
+  const [perdaLeadId, setPerdaLeadId] = useState<string | null>(null);
+  const [descarteLeadId, setDescarteLeadId] = useState<string | null>(null);
   const [corretorFilter, setCorretorFilter] = useState<string>(search.corretor_id ?? "__all__");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
