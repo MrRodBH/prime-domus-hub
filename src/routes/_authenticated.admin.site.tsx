@@ -214,8 +214,13 @@ function AdminSite() {
           <TabsTrigger value="seo">SEO Global</TabsTrigger>
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
           <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
+          <TabsTrigger value="diferenciais">Home — Diferenciais</TabsTrigger>
+          <TabsTrigger value="depoimentos">Home — Depoimentos</TabsTrigger>
+          <TabsTrigger value="sobre">Página Sobre</TabsTrigger>
+          <TabsTrigger value="pag_contato">Página Contato</TabsTrigger>
+          <TabsTrigger value="anuncie">Página Anuncie</TabsTrigger>
           <TabsTrigger value="lancamentos">Página Lançamentos</TabsTrigger>
-          <TabsTrigger value="contato">Contato</TabsTrigger>
+          <TabsTrigger value="contato">Contato (global)</TabsTrigger>
           <TabsTrigger value="meta">Integrações Meta</TabsTrigger>
         </TabsList>
 
@@ -224,6 +229,11 @@ function AdminSite() {
         <TabsContent value="menu"><CmsMenuTab /></TabsContent>
         <TabsContent value="footer"><CmsRodapeTab data={data} /></TabsContent>
         <TabsContent value="seo"><CmsSeoGlobalTab data={data} /></TabsContent>
+        <TabsContent value="diferenciais"><CmsHomeDiferenciaisTab data={data} /></TabsContent>
+        <TabsContent value="depoimentos"><CmsHomeDepoimentosTab data={data} /></TabsContent>
+        <TabsContent value="sobre"><CmsPaginaSobreTab data={data} /></TabsContent>
+        <TabsContent value="pag_contato"><CmsPaginaContatoTab data={data} /></TabsContent>
+        <TabsContent value="anuncie"><CmsPaginaAnuncieTab data={data} /></TabsContent>
 
 
 
