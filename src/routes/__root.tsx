@@ -79,10 +79,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   loader: async () => {
     let faviconUrl: string | null = null;
     let metaPixelId: string | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let brandingV2: any = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let seoGlobal: any = {};
+    let siteName = "RM Prime Imóveis";
     try {
       const { obterSiteSettings } = await import("../lib/api/site.functions");
       const settings = await obterSiteSettings();
       faviconUrl = settings.branding.favicon_url ?? null;
+      brandingV2 = settings.branding_v2 ?? {};
+      seoGlobal = settings.seo_global ?? {};
+      siteName = settings.branding.site_name || siteName;
     } catch {
       // ignore
     }
@@ -93,72 +101,107 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     } catch {
       // ignore
     }
-    return { faviconUrl, metaPixelId };
+    return { faviconUrl, metaPixelId, brandingV2, seoGlobal, siteName };
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "RM Prime Imóveis — Alto padrão em Belo Horizonte" },
-      {
-        name: "description",
-        content:
-          "Boutique imobiliária especializada em imóveis de alto padrão em Belo Horizonte: Lourdes, Belvedere, Vila da Serra e Funcionários.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "RM Prime Imóveis" },
-      { property: "og:locale", content: "pt_BR" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "theme-color", content: "#0b3a3a" },
-    ],
-    links: [
+  head: ({ loaderData }) => {
+    const seo = loaderData?.seoGlobal ?? {};
+    const bv2 = loaderData?.brandingV2 ?? {};
+    const title = seo.default_title || "RM Prime Imóveis — Alto padrão em Belo Horizonte";
+    const description =
+      seo.default_description ||
+      "Boutique imobiliária especializada em imóveis de alto padrão em Belo Horizonte: Lourdes, Belvedere, Vila da Serra e Funcionários.";
+    const links: Array<Record<string, unknown>> = [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: loaderData?.faviconUrl ?? faviconAsset.url },
       { rel: "apple-touch-icon", href: loaderData?.faviconUrl ?? faviconAsset.url },
-    ],
-    scripts: [
-      {
-        async: true,
-        src: "https://www.googletagmanager.com/gtag/js?id=G-BYVFRCL0VV",
-      },
-      {
-        children: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-BYVFRCL0VV');`,
-      },
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "RealEstateAgent",
-          name: "RM Prime Imóveis",
-          description:
-            "Boutique imobiliária de alto padrão em Belo Horizonte.",
-          areaServed: ["Belo Horizonte", "Nova Lima", "Minas Gerais"],
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: "Rua Sergipe, 1234",
-            addressLocality: "Belo Horizonte",
-            addressRegion: "MG",
-            addressCountry: "BR",
-          },
-        }),
-      },
-      // Meta Pixel injected directly in <head> by RootShell (helper extensions só detectam quando está no head).
-
-    ],
-  }),
+    ];
+    // Preload Google Fonts se configurado
+    const fontFamilies: string[] = [];
+    if (bv2.font_primary) fontFamilies.push(`${bv2.font_primary}:wght@400;500;600;700`);
+    if (bv2.font_secondary && bv2.font_secondary !== bv2.font_primary)
+      fontFamilies.push(`${bv2.font_secondary}:wght@400;500;600`);
+    if (fontFamilies.length > 0) {
+      links.push({ rel: "preconnect", href: "https://fonts.googleapis.com" });
+      links.push({ rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" });
+      links.push({
+        rel: "stylesheet",
+        href: `https://fonts.googleapis.com/css2?${fontFamilies
+          .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}`)
+          .join("&")}&display=swap`,
+      });
+    }
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title },
+        { name: "description", content: description },
+        ...(seo.keywords ? [{ name: "keywords", content: seo.keywords } as Record<string, string>] : []),
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: loaderData?.siteName || "RM Prime Imóveis" },
+        { property: "og:locale", content: "pt_BR" },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { name: "twitter:card", content: "summary_large_image" },
+        ...(seo.twitter_handle
+          ? [{ name: "twitter:site", content: seo.twitter_handle } as Record<string, string>]
+          : []),
+        { name: "theme-color", content: bv2.color_primary || "#0b3a3a" },
+      ],
+      links,
+      scripts: [
+        { async: true, src: "https://www.googletagmanager.com/gtag/js?id=G-BYVFRCL0VV" },
+        {
+          children: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-BYVFRCL0VV');`,
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "RealEstateAgent",
+            name: loaderData?.siteName || "RM Prime Imóveis",
+            description,
+            areaServed: ["Belo Horizonte", "Nova Lima", "Minas Gerais"],
+          }),
+        },
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
 
+function buildBrandingCss(bv2: Record<string, string | undefined | null> | undefined | null): string {
+  if (!bv2) return "";
+  const map: Record<string, string> = {
+    color_primary: "--primary",
+    color_secondary: "--secondary",
+    color_accent: "--accent",
+    color_button: "--ring",
+    color_link: "--gold",
+  };
+  const decls: string[] = [];
+  for (const [k, v] of Object.entries(map)) {
+    const val = bv2[k];
+    if (val && typeof val === "string" && val.trim()) decls.push(`${v}: ${val.trim()};`);
+  }
+  if (bv2.font_primary) decls.push(`--font-sans: "${bv2.font_primary}", ui-sans-serif, system-ui, sans-serif;`);
+  if (bv2.font_secondary) decls.push(`--font-display: "${bv2.font_secondary}", ui-serif, Georgia, serif;`);
+  if (!decls.length) return "";
+  return `:root{${decls.join("")}}`;
+}
+
 function RootShell({ children }: { children: ReactNode }) {
   const loaderData = Route.useLoaderData();
   const pixelId = loaderData?.metaPixelId ?? null;
+  const brandingCss = buildBrandingCss(loaderData?.brandingV2 as Record<string, string | undefined>);
   return (
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        {brandingCss ? <style dangerouslySetInnerHTML={{ __html: brandingCss }} /> : null}
         {pixelId ? (
           <>
             <script
@@ -181,6 +224,7 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
+
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();

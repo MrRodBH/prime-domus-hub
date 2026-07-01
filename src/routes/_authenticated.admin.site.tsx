@@ -14,6 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+import { CmsEmpresaTab, CmsBrandingDinamicoTab, CmsSeoGlobalTab, CmsRodapeTab } from "@/components/admin/CmsFase1Tabs";
+import { CmsMenuTab } from "@/components/admin/CmsMenuTab";
+
 
 export const Route = createFileRoute("/_authenticated/admin/site")({
   component: AdminSite,
@@ -200,15 +203,28 @@ function AdminSite() {
         <p className="text-sm text-muted-foreground mt-1">Edite a logo, os textos da home e os dados de contato.</p>
       </div>
 
-      <Tabs defaultValue="branding">
+      <Tabs defaultValue="empresa">
         <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="empresa">Empresa</TabsTrigger>
           <TabsTrigger value="branding">Logo & Marca</TabsTrigger>
+          <TabsTrigger value="branding_v2">Branding Dinâmico</TabsTrigger>
+          <TabsTrigger value="menu">Menu</TabsTrigger>
+          <TabsTrigger value="footer">Rodapé</TabsTrigger>
+          <TabsTrigger value="seo">SEO Global</TabsTrigger>
           <TabsTrigger value="hero">Home — Hero</TabsTrigger>
           <TabsTrigger value="secoes">Home — Seções</TabsTrigger>
           <TabsTrigger value="lancamentos">Página Lançamentos</TabsTrigger>
           <TabsTrigger value="contato">Contato</TabsTrigger>
           <TabsTrigger value="meta">Integrações Meta</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="empresa"><CmsEmpresaTab data={data} /></TabsContent>
+        <TabsContent value="branding_v2"><CmsBrandingDinamicoTab data={data} /></TabsContent>
+        <TabsContent value="menu"><CmsMenuTab /></TabsContent>
+        <TabsContent value="footer"><CmsRodapeTab data={data} /></TabsContent>
+        <TabsContent value="seo"><CmsSeoGlobalTab data={data} /></TabsContent>
+
+
 
         <TabsContent value="branding" className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
           <div><Label>Nome da empresa</Label><Input value={branding.site_name} onChange={(e) => setBranding({ ...branding, site_name: e.target.value })} /></div>
