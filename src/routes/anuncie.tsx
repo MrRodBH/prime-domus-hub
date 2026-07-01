@@ -105,12 +105,34 @@ function Page() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 max-w-3xl mx-auto px-6 py-32 w-full">
-        <span className="eyebrow">Anuncie com exclusividade</span>
-        <h1 className="font-display text-5xl md:text-6xl mt-4 mb-6">Anuncie seu imóvel</h1>
-        <p className="text-muted-foreground text-lg mb-12">
-          Preencha as informações abaixo e um consultor entrará em contato em até 24h.
-        </p>
+      <main className="flex-1 max-w-5xl mx-auto px-6 py-32 w-full">
+        {pag.hero_eyebrow && <span className="eyebrow">{pag.hero_eyebrow}</span>}
+        <h1 className="font-display text-5xl md:text-6xl mt-4 mb-6">{pag.hero_titulo ?? "Anuncie seu imóvel"}</h1>
+        {pag.hero_subtitle && (
+          <p className="text-muted-foreground text-lg mb-12 max-w-2xl">{pag.hero_subtitle}</p>
+        )}
+        {pag.hero_image_url && (
+          <img src={pag.hero_image_url} alt="" className="w-full h-64 object-cover rounded mb-12" />
+        )}
+
+        {(pag.beneficios ?? []).length > 0 && (
+          <section className="mb-16">
+            {pag.beneficios_eyebrow && <span className="eyebrow">{pag.beneficios_eyebrow}</span>}
+            {pag.beneficios_titulo && <h2 className="font-display text-3xl md:text-4xl mt-3 mb-8">{pag.beneficios_titulo}</h2>}
+            <div className="grid md:grid-cols-3 gap-6">
+              {(pag.beneficios ?? []).map((b, i) => (
+                <div key={i} className="p-6 bg-secondary/40 rounded">
+                  <h3 className="font-display text-xl mb-2">{b.titulo}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="max-w-2xl">
+          {pag.form_titulo && <h2 className="font-display text-2xl mb-2">{pag.form_titulo}</h2>}
+          {pag.form_texto && <p className="text-muted-foreground text-sm mb-6">{pag.form_texto}</p>}
 
         <form id="anuncie-form" className="grid gap-5" onSubmit={onSubmit}>
           <label className="block">
