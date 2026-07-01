@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
 import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 import { enviarLead } from "@/lib/api/catalogo.functions";
+import { obterSiteSettings } from "@/lib/api/site.functions";
 import { attributionPayload } from "@/lib/attribution";
 import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
 
@@ -14,17 +15,22 @@ export const Route = createFileRoute("/anuncie")({
   head: () => ({
     meta: [
       { title: "Anuncie seu imóvel — RM Prime Imóveis" },
-      { name: "description", content: "Anuncie seu imóvel de alto padrão com a RM Prime. Avaliação gratuita, marketing personalizado e discrição absoluta." },
+      { name: "description", content: "Anuncie seu imóvel de alto padrão com a RM Prime." },
       { property: "og:title", content: "Anuncie seu imóvel — RM Prime Imóveis" },
       { property: "og:description", content: "Avaliação e marketing personalizado para imóveis de alto padrão." },
-      { property: "og:url", content: "/anuncie" },
+      { property: "og:url", content: "https://rmprimeimoveis.com.br/anuncie" },
     ],
-    links: [{ rel: "canonical", href: "/anuncie" }],
+    links: [{ rel: "canonical", href: "https://rmprimeimoveis.com.br/anuncie" }],
   }),
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
+  },
   component: Page,
 });
 
 function Page() {
+  const { data: site } = useQuery({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings(), staleTime: 5 * 60 * 1000 });
+  const pag = site?.pagina_anuncie ?? {};
   const [telefone, setTelefone] = useState("");
   const [consent, setConsent] = useState(false);
 
@@ -99,12 +105,34 @@ function Page() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 max-w-3xl mx-auto px-6 py-32 w-full">
-        <span className="eyebrow">Anuncie com exclusividade</span>
-        <h1 className="font-display text-5xl md:text-6xl mt-4 mb-6">Anuncie seu imóvel</h1>
-        <p className="text-muted-foreground text-lg mb-12">
-          Preencha as informações abaixo e um consultor entrará em contato em até 24h.
-        </p>
+      <main className="flex-1 max-w-5xl mx-auto px-6 py-32 w-full">
+        {pag.hero_eyebrow && <span className="eyebrow">{pag.hero_eyebrow}</span>}
+        <h1 className="font-display text-5xl md:text-6xl mt-4 mb-6">{pag.hero_titulo ?? "Anuncie seu imóvel"}</h1>
+        {pag.hero_subtitle && (
+          <p className="text-muted-foreground text-lg mb-12 max-w-2xl">{pag.hero_subtitle}</p>
+        )}
+        {pag.hero_image_url && (
+          <img src={pag.hero_image_url} alt="" className="w-full h-64 object-cover rounded mb-12" />
+        )}
+
+        {(pag.beneficios ?? []).length > 0 && (
+          <section className="mb-16">
+            {pag.beneficios_eyebrow && <span className="eyebrow">{pag.beneficios_eyebrow}</span>}
+            {pag.beneficios_titulo && <h2 className="font-display text-3xl md:text-4xl mt-3 mb-8">{pag.beneficios_titulo}</h2>}
+            <div className="grid md:grid-cols-3 gap-6">
+              {(pag.beneficios ?? []).map((b, i) => (
+                <div key={i} className="p-6 bg-secondary/40 rounded">
+                  <h3 className="font-display text-xl mb-2">{b.titulo}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="max-w-2xl">
+          {pag.form_titulo && <h2 className="font-display text-2xl mb-2">{pag.form_titulo}</h2>}
+          {pag.form_texto && <p className="text-muted-foreground text-sm mb-6">{pag.form_texto}</p>}
 
         <form id="anuncie-form" className="grid gap-5" onSubmit={onSubmit}>
           <label className="block">
@@ -159,9 +187,10 @@ function Page() {
             disabled={enviar.isPending}
             className="mt-4 bg-petroleum hover:bg-gold transition-colors text-linen py-4 rounded-full font-medium uppercase tracking-[0.18em] text-sm disabled:opacity-60"
           >
-            {enviar.isPending ? "Enviando…" : "Confirmar Informações"}
+            {enviar.isPending ? "Enviando…" : (pag.form_botao ?? "Confirmar Informações")}
           </button>
         </form>
+        </div>
       </main>
       <Footer />
     </div>
