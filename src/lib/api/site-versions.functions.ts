@@ -118,6 +118,8 @@ export const restaurarVersao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission } = await import("./_cms");
+    await assertCmsPermission(context, "cms.versoes", "publicar");
     const { supabase, userId } = context;
     const { data: ver, error } = await supabase
       .from("site_settings_versions")
