@@ -236,5 +236,6 @@ export const publicarTodosRascunhos = createServerFn({ method: "POST" })
       });
       await supabase.from("site_settings_versions").delete().eq("id", d.id);
     }
+    await logCmsAudit(context, "site_settings_versions", "cms.rascunho.publicar-todos", "bulk", null, { count: list.length, keys: list.map((d) => d.key) });
     return { ok: true, count: list.length };
   });
