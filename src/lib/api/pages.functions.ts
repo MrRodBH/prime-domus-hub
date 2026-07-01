@@ -83,7 +83,8 @@ const salvarSchema = z.object({
 export const salvarPagina = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => salvarSchema.parse(d))
-  .handler(async ({ context, data, userId }) => {
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
     const payload = {
       slug: data.slug,
       titulo: data.titulo,
@@ -95,12 +96,12 @@ export const salvarPagina = createServerFn({ method: "POST" })
       published_at: data.status === "published" ? new Date().toISOString() : null,
     };
     if (data.id) {
-      const { data: row, error } = await context.supabase
+      const { data: row, error } = await supabase
         .from("cms_pages").update(payload).eq("id", data.id).select().maybeSingle();
       if (error) throw new Error(error.message);
       return row;
     }
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await supabase
       .from("cms_pages").insert({ ...payload, created_by: userId }).select().maybeSingle();
     if (error) throw new Error(error.message);
     return row;

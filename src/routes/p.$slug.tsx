@@ -2,8 +2,8 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { obterPaginaPublica, type CmsBlock } from "@/lib/api/pages.functions";
 import { CmsPageRenderer } from "@/components/site/CmsPageRenderer";
-import { SiteHeader } from "@/components/site/SiteHeader";
-import { SiteFooter } from "@/components/site/SiteFooter";
+import { Header } from "@/components/site/Header";
+import { Footer } from "@/components/site/Footer";
 import { Suspense } from "react";
 
 export const Route = createFileRoute("/p/$slug")({
@@ -56,11 +56,11 @@ function PaginaPublica() {
   const blocks = (page.blocks as CmsBlock[]) ?? [];
   return (
     <div className="min-h-screen flex flex-col">
-      <Suspense fallback={null}><SiteHeader /></Suspense>
+      <Suspense fallback={null}><Header /></Suspense>
       <main className="flex-1">
         <CmsPageRenderer blocks={blocks} />
       </main>
-      <Suspense fallback={null}><SiteFooter /></Suspense>
+      <Suspense fallback={null}><Footer /></Suspense>
     </div>
   );
 }
