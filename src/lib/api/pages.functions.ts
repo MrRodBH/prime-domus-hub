@@ -84,7 +84,11 @@ export const salvarPagina = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => salvarSchema.parse(d))
   .handler(async ({ context, data }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
     const { supabase, userId } = context;
+    const wantsPublish = data.status === "published";
+    await assertCmsPermission(context, "cms.paginas", data.id ? "editar" : "criar");
+    if (wantsPublish) await assertCmsPermission(context, "cms.paginas", "publicar");
     const payload = {
       slug: data.slug,
       titulo: data.titulo,
@@ -93,17 +97,20 @@ export const salvarPagina = createServerFn({ method: "POST" })
       seo: data.seo,
       blocks: data.blocks,
       updated_by: userId,
-      published_at: data.status === "published" ? new Date().toISOString() : null,
+      published_at: wantsPublish ? new Date().toISOString() : null,
     };
     if (data.id) {
+      const { data: before } = await supabase.from("cms_pages").select("*").eq("id", data.id).maybeSingle();
       const { data: row, error } = await supabase
         .from("cms_pages").update(payload).eq("id", data.id).select().maybeSingle();
       if (error) throw new Error(error.message);
+      await logCmsAudit(context, "cms_pages", wantsPublish ? "cms.pagina.publicar" : "cms.pagina.editar", data.id, before, row);
       return row;
     }
     const { data: row, error } = await supabase
       .from("cms_pages").insert({ ...payload, created_by: userId }).select().maybeSingle();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "cms_pages", "cms.pagina.criar", row?.id ?? null, null, row);
     return row;
   });
 
@@ -111,8 +118,12 @@ export const excluirPagina = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.paginas", "excluir");
+    const { data: before } = await context.supabase.from("cms_pages").select("*").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("cms_pages").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "cms_pages", "cms.pagina.excluir", data.id, before, null);
     return { ok: true };
   });
 
