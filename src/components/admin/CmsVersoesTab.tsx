@@ -128,16 +128,28 @@ export function CmsVersoesTab() {
 
       {/* Rascunhos pendentes */}
       <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <History className="size-4 text-amber-700" />
             <span className="font-medium text-amber-900">
               Rascunhos pendentes ({drafts.length})
             </span>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => pendentes.refetch()}>
-            <RefreshCw className="size-3.5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {drafts.length > 0 && (
+              <Button
+                size="sm"
+                onClick={() => publicarTudo.mutate()}
+                disabled={publicarTudo.isPending}
+              >
+                <Rocket className="size-3.5 mr-1" />
+                Publicar todos
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => pendentes.refetch()}>
+              <RefreshCw className="size-3.5" />
+            </Button>
+          </div>
         </div>
         {drafts.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum rascunho aguardando publicação.</p>
