@@ -23,7 +23,7 @@ export interface SiteVersionRow {
   id: string;
   key: string;
   status: "draft" | "published" | "archived";
-  value: Record<string, unknown>;
+  value: unknown;
   notes: string | null;
   created_by: string | null;
   created_at: string;
