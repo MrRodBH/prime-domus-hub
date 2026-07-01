@@ -430,25 +430,29 @@ export const enviarLead = createServerFn({ method: "POST" })
         }
 
         const { enqueueTransactional } = await import("@/lib/email/notify.server");
-        await enqueueTransactional({
-          templateName: "novo-lead",
-          to: destino,
-          idempotencyKey: `lead-${leadId}`,
-          templateData: {
-            nome: data.nome,
-            email: data.email || undefined,
-            telefone: data.telefone || undefined,
-            mensagem: data.mensagem || undefined,
-            origem: data.origem || "Site",
-            imovel_codigo,
-            imovel_titulo,
-            lancamento_nome: lancNome,
-            corretor_nome: corretorNome,
-            recebido_em: new Date().toLocaleString("pt-BR", {
-              timeZone: "America/Sao_Paulo",
-            }),
-          },
-        });
+        const recipients = Array.isArray(destino) ? destino : [destino];
+        const templateData = {
+          nome: data.nome,
+          email: data.email || undefined,
+          telefone: data.telefone || undefined,
+          mensagem: data.mensagem || undefined,
+          origem: data.origem || "Site",
+          imovel_codigo,
+          imovel_titulo,
+          lancamento_nome: lancNome,
+          corretor_nome: corretorNome,
+          recebido_em: new Date().toLocaleString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+          }),
+        };
+        for (const to of recipients) {
+          await enqueueTransactional({
+            templateName: "novo-lead",
+            to,
+            idempotencyKey: `lead-${leadId}-${to}`,
+            templateData,
+          });
+        }
       }
     } catch (e) {
       console.error("Falha ao notificar lead por e-mail:", e);
