@@ -6,13 +6,14 @@ import {
   restaurarVersao,
   publicarRascunho,
   descartarRascunho,
+  publicarTodosRascunhos,
   type SiteVersionRow,
 } from "@/lib/api/site-versions.functions";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { History, Undo2, Rocket, Trash2, RefreshCw } from "lucide-react";
+import { History, Undo2, Rocket, Trash2, RefreshCw, Eye } from "lucide-react";
 
 const KEYS: { value: string; label: string }[] = [
   { value: "branding", label: "Logo & Marca" },
@@ -91,30 +92,64 @@ export function CmsVersoesTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const publicarTudo = useMutation({
+    mutationFn: () => publicarTodosRascunhos(),
+    onSuccess: (res) => {
+      toast.success(`${res.count} rascunho(s) publicado(s).`);
+      qc.invalidateQueries({ queryKey: ["site-versoes"] });
+      qc.invalidateQueries({ queryKey: ["site-drafts-pendentes"] });
+      qc.invalidateQueries({ queryKey: ["site-settings"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const drafts = pendentes.data ?? [];
 
   return (
     <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-6">
-      <div>
-        <h3 className="font-display text-xl">Versões e Publicação</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Cada "Salvar" nas abas do CMS publica imediatamente e gera um snapshot histórico automático.
-          Você pode restaurar qualquer versão anterior (vira um rascunho) e publicá-la em 1 clique.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-display text-xl">Versões e Publicação</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cada "Salvar" nas abas do CMS publica imediatamente e gera um snapshot histórico automático.
+            Você pode restaurar qualquer versão anterior (vira um rascunho) e publicá-la em 1 clique.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open("/?__preview=1", "_blank", "noopener")}
+          title="Abre o site em nova aba mostrando todos os rascunhos aplicados"
+        >
+          <Eye className="size-4 mr-1.5" />
+          Preview ao vivo
+        </Button>
       </div>
 
       {/* Rascunhos pendentes */}
       <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <History className="size-4 text-amber-700" />
             <span className="font-medium text-amber-900">
               Rascunhos pendentes ({drafts.length})
             </span>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => pendentes.refetch()}>
-            <RefreshCw className="size-3.5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {drafts.length > 0 && (
+              <Button
+                size="sm"
+                onClick={() => publicarTudo.mutate()}
+                disabled={publicarTudo.isPending}
+              >
+                <Rocket className="size-3.5 mr-1" />
+                Publicar todos
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => pendentes.refetch()}>
+              <RefreshCw className="size-3.5" />
+            </Button>
+          </div>
         </div>
         {drafts.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum rascunho aguardando publicação.</p>

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { hydrateSiteSettings, type SiteSettings } from "./site.functions";
 
 const KEY_ENUM = z.enum([
   "branding",
@@ -178,4 +179,50 @@ export const listarRascunhosPendentes = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
+  });
+
+/** Preview: retorna SiteSettings com todos os rascunhos pendentes sobrepondo o published. */
+export const obterSiteSettingsPreview = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<SiteSettings> => {
+    const { supabase } = context;
+    const [pub, drafts] = await Promise.all([
+      supabase.from("site_settings").select("key, value"),
+      supabase.from("site_settings_versions").select("key, value").eq("status", "draft"),
+    ]);
+    if (pub.error) throw new Error(pub.error.message);
+    if (drafts.error) throw new Error(drafts.error.message);
+    const map = new Map<string, unknown>();
+    for (const r of pub.data ?? []) map.set(r.key, r.value);
+    for (const r of drafts.data ?? []) map.set(r.key, r.value); // overlay
+    const merged = Array.from(map, ([key, value]) => ({ key, value }));
+    return hydrateSiteSettings(merged);
+  });
+
+/** Publica todos os rascunhos pendentes de uma só vez. */
+export const publicarTodosRascunhos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: drafts, error } = await supabase
+      .from("site_settings_versions")
+      .select("id, key, value")
+      .eq("status", "draft");
+    if (error) throw new Error(error.message);
+    const list = drafts ?? [];
+    for (const d of list) {
+      const { error: eUp } = await supabase
+        .from("site_settings")
+        .upsert({ key: d.key, value: d.value as never, updated_by: userId });
+      if (eUp) throw new Error(eUp.message);
+      await supabase.from("site_settings_versions").insert({
+        key: d.key,
+        value: d.value as never,
+        status: "published",
+        created_by: userId,
+        published_at: new Date().toISOString(),
+      });
+      await supabase.from("site_settings_versions").delete().eq("id", d.id);
+    }
+    return { ok: true, count: list.length };
   });
