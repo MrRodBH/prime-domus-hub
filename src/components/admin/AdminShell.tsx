@@ -1,9 +1,12 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History } from "lucide-react";
-import { useState } from "react";
+import { Building2, Users, MapPin, Inbox, Settings, LogOut, LayoutDashboard, Menu, X, Newspaper, ShieldCheck, UsersRound, History, Crown } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { meusPapeis } from "@/lib/api/admin.functions";
+import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
+import { meuTenantId } from "@/lib/api/tenant.functions";
+import { setCurrentTenantId } from "@/lib/tenant-cache";
 import logo from "@/assets/logo-rm-prime.png";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +16,6 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
   { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
-  
   { to: "/admin/corretores", label: "Usuários", icon: Users },
   { to: "/admin/equipes", label: "Equipes", icon: UsersRound, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/perfis", label: "Perfis & Permissões", icon: ShieldCheck, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
@@ -30,7 +32,10 @@ export function AdminShell() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { data: papeis } = useQuery({ queryKey: ["meus-papeis"], queryFn: () => meusPapeis(), staleTime: 60_000 });
-  // Enquanto carrega (undefined) OU se a leitura falhar e vier vazia, não esconda nada.
+  const { data: isSuper } = useQuery({ queryKey: ["is-super-admin"], queryFn: () => meuAcessoSuperAdmin(), staleTime: 60_000 });
+  const { data: tenantId } = useQuery({ queryKey: ["meu-tenant-id"], queryFn: () => meuTenantId(), staleTime: 5 * 60_000 });
+  useEffect(() => { setCurrentTenantId((tenantId as string | null) ?? null); }, [tenantId]);
+  const impersonating = typeof window !== "undefined" ? localStorage.getItem("impersonate_tenant_id") : null;
   const rolesLoaded = Array.isArray(papeis) && papeis.length > 0;
   const roles = (rolesLoaded ? papeis : ["admin"]) as Role[];
 
@@ -42,13 +47,11 @@ export function AdminShell() {
   const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + "/"));
   const visibleNav = nav.filter((n) => {
     if (!n.hideFor) return true;
-    // mostra se pelo menos um papel do usuário NÃO está na lista de hideFor
     return roles.some((r) => !n.hideFor!.includes(r));
   });
 
   return (
     <div className="min-h-screen flex bg-secondary/30">
-      {/* Sidebar */}
       <aside className={`${open ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 fixed lg:sticky top-0 left-0 z-40 w-64 h-screen bg-card border-r border-foreground/5 flex flex-col transition-transform`}>
         <div className="h-20 flex items-center px-6 border-b border-foreground/5">
           <Link to="/" className="flex items-center gap-3">
@@ -57,6 +60,20 @@ export function AdminShell() {
           </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {isSuper ? (
+            <Link
+              to="/super"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 mb-2"
+            >
+              <Crown className="size-4" strokeWidth={1.5} /> Super Admin
+            </Link>
+          ) : null}
+          {impersonating ? (
+            <div className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800">
+              Impersonando tenant<br /><span className="font-mono">{impersonating.slice(0, 8)}…</span>
+            </div>
+          ) : null}
           {visibleNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.to, item.exact);

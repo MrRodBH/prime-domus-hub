@@ -24,6 +24,7 @@ import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { prefixTenant } from "@/lib/tenant-cache";
 import { Trash2, Upload, Sparkles, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
 import { LazerPicker } from "./LazerPicker";
@@ -254,7 +255,7 @@ export function ImovelForm({ initial }: Props) {
           .replace(/\s+/g, "-")
           .replace(/[^a-zA-Z0-9._-]+/g, "_");
         const prefix = crypto.randomUUID().slice(0, 8);
-        const path = `${form.id}/${prefix}-${sanitized}`;
+        const path = prefixTenant(`${form.id}/${prefix}-${sanitized}`);
         const { error: upErr } = await supabase.storage.from("imoveis").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagem({

@@ -26,7 +26,9 @@ import { Route as LancamentosSlugRouteImport } from './routes/lancamentos.$slug'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as AuthenticatedSuperRouteImport } from './routes/_authenticated.super'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authenticated.super.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
@@ -139,10 +141,20 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSuperRoute = AuthenticatedSuperRouteImport.update({
+  id: '/super',
+  path: '/super',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSuperIndexRoute = AuthenticatedSuperIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedSuperRoute,
 } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
@@ -312,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/super': typeof AuthenticatedSuperRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
@@ -330,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/super/': typeof AuthenticatedSuperIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
@@ -374,6 +388,7 @@ export interface FileRoutesByTo {
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/super': typeof AuthenticatedSuperIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
@@ -404,6 +419,7 @@ export interface FileRoutesById {
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/super': typeof AuthenticatedSuperRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
@@ -422,6 +438,7 @@ export interface FileRoutesById {
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/super/': typeof AuthenticatedSuperIndexRoute
   '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/_authenticated/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
   '/_authenticated/admin/imoveis/$id': typeof AuthenticatedAdminImoveisIdRoute
@@ -452,6 +469,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/unsubscribe'
     | '/admin'
+    | '/super'
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
@@ -470,6 +488,7 @@ export interface FileRouteTypes {
     | '/api/public/bootstrap-admin'
     | '/lovable/email/suppression'
     | '/admin/'
+    | '/super/'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
     | '/admin/imoveis/$id'
@@ -514,6 +533,7 @@ export interface FileRouteTypes {
     | '/api/public/bootstrap-admin'
     | '/lovable/email/suppression'
     | '/admin'
+    | '/super'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
     | '/admin/imoveis/$id'
@@ -543,6 +563,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/unsubscribe'
     | '/_authenticated/admin'
+    | '/_authenticated/super'
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
@@ -561,6 +582,7 @@ export interface FileRouteTypes {
     | '/api/public/bootstrap-admin'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
+    | '/_authenticated/super/'
     | '/_authenticated/admin/blog/$id'
     | '/_authenticated/admin/blog/novo'
     | '/_authenticated/admin/imoveis/$id'
@@ -724,12 +746,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/super': {
+      id: '/_authenticated/super'
+      path: '/super'
+      fullPath: '/super'
+      preLoaderRoute: typeof AuthenticatedSuperRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/super/': {
+      id: '/_authenticated/super/'
+      path: '/'
+      fullPath: '/super/'
+      preLoaderRoute: typeof AuthenticatedSuperIndexRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
@@ -986,12 +1022,25 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedSuperRouteChildren {
+  AuthenticatedSuperIndexRoute: typeof AuthenticatedSuperIndexRoute
+}
+
+const AuthenticatedSuperRouteChildren: AuthenticatedSuperRouteChildren = {
+  AuthenticatedSuperIndexRoute: AuthenticatedSuperIndexRoute,
+}
+
+const AuthenticatedSuperRouteWithChildren =
+  AuthenticatedSuperRoute._addFileChildren(AuthenticatedSuperRouteChildren)
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedSuperRoute: typeof AuthenticatedSuperRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedSuperRoute: AuthenticatedSuperRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

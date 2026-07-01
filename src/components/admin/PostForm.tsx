@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost, adminGerarSeoPost, adminImportarPdf } from "@/lib/api/blog.functions";
 import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { prefixTenant } from "@/lib/tenant-cache";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,7 +109,7 @@ export function PostForm({ initial }: { initial?: Post }) {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-")
         .replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = `blog/${crypto.randomUUID().slice(0, 8)}-${sanitized}`;
+      const path = prefixTenant(`blog/${crypto.randomUUID().slice(0, 8)}-${sanitized}`);
       const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
       if (upErr) throw upErr;
       const { url } = await adminAssinarUrl({ data: { bucket: "site", path, width: 1600, quality: 80 } });

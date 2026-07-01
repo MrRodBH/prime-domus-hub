@@ -5,6 +5,7 @@ import { Loader2, Upload, Trash2, Star, Image as ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { prefixTenant } from "@/lib/tenant-cache";
 import {
   adminListarImagensLancamento,
   adminAdicionarImagemLancamento,
@@ -65,7 +66,7 @@ export function GaleriaLancamento({ projectId, slug, imagemCapa, onCapaChange }:
       for (const file of arr) {
         const safe = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
           .replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]+/g, "_");
-        const path = `${slug || projectId}/galeria/${crypto.randomUUID().slice(0, 8)}-${safe}`;
+        const path = prefixTenant(`${slug || projectId}/galeria/${crypto.randomUUID().slice(0, 8)}-${safe}`);
         const { error: upErr } = await supabase.storage.from("lancamentos").upload(path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagemLancamento({

@@ -5,6 +5,7 @@ import { obterSiteSettings, atualizarSiteSettings } from "@/lib/api/site.functio
 import { obterMetaConfigAdmin, atualizarMetaConfigAdmin } from "@/lib/api/meta.functions";
 import { adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { prefixTenant } from "@/lib/tenant-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -112,7 +113,7 @@ function AdminSite() {
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `logo-${Date.now()}.${ext}`;
+      const path = prefixTenant(`logo-${Date.now()}.${ext}`);
       const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
       if (error) throw error;
       setBranding({ ...branding, logo_path: path });
@@ -133,7 +134,7 @@ function AdminSite() {
     setUploadingFav(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `favicon-${Date.now()}.${ext}`;
+      const path = prefixTenant(`favicon-${Date.now()}.${ext}`);
       const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
       if (error) throw error;
       setBranding({ ...branding, favicon_path: path });
@@ -154,7 +155,7 @@ function AdminSite() {
     setUploadingHero(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `hero-${Date.now()}.${ext}`;
+      const path = prefixTenant(`hero-${Date.now()}.${ext}`);
       const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
       if (error) throw error;
       setHero({ ...hero, image_path: path });
@@ -175,7 +176,7 @@ function AdminSite() {
     setUploadingLanc(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `lancamentos-${Date.now()}.${ext}`;
+      const path = prefixTenant(`lancamentos-${Date.now()}.${ext}`);
       const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
       if (error) throw error;
       setLanc({ ...lanc, image_path: path });
