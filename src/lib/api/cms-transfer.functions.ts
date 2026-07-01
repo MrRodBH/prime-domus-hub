@@ -58,35 +58,35 @@ export const exportarCms = createServerFn({ method: "POST" })
     const entities = bundle.entities as Record<string, unknown[]>;
 
     if (wanted.has("pages")) {
-      const { data: rows, error } = await context.supabase.from("cms_pages").select("*");
+      const { data: rows, error } = await (context.supabase as any).from("cms_pages").select("*");
       if (error) throw new Error(error.message);
       entities.pages = rows ?? [];
     }
     if (wanted.has("forms")) {
-      const { data: rows, error } = await context.supabase.from("cms_forms").select("*");
+      const { data: rows, error } = await (context.supabase as any).from("cms_forms").select("*");
       if (error) throw new Error(error.message);
-      const { data: fields, error: e2 } = await context.supabase.from("cms_form_fields").select("*");
+      const { data: fields, error: e2 } = await (context.supabase as any).from("cms_form_fields").select("*");
       if (e2) throw new Error(e2.message);
       entities.forms = rows ?? [];
       entities.form_fields = fields ?? [];
     }
     if (wanted.has("campaigns")) {
-      const { data: rows, error } = await context.supabase.from("cms_campaigns").select("*");
+      const { data: rows, error } = await (context.supabase as any).from("cms_campaigns").select("*");
       if (error) throw new Error(error.message);
       entities.campaigns = rows ?? [];
     }
     if (wanted.has("menu")) {
-      const { data: rows, error } = await context.supabase.from("website_menu_items").select("*");
+      const { data: rows, error } = await (context.supabase as any).from("website_menu_items").select("*");
       if (error) throw new Error(error.message);
       entities.menu = rows ?? [];
     }
     if (wanted.has("settings")) {
-      const { data: rows, error } = await context.supabase.from("site_settings").select("*");
+      const { data: rows, error } = await (context.supabase as any).from("site_settings").select("*");
       if (error) throw new Error(error.message);
       entities.settings = rows ?? [];
     }
     if (wanted.has("media")) {
-      const { data: rows, error } = await context.supabase.from("media_library").select("*");
+      const { data: rows, error } = await (context.supabase as any).from("media_library").select("*");
       if (error) throw new Error(error.message);
       entities.media = rows ?? [];
     }
@@ -139,7 +139,7 @@ export const importarCms = createServerFn({ method: "POST" })
       // Captura o estado atual das entidades no escopo
       const snap: Record<string, unknown[]> = {};
       const capture = async (table: string, key: string) => {
-        const { data: rows, error } = await supabaseAdmin.from(table).select("*").eq("tenant_id", tenantId);
+        const { data: rows, error } = await (supabaseAdmin as any).from(table).select("*").eq("tenant_id", tenantId);
         if (error) throw new Error(`Snapshot ${table}: ${error.message}`);
         snap[key] = rows ?? [];
       };
@@ -151,7 +151,7 @@ export const importarCms = createServerFn({ method: "POST" })
       if (wanted.has("media")) await capture("media_library", "media");
 
       const snapPayload = { version: BUNDLE_VERSION, exported_at: new Date().toISOString(), tenant_id: tenantId, entities: snap };
-      const { data: ins, error: se } = await supabaseAdmin.from("cms_import_snapshots").insert({
+      const { data: ins, error: se } = await (supabaseAdmin as any).from("cms_import_snapshots").insert({
         tenant_id: tenantId,
         motivo: "pre_replace_import",
         modo: "replace",
@@ -173,7 +173,7 @@ export const importarCms = createServerFn({ method: "POST" })
     // ------ REPLACE: deletar escopo atual ------
     if (data.mode === "replace") {
       const delTable = async (table: string, key: string) => {
-        const { count, error } = await supabaseAdmin.from(table).delete({ count: "exact" }).eq("tenant_id", tenantId);
+        const { count, error } = await (supabaseAdmin as any).from(table).delete({ count: "exact" }).eq("tenant_id", tenantId);
         if (error) throw new Error(`Delete ${table}: ${error.message}`);
         bump(key, "deleted", count ?? 0);
       };
@@ -182,7 +182,7 @@ export const importarCms = createServerFn({ method: "POST" })
       if (wanted.has("campaigns")) await delTable("cms_campaigns", "campaigns");
       if (wanted.has("menu")) await delTable("website_menu_items", "menu");
       if (wanted.has("settings")) {
-        const { count, error } = await supabaseAdmin.from("site_settings").delete({ count: "exact" }).eq("tenant_id", tenantId);
+        const { count, error } = await (supabaseAdmin as any).from("site_settings").delete({ count: "exact" }).eq("tenant_id", tenantId);
         if (error) throw new Error(`Delete site_settings: ${error.message}`);
         bump("settings", "deleted", count ?? 0);
       }
@@ -194,7 +194,7 @@ export const importarCms = createServerFn({ method: "POST" })
     if (wanted.has("pages") && Array.isArray(src.pages)) {
       for (const raw of src.pages as Record<string, unknown>[]) {
         const row = clean(raw, tenantId, context.userId);
-        const { error, data: r } = await supabaseAdmin.from("cms_pages")
+        const { error, data: r } = await (supabaseAdmin as any).from("cms_pages")
           .upsert(row, { onConflict: "tenant_id,slug" }).select("id, xmax::text as x").single();
         if (error) throw new Error(`pages/${raw.slug}: ${error.message}`);
         // xmax = 0 quando é INSERT
@@ -210,7 +210,7 @@ export const importarCms = createServerFn({ method: "POST" })
           const oldId = raw.id as string;
           const row = clean(raw, tenantId, context.userId);
           delete row.id;
-          const { data: r, error } = await supabaseAdmin.from("cms_forms")
+          const { data: r, error } = await (supabaseAdmin as any).from("cms_forms")
             .upsert({ ...row }, { onConflict: "tenant_id,slug" })
             .select("id").single();
           if (error) throw new Error(`forms/${raw.slug}: ${error.message}`);
@@ -225,7 +225,7 @@ export const importarCms = createServerFn({ method: "POST" })
           const row = clean(raw, tenantId, context.userId);
           delete row.id;
           row.form_id = newFormId;
-          const { error } = await supabaseAdmin.from("cms_form_fields")
+          const { error } = await (supabaseAdmin as any).from("cms_form_fields")
             .upsert({ ...row }, { onConflict: "form_id,nome" });
           if (error) throw new Error(`form_fields/${raw.nome}: ${error.message}`);
           bump("form_fields", "inserted");
@@ -237,7 +237,7 @@ export const importarCms = createServerFn({ method: "POST" })
     if (wanted.has("campaigns") && Array.isArray(src.campaigns)) {
       for (const raw of src.campaigns as Record<string, unknown>[]) {
         const row = clean(raw, tenantId, context.userId);
-        const { error } = await supabaseAdmin.from("cms_campaigns").upsert(row, { onConflict: "id" });
+        const { error } = await (supabaseAdmin as any).from("cms_campaigns").upsert(row, { onConflict: "id" });
         if (error) throw new Error(`campaigns/${raw.nome}: ${error.message}`);
         bump("campaigns", "inserted");
       }
@@ -252,7 +252,7 @@ export const importarCms = createServerFn({ method: "POST" })
       for (const raw of items.filter((i) => !i.parent_id)) {
         const row = clean(raw, tenantId, context.userId);
         const oldId = row.id as string; delete row.id;
-        const { data: r, error } = await supabaseAdmin.from("website_menu_items").insert(row).select("id").single();
+        const { data: r, error } = await (supabaseAdmin as any).from("website_menu_items").insert(row).select("id").single();
         if (error) throw new Error(`menu/${raw.label}: ${error.message}`);
         idMap.set(oldId, r.id as string);
         bump("menu", "inserted");
@@ -262,7 +262,7 @@ export const importarCms = createServerFn({ method: "POST" })
         const row = clean(raw, tenantId, context.userId);
         const oldId = row.id as string; delete row.id;
         row.parent_id = idMap.get(row.parent_id as string) ?? null;
-        const { error } = await supabaseAdmin.from("website_menu_items").insert(row);
+        const { error } = await (supabaseAdmin as any).from("website_menu_items").insert(row);
         if (error) throw new Error(`menu/${raw.label}: ${error.message}`);
         bump("menu", "inserted");
       }
@@ -272,7 +272,7 @@ export const importarCms = createServerFn({ method: "POST" })
     if (wanted.has("settings") && Array.isArray(src.settings)) {
       for (const raw of src.settings as Record<string, unknown>[]) {
         const row = { key: raw.key, value: raw.value, tenant_id: tenantId, updated_by: context.userId };
-        const { error } = await supabaseAdmin.from("site_settings").upsert(row, { onConflict: "key" });
+        const { error } = await (supabaseAdmin as any).from("site_settings").upsert(row, { onConflict: "key" });
         if (error) throw new Error(`settings/${String(raw.key)}: ${error.message}`);
         bump("settings", "inserted");
       }
@@ -283,11 +283,11 @@ export const importarCms = createServerFn({ method: "POST" })
       for (const raw of src.media as Record<string, unknown>[]) {
         const row = clean(raw, tenantId, context.userId);
         delete row.id;
-        const { error } = await supabaseAdmin.from("media_library")
+        const { error } = await (supabaseAdmin as any).from("media_library")
           .upsert({ ...row }, { onConflict: "tenant_id,arquivo" }).single();
         // media_library não tem unique(tenant_id, arquivo) por padrão → fallback: insert simples
         if (error) {
-          const { error: e2 } = await supabaseAdmin.from("media_library").insert(row);
+          const { error: e2 } = await (supabaseAdmin as any).from("media_library").insert(row);
           if (e2) throw new Error(`media/${raw.nome}: ${e2.message}`);
         }
         bump("media", "inserted");
@@ -308,7 +308,7 @@ export const listarSnapshots = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAdmin(context);
-    const { data, error } = await context.supabase.from("cms_import_snapshots")
+    const { data, error } = await (context.supabase as any).from("cms_import_snapshots")
       .select("id, motivo, modo, escopo, contagem, created_by, created_at, restored_at, restored_by")
       .order("created_at", { ascending: false }).limit(50);
     if (error) throw new Error(error.message);
@@ -322,7 +322,7 @@ export const restaurarSnapshot = createServerFn({ method: "POST" })
     await ensureAdmin(context);
     const tenantId = await currentTenantId(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: snap, error } = await supabaseAdmin.from("cms_import_snapshots")
+    const { data: snap, error } = await (supabaseAdmin as any).from("cms_import_snapshots")
       .select("*").eq("id", data.id).eq("tenant_id", tenantId).single();
     if (error || !snap) throw new Error("Snapshot não encontrado.");
 
@@ -337,7 +337,7 @@ export const restaurarSnapshot = createServerFn({ method: "POST" })
       },
     });
 
-    await supabaseAdmin.from("cms_import_snapshots")
+    await (supabaseAdmin as any).from("cms_import_snapshots")
       .update({ restored_at: new Date().toISOString(), restored_by: context.userId })
       .eq("id", data.id);
 
