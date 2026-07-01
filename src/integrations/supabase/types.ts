@@ -2486,6 +2486,7 @@ export type Database = {
         | "importar"
         | "aprovar"
         | "gerenciar"
+        | "publicar"
       rbac_scope: "proprio" | "equipe" | "global"
       user_status: "ativo" | "inativo" | "bloqueado" | "pendente"
     }
@@ -2678,6 +2679,7 @@ export const Constants = {
         "importar",
         "aprovar",
         "gerenciar",
+        "publicar",
       ],
       rbac_scope: ["proprio", "equipe", "global"],
       user_status: ["ativo", "inativo", "bloqueado", "pendente"],
