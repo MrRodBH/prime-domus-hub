@@ -1586,7 +1586,13 @@ export type Database = {
       user_team_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
-      app_role: "admin" | "corretor" | "secretaria" | "gerente" | "captador"
+      app_role:
+        | "admin"
+        | "corretor"
+        | "secretaria"
+        | "gerente"
+        | "captador"
+        | "super_admin"
       blog_post_status: "rascunho" | "publicado"
       imovel_finalidade: "venda" | "aluguel" | "lancamento"
       imovel_status: "rascunho" | "ativo" | "vendido" | "reservado" | "inativo"
@@ -1766,7 +1772,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "corretor", "secretaria", "gerente", "captador"],
+      app_role: [
+        "admin",
+        "corretor",
+        "secretaria",
+        "gerente",
+        "captador",
+        "super_admin",
+      ],
       blog_post_status: ["rascunho", "publicado"],
       imovel_finalidade: ["venda", "aluguel", "lancamento"],
       imovel_status: ["rascunho", "ativo", "vendido", "reservado", "inativo"],
