@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/admin.functions";
 import { listarEquipes, listarPerfis, listarPerfisPorUsuario } from "@/lib/api/rbac.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { prefixTenant } from "@/lib/tenant-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -210,7 +211,7 @@ function AdminUsuarios() {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-")
         .replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = `corretores/${crypto.randomUUID().slice(0, 8)}-${sanitized}`;
+      const path = prefixTenant(`corretores/${crypto.randomUUID().slice(0, 8)}-${sanitized}`);
       const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
       if (upErr) throw upErr;
       const { url } = await adminAssinarUrl({ data: { bucket: "site", path, width: 600, quality: 85 } });

@@ -5,6 +5,7 @@ import { FileText, Upload, Trash2, Eye, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { prefixTenant } from "@/lib/tenant-cache";
 import {
   adminListarPdfsLancamento,
   adminAdicionarPdfLancamento,
@@ -104,7 +105,7 @@ function Bloco({ titulo, descricao, kind, rows, projectId, slug, onChange }: {
     try {
       const safe = f.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = `${slug || projectId}/${kind}/${crypto.randomUUID().slice(0, 8)}-${safe}`;
+      const path = prefixTenant(`${slug || projectId}/${kind}/${crypto.randomUUID().slice(0, 8)}-${safe}`);
       const { error: upErr } = await supabase.storage.from("lancamentos").upload(path, f, {
         upsert: false, contentType: "application/pdf",
       });

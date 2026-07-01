@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { prefixTenant } from "@/lib/tenant-cache";
 import { adminAssinarUrl } from "@/lib/api/admin.functions";
 import { toast } from "sonner";
 
@@ -124,7 +125,7 @@ export function RichTextEditor({ value, onChange }: Props) {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-")
         .replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = `blog/inline/${crypto.randomUUID().slice(0, 8)}-${sanitized}`;
+      const path = prefixTenant(`blog/inline/${crypto.randomUUID().slice(0, 8)}-${sanitized}`);
       const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
       if (upErr) throw upErr;
       const { url } = await adminAssinarUrl({
