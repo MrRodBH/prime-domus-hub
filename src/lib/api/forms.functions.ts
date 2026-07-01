@@ -79,9 +79,14 @@ export const salvarFormulario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw) => formPayloadSchema.parse(raw))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
     const { supabase, userId } = context;
+    const wantsPublish = data.status === "published";
+    await assertCmsPermission(context, "cms.formularios", data.id ? "editar" : "criar");
+    if (wantsPublish) await assertCmsPermission(context, "cms.formularios", "publicar");
     if (data.id) {
-      const { error } = await supabase
+      const { data: before } = await supabase.from("cms_forms").select("*").eq("id", data.id).maybeSingle();
+      const { data: row, error } = await supabase
         .from("cms_forms")
         .update({
           nome: data.nome,
@@ -90,8 +95,11 @@ export const salvarFormulario = createServerFn({ method: "POST" })
           descricao: data.descricao ?? null,
           config: data.config,
         })
-        .eq("id", data.id);
+        .eq("id", data.id)
+        .select("*")
+        .single();
       if (error) throw new Error(error.message);
+      await logCmsAudit(context, "cms_forms", wantsPublish ? "cms.formulario.publicar" : "cms.formulario.editar", data.id, before, row);
       return { id: data.id };
     }
     const { data: row, error } = await supabase
@@ -104,9 +112,10 @@ export const salvarFormulario = createServerFn({ method: "POST" })
         config: data.config,
         created_by: userId,
       })
-      .select("id")
+      .select("*")
       .single();
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "cms_forms", "cms.formulario.criar", row.id as string, null, row);
     return { id: row.id as string };
   });
 
@@ -114,8 +123,12 @@ export const excluirFormulario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.formularios", "excluir");
+    const { data: before } = await context.supabase.from("cms_forms").select("*").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("cms_forms").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "cms_forms", "cms.formulario.excluir", data.id, before, null);
     return { ok: true };
   });
 
