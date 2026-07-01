@@ -14,6 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+import { CmsEmpresaTab, CmsBrandingDinamicoTab, CmsSeoGlobalTab, CmsRodapeTab } from "@/components/admin/CmsFase1Tabs";
+import { CmsMenuTab } from "@/components/admin/CmsMenuTab";
+
 
 export const Route = createFileRoute("/_authenticated/admin/site")({
   component: AdminSite,
