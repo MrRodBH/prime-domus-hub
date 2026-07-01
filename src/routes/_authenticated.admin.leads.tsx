@@ -50,7 +50,7 @@ const COLUMNS: { id: Status; label: string; accent: string }[] = [
   { id: "visita", label: "Visita", accent: "bg-lime-500" },
   { id: "proposta", label: "Proposta", accent: "bg-emerald-500" },
   { id: "ganho", label: "Ganho", accent: "bg-emerald-500" },
-  { id: "perdido", label: "Perdido", accent: "bg-rose-500" },
+  { id: "perdido", label: "Perdido / Descartado", accent: "bg-rose-500" },
 ];
 
 type Lead = {
@@ -312,7 +312,7 @@ const FUNIL_STAGES: { ids: Status[]; label: string; color: string }[] = [
 
 const RESULTADO_STAGES: { id: Status; label: string; color: string }[] = [
   { id: "ganho", label: "Ganho", color: "#10b981" },
-  { id: "perdido", label: "Perdido", color: "#ef4444" },
+  { id: "perdido", label: "Perdido / Descartado", color: "#ef4444" },
 ];
 
 function FunilChart({ byStatus, descartesTotal }: { byStatus: Record<Status, Lead[]>; descartesTotal: number }) {
@@ -735,13 +735,20 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatBRLInt(digits: string): string {
+  const d = digits.replace(/\D/g, "");
+  if (!d) return "";
+  const n = parseInt(d, 10);
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
 function ValorEstimadoEditor({ lead }: { lead: Lead }) {
   const qc = useQueryClient();
-  const [val, setVal] = useState<string>(lead.valor_estimado != null ? String(lead.valor_estimado) : "");
+  const initial = lead.valor_estimado != null ? String(Math.round(lead.valor_estimado)) : "";
+  const [digits, setDigits] = useState<string>(initial);
   const save = useMutation({
     mutationFn: () =>
       adminAtualizarLead({
-        data: { id: lead.id, valor_estimado: val.trim() === "" ? null : Number(val) },
+        data: { id: lead.id, valor_estimado: digits === "" ? null : Number(digits) },
       }),
     onSuccess: () => {
       toast.success("Valor atualizado.");
@@ -750,19 +757,18 @@ function ValorEstimadoEditor({ lead }: { lead: Lead }) {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-  const dirty = (lead.valor_estimado ?? null) !== (val.trim() === "" ? null : Number(val));
+  const dirty = (lead.valor_estimado ?? null) !== (digits === "" ? null : Number(digits));
   return (
     <div className="flex items-center justify-between gap-3 border-b border-foreground/5 pb-2">
       <span className="text-xs uppercase tracking-wide text-muted-foreground">Valor estimado (VGV)</span>
       <div className="flex items-center gap-2">
         <Input
-          type="number"
-          inputMode="decimal"
-          step="1000"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          className="h-8 w-36 text-right"
-          placeholder="R$"
+          type="text"
+          inputMode="numeric"
+          value={formatBRLInt(digits)}
+          onChange={(e) => setDigits(e.target.value.replace(/\D/g, ""))}
+          className="h-8 w-40 text-right"
+          placeholder="R$ 0"
         />
         {dirty && (
           <Button size="sm" variant="outline" className="h-8" disabled={save.isPending} onClick={() => save.mutate()}>
