@@ -114,7 +114,7 @@ export const publicarRascunho = createServerFn({ method: "POST" })
         created_by: userId,
         published_at: new Date().toISOString(),
       });
-    await supabase.from("site_settings_versions").delete().eq("id", draft.id);
+    await logCmsAudit(context, "site_settings_versions", `cms.rascunho.publicar:${data.key}`, draft.id as string, null, draft.value);
     return { ok: true };
   });
 
