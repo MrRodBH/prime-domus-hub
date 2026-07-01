@@ -72,9 +72,11 @@ export async function logCmsAudit(
       action,
       entity,
       entity_id,
-      before: (before ?? null) as never,
-      after: (after ?? null) as never,
-      ip_address: ip,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      before: (before ?? null) as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      after: (after ?? null) as any,
+      ip,
       user_agent: ua,
     });
   } catch (e) {
