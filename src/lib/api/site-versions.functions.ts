@@ -154,7 +154,16 @@ export const listarVersoes = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(30);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as SiteVersionRow[];
+    return (rows ?? []).map((r) => ({
+      id: r.id,
+      key: r.key,
+      status: r.status as SiteVersionRow["status"],
+      value_json: JSON.stringify(r.value ?? {}),
+      notes: r.notes,
+      created_by: r.created_by,
+      created_at: r.created_at,
+      published_at: r.published_at,
+    }));
   });
 
 /** Lista rascunhos pendentes (todas as chaves) — para o badge global. */
