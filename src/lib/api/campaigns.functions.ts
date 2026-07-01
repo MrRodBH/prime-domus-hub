@@ -111,6 +111,10 @@ export const salvarCampanha = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => upsertSchema.parse(d))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    const isActivating = data.status === "active";
+    await assertCmsPermission(context, "cms.campanhas", data.id ? "editar" : "criar");
+    if (isActivating) await assertCmsPermission(context, "cms.campanhas", "publicar");
     const payload = {
       nome: data.nome,
       tipo: data.tipo,
@@ -123,21 +127,17 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       end_at: data.end_at ?? null,
     };
     if (data.id) {
+      const { data: before } = await context.supabase.from("cms_campaigns").select("*").eq("id", data.id).maybeSingle();
       const { data: row, error } = await context.supabase
-        .from("cms_campaigns")
-        .update(payload)
-        .eq("id", data.id)
-        .select("id")
-        .single();
+        .from("cms_campaigns").update(payload).eq("id", data.id).select("*").single();
       if (error) throw new Error(error.message);
+      await logCmsAudit(context, "cms_campaigns", isActivating ? "cms.campanha.publicar" : "cms.campanha.editar", data.id, before, row);
       return { id: row.id };
     } else {
       const { data: row, error } = await context.supabase
-        .from("cms_campaigns")
-        .insert({ ...payload, created_by: context.userId })
-        .select("id")
-        .single();
+        .from("cms_campaigns").insert({ ...payload, created_by: context.userId }).select("*").single();
       if (error) throw new Error(error.message);
+      await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
       return { id: row.id };
     }
   });
@@ -146,8 +146,12 @@ export const excluirCampanha = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    await assertCmsPermission(context, "cms.campanhas", "excluir");
+    const { data: before } = await context.supabase.from("cms_campaigns").select("*").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("cms_campaigns").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await logCmsAudit(context, "cms_campaigns", "cms.campanha.excluir", data.id, before, null);
     return { ok: true };
   });
 
