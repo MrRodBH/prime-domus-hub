@@ -168,14 +168,16 @@ export function CmsVersoesTab() {
                   </span>
                 </span>
                 <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    onClick={() => publicar.mutate(d.key as Key)}
-                    disabled={publicar.isPending}
-                  >
-                    <Rocket className="size-3.5 mr-1" />
-                    Publicar
-                  </Button>
+                  {canPublish && (
+                    <Button
+                      size="sm"
+                      onClick={() => publicar.mutate(d.key as Key)}
+                      disabled={publicar.isPending}
+                    >
+                      <Rocket className="size-3.5 mr-1" />
+                      Publicar
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
