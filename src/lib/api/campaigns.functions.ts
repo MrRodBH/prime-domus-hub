@@ -80,7 +80,7 @@ export const obterCampanha = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) throw new Error("Campanha não encontrada");
-    return row as Campaign;
+    return row as unknown as Campaign;
   });
 
 const upsertSchema = z.object({
