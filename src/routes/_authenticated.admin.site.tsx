@@ -17,6 +17,7 @@ import { Upload } from "lucide-react";
 import { CmsEmpresaTab, CmsBrandingDinamicoTab, CmsSeoGlobalTab, CmsRodapeTab } from "@/components/admin/CmsFase1Tabs";
 import { CmsMenuTab } from "@/components/admin/CmsMenuTab";
 import { CmsHomeDiferenciaisTab, CmsHomeDepoimentosTab, CmsPaginaSobreTab, CmsPaginaContatoTab, CmsPaginaAnuncieTab } from "@/components/admin/CmsPaginasTabs";
+import { CmsVersoesTab } from "@/components/admin/CmsVersoesTab";
 
 
 export const Route = createFileRoute("/_authenticated/admin/site")({
