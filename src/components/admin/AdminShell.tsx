@@ -15,27 +15,60 @@ type Role = "admin" | "corretor" | "secretaria" | "gerente" | "captador";
 import { useCmsPermissions, type CmsModuleCode } from "@/hooks/use-cms-permissions";
 
 type CmsGate = CmsModuleCode;
-const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[]; cms?: CmsGate }> = [
-  { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
-  { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
-  { to: "/admin/corretores", label: "Usuários", icon: Users },
-  { to: "/admin/equipes", label: "Equipes", icon: UsersRound, hideFor: ["secretaria", "corretor", "captador"] },
-  { to: "/admin/perfis", label: "Perfis & Permissões", icon: ShieldCheck, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
-  { to: "/admin/blog", label: "Blog", icon: Newspaper },
-  { to: "/admin/cidades", label: "Cidades", icon: MapPin },
-  { to: "/admin/bairros", label: "Bairros", icon: MapPin },
-  { to: "/admin/origens", label: "Origens de Leads", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
-  { to: "/admin/motivos", label: "Motivos de CRM", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
-  { to: "/admin/portais", label: "Portais", icon: Radio, hideFor: ["secretaria", "corretor", "captador"] },
-  { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
-  { to: "/admin/midias", label: "Mídias", icon: ImageIcon, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.midias" },
-  { to: "/admin/formularios", label: "Formulários", icon: FileText, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.formularios" },
-  { to: "/admin/paginas", label: "Páginas", icon: FileCode, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.paginas" },
-  { to: "/admin/campanhas", label: "Banners & Popups", icon: Megaphone, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.campanhas" },
-  { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.configuracoes" },
-  { to: "/admin/cms-auditoria", label: "Auditoria CMS", icon: FileClock, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.versoes" },
-  { to: "/admin/cms-transferencia", label: "Exportar / Importar", icon: Archive, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+type NavItem = { to: string; label: string; icon: typeof Building2; exact?: boolean; hideFor?: Role[]; cms?: CmsGate };
+type NavGroup = { id: string; label: string | null; items: NavItem[] };
+
+const navGroups: NavGroup[] = [
+  {
+    id: "principal", label: null,
+    items: [
+      { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    ],
+  },
+  {
+    id: "crm", label: "CRM",
+    items: [
+      { to: "/admin/leads", label: "Leads", icon: Inbox, hideFor: ["secretaria"] },
+      { to: "/admin/imoveis", label: "Imóveis", icon: Building2 },
+    ],
+  },
+  {
+    id: "cms", label: "CMS",
+    items: [
+      { to: "/admin/site", label: "Site & Branding", icon: Settings, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.configuracoes" },
+      { to: "/admin/paginas", label: "Páginas", icon: FileCode, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.paginas" },
+      { to: "/admin/formularios", label: "Formulários", icon: FileText, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.formularios" },
+      { to: "/admin/campanhas", label: "Campanhas", icon: Megaphone, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.campanhas" },
+      { to: "/admin/blog", label: "Blog", icon: Newspaper },
+      { to: "/admin/midias", label: "Mídias", icon: ImageIcon, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.midias" },
+      { to: "/admin/cms-auditoria", label: "Versionamento", icon: FileClock, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.versoes" },
+      { to: "/admin/cms-transferencia", label: "Exportar / Importar", icon: Archive, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+    ],
+  },
+  {
+    id: "cadastros", label: "Cadastros",
+    items: [
+      { to: "/admin/cidades", label: "Cidades", icon: MapPin },
+      { to: "/admin/bairros", label: "Bairros", icon: MapPin },
+      { to: "/admin/origens", label: "Origens de Leads", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+      { to: "/admin/motivos", label: "Motivos de CRM", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+    ],
+  },
+  {
+    id: "distribuicao", label: "Distribuição",
+    items: [
+      { to: "/admin/portais", label: "Portais", icon: Radio, hideFor: ["secretaria", "corretor", "captador"] },
+    ],
+  },
+  {
+    id: "sistema", label: "Sistema",
+    items: [
+      { to: "/admin/corretores", label: "Usuários", icon: Users },
+      { to: "/admin/equipes", label: "Equipes", icon: UsersRound, hideFor: ["secretaria", "corretor", "captador"] },
+      { to: "/admin/perfis", label: "Perfis & Permissões", icon: ShieldCheck, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+      { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+    ],
+  },
 ];
 
 export function AdminShell() {
