@@ -127,7 +127,7 @@ function SuperTenantsPage() {
   );
 }
 
-function KpiCard({ label, value, sub, tone }: { label: string; value: React.ReactNode; sub?: string; tone?: "ok" | "warn" }) {
+function KpiCard({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: string; tone?: "ok" | "warn" }) {
   const toneCls = tone === "warn" ? "border-amber-500/30 bg-amber-500/5" : "";
   return (
     <div className={`rounded-lg border bg-card p-4 ${toneCls}`}>
