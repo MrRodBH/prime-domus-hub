@@ -35,6 +35,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
+import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
 import { Route as AuthenticatedAdminPortaisRouteImport } from './routes/_authenticated.admin.portais'
 import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated.admin.perfis'
@@ -61,6 +62,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksPortalDlqRetryRouteImport } from './routes/api/public/hooks/portal-dlq-retry'
 import { Route as AuthenticatedAdminPaginasIdRouteImport } from './routes/_authenticated.admin.paginas.$id'
 import { Route as AuthenticatedAdminLancamentosNovoRouteImport } from './routes/_authenticated.admin.lancamentos.novo'
 import { Route as AuthenticatedAdminLancamentosIdRouteImport } from './routes/_authenticated.admin.lancamentos.$id'
@@ -202,6 +204,11 @@ const AuthenticatedSuperObservabilidadeRoute =
     path: '/observabilidade',
     getParentRoute: () => AuthenticatedSuperRoute,
   } as any)
+const AuthenticatedSuperDlqRoute = AuthenticatedSuperDlqRouteImport.update({
+  id: '/dlq',
+  path: '/dlq',
+  getParentRoute: () => AuthenticatedSuperRoute,
+} as any)
 const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
   id: '/site',
   path: '/site',
@@ -353,6 +360,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksPortalDlqRetryRoute =
+  ApiPublicHooksPortalDlqRetryRouteImport.update({
+    id: '/api/public/hooks/portal-dlq-retry',
+    path: '/api/public/hooks/portal-dlq-retry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminPaginasIdRoute =
   AuthenticatedAdminPaginasIdRouteImport.update({
     id: '/paginas/$id',
@@ -449,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
@@ -464,6 +478,7 @@ export interface FileRoutesByFullPath {
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -509,6 +524,7 @@ export interface FileRoutesByTo {
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
@@ -524,6 +540,7 @@ export interface FileRoutesByTo {
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -574,6 +591,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/perfis': typeof AuthenticatedAdminPerfisRoute
   '/_authenticated/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
@@ -589,6 +607,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/_authenticated/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/_authenticated/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -639,6 +658,7 @@ export interface FileRouteTypes {
     | '/admin/perfis'
     | '/admin/portais'
     | '/admin/site'
+    | '/super/dlq'
     | '/super/observabilidade'
     | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
@@ -654,6 +674,7 @@ export interface FileRouteTypes {
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
     | '/admin/paginas/$id'
+    | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -699,6 +720,7 @@ export interface FileRouteTypes {
     | '/admin/perfis'
     | '/admin/portais'
     | '/admin/site'
+    | '/super/dlq'
     | '/super/observabilidade'
     | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
@@ -714,6 +736,7 @@ export interface FileRouteTypes {
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
     | '/admin/paginas/$id'
+    | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -763,6 +786,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/perfis'
     | '/_authenticated/admin/portais'
     | '/_authenticated/admin/site'
+    | '/_authenticated/super/dlq'
     | '/_authenticated/super/observabilidade'
     | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
@@ -778,6 +802,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/lancamentos/$id'
     | '/_authenticated/admin/lancamentos/novo'
     | '/_authenticated/admin/paginas/$id'
+    | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -813,6 +838,7 @@ export interface RootRouteChildren {
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksPortalDlqRetryRoute: typeof ApiPublicHooksPortalDlqRetryRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1005,6 +1031,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperObservabilidadeRouteImport
       parentRoute: typeof AuthenticatedSuperRoute
     }
+    '/_authenticated/super/dlq': {
+      id: '/_authenticated/super/dlq'
+      path: '/dlq'
+      fullPath: '/super/dlq'
+      preLoaderRoute: typeof AuthenticatedSuperDlqRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
     '/_authenticated/admin/site': {
       id: '/_authenticated/admin/site'
       path: '/site'
@@ -1187,6 +1220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/portal-dlq-retry': {
+      id: '/api/public/hooks/portal-dlq-retry'
+      path: '/api/public/hooks/portal-dlq-retry'
+      fullPath: '/api/public/hooks/portal-dlq-retry'
+      preLoaderRoute: typeof ApiPublicHooksPortalDlqRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/paginas/$id': {
       id: '/_authenticated/admin/paginas/$id'
       path: '/paginas/$id'
@@ -1348,11 +1388,13 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedSuperRouteChildren {
+  AuthenticatedSuperDlqRoute: typeof AuthenticatedSuperDlqRoute
   AuthenticatedSuperObservabilidadeRoute: typeof AuthenticatedSuperObservabilidadeRoute
   AuthenticatedSuperIndexRoute: typeof AuthenticatedSuperIndexRoute
 }
 
 const AuthenticatedSuperRouteChildren: AuthenticatedSuperRouteChildren = {
+  AuthenticatedSuperDlqRoute: AuthenticatedSuperDlqRoute,
   AuthenticatedSuperObservabilidadeRoute:
     AuthenticatedSuperObservabilidadeRoute,
   AuthenticatedSuperIndexRoute: AuthenticatedSuperIndexRoute,
@@ -1408,6 +1450,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksPortalDlqRetryRoute: ApiPublicHooksPortalDlqRetryRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,

@@ -69,21 +69,17 @@ export const Route = createFileRoute("/api/public/portal-leads")({
           return new Response(JSON.stringify({ error: "portal desativado" }), { status: 403, headers: cors });
         }
 
-        // Rate-limit simples: máx 60 ingestões/min por conector
-        const since = new Date(Date.now() - 60_000).toISOString();
-        const { count: recent } = await supabaseAdmin
-          .from("portal_sync_logs")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", conn.tenant_id)
-          .eq("portal_slug", payload.portal.toLowerCase())
-          .eq("acao", "lead_ingest")
-          .gte("created_at", since);
-        if ((recent ?? 0) >= 60) {
-          await logEvent({ category: "portal", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal }, latencyMs: Date.now() - started });
-          return new Response(
-            JSON.stringify({ error: "rate limit excedido (60/min)" }),
-            { status: 429, headers: { ...cors, "retry-after": "60" } },
-          );
+        // Rate-limit universal (60/min por conector, 20/min por IP)
+        const { rateLimit, rateLimitResponse, portalDlqEnqueue } = await import("@/lib/rate-limit.server");
+        const rlConn = await rateLimit({ scope: "portal-leads", key: `${conn.tenant_id}:${payload.portal.toLowerCase()}`, limit: 60 });
+        if (!rlConn.allowed) {
+          await logEvent({ category: "portal", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal, scope: "conn" }, latencyMs: Date.now() - started });
+          return rateLimitResponse(rlConn.retryAfter, "rate limit excedido (60/min por conector)");
+        }
+        const rlIp = await rateLimit({ scope: "portal-leads-ip", key: ip ?? "unknown", limit: 20 });
+        if (!rlIp.allowed) {
+          await logEvent({ category: "portal", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal, scope: "ip" }, latencyMs: Date.now() - started });
+          return rateLimitResponse(rlIp.retryAfter, "rate limit excedido (20/min por IP)");
         }
 
         // Resolve imovel_id via código, se necessário
@@ -137,8 +133,16 @@ export const Route = createFileRoute("/api/public/portal-leads")({
             tenant_id: conn.tenant_id, portal_slug: payload.portal.toLowerCase(), acao: "lead_ingest",
             status: "erro", payload: payload as never, erro: errIns.message, duration_ms: Date.now() - started,
           } as never);
-          await logEvent({ category: "portal", source, event: "insert_failed", severity: "error", statusCode: 500, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal }, latencyMs: Date.now() - started, errorMessage: errIns.message });
-          return new Response(JSON.stringify({ error: errIns.message }), { status: 500, headers: cors });
+          // Enfileira na DLQ para retry posterior
+          await portalDlqEnqueue({
+            tenantId: conn.tenant_id,
+            portal: payload.portal.toLowerCase(),
+            acao: "lead_ingest",
+            payload,
+            erro: errIns.message,
+          });
+          await logEvent({ category: "portal", source, event: "insert_failed", severity: "error", statusCode: 500, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal, dlq: true }, latencyMs: Date.now() - started, errorMessage: errIns.message });
+          return new Response(JSON.stringify({ error: errIns.message, dlq: true }), { status: 500, headers: cors });
         }
 
         await supabaseAdmin.from("portal_sync_logs").insert({

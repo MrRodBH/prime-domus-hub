@@ -155,3 +155,44 @@ export const superObservabilidade = createServerFn({ method: "GET" })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return json as any;
   });
+
+// --- DLQ de Portais ---
+const dlqListSchema = z.object({
+  status: z.enum(["pendente", "em_retry", "resolvido", "abandonado", "todos"]).optional().default("todos"),
+  portal: z.string().optional().nullable(),
+  limit: z.number().int().min(1).max(200).optional().default(100),
+});
+
+export const superListarDlq = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => dlqListSchema.parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q = (context.supabase as any).from("portal_sync_dlq").select("*").order("created_at", { ascending: false }).limit(data.limit);
+    if (data.status !== "todos") q = q.eq("status", data.status);
+    if (data.portal) q = q.eq("portal_slug", data.portal);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    type JsonV = string | number | boolean | null | JsonV[] | { [k: string]: JsonV };
+    return JSON.parse(JSON.stringify(rows ?? [])) as Array<{
+      id: string; tenant_id: string | null; portal_slug: string; acao: string;
+      erro: string | null; tentativas: number; status: string;
+      proxima_tentativa_at: string; created_at: string; updated_at: string;
+      resolvido_at: string | null; ultimo_erro_at: string | null;
+      payload: JsonV;
+    }>;
+  });
+
+const dlqIdSchema = z.object({ id: z.string().uuid() });
+
+export const superResolverDlq = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => dlqIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (context.supabase as any).rpc("portal_dlq_mark_resolved", { _id: data.id });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
