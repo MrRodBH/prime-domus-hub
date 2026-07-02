@@ -133,8 +133,16 @@ export const Route = createFileRoute("/api/public/portal-leads")({
             tenant_id: conn.tenant_id, portal_slug: payload.portal.toLowerCase(), acao: "lead_ingest",
             status: "erro", payload: payload as never, erro: errIns.message, duration_ms: Date.now() - started,
           } as never);
-          await logEvent({ category: "portal", source, event: "insert_failed", severity: "error", statusCode: 500, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal }, latencyMs: Date.now() - started, errorMessage: errIns.message });
-          return new Response(JSON.stringify({ error: errIns.message }), { status: 500, headers: cors });
+          // Enfileira na DLQ para retry posterior
+          await portalDlqEnqueue({
+            tenantId: conn.tenant_id,
+            portal: payload.portal.toLowerCase(),
+            acao: "lead_ingest",
+            payload,
+            erro: errIns.message,
+          });
+          await logEvent({ category: "portal", source, event: "insert_failed", severity: "error", statusCode: 500, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal, dlq: true }, latencyMs: Date.now() - started, errorMessage: errIns.message });
+          return new Response(JSON.stringify({ error: errIns.message, dlq: true }), { status: 500, headers: cors });
         }
 
         await supabaseAdmin.from("portal_sync_logs").insert({
