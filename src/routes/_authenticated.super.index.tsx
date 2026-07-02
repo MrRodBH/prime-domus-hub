@@ -26,6 +26,7 @@ function SuperTenantsPage() {
   const navigate = useNavigate();
   const { data: tenants = [] } = useQuery({ queryKey: ["super-tenants"], queryFn: () => listarTenants() });
   const { data: stats = {} } = useQuery({ queryKey: ["super-tenants-stats"], queryFn: () => estatisticasTenants() });
+  const { data: kpis } = useQuery({ queryKey: ["super-kpis"], queryFn: () => superKpisGlobais() });
   const [openNew, setOpenNew] = useState(false);
   const [edit, setEdit] = useState<any | null>(null);
 
