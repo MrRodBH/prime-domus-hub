@@ -127,6 +127,17 @@ function SuperTenantsPage() {
   );
 }
 
+function KpiCard({ label, value, sub, tone }: { label: string; value: React.ReactNode; sub?: string; tone?: "ok" | "warn" }) {
+  const toneCls = tone === "warn" ? "border-amber-500/30 bg-amber-500/5" : "";
+  return (
+    <div className={`rounded-lg border bg-card p-4 ${toneCls}`}>
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-xl font-semibold mt-1">{value}</div>
+      {sub ? <div className="text-xs text-muted-foreground mt-1">{sub}</div> : null}
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     ativo: "bg-green-500/15 text-green-700 border-green-500/30",
