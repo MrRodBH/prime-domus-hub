@@ -27,6 +27,7 @@ const nav: Array<{ to: string; label: string; icon: typeof Building2; exact?: bo
   { to: "/admin/bairros", label: "Bairros", icon: MapPin },
   { to: "/admin/origens", label: "Origens de Leads", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/motivos", label: "Motivos de CRM", icon: Inbox, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
+  { to: "/admin/portais", label: "Portais", icon: Radio, hideFor: ["secretaria", "corretor", "captador"] },
   { to: "/admin/auditoria", label: "Auditoria", icon: History, hideFor: ["secretaria", "corretor", "captador", "gerente"] },
   { to: "/admin/midias", label: "Mídias", icon: ImageIcon, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.midias" },
   { to: "/admin/formularios", label: "Formulários", icon: FileText, hideFor: ["secretaria", "corretor", "captador"], cms: "cms.formularios" },
