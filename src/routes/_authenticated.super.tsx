@@ -37,6 +37,11 @@ function SuperShell() {
             <Activity className="size-4" /> Observabilidade
           </Link>
           <Link
+            to="/super/dlq"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm ${isActive("/super/dlq") ? "bg-petroleum text-linen" : "hover:bg-foreground/5"}`}
+          >
+            <AlertOctagon className="size-4" /> DLQ Portais
+          <Link
             to="/admin"
             className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm hover:bg-foreground/5 text-muted-foreground"
           >
