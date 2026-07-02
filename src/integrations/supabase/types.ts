@@ -2243,6 +2243,54 @@ export type Database = {
           },
         ]
       }
+      portal_sync_dlq: {
+        Row: {
+          acao: string
+          created_at: string
+          erro: string | null
+          id: string
+          payload: Json
+          portal_slug: string
+          proxima_tentativa_at: string
+          resolvido_at: string | null
+          status: string
+          tenant_id: string | null
+          tentativas: number
+          ultimo_erro_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          erro?: string | null
+          id?: string
+          payload?: Json
+          portal_slug: string
+          proxima_tentativa_at?: string
+          resolvido_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          tentativas?: number
+          ultimo_erro_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          erro?: string | null
+          id?: string
+          payload?: Json
+          portal_slug?: string
+          proxima_tentativa_at?: string
+          resolvido_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          tentativas?: number
+          ultimo_erro_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       portal_sync_logs: {
         Row: {
           acao: string
@@ -2292,6 +2340,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_buckets: {
+        Row: {
+          count: number
+          id: string
+          key: string
+          scope: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          id?: string
+          key: string
+          scope: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          id?: string
+          key?: string
+          scope?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       rbac_modules: {
         Row: {
@@ -2868,6 +2943,34 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      portal_dlq_enqueue: {
+        Args: {
+          _acao: string
+          _erro: string
+          _payload: Json
+          _portal: string
+          _tenant: string
+        }
+        Returns: string
+      }
+      portal_dlq_mark_resolved: { Args: { _id: string }; Returns: undefined }
+      portal_dlq_mark_retry: {
+        Args: { _erro: string; _id: string }
+        Returns: undefined
+      }
+      rate_limit_hit: {
+        Args: {
+          _key: string
+          _limit: number
+          _scope: string
+          _window_seconds?: number
+        }
+        Returns: {
+          allowed: boolean
+          current_count: number
+          retry_after_seconds: number
+        }[]
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
