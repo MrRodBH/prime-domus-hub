@@ -1058,6 +1058,66 @@ export type Database = {
           },
         ]
       }
+      imovel_portais: {
+        Row: {
+          created_at: string
+          id: string
+          imovel_id: string
+          portal_reference: string | null
+          portal_slug: string
+          publicado: boolean
+          status: string
+          tenant_id: string
+          ultima_leitura: string | null
+          ultimo_envio: string | null
+          ultimo_erro: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imovel_id: string
+          portal_reference?: string | null
+          portal_slug: string
+          publicado?: boolean
+          status?: string
+          tenant_id: string
+          ultima_leitura?: string | null
+          ultimo_envio?: string | null
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imovel_id?: string
+          portal_reference?: string | null
+          portal_slug?: string
+          publicado?: boolean
+          status?: string
+          tenant_id?: string
+          ultima_leitura?: string | null
+          ultimo_envio?: string | null
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imovel_portais_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imovel_portais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_posts: {
         Row: {
           created_at: string
@@ -2121,6 +2181,118 @@ export type Database = {
           },
         ]
       }
+      portal_connectors: {
+        Row: {
+          ativo: boolean
+          config: Json
+          created_at: string
+          feed_token: string
+          feed_url: string | null
+          id: string
+          portal_nome: string
+          portal_slug: string
+          status: string
+          tenant_id: string
+          ultimo_erro: string | null
+          ultimo_sync_at: string | null
+          updated_at: string
+          webhook_secret: string
+          webhook_url: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          config?: Json
+          created_at?: string
+          feed_token?: string
+          feed_url?: string | null
+          id?: string
+          portal_nome: string
+          portal_slug: string
+          status?: string
+          tenant_id: string
+          ultimo_erro?: string | null
+          ultimo_sync_at?: string | null
+          updated_at?: string
+          webhook_secret?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          config?: Json
+          created_at?: string
+          feed_token?: string
+          feed_url?: string | null
+          id?: string
+          portal_nome?: string
+          portal_slug?: string
+          status?: string
+          tenant_id?: string
+          ultimo_erro?: string | null
+          ultimo_sync_at?: string | null
+          updated_at?: string
+          webhook_secret?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_connectors_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_sync_logs: {
+        Row: {
+          acao: string
+          created_at: string
+          duration_ms: number | null
+          erro: string | null
+          id: string
+          imovel_id: string | null
+          lead_id: string | null
+          payload: Json | null
+          portal_slug: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          duration_ms?: number | null
+          erro?: string | null
+          id?: string
+          imovel_id?: string | null
+          lead_id?: string | null
+          payload?: Json | null
+          portal_slug: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          duration_ms?: number | null
+          erro?: string | null
+          id?: string
+          imovel_id?: string | null
+          lead_id?: string | null
+          payload?: Json | null
+          portal_slug?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_sync_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rbac_modules: {
         Row: {
           codigo: string
@@ -2642,6 +2814,10 @@ export type Database = {
         }[]
       }
       seed_default_lead_reasons: {
+        Args: { _tenant: string }
+        Returns: undefined
+      }
+      seed_default_portal_connectors: {
         Args: { _tenant: string }
         Returns: undefined
       }

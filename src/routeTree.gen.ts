@@ -32,8 +32,10 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authenticated.super.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
+import { Route as AuthenticatedAdminPortaisRouteImport } from './routes/_authenticated.admin.portais'
 import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated.admin.perfis'
 import { Route as AuthenticatedAdminOrigensRouteImport } from './routes/_authenticated.admin.origens'
 import { Route as AuthenticatedAdminMotivosRouteImport } from './routes/_authenticated.admin.motivos'
@@ -67,6 +69,7 @@ import { Route as AuthenticatedAdminFormulariosIdRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminCampanhasIdRouteImport } from './routes/_authenticated.admin.campanhas.$id'
 import { Route as AuthenticatedAdminBlogNovoRouteImport } from './routes/_authenticated.admin.blog.novo'
 import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated.admin.blog.$id'
+import { Route as ApiPublicFeedsPortalTokenRouteImport } from './routes/api/public/feeds.$portal.$token'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -182,6 +185,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPortalLeadsRoute = ApiPublicPortalLeadsRouteImport.update({
+  id: '/api/public/portal-leads',
+  path: '/api/public/portal-leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
   id: '/api/public/bootstrap-admin',
   path: '/api/public/bootstrap-admin',
@@ -192,6 +200,12 @@ const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
   path: '/site',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminPortaisRoute =
+  AuthenticatedAdminPortaisRouteImport.update({
+    id: '/portais',
+    path: '/portais',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminPerfisRoute =
   AuthenticatedAdminPerfisRouteImport.update({
     id: '/perfis',
@@ -386,6 +400,12 @@ const AuthenticatedAdminBlogIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminBlogRoute,
   } as any)
+const ApiPublicFeedsPortalTokenRoute =
+  ApiPublicFeedsPortalTokenRouteImport.update({
+    id: '/api/public/feeds/$portal/$token',
+    path: '/api/public/feeds/$portal/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -420,8 +440,10 @@ export interface FileRoutesByFullPath {
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
+  '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/super/': typeof AuthenticatedSuperIndexRoute
@@ -445,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
   '/admin/paginas/': typeof AuthenticatedAdminPaginasIndexRoute
+  '/api/public/feeds/$portal/$token': typeof ApiPublicFeedsPortalTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -476,8 +499,10 @@ export interface FileRoutesByTo {
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
+  '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/super': typeof AuthenticatedSuperIndexRoute
@@ -501,6 +526,7 @@ export interface FileRoutesByTo {
   '/admin/imoveis': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos': typeof AuthenticatedAdminLancamentosIndexRoute
   '/admin/paginas': typeof AuthenticatedAdminPaginasIndexRoute
+  '/api/public/feeds/$portal/$token': typeof ApiPublicFeedsPortalTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -537,8 +563,10 @@ export interface FileRoutesById {
   '/_authenticated/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/_authenticated/admin/origens': typeof AuthenticatedAdminOrigensRoute
   '/_authenticated/admin/perfis': typeof AuthenticatedAdminPerfisRoute
+  '/_authenticated/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/super/': typeof AuthenticatedSuperIndexRoute
@@ -562,6 +590,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/_authenticated/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
   '/_authenticated/admin/paginas/': typeof AuthenticatedAdminPaginasIndexRoute
+  '/api/public/feeds/$portal/$token': typeof ApiPublicFeedsPortalTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -598,8 +627,10 @@ export interface FileRouteTypes {
     | '/admin/motivos'
     | '/admin/origens'
     | '/admin/perfis'
+    | '/admin/portais'
     | '/admin/site'
     | '/api/public/bootstrap-admin'
+    | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/admin/'
     | '/super/'
@@ -623,6 +654,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis/'
     | '/admin/lancamentos/'
     | '/admin/paginas/'
+    | '/api/public/feeds/$portal/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -654,8 +686,10 @@ export interface FileRouteTypes {
     | '/admin/motivos'
     | '/admin/origens'
     | '/admin/perfis'
+    | '/admin/portais'
     | '/admin/site'
     | '/api/public/bootstrap-admin'
+    | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/admin'
     | '/super'
@@ -679,6 +713,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis'
     | '/admin/lancamentos'
     | '/admin/paginas'
+    | '/api/public/feeds/$portal/$token'
   id:
     | '__root__'
     | '/'
@@ -714,8 +749,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/motivos'
     | '/_authenticated/admin/origens'
     | '/_authenticated/admin/perfis'
+    | '/_authenticated/admin/portais'
     | '/_authenticated/admin/site'
     | '/api/public/bootstrap-admin'
+    | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
     | '/_authenticated/super/'
@@ -739,6 +776,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/imoveis/'
     | '/_authenticated/admin/lancamentos/'
     | '/_authenticated/admin/paginas/'
+    | '/api/public/feeds/$portal/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -760,12 +798,14 @@ export interface RootRouteChildren {
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
+  ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
+  ApiPublicFeedsPortalTokenRoute: typeof ApiPublicFeedsPortalTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -931,6 +971,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/portal-leads': {
+      id: '/api/public/portal-leads'
+      path: '/api/public/portal-leads'
+      fullPath: '/api/public/portal-leads'
+      preLoaderRoute: typeof ApiPublicPortalLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bootstrap-admin': {
       id: '/api/public/bootstrap-admin'
       path: '/api/public/bootstrap-admin'
@@ -943,6 +990,13 @@ declare module '@tanstack/react-router' {
       path: '/site'
       fullPath: '/admin/site'
       preLoaderRoute: typeof AuthenticatedAdminSiteRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/portais': {
+      id: '/_authenticated/admin/portais'
+      path: '/portais'
+      fullPath: '/admin/portais'
+      preLoaderRoute: typeof AuthenticatedAdminPortaisRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/perfis': {
@@ -1176,6 +1230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBlogIdRouteImport
       parentRoute: typeof AuthenticatedAdminBlogRoute
     }
+    '/api/public/feeds/$portal/$token': {
+      id: '/api/public/feeds/$portal/$token'
+      path: '/api/public/feeds/$portal/$token'
+      fullPath: '/api/public/feeds/$portal/$token'
+      preLoaderRoute: typeof ApiPublicFeedsPortalTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1211,6 +1272,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminMotivosRoute: typeof AuthenticatedAdminMotivosRoute
   AuthenticatedAdminOrigensRoute: typeof AuthenticatedAdminOrigensRoute
   AuthenticatedAdminPerfisRoute: typeof AuthenticatedAdminPerfisRoute
+  AuthenticatedAdminPortaisRoute: typeof AuthenticatedAdminPortaisRoute
   AuthenticatedAdminSiteRoute: typeof AuthenticatedAdminSiteRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminCampanhasIdRoute: typeof AuthenticatedAdminCampanhasIdRoute
@@ -1242,6 +1304,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminMotivosRoute: AuthenticatedAdminMotivosRoute,
   AuthenticatedAdminOrigensRoute: AuthenticatedAdminOrigensRoute,
   AuthenticatedAdminPerfisRoute: AuthenticatedAdminPerfisRoute,
+  AuthenticatedAdminPortaisRoute: AuthenticatedAdminPortaisRoute,
   AuthenticatedAdminSiteRoute: AuthenticatedAdminSiteRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminCampanhasIdRoute: AuthenticatedAdminCampanhasIdRoute,
@@ -1320,12 +1383,14 @@ const rootRouteChildren: RootRouteChildren = {
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
+  ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
+  ApiPublicFeedsPortalTokenRoute: ApiPublicFeedsPortalTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
