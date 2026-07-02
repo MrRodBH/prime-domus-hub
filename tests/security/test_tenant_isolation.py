@@ -62,28 +62,32 @@ def audit_restrictive() -> tuple[list[str], list[str]]:
     return ok, missing
 
 
+def _req(method: str, url: str, body: bytes | None = None) -> int:
+    req = urllib.request.Request(url, method=method, data=body)
+    if body is not None:
+        req.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception:
+        return 0
+
+
 async def http_checks(report: TestReport) -> None:
-    async with httpx.AsyncClient(timeout=10) as client:
-        # Feed exige token válido do tenant
-        r = await client.get(f"{BASE_URL}/api/public/feeds/zap/tokeninvalido")
-        if r.status_code in (400, 401, 403, 404):
-            report.ok("feed_invalid_token_rejected", f"status={r.status_code}")
-        else:
-            report.fail("feed_invalid_token_rejected", f"status={r.status_code}")
-
-        # Portal-leads sem body — deve rejeitar
-        r = await client.post(f"{BASE_URL}/api/public/portal-leads", json={})
-        if r.status_code >= 400:
-            report.ok("portal_leads_empty_rejected", f"status={r.status_code}")
-        else:
-            report.fail("portal_leads_empty_rejected", f"status={r.status_code}")
-
-        # DLQ retry sem apikey
-        r = await client.post(f"{BASE_URL}/api/public/hooks/portal-dlq-retry")
-        if r.status_code == 401:
-            report.ok("dlq_retry_requires_apikey", "401")
-        else:
-            report.fail("dlq_retry_requires_apikey", f"status={r.status_code}")
+    s = _req("GET", f"{BASE_URL}/api/public/feeds/zap/tokeninvalido")
+    (report.ok if s in (400, 401, 403, 404) else report.fail)(
+        "feed_invalid_token_rejected", f"status={s}"
+    )
+    s = _req("POST", f"{BASE_URL}/api/public/portal-leads", b"{}")
+    (report.ok if s >= 400 else report.fail)(
+        "portal_leads_empty_rejected", f"status={s}"
+    )
+    s = _req("POST", f"{BASE_URL}/api/public/hooks/portal-dlq-retry", b"")
+    (report.ok if s == 401 else report.fail)(
+        "dlq_retry_requires_apikey", f"status={s}"
+    )
 
 
 async def main() -> int:
