@@ -9,7 +9,7 @@ Tracker vivo da execução da Fase 5.2. Atualizado ao fim de cada ciclo.
 | 1 | Infra Playwright + Auth + Super Admin smoke               | ✅ Concluído |
 | 2 | CRM + Imóveis + Uploads (smoke + RLS audit + portais)     | ✅ Concluído |
 | 3 | CMS + Website (SEO/responsivo + fix B1)                   | ✅ Concluído |
-| 4 | Multi-tenant + Segurança (fix B2)                         | ⏳ Aguardando |
+| 4 | Multi-tenant + Segurança (fix B2)                         | ✅ Concluído |
 | 5 | Performance + Regressão                                   | ⏳ Aguardando |
 | 6 | Checklist funcional + Design System + A11y                | ⏳ Aguardando |
 | 7 | Documentação + Métricas + Relatório RC1                   | ⏳ Aguardando |
@@ -19,7 +19,7 @@ Tracker vivo da execução da Fase 5.2. Atualizado ao fim de cada ciclo.
 | # | Origem     | Descrição                                                                                                                | Status |
 |---|------------|--------------------------------------------------------------------------------------------------------------------------|--------|
 | B1 | Ciclo 1/2 | Hydration mismatch em rotas públicas — causa raiz: `CampaignRenderer` usava `useState(() => Date.now())` no SSR       | ✅ Corrigido no Ciclo 3 (mount-guarded). Warning residual intermitente em ~1/8 rotas — monitorar |
-| B2 | Ciclo 2   | `imovel_portais`, `portal_connectors`, `portal_sync_dlq` sem policy RESTRICTIVE de tenant                              | ⏳ Ciclo 4 |
+| B2 | Ciclo 2   | `imovel_portais`, `portal_connectors`, `portal_sync_dlq` sem policy RESTRICTIVE de tenant                              | ✅ Corrigido no Ciclo 4 (+ estendido para cms_import_snapshots, deal_lost_reasons, lead_discard_reasons, lead_perdas, portal_sync_logs). 44/44 tabelas com tenant_id validadas |
 
 ## Auditoria RLS Ciclo 2 (24 tabelas críticas)
 
