@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Copy, RefreshCw, Settings2, Radio, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AdminPageHeader, AdminStats } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/portais")({
   component: AdminPortais,
@@ -74,20 +75,23 @@ function AdminPortais() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl">Portais Imobiliários</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Conecte e monitore a distribuição de imóveis e leads nos principais portais.
-        </p>
-      </div>
+      <AdminPageHeader
+        eyebrow="Distribuição"
+        title="Portais Imobiliários"
+        description="Conecte e monitore a distribuição de imóveis e leads nos principais portais."
+      />
 
-      <div className="grid gap-3 md:grid-cols-5">
-        <Kpi label="Imóveis publicados" value={kpis?.imoveis_publicados ?? 0} icon={<CheckCircle2 className="size-4 text-emerald-600" />} />
-        <Kpi label="Pendentes" value={kpis?.imoveis_pendentes ?? 0} icon={<Radio className="size-4 text-amber-600" />} />
-        <Kpi label="Com erro" value={kpis?.imoveis_erro ?? 0} icon={<AlertTriangle className="size-4 text-destructive" />} />
-        <Kpi label="Portais ativos" value={kpis?.portais_ativos ?? 0} icon={<Settings2 className="size-4" />} />
-        <Kpi label="Leads recebidos" value={kpis?.leads_total ?? 0} icon={<Radio className="size-4 text-blue-600" />} />
-      </div>
+      <AdminStats
+        columns={4}
+        items={[
+          { label: "Imóveis publicados", value: kpis?.imoveis_publicados ?? 0, icon: CheckCircle2, tone: "success" },
+          { label: "Pendentes", value: kpis?.imoveis_pendentes ?? 0, icon: Radio, tone: "warning" },
+          { label: "Com erro", value: kpis?.imoveis_erro ?? 0, icon: AlertTriangle, tone: "danger" },
+          { label: "Portais ativos", value: kpis?.portais_ativos ?? 0, icon: Settings2 },
+          { label: "Leads recebidos", value: kpis?.leads_total ?? 0, icon: Radio },
+        ]}
+      />
+
 
       <Tabs defaultValue="conectores">
         <TabsList>
