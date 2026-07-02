@@ -14,6 +14,9 @@ run() {
 
 run "auth"        tests/auth/test_auth_public.py
 run "website"     tests/website/test_public_pages.py
+run "portals"     tests/portals/test_public_endpoints.py
+run "crm"         tests/crm/test_crm_smoke.py
+run "imoveis"     tests/crm/test_imoveis_smoke.py
 run "super-admin" tests/super-admin/test_super_smoke.py
 
 echo -e "\n=========================================="
