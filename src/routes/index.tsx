@@ -115,7 +115,7 @@ function HeroSearch({ searchTipos, ctaPrimary }: { searchTipos: string[]; ctaPri
       </div>
       <div className={`flex-1 px-4 py-2 md:border-r border-foreground/10 ${tab === "lancamentos" ? "opacity-50 pointer-events-none" : ""}`}>
         <label className="block text-[9px] uppercase tracking-[0.25em] text-muted-foreground mb-1">Tipo</label>
-        <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full bg-transparent border-none text-petroleum font-medium focus:outline-none appearance-none">
+        <select aria-label="Tipo de imóvel" value={tipo} onChange={(e) => setTipo(e.target.value)} className="w-full bg-transparent border-none text-petroleum font-medium focus:outline-none appearance-none">
           <option value="">Todos</option>
           {searchTipos.map((t) => (
             <option key={t} value={t}>{t}</option>

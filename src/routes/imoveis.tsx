@@ -190,6 +190,7 @@ function Page() {
                   />
                 </div>
                 <select
+                  aria-label="Finalidade"
                   value={search.finalidade ?? ""}
                   onChange={(e) => update({ finalidade: (e.target.value || undefined) as Filtros["finalidade"] })}
                   className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
@@ -200,6 +201,7 @@ function Page() {
                   <option value="lancamento">Lançamento</option>
                 </select>
                 <select
+                  aria-label="Tipo de imóvel"
                   value={search.tipo ?? ""}
                   onChange={(e) => update({ tipo: e.target.value || undefined })}
                   className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
@@ -208,6 +210,7 @@ function Page() {
                   {tipos.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}
                 </select>
                 <select
+                  aria-label="Cidade"
                   value={search.cidade ?? ""}
                   onChange={(e) => update({ cidade: e.target.value || undefined, bairro: undefined })}
                   className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
@@ -218,6 +221,7 @@ function Page() {
                   ))}
                 </select>
                 <select
+                  aria-label="Bairro"
                   value={search.bairro ?? ""}
                   onChange={(e) => update({ bairro: e.target.value || undefined })}
                   className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
@@ -228,6 +232,7 @@ function Page() {
                   ))}
                 </select>
                 <select
+                  aria-label="Quartos mínimos"
                   value={search.quartos_min?.toString() ?? ""}
                   onChange={(e) => update({ quartos_min: e.target.value ? Number(e.target.value) : undefined })}
                   className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none"
@@ -242,11 +247,11 @@ function Page() {
                   <input type="number" inputMode="numeric" placeholder="Preço mín. (R$)" value={precoMin} onChange={(e) => setPrecoMin(e.target.value)} className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none" />
                   <input type="number" inputMode="numeric" placeholder="Preço máx. (R$)" value={precoMax} onChange={(e) => setPrecoMax(e.target.value)} className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none" />
                   <input type="number" inputMode="numeric" placeholder="Área mín. (m²)" value={areaMin} onChange={(e) => setAreaMin(e.target.value)} className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none" />
-                  <select value={search.suites_min?.toString() ?? ""} onChange={(e) => update({ suites_min: e.target.value ? Number(e.target.value) : undefined })} className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none">
+                  <select aria-label="Suítes mínimas" value={search.suites_min?.toString() ?? ""} onChange={(e) => update({ suites_min: e.target.value ? Number(e.target.value) : undefined })} className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none">
                     <option value="">Suítes (mín.)</option>
                     {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}+ suítes</option>)}
                   </select>
-                  <select value={search.vagas_min?.toString() ?? ""} onChange={(e) => update({ vagas_min: e.target.value ? Number(e.target.value) : undefined })} className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none">
+                  <select aria-label="Vagas mínimas" value={search.vagas_min?.toString() ?? ""} onChange={(e) => update({ vagas_min: e.target.value ? Number(e.target.value) : undefined })} className="px-3 py-2 text-sm bg-transparent border border-foreground/10 rounded focus:outline-none">
                     <option value="">Vagas (mín.)</option>
                     {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}+ vagas</option>)}
                   </select>
@@ -267,7 +272,7 @@ function Page() {
                   )}
                 </div>
                 <div className="flex items-center gap-2 ml-auto">
-                  <select value={search.ordenar ?? ""} onChange={(e) => update({ ordenar: (e.target.value || undefined) as Filtros["ordenar"] })} className="px-3 py-2 text-xs bg-transparent border border-foreground/10 rounded focus:outline-none">
+                  <select aria-label="Ordenar resultados" value={search.ordenar ?? ""} onChange={(e) => update({ ordenar: (e.target.value || undefined) as Filtros["ordenar"] })} className="px-3 py-2 text-xs bg-transparent border border-foreground/10 rounded focus:outline-none">
                     <option value="">Ordenar: relevância</option>
                     <option value="recentes">Mais recentes</option>
                     <option value="preco_asc">Menor preço</option>
