@@ -65,6 +65,22 @@ export const Route = createFileRoute("/api/public/portal-leads")({
           return new Response(JSON.stringify({ error: "portal desativado" }), { status: 403, headers: cors });
         }
 
+        // Rate-limit simples: máx 60 ingestões/min por conector
+        const since = new Date(Date.now() - 60_000).toISOString();
+        const { count: recent } = await supabaseAdmin
+          .from("portal_sync_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", conn.tenant_id)
+          .eq("portal_slug", payload.portal.toLowerCase())
+          .eq("acao", "lead_ingest")
+          .gte("created_at", since);
+        if ((recent ?? 0) >= 60) {
+          return new Response(
+            JSON.stringify({ error: "rate limit excedido (60/min)" }),
+            { status: 429, headers: { ...cors, "retry-after": "60" } },
+          );
+        }
+
         // Resolve imovel_id via código, se necessário
         let imovel_id = payload.lead.imovel_id ?? null;
         let corretor_id: string | null = null;
