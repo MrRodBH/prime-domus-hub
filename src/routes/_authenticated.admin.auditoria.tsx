@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { listarAuditoria } from "@/lib/api/rbac.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { History } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/auditoria")({

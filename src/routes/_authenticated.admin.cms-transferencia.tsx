@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, Upload, Archive, RotateCcw, AlertTriangle } from "lucide-react";
+import { Download, Upload, RotateCcw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageHeader } from "@/components/admin/ui";
 
