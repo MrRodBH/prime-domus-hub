@@ -106,11 +106,14 @@ function buildVrSyncXml(tenant: any, imoveis: any[], images: Map<string, string[
 export const Route = createFileRoute("/api/public/feeds/$portal/$token")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         const started = Date.now();
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { logEvent, clientIp } = await import("@/lib/observability.server");
+        const ip = clientIp(request);
         const portal = params.portal.toLowerCase();
         const token = params.token;
+        const source = `/api/public/feeds/${portal}`;
 
         const { data: conn } = await supabaseAdmin
           .from("portal_connectors")
@@ -120,9 +123,11 @@ export const Route = createFileRoute("/api/public/feeds/$portal/$token")({
           .maybeSingle();
 
         if (!conn) {
+          await logEvent({ category: "feed", source, event: "invalid_token", severity: "warn", statusCode: 401, ip, meta: { portal }, latencyMs: Date.now() - started });
           return new Response("Token inválido", { status: 401 });
         }
         if (!conn.ativo) {
+          await logEvent({ category: "feed", source, event: "portal_inactive", severity: "warn", statusCode: 403, tenantId: conn.tenant_id, ip, meta: { portal }, latencyMs: Date.now() - started });
           return new Response("Portal desativado", { status: 403 });
         }
 
@@ -155,6 +160,7 @@ export const Route = createFileRoute("/api/public/feeds/$portal/$token")({
             tenant_id: tenant.id, portal_slug: portal, acao: "feed_read",
             status: "erro", erro: error.message, duration_ms: Date.now() - started,
           } as never);
+          await logEvent({ category: "feed", source, event: "query_failed", severity: "error", statusCode: 500, tenantId: tenant.id, ip, meta: { portal }, latencyMs: Date.now() - started, errorMessage: error.message });
           return new Response("Erro ao gerar feed", { status: 500 });
         }
 
@@ -202,6 +208,7 @@ export const Route = createFileRoute("/api/public/feeds/$portal/$token")({
           status: "ok", payload: { count: list.length } as never,
           duration_ms: Date.now() - started,
         } as never);
+        await logEvent({ category: "feed", source, event: "success", severity: "info", statusCode: 200, tenantId: tenant.id, ip, meta: { portal, count: list.length }, latencyMs: Date.now() - started });
 
         return new Response(xml, {
           status: 200,
