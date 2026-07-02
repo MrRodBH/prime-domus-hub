@@ -104,3 +104,40 @@ export const estatisticasTenants = createServerFn({ method: "GET" })
     (leads.data ?? []).forEach((r: any) => bump(r.tenant_id, "leads"));
     return agg;
   });
+
+export const superKpisGlobais = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [
+      tenants, tenantsAtivos, users, imoveis, leads,
+      leads24h, portalErr7d, portalOk7d, auditoria24h,
+    ] = await Promise.all([
+      supabaseAdmin.from("tenants").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("tenants").select("id", { count: "exact", head: true }).eq("status", "ativo"),
+      supabaseAdmin.from("tenant_members").select("user_id", { count: "exact", head: true }),
+      supabaseAdmin.from("imoveis").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("leads").select("id", { count: "exact", head: true }),
+      supabaseAdmin.from("leads").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+      supabaseAdmin.from("portal_sync_logs").select("id", { count: "exact", head: true }).eq("status", "erro").gte("created_at", since7d),
+      supabaseAdmin.from("portal_sync_logs").select("id", { count: "exact", head: true }).eq("status", "ok").gte("created_at", since7d),
+      supabaseAdmin.from("audit_log").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+    ]);
+
+    return {
+      tenants: tenants.count ?? 0,
+      tenantsAtivos: tenantsAtivos.count ?? 0,
+      users: users.count ?? 0,
+      imoveis: imoveis.count ?? 0,
+      leads: leads.count ?? 0,
+      leads24h: leads24h.count ?? 0,
+      portalOk7d: portalOk7d.count ?? 0,
+      portalErr7d: portalErr7d.count ?? 0,
+      auditoria24h: auditoria24h.count ?? 0,
+      mrrPending: true, // ⚠️ requer schema de billing (Fase futura)
+    };
+  });
