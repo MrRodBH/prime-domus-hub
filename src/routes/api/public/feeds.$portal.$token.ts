@@ -129,6 +129,18 @@ export const Route = createFileRoute("/api/public/feeds/$portal/$token")({
         if (!conn.ativo) {
           await logEvent({ category: "feed", source, event: "portal_inactive", severity: "warn", statusCode: 403, tenantId: conn.tenant_id, ip, meta: { portal }, latencyMs: Date.now() - started });
           return new Response("Portal desativado", { status: 403 });
+
+        // Rate-limit universal: 30 requisições/min por token e 60/min por IP
+        const { rateLimit, rateLimitResponse } = await import("@/lib/rate-limit.server");
+        const rlTok = await rateLimit({ scope: "feed", key: token, limit: 30 });
+        if (!rlTok.allowed) {
+          await logEvent({ category: "feed", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal, scope: "token" }, latencyMs: Date.now() - started });
+          return rateLimitResponse(rlTok.retryAfter, "rate limit excedido (30/min por token)");
+        }
+        const rlIp = await rateLimit({ scope: "feed-ip", key: ip ?? "unknown", limit: 60 });
+        if (!rlIp.allowed) {
+          await logEvent({ category: "feed", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal, scope: "ip" }, latencyMs: Date.now() - started });
+          return rateLimitResponse(rlIp.retryAfter, "rate limit excedido (60/min por IP)");
         }
 
         // Verifica tenant ativo
