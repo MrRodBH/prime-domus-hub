@@ -129,6 +129,9 @@ export const Route = createFileRoute("/api/public/feeds/$portal/$token")({
         if (!conn.ativo) {
           await logEvent({ category: "feed", source, event: "portal_inactive", severity: "warn", statusCode: 403, tenantId: conn.tenant_id, ip, meta: { portal }, latencyMs: Date.now() - started });
           return new Response("Portal desativado", { status: 403 });
+        }
+
+
 
         // Rate-limit universal: 30 requisições/min por token e 60/min por IP
         const { rateLimit, rateLimitResponse } = await import("@/lib/rate-limit.server");
