@@ -35,6 +35,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
+import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
 import { Route as AuthenticatedAdminPortaisRouteImport } from './routes/_authenticated.admin.portais'
 import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated.admin.perfis'
@@ -203,6 +204,11 @@ const AuthenticatedSuperObservabilidadeRoute =
     path: '/observabilidade',
     getParentRoute: () => AuthenticatedSuperRoute,
   } as any)
+const AuthenticatedSuperDlqRoute = AuthenticatedSuperDlqRouteImport.update({
+  id: '/dlq',
+  path: '/dlq',
+  getParentRoute: () => AuthenticatedSuperRoute,
+} as any)
 const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
   id: '/site',
   path: '/site',
@@ -456,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
@@ -583,6 +591,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/perfis': typeof AuthenticatedAdminPerfisRoute
   '/_authenticated/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
@@ -649,6 +658,7 @@ export interface FileRouteTypes {
     | '/admin/perfis'
     | '/admin/portais'
     | '/admin/site'
+    | '/super/dlq'
     | '/super/observabilidade'
     | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
@@ -710,6 +720,7 @@ export interface FileRouteTypes {
     | '/admin/perfis'
     | '/admin/portais'
     | '/admin/site'
+    | '/super/dlq'
     | '/super/observabilidade'
     | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
@@ -775,6 +786,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/perfis'
     | '/_authenticated/admin/portais'
     | '/_authenticated/admin/site'
+    | '/_authenticated/super/dlq'
     | '/_authenticated/super/observabilidade'
     | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
@@ -1017,6 +1029,13 @@ declare module '@tanstack/react-router' {
       path: '/observabilidade'
       fullPath: '/super/observabilidade'
       preLoaderRoute: typeof AuthenticatedSuperObservabilidadeRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/super/dlq': {
+      id: '/_authenticated/super/dlq'
+      path: '/dlq'
+      fullPath: '/super/dlq'
+      preLoaderRoute: typeof AuthenticatedSuperDlqRouteImport
       parentRoute: typeof AuthenticatedSuperRoute
     }
     '/_authenticated/admin/site': {
@@ -1369,11 +1388,13 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedSuperRouteChildren {
+  AuthenticatedSuperDlqRoute: typeof AuthenticatedSuperDlqRoute
   AuthenticatedSuperObservabilidadeRoute: typeof AuthenticatedSuperObservabilidadeRoute
   AuthenticatedSuperIndexRoute: typeof AuthenticatedSuperIndexRoute
 }
 
 const AuthenticatedSuperRouteChildren: AuthenticatedSuperRouteChildren = {
+  AuthenticatedSuperDlqRoute: AuthenticatedSuperDlqRoute,
   AuthenticatedSuperObservabilidadeRoute:
     AuthenticatedSuperObservabilidadeRoute,
   AuthenticatedSuperIndexRoute: AuthenticatedSuperIndexRoute,
