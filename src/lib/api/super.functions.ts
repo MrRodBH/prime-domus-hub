@@ -174,7 +174,7 @@ export const superListarDlq = createServerFn({ method: "GET" })
     if (data.portal) q = q.eq("portal_slug", data.portal);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return rows as unknown[];
+    return (rows ?? []) as Array<Record<string, unknown>>;
   });
 
 const dlqIdSchema = z.object({ id: z.string().uuid() });
