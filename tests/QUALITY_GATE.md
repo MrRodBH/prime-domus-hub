@@ -12,7 +12,7 @@ Tracker vivo da execução da Fase 5.2. Atualizado ao fim de cada ciclo.
 | 4 | Multi-tenant + Segurança (fix B2)                         | ✅ Concluído |
 | 5 | Performance + Regressão                                   | ✅ Concluído |
 | 6 | Checklist funcional + Design System + A11y                | ✅ Concluído |
-| 7 | Documentação + Métricas + Relatório RC1                   | ⏳ Aguardando |
+| 7 | Documentação + Métricas + Relatório RC1                   | ✅ Concluído |
 
 ## Bugs abertos
 
