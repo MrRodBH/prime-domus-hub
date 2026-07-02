@@ -6,6 +6,7 @@ import {
   criarTenant,
   atualizarTenant,
   estatisticasTenants,
+  superKpisGlobais,
 } from "@/lib/api/super.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
