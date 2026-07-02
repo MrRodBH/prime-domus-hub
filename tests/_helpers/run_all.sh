@@ -20,6 +20,7 @@ run "crm"           tests/crm/test_crm_smoke.py
 run "imoveis"       tests/crm/test_imoveis_smoke.py
 run "cms"           tests/cms/test_cms_smoke.py
 run "super-admin"   tests/super-admin/test_super_smoke.py
+run "security"      tests/security/test_tenant_isolation.py
 
 echo -e "\n=========================================="
 if [ "$FAIL" -eq 0 ]; then
