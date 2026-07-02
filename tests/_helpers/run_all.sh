@@ -22,6 +22,7 @@ run "cms"           tests/cms/test_cms_smoke.py
 run "super-admin"   tests/super-admin/test_super_smoke.py
 run "security"      tests/security/test_tenant_isolation.py
 run "performance"   tests/performance/test_public_perf.py
+run "quality"       tests/quality/test_ds_a11y.py
 
 echo -e "\n=========================================="
 if [ "$FAIL" -eq 0 ]; then
