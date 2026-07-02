@@ -6,13 +6,19 @@ Tracker vivo da execução da Fase 5.2. Atualizado ao fim de cada ciclo.
 
 | # | Escopo                                                    | Status  |
 |---|-----------------------------------------------------------|---------|
-| 1 | Infra Playwright + Auth + Super Admin smoke               | ✅ Em execução |
+| 1 | Infra Playwright + Auth + Super Admin smoke               | ✅ Concluído (9 checks: 6 OK / 3 SKIP super — requer login no preview) |
 | 2 | CRM + Imóveis + Uploads                                   | ⏳ Aguardando |
 | 3 | CMS + Website                                             | ⏳ Aguardando |
 | 4 | Multi-tenant + Segurança                                  | ⏳ Aguardando |
 | 5 | Performance + Regressão                                   | ⏳ Aguardando |
 | 6 | Checklist funcional + Design System + A11y                | ⏳ Aguardando |
 | 7 | Documentação + Métricas + Relatório RC1                   | ⏳ Aguardando |
+
+## Bugs abertos
+
+| # | Origem     | Descrição                                                                             | Alvo   |
+|---|------------|---------------------------------------------------------------------------------------|--------|
+| B1 | Ciclo 1    | Hydration mismatch em `/anuncie` e `/privacidade` (SSR ≠ client — Footer/site query) | Ciclo 3 |
 
 ## Critérios RC1 (checklist)
 
