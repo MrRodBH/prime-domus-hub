@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/perfis")({
   component: PerfisPage,
@@ -51,8 +52,11 @@ function PerfisPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl flex items-center gap-2"><ShieldCheck className="size-7"/> Perfis & Permissões</h1>
-          <p className="text-sm text-muted-foreground mt-1">Crie perfis e configure permissões por módulo, ação e escopo de visibilidade.</p>
+          <AdminPageHeader
+            eyebrow="Sistema"
+            title="Perfis & Permissões"
+          />
+<p className="text-sm text-muted-foreground mt-1">Crie perfis e configure permissões por módulo, ação e escopo de visibilidade.</p>
         </div>
         <Dialog open={openForm} onOpenChange={setOpenForm}>
           <DialogTrigger asChild>

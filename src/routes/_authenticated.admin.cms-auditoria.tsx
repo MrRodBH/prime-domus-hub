@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileClock, Download, RefreshCcw, Search, Eye } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/cms-auditoria")({
   component: CmsAuditPage,
@@ -99,10 +100,11 @@ export default function CmsAuditPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-display text-3xl flex items-center gap-2">
-            <FileClock className="size-7" /> Auditoria CMS
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <AdminPageHeader
+            eyebrow="CMS"
+            title="Auditoria CMS"
+          />
+<p className="text-sm text-muted-foreground mt-1">
             Histórico completo de alterações nos módulos de conteúdo — páginas, mídias,
             formulários, campanhas, menu, branding e versões — com IP, user-agent e diff.
           </p>

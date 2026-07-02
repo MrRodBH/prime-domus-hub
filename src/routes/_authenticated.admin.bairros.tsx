@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/bairros")({
   component: AdminBairros,
@@ -51,8 +52,11 @@ function AdminBairros() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">Bairros</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <AdminPageHeader
+          eyebrow="Cadastros"
+          title="Bairros"
+        />
+<Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button onClick={() => setEditing(novo())}><Plus className="size-4 mr-1" /> Novo</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>{editing?.id ? "Editar bairro" : "Novo bairro"}</DialogTitle></DialogHeader>

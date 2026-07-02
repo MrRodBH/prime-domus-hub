@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, UsersRound } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/equipes")({
   component: EquipesPage,
@@ -59,8 +60,11 @@ function EquipesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl flex items-center gap-2"><UsersRound className="size-7"/> Equipes</h1>
-          <p className="text-sm text-muted-foreground mt-1">Agrupe usuários em equipes para escopos de visibilidade.</p>
+          <AdminPageHeader
+            eyebrow="Sistema"
+            title="Equipes"
+          />
+<p className="text-sm text-muted-foreground mt-1">Agrupe usuários em equipes para escopos de visibilidade.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>

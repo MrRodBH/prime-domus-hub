@@ -32,6 +32,7 @@ import {
   Lightbulb,
   ChartLine,
 } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: DashboardCRM,
@@ -167,8 +168,11 @@ function DashboardCRM() {
       {/* Header + filtros globais */}
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="font-display text-3xl">Dashboard Comercial</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <AdminPageHeader
+            eyebrow="Principal"
+            title="Dashboard Comercial"
+          />
+<p className="text-sm text-muted-foreground mt-1">
             Indicadores em tempo real, gargalos e oportunidades.
           </p>
         </div>

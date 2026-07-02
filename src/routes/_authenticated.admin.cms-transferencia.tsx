@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Download, Upload, Archive, RotateCcw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/cms-transferencia")({
   component: TransferPage,
@@ -108,10 +109,11 @@ function TransferPage() {
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
-        <h1 className="font-display text-3xl flex items-center gap-2">
-          <Archive className="size-7" /> Transferência de Conteúdo CMS
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <AdminPageHeader
+          eyebrow="CMS"
+          title="Transferência de Conteúdo CMS"
+        />
+<p className="text-sm text-muted-foreground mt-1">
           Exporte todo o conteúdo do site em um único pacote JSON, importe em outro ambiente
           e — se necessário — reverta uma importação usando o snapshot automático.
         </p>

@@ -4,6 +4,7 @@ import { listarAuditoria } from "@/lib/api/rbac.functions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { History } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/auditoria")({
   component: AuditoriaPage,
@@ -15,8 +16,11 @@ function AuditoriaPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl flex items-center gap-2"><History className="size-7"/> Auditoria</h1>
-        <p className="text-sm text-muted-foreground mt-1">Histórico das ações críticas dos usuários (últimas 200).</p>
+        <AdminPageHeader
+          eyebrow="Sistema"
+          title="Auditoria"
+        />
+<p className="text-sm text-muted-foreground mt-1">Histórico das ações críticas dos usuários (últimas 200).</p>
       </div>
       <div className="bg-card border border-foreground/5 rounded-lg overflow-hidden">
         <Table>
