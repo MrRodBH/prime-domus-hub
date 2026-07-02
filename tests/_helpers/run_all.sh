@@ -12,12 +12,14 @@ run() {
   if python3 "$script"; then :; else FAIL=$((FAIL+1)); fi
 }
 
-run "auth"        tests/auth/test_auth_public.py
-run "website"     tests/website/test_public_pages.py
-run "portals"     tests/portals/test_public_endpoints.py
-run "crm"         tests/crm/test_crm_smoke.py
-run "imoveis"     tests/crm/test_imoveis_smoke.py
-run "super-admin" tests/super-admin/test_super_smoke.py
+run "auth"          tests/auth/test_auth_public.py
+run "website"       tests/website/test_public_pages.py
+run "website-seo"   tests/website/test_seo_responsive.py
+run "portals"       tests/portals/test_public_endpoints.py
+run "crm"           tests/crm/test_crm_smoke.py
+run "imoveis"       tests/crm/test_imoveis_smoke.py
+run "cms"           tests/cms/test_cms_smoke.py
+run "super-admin"   tests/super-admin/test_super_smoke.py
 
 echo -e "\n=========================================="
 if [ "$FAIL" -eq 0 ]; then
