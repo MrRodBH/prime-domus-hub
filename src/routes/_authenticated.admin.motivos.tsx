@@ -34,6 +34,7 @@ import {
   excluirMotivo,
   listarMotivos,
 } from "@/lib/api/lead-reasons.functions";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/motivos")({
   component: AdminMotivos,
