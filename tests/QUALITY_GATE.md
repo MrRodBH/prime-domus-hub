@@ -10,7 +10,7 @@ Tracker vivo da execução da Fase 5.2. Atualizado ao fim de cada ciclo.
 | 2 | CRM + Imóveis + Uploads (smoke + RLS audit + portais)     | ✅ Concluído |
 | 3 | CMS + Website (SEO/responsivo + fix B1)                   | ✅ Concluído |
 | 4 | Multi-tenant + Segurança (fix B2)                         | ✅ Concluído |
-| 5 | Performance + Regressão                                   | ⏳ Aguardando |
+| 5 | Performance + Regressão                                   | ✅ Concluído |
 | 6 | Checklist funcional + Design System + A11y                | ⏳ Aguardando |
 | 7 | Documentação + Métricas + Relatório RC1                   | ⏳ Aguardando |
 
