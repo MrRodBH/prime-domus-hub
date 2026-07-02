@@ -61,20 +61,27 @@ function frequencyAllows(c: Campaign, tracking: Tracking): boolean {
 
 export function CampaignRenderer() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const [mounted, setMounted] = useState(false);
   const { data: campaigns } = useQuery({
     queryKey: ["campanhas-ativas"],
     queryFn: () => listarCampanhasAtivas({ data: {} }),
     staleTime: 5 * 60_000,
+    enabled: mounted,
   });
-  const [tracking, setTracking] = useState<Tracking>(() => loadTracking());
-  const [now, setNow] = useState(() => Date.now());
+  const [tracking, setTracking] = useState<Tracking>({});
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
+    setMounted(true);
+    setTracking(loadTracking());
+    setNow(Date.now());
     const i = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(i);
   }, []);
 
-  if (!campaigns?.length) return null;
+  if (!mounted || !campaigns?.length) return null;
+
+
 
   const eligible = campaigns
     .filter((c) => {
