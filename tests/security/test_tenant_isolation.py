@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1].parent))
 
-import httpx
+import urllib.request, urllib.error, json
 from tests._helpers.session import BASE_URL, TestReport
 
 # Tabelas globais por design — NÃO precisam de isolamento por tenant.
