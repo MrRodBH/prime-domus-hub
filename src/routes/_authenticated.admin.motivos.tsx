@@ -34,6 +34,7 @@ import {
   excluirMotivo,
   listarMotivos,
 } from "@/lib/api/lead-reasons.functions";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/motivos")({
   component: AdminMotivos,
@@ -43,14 +44,12 @@ type Kind = "discard" | "lost";
 
 function AdminMotivos() {
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Motivos de CRM</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure os motivos de <strong>Descarte</strong> (lead desqualificado) e de{" "}
-          <strong>Perda</strong> (negócio perdido após proposta).
-        </p>
-      </header>
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
+      <AdminPageHeader
+        eyebrow="Cadastros"
+        title="Motivos de CRM"
+        description={<>Configure os motivos de <strong>Descarte</strong> (lead desqualificado) e de <strong>Perda</strong> (negócio perdido após proposta).</>}
+      />
 
       <Tabs defaultValue="discard" className="w-full">
         <TabsList>
