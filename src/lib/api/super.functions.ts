@@ -174,7 +174,13 @@ export const superListarDlq = createServerFn({ method: "GET" })
     if (data.portal) q = q.eq("portal_slug", data.portal);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Array<Record<string, unknown>>;
+    return JSON.parse(JSON.stringify(rows ?? [])) as Array<{
+      id: string; tenant_id: string | null; portal_slug: string; acao: string;
+      erro: string | null; tentativas: number; status: string;
+      proxima_tentativa_at: string; created_at: string; updated_at: string;
+      resolvido_at: string | null; ultimo_erro_at: string | null;
+      payload: unknown;
+    }>;
   });
 
 const dlqIdSchema = z.object({ id: z.string().uuid() });
