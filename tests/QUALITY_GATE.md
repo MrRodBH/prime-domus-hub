@@ -8,7 +8,7 @@ Tracker vivo da execução da Fase 5.2. Atualizado ao fim de cada ciclo.
 |---|-----------------------------------------------------------|---------|
 | 1 | Infra Playwright + Auth + Super Admin smoke               | ✅ Concluído |
 | 2 | CRM + Imóveis + Uploads (smoke + RLS audit + portais)     | ✅ Concluído |
-| 3 | CMS + Website (fix hydration B1)                          | ⏳ Aguardando |
+| 3 | CMS + Website (SEO/responsivo + fix B1)                   | ✅ Concluído |
 | 4 | Multi-tenant + Segurança (fix B2)                         | ⏳ Aguardando |
 | 5 | Performance + Regressão                                   | ⏳ Aguardando |
 | 6 | Checklist funcional + Design System + A11y                | ⏳ Aguardando |
@@ -16,10 +16,10 @@ Tracker vivo da execução da Fase 5.2. Atualizado ao fim de cada ciclo.
 
 ## Bugs abertos
 
-| # | Origem     | Descrição                                                                                                                | Alvo   |
+| # | Origem     | Descrição                                                                                                                | Status |
 |---|------------|--------------------------------------------------------------------------------------------------------------------------|--------|
-| B1 | Ciclo 1/2 | Hydration mismatch intermitente em rotas públicas (`/imoveis`, `/lancamentos`, `/anuncie`, `/privacidade`) — SSR ≠ client (Footer/site query) | Ciclo 3 |
-| B2 | Ciclo 2   | Tabelas `imovel_portais`, `portal_connectors`, `portal_sync_dlq` sem policy RESTRICTIVE de tenant (dependem só do policy padrão) | Ciclo 4 |
+| B1 | Ciclo 1/2 | Hydration mismatch em rotas públicas — causa raiz: `CampaignRenderer` usava `useState(() => Date.now())` no SSR       | ✅ Corrigido no Ciclo 3 (mount-guarded). Warning residual intermitente em ~1/8 rotas — monitorar |
+| B2 | Ciclo 2   | `imovel_portais`, `portal_connectors`, `portal_sync_dlq` sem policy RESTRICTIVE de tenant                              | ⏳ Ciclo 4 |
 
 ## Auditoria RLS Ciclo 2 (24 tabelas críticas)
 
