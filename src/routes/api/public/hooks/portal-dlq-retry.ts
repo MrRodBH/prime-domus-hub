@@ -1,16 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// Endpoint interno (cron/manual) para reprocessar itens da DLQ de portais.
-// Processa até 20 itens elegíveis (proxima_tentativa_at <= now e status in pendente|em_retry).
-// Segurança: exige header x-cron-secret == process.env.CRON_SECRET.
+// Segurança: aceita apikey == SUPABASE_PUBLISHABLE_KEY (padrão pg_cron)
+// ou header x-cron-secret == CRON_SECRET (uso manual/interno).
 export const Route = createFileRoute("/api/public/hooks/portal-dlq-retry")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const started = Date.now();
+        const anon = process.env.SUPABASE_PUBLISHABLE_KEY;
         const cronSecret = process.env.CRON_SECRET;
+        const apikey = request.headers.get("apikey");
         const provided = request.headers.get("x-cron-secret");
-        if (!cronSecret || provided !== cronSecret) {
+        const authorized = (anon && apikey === anon) || (cronSecret && provided === cronSecret);
+        if (!authorized) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401, headers: { "content-type": "application/json" },
           });
