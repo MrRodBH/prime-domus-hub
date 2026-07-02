@@ -38,17 +38,19 @@ export const Route = createFileRoute("/api/public/portal-leads")({
       POST: async ({ request }) => {
         const started = Date.now();
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { logEvent, clientIp } = await import("@/lib/observability.server");
+        const ip = clientIp(request);
         const cors = { "access-control-allow-origin": "*", "content-type": "application/json" };
+        const source = "/api/public/portal-leads";
 
         let payload: z.infer<typeof bodySchema>;
         try {
           const raw = await request.json();
           payload = bodySchema.parse(raw);
         } catch (e) {
-          return new Response(
-            JSON.stringify({ error: e instanceof Error ? e.message : "payload inválido" }),
-            { status: 400, headers: cors },
-          );
+          const msg = e instanceof Error ? e.message : "payload inválido";
+          await logEvent({ category: "api", source, event: "invalid_payload", severity: "warn", statusCode: 400, ip, latencyMs: Date.now() - started, errorMessage: msg });
+          return new Response(JSON.stringify({ error: msg }), { status: 400, headers: cors });
         }
 
         const { data: conn } = await supabaseAdmin
@@ -59,9 +61,11 @@ export const Route = createFileRoute("/api/public/portal-leads")({
           .maybeSingle();
 
         if (!conn) {
+          await logEvent({ category: "portal", source, event: "invalid_token", severity: "warn", statusCode: 401, ip, meta: { portal: payload.portal }, latencyMs: Date.now() - started });
           return new Response(JSON.stringify({ error: "token inválido" }), { status: 401, headers: cors });
         }
         if (!conn.ativo) {
+          await logEvent({ category: "portal", source, event: "portal_inactive", severity: "warn", statusCode: 403, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal }, latencyMs: Date.now() - started });
           return new Response(JSON.stringify({ error: "portal desativado" }), { status: 403, headers: cors });
         }
 
@@ -75,6 +79,7 @@ export const Route = createFileRoute("/api/public/portal-leads")({
           .eq("acao", "lead_ingest")
           .gte("created_at", since);
         if ((recent ?? 0) >= 60) {
+          await logEvent({ category: "portal", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal }, latencyMs: Date.now() - started });
           return new Response(
             JSON.stringify({ error: "rate limit excedido (60/min)" }),
             { status: 429, headers: { ...cors, "retry-after": "60" } },
@@ -132,6 +137,7 @@ export const Route = createFileRoute("/api/public/portal-leads")({
             tenant_id: conn.tenant_id, portal_slug: payload.portal.toLowerCase(), acao: "lead_ingest",
             status: "erro", payload: payload as never, erro: errIns.message, duration_ms: Date.now() - started,
           } as never);
+          await logEvent({ category: "portal", source, event: "insert_failed", severity: "error", statusCode: 500, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal }, latencyMs: Date.now() - started, errorMessage: errIns.message });
           return new Response(JSON.stringify({ error: errIns.message }), { status: 500, headers: cors });
         }
 
@@ -140,6 +146,7 @@ export const Route = createFileRoute("/api/public/portal-leads")({
           status: "ok", lead_id: created.id, imovel_id, payload: payload as never,
           duration_ms: Date.now() - started,
         } as never);
+        await logEvent({ category: "portal", source, event: "success", severity: "info", statusCode: 201, tenantId: conn.tenant_id, ip, meta: { portal: payload.portal, lead_id: created.id }, latencyMs: Date.now() - started });
 
         return new Response(JSON.stringify({ ok: true, lead_id: created.id }), { status: 201, headers: cors });
       },

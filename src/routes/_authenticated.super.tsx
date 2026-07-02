@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tanstack/react-router";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
-import { LayoutDashboard, Building2, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Building2, ArrowLeft, Activity } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/super")({
   loader: async () => {
@@ -29,6 +29,12 @@ function SuperShell() {
             className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm ${isActive("/super") && path === "/super" ? "bg-petroleum text-linen" : "hover:bg-foreground/5"}`}
           >
             <LayoutDashboard className="size-4" /> Tenants
+          </Link>
+          <Link
+            to="/super/observabilidade"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm ${isActive("/super/observabilidade") ? "bg-petroleum text-linen" : "hover:bg-foreground/5"}`}
+          >
+            <Activity className="size-4" /> Observabilidade
           </Link>
           <Link
             to="/admin"

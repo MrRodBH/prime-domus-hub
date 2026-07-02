@@ -2492,6 +2492,54 @@ export type Database = {
         }
         Relationships: []
       }
+      system_events: {
+        Row: {
+          category: string
+          created_at: string
+          error_message: string | null
+          event: string
+          id: string
+          ip: string | null
+          latency_ms: number | null
+          meta: Json
+          severity: string
+          source: string
+          status_code: number | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          error_message?: string | null
+          event: string
+          id?: string
+          ip?: string | null
+          latency_ms?: number | null
+          meta?: Json
+          severity?: string
+          source: string
+          status_code?: number | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          error_message?: string | null
+          event?: string
+          id?: string
+          ip?: string | null
+          latency_ms?: number | null
+          meta?: Json
+          severity?: string
+          source?: string
+          status_code?: number | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string
@@ -2796,6 +2844,22 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      log_system_event: {
+        Args: {
+          _category: string
+          _error_message?: string
+          _event: string
+          _ip?: string
+          _latency_ms?: number
+          _meta?: Json
+          _severity?: string
+          _source: string
+          _status_code?: number
+          _tenant_id?: string
+          _user_id?: string
+        }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -2821,6 +2885,7 @@ export type Database = {
         Args: { _tenant: string }
         Returns: undefined
       }
+      super_observabilidade: { Args: { _hours?: number }; Returns: Json }
       user_belongs_to_tenant: { Args: { _tenant: string }; Returns: boolean }
       user_team_ids: { Args: { _user_id: string }; Returns: string[] }
     }

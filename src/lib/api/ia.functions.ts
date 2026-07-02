@@ -84,6 +84,7 @@ Formato de saída (texto puro, sem markdown):
 
 Limite: 900 a 1300 caracteres no total. Não use listas, títulos ou markdown.`;
 
+    const aiStarted = Date.now();
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -98,6 +99,15 @@ Limite: 900 a 1300 caracteres no total. Não use listas, títulos ou markdown.`;
           { role: "user", content: user },
         ],
       }),
+    });
+    const { logEvent } = await import("@/lib/observability.server");
+    await logEvent({
+      category: "ai", source: "ia.gerarDescricaoImovel",
+      event: resp.ok ? "success" : "error",
+      severity: resp.ok ? "info" : "error",
+      statusCode: resp.status, latencyMs: Date.now() - aiStarted,
+      userId: context.userId,
+      meta: { tom: data.tom, tipo: data.tipo },
     });
 
     if (resp.status === 429) {
@@ -168,6 +178,7 @@ export const gerarSeoLancamento = createServerFn({ method: "POST" })
       data.descricao && `Descrição: ${data.descricao.replace(/<[^>]*>/g, " ").slice(0, 800)}`,
     ].filter(Boolean).join("\n");
 
+    const aiStarted = Date.now();
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -183,6 +194,8 @@ export const gerarSeoLancamento = createServerFn({ method: "POST" })
         ],
       }),
     });
+    const { logEvent: logAi1 } = await import("@/lib/observability.server");
+    await logAi1({ category: "ai", source: "ia.gerarSeoLancamento", event: resp.ok ? "success" : "error", severity: resp.ok ? "info" : "warn", statusCode: resp.status, latencyMs: Date.now() - aiStarted, userId: context.userId });
 
     if (!resp.ok) return fallbackSeo(data);
     const json = await resp.json();
@@ -223,6 +236,7 @@ ${ficha}
 
 Gere uma análise objetiva em 3 a 4 frases curtas, identificando gargalos, oportunidades e uma recomendação prática para o corretor. Máximo 500 caracteres. Texto corrido, sem listas.`;
 
+    const aiStarted = Date.now();
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -237,6 +251,8 @@ Gere uma análise objetiva em 3 a 4 frases curtas, identificando gargalos, oport
         ],
       }),
     });
+    const { logEvent: logAi2 } = await import("@/lib/observability.server");
+    await logAi2({ category: "ai", source: "ia.gerarInsightsFunil", event: resp.ok ? "success" : "error", severity: resp.ok ? "info" : "error", statusCode: resp.status, latencyMs: Date.now() - aiStarted, userId: context.userId });
     if (resp.status === 429) throw new Error("Limite de uso da IA atingido. Tente novamente em instantes.");
     if (resp.status === 402) throw new Error("Créditos de IA esgotados.");
     if (!resp.ok) {

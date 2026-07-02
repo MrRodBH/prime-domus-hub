@@ -141,3 +141,17 @@ export const superKpisGlobais = createServerFn({ method: "GET" })
       mrrPending: true, // ⚠️ requer schema de billing (Fase futura)
     };
   });
+
+const obsSchema = z.object({ hours: z.number().int().min(1).max(720).optional() });
+export const superObservabilidade = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => obsSchema.parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const { data: json, error } = await context.supabase.rpc("super_observabilidade", {
+      _hours: data.hours ?? 24,
+    });
+    if (error) throw new Error(error.message);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return json as any;
+  });
