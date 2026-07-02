@@ -67,6 +67,7 @@ import { Route as AuthenticatedAdminFormulariosIdRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminCampanhasIdRouteImport } from './routes/_authenticated.admin.campanhas.$id'
 import { Route as AuthenticatedAdminBlogNovoRouteImport } from './routes/_authenticated.admin.blog.novo'
 import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated.admin.blog.$id'
+import { Route as ApiPublicFeedsPortalTokenRouteImport } from './routes/api/public/feeds.$portal.$token'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -386,6 +387,12 @@ const AuthenticatedAdminBlogIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminBlogRoute,
   } as any)
+const ApiPublicFeedsPortalTokenRoute =
+  ApiPublicFeedsPortalTokenRouteImport.update({
+    id: '/api/public/feeds/$portal/$token',
+    path: '/api/public/feeds/$portal/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -445,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
   '/admin/paginas/': typeof AuthenticatedAdminPaginasIndexRoute
+  '/api/public/feeds/$portal/$token': typeof ApiPublicFeedsPortalTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -501,6 +509,7 @@ export interface FileRoutesByTo {
   '/admin/imoveis': typeof AuthenticatedAdminImoveisIndexRoute
   '/admin/lancamentos': typeof AuthenticatedAdminLancamentosIndexRoute
   '/admin/paginas': typeof AuthenticatedAdminPaginasIndexRoute
+  '/api/public/feeds/$portal/$token': typeof ApiPublicFeedsPortalTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -562,6 +571,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/imoveis/': typeof AuthenticatedAdminImoveisIndexRoute
   '/_authenticated/admin/lancamentos/': typeof AuthenticatedAdminLancamentosIndexRoute
   '/_authenticated/admin/paginas/': typeof AuthenticatedAdminPaginasIndexRoute
+  '/api/public/feeds/$portal/$token': typeof ApiPublicFeedsPortalTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -623,6 +633,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis/'
     | '/admin/lancamentos/'
     | '/admin/paginas/'
+    | '/api/public/feeds/$portal/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -679,6 +690,7 @@ export interface FileRouteTypes {
     | '/admin/imoveis'
     | '/admin/lancamentos'
     | '/admin/paginas'
+    | '/api/public/feeds/$portal/$token'
   id:
     | '__root__'
     | '/'
@@ -739,6 +751,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/imoveis/'
     | '/_authenticated/admin/lancamentos/'
     | '/_authenticated/admin/paginas/'
+    | '/api/public/feeds/$portal/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -766,6 +779,7 @@ export interface RootRouteChildren {
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
+  ApiPublicFeedsPortalTokenRoute: typeof ApiPublicFeedsPortalTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1176,6 +1190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBlogIdRouteImport
       parentRoute: typeof AuthenticatedAdminBlogRoute
     }
+    '/api/public/feeds/$portal/$token': {
+      id: '/api/public/feeds/$portal/$token'
+      path: '/api/public/feeds/$portal/$token'
+      fullPath: '/api/public/feeds/$portal/$token'
+      preLoaderRoute: typeof ApiPublicFeedsPortalTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1326,6 +1347,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
+  ApiPublicFeedsPortalTokenRoute: ApiPublicFeedsPortalTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
