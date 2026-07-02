@@ -58,6 +58,18 @@ function SuperTenantsPage() {
         </Dialog>
       </div>
 
+      {kpis ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <KpiCard label="Tenants" value={kpis.tenants} sub={`${kpis.tenantsAtivos} ativos`} />
+          <KpiCard label="Usuários" value={kpis.users} />
+          <KpiCard label="Imóveis" value={kpis.imoveis} />
+          <KpiCard label="Leads" value={kpis.leads} sub={`+${kpis.leads24h} em 24h`} />
+          <KpiCard label="Sync portais (7d)" value={`${kpis.portalOk7d} ok`} sub={`${kpis.portalErr7d} erros`} tone={kpis.portalErr7d > 0 ? "warn" : "ok"} />
+          <KpiCard label="Auditoria 24h" value={kpis.auditoria24h} />
+          <KpiCard label="MRR / ARR" value="⚠️ pendente" sub="Requer módulo de billing" tone="warn" />
+        </div>
+      ) : null}
+
       {impersonating ? (
         <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-center justify-between text-sm">
           <span>Você está impersonando o tenant <code className="font-mono">{impersonating}</code>.</span>
