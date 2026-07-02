@@ -23,7 +23,8 @@ export function Header() {
   const menu = (menuData ?? FALLBACK_MENU).filter((m) => m.location === "header" && m.visivel);
   const logo = site?.branding?.logo_url || defaultLogo;
   const siteName = site?.branding?.site_name || "RM Prime Imóveis";
-  const wa = site?.contato?.whatsapp ? `https://wa.me/${site.contato.whatsapp}` : "https://wa.me/5531999990001";
+  const waNumber = site?.contato?.whatsapp?.replace(/\D/g, "") || "5531999990001";
+  const wa = `https://wa.me/${waNumber}`;
 
   const renderLink = (item: (typeof menu)[number], onClickExtra?: () => void) => {
     const isExternal = item.tipo === "external" || /^https?:\/\//i.test(item.url);
