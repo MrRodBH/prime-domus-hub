@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState } from "@tanstack/react-router";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
-import { LayoutDashboard, Building2, ArrowLeft, Activity } from "lucide-react";
+import { LayoutDashboard, Building2, ArrowLeft, Activity, AlertOctagon } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/super")({
   loader: async () => {
