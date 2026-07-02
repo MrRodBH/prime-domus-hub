@@ -90,11 +90,14 @@ export function AdminShell() {
   }
 
   const isActive = (to: string, exact?: boolean) => (exact ? path === to : path === to || path.startsWith(to + "/"));
-  const visibleNav = nav.filter((n) => {
+  const isVisible = (n: NavItem) => {
     if (n.hideFor && !roles.some((r) => !n.hideFor!.includes(r))) return false;
     if (n.cms && !cms.can(n.cms, "visualizar")) return false;
     return true;
-  });
+  };
+  const visibleGroups = navGroups
+    .map((g) => ({ ...g, items: g.items.filter(isVisible) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="min-h-screen flex bg-secondary/30">
@@ -105,38 +108,47 @@ export function AdminShell() {
             <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Admin</span>
           </Link>
         </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
           {isSuper ? (
             <Link
               to="/super"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 mb-2"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm bg-amber-500/10 text-amber-800 hover:bg-amber-500/20"
             >
               <Crown className="size-4" strokeWidth={1.5} /> Super Admin
             </Link>
           ) : null}
           {impersonating ? (
-            <div className="mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800">
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800">
               Impersonando tenant<br /><span className="font-mono">{impersonating.slice(0, 8)}…</span>
             </div>
           ) : null}
-          {visibleNav.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.to, item.exact);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
-                  active ? "bg-petroleum text-linen" : "text-foreground/70 hover:bg-foreground/5"
-                }`}
-              >
-                <Icon className="size-4" strokeWidth={1.5} />
-                {item.label}
-              </Link>
-            );
-          })}
+          {visibleGroups.map((group) => (
+            <div key={group.id} className="space-y-1">
+              {group.label ? (
+                <p className="px-3 pb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {group.label}
+                </p>
+              ) : null}
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.to, item.exact);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                      active ? "bg-petroleum text-linen" : "text-foreground/70 hover:bg-foreground/5"
+                    }`}
+                  >
+                    <Icon className="size-4" strokeWidth={1.5} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <div className="p-4 border-t border-foreground/5">
           <Button variant="ghost" className="w-full justify-start gap-2" onClick={signOut}>
