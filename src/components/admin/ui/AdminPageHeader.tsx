@@ -7,15 +7,23 @@ interface AdminPageHeaderProps {
   description?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  /** Adiciona linha divisória inferior (default: false). */
+  divider?: boolean;
 }
 
 /**
  * Cabeçalho padrão de páginas Admin.
- * Uso obrigatório em todas as telas de /admin/*.
+ * Uso em todas as telas de /admin/*.
  */
-export function AdminPageHeader({ eyebrow, title, description, actions, className }: AdminPageHeaderProps) {
+export function AdminPageHeader({ eyebrow, title, description, actions, className, divider = false }: AdminPageHeaderProps) {
   return (
-    <header className={cn("flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between pb-6 border-b border-border/60", className)}>
+    <header
+      className={cn(
+        "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
+        divider && "pb-6 border-b border-border/60",
+        className,
+      )}
+    >
       <div className="min-w-0">
         {eyebrow ? <p className="eyebrow mb-2">{eyebrow}</p> : null}
         <h1 className="font-display text-3xl leading-tight text-foreground">{title}</h1>
@@ -27,3 +35,4 @@ export function AdminPageHeader({ eyebrow, title, description, actions, classNam
     </header>
   );
 }
+

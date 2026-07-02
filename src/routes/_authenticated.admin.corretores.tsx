@@ -25,6 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil, Trash2, Upload, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { maskPhoneBR, digitsOnly } from "@/lib/phone-br";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/corretores")({
   component: AdminUsuarios,
@@ -232,8 +233,11 @@ function AdminUsuarios() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">Usuários</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <AdminPageHeader
+          eyebrow="Sistema"
+          title="Usuários"
+        />
+<Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button
               onClick={() => {

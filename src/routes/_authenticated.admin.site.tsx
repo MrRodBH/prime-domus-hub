@@ -18,6 +18,7 @@ import { CmsEmpresaTab, CmsBrandingDinamicoTab, CmsSeoGlobalTab, CmsRodapeTab } 
 import { CmsMenuTab } from "@/components/admin/CmsMenuTab";
 import { CmsHomeDiferenciaisTab, CmsHomeDepoimentosTab, CmsPaginaSobreTab, CmsPaginaContatoTab, CmsPaginaAnuncieTab } from "@/components/admin/CmsPaginasTabs";
 import { CmsVersoesTab } from "@/components/admin/CmsVersoesTab";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 
 export const Route = createFileRoute("/_authenticated/admin/site")({
@@ -201,8 +202,11 @@ function AdminSite() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="font-display text-3xl">Site & Branding</h1>
-        <p className="text-sm text-muted-foreground mt-1">Edite a logo, os textos da home e os dados de contato.</p>
+        <AdminPageHeader
+          eyebrow="CMS"
+          title="Site & Branding"
+        />
+<p className="text-sm text-muted-foreground mt-1">Edite a logo, os textos da home e os dados de contato.</p>
       </div>
 
       <Tabs defaultValue="empresa">

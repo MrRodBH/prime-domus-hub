@@ -37,6 +37,7 @@ import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 import { toast } from "sonner";
 import { maskPhoneBR, digitsOnly, isValidPhoneBR } from "@/lib/phone-br";
 import { z } from "zod";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 const leadsSearchSchema = z.object({
   status: z.string().optional(),
@@ -249,8 +250,11 @@ function AdminLeads() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="font-display text-3xl">Leads</h1>
-        <div className="flex items-center gap-3 flex-wrap">
+        <AdminPageHeader
+          eyebrow="CRM"
+          title="Leads"
+        />
+<div className="flex items-center gap-3 flex-wrap">
           <NovoLeadButton corretores={corretoresLista} />
           <div className="flex items-center gap-2">
             <span className="text-xs uppercase tracking-wide text-muted-foreground">Corretor:</span>

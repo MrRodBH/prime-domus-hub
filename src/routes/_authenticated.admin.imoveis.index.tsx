@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/imoveis/")({
   component: AdminImoveis,
@@ -27,8 +28,11 @@ function AdminImoveis() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl">Imóveis</h1>
-          <p className="text-sm text-muted-foreground mt-1">{data?.length ?? 0} cadastrados</p>
+          <AdminPageHeader
+            eyebrow="CRM"
+            title="Imóveis"
+          />
+<p className="text-sm text-muted-foreground mt-1">{data?.length ?? 0} cadastrados</p>
         </div>
         <Button asChild>
           <Link to="/admin/imoveis/novo"><Plus className="size-4 mr-1" /> Novo imóvel</Link>

@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/blog/")({
   component: AdminBlog,
@@ -53,8 +54,11 @@ function AdminBlog() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">Blog</h1>
-        <Link to="/admin/blog/novo">
+        <AdminPageHeader
+          eyebrow="CMS"
+          title="Blog"
+        />
+<Link to="/admin/blog/novo">
           <Button><Plus className="size-4 mr-1" /> Novo post</Button>
         </Link>
       </div>

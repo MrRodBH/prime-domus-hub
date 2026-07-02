@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/origens")({
   component: AdminOrigens,
@@ -63,8 +64,11 @@ function AdminOrigens() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl">Origens de Leads</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <AdminPageHeader
+            eyebrow="Cadastros"
+            title="Origens de Leads"
+          />
+<p className="text-sm text-muted-foreground mt-1">
             Cadastre e gerencie as origens que aparecem nos formulários e relatórios.
           </p>
         </div>

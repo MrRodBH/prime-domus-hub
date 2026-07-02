@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { adminListarLancamentos, adminExcluirLancamento } from "@/lib/api/lancamentos.functions";
+import { AdminPageHeader } from "@/components/admin/ui";
 
 export const Route = createFileRoute("/_authenticated/admin/lancamentos/")({
   component: Page,
@@ -30,8 +31,11 @@ function Page() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-3xl">Lançamentos</h1>
-          <p className="text-sm text-muted-foreground mt-1">{data?.length ?? 0} empreendimentos</p>
+          <AdminPageHeader
+            eyebrow="CRM"
+            title="Lançamentos"
+          />
+<p className="text-sm text-muted-foreground mt-1">{data?.length ?? 0} empreendimentos</p>
         </div>
         <Button asChild>
           <Link to="/admin/lancamentos/novo"><Plus className="size-4 mr-1" /> Novo lançamento</Link>
