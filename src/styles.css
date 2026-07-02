@@ -56,7 +56,7 @@
 
   /* Brand palette */
   --petroleum: oklch(0.36 0.045 207);
-  --gold: oklch(0.68 0.072 75);
+  --gold: oklch(0.72 0.09 75);
   --tiffany: oklch(0.84 0.045 188);
   --linen: oklch(0.972 0.008 80);
 
@@ -118,10 +118,11 @@
 @layer utilities {
   .eyebrow {
     font-size: 0.6875rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.3em;
-    color: var(--gold);
+    /* Darker gold for WCAG AA on cream/linen backgrounds. */
+    color: color-mix(in oklab, var(--gold) 40%, var(--petroleum) 60%);
   }
   .rule {
     height: 1px;

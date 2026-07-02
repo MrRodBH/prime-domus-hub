@@ -51,10 +51,10 @@ export function WhatsAppFab() {
           },
         }).catch(() => {});
       }}
-      className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-lg shadow-black/20 transition hover:scale-105 hover:bg-[#1ebe5d] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
+      className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-[#0a6b5c] px-4 py-3 text-white shadow-lg shadow-black/20 transition hover:scale-105 hover:bg-[#075247] focus:outline-none focus:ring-2 focus:ring-[#0a6b5c] focus:ring-offset-2"
     >
       <MessageCircle className="h-5 w-5" aria-hidden="true" />
-      <span className="hidden text-sm font-medium sm:inline">Fale Conosco</span>
+      <span className="hidden text-sm font-semibold sm:inline">Fale Conosco</span>
     </a>
   );
 }
