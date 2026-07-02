@@ -11,8 +11,8 @@ export const Route = createFileRoute("/api/public/hooks/portal-dlq-retry")({
         const cronSecret = process.env.CRON_SECRET;
         const apikey = request.headers.get("apikey");
         const provided = request.headers.get("x-cron-secret");
-        const ok = (anon && apikey === anon) || (cronSecret && provided === cronSecret);
-        if (!ok) {
+        const authorized = (anon && apikey === anon) || (cronSecret && provided === cronSecret);
+        if (!authorized) {
           return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401, headers: { "content-type": "application/json" },
           });
