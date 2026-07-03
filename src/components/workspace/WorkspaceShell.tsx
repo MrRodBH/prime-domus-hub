@@ -109,5 +109,6 @@ export function WorkspaceShell() {
         </Sheet>
       </div>
     </DetailPanelProvider>
+    </TenantContextProvider>
   );
 }
