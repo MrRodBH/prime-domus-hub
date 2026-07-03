@@ -23,6 +23,7 @@ import {
   registerView,
   registerPanel,
   registerAction,
+  freezeRegistries,
   type ViewProps,
   type ActionContext,
 } from "@/components/workspace/registry";
@@ -74,4 +75,9 @@ export function bootstrapWorkspaceRegistries(): void {
 
   // Actions — fallback declarativo que delega ao adapter.runAction.
   registerAction("adapter.run", delegateToAdapter);
+
+  // Bootstrap Freeze Model (Etapa 4.2 §5.3): a partir daqui, qualquer
+  // tentativa de `register(...)` em runtime lança `RegistryFrozenError`.
+  // Registry vira imutável — determinístico, auditável, sem drift.
+  freezeRegistries();
 }
