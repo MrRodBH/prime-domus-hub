@@ -103,6 +103,79 @@ Observação: os 2 imports diretos de `*.functions.ts` listados em Architectural
 
 ---
 
+## Architectural Exception Register
+
+### Exceção 1
+
+**Componente:** `SubmissoesPanel`
+
+**Operação:** `listarSubmissoes()`
+
+**Tipo:** Read-only
+
+**Justificativa:**
+
+Esta chamada é utilizada exclusivamente para consulta de dados e não participa do fluxo operacional do Workspace.
+
+Não interfere em:
+
+- Save
+- Publish
+- Versionamento
+- Dispatcher
+- Metadata
+- Editor
+- Detail Panel
+
+**Planejamento:**
+
+Será absorvida futuramente pelo Adapter Pattern durante uma fase específica de higiene técnica, sem impacto funcional.
+
+---
+
+### Exceção 2
+
+**Componente:** `CampaignPanels`
+
+**Operação:** `metricasCampanha()`
+
+**Tipo:** Read-only
+
+**Justificativa:**
+
+Utilizada apenas para consulta de métricas.
+
+Não participa do pipeline operacional do Workspace.
+
+Não interfere em:
+
+- Save
+- Publish
+- Versionamento
+- Dispatcher
+- Metadata
+- Editor
+- Detail Panel
+
+**Planejamento:**
+
+Também será incorporada ao Adapter Pattern em futura fase de higiene técnica.
+
+---
+
+### Garantias Arquiteturais
+
+- Estas exceções são exclusivamente de leitura;
+- Não criam fluxo operacional paralelo;
+- Não possuem persistência própria;
+- Não utilizam editor independente;
+- Não introduzem múltiplos pipelines;
+- Não comprometem o Workspace First;
+- Não comprometem a arquitetura metadata-driven;
+- Não afetam o Product UX Refactor.
+
+---
+
 ## 6. Critério de encerramento
 
 - ✅ Todas as entidades operam exclusivamente no `ContentWorkspace`.
