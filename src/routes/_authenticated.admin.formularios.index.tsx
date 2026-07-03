@@ -1,15 +1,13 @@
-// Bloco 3.1 — migração: /admin/formularios agora é ContentWorkspace (descriptor: form).
+// Bloco 3.1 — migração: /admin/formularios agora é EntityWorkspace (descriptor: form).
 import { createFileRoute } from "@tanstack/react-router";
-import { ContentWorkspace } from "@/components/content/ContentWorkspace";
-import { contentSearchSchema } from "@/components/content/search-schema";
-import { ENTITIES } from "@/components/content/entity-registry";
+import { EntityWorkspace, entitySearchSchema, ENTITIES } from "@/components/workspace/entities";
 
 export const Route = createFileRoute("/_authenticated/admin/formularios/")({
-  validateSearch: (s) => contentSearchSchema.parse(s),
+  validateSearch: (s) => entitySearchSchema.parse(s),
   component: FormulariosWorkspaceRoute,
 });
 
 function FormulariosWorkspaceRoute() {
   const search = Route.useSearch();
-  return <ContentWorkspace descriptor={ENTITIES.form} search={search} />;
+  return <EntityWorkspace descriptor={ENTITIES.form} search={search} />;
 }
