@@ -53,6 +53,7 @@ export function WorkspaceShell() {
   }, [active.superOnly, isSuper, navigate]);
 
   return (
+    <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>
     <DetailPanelProvider>
       <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
         <NavigationRail isSuper={!!isSuper} />
