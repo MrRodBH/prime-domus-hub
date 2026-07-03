@@ -46,7 +46,9 @@ export function EntityWorkspace({
     if (!selectedId || isCreating) return;
     if (items.length && !items.find((p) => p.id === selectedId)) {
       navigate({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         to: descriptor.route as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         search: { ...search, item: undefined } as any,
         replace: true,
         resetScroll: false,
@@ -69,7 +71,9 @@ export function EntityWorkspace({
 
   function patchSearch(patch: Partial<EntitySearch>) {
     navigate({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       to: descriptor.route as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       search: { ...search, ...patch } as any,
       replace: true,
       resetScroll: false,
