@@ -1,14 +1,20 @@
-// Registry · Contratos de props (Fase 6 · Bloco 4 · Etapa 4.1.b).
+// Registry · Contratos de props (Fase 6 · Bloco 4 · Etapa 4.1.b + hardening 4.1.d).
 //
-// REGRA (Instrução Normativa §6.2): tipos são neutros — não conhecem
+// REGRA (Instrução Normativa 4.1.b §6.2): tipos são neutros — não conhecem
 // domínio. Descriptor/Adapter/Record são o único vocabulário do runtime.
+//
+// REGRA (Instrução Normativa 4.1.d §4 / §8.2 — Registry Purity):
+// o registry NÃO pode depender de `workspace`, `runtime` ou `bootstrap`.
+// Por isso os tipos genéricos são importados diretamente do módulo
+// canônico de contratos (`content/types` — que é o arquivo-fonte, e não
+// o barrel do workspace). Import é `type-only`, portanto sem runtime edge.
 import type { ComponentType } from "react";
 import type {
   EntityDescriptor,
-  EntityRecord,
-  EntityAdapter,
-  EntitySearch,
-} from "@/components/workspace/entities";
+  ContentEntityRecord as EntityRecord,
+  ContentEntityAdapter as EntityAdapter,
+} from "@/components/content/types";
+import type { ContentSearch as EntitySearch } from "@/components/content/search-schema";
 
 // ---------------------------------------------------------------------------
 // View — renderização do dataset da lista (list/kanban/gallery/table/...).
