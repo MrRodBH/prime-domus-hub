@@ -1,21 +1,31 @@
-// Registry System — superfície pública (Fase 6 · Bloco 4).
+// Registry System — superfície pública (Fase 6 · Bloco 4 · Etapa 4.3.1).
 //
-// Contrato invariante (atualizado na 4.3):
-//   TenantContext → RegistrySnapshot → RuntimeRenderer → resolve(id) → Component
+// Camadas (patch 4.3.1):
+//   Registry       → source of definitions (build-time)
+//   RegistryIndex  → read-only façade runtime (obrigatória — não é debug!)
+//   Snapshot       → container passivo por tenant (isola instâncias)
+//   Executor       → execução pura (nunca dentro de registry/snapshot/index)
 //
-// Regras 4.3:
-//   • Registries expostos aqui são BUILDERS de bootstrap — NUNCA consultados
-//     em runtime diretamente. Runtime lê apenas `RegistrySnapshot` via
-//     `useTenantContext()`.
-//   • `RegistryIndex` foi REMOVIDO desta superfície (§7). Continua disponível
-//     como "debug-only tooling" em `./RegistryIndex` para inspeção manual —
-//     nenhum código de produto deve importá-lo.
-//   • `ActionRegistry.execute` foi REMOVIDO (§8). Execução vive em
-//     `./ActionExecutor` e é chamada via snapshot.
-export { ViewRegistry, registerView } from "./ViewRegistry";
-export { PanelRegistry, registerPanel } from "./PanelRegistry";
-export { DialogRegistry, registerDialog } from "./DialogRegistry";
-export { ActionRegistry, registerAction } from "./ActionRegistry";
+// Fluxo canônico runtime:
+//   TenantContext → RegistrySnapshot (passivo) → RegistryIndex (ativo)
+//                 → Renderer / Plugin → ActionExecutor
+export {
+  ViewRegistry, registerView, createViewRegistry,
+  type ViewRegistryInstance,
+} from "./ViewRegistry";
+export {
+  PanelRegistry, registerPanel, createPanelRegistry,
+  type PanelRegistryInstance,
+} from "./PanelRegistry";
+export {
+  DialogRegistry, registerDialog, createDialogRegistry,
+  type DialogRegistryInstance,
+} from "./DialogRegistry";
+export {
+  ActionRegistry, registerAction, createActionRegistry,
+  type ActionRegistryInstance,
+  type ActionDefinition,
+} from "./ActionRegistry";
 
 export { RegistryResolutionError } from "./errors";
 export { freezeRegistries, isFrozen, RegistryFrozenError } from "./freeze";
@@ -25,6 +35,16 @@ export {
   type RegistrySnapshot,
   type RegistrySnapshotSource,
 } from "./snapshot";
+
+export {
+  RegistryIndex,
+  createRegistryIndex,
+  type ViewFacade,
+  type PanelFacade,
+  type DialogFacade,
+  type ActionFacade,
+} from "./RegistryIndex";
+
 export { executeAction, executeActionById } from "./ActionExecutor";
 
 export type {

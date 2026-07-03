@@ -1,23 +1,31 @@
-// TenantContext — Fase 6 · Bloco 4 · Etapa 4.3 §5.
+// TenantContext — Fase 6 · Bloco 4 · Etapa 4.3.1 §2.2.
 //
-// Camada de isolamento por tenant. Toda função de runtime que precisar
-// resolver componentes/ações DEVE consumir esta camada. Import direto de
-// registry global (§5.3) é proibido a partir desta etapa.
+// PATCH 4.3.1: o context expõe DUAS camadas obrigatórias:
+//   • `snapshot`      → container passivo (registries isolados por tenant)
+//   • `registryIndex` → read-only façade runtime (RESTAURADA)
 //
-// Contrato:
-//   • cada tenant recebe seu próprio `RegistrySnapshot` (§4.3)
-//   • runtime é 100% context-driven (§14)
-//   • fail-fast se algum consumer ler `useTenantContext` fora do provider
+// Runtime NUNCA consulta o snapshot como resolver. Toda leitura passa por
+// `registryIndex`. Toda execução passa por `ActionExecutor`.
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import type { RegistrySnapshot } from "@/components/workspace/registry/snapshot";
+import {
+  createRegistrySnapshot,
+  type RegistrySnapshot,
+} from "@/components/workspace/registry/snapshot";
+import {
+  RegistryIndex,
+  createRegistryIndex,
+} from "@/components/workspace/registry/RegistryIndex";
+import { executeActionById } from "@/components/workspace/registry/ActionExecutor";
 import { getDefaultSnapshotSource } from "@/components/workspace/bootstrap";
-import { createRegistrySnapshot } from "@/components/workspace/registry/snapshot";
+import type { ActionContext } from "@/components/workspace/registry/types";
 
 export type TenantContextValue = Readonly<{
   tenantId: string;
   snapshot: RegistrySnapshot;
-  /** Reservado para 4.4 — flags por tenant. */
+  registryIndex: RegistryIndex;
   featureFlags: Readonly<Record<string, boolean>>;
+  /** Atalho conveniente — executor puro, opera sobre o snapshot do tenant. */
+  executeAction: (id: string, ctx: ActionContext) => Promise<void>;
 }>;
 
 const TenantCtx = createContext<TenantContextValue | null>(null);
@@ -31,16 +39,17 @@ export function TenantContextProvider({
   featureFlags?: Record<string, boolean>;
   children: ReactNode;
 }) {
-  // Um snapshot novo por tenantId — nenhum Map é compartilhado entre
-  // tenants (§4.3 + §12.3). `null` tenantId (usuário anônimo/SSR) recebe
-  // snapshot próprio marcado como "anonymous" para não poluir isolamento.
   const value = useMemo<TenantContextValue>(() => {
     const tid = tenantId ?? "__anonymous__";
     const snapshot = createRegistrySnapshot(tid, getDefaultSnapshotSource());
+    const registryIndex = createRegistryIndex(snapshot);
     return Object.freeze({
       tenantId: tid,
       snapshot,
+      registryIndex,
       featureFlags: Object.freeze({ ...(featureFlags ?? {}) }),
+      executeAction: (id: string, ctx: ActionContext) =>
+        executeActionById(snapshot, id, ctx),
     });
   }, [tenantId, featureFlags]);
 
@@ -52,14 +61,13 @@ export function useTenantContext(): TenantContextValue {
   if (!v) {
     throw new Error(
       "[TenantContext] useTenantContext() chamado fora de <TenantContextProvider>. " +
-        "Fase 6 · Bloco 4 · Etapa 4.3 §5.2: runtime é 100% context-driven — " +
-        "nenhum acesso a registry sem tenant context.",
+        "Fase 6 · Bloco 4 · Etapa 4.3.1: runtime é 100% context-driven.",
     );
   }
   return v;
 }
 
-/** Helper explícito §5.4 — resolve componente/ação dentro do tenant. */
+/** Helper §5.4 — resolve via RegistryIndex (nunca via snapshot direto). */
 export function resolveWithinTenant<T>(
   ctx: TenantContextValue,
   kind: "view" | "panel" | "dialog" | "action",
@@ -67,12 +75,12 @@ export function resolveWithinTenant<T>(
 ): T {
   switch (kind) {
     case "view":
-      return ctx.snapshot.resolveView(id) as unknown as T;
+      return ctx.registryIndex.view.resolve(id) as unknown as T;
     case "panel":
-      return ctx.snapshot.resolvePanel(id) as unknown as T;
+      return ctx.registryIndex.panel.resolve(id) as unknown as T;
     case "dialog":
-      return ctx.snapshot.resolveDialog(id) as unknown as T;
+      return ctx.registryIndex.dialog.resolve(id) as unknown as T;
     case "action":
-      return ctx.snapshot.resolveAction(id) as unknown as T;
+      return ctx.registryIndex.action.resolve(id) as unknown as T;
   }
 }
