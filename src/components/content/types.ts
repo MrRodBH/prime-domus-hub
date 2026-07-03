@@ -66,12 +66,23 @@ export type VersionRecord = {
 // -----------------------------------------------------------------------------
 // Contrato do Adapter — TODO acesso a server fns passa por aqui.
 // Session/Workspace importam APENAS este tipo, nunca server functions.
+//
+// Extensões da Etapa 4.1.a (todas opcionais — zero breaking change):
+//   - `scope`: identificador da scopeTab ativa (declarada no descriptor).
+//   - `filters`: mapa opaco de filtros declarativos (chave = filter.id).
+//   - `runAction`: superfície uniforme para ações declaradas em `descriptor.actions`.
+//   - `fetchFilterOptions`: fornece opções dinâmicas para filtros com `optionsFrom: "adapter"`.
+//   Todas atendem o critério dos 3 domínios (Conteúdo · Operacional · Admin/Sistema).
 // -----------------------------------------------------------------------------
 export type ListParams = {
   q?: string;
   status?: string;
   page?: number;
   pageSize?: number;
+  /** Etapa 4.1.a — scopeTab ativa (opcional; interpretada pelo adapter). */
+  scope?: string;
+  /** Etapa 4.1.a — filtros declarativos, chaveados por `filter.id`. */
+  filters?: Record<string, unknown>;
 };
 
 export interface ContentEntityAdapter {
@@ -84,6 +95,10 @@ export interface ContentEntityAdapter {
   publicUrl?(detail: ContentEntityDetail | null, draft: ContentDraft): string | null;
   listVersions?(id: string): Promise<VersionRecord[]>;
   restoreVersion?(id: string, versionId: string): Promise<void>;
+  /** Etapa 4.1.a — executor genérico de ações declaradas em `descriptor.actions`. */
+  runAction?(actionId: string, id: string | null, payload?: unknown): Promise<void>;
+  /** Etapa 4.1.a — opções dinâmicas para filtros com `optionsFrom: "adapter"`. */
+  fetchFilterOptions?(filterId: string): Promise<{ value: string; label: string }[]>;
 }
 
 // -----------------------------------------------------------------------------
@@ -104,7 +119,12 @@ export type EditorKind =
   | "campaign"      // Formulário estruturado de campanha
   | "media"         // Metadados + preview do arquivo
   | "settings"      // Section-based config (site)
-  | "audit";        // Read-only viewer
+  | "audit"         // Read-only viewer
+  | "structured";   // Etapa 4.1.a — editor genérico de registro operacional
+                    // (guiado por `descriptor.recordSections`). Uso previsto:
+                    // Conteúdo (metadados avançados de Formulários) · Operacional
+                    // (Leads, Contratos, Comissões) · Administração (Perfis,
+                    // Integrações, Chaves API, Billing).
 
 export type ContentTab =
   | "conteudo" | "seo" | "preview" | "versoes" | "publicacao"
@@ -113,6 +133,118 @@ export type ContentTab =
 export type WorkspaceAction =
   | "criar" | "publicar" | "despublicar" | "arquivar" | "restaurar" | "duplicar"
   | "excluir" | "preview" | "versionar";
+
+// -----------------------------------------------------------------------------
+// Etapa 4.1.a — Capacidades Genéricas do Workspace
+//
+// Todas as capacidades abaixo são OPCIONAIS no descriptor. Nenhuma delas
+// carrega nomes ou semântica de domínio. Cada uma passou pelo Multi-Domain
+// Validation Test (Product UX Contract §12 · regra dos 3 domínios):
+//
+//   Capacidade        │ Conteúdo             │ Operacional         │ Admin/Sistema
+//   ──────────────────┼──────────────────────┼─────────────────────┼──────────────────
+//   views             │ Mídias (gallery)     │ Pipeline (kanban)   │ Auditoria (table)
+//   scopeTabs         │ Blog (drafts/pub)    │ Leads (ativos/desc) │ Perfis (ativos/rev)
+//   filters           │ Blog (autor)         │ Leads (corretor)    │ Auditoria (módulo)
+//   actions           │ Página (publicar)    │ Lead (avancar)      │ Perfil (revogar)
+//   recordSections    │ Formulário (config)  │ Lead (contato)      │ Chave API (metadados)
+//   panels            │ Blog (leituras)      │ Pipeline (funil)    │ Sistema (uso/quota)
+// -----------------------------------------------------------------------------
+
+/** Modos de visualização declarativos. Identificadores reservados para
+ *  crescimento futuro sem breaking change: "calendar", "timeline", "map". */
+export type EntityViewMode = "list" | "kanban" | "gallery" | "table";
+
+export type KanbanViewSpec = {
+  /** Campo do EntityRecord (ou de `extra`) usado para agrupar cards. */
+  groupBy: string;
+  columns: { id: string; label: string; accent?: string }[];
+  /** Reservado para 4.1.b+ — swimlanes horizontais. */
+  swimlanes?: unknown;
+  /** Reservado — agregações por coluna (soma, média, contagem). */
+  aggregation?: unknown;
+};
+
+export type GalleryViewSpec = { thumbField: string };
+export type TableViewSpec = { columns: { field: string; label: string }[] };
+
+export type EntityViewsSpec = {
+  default: EntityViewMode;
+  available: EntityViewMode[];
+  kanban?: KanbanViewSpec;
+  gallery?: GalleryViewSpec;
+  table?: TableViewSpec;
+};
+
+/** Abas de escopo da lista (recortes do dataset). Distintas das `tabs` do
+ *  editor (que são do painel de detalhe). Se `panel` estiver presente, o
+ *  Workspace renderiza esse painel analítico no lugar da lista. */
+export type ScopeTabSpec = {
+  id: string;
+  label: string;
+  /** Filtro opaco interpretado pelo adapter em `fetchList({ scope })`. */
+  scope?: Record<string, unknown>;
+  /** Identificador de `descriptor.panels[*].id` a renderizar. */
+  panel?: string;
+};
+
+/** Filtros declarativos. UI gerada pelo núcleo; interpretação pelo adapter. */
+export type FilterSpec = {
+  id: string;
+  label: string;
+  kind: "select" | "text" | "date-range" | "enum-select";
+  optionsFrom?:
+    | "adapter"
+    | { static: { value: string; label: string }[] };
+};
+
+/** Predicado declarativo para ativação condicional de ações.
+ *  Etapa 4.1.a mantém apenas dois formatos declarativos — sem escape hatch
+ *  funcional no core (`*Fn` proibido por §13 do Plano Executivo). */
+export type ActionPredicate =
+  | { always: true }
+  | { statusIn: string[] }
+  | { statusNotIn: string[] }
+  | { field: string; op: "eq" | "neq" | "in" | "notIn"; value: unknown };
+
+/** Especificação declarativa de ação. Substitui o enum fechado
+ *  `WorkspaceAction` quando presente; o enum permanece para retrocompat. */
+export type ActionSpec = {
+  id: string;
+  label: string;
+  /** Nome no lucide-icons (interpretado pelo renderer). */
+  icon?: string;
+  intent?: "primary" | "default" | "destructive";
+  /** Ativação condicional; ausente = sempre habilitada. */
+  enabledWhen?: ActionPredicate;
+  /** Identificador de dialog no Dialog Registry (Etapa 4.1.b). */
+  dialog?: string;
+};
+
+/** Seção declarativa do editor `structured` (registro operacional). */
+export type RecordFieldKind =
+  | "text" | "email" | "phone" | "money" | "link" | "readonly" | "textarea";
+
+export type RecordFieldSpec = {
+  id: string;                  // path dentro de detail.data
+  label: string;
+  kind: RecordFieldKind;
+  /** Predicado declarativo (não função) para links: adapter resolve o href. */
+  linkTemplate?: string;       // ex.: "mailto:{value}", "tel:{value}"
+};
+
+export type RecordSectionSpec = {
+  id: string;
+  label: string;
+  fields: RecordFieldSpec[];
+};
+
+/** Painel analítico opaco. O core apenas hospeda; o descriptor/adapter fornece
+ *  o componente. Identificado por `id` em Panel Registry (Etapa 4.1.b). */
+export type PanelSpec = {
+  id: string;
+  label?: string;
+};
 
 export type EntityDescriptor = {
   kind: EntityKind;
@@ -139,6 +271,20 @@ export type EntityDescriptor = {
 
   // ------ status vocabulary (algumas entidades usam active/paused em vez de published/draft) ------
   statusVocabulary: { label: string; value: StatusValue }[];
+
+  // ------ Etapa 4.1.a — capacidades genéricas (todas opcionais, retrocompat total) ------
+  /** Visualizações declarativas (list/kanban/gallery/table). */
+  views?: EntityViewsSpec;
+  /** Abas de escopo da lista (Ativos/Arquivados/Análise/etc). */
+  scopeTabs?: ScopeTabSpec[];
+  /** Filtros declarativos exibidos na toolbar da lista. */
+  filters?: FilterSpec[];
+  /** Catálogo declarativo de ações (substitui `supportedActions` quando presente). */
+  actions?: ActionSpec[];
+  /** Seções do editor `structured`. Ignoradas para outros `editorKind`. */
+  recordSections?: RecordSectionSpec[];
+  /** Painéis analíticos anexos, referenciados por `scopeTabs[*].panel`. */
+  panels?: PanelSpec[];
 
   ready: true;  // §2 do prompt — nada mais pode ser "false"
 };
