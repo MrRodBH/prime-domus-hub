@@ -55,10 +55,11 @@ export type { ViewComponent, PanelComponent, DialogComponent, ActionDefinition }
  * autorizado — chamado exclusivamente pelo TenantContext no bootstrap.
  */
 export function createResolutionGraph(snapshot: RegistrySnapshot): ResolutionGraph {
+  // Cada resolver já é congelado em seu próprio construtor.
   return Object.freeze({
-    view: Object.freeze(createViewResolver(snapshot)),
-    panel: Object.freeze(createPanelResolver(snapshot)),
-    dialog: Object.freeze(createDialogResolver(snapshot)),
-    action: Object.freeze(createActionResolver(snapshot)),
+    view: createViewResolver(snapshot),
+    panel: createPanelResolver(snapshot),
+    dialog: createDialogResolver(snapshot),
+    action: createActionResolver(snapshot),
   });
 }
