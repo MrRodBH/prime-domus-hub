@@ -72,7 +72,7 @@ Detalhes por evidência:
 
 ---
 
-## 4. Technical Debt
+## 4. Architectural Exceptions (Read-only)
 
 Pendências remanescentes relacionadas ao Workspace de Conteúdo:
 
@@ -99,7 +99,80 @@ Tudo o mais: **sem pendências.**
 | Legacy Routes Remaining         | **0** | 0 |
 | Parallel Operational Flows      | **0** | 0 |
 
-Observação: os 2 imports diretos de `*.functions.ts` listados em Technical Debt são leituras auxiliares (não constituem fluxo operacional paralelo — save/publish/versionar continuam 100% no adapter).
+Observação: os 2 imports diretos de `*.functions.ts` listados em Architectural Exceptions (Read-only) são leituras auxiliares (não constituem fluxo operacional paralelo — save/publish/versionar continuam 100% no adapter).
+
+---
+
+## Architectural Exception Register
+
+### Exceção 1
+
+**Componente:** `SubmissoesPanel`
+
+**Operação:** `listarSubmissoes()`
+
+**Tipo:** Read-only
+
+**Justificativa:**
+
+Esta chamada é utilizada exclusivamente para consulta de dados e não participa do fluxo operacional do Workspace.
+
+Não interfere em:
+
+- Save
+- Publish
+- Versionamento
+- Dispatcher
+- Metadata
+- Editor
+- Detail Panel
+
+**Planejamento:**
+
+Será absorvida futuramente pelo Adapter Pattern durante uma fase específica de higiene técnica, sem impacto funcional.
+
+---
+
+### Exceção 2
+
+**Componente:** `CampaignPanels`
+
+**Operação:** `metricasCampanha()`
+
+**Tipo:** Read-only
+
+**Justificativa:**
+
+Utilizada apenas para consulta de métricas.
+
+Não participa do pipeline operacional do Workspace.
+
+Não interfere em:
+
+- Save
+- Publish
+- Versionamento
+- Dispatcher
+- Metadata
+- Editor
+- Detail Panel
+
+**Planejamento:**
+
+Também será incorporada ao Adapter Pattern em futura fase de higiene técnica.
+
+---
+
+### Garantias Arquiteturais
+
+- Estas exceções são exclusivamente de leitura;
+- Não criam fluxo operacional paralelo;
+- Não possuem persistência própria;
+- Não utilizam editor independente;
+- Não introduzem múltiplos pipelines;
+- Não comprometem o Workspace First;
+- Não comprometem a arquitetura metadata-driven;
+- Não afetam o Product UX Refactor.
 
 ---
 
@@ -109,7 +182,7 @@ Observação: os 2 imports diretos de `*.functions.ts` listados em Technical Deb
 - ✅ Todas compartilham a mesma arquitetura operacional (renderer, dispatcher, save, validação, detail panel, editor, metadata-driven).
 - ✅ Não existe coexistência com a arquitetura anterior (rotas legadas redirecionam ou foram substituídas).
 - ✅ Não existem fluxos operacionais paralelos.
-- ⚠ Technical Debt residual limitado a 2 leituras auxiliares em painéis read-only + limpeza física de `src/adapters/cms-legacy/` — nenhum bloqueia o encerramento.
+- ⚠ Architectural Exceptions (Read-only) residual limitado a 2 leituras auxiliares em painéis read-only + limpeza física de `src/adapters/cms-legacy/` — nenhum bloqueia o encerramento.
 - ✅ Indicadores principais em 100% / 0.
 
 **Bloco 3.1 — encerrado.** Base sólida e homogênea para o Bloco 4.
