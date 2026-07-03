@@ -173,6 +173,7 @@ function ContentBody() {
     case "media":        return <MediaContentEditor />;
     case "settings":     return <SettingsContentEditor />;
     case "audit":        return <AuditViewer />;
+    case "structured":   return <StructuredContentEditor />;
   }
 }
 
