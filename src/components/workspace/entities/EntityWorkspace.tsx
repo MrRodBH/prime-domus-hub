@@ -1,12 +1,19 @@
-// EntityWorkspace — orquestrador universal do Workspace (Fase 6 · Bloco 4 · Etapa 4.0).
+// EntityWorkspace — orquestrador universal do Workspace.
+// Fase 6 · Bloco 4 · Etapa 4.1.b — refatorado para runtime registry-driven.
 //
-// REGRA ABSOLUTA (herdada do Bloco 3.1 §1 e reforçada pelo Product UX Contract):
-//   Este componente NÃO conhece entidades específicas. Todo comportamento
-//   provém de `EntityDescriptor` + `EntityAdapter`. Nenhum `if (kind === ...)`.
-//   Nenhuma dependência conceitual com o domínio Conteúdo.
+// REGRA MÁXIMA (Instrução Normativa §4):
+//   Este componente NÃO conhece entidades, NÃO conhece views, NÃO conhece
+//   ações. Ele apenas:
+//     1. lê EntityDescriptor
+//     2. resolve componentes via Registry
+//     3. compõe UI declarativa (Toolbar → View → Editor)
 //
-// Estrutura split (PrimaryPanel = lista | SecondaryPanel = editor) — primitivas
-// canônicas do Product UX Contract §5. Nenhuma primitiva local é criada.
+// Exceção Arquitetural AE-4.1.b-01 (Transitional):
+//   O pane direito ainda usa `ContentEditor` + `ContentSessionProvider`
+//   diretamente. A migração para `EntityEditorRegistry` (dispatch por
+//   `descriptor.editorKind` via registry) está prevista para a Etapa 4.1.d,
+//   após a introdução dos descriptors operacionais (Pipeline). Nenhuma
+//   lógica de domínio é adicionada — apenas mantida a superfície pré-4.1.b.
 import { useEffect, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -15,11 +22,15 @@ import { Plus, Loader2, Rows3, Rows2 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/ui";
 import { ContentSessionProvider } from "@/components/content/session";
 import { ContentEditor, ContentEditorEmpty } from "@/components/content/ContentEditor";
-import { ContentList } from "@/components/content/ContentList";
 import type { ContentSearch as EntitySearch } from "@/components/content/search-schema";
 import type { EntityDescriptor } from "@/components/content/types";
 import { getRegistration } from "@/components/content/adapters";
 import { pushRecent } from "@/components/content/recents";
+import { EntityViewRenderer } from "@/components/workspace/runtime";
+import { bootstrapWorkspaceRegistries } from "@/components/workspace/bootstrap";
+
+// Composition root — registra views/actions default uma única vez por processo.
+bootstrapWorkspaceRegistries();
 
 export function EntityWorkspace({
   descriptor,
@@ -41,6 +52,9 @@ export function EntityWorkspace({
   const selectedId = search.item ?? null;
   const isCreating = search.new === "1";
   const canCreate = descriptor.supportedActions.includes("criar");
+
+  // View ativa — descoberta 100% declarativa via descriptor.
+  const viewId = search.view ?? descriptor.views?.default ?? "list";
 
   useEffect(() => {
     if (!selectedId || isCreating) return;
@@ -129,7 +143,8 @@ export function EntityWorkspace({
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <ContentList
+            <EntityViewRenderer
+              viewId={viewId}
               descriptor={descriptor}
               items={items}
               selectedId={selectedId}
