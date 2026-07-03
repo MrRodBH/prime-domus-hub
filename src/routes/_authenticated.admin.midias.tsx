@@ -1,15 +1,13 @@
-// Bloco 3.1 — migração: /admin/midias agora é ContentWorkspace (descriptor: midia).
+// Bloco 3.1 — migração: /admin/midias agora é EntityWorkspace (descriptor: midia).
 import { createFileRoute } from "@tanstack/react-router";
-import { ContentWorkspace } from "@/components/content/ContentWorkspace";
-import { contentSearchSchema } from "@/components/content/search-schema";
-import { ENTITIES } from "@/components/content/entity-registry";
+import { EntityWorkspace, entitySearchSchema, ENTITIES } from "@/components/workspace/entities";
 
 export const Route = createFileRoute("/_authenticated/admin/midias")({
-  validateSearch: (s) => contentSearchSchema.parse(s),
+  validateSearch: (s) => entitySearchSchema.parse(s),
   component: MidiasWorkspaceRoute,
 });
 
 function MidiasWorkspaceRoute() {
   const search = Route.useSearch();
-  return <ContentWorkspace descriptor={ENTITIES.midia} search={search} />;
+  return <EntityWorkspace descriptor={ENTITIES.midia} search={search} />;
 }

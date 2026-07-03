@@ -1,15 +1,13 @@
-// Bloco 3.1 — migração: /admin/auditoria agora é ContentWorkspace (descriptor: auditoria).
+// Bloco 3.1 — migração: /admin/auditoria agora é EntityWorkspace (descriptor: auditoria).
 import { createFileRoute } from "@tanstack/react-router";
-import { ContentWorkspace } from "@/components/content/ContentWorkspace";
-import { contentSearchSchema } from "@/components/content/search-schema";
-import { ENTITIES } from "@/components/content/entity-registry";
+import { EntityWorkspace, entitySearchSchema, ENTITIES } from "@/components/workspace/entities";
 
 export const Route = createFileRoute("/_authenticated/admin/auditoria")({
-  validateSearch: (s) => contentSearchSchema.parse(s),
+  validateSearch: (s) => entitySearchSchema.parse(s),
   component: AuditoriaWorkspaceRoute,
 });
 
 function AuditoriaWorkspaceRoute() {
   const search = Route.useSearch();
-  return <ContentWorkspace descriptor={ENTITIES.auditoria} search={search} />;
+  return <EntityWorkspace descriptor={ENTITIES.auditoria} search={search} />;
 }
