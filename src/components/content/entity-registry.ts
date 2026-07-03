@@ -71,6 +71,18 @@ export const ENTITIES: Record<EntityKind, EntityDescriptor> = {
       { label: "Rascunho", value: "draft" },
       { label: "Publicado", value: "published" },
     ],
+    // Etapa 4.1.c — cross-domain evidence (Conteúdo).
+    // Mesma forma declarativa `FilterSpec` usada por Lead (Operacional) e
+    // Auditoria (Admin). Nenhum caminho novo no core; consumo é opcional
+    // (o adapter pode ignorar os filtros que não conhecer).
+    filters: [
+      {
+        id: "categoria",
+        label: "Categoria",
+        kind: "select",
+        optionsFrom: "adapter",
+      },
+    ],
     ready: true,
   },
   form: {
