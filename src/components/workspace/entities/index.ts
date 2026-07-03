@@ -39,7 +39,6 @@ export {
   ActionRegistry, registerAction,
   RegistryResolutionError,
   createRegistrySnapshot,
-  RegistryIndex, createRegistryIndex,
   executeAction, executeActionById,
   type RegistrySnapshot, type RegistrySnapshotSource,
   type ActionDefinition,
