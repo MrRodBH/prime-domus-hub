@@ -1,32 +1,37 @@
-// VersionsPanel — arquitetura de versões preparada p/ comparação A↔B (Bloco 3 §6).
-// Nesta iteração: comparação textual (JSON diff) — não uma tabela pura.
-// Escopo entidade "pagina": fonte é o próprio rascunho vs versão publicada; histórico
-// completo por página virá quando cms_pages tiver tabela de versões dedicada.
-import { useMemo, useState } from "react";
+// VersionsPanel — genérico (Bloco 3.1 §6). Nunca conhece "pageId": recebe entityId via session.
+import { useEffect, useMemo, useState } from "react";
 import { useContentSession } from "./session";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-type VersionRow = {
-  id: string;
-  label: string;
-  status: "draft" | "published";
-  createdAt: string;
-  payload: unknown;
-};
+import { Loader2 } from "lucide-react";
+import type { VersionRecord } from "./types";
 
 export function VersionsPanel() {
   const s = useContentSession();
+  const [loading, setLoading] = useState(false);
 
-  const versions: VersionRow[] = useMemo(() => {
-    const rows: VersionRow[] = [];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      await s.refreshVersions();
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.entityId]);
+
+  // Fallback local (adapters que não implementam listVersions):
+  const versions: VersionRecord[] = useMemo(() => {
+    if (s.versions && s.versions.length) return s.versions;
+    const rows: VersionRecord[] = [];
     if (s.detail) {
       rows.push({
         id: "current-published",
-        label: s.detail.status === "published" ? "Publicada (atual)" : "Última versão salva",
-        status: s.detail.status === "published" ? "published" : "draft",
+        label: (s.detail.status === "published" || s.detail.status === "active") ? "Publicada (atual)" : "Última versão salva",
+        status: s.detail.status === "published" || s.detail.status === "active" ? "published" : "draft",
         createdAt: s.detail.published_at ?? s.detail.updated_at,
-        payload: { titulo: s.detail.titulo, blocks: s.detail.blocks, seo: s.detail.seo },
+        payload: { titulo: s.detail.titulo, blocks: s.detail.blocks, seo: s.detail.seo, data: s.detail.data },
       });
     }
     rows.push({
@@ -34,13 +39,17 @@ export function VersionsPanel() {
       label: "Rascunho em edição",
       status: "draft",
       createdAt: new Date().toISOString(),
-      payload: { titulo: s.draft.titulo, blocks: s.draft.blocks, seo: s.draft.seo },
+      payload: { titulo: s.draft.titulo, blocks: s.draft.blocks, seo: s.draft.seo, data: s.draft.data },
     });
     return rows;
-  }, [s.detail, s.draft]);
+  }, [s.versions, s.detail, s.draft]);
 
-  const [a, setA] = useState<string>(versions[0]?.id ?? "");
-  const [b, setB] = useState<string>(versions[versions.length - 1]?.id ?? "");
+  const [a, setA] = useState<string>("");
+  const [b, setB] = useState<string>("");
+  useEffect(() => {
+    if (versions.length >= 2 && !a) { setA(versions[0].id); setB(versions[versions.length - 1].id); }
+    else if (versions.length === 1 && !a) { setA(versions[0].id); setB(versions[0].id); }
+  }, [versions, a]);
 
   const va = versions.find((v) => v.id === a);
   const vb = versions.find((v) => v.id === b);
@@ -52,22 +61,24 @@ export function VersionsPanel() {
     const max = Math.max(A.length, B.length);
     const rows: Array<{ a: string; b: string; changed: boolean }> = [];
     for (let i = 0; i < max; i++) {
-      const la = A[i] ?? "";
-      const lb = B[i] ?? "";
+      const la = A[i] ?? ""; const lb = B[i] ?? "";
       rows.push({ a: la, b: lb, changed: la !== lb });
     }
     return rows;
   }, [va, vb]);
 
+  const canRestore = !!s.adapter.restoreVersion;
+
   return (
     <div className="space-y-4 max-w-full">
       <div className="text-sm text-muted-foreground">
-        Comparação lado a lado. Restaurar uma versão gera um rascunho editável — a publicação continua desacoplada.
+        Comparação lado a lado. Restaurar gera um rascunho editável — publicação continua desacoplada.
       </div>
+      {loading && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="size-3 animate-spin" /> Carregando versões…</div>}
 
       <div className="grid grid-cols-2 gap-3">
-        <VersionColumn label="Versão A" versions={versions} selected={a} onChange={setA} />
-        <VersionColumn label="Versão B" versions={versions} selected={b} onChange={setB} />
+        <VersionColumn label="Versão A" versions={versions} selected={a} onChange={setA} canRestore={canRestore} onRestore={(id) => void s.restoreVersion(id)} />
+        <VersionColumn label="Versão B" versions={versions} selected={b} onChange={setB} canRestore={canRestore} onRestore={(id) => void s.restoreVersion(id)} />
       </div>
 
       <div className="rounded-md border border-foreground/10 overflow-hidden">
@@ -84,16 +95,15 @@ export function VersionsPanel() {
           ))}
         </div>
       </div>
-
-      <div className="text-xs text-muted-foreground">
-        Histórico completo de revisões por página será populado quando <code>cms_pages</code> receber tabela dedicada de versões — a UI já está pronta.
-      </div>
     </div>
   );
 }
 
-function VersionColumn({ label, versions, selected, onChange }: {
-  label: string; versions: VersionRow[]; selected: string; onChange: (id: string) => void;
+function VersionColumn({
+  label, versions, selected, onChange, canRestore, onRestore,
+}: {
+  label: string; versions: VersionRecord[]; selected: string; onChange: (id: string) => void;
+  canRestore: boolean; onRestore: (id: string) => void;
 }) {
   return (
     <div className="rounded-md border border-foreground/10 p-3">
@@ -114,8 +124,12 @@ function VersionColumn({ label, versions, selected, onChange }: {
         ))}
       </div>
       <div className="mt-2">
-        <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
-          Restaurar (em breve)
+        <Button
+          size="sm" variant="outline" className="w-full h-7 text-xs"
+          disabled={!canRestore || !selected || selected.startsWith("current-")}
+          onClick={() => selected && onRestore(selected)}
+        >
+          Restaurar como rascunho
         </Button>
       </div>
     </div>
