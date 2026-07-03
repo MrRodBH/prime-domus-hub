@@ -21,11 +21,14 @@
 //   enquanto a superfície de registry entra em vigor.
 import {
   registerView,
+  registerPanel,
   registerAction,
   type ViewProps,
   type ActionContext,
 } from "@/components/workspace/registry";
 import { ContentList } from "@/components/content/ContentList";
+import { KanbanView } from "@/components/workspace/views/KanbanView";
+import { LeadFunilPanel } from "@/components/workspace/panels/LeadFunilPanel";
 
 // ---------------------------------------------------------------------------
 // View: "list" — visualização default de qualquer descriptor.
