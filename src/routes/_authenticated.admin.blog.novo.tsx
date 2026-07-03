@@ -1,11 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PostForm } from "@/components/admin/PostForm";
+// Bloco 3.1 — redirect legado: /admin/blog/novo → /admin/blog?new=1.
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/admin/blog/novo")({
-  component: () => (
-    <div className="space-y-6">
-      <h1 className="font-display text-3xl">Novo post</h1>
-      <PostForm />
-    </div>
-  ),
+  beforeLoad: () => {
+    throw redirect({
+      to: "/admin/blog",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      search: { new: "1" } as any,
+      replace: true,
+    });
+  },
+  component: () => null,
 });
