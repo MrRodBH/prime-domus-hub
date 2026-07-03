@@ -29,6 +29,27 @@
 
 export { EntityWorkspace } from "./EntityWorkspace";
 
+// Registry + Runtime — superfície canônica da Etapa 4.1.b.
+// Novos descriptors (Pipeline/Catálogo/…) registram componentes por aqui.
+export {
+  ViewRegistry, registerView,
+  PanelRegistry, registerPanel,
+  DialogRegistry, registerDialog,
+  ActionRegistry, registerAction,
+  RegistryResolutionError,
+  type ViewProps, type PanelProps, type DialogRuntimeProps, type ActionContext,
+  type ViewComponent, type PanelComponent, type DialogComponent, type ActionHandler,
+} from "@/components/workspace/registry";
+export {
+  EntityViewRenderer,
+  EntityPanelRenderer,
+  EntityDialogRenderer,
+  runEntityAction,
+} from "@/components/workspace/runtime";
+export { bootstrapWorkspaceRegistries } from "@/components/workspace/bootstrap";
+
+
+
 // Composição interna do Workspace — exposta apenas por nome canônico.
 export { ContentList as EntityList } from "@/components/content/ContentList";
 export {
