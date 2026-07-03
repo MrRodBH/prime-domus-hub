@@ -1,5 +1,4 @@
-// Workspace UI state — persistent per-user across reloads.
-// Doc 06 §2. localStorage only in Bloco 1 (profile sync = Bloco 6).
+// Workspace UI state — persistente entre reloads. Doc 06 §2 + Bloco 3 §3.
 import { useSyncExternalStore } from "react";
 
 type State = {
@@ -7,6 +6,7 @@ type State = {
   density: "compact" | "comfortable" | "spacious";
   paletteOpen: boolean;
   aiOpen: boolean;
+  previewDevice: "desktop" | "tablet" | "mobile";  // Bloco 3 §3 — persistente
 };
 
 const KEY = "workspace.ui.v1";
@@ -15,6 +15,7 @@ const defaults: State = {
   density: "compact",
   paletteOpen: false,
   aiOpen: false,
+  previewDevice: "desktop",
 };
 
 let state: State = load();
@@ -26,9 +27,7 @@ function load(): State {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaults;
     return { ...defaults, ...JSON.parse(raw) };
-  } catch {
-    return defaults;
-  }
+  } catch { return defaults; }
 }
 
 function persist() {
@@ -36,9 +35,7 @@ function persist() {
   try {
     const { paletteOpen: _p, aiOpen: _a, ...rest } = state;
     localStorage.setItem(KEY, JSON.stringify(rest));
-  } catch {
-    /* ignore */
-  }
+  } catch { /* ignore */ }
 }
 
 export function setUI(patch: Partial<State>) {
@@ -47,31 +44,21 @@ export function setUI(patch: Partial<State>) {
   listeners.forEach((l) => l());
 }
 
-export function useUI(): State & {
-  toggleRail: () => void;
-  setDensity: (d: State["density"]) => void;
-  openPalette: () => void;
-  closePalette: () => void;
-  togglePalette: () => void;
-  openAi: () => void;
-  closeAi: () => void;
-} {
+export function useUI() {
   const snap = useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
+    (cb) => { listeners.add(cb); return () => listeners.delete(cb); },
     () => state,
-    () => defaults
+    () => defaults,
   );
   return {
     ...snap,
     toggleRail: () => setUI({ railCollapsed: !state.railCollapsed }),
-    setDensity: (d) => setUI({ density: d }),
+    setDensity: (d: State["density"]) => setUI({ density: d }),
     openPalette: () => setUI({ paletteOpen: true }),
     closePalette: () => setUI({ paletteOpen: false }),
     togglePalette: () => setUI({ paletteOpen: !state.paletteOpen }),
     openAi: () => setUI({ aiOpen: true }),
     closeAi: () => setUI({ aiOpen: false }),
+    setPreviewDevice: (d: State["previewDevice"]) => setUI({ previewDevice: d }),
   };
 }
