@@ -178,6 +178,99 @@ export const ENTITIES: Record<EntityKind, EntityDescriptor> = {
     supportedActions: [],
     permissionsModule: "cms.versoes",
     statusVocabulary: [{ label: "Registrado", value: "published" }],
+    // Etapa 4.1.c — cross-domain evidence (Admin/Sistema).
+    // Filtro declarativo com opções estáticas — mesma superfície usada por
+    // Blog (Conteúdo) e Lead (Operacional). Nenhum caminho especial no core.
+    filters: [
+      {
+        id: "modulo",
+        label: "Módulo",
+        kind: "select",
+        optionsFrom: {
+          static: [
+            { value: "cms.paginas", label: "Páginas" },
+            { value: "cms.midias", label: "Mídias" },
+            { value: "cms.formularios", label: "Formulários" },
+            { value: "admin.leads", label: "Leads" },
+          ],
+        },
+      },
+    ],
+    ready: true,
+  },
+  // Etapa 4.1.c — Descriptor operacional real (Instrução Normativa §5.1).
+  // Usa 100% das capacidades da 4.1.a. Nenhum EntityKind adicional foi
+  // criado além do previsto em AE-4.1-03; nenhum registry novo; nenhuma
+  // exceção; nenhuma lógica no workspace. O adapter cumpre o contrato
+  // pré-existente (fetchList/fetchDetail/save/remove/runAction/fetchFilterOptions).
+  lead: {
+    kind: "lead",
+    singular: "Lead",
+    plural: "Leads",
+    route: "/admin/leads-workspace",
+    publicPathPrefix: "",
+    editorKind: "structured",
+    tabs: ["detalhes"],
+    supportedBlocks: [],
+    layoutMode: "split",
+    workflowStates: ["saved"],
+    allowedTransitions: {},
+    defaultStatus: "active",
+    supportedActions: [],
+    permissionsModule: "admin.leads",
+    statusVocabulary: [
+      { label: "Ativo", value: "active" },
+      { label: "Descartado", value: "paused" },
+    ],
+    views: {
+      default: "kanban",
+      available: ["list", "kanban"],
+      kanban: {
+        groupBy: "leadStatus",
+        columns: [
+          { id: "novo",         label: "Novo" },
+          { id: "conversando",  label: "Conversando" },
+          { id: "visita",       label: "Visita" },
+          { id: "proposta",     label: "Proposta" },
+          { id: "ganho",        label: "Ganho" },
+          { id: "perdido",      label: "Perdido" },
+        ],
+      },
+    },
+    scopeTabs: [
+      { id: "ativos",      label: "Ativos",      scope: { archived: false } },
+      { id: "descartados", label: "Descartados", scope: { archived: true } },
+      { id: "analise",     label: "Análise",     panel: "lead.funil" },
+    ],
+    filters: [
+      { id: "corretor", label: "Corretor", kind: "select", optionsFrom: "adapter" },
+      { id: "origem",   label: "Origem",   kind: "select", optionsFrom: "adapter" },
+    ],
+    actions: [
+      { id: "avancar",   label: "Avançar",   icon: "ArrowRight", intent: "primary",
+        enabledWhen: { field: "leadStatus", op: "notIn", value: ["ganho","perdido","descartado"] } },
+      { id: "descartar", label: "Descartar", icon: "Trash2", intent: "destructive",
+        enabledWhen: { field: "leadStatus", op: "notIn", value: ["descartado"] } },
+      { id: "restaurar", label: "Restaurar", icon: "Undo2",
+        enabledWhen: { field: "leadStatus", op: "eq", value: "descartado" } },
+    ],
+    recordSections: [
+      { id: "contato", label: "Contato", fields: [
+        { id: "nome",     label: "Nome",     kind: "readonly" },
+        { id: "email",    label: "Email",    kind: "email", linkTemplate: "mailto:{value}" },
+        { id: "telefone", label: "Telefone", kind: "phone", linkTemplate: "tel:{value}" },
+      ]},
+      { id: "comercial", label: "Comercial", fields: [
+        { id: "leadStatus",       label: "Status",         kind: "readonly" },
+        { id: "origem",           label: "Origem",         kind: "readonly" },
+        { id: "imovel",           label: "Imóvel",         kind: "readonly" },
+        { id: "valor_estimado",   label: "Valor estimado", kind: "money" },
+        { id: "mensagem",         label: "Mensagem",       kind: "textarea" },
+      ]},
+    ],
+    panels: [
+      { id: "lead.funil", label: "Funil de conversão" },
+    ],
     ready: true,
   },
 };
