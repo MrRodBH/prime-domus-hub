@@ -30,6 +30,9 @@ export const DialogRegistry = {
   listIds(): string[] {
     return Array.from(registry.keys());
   },
+  __entries(): ReadonlyMap<string, DialogComponent> {
+    return registry;
+  },
 };
 
 export function registerDialog(id: string, component: DialogComponent): void {

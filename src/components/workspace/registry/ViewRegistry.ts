@@ -38,6 +38,10 @@ export const ViewRegistry = {
   listIds(): string[] {
     return Array.from(registry.keys());
   },
+  /** Builder-only — consumido pelo snapshot; nunca leia em runtime. */
+  __entries(): ReadonlyMap<string, ViewComponent> {
+    return registry;
+  },
 };
 
 export function registerView(viewId: string, component: ViewComponent): void {

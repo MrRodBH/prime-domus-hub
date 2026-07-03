@@ -30,6 +30,9 @@ export const PanelRegistry = {
   listIds(): string[] {
     return Array.from(registry.keys());
   },
+  __entries(): ReadonlyMap<string, PanelComponent> {
+    return registry;
+  },
 };
 
 export function registerPanel(id: string, component: PanelComponent): void {
