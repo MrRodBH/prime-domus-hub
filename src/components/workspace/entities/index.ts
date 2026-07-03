@@ -58,6 +58,7 @@ export {
 export {
   TenantContextProvider,
   useTenantContext,
+  useResolutionGraph,
   useViewResolver,
   usePanelResolver,
   useDialogResolver,
@@ -65,16 +66,18 @@ export {
   type TenantContextValue,
 } from "@/components/workspace/tenant/TenantContext";
 export {
-  ResolverRegistry,
-  createResolverRegistry,
-  ResolverNotRegisteredError,
+  createResolutionGraph,
+  type ResolutionGraph,
   type Resolver,
-} from "@/components/workspace/resolution/ResolverRegistry";
-export { createResolverRegistryForSnapshot } from "@/components/workspace/resolution/UnifiedResolutionLayer";
-export { ViewResolver, createViewResolver } from "@/components/workspace/resolution/resolvers/ViewResolver";
-export { PanelResolver, createPanelResolver } from "@/components/workspace/resolution/resolvers/PanelResolver";
-export { DialogResolver, createDialogResolver } from "@/components/workspace/resolution/resolvers/DialogResolver";
-export { ActionResolver, createActionResolver } from "@/components/workspace/resolution/resolvers/ActionResolver";
+  type ViewResolver,
+  type PanelResolver,
+  type DialogResolver,
+  type ActionResolver,
+} from "@/components/workspace/resolution/ResolutionGraph";
+export { createViewResolver } from "@/components/workspace/resolution/resolvers/ViewResolver";
+export { createPanelResolver } from "@/components/workspace/resolution/resolvers/PanelResolver";
+export { createDialogResolver } from "@/components/workspace/resolution/resolvers/DialogResolver";
+export { createActionResolver } from "@/components/workspace/resolution/resolvers/ActionResolver";
 export {
   createPluginContext,
   type PluginContext,

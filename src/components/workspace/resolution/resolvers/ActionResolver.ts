@@ -7,7 +7,7 @@ import type { RegistrySnapshot } from "@/components/workspace/registry/snapshot"
 import type { ActionDefinition } from "@/components/workspace/registry/ActionRegistry";
 import type { ActionContext } from "@/components/workspace/registry/types";
 import { executeActionById } from "@/components/workspace/registry/ActionExecutor";
-import type { Resolver } from "../ResolverRegistry";
+import type { Resolver } from "../ResolutionGraph";
 
 export class ActionResolver implements Resolver<"action", ActionDefinition> {
   readonly kind = "action" as const;

@@ -4,7 +4,7 @@
 // Consome exclusivamente `snapshot.viewRegistry`.
 import type { RegistrySnapshot } from "@/components/workspace/registry/snapshot";
 import type { ViewComponent } from "@/components/workspace/registry/types";
-import type { Resolver } from "../ResolverRegistry";
+import type { Resolver } from "../ResolutionGraph";
 
 export class ViewResolver implements Resolver<"view", ViewComponent> {
   readonly kind = "view" as const;
