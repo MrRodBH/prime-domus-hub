@@ -265,6 +265,8 @@ verdadeiros e evidenciados por auditoria:
 - [ ] `docs/fase6/09-bloco-4-auditoria-final.md` — matriz de cobertura,
       indicadores, exceções arquiteturais (se houver, no formato
       read-only do Bloco 3.1).
+- [ ] `docs/fase6/09-bloco-4-etapa-<n>-ux-checklist.md` — uma cópia por
+      etapa, integralmente preenchida (ver §8.7).
 
 ### 8.6 Aderência ao Product UX Contract
 
@@ -276,6 +278,26 @@ checagem explícita de aderência ao contrato — incluindo Vision Test
 (§1), Workspace Memory (§3), Zero Context Reset (§4), Primitivas (§5),
 Consistency Rules (§7), Navigation Contract (§8), Performance Contract
 (§9) e ausência de Anti-Patterns (§10).
+
+### 8.7 Product UX Compliance Checklist (governança obrigatória)
+
+O `docs/fase6/09-product-ux-compliance-checklist.md` é o **instrumento
+oficial de auditoria da experiência do produto** durante todo o Bloco 4.
+Ele transforma o Product UX Contract em processo objetivo de validação
+(PASS/FAIL por item, com evidência). Regras:
+
+- Cada etapa (4.0 → 4.5) deve produzir uma cópia preenchida como
+  `docs/fase6/09-bloco-4-etapa-<n>-ux-checklist.md`.
+- **Nenhuma etapa pode ser encerrada** sem o checklist integralmente
+  preenchido, com evidências objetivas por linha.
+- O relatório de encerramento de cada etapa deve conter, além do
+  relatório técnico: (1) DoD Técnico, (2) Aderência ao UX Contract,
+  (3) UX Compliance Checklist, (4) Architectural Exceptions (se houver),
+  (5) Workspace Score consolidado.
+- Qualquer `FAIL` no checklist bloqueia o gate parcial da etapa até
+  correção ou registro formal como Architectural Exception no formato
+  read-only do Bloco 3.1.
+
 
 ## 9. Estratégia de migração
 
