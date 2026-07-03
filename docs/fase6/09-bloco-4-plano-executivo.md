@@ -393,11 +393,15 @@ A Etapa 4.0 só pode ser iniciada após:
 
 1. Revisão e aprovação explícita deste Plano Executivo revisado.
 2. Criação e aprovação do `docs/fase6/09-product-ux-contract.md`.
-3. Validação de que **todas** as etapas do Bloco 4 (4.0 → 4.5) estão
-   aderentes ao contrato — verificação registrada no início de cada
-   etapa e reauditada no encerramento.
+3. Criação e incorporação formal do
+   `docs/fase6/09-product-ux-compliance-checklist.md` como instrumento
+   oficial de auditoria (§8.7).
+4. Validação de que **todas** as etapas do Bloco 4 (4.0 → 4.5) estão
+   aderentes ao contrato e ao checklist — verificação registrada no
+   início de cada etapa e reauditada no encerramento.
 
 Após aprovação, a Etapa 4.0 (extração do núcleo genérico) inicia como
 primeira entrega verificável, e cada etapa seguinte só começa com o
-gate parcial anterior fechado **e** com a checagem de aderência ao
+gate parcial anterior fechado, o **Product UX Compliance Checklist**
+da etapa integralmente preenchido e a checagem de aderência ao
 Product UX Contract aprovada.
