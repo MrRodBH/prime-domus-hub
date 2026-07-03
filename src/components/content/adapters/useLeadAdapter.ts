@@ -162,7 +162,7 @@ export function useLeadAdapter(): ContentEntityAdapter {
         if (!l) throw new Error("Lead não encontrado.");
         const next = NEXT_STATUS[l.status];
         if (!next) throw new Error(`Sem transição válida a partir de "${l.status}".`);
-        await atualizarFn({ data: { id, status: next } });
+        await atualizarFn({ data: { id, status: next as "novo"|"conversando"|"visita"|"proposta"|"ganho"|"perdido"|"descartado" } });
         return;
       }
       if (actionId === "descartar") {
