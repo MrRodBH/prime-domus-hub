@@ -427,3 +427,282 @@ Somente após aprovação escrita, a Etapa 4.1.a é iniciada.
 ---
 
 **Observação final:** a análise mostra que o núcleo 4.0 estava calibrado para o *espaço conceitual do Conteúdo*. A Etapa 4.1 é o primeiro passo para calibrar o núcleo para o *espaço conceitual de qualquer domínio operacional*. Sem as 6 extensões, Pipeline caberia no `EntityWorkspace` apenas via anti-patterns explicitamente proibidos (condicionais por `kind`, wrappers específicos). Com as extensões — e apenas com elas — é possível cumprir o princípio arquitetural declarado sem trair a experiência do usuário.
+
+---
+
+## 13 · Revisão Arquitetural Final
+
+Esta seção é normativa. Foi produzida antes de qualquer implementação da
+Etapa 4.1, com o objetivo de fortalecer a neutralidade do núcleo
+(`EntityWorkspace`) e evitar que a integração do Pipeline introduza
+acoplamentos estruturais. Em caso de conflito com seções anteriores
+deste plano, **esta seção prevalece**.
+
+### 13.1 · Descriptor Declarativo (Metadata First)
+
+**Decisão.** Todo campo do `EntityDescriptor` que possa ser expresso
+como estrutura de dados deve sê-lo. Funções são **escape hatch**, não
+padrão. As formas declarativas canônicas para a Etapa 4.1 são:
+
+```ts
+// Predicados declarativos (visibilidade, habilitação, confirmação)
+type Predicate =
+  | { field: string; op: "eq" | "neq" | "in" | "nin" | "gt" | "gte" | "lt" | "lte" | "exists" | "empty"; value?: unknown }
+  | { all: Predicate[] }
+  | { any: Predicate[] }
+  | { not: Predicate };
+
+// Ações
+type ActionSpec = {
+  id: string;                    // identificador estável
+  label: string;
+  icon?: string;                 // nome do ícone no ícone-registry
+  visibleWhen?: Predicate;       // declarativo
+  enabledWhen?: Predicate;       // declarativo
+  confirm?: { titleKey: string; bodyKey?: string; destructive?: boolean };
+  dialogId?: string;             // resolve via Dialog Registry (§13.7)
+  execute:                       // resultado da ação — sempre declarativo
+    | { kind: "mutation"; mutationId: string; input?: Record<string, unknown> }
+    | { kind: "navigate"; to: string; searchPatch?: Record<string, unknown> }
+    | { kind: "dialog"; dialogId: string };
+};
+
+// Filtros
+type FilterSpec = {
+  id: string;
+  label: string;
+  field: string;
+  control: "select" | "multi-select" | "date-range" | "text" | "boolean";
+  optionsSource?: { adapterMethod: string } | { static: Array<{ value: string; label: string }> };
+  defaultValue?: unknown;
+};
+
+// Transições
+type TransitionSpec = {
+  from: string | string[];
+  to: string;
+  when?: Predicate;
+  requires?: ActionSpec["id"][];
+};
+```
+
+**Escape hatch permitido — e apenas ele.** Um único campo de fuga é
+autorizado por capacidade, com o sufixo `Fn`
+(`visibleWhenFn`, `enabledWhenFn`, `confirmFn`). Seu uso obriga:
+
+1. Registro imediato como **Architectural Exception** local ao descriptor.
+2. Justificativa técnica descrita nos 3 eixos: por que a forma
+   declarativa não basta, impacto arquitetural e limitação futura.
+3. Meta explícita de eliminação (etapa/bloco de saída).
+
+**Regra de aceitação:** na Etapa 4.1, Pipeline **não pode** introduzir
+nenhum `*Fn`. Se surgir a tentação, a lacuna vira extensão do vocabulário
+declarativo (novo `op`, novo tipo de `execute`), nunca função.
+
+### 13.2 · Arquitetura de Registries
+
+Formalizam-se quatro registries de responsabilidade única. O
+`EntityWorkspace` conhece apenas **identificadores** — nunca componentes
+concretos.
+
+```
+EntityDescriptor
+   │  (identificadores)
+   ▼
+┌───────────────┬───────────────┬───────────────┬───────────────┐
+│ View Registry │ Panel Registry│ Dialog Registry│ Action Registry│
+└───────────────┴───────────────┴───────────────┴───────────────┘
+   ▼               ▼                ▼                 ▼
+list/kanban/…   TimelinePanel   ConfirmDialog   mutation runners
+gallery/table   PreviewPane     FormDialog      navigate runners
+calendar/…      AnalyticsPanel  ChoiceDialog    dialog runners
+```
+
+- **View Registry** — resolve `viewId` → componente de visualização.
+  Núcleo não importa `EntityKanban`; recebe do registry.
+- **Panel Registry** — resolve `panelId` → componente de painel de
+  detalhe/analítico. Descriptor referencia por id.
+- **Dialog Registry** — resolve `dialogId` → componente de diálogo.
+  Ações e adapters emitem `dialogId`, nunca JSX.
+- **Action Registry** — resolve `execute.kind` + `mutationId` para o
+  runtime que executa a ação (mutation, navigate, dialog). Adapters
+  registram seus mutation runners; o núcleo apenas despacha.
+
+Registries são inicializados no boot da aplicação. Testes garantem que
+o núcleo (`EntityWorkspace`, `EntitySessionProvider`, `EntityList`,
+`EntityEditor`) **não importe** nenhum componente resolvido por registry.
+
+### 13.3 · Revisão crítica do `EntityKind`
+
+**Diagnóstico.** O union literal `EntityKind = "pagina" | "post" | …`
+é, hoje, um acoplamento estrutural: cada novo domínio exige alteração
+no núcleo, mesmo que apenas para ampliar o tipo. Isso viola o princípio
+de que "novo domínio = descriptor + adapter, sem tocar no core".
+
+**Alternativas avaliadas.**
+
+| Opção                                    | Custo | Segurança de tipos | Extensibilidade | Veredito |
+|------------------------------------------|-------|--------------------|-----------------|----------|
+| Manter union literal                     | 0     | Alta               | Baixa           | Rejeitada como estado final |
+| `entityId: string` cru                   | Baixo | Baixa              | Alta            | Rejeitada — perde autocompletar |
+| `descriptorId: string` + Registry tipado | Médio | Média-alta via generics do registry | Alta | **Adotada como direção** |
+| Union literal + augmentation por módulo  | Médio | Alta               | Média           | Aceita como forma **transitória** |
+
+**Decisão.** `EntityKind` **permanece nesta etapa** como union literal
+por dois motivos: (i) o custo de migrar 7 rotas e adapters existentes
+está fora do escopo declarado do Bloco 4; (ii) o Registry tipado
+depende de uma refatoração de tipagem (`ENTITY_REGISTRY` genérico
+indexado por `descriptorId`) que merece uma etapa própria.
+
+**Compromissos formais.**
+
+1. Nenhum novo `if (kind === …)` é aceito, mesmo com union literal.
+2. Cada novo descriptor deve ser adicionável **sem** editar arquivos
+   do núcleo — apenas `ENTITY_REGISTRY` e o módulo do domínio.
+3. A eliminação do union literal é registrada como
+   **AE-4.1-03 (Transitional)** com saída prevista para o Bloco 5
+   (introdução do Registry tipado por `descriptorId`).
+
+### 13.4 · Contrato público de Views
+
+O contrato de `descriptor.views[*].id` é ampliado para reservar, desde
+já, os seguintes identificadores públicos:
+
+```
+"list" | "kanban" | "gallery" | "table" | "calendar" | "timeline" | "map"
+```
+
+Apenas `list`, `kanban`, `gallery` e `table` são implementados na
+Etapa 4.1. Os demais são **reservados no contrato** para estabilizar
+a interface pública — descriptors futuros poderão declará-los sem
+quebra de contrato, e o View Registry retornará
+`UnavailableViewPlaceholder` até a implementação real.
+
+### 13.5 · Independência entre capacidades do Workspace
+
+Fica declarado como invariante arquitetural que as capacidades a seguir
+são **ortogonais** — nenhuma pressupõe qualquer outra:
+
+`View · Scope · Filters · Sort · Selection · Density · Search · Panels`
+
+Regras derivadas:
+
+1. Cada capacidade é opcional no descriptor. Ausência ≠ desabilitação
+   parcial de outras.
+2. O `EntityWorkspace` deve renderizar corretamente qualquer subconjunto
+   (ex.: `map + filters + search`, `timeline + scope`, `list + sort`).
+3. Testes de neutralidade validam combinações mínimas por capacidade
+   contra pelo menos dois descriptors (§13.10).
+
+### 13.6 · Panels desacoplados
+
+`descriptor.panels[*]` referencia painéis por `panelId`; a resolução
+para componente React ocorre no Panel Registry. O descriptor **não
+importa React**. Props do painel são passados como `panelProps:
+Record<string, unknown>` validados pelo próprio painel.
+
+`render: () => ReactNode` fica **proibido** no descriptor. Qualquer
+necessidade de composição avançada resolve-se registrando um novo
+painel no Registry.
+
+### 13.7 · Dialogs desacoplados
+
+Simétrico à §13.6. Toda referência a diálogo é feita por `dialogId`
+(ver `ActionSpec.dialogId` e `execute.kind: "dialog"`). O Dialog
+Registry resolve `dialogId` → componente e injeta o contrato genérico:
+
+```ts
+type DialogRuntimeProps = {
+  entity: unknown;             // record atual, opaco para o núcleo
+  descriptor: EntityDescriptor;
+  onResolve: (result: unknown) => void;
+  onCancel: () => void;
+};
+```
+
+Descriptors **não** importam componentes de diálogo. Não há exceção
+prevista para a Etapa 4.1.
+
+### 13.8 · Contrato evolutivo do Kanban
+
+O contrato `descriptor.views` para `kind: "kanban"` reserva, no schema
+público, campos opcionais para expansão futura — nenhum precisa ser
+implementado agora:
+
+```ts
+type KanbanViewSpec = {
+  id: "kanban";
+  groupBy: string;                         // obrigatório
+  columnsFrom: { adapterMethod: string };  // obrigatório
+  ordering?: { field: string; direction: "asc" | "desc" };
+  swimlanes?: { field: string };
+  aggregation?: Array<{ field: string; op: "sum" | "count" | "avg" }>;
+  summary?: { showTotals?: boolean; showAverages?: boolean };
+  columnLimits?: { max?: number; warnAt?: number };
+};
+```
+
+A implementação da Etapa 4.1 lê apenas `groupBy` e `columnsFrom`.
+Os demais campos existem no tipo e são ignorados em runtime — mas
+não constituem quebra de contrato quando forem ativados.
+
+### 13.9 · Renomeação do `editorKind: "record"`
+
+**Decisão.** O identificador `editorKind: "record"` é substituído por
+`editorKind: "structured"`, resolvido pelo Editor Registry como
+`StructuredEntityEditor`.
+
+**Justificativa.** "Record" é jargão interno de banco de dados e não
+comunica papel de produto. "Structured" descreve o padrão de UI
+(formulário estruturado por schema), permanece agnóstico de domínio e
+convive naturalmente com futuros `editorKind`: `document`, `structured`,
+`spreadsheet`, `canvas`.
+
+### 13.10 · Multi-Domain Validation Test (regra permanente)
+
+Elevado a **regra arquitetural permanente da Fase 6**:
+
+> Nenhuma extensão do contrato do `EntityWorkspace` (novo campo em
+> descriptor, novo id em registry, nova capacidade) é considerada
+> aprovada enquanto tiver **apenas um consumidor**.
+
+Critérios objetivos por extensão:
+
+1. **≥ 1 domínio operacional** (Pipeline / Catálogo / Distribuição /
+   Administração / Super).
+2. **≥ 1 domínio de conteúdo** (Página / Post / Formulário / Campanha /
+   Mídia / Site / Auditoria).
+3. Ambos os consumidores devem exercer a extensão em **runtime**, não
+   apenas declará-la no descriptor.
+4. Evidência (rota, screenshot, teste) registrada no relatório da
+   etapa que introduziu a extensão.
+
+Consequência para a Etapa 4.1: cada uma das 6 extensões da §2 deve
+listar seu consumidor de Conteúdo antes da introdução do Pipeline
+(§7 e §11.c continuam válidos e são reforçados por esta regra).
+
+Falha no teste bloqueia o gate parcial da etapa até que (a) a segunda
+adoção seja implementada, ou (b) a extensão seja revertida do
+contrato.
+
+---
+
+## 14 · Relatório resumido da Revisão Arquitetural Final
+
+| # | Ponto revisado                   | Decisão                                                                 | Impacto positivo                                                     |
+|---|----------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------|
+| 1 | Descriptor declarativo           | Predicates + ActionSpec + FilterSpec + TransitionSpec; escape hatch `*Fn` proibido nesta etapa | Descriptors auditáveis, serializáveis, sem lógica embutida           |
+| 2 | Registries formalizados          | View / Panel / Dialog / Action Registries com responsabilidade única    | Núcleo passa a conhecer apenas ids; plugabilidade real               |
+| 3 | `EntityKind`                     | Mantido como union transitório (AE-4.1-03), com regra de "sem edição do core" e saída no Bloco 5 | Evita refactor fora de escopo sem legitimar acoplamento               |
+| 4 | Contrato de Views                | Ids reservados: list/kanban/gallery/table/calendar/timeline/map         | Interface pública estável; novos modos não quebram contrato          |
+| 5 | Independência de capacidades     | Ortogonalidade declarada como invariante; testada em ≥ 2 descriptors    | Combinações arbitrárias suportadas por construção                    |
+| 6 | Panels desacoplados              | Referência por `panelId`; `render` proibido no descriptor               | Descriptor 100% declarativo; Painéis substituíveis                   |
+| 7 | Dialogs desacoplados             | Referência por `dialogId` + `DialogRuntimeProps` genérico               | Núcleo nunca importa diálogos de domínio                             |
+| 8 | Kanban evolutivo                 | Campos opcionais reservados (ordering, swimlanes, aggregation, summary, columnLimits) | Expansão futura sem quebra                                           |
+| 9 | Record Editor                    | Renomeado para `editorKind: "structured"` → `StructuredEntityEditor`    | Nome alinhado ao produto; namespace aberto para outros editors       |
+| 10 | Multi-Domain Validation Test    | Regra permanente da Fase 6; ≥ 1 consumidor operacional + ≥ 1 conteúdo   | Impede que "genérico" seja, na prática, específico de um domínio     |
+
+**Conclusão.** Com estas dez decisões incorporadas, o `EntityWorkspace`
+passa a operar como **infraestrutura orientada por contratos** e não
+mais como uma generalização do CMS. A Etapa 4.1.a fica autorizada a
+iniciar somente após aprovação escrita desta seção.
