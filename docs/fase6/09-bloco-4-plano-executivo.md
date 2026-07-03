@@ -179,6 +179,14 @@ Redirects declarados em `beforeLoad`, client-side.
   versionamento. **OK**.
 - **Bloco 3.1** — 100% do Conteúdo migrado, zero coexistência, zero
   parallel flows, `if (kind === …)` = 0 no núcleo. **OK — encerrado**.
+- **Product UX Contract** (`docs/fase6/09-product-ux-contract.md`) —
+  **dependência obrigatória e normativa**. Documento que define os
+  comportamentos obrigatórios da plataforma (Vision, Continuity, Memory,
+  Zero Context Reset, Workspace Tokens, Progressive Workspace,
+  Consistency Rules, Navigation Contract, Performance Contract,
+  Anti-Patterns, UX DoD). **Todas as etapas do Bloco 4 deverão respeitar
+  este contrato**; qualquer conflito entre este Plano Executivo e o
+  contrato é resolvido a favor do contrato.
 
 Nenhuma dependência de infraestrutura externa, migration de banco,
 nova secret ou nova conexão.
@@ -247,6 +255,17 @@ verdadeiros e evidenciados por auditoria:
 - [ ] `docs/fase6/09-bloco-4-auditoria-final.md` — matriz de cobertura,
       indicadores, exceções arquiteturais (se houver, no formato
       read-only do Bloco 3.1).
+
+### 8.6 Aderência ao Product UX Contract
+
+Todos os critérios do §11 (UX Definition of Done) do
+`docs/fase6/09-product-ux-contract.md` são condição obrigatória de
+encerramento do Bloco 4, **em adição** aos critérios técnicos acima.
+Cada etapa (4.0 → 4.5) deve apresentar, em seu DoD parcial, uma
+checagem explícita de aderência ao contrato — incluindo Vision Test
+(§1), Workspace Memory (§3), Zero Context Reset (§4), Primitivas (§5),
+Consistency Rules (§7), Navigation Contract (§8), Performance Contract
+(§9) e ausência de Anti-Patterns (§10).
 
 ## 9. Estratégia de migração
 
@@ -332,7 +351,21 @@ Para evitar escopo criativo:
 
 ## Aprovação necessária
 
-Este plano é o **contrato de escopo** do Bloco 4. Após aprovação
-explícita, a Etapa 4.0 (extração do núcleo genérico) inicia como
+Este plano é o **contrato de escopo** do Bloco 4 e opera em conjunto
+com o **Product UX Contract** (`docs/fase6/09-product-ux-contract.md`),
+que é o **contrato de experiência** e prevalece em caso de conflito.
+
+### Critério de início da Etapa 4.0
+
+A Etapa 4.0 só pode ser iniciada após:
+
+1. Revisão e aprovação explícita deste Plano Executivo revisado.
+2. Criação e aprovação do `docs/fase6/09-product-ux-contract.md`.
+3. Validação de que **todas** as etapas do Bloco 4 (4.0 → 4.5) estão
+   aderentes ao contrato — verificação registrada no início de cada
+   etapa e reauditada no encerramento.
+
+Após aprovação, a Etapa 4.0 (extração do núcleo genérico) inicia como
 primeira entrega verificável, e cada etapa seguinte só começa com o
-gate parcial anterior fechado.
+gate parcial anterior fechado **e** com a checagem de aderência ao
+Product UX Contract aprovada.
