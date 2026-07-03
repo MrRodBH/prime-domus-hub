@@ -58,15 +58,23 @@ export {
 export {
   TenantContextProvider,
   useTenantContext,
-  resolveWithinTenant,
+  useViewResolver,
+  usePanelResolver,
+  useDialogResolver,
+  useActionResolver,
   type TenantContextValue,
 } from "@/components/workspace/tenant/TenantContext";
 export {
-  UnifiedResolutionLayer,
-  createUnifiedResolutionLayer,
-  type ResolutionKind,
-  type ResolutionResult,
-} from "@/components/workspace/resolution/UnifiedResolutionLayer";
+  ResolverRegistry,
+  createResolverRegistry,
+  ResolverNotRegisteredError,
+  type Resolver,
+} from "@/components/workspace/resolution/ResolverRegistry";
+export { createResolverRegistryForSnapshot } from "@/components/workspace/resolution/UnifiedResolutionLayer";
+export { ViewResolver, createViewResolver } from "@/components/workspace/resolution/resolvers/ViewResolver";
+export { PanelResolver, createPanelResolver } from "@/components/workspace/resolution/resolvers/PanelResolver";
+export { DialogResolver, createDialogResolver } from "@/components/workspace/resolution/resolvers/DialogResolver";
+export { ActionResolver, createActionResolver } from "@/components/workspace/resolution/resolvers/ActionResolver";
 export {
   createPluginContext,
   type PluginContext,
