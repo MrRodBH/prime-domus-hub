@@ -278,6 +278,50 @@ comprovados por auditoria:
 
 ---
 
+## 12. Three-Domain Rule (Multi-Domain Validation Test) — normativo desde Etapa 4.1.a
+
+Toda nova capacidade adicionada ao contrato do Workspace (novo campo de
+`EntityDescriptor`, novo método de `EntityAdapter`, nova primitiva do §5,
+nova chave de search-state, novo registry) só é considerada **genérica** —
+e portanto aceita no núcleo — se puder ser reutilizada em pelo menos **três
+domínios distintos**, cobrindo obrigatoriamente:
+
+1. **Conteúdo** — Páginas, Blog, Formulários, Campanhas, Mídias, Site, Auditoria.
+2. **Operacional** — Pipeline (Leads), Contratos, Investidores, Comissões,
+   Corretores e demais domínios de CRM/negócio.
+3. **Terceiro domínio independente** — Administração / Super Admin,
+   Relatórios / Analytics globais, Configurações de sistema ou entidades
+   técnicas (logs, integrações, permissões, chaves API, billing).
+
+Regras derivadas:
+
+- **Nomenclatura**: identificadores no core devem ser semanticamente
+  genéricos (`filters`, `views`, `actions`, `panels`). Nomes com semântica
+  de domínio (`leadFilters`, `contentActions`, `adminPanels`) são
+  automaticamente rejeitados.
+- **Prova em código**: a capacidade só é considerada "estabilizada" após
+  ser exercitada por descriptors reais de pelo menos um representante de
+  cada um dos três domínios. Até lá, permanece marcada como *provisional*
+  no relatório da etapa.
+- **Falha no critério**: se a capacidade não passa no teste dos três
+  domínios, ela deve ser (i) reprojetada para maior generalidade, (ii)
+  fatiada em duas capacidades genéricas distintas, ou (iii) removida do
+  escopo. Não é permitido aceitá-la como "feature de um único domínio"
+  nem migrá-la para um escape hatch funcional (`*Fn`) no core.
+- **Escopo**: esta regra se aplica exclusivamente ao **núcleo** do
+  Workspace (`EntityWorkspace`, `EntityDescriptor`, `EntityAdapter`,
+  registries, search schema). Componentes específicos de domínio,
+  registrados via registry, seguem regras próprias e não precisam ser
+  reutilizáveis.
+
+Princípio inegociável derivado:
+
+> **O Workspace não evolui para suportar um domínio específico.**
+> **Um novo domínio só é incorporado como prova de que o Workspace já
+> suporta qualquer coisa.**
+
+---
+
 ## Governança
 
 - Este contrato é referenciado pelo Plano Executivo do Bloco 4 (doc 09)

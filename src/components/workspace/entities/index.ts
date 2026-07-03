@@ -77,4 +77,18 @@ export type {
   WorkspaceAction,
   BlockKind,
   ListParams,
+  // Etapa 4.1.a — capacidades genéricas do Workspace.
+  EntityViewMode,
+  EntityViewsSpec,
+  KanbanViewSpec,
+  GalleryViewSpec,
+  TableViewSpec,
+  ScopeTabSpec,
+  FilterSpec,
+  ActionSpec,
+  ActionPredicate,
+  RecordSectionSpec,
+  RecordFieldSpec,
+  RecordFieldKind,
+  PanelSpec,
 } from "@/components/content/types";
