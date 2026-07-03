@@ -158,6 +158,8 @@ Ciclo de vida rastreável (padrão obrigatório da Fase 6):
 
 ## 5. Workspace Score — Atualização (pós-Etapa 4.0)
 
+### 5.1 Indicadores herdados (Blocos 3 / 3.1)
+
 | Indicador                                                          | 3.1 (fechamento) | 4.0 (atual) |
 | ------------------------------------------------------------------ | ---------------- | ----------- |
 | Workspace Coverage (contexto Conteúdo)                             | 100 %            | 100 %       |
@@ -168,11 +170,50 @@ Ciclo de vida rastreável (padrão obrigatório da Fase 6):
 | Legacy Routes (CMS)                                                | 0                | 0           |
 | Legacy Components importados por rotas CMS                         | 0                | 0           |
 | Parallel Operational Flows                                         | 0                | 0           |
-| **Novo — Generic Core Surface Established**                        | —                | **100 %**   |
-| **Novo — Routes on Canonical Barrel (`workspace/entities`)**       | —                | **7 / 7**   |
-| **Novo — `if (kind === …)` no núcleo genérico**                    | —                | **0**       |
-| **Novo — Compat Shims outstanding**                                | —                | **1** (`ContentWorkspace`, marcado para remoção na Etapa 4.5) |
-| **Novo — Architectural Exceptions ativas**                         | 0                | **1** (AE-4.0-01) |
+
+### 5.2 Novos indicadores estruturais (Etapa 4.0)
+
+| Indicador                                                          | Valor            |
+| ------------------------------------------------------------------ | ---------------- |
+| Generic Core Surface Established                                   | **100 %**        |
+| Routes on Canonical Barrel (`workspace/entities`)                  | **7 / 7**        |
+| `if (kind === …)` no núcleo genérico                               | **0**            |
+| Compat Shims outstanding                                           | **1** (`ContentWorkspace`, remoção prevista para 4.5) |
+| Architectural Exceptions ativas                                    | **1** (AE-4.0-01) |
+
+### 5.3 Indicadores de governança arquitetural (Fase 6)
+
+Instituídos nesta etapa como padrão obrigatório para todas as etapas
+restantes do Bloco 4. Cada indicador possui valor objetivo e
+justificativa curta.
+
+| Indicador                     | Valor 4.0 | Justificativa                                                                                                                              |
+| ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Product UX Compliance**     | **100 %** | Checklist §1–§11 (arquivo `09-bloco-4-etapa-4-0-ux-checklist.md`) integralmente PASS; UX Regression Test de 12 passos aprovado.            |
+| **Architectural Stability**   | **100 %** | Nenhuma quebra de contrato público; 0 rotas alteradas; 0 mudanças de storage keys; 1 única AE classificada como Transitional e read-only.  |
+| **Workspace Canonicality**    | **100 %** | 100 % das rotas CMS importam do barrel canônico `@/components/workspace/entities`; nenhum consumidor externo importa de `content/*`.       |
+| **Descriptor Independence**   | **100 %** | Núcleo `EntityWorkspace` desacoplado do domínio: 0 `if (kind === …)`, 0 `switch (kind)`, 0 imports domain-specific fora de `adapters/`.    |
+| **Infrastructure Coupling**   | **0 %**   | Núcleo genérico não importa `*.functions.ts`, `supabase/*`, `client.server.ts` nem qualquer módulo de infraestrutura — apenas DS + tipos. |
+
+## 6. Matriz de Evolução do Bloco 4
+
+Instrumento de progresso oficial da Fase 6. Deve ser atualizado no
+encerramento de cada etapa (4.1 → 4.5) e replicado no relatório técnico
+correspondente.
+
+| Workspace                       | Status Atual        | Etapa Responsável | Superfície canônica esperada                                                     |
+| ------------------------------- | ------------------- | ----------------- | -------------------------------------------------------------------------------- |
+| **Content (Conteúdo)**          | **Canonical**       | 4.0 (concluída)   | `@/components/workspace/entities` — barrel canônico ativo, 7 rotas migradas.     |
+| **Pipeline (CRM/Leads)**        | Não iniciado        | 4.1               | `EntityDescriptor` + `EntityAdapter` para leads/pipeline consumindo `EntityWorkspace`. |
+| **Catálogo (Imóveis/Lançamentos)** | Não iniciado    | 4.2               | Descriptors para imóveis, lançamentos, bairros, cidades sobre o núcleo canônico. |
+| **Distribuição (Portais)**      | Não iniciado        | 4.3               | Descriptor de portais + `ActivityPanel` especializado em `IntegrationStatus`.    |
+| **Administração (RBAC/Config)** | Não iniciado        | 4.4               | Descriptors para perfis, equipes, corretores + `editor-registry` (encerra AE-4.0-01 parcialmente). |
+| **Super Admin**                 | Não iniciado        | 4.5               | Descriptors para observabilidade/DLQ + relocação física final e remoção do compat shim. |
+
+Legenda de status: **Canonical** · **Em migração** · **Não iniciado** ·
+**Bloqueado**.
+
+
 
 ## 6. Definition of Done — Etapa 4.0
 
