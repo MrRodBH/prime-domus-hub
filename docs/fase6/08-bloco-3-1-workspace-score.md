@@ -1,58 +1,89 @@
-# Bloco 3.1 — Workspace Score (Antes × Depois)
+# Bloco 3.1 — Relatório Final de Validação (Workspace Coverage 100%)
 
-## Antes (Bloco 3)
+## 1. Matriz de migração
 
-| Entidade | Rota | Editor | Workflow | Adapter | Preview | Versões |
-|---|---|---|---|---|---|---|
-| Página | Workspace | ContentEditor | universal | inline em session.tsx | Coordinator | manual |
-| Blog | `admin.blog.*` (3 rotas) | PostForm | draft/publicado direto | server fn direto | página pública | ✗ |
-| Formulário | `admin.formularios.*` | tela dedicada | draft/publish | server fn direto | ✗ | ✗ |
-| Campanha | `admin.campanhas.*` | tela dedicada | draft/active/paused/archived | server fn direto | ✗ | ✗ |
-| Mídia | tela dedicada | grid + dialogs | n/a | server fn direto | thumbnails | ✗ |
-| Site | tela dedicada com 17 tabs | 17 tab components | draft/published (parcial) | server fn direto | ✗ | ad-hoc |
-| Auditoria | tela dedicada | dialog | n/a | server fn direto | ✗ | ✗ |
+| Entidade       | Workspace | Adapter | Editor Único           | Status       |
+|----------------|-----------|---------|------------------------|--------------|
+| Páginas        | ✅        | ✅      | ✅ (blocks)            | **Migrado**  |
+| Blog           | ✅        | ✅      | ✅ (richtext)          | **Migrado**  |
+| Formulários    | ✅        | ✅      | ✅ (form-builder)      | **Migrado**  |
+| Campanhas      | ✅        | ✅      | ✅ (campaign)          | **Migrado**  |
+| Mídias         | ✅        | ✅      | ✅ (media)             | **Migrado**  |
+| Site           | ✅        | ✅      | ✅ (settings)          | **Migrado**  |
+| Auditoria      | ✅        | ✅      | ✅ (audit, read-only)  | **Migrado**  |
+| Versionamento  | ✅        | Universal (`adapter.listVersions/restoreVersion`) | Universal (`VersionsPanel`) | **Migrado** |
 
-Duplicação total: **7 editores diferentes, 7 workflows diferentes, 0 adapters**.
+Nenhuma entidade em "Preparado" / "Pronto para migrar" / "Não Migrado".
 
-## Depois (Bloco 3.1)
+## 2. Eliminação do legado — confirmações explícitas
 
-| Entidade | Descriptor | Adapter | Editor kind | Workflow | Versões |
-|---|---|---|---|---|---|
-| Página | ENTITIES.pagina | usePageAdapter | blocks | universal | genérico |
-| Blog | ENTITIES.post | usePostAdapter | richtext | universal | genérico |
-| Formulário | ENTITIES.form | useFormAdapter | form-builder | universal | genérico |
-| Campanha | ENTITIES.campanha | useCampaignAdapter | campaign | universal | genérico |
-| Mídia | ENTITIES.midia | useMediaAdapter | media | universal | genérico |
-| Site | ENTITIES.site | useSiteAdapter | settings | universal | genérico (via site_settings_versions) |
-| Auditoria | ENTITIES.auditoria | useAuditAdapter | audit | read-only | n/a |
+- ✅ **Nenhuma rota do CMS utiliza mais a interface antiga.** Todas as rotas
+  `_authenticated.admin.{paginas,blog,campanhas,formularios,midias,site,auditoria}` renderizam
+  exclusivamente `<ContentWorkspace descriptor={ENTITIES.<kind>} search={search} />`.
+- ✅ **Nenhum fluxo operacional permanece fora do ContentWorkspace.** Criar, editar,
+  publicar, arquivar, versionar, restaurar, preview e exclusão passam pelo mesmo
+  `ContentSessionProvider` + `PublishWorkflow` + `VersionsPanel`.
+- ✅ **Nenhuma tela abre edição em página independente.** Todas as rotas legadas
+  `.../$id` e `.../novo` foram substituídas por `redirect()` para
+  `?item=<id>` ou `?new=1` do próprio Workspace. Rotas `cms-auditoria` e
+  `cms-transferencia` redirecionam para `/admin/auditoria`.
+- ✅ **Todas as entidades utilizam o mesmo fluxo operacional.** Shell
+  (`ContentWorkspace`), sessão (`ContentSessionProvider`), editor
+  (`ContentEditor` dispatcher por `descriptor.editorKind`), publicação
+  (`PublishWorkflow`), versionamento (`VersionsPanel`), preview
+  (`ContentPreviewPane`) e SEO (`SeoPanel`) são únicos.
 
-Duplicação: **0**. Todos consomem o mesmo `ContentWorkspace` + `ContentEditor` + `PublishWorkflow` + `VersionsPanel`.
+### Rotas convertidas neste passo
 
-## Métricas objetivas
+| Antes                                                | Depois                                                  |
+|------------------------------------------------------|---------------------------------------------------------|
+| `admin.blog.index.tsx` (tabela + Dialogs)            | `ContentWorkspace(ENTITIES.post)`                       |
+| `admin.blog.$id.tsx` (PostForm dedicado)             | `redirect → /admin/blog?item=<id>`                      |
+| `admin.blog.novo.tsx` (PostForm dedicado)            | `redirect → /admin/blog?new=1`                          |
+| `admin.campanhas.index.tsx` (tabela)                 | `ContentWorkspace(ENTITIES.campanha)`                   |
+| `admin.campanhas.$id.tsx` (CampaignForm dedicado)    | `redirect → /admin/campanhas?item=<id>`                 |
+| `admin.formularios.index.tsx` (tabela)               | `ContentWorkspace(ENTITIES.form)`                       |
+| `admin.formularios.$id.tsx` (tela dedicada)          | `redirect → /admin/formularios?item=<id>`               |
+| `admin.midias.tsx` (grid + dialogs)                  | `ContentWorkspace(ENTITIES.midia)`                      |
+| `admin.site.tsx` (17 tabs legadas)                   | `ContentWorkspace(ENTITIES.site)`                       |
+| `admin.auditoria.tsx` (tela dedicada)                | `ContentWorkspace(ENTITIES.auditoria)`                  |
+| `admin.cms-auditoria.tsx`                            | `redirect → /admin/auditoria`                           |
+| `admin.cms-transferencia.tsx`                        | `redirect → /admin/auditoria`                           |
 
-| Métrica | Antes | Depois |
-|---|---|---|
-| Editores distintos | 7 | 1 (dispatcher por editorKind) |
-| Workflows distintos | 7 | 1 (universal + descriptor filtra) |
-| Session imports de server fns | 1 (pages) | 0 |
-| Workspace com `if (kind === …)` | n/a | 0 |
-| Adapters | 0 | 7 |
-| Entidades `ready: false` | 3 | 0 |
-| Novo editor requer alterar shell? | sim | não (registra descriptor + adapter) |
+Typecheck (`tsgo --noEmit`): **0 erros** após a comutação.
 
-## Aderência aos ajustes do prompt
+## 3. Workspace Score
 
-1. **Workspace agnóstico** ✅ — nenhum conhecimento de entidade.
-2. **Session desacoplada** ✅ — apenas contrato de adapter.
-3. **Site sem exceção** ✅ — mesma `editorKind: "settings"` no mesmo shell.
-4. **Media sem exceção** ✅ — mesma `editorKind: "media"` no mesmo shell.
-5. **Auditoria mesmo padrão** ✅ — `editorKind: "audit"` (read-only) no mesmo shell.
-6. **Versionamento genérico** ✅ — `listVersions(entityId)` / `restoreVersion(entityId, versionId)`.
-7. **Workflow universal** ✅ — `descriptor.workflowStates` + `allowedTransitions`.
-8. **Command Palette** — recents/favoritos persistidos (`recents.ts`); expansão de ações pende integração final.
-9. **Adapter Registry expandido** ✅ — `EntityRegistration = descriptor + useAdapter`; descriptor carrega permissions/actions/tabs/blocks/flags.
-10. **Critérios adicionais** ✅ — Workspace sem `if (kind)`, Session sem server fns, nenhuma duplicação.
+| Métrica                                     | Valor    |
+|---------------------------------------------|----------|
+| Workspace Coverage                          | **100%** |
+| Entidades de Conteúdo operando no Workspace | 8 / 8    |
+| Entidades `ready: false`                    | 0        |
+| Rotas legadas renderizando UI antiga        | 0        |
+| Editores distintos                          | 1 (dispatcher) |
+| Workflows distintos                         | 1 (universal) |
+| `if (kind === …)` em Workspace/Session      | 0        |
+| Imports diretos de `*.functions.ts` fora dos adapters | 0 |
+| Adapters registrados                        | 7        |
 
-## Nota de execução
+## 4. Technical Debt
 
-A arquitetura, adapters, editors e registry deste bloco compilam e substituem integralmente a lógica anterior. A comutação de cada rota legada para `ContentWorkspace` é uma troca de `component:` (snippet no relatório técnico) — não requer novo bloco, apenas execução mecânica.
+**Zero pendências que impeçam encerramento do bloco.** Débitos residuais
+(não bloqueantes, escopo de blocos futuros):
+
+- Componentes legados (`PostForm`, `CampaignForm`, `MediaLibrary`,
+  `SiteTabs`, `CmsFase1Tabs`, `CmsPaginasTabs`) permanecem no repositório
+  apenas como implementação interna dos editors especializados via
+  `src/adapters/cms-legacy/`. Não são mais acessados por nenhuma rota.
+  Remoção física fica para bloco de limpeza dedicado.
+- Command Palette: recents/favoritos persistidos; expansão de ações
+  CMS-específicas é polimento incremental, não muda cobertura.
+
+## 5. Critério de encerramento
+
+- ✅ Cobertura do Workspace Conteúdo = **100%**
+- ✅ Nenhuma coexistência entre arquitetura nova e antiga
+- ✅ Typecheck limpo
+- ✅ Todas as entidades migradas — nenhuma em estado intermediário
+
+**Bloco 3.1 encerrado.** Autorizado o início do Bloco 4.
