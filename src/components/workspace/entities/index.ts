@@ -62,6 +62,12 @@ export {
   type TenantContextValue,
 } from "@/components/workspace/tenant/TenantContext";
 export {
+  UnifiedResolutionLayer,
+  createUnifiedResolutionLayer,
+  type ResolutionKind,
+  type ResolutionResult,
+} from "@/components/workspace/resolution/UnifiedResolutionLayer";
+export {
   createPluginContext,
   type PluginContext,
 } from "@/components/workspace/plugins/PluginContext";
