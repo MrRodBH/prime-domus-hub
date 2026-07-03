@@ -351,7 +351,21 @@ Para evitar escopo criativo:
 
 ## Aprovação necessária
 
-Este plano é o **contrato de escopo** do Bloco 4. Após aprovação
-explícita, a Etapa 4.0 (extração do núcleo genérico) inicia como
+Este plano é o **contrato de escopo** do Bloco 4 e opera em conjunto
+com o **Product UX Contract** (`docs/fase6/09-product-ux-contract.md`),
+que é o **contrato de experiência** e prevalece em caso de conflito.
+
+### Critério de início da Etapa 4.0
+
+A Etapa 4.0 só pode ser iniciada após:
+
+1. Revisão e aprovação explícita deste Plano Executivo revisado.
+2. Criação e aprovação do `docs/fase6/09-product-ux-contract.md`.
+3. Validação de que **todas** as etapas do Bloco 4 (4.0 → 4.5) estão
+   aderentes ao contrato — verificação registrada no início de cada
+   etapa e reauditada no encerramento.
+
+Após aprovação, a Etapa 4.0 (extração do núcleo genérico) inicia como
 primeira entrega verificável, e cada etapa seguinte só começa com o
-gate parcial anterior fechado.
+gate parcial anterior fechado **e** com a checagem de aderência ao
+Product UX Contract aprovada.
