@@ -19,6 +19,7 @@ import { CampaignContentEditor } from "./editors/CampaignContentEditor";
 import { MediaContentEditor } from "./editors/MediaContentEditor";
 import { SettingsContentEditor } from "./editors/SettingsContentEditor";
 import { AuditViewer } from "./editors/AuditViewer";
+import { StructuredContentEditor } from "./editors/StructuredContentEditor";
 import { SubmissoesPanel } from "./editors/SubmissoesPanel";
 import { CampaignSegmentacaoPanel, CampaignMetricasPanel } from "./editors/CampaignPanels";
 import { MediaUsagePanel } from "./editors/MediaUsagePanel";
@@ -172,6 +173,7 @@ function ContentBody() {
     case "media":        return <MediaContentEditor />;
     case "settings":     return <SettingsContentEditor />;
     case "audit":        return <AuditViewer />;
+    case "structured":   return <StructuredContentEditor />;
   }
 }
 

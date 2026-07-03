@@ -21,11 +21,14 @@
 //   enquanto a superfície de registry entra em vigor.
 import {
   registerView,
+  registerPanel,
   registerAction,
   type ViewProps,
   type ActionContext,
 } from "@/components/workspace/registry";
 import { ContentList } from "@/components/content/ContentList";
+import { KanbanView } from "@/components/workspace/views/KanbanView";
+import { LeadFunilPanel } from "@/components/workspace/panels/LeadFunilPanel";
 
 // ---------------------------------------------------------------------------
 // View: "list" — visualização default de qualquer descriptor.
@@ -62,9 +65,13 @@ export function bootstrapWorkspaceRegistries(): void {
   if (bootstrapped) return;
   bootstrapped = true;
 
-  // Views
+  // Views — genéricas, sem conhecimento de domínio.
   registerView("list", ListView);
+  registerView("kanban", KanbanView);
 
-  // Actions
+  // Panels — hospedagem opaca; LeadFunilPanel encapsula sua própria lógica.
+  registerPanel("lead.funil", LeadFunilPanel);
+
+  // Actions — fallback declarativo que delega ao adapter.runAction.
   registerAction("adapter.run", delegateToAdapter);
 }

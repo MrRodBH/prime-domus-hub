@@ -43,6 +43,7 @@ import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminOrigensRouteImport } from './routes/_authenticated.admin.origens'
 import { Route as AuthenticatedAdminMotivosRouteImport } from './routes/_authenticated.admin.motivos'
 import { Route as AuthenticatedAdminMidiasRouteImport } from './routes/_authenticated.admin.midias'
+import { Route as AuthenticatedAdminLeadsWorkspaceRouteImport } from './routes/_authenticated.admin.leads-workspace'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
 import { Route as AuthenticatedAdminEquipesRouteImport } from './routes/_authenticated.admin.equipes'
 import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
@@ -249,6 +250,12 @@ const AuthenticatedAdminMidiasRoute =
   AuthenticatedAdminMidiasRouteImport.update({
     id: '/midias',
     path: '/midias',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLeadsWorkspaceRoute =
+  AuthenticatedAdminLeadsWorkspaceRouteImport.update({
+    id: '/leads-workspace',
+    path: '/leads-workspace',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
@@ -463,6 +470,7 @@ export interface FileRoutesByFullPath {
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/leads-workspace': typeof AuthenticatedAdminLeadsWorkspaceRoute
   '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
@@ -526,6 +534,7 @@ export interface FileRoutesByTo {
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/admin/leads-workspace': typeof AuthenticatedAdminLeadsWorkspaceRoute
   '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
@@ -594,6 +603,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
   '/_authenticated/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
+  '/_authenticated/admin/leads-workspace': typeof AuthenticatedAdminLeadsWorkspaceRoute
   '/_authenticated/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/_authenticated/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/_authenticated/admin/origens': typeof AuthenticatedAdminOrigensRoute
@@ -662,6 +672,7 @@ export interface FileRouteTypes {
     | '/admin/corretores'
     | '/admin/equipes'
     | '/admin/leads'
+    | '/admin/leads-workspace'
     | '/admin/midias'
     | '/admin/motivos'
     | '/admin/origens'
@@ -725,6 +736,7 @@ export interface FileRouteTypes {
     | '/admin/corretores'
     | '/admin/equipes'
     | '/admin/leads'
+    | '/admin/leads-workspace'
     | '/admin/midias'
     | '/admin/motivos'
     | '/admin/origens'
@@ -792,6 +804,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/corretores'
     | '/_authenticated/admin/equipes'
     | '/_authenticated/admin/leads'
+    | '/_authenticated/admin/leads-workspace'
     | '/_authenticated/admin/midias'
     | '/_authenticated/admin/motivos'
     | '/_authenticated/admin/origens'
@@ -1100,6 +1113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMidiasRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/leads-workspace': {
+      id: '/_authenticated/admin/leads-workspace'
+      path: '/leads-workspace'
+      fullPath: '/admin/leads-workspace'
+      preLoaderRoute: typeof AuthenticatedAdminLeadsWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/leads': {
       id: '/_authenticated/admin/leads'
       path: '/leads'
@@ -1348,6 +1368,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCorretoresRoute: typeof AuthenticatedAdminCorretoresRoute
   AuthenticatedAdminEquipesRoute: typeof AuthenticatedAdminEquipesRoute
   AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
+  AuthenticatedAdminLeadsWorkspaceRoute: typeof AuthenticatedAdminLeadsWorkspaceRoute
   AuthenticatedAdminMidiasRoute: typeof AuthenticatedAdminMidiasRoute
   AuthenticatedAdminMotivosRoute: typeof AuthenticatedAdminMotivosRoute
   AuthenticatedAdminOrigensRoute: typeof AuthenticatedAdminOrigensRoute
@@ -1381,6 +1402,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCorretoresRoute: AuthenticatedAdminCorretoresRoute,
   AuthenticatedAdminEquipesRoute: AuthenticatedAdminEquipesRoute,
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
+  AuthenticatedAdminLeadsWorkspaceRoute: AuthenticatedAdminLeadsWorkspaceRoute,
   AuthenticatedAdminMidiasRoute: AuthenticatedAdminMidiasRoute,
   AuthenticatedAdminMotivosRoute: AuthenticatedAdminMotivosRoute,
   AuthenticatedAdminOrigensRoute: AuthenticatedAdminOrigensRoute,
