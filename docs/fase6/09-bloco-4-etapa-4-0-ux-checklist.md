@@ -119,7 +119,30 @@ do Bloco 3.1 (`docs/fase6/08-bloco-3-1-auditoria-final.md` §UX Regression).
 
 ---
 
-## Consolidação
+## Evidências Consolidadas (por seção do Product UX Contract)
+
+Complemento normativo: cada seção do checklist é acompanhada de uma
+evidência objetiva agregada, para que a auditoria não dependa apenas do
+rótulo PASS por linha.
+
+| Seção do Contrato               | Evidência objetiva agregada                                                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §1 Product Vision               | `WorkspaceShell`, `AppHeader`, `NavigationRail`, `CommandPalette` e terminologia visível byte-idênticos ao fechamento do Bloco 3.1 — diff visual = 0.                |
+| §2 Workspace Continuity         | `_authenticated.tsx` inalterado; shell não desmonta ao trocar de rota (`Outlet` re-renderiza sob o mesmo shell).                                                     |
+| §3 Workspace Memory             | Filtros, `q`, `status`, `item`, `tab`, `density`, scroll, seleção e larguras dos painéis preservados via `entitySearchSchema` (URL) + `ui-store` (localStorage).      |
+| §4 Zero Context Reset           | `WorkspaceShell` permaneceu montado durante toda navegação Páginas → Blog → Formulários → Páginas; nenhum reload, nenhum FOUC, nenhum spinner central.               |
+| §5 Workspace Tokens             | Nenhuma primitiva adicional criada — `EntityWorkspace` compõe apenas `Button`, `Badge`, `AdminPageHeader`, `Tabs`; `rg "Panel.tsx" workspace/entities` = 0 hits.     |
+| §6 Progressive Workspace        | `useQuery` mantém `queryKey` original (`["content-list", kind, …]`); lazy loading do editor e skeleton por painel preservados; zero `Suspense fallback` global novo. |
+| §7 UX Consistency Rules         | Design System único mantido — 0 componentes ad-hoc; textos, ícones (`lucide-react`), curvas de animação e hierarquia visual idênticos ao original.                   |
+| §8 Workspace Navigation         | Rotas inalteradas; Command Palette segue indexando `ENTITIES`; deep-links testados nos 12 passos do UX Regression Test.                                              |
+| §9 Performance Contract         | `bunx tsgo --noEmit` = 0 erros; bundle sem duplicação (`ContentWorkspace` = re-export de 10 LOC); assinatura de props idêntica → zero re-render adicional.           |
+| §10 Anti-Patterns               | `rg "kind ===\|switch \(.*kind" src/components/workspace/entities` = 0 hits de código; 0 shells novos; 0 imports de `*.functions.ts` fora de `adapters/`.            |
+
+---
+
+## Consolidação — Workspace Score da Etapa 4.0
+
+### Dimensões clássicas do checklist
 
 | Dimensão                     | Score | Notas                                                                                     |
 | ---------------------------- | ----- | ----------------------------------------------------------------------------------------- |
@@ -130,3 +153,15 @@ do Bloco 3.1 (`docs/fase6/08-bloco-3-1-auditoria-final.md` §UX Regression).
 | Performance                  | PASS  | Zero regressão de tipo/bundle/render.                                                      |
 | Anti-Patterns                | PASS  | 0 violações no núcleo genérico.                                                            |
 | **Etapa 4.0 Overall**        | **PASS** | Coberto por 1 Architectural Exception (AE-4.0-01) devidamente registrada e limitada.       |
+
+### Indicadores de governança arquitetural (Fase 6)
+
+Padrão obrigatório instituído nesta etapa e replicado nas etapas 4.1 → 4.5.
+
+| Indicador                     | Valor 4.0 | Justificativa                                                                                                                       |
+| ----------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Product UX Compliance**     | **100 %** | §1–§11 do checklist PASS; UX Regression Test de 12 passos aprovado; evidências objetivas por seção registradas acima.               |
+| **Architectural Stability**   | **100 %** | Nenhum contrato público quebrado; 0 rotas alteradas; 0 storage keys renomeadas; única AE (AE-4.0-01) classificada como Transitional read-only. |
+| **Workspace Canonicality**    | **100 %** | 7/7 rotas CMS importam do barrel canônico; nenhum consumidor novo autorizado fora de `@/components/workspace/entities`.             |
+| **Descriptor Independence**   | **100 %** | 0 `if (kind === …)` / `switch (kind)` no núcleo; núcleo depende apenas de `EntityDescriptor` + `EntityAdapter`.                     |
+| **Infrastructure Coupling**   | **0 %**   | Núcleo genérico não importa `*.functions.ts`, `supabase/*` nem `client.server.ts` — 100 % desacoplado da infraestrutura.            |
