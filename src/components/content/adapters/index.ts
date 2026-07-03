@@ -9,6 +9,7 @@ import { useFormAdapter } from "./useFormAdapter";
 import { useMediaAdapter } from "./useMediaAdapter";
 import { useSiteAdapter } from "./useSiteAdapter";
 import { useAuditAdapter } from "./useAuditAdapter";
+import { useLeadAdapter } from "./useLeadAdapter";
 
 export const ENTITY_REGISTRY: Record<EntityKind, EntityRegistration> = {
   pagina:    { descriptor: ENTITIES.pagina,    useAdapter: usePageAdapter },
@@ -18,6 +19,7 @@ export const ENTITY_REGISTRY: Record<EntityKind, EntityRegistration> = {
   midia:     { descriptor: ENTITIES.midia,     useAdapter: useMediaAdapter },
   site:      { descriptor: ENTITIES.site,      useAdapter: useSiteAdapter },
   auditoria: { descriptor: ENTITIES.auditoria, useAdapter: useAuditAdapter },
+  lead:      { descriptor: ENTITIES.lead,      useAdapter: useLeadAdapter },
 };
 
 export function getRegistration(kind: EntityKind): EntityRegistration {
@@ -30,3 +32,4 @@ export function getRegistration(kind: EntityKind): EntityRegistration {
 export const ENTITY_ADAPTERS = ENTITY_REGISTRY;
 
 export type { EntityRegistration } from "../types";
+
