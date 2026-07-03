@@ -38,6 +38,7 @@ import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
 import { Route as AuthenticatedAdminPortaisRouteImport } from './routes/_authenticated.admin.portais'
+import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated.admin.pipeline'
 import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated.admin.perfis'
 import { Route as AuthenticatedAdminOrigensRouteImport } from './routes/_authenticated.admin.origens'
 import { Route as AuthenticatedAdminMotivosRouteImport } from './routes/_authenticated.admin.motivos'
@@ -218,6 +219,12 @@ const AuthenticatedAdminPortaisRoute =
   AuthenticatedAdminPortaisRouteImport.update({
     id: '/portais',
     path: '/portais',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPipelineRoute =
+  AuthenticatedAdminPipelineRouteImport.update({
+    id: '/pipeline',
+    path: '/pipeline',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminPerfisRoute =
@@ -460,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
+  '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
@@ -522,6 +530,7 @@ export interface FileRoutesByTo {
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
   '/admin/perfis': typeof AuthenticatedAdminPerfisRoute
+  '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
@@ -589,6 +598,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/_authenticated/admin/origens': typeof AuthenticatedAdminOrigensRoute
   '/_authenticated/admin/perfis': typeof AuthenticatedAdminPerfisRoute
+  '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/_authenticated/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
   '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
@@ -656,6 +666,7 @@ export interface FileRouteTypes {
     | '/admin/motivos'
     | '/admin/origens'
     | '/admin/perfis'
+    | '/admin/pipeline'
     | '/admin/portais'
     | '/admin/site'
     | '/super/dlq'
@@ -718,6 +729,7 @@ export interface FileRouteTypes {
     | '/admin/motivos'
     | '/admin/origens'
     | '/admin/perfis'
+    | '/admin/pipeline'
     | '/admin/portais'
     | '/admin/site'
     | '/super/dlq'
@@ -784,6 +796,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/motivos'
     | '/_authenticated/admin/origens'
     | '/_authenticated/admin/perfis'
+    | '/_authenticated/admin/pipeline'
     | '/_authenticated/admin/portais'
     | '/_authenticated/admin/site'
     | '/_authenticated/super/dlq'
@@ -1050,6 +1063,13 @@ declare module '@tanstack/react-router' {
       path: '/portais'
       fullPath: '/admin/portais'
       preLoaderRoute: typeof AuthenticatedAdminPortaisRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/pipeline': {
+      id: '/_authenticated/admin/pipeline'
+      path: '/pipeline'
+      fullPath: '/admin/pipeline'
+      preLoaderRoute: typeof AuthenticatedAdminPipelineRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/perfis': {
@@ -1332,6 +1352,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminMotivosRoute: typeof AuthenticatedAdminMotivosRoute
   AuthenticatedAdminOrigensRoute: typeof AuthenticatedAdminOrigensRoute
   AuthenticatedAdminPerfisRoute: typeof AuthenticatedAdminPerfisRoute
+  AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
   AuthenticatedAdminPortaisRoute: typeof AuthenticatedAdminPortaisRoute
   AuthenticatedAdminSiteRoute: typeof AuthenticatedAdminSiteRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -1364,6 +1385,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminMotivosRoute: AuthenticatedAdminMotivosRoute,
   AuthenticatedAdminOrigensRoute: AuthenticatedAdminOrigensRoute,
   AuthenticatedAdminPerfisRoute: AuthenticatedAdminPerfisRoute,
+  AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
   AuthenticatedAdminPortaisRoute: AuthenticatedAdminPortaisRoute,
   AuthenticatedAdminSiteRoute: AuthenticatedAdminSiteRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
