@@ -22,18 +22,17 @@ export function RichTextContentEditor() {
       </div>
       <div>
         <Label>Imagem de capa</Label>
-        <div className="flex items-center gap-3">
-          {data.imagem_capa && <img src={data.imagem_capa} alt="" className="h-16 rounded object-cover" />}
+        <div className="flex items-start gap-3">
           <MediaPicker
-            value={data.imagem_capa ?? undefined}
-            onChange={(url: string) => s.updateData({ imagem_capa: url })}
-            accept="image/*"
+            value={data.imagem_capa ?? null}
+            onChange={(v) => s.updateData({ imagem_capa: v?.url ?? null })}
+            tipo="image"
           />
           {data.imagem_capa && (
             <Input
               value={data.imagem_capa}
               onChange={(e) => s.updateData({ imagem_capa: e.target.value })}
-              className="text-xs font-mono"
+              className="text-xs font-mono flex-1"
             />
           )}
         </div>
