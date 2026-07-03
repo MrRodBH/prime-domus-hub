@@ -72,7 +72,7 @@ Detalhes por evidência:
 
 ---
 
-## 4. Technical Debt
+## 4. Architectural Exceptions (Read-only)
 
 Pendências remanescentes relacionadas ao Workspace de Conteúdo:
 
