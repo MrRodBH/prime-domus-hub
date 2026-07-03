@@ -50,7 +50,6 @@ export function useAutosave<T>(opts: {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [value, enabled, delayMs, isEqual, flush]);
 
-  // Ctrl/Cmd+S força flush
   useEffect(() => {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
