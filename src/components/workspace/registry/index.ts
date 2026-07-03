@@ -1,14 +1,14 @@
-// Registry System — superfície pública (Fase 6 · Bloco 4 · Etapa 4.3.1).
+// Registry System — superfície pública (Fase 6 · Bloco 4 · Etapa 4.3.2).
 //
-// Camadas (patch 4.3.1):
-//   Registry       → source of definitions (build-time)
-//   RegistryIndex  → read-only façade runtime (obrigatória — não é debug!)
-//   Snapshot       → container passivo por tenant (isola instâncias)
-//   Executor       → execução pura (nunca dentro de registry/snapshot/index)
+// Camadas (patch 4.3.2 — Unified Resolution Layer):
+//   Registry                → source of definitions (build-time)
+//   RegistrySnapshot        → container passivo por tenant (isola instâncias)
+//   UnifiedResolutionLayer  → SINGLE runtime entrypoint (fora deste barrel)
+//   ActionExecutor          → execução pura
 //
 // Fluxo canônico runtime:
-//   TenantContext → RegistrySnapshot (passivo) → RegistryIndex (ativo)
-//                 → Renderer / Plugin → ActionExecutor
+//   TenantContext → RegistrySnapshot → UnifiedResolutionLayer
+//                 → Renderer / Plugin / ActionExecutor
 export {
   ViewRegistry, registerView, createViewRegistry,
   type ViewRegistryInstance,
@@ -36,15 +36,6 @@ export {
   type RegistrySnapshotSource,
 } from "./snapshot";
 
-export {
-  RegistryIndex,
-  createRegistryIndex,
-  type ViewFacade,
-  type PanelFacade,
-  type DialogFacade,
-  type ActionFacade,
-} from "./RegistryIndex";
-
 export { executeAction, executeActionById } from "./ActionExecutor";
 
 export type {
@@ -57,3 +48,4 @@ export type {
   DialogComponent,
   ActionHandler,
 } from "./types";
+
