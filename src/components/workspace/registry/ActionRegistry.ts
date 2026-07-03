@@ -1,10 +1,11 @@
-// ActionRegistry — execução O(1) de ações declarativas por ID (hardening 4.2).
+// ActionRegistry — RESOLVE-ONLY (Fase 6 · Bloco 4 · Etapa 4.3 §8).
 //
-// Runtime-only resolution: o núcleo apenas roteia; o handler concreto
-// (default = delegar a adapter.runAction) fica fora do core.
+// Mudança de contrato vs. 4.2: o registry NÃO executa mais. Execução vai
+// para `ActionExecutor`. Isso desacopla resolução de execução e habilita
+// o snapshot model (§4).
 import { RegistryResolutionError } from "./errors";
 import { isFrozen, RegistryFrozenError } from "./freeze";
-import type { ActionContext, ActionHandler } from "./types";
+import type { ActionHandler } from "./types";
 
 const registry = new Map<string, ActionHandler>();
 
@@ -13,15 +14,17 @@ export const ActionRegistry = {
     if (isFrozen()) throw new RegistryFrozenError("ActionRegistry", actionId);
     registry.set(actionId, handler);
   },
-  async execute(actionId: string, ctx: ActionContext): Promise<void> {
-    const h = registry.get(actionId);
-    if (!h) throw new RegistryResolutionError("ActionRegistry", actionId);
-    await h(ctx);
-  },
-  getStrict(actionId: string): ActionHandler {
+  /** Resolve o handler — NÃO executa (§8.2). */
+  resolve(actionId: string): ActionHandler {
     const h = registry.get(actionId);
     if (!h) throw new RegistryResolutionError("ActionRegistry", actionId);
     return h;
+  },
+  getStrict(actionId: string): ActionHandler {
+    return this.resolve(actionId);
+  },
+  get(actionId: string): ActionHandler | undefined {
+    return registry.get(actionId);
   },
   exists(actionId: string): boolean {
     return registry.has(actionId);
@@ -34,6 +37,10 @@ export const ActionRegistry = {
   },
   listIds(): string[] {
     return Array.from(registry.keys());
+  },
+  /** Builder-only — consumido pelo snapshot; nunca leia em runtime. */
+  __entries(): ReadonlyMap<string, ActionHandler> {
+    return registry;
   },
 };
 

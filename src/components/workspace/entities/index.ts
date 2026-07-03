@@ -29,14 +29,18 @@
 
 export { EntityWorkspace } from "./EntityWorkspace";
 
-// Registry + Runtime — superfície canônica da Etapa 4.1.b.
-// Novos descriptors (Pipeline/Catálogo/…) registram componentes por aqui.
+// Registry + Runtime — superfície canônica (4.1.b), atualizada na 4.3.
+// Runtime é context-driven: consumidores devem envolver a árvore em
+// <TenantContextProvider> antes de usar renderers.
 export {
   ViewRegistry, registerView,
   PanelRegistry, registerPanel,
   DialogRegistry, registerDialog,
   ActionRegistry, registerAction,
   RegistryResolutionError,
+  createRegistrySnapshot,
+  executeAction, executeActionById,
+  type RegistrySnapshot, type RegistrySnapshotSource,
   type ViewProps, type PanelProps, type DialogRuntimeProps, type ActionContext,
   type ViewComponent, type PanelComponent, type DialogComponent, type ActionHandler,
 } from "@/components/workspace/registry";
@@ -46,7 +50,20 @@ export {
   EntityDialogRenderer,
   runEntityAction,
 } from "@/components/workspace/runtime";
-export { bootstrapWorkspaceRegistries } from "@/components/workspace/bootstrap";
+export {
+  bootstrapWorkspaceRegistries,
+  getDefaultSnapshotSource,
+} from "@/components/workspace/bootstrap";
+export {
+  TenantContextProvider,
+  useTenantContext,
+  resolveWithinTenant,
+  type TenantContextValue,
+} from "@/components/workspace/tenant/TenantContext";
+export {
+  createPluginContext,
+  type PluginContext,
+} from "@/components/workspace/plugins/PluginContext";
 
 
 

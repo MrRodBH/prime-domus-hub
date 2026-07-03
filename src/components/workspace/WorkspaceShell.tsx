@@ -18,6 +18,7 @@ import { CONTEXTS, contextFromPath } from "./contexts";
 import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -52,6 +53,7 @@ export function WorkspaceShell() {
   }, [active.superOnly, isSuper, navigate]);
 
   return (
+    <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>
     <DetailPanelProvider>
       <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
         <NavigationRail isSuper={!!isSuper} />
@@ -107,5 +109,6 @@ export function WorkspaceShell() {
         </Sheet>
       </div>
     </DetailPanelProvider>
+    </TenantContextProvider>
   );
 }

@@ -1,49 +1,32 @@
-// Workspace Bootstrap — composição registry-side (Fase 6 · Bloco 4 · Etapa 4.1.b).
+// Workspace Bootstrap — composição registry-side + snapshot source
+// (Fase 6 · Bloco 4 · Etapa 4.1.b, atualizado na 4.3 §4/§11).
 //
-// Este arquivo é a COMPOSITION ROOT dos registries: é o único local
-// autorizado a conectar identificadores declarativos a componentes concretos.
-//
-// Regra arquitetural (Instrução Normativa §3.3):
-//   EntityWorkspace  →  Registry  →  Component
-//   ────────────────────────────────────────────────────────────
-//   core             │  neutro   │  registrado aqui
-//
-// O core NUNCA importa esses componentes. Este bootstrap é o único ponto
-// que conhece implementações concretas — e é executado uma vez, como side
-// effect, no barrel `@/components/workspace/entities`.
-//
-// Exceção Arquitetural AE-4.1.b-01 (Transitional):
-//   A implementação da view "list" reutiliza `ContentList` que ainda vive
-//   em `src/components/content/`. A relocação física para
-//   `src/components/workspace/ui/` é rastreada por AE-4.0-01 e será
-//   executada quando o segundo domínio operacional consumir a view.
-//   Justificativa: preservar zero regressão nas 7 entidades CMS ativas
-//   enquanto a superfície de registry entra em vigor.
+// Este arquivo é a COMPOSITION ROOT dos registries. Após 4.3 ele NÃO é mais
+// consultado em runtime: apenas produz o "snapshot source" que o
+// TenantContext materializa como `RegistrySnapshot` isolado por tenant.
 import {
   registerView,
   registerPanel,
   registerAction,
   freezeRegistries,
+  ViewRegistry,
+  PanelRegistry,
+  DialogRegistry,
+  ActionRegistry,
   type ViewProps,
   type ActionContext,
 } from "@/components/workspace/registry";
+import type { RegistrySnapshotSource } from "@/components/workspace/registry/snapshot";
 import { ContentList } from "@/components/content/ContentList";
 import { KanbanView } from "@/components/workspace/views/KanbanView";
 import { LeadFunilPanel } from "@/components/workspace/panels/LeadFunilPanel";
 
-// ---------------------------------------------------------------------------
-// View: "list" — visualização default de qualquer descriptor.
-// Componente 100% neutro (recebe descriptor + items + search).
-// ---------------------------------------------------------------------------
+// View "list" — visualização default, 100% neutra.
 function ListView(props: ViewProps) {
   return <ContentList {...props} />;
 }
 
-// ---------------------------------------------------------------------------
-// Action: "adapter.run" — fallback declarativo que delega ao adapter.
-// Qualquer ActionSpec sem handler dedicado usa este ID e o executor
-// chama `adapter.runAction(actionId, entityId, payload)`.
-// ---------------------------------------------------------------------------
+// Action "adapter.run" — fallback declarativo que delega ao adapter.
 async function delegateToAdapter(ctx: ActionContext): Promise<void> {
   const { adapter, entityId, payload } = ctx;
   if (!adapter.runAction) {
@@ -51,8 +34,6 @@ async function delegateToAdapter(ctx: ActionContext): Promise<void> {
       "[ActionRegistry] Adapter não implementa runAction — ação declarativa não pode ser despachada.",
     );
   }
-  // O actionId real é embutido em payload.actionId pelo call site quando
-  // usa este handler genérico como default.
   const actionId =
     (typeof payload === "object" && payload !== null && "actionId" in payload
       ? String((payload as { actionId: unknown }).actionId)
@@ -66,18 +47,29 @@ export function bootstrapWorkspaceRegistries(): void {
   if (bootstrapped) return;
   bootstrapped = true;
 
-  // Views — genéricas, sem conhecimento de domínio.
   registerView("list", ListView);
   registerView("kanban", KanbanView);
-
-  // Panels — hospedagem opaca; LeadFunilPanel encapsula sua própria lógica.
   registerPanel("lead.funil", LeadFunilPanel);
-
-  // Actions — fallback declarativo que delega ao adapter.runAction.
   registerAction("adapter.run", delegateToAdapter);
 
-  // Bootstrap Freeze Model (Etapa 4.2 §5.3): a partir daqui, qualquer
-  // tentativa de `register(...)` em runtime lança `RegistryFrozenError`.
-  // Registry vira imutável — determinístico, auditável, sem drift.
+  // Bootstrap Freeze Model (4.2 §5.3) — declarações imutáveis a partir daqui.
   freezeRegistries();
+}
+
+/**
+ * Fonte imutável para o snapshot por tenant (§4.3).
+ *
+ * O TenantContext copia estas Maps para uma nova instância — assim mesmo id
+ * em tenants diferentes NÃO compartilha container (§12.3), embora possa
+ * referenciar o mesmo componente puro. Nunca chame diretamente em código
+ * de produto: use `useTenantContext()`.
+ */
+export function getDefaultSnapshotSource(): RegistrySnapshotSource {
+  if (!bootstrapped) bootstrapWorkspaceRegistries();
+  return {
+    views: ViewRegistry.__entries(),
+    panels: PanelRegistry.__entries(),
+    dialogs: DialogRegistry.__entries(),
+    actions: ActionRegistry.__entries(),
+  };
 }

@@ -1,12 +1,12 @@
-// EntityDialogRenderer — hospeda dialogs resolvidos por ID (Etapa 4.1.b §5.3).
-//
-// NÃO conhece action semantics — apenas resolve e injeta contexto.
-import { DialogRegistry, type DialogRuntimeProps } from "@/components/workspace/registry";
+// EntityDialogRenderer — context-driven (Fase 6 · Etapa 4.3).
+import { useTenantContext } from "@/components/workspace/tenant/TenantContext";
+import type { DialogRuntimeProps } from "@/components/workspace/registry";
 
 export function EntityDialogRenderer({
   dialogId,
   ...props
 }: { dialogId: string } & DialogRuntimeProps) {
-  const Component = DialogRegistry.resolve(dialogId);
+  const { snapshot } = useTenantContext();
+  const Component = snapshot.resolveDialog(dialogId);
   return <Component {...props} />;
 }

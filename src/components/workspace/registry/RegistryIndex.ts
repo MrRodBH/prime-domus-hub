@@ -1,20 +1,12 @@
-// RegistryIndex — Read-Only Lookup Layer (Fase 6 · Bloco 4 · Etapa 4.2 §4.1).
+// RegistryIndex — DEBUG-ONLY TOOLING (Fase 6 · Bloco 4 · Etapa 4.3 §7).
 //
-// Camada intermediária de leitura que centraliza lookups pelos quatro
-// registries independentes. Contrato invariante:
+// ATENÇÃO: NÃO IMPORTAR EM CÓDIGO DE PRODUTO / RUNTIME.
 //
-//   • NÃO executa lógica
-//   • NÃO transforma dados
-//   • NÃO agrega comportamento
-//   • NÃO orquestra
-//   • NÃO cruza registries (cross-registry lookup é proibido — §2/§6)
-//
-// Existe apenas para: (a) oferecer uma superfície única de leitura para
-// ferramentas de diagnóstico e para o runtime, e (b) tornar explícito que
-// os quatro registries são silos independentes.
-//
-// Cada acessor delega diretamente ao registry canônico — sem cache próprio,
-// sem estado. O cache real é o `Map` interno de cada registry (O(1)).
+// A 4.3 removeu esta superfície do runtime porque virou uma "global
+// cognitive surface" (§7). Continua aqui apenas para uso manual em
+// ferramentas de diagnóstico (console de dev, scripts de auditoria).
+// Runtime é 100% context-driven via `useTenantContext()` + snapshot.
+
 import { ViewRegistry } from "./ViewRegistry";
 import { PanelRegistry } from "./PanelRegistry";
 import { DialogRegistry } from "./DialogRegistry";
