@@ -45,9 +45,9 @@ export const CONTEXTS: WorkspaceContext[] = [
     id: "pipeline",
     label: "Pipeline",
     icon: Inbox,
-    root: "/admin/leads",
-    matches: ["/admin/leads"],
-    subs: [{ label: "Leads", to: "/admin/leads" }],
+    root: "/admin/pipeline",
+    matches: ["/admin/pipeline", "/admin/leads"],
+    subs: [],
   },
   {
     id: "catalogo",
