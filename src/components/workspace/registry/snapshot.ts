@@ -2,7 +2,7 @@
 //
 // PATCH 4.3.1: o Snapshot volta a ser um CONTAINER PASSIVO. Ele NÃO
 // resolve, NÃO executa, NÃO decide — apenas isola instâncias de registry
-// por tenant. Resolução runtime é feita pela camada `RegistryIndex`.
+// por tenant. Resolução runtime é feita pela `UnifiedResolutionLayer`.
 import {
   createViewRegistry,
   type ViewRegistryInstance,
@@ -47,7 +47,7 @@ export type RegistrySnapshotSource = Readonly<{
 /**
  * Cria um snapshot com instâncias de registry ISOLADAS por tenant e as
  * congela após seed. Nenhum lookup passa por este objeto — a resolução
- * runtime é responsabilidade de `RegistryIndex`.
+ * runtime é responsabilidade da `UnifiedResolutionLayer`.
  */
 export function createRegistrySnapshot(
   tenantId: string,
