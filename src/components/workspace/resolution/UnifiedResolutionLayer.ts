@@ -1,70 +1,34 @@
-// UnifiedResolutionLayer — Fase 6 · Bloco 4 · Etapa 4.3.2.
+// UnifiedResolutionLayer — Fase 6 · Bloco 4 · Etapa 4.3.3 §4.3.
 //
-// SINGLE runtime entrypoint para resolução. Substitui RegistryIndex e
-// qualquer variante de `snapshot.resolve*`. Consome APENAS o snapshot
-// isolado por tenant. Não conhece tenant, não conhece plugin, não faz
-// fallback, não faz cache.
-//
-// Regra de ouro: o `switch(kind)` abaixo é o ÚNICO switch de kind
-// permitido em todo o runtime. Qualquer outra instância é violação.
+// DEPRECADO como resolver central (removido `switch(kind)` e método
+// `resolve(kind, id)`). O papel agora é ORQUESTRAÇÃO: monta o
+// `ResolverRegistry` de um snapshot registrando os resolvers built-in
+// (view/panel/dialog/action). Plugins podem registrar resolvers adicionais
+// via `registry.register(...)` sem tocar neste módulo.
 import type { RegistrySnapshot } from "@/components/workspace/registry/snapshot";
-import type {
-  ViewComponent,
-  PanelComponent,
-  DialogComponent,
-} from "@/components/workspace/registry/types";
-import type { ActionDefinition } from "@/components/workspace/registry/ActionRegistry";
+import {
+  ResolverRegistry,
+  createResolverRegistry,
+} from "./ResolverRegistry";
+import { createViewResolver } from "./resolvers/ViewResolver";
+import { createPanelResolver } from "./resolvers/PanelResolver";
+import { createDialogResolver } from "./resolvers/DialogResolver";
+import { createActionResolver } from "./resolvers/ActionResolver";
 
-export type ResolutionKind = "view" | "panel" | "dialog" | "action";
-
-export type ResolutionResult<K extends ResolutionKind> = K extends "view"
-  ? ViewComponent
-  : K extends "panel"
-    ? PanelComponent
-    : K extends "dialog"
-      ? DialogComponent
-      : K extends "action"
-        ? ActionDefinition
-        : never;
-
-export class UnifiedResolutionLayer {
-  constructor(private readonly snapshot: RegistrySnapshot) {
-    Object.freeze(this);
-  }
-
-  resolve<K extends ResolutionKind>(kind: K, id: string): ResolutionResult<K> {
-    switch (kind) {
-      case "view":
-        return this.snapshot.viewRegistry.resolve(id) as ResolutionResult<K>;
-      case "panel":
-        return this.snapshot.panelRegistry.resolve(id) as ResolutionResult<K>;
-      case "dialog":
-        return this.snapshot.dialogRegistry.resolve(id) as ResolutionResult<K>;
-      case "action":
-        return this.snapshot.actionRegistry.getStrict(id) as ResolutionResult<K>;
-      default: {
-        const _exhaustive: never = kind;
-        throw new Error(`[UnifiedResolutionLayer] kind inválido: ${_exhaustive as string}`);
-      }
-    }
-  }
-
-  exists(kind: ResolutionKind, id: string): boolean {
-    switch (kind) {
-      case "view":
-        return this.snapshot.viewRegistry.exists(id);
-      case "panel":
-        return this.snapshot.panelRegistry.exists(id);
-      case "dialog":
-        return this.snapshot.dialogRegistry.exists(id);
-      case "action":
-        return this.snapshot.actionRegistry.exists(id);
-    }
-  }
-}
-
-export function createUnifiedResolutionLayer(
+/**
+ * Facilitador — monta um `ResolverRegistry` populado com os resolvers
+ * built-in para o snapshot fornecido. Não contém switch, não resolve
+ * nada por conta própria.
+ */
+export function createResolverRegistryForSnapshot(
   snapshot: RegistrySnapshot,
-): UnifiedResolutionLayer {
-  return new UnifiedResolutionLayer(snapshot);
+  opts?: { freeze?: boolean },
+): ResolverRegistry {
+  const registry = createResolverRegistry();
+  registry.register("view", createViewResolver(snapshot));
+  registry.register("panel", createPanelResolver(snapshot));
+  registry.register("dialog", createDialogResolver(snapshot));
+  registry.register("action", createActionResolver(snapshot));
+  if (opts?.freeze !== false) registry.freeze();
+  return registry;
 }
