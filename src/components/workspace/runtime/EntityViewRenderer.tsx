@@ -1,13 +1,15 @@
-// EntityViewRenderer — renderer genérico de visualização (Etapa 4.1.b §5.1).
+// EntityViewRenderer — Fase 6 · Bloco 4 · Etapa 4.3 §11.
 //
-// REGRA: não interpreta descriptor. Recebe viewId + props neutros e resolve
-// via ViewRegistry. Fail-fast se o ID não estiver registrado.
-import { ViewRegistry, type ViewProps } from "@/components/workspace/registry";
+// Renderer 100% context-driven: resolve a view no snapshot do tenant atual.
+// Nenhum acesso a registry global (§5.3).
+import { useTenantContext } from "@/components/workspace/tenant/TenantContext";
+import type { ViewProps } from "@/components/workspace/registry";
 
 export function EntityViewRenderer({
   viewId,
   ...props
 }: { viewId: string } & ViewProps) {
-  const Component = ViewRegistry.resolve(viewId);
+  const { snapshot } = useTenantContext();
+  const Component = snapshot.resolveView(viewId);
   return <Component {...props} />;
 }

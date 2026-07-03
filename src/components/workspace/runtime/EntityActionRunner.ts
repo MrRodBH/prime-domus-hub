@@ -1,12 +1,16 @@
-// EntityActionRunner — despachante genérico (Etapa 4.1.b §5.4).
+// EntityActionRunner — Fase 6 · Bloco 4 · Etapa 4.3.
 //
-// Recebe actionId + context e delega ao ActionRegistry. Nenhuma lógica de
-// domínio: o handler concreto é registrado fora do core.
-import { ActionRegistry, type ActionContext } from "@/components/workspace/registry";
+// Despachante genérico context-driven: resolve+executa uma ação DENTRO do
+// snapshot do tenant. Nenhum acesso global — `snapshot` vem sempre do
+// `TenantContext` do call site.
+import type { RegistrySnapshot } from "@/components/workspace/registry/snapshot";
+import { executeActionById } from "@/components/workspace/registry/ActionExecutor";
+import type { ActionContext } from "@/components/workspace/registry";
 
 export async function runEntityAction(
+  snapshot: RegistrySnapshot,
   actionId: string,
   ctx: ActionContext,
 ): Promise<void> {
-  await ActionRegistry.execute(actionId, ctx);
+  await executeActionById(snapshot, actionId, ctx);
 }

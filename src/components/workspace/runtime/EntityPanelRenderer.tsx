@@ -1,7 +1,9 @@
-// EntityPanelRenderer — hospeda painéis opacos (Etapa 4.1.b §5.2).
-import { PanelRegistry, type PanelProps } from "@/components/workspace/registry";
+// EntityPanelRenderer — context-driven (Fase 6 · Etapa 4.3).
+import { useTenantContext } from "@/components/workspace/tenant/TenantContext";
+import type { PanelProps } from "@/components/workspace/registry";
 
 export function EntityPanelRenderer(props: PanelProps) {
-  const Component = PanelRegistry.resolve(props.panelId);
+  const { snapshot } = useTenantContext();
+  const Component = snapshot.resolvePanel(props.panelId);
   return <Component {...props} />;
 }
