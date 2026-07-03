@@ -106,9 +106,14 @@ export interface ContentEntityAdapter {
 // Adicionar entidade nova = registrar novo descriptor + adapter. Sem tocar em
 // Workspace/Session/Editor.
 // -----------------------------------------------------------------------------
+// Etapa 4.1.c — continua AE-4.1-03 (Transitional). "lead" é o primeiro
+// descriptor operacional real, exigido pela Instrução Normativa §2.1/§5.1
+// como prova do runtime registry-driven. A migração da união para
+// registry-based IDs permanece pactuada para Bloco 5.
 export type EntityKind =
   | "pagina" | "post" | "form" | "campanha"
-  | "midia" | "site" | "auditoria";
+  | "midia" | "site" | "auditoria"
+  | "lead";
 
 export type BlockKind = CmsBlock["type"];
 
