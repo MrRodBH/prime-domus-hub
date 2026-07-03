@@ -41,7 +41,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
 
   const inContent = path.startsWith("/admin/paginas") || path.startsWith("/admin/blog")
     || path.startsWith("/admin/formularios") || path.startsWith("/admin/campanhas");
-  const activeItemId: string | undefined = inContent ? searchState?.item : undefined;
+  const activeItemId: string | undefined = inContent ? (searchState as { item?: string } | undefined)?.item : undefined;
 
   const { data: leads } = useQuery({
     queryKey: ["admin", "leads"], queryFn: () => adminListarLeads(),
