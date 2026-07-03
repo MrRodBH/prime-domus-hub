@@ -44,11 +44,7 @@ export { ContentPreviewPane as EntityPreviewPane } from "@/components/content/Co
 
 // Registry e adapters — descoberta de descriptors + factories de adapter.
 export { ENTITIES, descriptorByRoute } from "@/components/content/entity-registry";
-export {
-  getRegistration,
-  ENTITY_ADAPTERS,
-  ENTITY_REGISTRY,
-} from "@/components/content/adapters";
+export { getRegistration, ENTITY_ADAPTERS, ENTITY_REGISTRY } from "@/components/content/adapters";
 
 // Memória do Workspace (Product UX Contract §3) — recents + favorites.
 export {

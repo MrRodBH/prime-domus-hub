@@ -22,8 +22,12 @@ import { getRegistration } from "@/components/content/adapters";
 import { pushRecent } from "@/components/content/recents";
 
 export function EntityWorkspace({
-  descriptor, search,
-}: { descriptor: EntityDescriptor; search: EntitySearch }) {
+  descriptor,
+  search,
+}: {
+  descriptor: EntityDescriptor;
+  search: EntitySearch;
+}) {
   const navigate = useNavigate();
   const density = search.density ?? "compact";
   const adapter = getRegistration(descriptor.kind).useAdapter();
@@ -41,26 +45,44 @@ export function EntityWorkspace({
   useEffect(() => {
     if (!selectedId || isCreating) return;
     if (items.length && !items.find((p) => p.id === selectedId)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      navigate({ to: descriptor.route as any, search: { ...search, item: undefined } as any, replace: true, resetScroll: false });
+      navigate({
+        to: descriptor.route as any,
+        search: { ...search, item: undefined } as any,
+        replace: true,
+        resetScroll: false,
+      });
     }
   }, [selectedId, items, navigate, search, descriptor.route, isCreating]);
 
   useEffect(() => {
     if (selectedId) {
       const item = items.find((i) => i.id === selectedId);
-      if (item) pushRecent({ kind: descriptor.kind, id: item.id, titulo: item.titulo, route: descriptor.route });
+      if (item)
+        pushRecent({
+          kind: descriptor.kind,
+          id: item.id,
+          titulo: item.titulo,
+          route: descriptor.route,
+        });
     }
   }, [selectedId, items, descriptor.kind, descriptor.route]);
 
   function patchSearch(patch: Partial<EntitySearch>) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    navigate({ to: descriptor.route as any, search: { ...search, ...patch } as any, replace: true, resetScroll: false });
+    navigate({
+      to: descriptor.route as any,
+      search: { ...search, ...patch } as any,
+      replace: true,
+      resetScroll: false,
+    });
   }
 
   const editingId = useMemo(() => (isCreating ? "novo" : selectedId), [isCreating, selectedId]);
-  function closeDetail() { patchSearch({ item: undefined, new: undefined, tab: undefined }); }
-  function onCreated(id: string) { patchSearch({ item: id, new: undefined }); }
+  function closeDetail() {
+    patchSearch({ item: undefined, new: undefined, tab: undefined });
+  }
+  function onCreated(id: string) {
+    patchSearch({ item: id, new: undefined });
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px-48px-24px)] min-h-[520px] gap-3">
@@ -74,10 +96,22 @@ export function EntityWorkspace({
             </Button>
           )}
           <div className="flex items-center gap-1 border rounded-md p-0.5">
-            <Button size="sm" variant={density === "compact" ? "secondary" : "ghost"} className="h-7 w-7 p-0" onClick={() => patchSearch({ density: "compact" })} title="Denso">
+            <Button
+              size="sm"
+              variant={density === "compact" ? "secondary" : "ghost"}
+              className="h-7 w-7 p-0"
+              onClick={() => patchSearch({ density: "compact" })}
+              title="Denso"
+            >
               <Rows3 className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant={density === "comfortable" ? "secondary" : "ghost"} className="h-7 w-7 p-0" onClick={() => patchSearch({ density: "comfortable" })} title="Confortável">
+            <Button
+              size="sm"
+              variant={density === "comfortable" ? "secondary" : "ghost"}
+              className="h-7 w-7 p-0"
+              onClick={() => patchSearch({ density: "comfortable" })}
+              title="Confortável"
+            >
               <Rows2 className="h-4 w-4" />
             </Button>
           </div>
@@ -87,9 +121,17 @@ export function EntityWorkspace({
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(280px,32%)_minmax(0,1fr)] rounded-lg border border-foreground/10 bg-card overflow-hidden">
         <div className="border-b lg:border-b-0 lg:border-r border-foreground/5 min-h-0 flex flex-col">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            </div>
           ) : (
-            <ContentList descriptor={descriptor} items={items} selectedId={selectedId} density={density} search={search} />
+            <ContentList
+              descriptor={descriptor}
+              items={items}
+              selectedId={selectedId}
+              density={density}
+              search={search}
+            />
           )}
         </div>
         <div className="min-h-0 flex flex-col">
