@@ -215,7 +215,7 @@ Legenda de status: **Canonical** · **Em migração** · **Não iniciado** ·
 
 
 
-## 6. Definition of Done — Etapa 4.0
+## 7. Definition of Done — Etapa 4.0
 
 | Critério                                                                                          | Status         |
 | ------------------------------------------------------------------------------------------------- | -------------- |
@@ -229,13 +229,14 @@ Legenda de status: **Canonical** · **Em migração** · **Não iniciado** ·
 | `eslint` sem erros no novo código                                                                 | **Concluído**  |
 | Product UX Contract §1–§10 auditados                                                              | **Concluído**  |
 | Product UX Compliance Checklist preenchido                                                        | **Concluído**  |
-| Architectural Exception registrada quando aplicável                                               | **Concluído** (AE-4.0-01) |
-| Workspace Score atualizado                                                                        | **Concluído**  |
+| Architectural Exception registrada com ciclo de vida rastreável                                   | **Concluído** (AE-4.0-01) |
+| Workspace Score atualizado (incluindo indicadores de governança)                                  | **Concluído**  |
+| Matriz de Evolução do Bloco 4 publicada                                                           | **Concluído**  |
 | Gate: Workspace de Conteúdo 100 % funcional pós-extração                                          | **Concluído**  |
 
-## 7. Evidências
+## 8. Evidências
 
-### 7.1 Antes / Depois — arquivo do orquestrador
+### 8.1 Antes / Depois — arquivo do orquestrador
 
 - **Antes:** `src/components/content/ContentWorkspace.tsx` — 105 linhas,
   implementação real.
@@ -244,7 +245,7 @@ Legenda de status: **Canonical** · **Em migração** · **Não iniciado** ·
 - **Depois:** `src/components/workspace/entities/EntityWorkspace.tsx` —
   implementação promovida ao caminho canônico.
 
-### 7.2 Antes / Depois — imports de rota
+### 8.2 Antes / Depois — imports de rota
 
 Antes (7 rotas):
 
@@ -261,13 +262,12 @@ import { EntityWorkspace, entitySearchSchema, ENTITIES }
   from "@/components/workspace/entities";
 ```
 
-### 7.3 Auditorias executadas
+### 8.3 Auditorias executadas
 
 - **Typecheck:** `bunx tsgo --noEmit` → **0 erros**.
 - **Lint:** `bunx eslint src/components/workspace/entities
   src/components/content/ContentWorkspace.tsx` → **0 erros** (2 warnings
-  pré-existentes, herdadas literalmente do código original — não são
-  regressões desta etapa).
+  pré-existentes, herdadas do código original — não são regressões).
 - **Grep de acoplamento a domínio Conteúdo:**
   `rg "kind ===|switch \(.*kind" src/components/workspace/entities` →
   **0 hits** de código (apenas 1 hit em comentário normativo).
@@ -275,7 +275,7 @@ import { EntityWorkspace, entitySearchSchema, ENTITIES }
   `rg "@/components/content" src/components/workspace/entities` →
   usos apenas dentro do compat shim documentado em AE-4.0-01.
 
-### 7.4 Validação do Workspace
+### 8.4 Validação do Workspace
 
 - WorkspaceShell permanece montado — nenhuma alteração em
   `_authenticated.tsx`.
@@ -288,7 +288,7 @@ import { EntityWorkspace, entitySearchSchema, ENTITIES }
 
 ---
 
-## 8. Critério de continuidade
+## 9. Critério de continuidade
 
 A **Etapa 4.1 (Pipeline)** só poderá ser iniciada após aprovação
 explícita deste relatório pelo Product Owner, conforme regra de
