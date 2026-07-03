@@ -39,7 +39,6 @@ export {
   ActionRegistry, registerAction,
   RegistryResolutionError,
   createRegistrySnapshot,
-  RegistryIndex, createRegistryIndex,
   executeAction, executeActionById,
   type RegistrySnapshot, type RegistrySnapshotSource,
   type ActionDefinition,
@@ -62,6 +61,12 @@ export {
   resolveWithinTenant,
   type TenantContextValue,
 } from "@/components/workspace/tenant/TenantContext";
+export {
+  UnifiedResolutionLayer,
+  createUnifiedResolutionLayer,
+  type ResolutionKind,
+  type ResolutionResult,
+} from "@/components/workspace/resolution/UnifiedResolutionLayer";
 export {
   createPluginContext,
   type PluginContext,
