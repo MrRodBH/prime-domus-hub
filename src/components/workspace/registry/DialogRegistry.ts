@@ -1,39 +1,52 @@
-// DialogRegistry — resolução O(1) de dialogs por ID (hardening 4.2).
+// DialogRegistry — Fase 6 · Bloco 4 · Etapa 4.3.1. Source of definitions.
 import { RegistryResolutionError } from "./errors";
-import { isFrozen, RegistryFrozenError } from "./freeze";
+import { isFrozen as isGlobalFrozen, RegistryFrozenError } from "./freeze";
 import type { DialogComponent } from "./types";
 
-const registry = new Map<string, DialogComponent>();
-
-export const DialogRegistry = {
-  register(id: string, component: DialogComponent): void {
-    if (isFrozen()) throw new RegistryFrozenError("DialogRegistry", id);
-    registry.set(id, component);
-  },
-  resolve(id: string): DialogComponent {
-    const c = registry.get(id);
-    if (!c) throw new RegistryResolutionError("DialogRegistry", id);
-    return c;
-  },
-  getStrict(id: string): DialogComponent {
-    return this.resolve(id);
-  },
-  exists(id: string): boolean {
-    return registry.has(id);
-  },
-  has(id: string): boolean {
-    return registry.has(id);
-  },
-  list(): string[] {
-    return Array.from(registry.keys());
-  },
-  listIds(): string[] {
-    return Array.from(registry.keys());
-  },
-  __entries(): ReadonlyMap<string, DialogComponent> {
-    return registry;
-  },
+export type DialogRegistryInstance = {
+  register(id: string, c: DialogComponent): void;
+  resolve(id: string): DialogComponent;
+  getStrict(id: string): DialogComponent;
+  exists(id: string): boolean;
+  has(id: string): boolean;
+  list(): string[];
+  listIds(): string[];
+  __entries(): ReadonlyMap<string, DialogComponent>;
+  __seed(entries: ReadonlyMap<string, DialogComponent>): void;
+  __freeze(): void;
 };
+
+export function createDialogRegistry(opts?: { useGlobalFreeze?: boolean }): DialogRegistryInstance {
+  const store = new Map<string, DialogComponent>();
+  let localFrozen = false;
+  const useGlobal = opts?.useGlobalFreeze ?? false;
+  const guard = (id: string) => {
+    if (localFrozen || (useGlobal && isGlobalFrozen()))
+      throw new RegistryFrozenError("DialogRegistry", id);
+  };
+  const api: DialogRegistryInstance = {
+    register(id, c) { guard(id); store.set(id, c); },
+    resolve(id) {
+      const c = store.get(id);
+      if (!c) throw new RegistryResolutionError("DialogRegistry", id);
+      return c;
+    },
+    getStrict(id) { return api.resolve(id); },
+    exists(id) { return store.has(id); },
+    has(id) { return store.has(id); },
+    list() { return Array.from(store.keys()); },
+    listIds() { return Array.from(store.keys()); },
+    __entries() { return store; },
+    __seed(entries) {
+      if (localFrozen) throw new RegistryFrozenError("DialogRegistry", "__seed");
+      for (const [k, v] of entries) store.set(k, v);
+    },
+    __freeze() { localFrozen = true; },
+  };
+  return api;
+}
+
+export const DialogRegistry = createDialogRegistry({ useGlobalFreeze: true });
 
 export function registerDialog(id: string, component: DialogComponent): void {
   DialogRegistry.register(id, component);

@@ -39,8 +39,10 @@ export {
   ActionRegistry, registerAction,
   RegistryResolutionError,
   createRegistrySnapshot,
+  RegistryIndex, createRegistryIndex,
   executeAction, executeActionById,
   type RegistrySnapshot, type RegistrySnapshotSource,
+  type ActionDefinition,
   type ViewProps, type PanelProps, type DialogRuntimeProps, type ActionContext,
   type ViewComponent, type PanelComponent, type DialogComponent, type ActionHandler,
 } from "@/components/workspace/registry";
