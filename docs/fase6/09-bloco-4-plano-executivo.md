@@ -187,6 +187,16 @@ Redirects declarados em `beforeLoad`, client-side.
   Anti-Patterns, UX DoD). **Todas as etapas do Bloco 4 deverão respeitar
   este contrato**; qualquer conflito entre este Plano Executivo e o
   contrato é resolvido a favor do contrato.
+- **Product UX Compliance Checklist**
+  (`docs/fase6/09-product-ux-compliance-checklist.md`) — **instrumento
+  oficial de auditoria** da experiência do produto durante todo o
+  Bloco 4. Transforma o UX Contract em processo objetivo de validação
+  (PASS/FAIL por item, com evidência). **Nenhuma etapa (4.0 → 4.5)
+  poderá ser considerada concluída sem este checklist integralmente
+  preenchido**, acompanhado das evidências objetivas que comprovem a
+  aderência ao Product UX Contract. Deve ser copiado por etapa como
+  `09-bloco-4-etapa-<n>-ux-checklist.md`, preenchido durante a
+  implementação e reauditado no encerramento.
 
 Nenhuma dependência de infraestrutura externa, migration de banco,
 nova secret ou nova conexão.
@@ -255,6 +265,8 @@ verdadeiros e evidenciados por auditoria:
 - [ ] `docs/fase6/09-bloco-4-auditoria-final.md` — matriz de cobertura,
       indicadores, exceções arquiteturais (se houver, no formato
       read-only do Bloco 3.1).
+- [ ] `docs/fase6/09-bloco-4-etapa-<n>-ux-checklist.md` — uma cópia por
+      etapa, integralmente preenchida (ver §8.7).
 
 ### 8.6 Aderência ao Product UX Contract
 
@@ -266,6 +278,26 @@ checagem explícita de aderência ao contrato — incluindo Vision Test
 (§1), Workspace Memory (§3), Zero Context Reset (§4), Primitivas (§5),
 Consistency Rules (§7), Navigation Contract (§8), Performance Contract
 (§9) e ausência de Anti-Patterns (§10).
+
+### 8.7 Product UX Compliance Checklist (governança obrigatória)
+
+O `docs/fase6/09-product-ux-compliance-checklist.md` é o **instrumento
+oficial de auditoria da experiência do produto** durante todo o Bloco 4.
+Ele transforma o Product UX Contract em processo objetivo de validação
+(PASS/FAIL por item, com evidência). Regras:
+
+- Cada etapa (4.0 → 4.5) deve produzir uma cópia preenchida como
+  `docs/fase6/09-bloco-4-etapa-<n>-ux-checklist.md`.
+- **Nenhuma etapa pode ser encerrada** sem o checklist integralmente
+  preenchido, com evidências objetivas por linha.
+- O relatório de encerramento de cada etapa deve conter, além do
+  relatório técnico: (1) DoD Técnico, (2) Aderência ao UX Contract,
+  (3) UX Compliance Checklist, (4) Architectural Exceptions (se houver),
+  (5) Workspace Score consolidado.
+- Qualquer `FAIL` no checklist bloqueia o gate parcial da etapa até
+  correção ou registro formal como Architectural Exception no formato
+  read-only do Bloco 3.1.
+
 
 ## 9. Estratégia de migração
 
@@ -361,11 +393,15 @@ A Etapa 4.0 só pode ser iniciada após:
 
 1. Revisão e aprovação explícita deste Plano Executivo revisado.
 2. Criação e aprovação do `docs/fase6/09-product-ux-contract.md`.
-3. Validação de que **todas** as etapas do Bloco 4 (4.0 → 4.5) estão
-   aderentes ao contrato — verificação registrada no início de cada
-   etapa e reauditada no encerramento.
+3. Criação e incorporação formal do
+   `docs/fase6/09-product-ux-compliance-checklist.md` como instrumento
+   oficial de auditoria (§8.7).
+4. Validação de que **todas** as etapas do Bloco 4 (4.0 → 4.5) estão
+   aderentes ao contrato e ao checklist — verificação registrada no
+   início de cada etapa e reauditada no encerramento.
 
 Após aprovação, a Etapa 4.0 (extração do núcleo genérico) inicia como
 primeira entrega verificável, e cada etapa seguinte só começa com o
-gate parcial anterior fechado **e** com a checagem de aderência ao
+gate parcial anterior fechado, o **Product UX Compliance Checklist**
+da etapa integralmente preenchido e a checagem de aderência ao
 Product UX Contract aprovada.
