@@ -65,9 +65,13 @@ export function bootstrapWorkspaceRegistries(): void {
   if (bootstrapped) return;
   bootstrapped = true;
 
-  // Views
+  // Views — genéricas, sem conhecimento de domínio.
   registerView("list", ListView);
+  registerView("kanban", KanbanView);
 
-  // Actions
+  // Panels — hospedagem opaca; LeadFunilPanel encapsula sua própria lógica.
+  registerPanel("lead.funil", LeadFunilPanel);
+
+  // Actions — fallback declarativo que delega ao adapter.runAction.
   registerAction("adapter.run", delegateToAdapter);
 }
