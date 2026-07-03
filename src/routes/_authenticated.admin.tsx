@@ -1,5 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { AdminShell } from "@/components/admin/AdminShell";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { meuAcessoAdmin } from "@/lib/api/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -10,5 +9,5 @@ export const Route = createFileRoute("/_authenticated/admin")({
     }
     return { ok };
   },
-  component: AdminShell,
+  component: () => <Outlet />,
 });
