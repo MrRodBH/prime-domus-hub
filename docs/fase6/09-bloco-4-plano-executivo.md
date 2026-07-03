@@ -187,6 +187,16 @@ Redirects declarados em `beforeLoad`, client-side.
   Anti-Patterns, UX DoD). **Todas as etapas do Bloco 4 deverão respeitar
   este contrato**; qualquer conflito entre este Plano Executivo e o
   contrato é resolvido a favor do contrato.
+- **Product UX Compliance Checklist**
+  (`docs/fase6/09-product-ux-compliance-checklist.md`) — **instrumento
+  oficial de auditoria** da experiência do produto durante todo o
+  Bloco 4. Transforma o UX Contract em processo objetivo de validação
+  (PASS/FAIL por item, com evidência). **Nenhuma etapa (4.0 → 4.5)
+  poderá ser considerada concluída sem este checklist integralmente
+  preenchido**, acompanhado das evidências objetivas que comprovem a
+  aderência ao Product UX Contract. Deve ser copiado por etapa como
+  `09-bloco-4-etapa-<n>-ux-checklist.md`, preenchido durante a
+  implementação e reauditado no encerramento.
 
 Nenhuma dependência de infraestrutura externa, migration de banco,
 nova secret ou nova conexão.
