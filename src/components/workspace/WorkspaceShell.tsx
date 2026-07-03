@@ -18,6 +18,7 @@ import { CONTEXTS, contextFromPath } from "./contexts";
 import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
