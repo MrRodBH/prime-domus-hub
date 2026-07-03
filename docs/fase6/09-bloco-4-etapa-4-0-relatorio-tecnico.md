@@ -138,28 +138,23 @@ aderência dos artefatos criados).
 
 **AE-4.0-01 · Composição interna mantida sob `src/components/content/`**
 
-- **Contexto:** `EntityEditor`, `EntitySessionProvider`, `EntityList`,
-  `EntityPreviewPane` continuam fisicamente residindo em
-  `src/components/content/*` e são reexpostos com nome canônico pelo
-  barrel `entities/index.ts`.
-- **Justificativa:** o Editor compõe abas específicas de Conteúdo
-  (`BlocksContentEditor`, `RichTextContentEditor`, `FormBuilderEditor`,
-  etc.) via `descriptor.editorKind`. A extração física dessas abas
-  para um `editor-registry` genérico é pré-requisito para migrar o
-  arquivo; realizar isso na Etapa 4.0 dobraria o escopo e introduziria
-  risco de regressão em Conteúdo — violando o gate desta etapa.
-- **Contrato:** o vocabulário e a fronteira de import **já são**
-  genéricos (barrel `entities`); consumidores externos enxergam
-  `EntityEditor`, não `ContentEditor`. A relocação física acontecerá
-  em duas ondas:
-  - **Etapa 4.4** — introdução do `editor-registry` desacopla as abas
-    do Editor.
-  - **Etapa 4.5** — relocação física dos módulos e remoção do compat
-    shim `ContentWorkspace`.
-- **Estado:** **read-only**. Nenhuma decisão desta exceção poderá ser
-  ampliada; qualquer solicitação de novos consumidores deve importar
-  de `@/components/workspace/entities` e nunca de
-  `@/components/content/*`.
+Ciclo de vida rastreável (padrão obrigatório da Fase 6):
+
+| Campo                                 | Valor                                                                                                                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ID**                                | AE-4.0-01                                                                                                                                                                                                                        |
+| **Classificação**                     | **Transitional** — planejada, com data-limite e etapas responsáveis pela eliminação já definidas.                                                                                                                                |
+| **Origem arquitetural**               | Herança do Bloco 3.1: `ContentEditor`, `ContentSessionProvider`, `ContentList`, `ContentPreviewPane` foram construídos sob `src/components/content/*` antes da definição da fronteira canônica `@/components/workspace/entities`. |
+| **Escopo afetado**                    | Localização física de 4 módulos (`ContentEditor`, `ContentSessionProvider`, `ContentList`, `ContentPreviewPane`), reexpostos como `Entity*` pelo barrel canônico. Nenhum consumo externo por caminho legado.                     |
+| **Impacto funcional**                 | Nenhum. Superfície pública canônica (`@/components/workspace/entities`) já entrega os símbolos `Entity*` com assinatura idêntica.                                                                                                 |
+| **Impacto no Product UX Contract**    | Nenhum. §1–§10 auditados (ver §4) e permanecem PASS. A exceção é puramente estrutural (caminho de arquivo), invisível ao usuário.                                                                                                 |
+| **Impacto na API pública**            | Nenhum. Nenhum consumidor externo importa de `@/components/content/*`; o compat shim `ContentWorkspace.tsx` é `deprecated` e marcado para remoção em 4.5.                                                                         |
+| **Dependências**                      | (a) Etapa 4.4 — `editor-registry` que desacopla `BlocksContentEditor`, `RichTextContentEditor`, `FormBuilderEditor` do `EntityEditor`. (b) Etapa 4.5 — auditoria final antes da relocação.                                        |
+| **Critério objetivo de encerramento** | (1) `editor-registry` existente e consumido pelo `EntityEditor` sem `if (editorKind === …)` fora do registry; (2) módulos fisicamente movidos para `src/components/workspace/entities/*`; (3) `src/components/content/*` deletado; (4) `rg "@/components/content"` → 0 hits. |
+| **Etapa responsável pela eliminação** | **4.4** (desacoplamento via registry) + **4.5** (relocação física e remoção do compat shim).                                                                                                                                     |
+| **Nível de risco**                    | **Baixo** — read-only, escopo congelado, sem novos consumidores permitidos, sem impacto perceptível ao usuário e sem violação do contrato.                                                                                        |
+| **Severidade**                        | **Informacional** — dívida técnica estrutural, não bloqueia progresso do Bloco 4.                                                                                                                                                 |
+| **Estado**                            | **Read-only.** Novos consumidores devem importar exclusivamente de `@/components/workspace/entities`.                                                                                                                             |
 
 ## 5. Workspace Score — Atualização (pós-Etapa 4.0)
 
