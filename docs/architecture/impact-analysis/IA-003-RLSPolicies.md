@@ -311,16 +311,25 @@ existente é removida por M2b.
 
 ### 12.3 Tratamento de Super Admin
 
-Duas opções a decidir formalmente:
+**Decisão formal — Opção A (adotada).**
 
-- **Opção A (recomendada):** Super Admin só enxerga um tenant por vez,
-  via impersonação explícita. `get_current_tenant_id()` já implementa
-  esse fluxo — nenhuma exceção nas policies é necessária.
-- **Opção B:** cláusula adicional `OR is_super_admin()` — expõe todos
-  os tenants simultaneamente. **Rejeitada** por violar defense-in-depth
-  e criar superfície de vazamento acidental.
+Super Admin **só** enxerga dados tenant-scoped via impersonação
+explícita de um tenant válido (IA-002). Sem impersonação,
+`get_current_tenant_id()` retorna NULL e as policies RESTRICTIVE
+rejeitam qualquer operação sobre dados tenant-scoped. Nenhuma cláusula
+`OR is_super_admin()` é adicionada às policies tenant-scoped.
 
-**Decisão preliminar:** Opção A.
+- **Opção A (adotada):** Super Admin acessa dados tenant-scoped apenas
+  via impersonação explícita. Nenhuma exceção nas policies é necessária.
+  Não existe "tenant default" implícito.
+- **Opção B (rejeitada):** cláusula adicional `OR is_super_admin()` nas
+  policies tenant-scoped — expõe todos os tenants simultaneamente,
+  viola defense-in-depth e cria superfície de vazamento acidental.
+  Proibida.
+
+Superfícies globais / administrativas expressamente classificadas em
+§12.1 (ex.: `tenants`, `tenant_members`, `user_roles`) permanecem
+acessíveis segundo suas próprias regras — não são objeto desta cláusula.
 
 ### 12.4 Tratamento de impersonação
 
