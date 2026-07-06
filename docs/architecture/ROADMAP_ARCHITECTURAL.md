@@ -260,7 +260,20 @@ Escopo futuro de IA-002:
 - Validação dupla (client-side UX + server-side auth).
 - Session switching seguro para super-admin.
 
-**Status:** `READY`
+**Status:** `READY FOR IMPACT ANALYSIS`
+
+**Implementation Status:** `BLOCKED`
+
+**Waiting for:**
+- Formal approval of IA-002 (Impact Analysis document)
+
+> A liberação atual refere-se **exclusivamente ao início da análise
+> arquitetural** (produção do documento IA-002). **Não autoriza** qualquer
+> implementação de código. Implementação permanece bloqueada até auditoria
+> e aprovação formal da IA-002.
+
+**Hard Gates:** `No new Hard Gates introduced.` Esta etapa reutiliza
+integralmente os Hard Gates G0–G7 já institucionalizados.
 
 **Pré-requisitos atendidos:**
 - ✔ IA-001 aprovada
@@ -272,8 +285,10 @@ Escopo futuro de IA-002:
 - ✔ Roadmap atualizado
 - ✔ Hard Gates preservados (G0–G7)
 
-Bloqueia início: apresentar IA-002 formal (Impact Analysis) antes de
-qualquer código, conforme Constitution §7.
+Bloqueia início da implementação: apresentar IA-002 formal (Impact
+Analysis) e obter aprovação antes de qualquer código, conforme
+Constitution §7.
+
 
 ---
 
