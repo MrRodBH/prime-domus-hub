@@ -167,7 +167,7 @@ Objetivo específico:
 | INSERT sem `tenant_id` | Rejeitado — coluna `NOT NULL` + WITH CHECK |
 | UPDATE alterando `tenant_id` | Bloqueado — WITH CHECK reavalia após UPDATE |
 | DELETE cross-tenant | Bloqueado — USING filtra alvos |
-| Super Admin sem impersonação | Enxerga apenas tenant default (comportamento IA-001); policies devem prever `is_super_admin() = true` como bypass **apenas para leitura administrativa** — a definir na estratégia (§12) |
+| Super Admin sem impersonação | **NÃO** acessa dados tenant-scoped por RLS. `get_current_tenant_id()` retorna NULL → policies rejeitam todas as operações tenant-scoped. Para operar sobre dados de um tenant, o Super Admin deve iniciar impersonação explícita de um tenant válido (IA-002). Superfícies globais / administrativas expressamente classificadas (§12.1) permanecem acessíveis segundo suas próprias regras. Nenhum "tenant default" implícito é admitido. |
 | Super Admin com impersonação | `get_current_tenant_id()` já retorna o tenant impersonado; policies operam normalmente |
 | Usuário com múltiplas memberships | Escolha explícita continua responsabilidade de IA/Fase 3; policies operam sobre o tenant efetivo |
 | Usuário sem membership | `get_current_tenant_id()` retorna NULL → policies rejeitam todas as operações |
@@ -193,20 +193,27 @@ Neutralidade total confirmada:
 
 ## 10. Necessidade de ADR
 
-**Avaliação:** *A definir na aprovação.*
+**Decisão formal:** **NÃO.**
 
-Critério aplicado:
+**Justificativa:**
+M2b apenas materializa em RLS o princípio de isolamento por tenant já
+definido em `SECURITY_ARCHITECTURE.md`. A implementação deverá reutilizar
+funções existentes — `get_current_tenant_id()`, `is_super_admin()`,
+`has_role()`, `user_belongs_to_tenant()` — sem introduzir nova semântica
+arquitetural de autorização. Como não há decisão arquitetural nova,
+registro em migration + relatório técnico de M2b é suficiente.
 
-- Se M2b apenas **materializa** o princípio de isolamento já normatizado
-  em `SECURITY_ARCHITECTURE.md` §Tenant Isolation, **não exige ADR** —
-  registro em migration + relatório técnico é suficiente.
-- Se M2b introduzir uma **nova função SQL com semântica arquitetural
-  permanente** (ex.: `enforce_tenant_write()` ou um novo predicado de
-  autorização), **exige ADR** documentando a decisão.
+**Condição de parada (ADR passa a ser obrigatório se, durante M2b, ocorrer qualquer um dos seguintes):**
 
-**Recomendação preliminar:** provavelmente **NÃO exige ADR**, pois o
-padrão previsto reutiliza `get_current_tenant_id()` e `is_super_admin()`
-já existentes. Confirmar na revisão do plano de §12.
+- criação de nova função SQL com papel arquitetural permanente (ex.: novo
+  predicado de autorização, `enforce_tenant_write()`, etc.);
+- introdução de novo modelo de autorização;
+- qualquer forma de bypass de Super Admin ao isolamento por tenant;
+- alteração da `SECURITY_ARCHITECTURE.md`;
+- qualquer exceção ao modelo de tenant isolation.
+
+Nesses casos a implementação deverá ser **interrompida** e um ADR deverá
+ser criado e aprovado antes de continuar.
 
 ## 11. Necessidade de Patch Arquitetural
 
@@ -235,10 +242,42 @@ do schema `public` classificando cada uma em:
 | **Audit / system** (`audit_log`, `system_events`, `rate_limit_buckets`) | Regra própria — leitura restrita a super_admin, escrita via SECURITY DEFINER |
 | **Sem `tenant_id` mas deveria ter** | Bloqueia M2b até correção via migration prévia |
 
-Inventário preliminar (a validar):
+> **Nota — inventário preliminar, não normativo.**
+> O inventário abaixo é **preliminar** e serve apenas como referência
+> para dimensionar a M2b. A classificação **final e normativa** das
+> tabelas deverá ser produzida durante a M2b por inspeção real do schema
+> via `information_schema` / `pg_catalog`, registrada no relatório
+> técnico da M2b. **Nenhuma tabela poderá receber policy sem
+> classificação explícita no relatório técnico da M2b.**
 
-- **Tenant-scoped:** `leads`, `lead_atividades`, `lead_descartes`, `lead_perdas`, `lead_origens`, `lead_discard_reasons`, `deal_lost_reasons`, `imoveis`, `imovel_imagens`, `imovel_portais`, `launch_projects`, `launch_units`, `launch_amenities`, `launch_project_amenities`, `launch_project_imagens`, `launch_payment_conditions`, `launch_pdfs`, `launch_statuses`, `corretores`, `teams`, `team_members`, `blog_posts`, `blog_categorias`, `cidades`, `bairros`, `instagram_posts`, `site_settings`, `site_settings_versions`, `cms_pages`, `cms_forms`, `cms_form_fields`, `cms_campaigns`, `cms_campaign_events`, `cms_import_snapshots`, `form_submissions`, `media_library`, `media_usage`, `portal_connectors`, `portal_sync_logs`, `portal_sync_dlq`, `website_menu_items`, `email_send_log`, `email_unsubscribe_tokens`, `suppressed_emails`, `audit_log`.
-- **Globais / cross-tenant por design:** `tenants`, `tenant_members`, `user_roles`, `user_profiles`, `rbac_profiles`, `rbac_modules`, `rbac_permissions`, `system_events`, `rate_limit_buckets`, `email_send_state`.
+Inventário preliminar (a validar durante M2b):
+
+- **Tenant-scoped (candidatas):** `leads`, `lead_atividades`, `lead_descartes`, `lead_perdas`, `lead_origens`, `lead_discard_reasons`, `deal_lost_reasons`, `imoveis`, `imovel_imagens`, `imovel_portais`, `launch_projects`, `launch_units`, `launch_amenities`, `launch_project_amenities`, `launch_project_imagens`, `launch_payment_conditions`, `launch_pdfs`, `launch_statuses`, `corretores`, `teams`, `team_members`, `blog_posts`, `blog_categorias`, `cidades`, `bairros`, `instagram_posts`, `site_settings`, `site_settings_versions`, `cms_pages`, `cms_forms`, `cms_form_fields`, `cms_campaigns`, `cms_campaign_events`, `cms_import_snapshots`, `form_submissions`, `media_library`, `media_usage`, `portal_connectors`, `portal_sync_logs`, `portal_sync_dlq`, `website_menu_items`, `email_send_log`, `email_unsubscribe_tokens`, `suppressed_emails`.
+- **Globais / cross-tenant por design (candidatas):** `tenants`, `tenant_members`, `user_roles`, `user_profiles`, `rbac_profiles`, `rbac_modules`, `rbac_permissions`, `system_events`, `rate_limit_buckets`, `email_send_state`.
+- **Classificação pendente (ambígua):** `audit_log` — ver §12.1.1.
+
+#### 12.1.1 Regra específica — `audit_log`
+
+A tabela `audit_log` **não** poderá receber policy definitiva enquanto
+sua categoria não for explicitamente decidida durante a M2b entre uma
+das três opções abaixo, com registro no relatório técnico:
+
+1. **tenant-scoped audit** — usar quando cada evento pertence a um
+   tenant específico, `tenant_id` é obrigatório (NOT NULL), e a leitura
+   deve ser limitada ao tenant efetivo ou a auditoria administrativa
+   autorizada. Policies RESTRICTIVE tenant-scoped padrão (§12.2).
+2. **system audit** — usar quando os eventos são globais, não há
+   `tenant_id`, e a leitura deve ser restrita a super-admin ou função
+   administrativa dedicada.
+3. **hybrid audit** — usar quando coexistem eventos globais e
+   tenant-scoped na mesma tabela; requer policies específicas por tipo
+   de evento e pode exigir análise própria ou IA futura.
+
+A decisão dependerá da existência, obrigatoriedade e semântica da
+coluna `tenant_id` verificadas via `information_schema`.
+
+**Regra de segurança inegociável:** nenhuma policy de `audit_log` poderá
+usar `tenant_id IS NULL` como wildcard de acesso amplo.
 
 A allowlist final é normativa e viverá em §12 do relatório da M2b.
 
@@ -272,16 +311,25 @@ existente é removida por M2b.
 
 ### 12.3 Tratamento de Super Admin
 
-Duas opções a decidir formalmente:
+**Decisão formal — Opção A (adotada).**
 
-- **Opção A (recomendada):** Super Admin só enxerga um tenant por vez,
-  via impersonação explícita. `get_current_tenant_id()` já implementa
-  esse fluxo — nenhuma exceção nas policies é necessária.
-- **Opção B:** cláusula adicional `OR is_super_admin()` — expõe todos
-  os tenants simultaneamente. **Rejeitada** por violar defense-in-depth
-  e criar superfície de vazamento acidental.
+Super Admin **só** enxerga dados tenant-scoped via impersonação
+explícita de um tenant válido (IA-002). Sem impersonação,
+`get_current_tenant_id()` retorna NULL e as policies RESTRICTIVE
+rejeitam qualquer operação sobre dados tenant-scoped. Nenhuma cláusula
+`OR is_super_admin()` é adicionada às policies tenant-scoped.
 
-**Decisão preliminar:** Opção A.
+- **Opção A (adotada):** Super Admin acessa dados tenant-scoped apenas
+  via impersonação explícita. Nenhuma exceção nas policies é necessária.
+  Não existe "tenant default" implícito.
+- **Opção B (rejeitada):** cláusula adicional `OR is_super_admin()` nas
+  policies tenant-scoped — expõe todos os tenants simultaneamente,
+  viola defense-in-depth e cria superfície de vazamento acidental.
+  Proibida.
+
+Superfícies globais / administrativas expressamente classificadas em
+§12.1 (ex.: `tenants`, `tenant_members`, `user_roles`) permanecem
+acessíveis segundo suas próprias regras — não são objeto desta cláusula.
 
 ### 12.4 Tratamento de impersonação
 
@@ -308,8 +356,11 @@ nesta etapa salvo justificativa arquitetural registrada em ADR.
 1. **Migration 1 (dry-run auditoria):** apenas produz o inventário
    verificado via `information_schema`, sem alterar nada. Saída revisada
    antes da migration 2.
-2. **Migration 2 (policies em modo shadow):** aplica policies em uma
-   tabela piloto de baixo risco (ex.: `blog_categorias`), com smoke test.
+2. **Migration 2 (pilot rollout controlado em tabela de baixo risco):**
+   aplica policies RESTRICTIVE em uma tabela piloto de baixo risco
+   (ex.: `blog_categorias`), com smoke test dedicado. **Não é "shadow
+   mode"** — RLS não possui modo observacional nativo; as policies
+   passam a valer imediatamente na tabela piloto.
 3. **Migration 3 (rollout completo):** aplica policies em todas as
    tabelas tenant-scoped classificadas em §12.1.
 4. **Migration 4 (audit lock):** revoga qualquer GRANT residual que
@@ -356,7 +407,7 @@ nesta etapa salvo justificativa arquitetural registrada em ADR.
 | T2 | Usuário tenta **inserir** registro em tenant alheio | Payload malicioso com `tenant_id` forjado | Policy INSERT `WITH CHECK (tenant_id = get_current_tenant_id())` rejeita |
 | T3 | Usuário tenta **alterar `tenant_id`** de linha própria | UPDATE malicioso | Policy UPDATE reavalia `WITH CHECK` após mutação → rejeita |
 | T4 | Usuário tenta **apagar** registro de outro tenant | DELETE direto | Policy DELETE `USING` filtra alvos → 0 rows afetadas |
-| T5 | Super Admin **sem** impersonação lê dados amplos | Login legítimo sem contexto | Estratégia adotada (Opção A §12.3) — Super Admin só enxerga tenant impersonado |
+| T5 | Super Admin **sem** impersonação lê dados amplos | Login legítimo sem contexto | Opção A §12.3 — sem impersonação, `get_current_tenant_id()` = NULL e policies RESTRICTIVE rejeitam qualquer acesso tenant-scoped; não existe "tenant default" |
 | T6 | Super Admin **com** impersonação | Fluxo legítimo | `get_current_tenant_id()` retorna tenant impersonado; policies operam normalmente; auditoria registrada (Security Audit Trail — IA futura) |
 | T7 | Server function **mal configurada** (sem `requireTenant`) | Bug de desenvolvimento | RLS é 2ª linha: mesmo sem `requireTenant`, o banco rejeita cross-tenant |
 | T8 | Policy **PERMISSIVE acidental** cobrindo múltiplos tenants | Erro em migration futura | Policies M2b são `RESTRICTIVE` — compõem por AND; PERMISSIVE errada não abre passagem |
