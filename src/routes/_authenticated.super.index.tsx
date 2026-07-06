@@ -16,6 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, User2, Building2, Inbox, LogIn } from "lucide-react";
+import {
+  clearImpersonationTenantId,
+  setImpersonationTenantId,
+} from "@/integrations/supabase/impersonation-state";
+import { useImpersonation } from "@/integrations/supabase/use-impersonation";
 
 export const Route = createFileRoute("/_authenticated/super/")({
   component: SuperTenantsPage,
@@ -30,15 +35,16 @@ function SuperTenantsPage() {
   const [openNew, setOpenNew] = useState(false);
   const [edit, setEdit] = useState<any | null>(null);
 
-  const impersonating = typeof window !== "undefined" ? localStorage.getItem("impersonate_tenant_id") : null;
+  const impersonating = useImpersonation();
 
   function impersonate(id: string) {
-    localStorage.setItem("impersonate_tenant_id", id);
+    setImpersonationTenantId(id);
     toast.success("Impersonação ativada");
     navigate({ to: "/admin" });
   }
   function clearImpersonation() {
-    localStorage.removeItem("impersonate_tenant_id");
+    // Regra 3 — encerramento manual determinístico.
+    clearImpersonationTenantId();
     toast.success("Impersonação encerrada");
     qc.invalidateQueries();
   }
