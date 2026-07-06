@@ -19,6 +19,8 @@ import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
+import { useImpersonation } from "@/integrations/supabase/use-impersonation";
+import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -37,8 +39,15 @@ export function WorkspaceShell() {
     setMobileNavOpen(false);
   }, [path]);
 
-  const impersonating =
-    typeof window !== "undefined" ? localStorage.getItem("impersonate_tenant_id") : null;
+  // Patch 2.3.1 — fonte única (reativa) do estado local de impersonação.
+  const impersonating = useImpersonation();
+
+  // Patch 2.3.1 · Regra 5 — usuário não-Super nunca deve carregar estado residual.
+  useEffect(() => {
+    if (isSuper === false && impersonating) {
+      clearImpersonationTenantId();
+    }
+  }, [isSuper, impersonating]);
 
   void papeis; // reserved for role-based rail gating in Bloco 2+
 
