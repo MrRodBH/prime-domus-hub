@@ -9,6 +9,8 @@ qualquer linha de código ser escrita.
 
 ## Relação com a governança
 - [`ARCHITECTURE_CONSTITUTION.md`](../ARCHITECTURE_CONSTITUTION.md) — regras permanentes (SSoT).
+- [`SECURITY_ARCHITECTURE.md`](../security/SECURITY_ARCHITECTURE.md) — extensão normativa oficial de segurança.
+- [`ROADMAP_ARCHITECTURAL.md`](../ROADMAP_ARCHITECTURAL.md) — evolução futura planejada.
 - **Impact Analysis (IA)** — avalia uma implementação **antes** de acontecer.
 - [`ADR`](../ADR/README.md) — registra decisões arquiteturais que efetivamente alteram
   ou ampliam a arquitetura (criado a partir de uma IA quando §10/§11 exigirem).

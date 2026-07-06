@@ -175,6 +175,23 @@ pós-Fase 2.2. Toda a evolução de governança a partir da conclusão de
 IA-001 vive sob esta seção, evitando crescimento horizontal da
 documentação e preservando navegabilidade.
 
+### 6.0 GA-02 — Security Architecture Foundation ✔ Completed
+
+Institucionalização da **Arquitetura de Segurança** do RM Prime SaaS
+como documentação normativa permanente, executada **antes da
+implementação da IA-002**.
+
+- Documento oficial criado: [`security/SECURITY_ARCHITECTURE.md`](./security/SECURITY_ARCHITECTURE.md).
+- Constitution atualizada com §12 — Security Architecture.
+- IA-002 endurecida (terminologia arquitetural, neutralidade de
+  framework, Trust Boundary, Threat Model, Security Boundaries e
+  nota de nomenclatura futura).
+- Cross-linking arquitetural atualizado (§8).
+- **Runtime intacto** — nenhum arquivo `src/` alterado.
+- **Hard Gates G0–G7 preservados.**
+
+
+
 ### 6.1 Post-Phase 2 Governance
 
 Camada de reforço institucional aplicada após a conclusão de IA-001 /
@@ -309,10 +326,12 @@ Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
 ## 8. Index Cross-Linking
 
 - Constitution → [`ARCHITECTURE_CONSTITUTION.md`](./ARCHITECTURE_CONSTITUTION.md)
+- Security Architecture → [`security/SECURITY_ARCHITECTURE.md`](./security/SECURITY_ARCHITECTURE.md)
 - ADRs → [`ADR/`](./ADR/README.md)
 - Impact Analysis → [`impact-analysis/`](./impact-analysis/README.md)
 - Glossary → [`glossary.md`](./glossary.md)
 - Diagrams → [`diagrams/`](./diagrams/)
+
 
 ---
 

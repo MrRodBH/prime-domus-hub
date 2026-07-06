@@ -307,3 +307,29 @@ e **deve ser consultado antes de qualquer Impact Analysis (IA)**. Itens
 do Roadmap são promovidos a ADR quando implementados, e removidos do
 Roadmap na mesma etapa.
 
+---
+
+## 12. Security Architecture
+
+A arquitetura de segurança do RM Prime SaaS é regida pelo documento
+oficial:
+
+- [`./security/SECURITY_ARCHITECTURE.md`](./security/SECURITY_ARCHITECTURE.md)
+
+Este documento é a **fonte oficial** para todas as decisões permanentes
+de segurança da plataforma: autenticação, autorização, isolamento
+multi-tenant, impersonação, storage security, plugin security, threat
+model, audit trail e security invariants.
+
+A Constituição permanece a **Single Source of Truth** arquitetural. O
+`SECURITY_ARCHITECTURE.md` é uma **extensão normativa oficial** —
+subordinado exclusivamente à Constituição, prevalecendo sobre
+implementações, prompts, relatórios e documentações secundárias em
+matéria de segurança.
+
+Toda Impact Analysis que envolva superfícies de segurança
+(autenticação, autorização, tenant, storage, impersonação, plugins,
+transporte de contexto) **deve** consultar o `SECURITY_ARCHITECTURE.md`
+antes de sua redação.
+
+

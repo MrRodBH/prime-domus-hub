@@ -1,5 +1,18 @@
 # IA-002 — Client Impersonation Layer
 
+> **Nomenclatura arquitetural (nota).** O nome atual **Client
+> Impersonation Layer** é suficiente para esta fase. A evolução natural
+> da arquitetura poderá consolidar futuramente o conceito como
+> **Tenant Context Propagation Layer**, caso a responsabilidade da
+> camada seja expandida além de impersonação (ex.: propagação de
+> contexto multi-canal, service mesh, tokens contextuais). Esta nota
+> **não altera** a IA — serve apenas como registro arquitetural.
+
+> **Referência de segurança.** Este documento é subordinado à
+> [`SECURITY_ARCHITECTURE.md`](../security/SECURITY_ARCHITECTURE.md)
+> (GA-02) e à [`ARCHITECTURE_CONSTITUTION.md`](../ARCHITECTURE_CONSTITUTION.md).
+
+
 - **Impact Analysis:** IA-002
 - **Fase:** 2.3
 - **Status:** `READY FOR IMPACT ANALYSIS`
@@ -30,23 +43,98 @@
 
 ## 1. Objetivo da etapa
 
-Definir a **propagação segura do tenant ativo** entre cliente e servidor
-durante processos de **impersonação** por super-admins, sem introduzir
-novas superfícies de decisão no cliente e preservando a autoridade
-server-side estabelecida pela IA-001.
+Definir a **Tenant Context Propagation** (propagação segura do contexto
+do tenant ativo) entre cliente e servidor durante processos de
+**impersonação** por super-admins, sem introduzir novas superfícies de
+decisão no cliente e preservando a autoridade server-side estabelecida
+pela IA-001.
+
+> **Nota arquitetural.** O header `x-tenant-id` é o **mecanismo atual**
+> de propagação; o **contrato arquitetural** trata da propagação do
+> **contexto do tenant**. Futuras implementações poderão utilizar JWT
+> claims, cookies assinados, service mesh headers, internal context ou
+> outros mecanismos equivalentes. A arquitetura **não depende do
+> header** — depende do contrato de propagação de contexto.
 
 Objetivos específicos:
 
-- Estabelecer o **contrato do header `x-tenant-id`** como veículo único
-  de intenção de impersonação client → server.
+- Estabelecer o **contrato de Tenant Context Propagation** — veículo
+  único de intenção de impersonação client → server (implementado nesta
+  fase via header `x-tenant-id`).
 - Garantir que toda decisão crítica (autorização, cardinalidade,
   validação de tenant) permaneça **server-side**, delegada ao
   `requireTenant` (IA-001).
 - Formalizar o **boundary de impersonação**: quem pode impersonar, quando
-  o header é aceito, quando é ignorado, quando é rejeitado.
+  a intenção é aceita, quando é ignorada, quando é rejeitada.
 - Assegurar **zero regressão** sobre Runtime do Workspace, Registry,
   Snapshot, ResolutionGraph, ActionExecutor, Plugin Architecture e
   Bootstrap.
+
+---
+
+## 1.1 Trust Boundary
+
+Regras normativas de fronteira de confiança para esta IA:
+
+- **Client supplied headers are never trusted.**
+- **Every tenant decision MUST be revalidated server-side.**
+- **The client never decides the active tenant.**
+- **The server remains the unique authority for tenant resolution.**
+
+A camada cliente apenas **propõe** uma intenção de tenant; a decisão
+autoritativa pertence exclusivamente ao `Tenant Middleware` (IA-001).
+Qualquer valor recebido do transporte é tratado como entrada não
+confiável e re-validado em três eixos: formato, autorização do
+chamador, existência do tenant.
+
+---
+
+## 1.2 Threat Model
+
+Ameaças cobertas por esta IA (consolidadas em
+[`SECURITY_ARCHITECTURE.md §10`](../security/SECURITY_ARCHITECTURE.md)):
+
+| Ameaça | Descrição | Mitigação | Camada responsável |
+|---|---|---|---|
+| **Forged tenant header** | Cliente forja intenção de tenant. | Validação server-side (super-admin + UUID + `exists`). | Tenant Middleware |
+| **Tenant hopping** | Usuário legítimo tenta pular para tenant sem membership. | Resolução determinística por memberships (IA-001). | Tenant Middleware |
+| **Privilege escalation** | Não-admin tenta impersonar. | `is_super_admin()` server-side; falha explícita. | Authorization |
+| **Replay attack** | Reuso de token/header capturado. | TLS + validação de sessão a cada chamada; sem cache. | Transport + Authentication |
+| **Stale impersonation session** | Super-admin retém impersonação após revogação. | Sem estado server-side entre chamadas; re-validação total por requisição. | Tenant Middleware |
+
+Esta seção é **normativa** e documental — não introduz código.
+
+---
+
+## 1.3 Security Boundaries
+
+Fluxo arquitetural de confiança para esta camada:
+
+```
+Browser
+   ↓  (untrusted)
+Client
+   ↓  (untrusted transport payload)
+Transport
+   ↓  (TLS integrity only, no authority)
+Server Validation
+   ↓  (authentication + input validation)
+Tenant Middleware
+   ↓  (tenant resolution + authorization)
+Business Layer
+   ↓  (domain rules)
+Database
+```
+
+- **Browser → Client:** confiança zero. Storage local, extensões e
+  DevTools podem manipular qualquer valor.
+- **Client → Transport:** cliente **propõe** intenção; **não decide**.
+- **Transport → Server Validation:** ponto onde termina a
+  responsabilidade do cliente.
+- **Server Validation → Tenant Middleware:** ponto onde começa a
+  autoridade servidor. Toda decisão de tenant vive daqui em diante.
+- **Tenant Middleware → Business → Database:** decisão autoritativa
+  propaga; RLS é última linha de defesa (M2b, futuro).
 
 ---
 
@@ -54,12 +142,14 @@ Objetivos específicos:
 
 ### Dentro do escopo
 
-- Contrato do header `x-tenant-id`.
+- Contrato de **Tenant Context Propagation** (implementação atual:
+  header `x-tenant-id`).
 - Propagação client → server (attacher já existente em
   `src/integrations/supabase/tenant-attacher.ts`).
 - Validação server-side (via `requireTenant` / `resolveTenantContext`).
 - Integração explícita com o **Tenant Middleware** (IA-001).
 - **Impersonation Boundary**: definição formal do quem/quando/onde.
+- **Trust Boundary** e **Threat Model** desta camada (§1.1, §1.2).
 - UX guardas de UI para prevenir chamadas inconsistentes (best-effort,
   não confiável como decisão de segurança).
 
@@ -272,16 +362,25 @@ Três atores lógicos, três responsabilidades disjuntas:
 [UI super-admin]                     [Server Function]
      |                                       ^
      v                                       |
-[Intent Store] --read--> [Attacher] --header--
+[Intent Store] --read--> [Propagator] --context--
                           (client)
 ```
 
 - **Intent Store**: chave/valor local, escopo de agente. Presença =
   intenção; ausência = sem intenção.
-- **Attacher**: puramente sintático. Só anexa o header se a intenção
-  existir e for não-vazia. **Não** valida formato, **não** valida
-  autorização — isso é responsabilidade do servidor.
+- **Propagator (Tenant Context Propagation Layer)**: responsabilidade
+  da camada de infraestrutura cliente/servidor. Puramente mecânico;
+  não interpreta valor, não valida formato, não valida autorização.
+  Implementação atual: anexa header `x-tenant-id`. Implementações
+  futuras podem usar JWT, cookies assinados, service mesh, internal
+  context ou mecanismos equivalentes — sem alterar o contrato
+  arquitetural.
 - **Server Authority**: reaplica a rotina completa da IA-001.
+
+> A Tenant Context Propagation é responsabilidade da camada de
+> infraestrutura cliente/servidor. A arquitetura permanece independente
+> de framework; nenhuma decisão arquitetural depende de React,
+> TanStack, Supabase ou qualquer stack específica.
 
 ### 12.3 Boundary de impersonação
 
