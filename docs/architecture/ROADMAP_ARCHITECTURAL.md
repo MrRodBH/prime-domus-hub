@@ -45,8 +45,12 @@ Componentes e processos estabilizados na Fase 6:
   exclusivamente hooks oficiais.
 - **IA Governance ativa** — Gate de Entrada obrigatório antes de qualquer
   implementação (Constitution §7).
-- **Tenant Middleware (IA-001)** concluída — estratégia de resolução
-  determinística de tenant server-side; base para Fase 2.2.
+- **Tenant Middleware (IA-001 / Fase 2.2)** ✔ **concluída** — módulo
+  `src/integrations/supabase/tenant-middleware.ts` implementa `requireTenant`
+  com resolução determinística: impersonação restrita a super-admin,
+  cardinalidade explícita (1 / N / 0), sem `LIMIT 1`, sem fallback implícito,
+  sem singleton. Abstração de acesso a memberships via `TenantRepository`
+  (§4.1 Anti-SQL Leakage). Runtime do Workspace intacto.
 
 ---
 
@@ -54,12 +58,19 @@ Componentes e processos estabilizados na Fase 6:
 
 ### 🔴 Fase 2 — Multi-Tenant Core
 
-#### IA-002 — Client Impersonation Layer
+| Etapa | Status |
+|---|---|
+| IA-001 · Fase 2.2 — `requireTenant` middleware | ✔ Concluída |
+| IA-002 · Fase 2.3 — Client Impersonation Layer | 🔴 Próxima |
+| M2b — RLS Policies (RESTRICTIVE por tenant) | ⏳ Depende de IA-002 |
+| M3 — Storage Isolation (`tenantId/` prefix) | ⏳ Depende de M2b |
+
+#### IA-002 — Client Impersonation Layer (próxima)
 - Propagação de `x-tenant-id` do client para server functions.
 - Super-admin session switching entre tenants.
 - Validação server-side (compõe sobre `requireTenant`) **e** validação
   client-side (guardas de UI para evitar chamadas inconsistentes).
-- Depende de IA-001 (aprovada).
+- Depende de IA-001 (concluída).
 
 #### M2b — RLS Policies (Supabase)
 - Políticas RLS **restritivas** por tenant em todas as tabelas do domínio.
