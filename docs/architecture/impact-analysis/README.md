@@ -64,4 +64,5 @@ Sequencial, sem gaps. Uma IA aprovada não é apagada nem renumerada; correçõe
 geram nova IA que referencia a anterior.
 
 ## Índice
-- [IA-001 — Tenant Middleware](./IA-001-TenantMiddleware.md)
+- [IA-001 — Tenant Middleware](./IA-001-TenantMiddleware.md) — ✔ Concluída
+- [IA-002 — Client Impersonation Layer](./IA-002-ClientImpersonationLayer.md) — 🟡 READY FOR IMPACT ANALYSIS · Implementation BLOCKED
