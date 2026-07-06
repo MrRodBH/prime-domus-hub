@@ -61,7 +61,7 @@ Componentes e processos estabilizados na Fase 6:
 | Etapa | Status |
 |---|---|
 | IA-001 · Fase 2.2 — `requireTenant` middleware | ✔ Concluída |
-| IA-002 · Fase 2.3 — Client Impersonation Layer | 🔴 Próxima |
+| IA-002 · Fase 2.3 — Client Impersonation Layer | 🟡 READY FOR IMPACT ANALYSIS · Implementation BLOCKED |
 | M2b — RLS Policies (RESTRICTIVE por tenant) | ⏳ Depende de IA-002 |
 | M3 — Storage Isolation (`tenantId/` prefix) | ⏳ Depende de M2b |
 
