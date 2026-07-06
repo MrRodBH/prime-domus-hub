@@ -103,12 +103,9 @@ determinísticos (framework-agnostic conforme Unit Testing Policy):
 
 ## 8. Riscos remanescentes
 
-- Sem UI de switcher para usuários multi-membership (fora de escopo 2.3;
-  contemplado no roadmap pós-Fase 2).
-- Ausência de auditoria persistente de impersonação (candidato natural a
-  IA futura de Security Audit Trail).
-- ~~Persistência em `localStorage` sobrevive a logout~~ — **resolvido pelo
-  Patch 2.3.1** (§11).
+- Persistência de impersonação em `localStorage` após logout — **resolvida pelo Patch 2.3.1**.
+- Sem UI de switcher para usuários multi-membership — fora de escopo da Fase 2.3; contemplado no roadmap pós-Fase 2.
+- Ausência de auditoria persistente de impersonação — candidato a IA futura de Security Audit Trail.
 
 ## 9. Conformidade
 
