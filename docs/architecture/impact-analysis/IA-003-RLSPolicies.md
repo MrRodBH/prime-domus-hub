@@ -242,10 +242,42 @@ do schema `public` classificando cada uma em:
 | **Audit / system** (`audit_log`, `system_events`, `rate_limit_buckets`) | Regra própria — leitura restrita a super_admin, escrita via SECURITY DEFINER |
 | **Sem `tenant_id` mas deveria ter** | Bloqueia M2b até correção via migration prévia |
 
-Inventário preliminar (a validar):
+> **Nota — inventário preliminar, não normativo.**
+> O inventário abaixo é **preliminar** e serve apenas como referência
+> para dimensionar a M2b. A classificação **final e normativa** das
+> tabelas deverá ser produzida durante a M2b por inspeção real do schema
+> via `information_schema` / `pg_catalog`, registrada no relatório
+> técnico da M2b. **Nenhuma tabela poderá receber policy sem
+> classificação explícita no relatório técnico da M2b.**
 
-- **Tenant-scoped:** `leads`, `lead_atividades`, `lead_descartes`, `lead_perdas`, `lead_origens`, `lead_discard_reasons`, `deal_lost_reasons`, `imoveis`, `imovel_imagens`, `imovel_portais`, `launch_projects`, `launch_units`, `launch_amenities`, `launch_project_amenities`, `launch_project_imagens`, `launch_payment_conditions`, `launch_pdfs`, `launch_statuses`, `corretores`, `teams`, `team_members`, `blog_posts`, `blog_categorias`, `cidades`, `bairros`, `instagram_posts`, `site_settings`, `site_settings_versions`, `cms_pages`, `cms_forms`, `cms_form_fields`, `cms_campaigns`, `cms_campaign_events`, `cms_import_snapshots`, `form_submissions`, `media_library`, `media_usage`, `portal_connectors`, `portal_sync_logs`, `portal_sync_dlq`, `website_menu_items`, `email_send_log`, `email_unsubscribe_tokens`, `suppressed_emails`, `audit_log`.
-- **Globais / cross-tenant por design:** `tenants`, `tenant_members`, `user_roles`, `user_profiles`, `rbac_profiles`, `rbac_modules`, `rbac_permissions`, `system_events`, `rate_limit_buckets`, `email_send_state`.
+Inventário preliminar (a validar durante M2b):
+
+- **Tenant-scoped (candidatas):** `leads`, `lead_atividades`, `lead_descartes`, `lead_perdas`, `lead_origens`, `lead_discard_reasons`, `deal_lost_reasons`, `imoveis`, `imovel_imagens`, `imovel_portais`, `launch_projects`, `launch_units`, `launch_amenities`, `launch_project_amenities`, `launch_project_imagens`, `launch_payment_conditions`, `launch_pdfs`, `launch_statuses`, `corretores`, `teams`, `team_members`, `blog_posts`, `blog_categorias`, `cidades`, `bairros`, `instagram_posts`, `site_settings`, `site_settings_versions`, `cms_pages`, `cms_forms`, `cms_form_fields`, `cms_campaigns`, `cms_campaign_events`, `cms_import_snapshots`, `form_submissions`, `media_library`, `media_usage`, `portal_connectors`, `portal_sync_logs`, `portal_sync_dlq`, `website_menu_items`, `email_send_log`, `email_unsubscribe_tokens`, `suppressed_emails`.
+- **Globais / cross-tenant por design (candidatas):** `tenants`, `tenant_members`, `user_roles`, `user_profiles`, `rbac_profiles`, `rbac_modules`, `rbac_permissions`, `system_events`, `rate_limit_buckets`, `email_send_state`.
+- **Classificação pendente (ambígua):** `audit_log` — ver §12.1.1.
+
+#### 12.1.1 Regra específica — `audit_log`
+
+A tabela `audit_log` **não** poderá receber policy definitiva enquanto
+sua categoria não for explicitamente decidida durante a M2b entre uma
+das três opções abaixo, com registro no relatório técnico:
+
+1. **tenant-scoped audit** — usar quando cada evento pertence a um
+   tenant específico, `tenant_id` é obrigatório (NOT NULL), e a leitura
+   deve ser limitada ao tenant efetivo ou a auditoria administrativa
+   autorizada. Policies RESTRICTIVE tenant-scoped padrão (§12.2).
+2. **system audit** — usar quando os eventos são globais, não há
+   `tenant_id`, e a leitura deve ser restrita a super-admin ou função
+   administrativa dedicada.
+3. **hybrid audit** — usar quando coexistem eventos globais e
+   tenant-scoped na mesma tabela; requer policies específicas por tipo
+   de evento e pode exigir análise própria ou IA futura.
+
+A decisão dependerá da existência, obrigatoriedade e semântica da
+coluna `tenant_id` verificadas via `information_schema`.
+
+**Regra de segurança inegociável:** nenhuma policy de `audit_log` poderá
+usar `tenant_id IS NULL` como wildcard de acesso amplo.
 
 A allowlist final é normativa e viverá em §12 do relatório da M2b.
 
