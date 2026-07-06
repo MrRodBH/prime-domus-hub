@@ -193,20 +193,27 @@ Neutralidade total confirmada:
 
 ## 10. Necessidade de ADR
 
-**Avaliação:** *A definir na aprovação.*
+**Decisão formal:** **NÃO.**
 
-Critério aplicado:
+**Justificativa:**
+M2b apenas materializa em RLS o princípio de isolamento por tenant já
+definido em `SECURITY_ARCHITECTURE.md`. A implementação deverá reutilizar
+funções existentes — `get_current_tenant_id()`, `is_super_admin()`,
+`has_role()`, `user_belongs_to_tenant()` — sem introduzir nova semântica
+arquitetural de autorização. Como não há decisão arquitetural nova,
+registro em migration + relatório técnico de M2b é suficiente.
 
-- Se M2b apenas **materializa** o princípio de isolamento já normatizado
-  em `SECURITY_ARCHITECTURE.md` §Tenant Isolation, **não exige ADR** —
-  registro em migration + relatório técnico é suficiente.
-- Se M2b introduzir uma **nova função SQL com semântica arquitetural
-  permanente** (ex.: `enforce_tenant_write()` ou um novo predicado de
-  autorização), **exige ADR** documentando a decisão.
+**Condição de parada (ADR passa a ser obrigatório se, durante M2b, ocorrer qualquer um dos seguintes):**
 
-**Recomendação preliminar:** provavelmente **NÃO exige ADR**, pois o
-padrão previsto reutiliza `get_current_tenant_id()` e `is_super_admin()`
-já existentes. Confirmar na revisão do plano de §12.
+- criação de nova função SQL com papel arquitetural permanente (ex.: novo
+  predicado de autorização, `enforce_tenant_write()`, etc.);
+- introdução de novo modelo de autorização;
+- qualquer forma de bypass de Super Admin ao isolamento por tenant;
+- alteração da `SECURITY_ARCHITECTURE.md`;
+- qualquer exceção ao modelo de tenant isolation.
+
+Nesses casos a implementação deverá ser **interrompida** e um ADR deverá
+ser criado e aprovado antes de continuar.
 
 ## 11. Necessidade de Patch Arquitetural
 
