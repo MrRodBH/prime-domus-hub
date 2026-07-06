@@ -167,7 +167,7 @@ Objetivo específico:
 | INSERT sem `tenant_id` | Rejeitado — coluna `NOT NULL` + WITH CHECK |
 | UPDATE alterando `tenant_id` | Bloqueado — WITH CHECK reavalia após UPDATE |
 | DELETE cross-tenant | Bloqueado — USING filtra alvos |
-| Super Admin sem impersonação | Enxerga apenas tenant default (comportamento IA-001); policies devem prever `is_super_admin() = true` como bypass **apenas para leitura administrativa** — a definir na estratégia (§12) |
+| Super Admin sem impersonação | **NÃO** acessa dados tenant-scoped por RLS. `get_current_tenant_id()` retorna NULL → policies rejeitam todas as operações tenant-scoped. Para operar sobre dados de um tenant, o Super Admin deve iniciar impersonação explícita de um tenant válido (IA-002). Superfícies globais / administrativas expressamente classificadas (§12.1) permanecem acessíveis segundo suas próprias regras. Nenhum "tenant default" implícito é admitido. |
 | Super Admin com impersonação | `get_current_tenant_id()` já retorna o tenant impersonado; policies operam normalmente |
 | Usuário com múltiplas memberships | Escolha explícita continua responsabilidade de IA/Fase 3; policies operam sobre o tenant efetivo |
 | Usuário sem membership | `get_current_tenant_id()` retorna NULL → policies rejeitam todas as operações |
