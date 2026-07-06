@@ -172,7 +172,48 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       );
     },
   },
+  {
+    name: "empty impersonation header is treated as no impersonation",
+    run: async () => {
+      const ctx = await resolveTenantContext({
+        userId: USER,
+        isSuperAdmin: false,
+        impersonateHeader: "",
+        repo: makeRepo({ memberships: [{ tenantId: T1 }] }),
+      });
+      assert(ctx.tenantId === T1 && !ctx.impersonation, "empty header ignored");
+    },
+  },
+  {
+    name: "stale impersonation from ex-super-admin → Forbidden",
+    run: async () => {
+      await expectThrows(
+        () =>
+          resolveTenantContext({
+            userId: USER,
+            isSuperAdmin: false,
+            impersonateHeader: T2,
+            repo: makeRepo({ existing: [T2], memberships: [{ tenantId: T1 }] }),
+          }),
+        /Forbidden: impersonation not allowed/,
+        "stale impersonation blocked",
+      );
+    },
+  },
+  {
+    name: "tenant hopping: successive resolves are independent per call",
+    run: async () => {
+      const repo = makeRepo({ existing: [T1, T2], memberships: [{ tenantId: T1 }] });
+      const a = await resolveTenantContext({ userId: USER, isSuperAdmin: true, impersonateHeader: T1, repo });
+      const b = await resolveTenantContext({ userId: USER, isSuperAdmin: true, impersonateHeader: T2, repo });
+      const c = await resolveTenantContext({ userId: USER, isSuperAdmin: true, impersonateHeader: null, repo });
+      assert(a.tenantId === T1 && a.impersonation, "hop1");
+      assert(b.tenantId === T2 && b.impersonation, "hop2");
+      assert(c.tenantId === T1 && !c.impersonation, "hop-clear");
+    },
+  },
 ];
+
 
 export async function runTenantMiddlewareSpecs(): Promise<{ passed: number; failed: number }> {
   let passed = 0;
