@@ -90,7 +90,7 @@ export function createPluginLoader(source: PluginSource): PluginLoader {
 
   return Object.freeze({
     loadOne,
-    async loadAll(registry) {
+    async loadAll(registry: PluginRegistry) {
       const raws = await source.listManifests();
       const loaded: PluginManifest[] = [];
       for (const raw of raws) {
