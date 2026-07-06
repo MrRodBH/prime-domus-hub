@@ -326,7 +326,7 @@ Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
 ## 8. Index Cross-Linking
 
 - Constitution → [`ARCHITECTURE_CONSTITUTION.md`](./ARCHITECTURE_CONSTITUTION.md)
-- Security Architecture → [`security/SECURITY_ARCHITECTURA.md`](./security/SECURITY_ARCHITECTURE.md)
+- Security Architecture → [`security/SECURITY_ARCHITECTURE.md`](./security/SECURITY_ARCHITECTURE.md)
 - ADRs → [`ADR/`](./ADR/README.md)
 - Impact Analysis → [`impact-analysis/`](./impact-analysis/README.md)
 - Glossary → [`glossary.md`](./glossary.md)
