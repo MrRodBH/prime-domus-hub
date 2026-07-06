@@ -199,6 +199,75 @@ conclusão completa do bloco Fase 2 (2.2 → 2.3 → M2b → M3).
 
 ---
 
+## 6.2 🔐 Governance Hardening Layer
+
+Camada de reforço institucional aplicada após a conclusão de IA-001 /
+Fase 2.2. Consolida governança de testes e a estabilização da abstração
+de tenant antes do início de IA-002.
+
+### Unit Testing Policy for Core Deterministic Logic
+
+**Rule 1 — Deterministic Logic Coverage.** Toda lógica determinística
+central DEVE ter testes unitários. Inclui, no mínimo: tenant resolution,
+avaliação de permissões, lógica de autorização, regras de impersonação.
+
+**Rule 2 — Playwright Limitation.** Testes end-to-end (Playwright) **não**
+substituem testes unitários. Servem apenas como validação de integração.
+
+**Rule 3 — Framework Independence.** A ausência de um runner de testes
+unitários (ex.: Vitest) **não** justifica a remoção de especificações.
+Testes podem permanecer framework-agnostic, mock-based, ou prontos para
+adoção de runner futuro.
+
+**Rule 4 — Test Preservation Policy.** Nenhuma especificação de teste de
+lógica determinística pode ser removida por limitação de tooling.
+
+**Rule 5 — Future Tooling Integration.** Runner de testes unitários (ex.:
+Vitest) poderá ser introduzido em GA-04 ou GA-05 sem exigir refactor da
+intenção dos testes existentes.
+
+Aplicação atual: `src/integrations/supabase/__tests__/tenant-middleware.spec.ts`
+cobre os 8 cenários de `resolveTenantContext` (impersonação super-admin
+ok/inválida/não-uuid/não-admin, 0/1/N memberships) de forma
+framework-agnostic.
+
+### Tenant Repository Stabilization Contract
+
+`src/integrations/supabase/tenant-repository.ts` é vinculado a um contrato
+permanente:
+
+1. **Stateless** — proibido armazenar estado interno ou cache.
+2. **Deterministic** — mesmo input → mesmo output.
+3. **No ORM leakage** — proibido expor SQL, query builders ou filtros.
+4. **Single Purpose** — exclusivo para tenant membership resolution.
+
+**Proibido** evoluir para: caching layer global, ORM abstraction
+genérica, repositório multi-entidade. Novas entidades exigem repositórios
+próprios e isolados.
+
+---
+
+## 6.3 IA-002 — Client Impersonation Layer (Preparation)
+
+Registrada como próxima etapa. **Não implementar nesta fase.**
+
+Pré-condições já satisfeitas por esta camada de hardening:
+- IA-001 estável (tenant resolution determinística).
+- `tenant-repository` estabilizado (contrato §6.2).
+- Testes unitários formalizados.
+
+Escopo futuro de IA-002:
+- Propagação de `x-tenant-id` client → server.
+- Enforcement do impersonation boundary server-side (já parcial em §2).
+- Validação dupla (client-side UX + server-side auth).
+- Session switching seguro para super-admin.
+
+Bloqueia início: apresentar IA-002 formal (Impact Analysis) antes de
+qualquer código, conforme Constitution §7.
+
+---
+
+
 ## 7. Index Cross-Linking
 
 - Constitution → [`ARCHITECTURE_CONSTITUTION.md`](./ARCHITECTURE_CONSTITUTION.md)
