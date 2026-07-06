@@ -68,4 +68,4 @@ geram nova IA que referencia a anterior.
 ## Índice
 - [IA-001 — Tenant Middleware](./IA-001-TenantMiddleware.md) — ✔ Concluída
 - [IA-002 — Client Impersonation Layer](./IA-002-ClientImpersonationLayer.md) — ✔ Concluída (Fase 2.3 + Patch 2.3.1)
-- [IA-003 — RLS Policies](./IA-003-RLSPolicies.md) — 🟡 Proposed — aguardando auditoria · M2b BLOCKED
+- [IA-003 — RLS Policies](./IA-003-RLSPolicies.md) — 🟡 Proposed (revisada pós-auditoria) — aguardando auditoria final · M2b BLOCKED
