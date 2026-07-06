@@ -209,29 +209,48 @@ Decisões **permanentemente proibidas**:
 
 ## 7. Governance Process
 
-Fluxo oficial para qualquer alteração arquitetural:
+Fluxo oficial para qualquer alteração arquitetural. **A partir da
+ratificação desta seção (Gate de Entrada permanente), nenhuma etapa pode
+iniciar diretamente pela implementação.** Toda nova etapa — feature,
+refactor, middleware, auth, multi-tenancy, storage, plugin, integração,
+CMS, CRM, automação, API, dashboard, workflow ou Marketplace — deve
+começar por um documento **Architectural Impact Analysis (IA)** em
+`docs/architecture/impact-analysis/IA-<NNN>-<Slug>.md`, seguindo o
+template obrigatório de 13 seções descrito no README daquele diretório.
 
 ```
-Validate Architecture
+Nova Etapa
    ↓
-Validate Contracts
+Architectural Impact Analysis (IA)
    ↓
-Impact Analysis
+Validação contra ARCHITECTURE_CONSTITUTION.md
    ↓
-Hard Gates
+Hard Gates (G0–G7)
    ↓
-ADR (quando necessário)
+Verificação de ADR
    ↓
-Patch Arquitetural (quando necessário)
+Verificação de Patch Arquitetural
    ↓
-Implementation
+Aprovação
    ↓
-Validation
+Implementação
    ↓
-Merge
+Typecheck + Scans
+   ↓
+Relatório Técnico
+   ↓
+Auditoria
 ```
 
-Não é permitido pular etapas. Alterações unilaterais são rejeitadas.
+Relação entre artefatos:
+- **Constituição** — regras permanentes (SSoT).
+- **Impact Analysis (IA)** — avalia uma implementação **antes** de acontecer.
+- **ADR** — registra decisão arquitetural quando a etapa efetivamente
+  altera ou amplia a arquitetura.
+
+Uma IA não substitui um ADR e um ADR não substitui uma IA. Pular
+qualquer etapa é violação do processo oficial de governança e a
+implementação correspondente é rejeitada.
 
 ---
 
