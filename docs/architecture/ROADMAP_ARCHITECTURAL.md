@@ -61,16 +61,21 @@ Componentes e processos estabilizados na Fase 6:
 | Etapa | Status |
 |---|---|
 | IA-001 · Fase 2.2 — `requireTenant` middleware | ✔ Concluída |
-| IA-002 · Fase 2.3 — Client Impersonation Layer | 🟡 READY FOR IMPACT ANALYSIS · Implementation BLOCKED |
-| M2b — RLS Policies (RESTRICTIVE por tenant) | ⏳ Depende de IA-002 |
-| M3 — Storage Isolation (`tenantId/` prefix) | ⏳ Depende de M2b |
+| IA-002 · Fase 2.3 — Client Impersonation Layer | ✔ **Concluída** |
+| IA-003 · M2b — RLS Policies (RESTRICTIVE por tenant) | 🟡 NEXT — Pending IA-003 |
+| IA-004 · M3 — Storage Isolation (`tenantId/` prefix) | ⏳ Depende de M2b |
 
-#### IA-002 — Client Impersonation Layer (próxima)
-- Propagação de `x-tenant-id` do client para server functions.
-- Super-admin session switching entre tenants.
-- Validação server-side (compõe sobre `requireTenant`) **e** validação
-  client-side (guardas de UI para evitar chamadas inconsistentes).
-- Depende de IA-001 (concluída).
+#### Fase 2.3 — Client Impersonation Layer ✔
+- Header `x-tenant-id` propagado via `attachTenantHeader` (client middleware)
+  registrado após `attachSupabaseAuth` em `src/start.ts`.
+- Persistência controlada em `localStorage["impersonate_tenant_id"]` gravada
+  **exclusivamente** pela UI do Super Admin (`/super`).
+- Validação autoritativa server-side via `requireTenant` (IA-001):
+  header não-super → `Forbidden`; header inválido/desconhecido → `Invalid tenant`.
+- UI mínima: banner de impersonação no `AppHeader` e ação de encerrar em `/super`.
+- Runtime do Workspace, ResolutionGraph, Registry, Snapshot, ActionExecutor,
+  PluginContext e Bootstrap **não foram modificados**.
+
 
 #### M2b — RLS Policies (Supabase)
 - Políticas RLS **restritivas** por tenant em todas as tabelas do domínio.
