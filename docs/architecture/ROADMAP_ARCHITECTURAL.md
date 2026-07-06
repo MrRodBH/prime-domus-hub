@@ -181,6 +181,24 @@ Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
 
 ---
 
+## 6.1 Ciclo Futuro de Governança (pós-Fase 2)
+
+Registrado apenas como evolução futura. **Não implementar** antes da
+conclusão completa do bloco Fase 2 (2.2 → 2.3 → M2b → M3).
+
+- **GA-04 — Patch Architecture System**
+  - Institucionaliza patches arquiteturais.
+  - Cria `docs/architecture/patches/` como diretório oficial.
+  - Define template padrão de patch.
+- **GA-05 — Versionamento da Arquitetura**
+  - Versionamento formal da Constitution, dos ADRs e do Roadmap.
+  - Histórico rastreável de evolução arquitetural.
+- **GA-06 (Opcional) — Architecture Backlog System**
+  - Backlog estruturado de decisões arquiteturais.
+  - Status tracking: Proposed · Approved · Scheduled · Implemented · Discarded.
+
+---
+
 ## 7. Index Cross-Linking
 
 - Constitution → [`ARCHITECTURE_CONSTITUTION.md`](./ARCHITECTURE_CONSTITUTION.md)
