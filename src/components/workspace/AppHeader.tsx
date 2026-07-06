@@ -4,6 +4,7 @@ import { Bell, LogOut, Menu, Search, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUI } from "./ui-store";
 import { supabase } from "@/integrations/supabase/client";
+import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,8 @@ export function AppHeader({
   const active = contextFromPath(path);
 
   async function signOut() {
+    // Patch 2.3.1 · Regra 1 — limpar estado local ANTES do signOut.
+    clearImpersonationTenantId();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }

@@ -8,6 +8,7 @@ import { meusPapeis } from "@/lib/api/admin.functions";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { meuTenantId } from "@/lib/api/tenant.functions";
 import { setCurrentTenantId } from "@/lib/tenant-cache";
+import { supabase } from "@/integrations/supabase/client";
 import { NavigationRail } from "./NavigationRail";
 import { AppHeader } from "./AppHeader";
 import { CommandPalette } from "./CommandPalette";
@@ -19,6 +20,8 @@ import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
+import { useImpersonation } from "@/integrations/supabase/use-impersonation";
+import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -37,8 +40,23 @@ export function WorkspaceShell() {
     setMobileNavOpen(false);
   }, [path]);
 
-  const impersonating =
-    typeof window !== "undefined" ? localStorage.getItem("impersonate_tenant_id") : null;
+  // Patch 2.3.1 — fonte única (reativa) do estado local de impersonação.
+  const impersonating = useImpersonation();
+
+  // Patch 2.3.1 · Regra 5 — usuário não-Super nunca deve carregar estado residual.
+  useEffect(() => {
+    if (isSuper === false && impersonating) {
+      clearImpersonationTenantId();
+    }
+  }, [isSuper, impersonating]);
+
+  // Patch 2.3.1 · Regra 2 — SIGNED_OUT limpa determinística e automaticamente.
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") clearImpersonationTenantId();
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   void papeis; // reserved for role-based rail gating in Bloco 2+
 
