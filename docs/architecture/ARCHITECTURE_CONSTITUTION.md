@@ -293,3 +293,17 @@ A Constituição só pode ser alterada mediante:
 5. Atualização versionada da `ARCHITECTURE_CONSTITUTION.md`.
 
 Nenhuma alteração retroativa é válida sem passar por este processo.
+
+---
+
+## 11. Architectural Roadmap
+
+A evolução do sistema é governada por:
+
+- [`./ROADMAP_ARCHITECTURAL.md`](./ROADMAP_ARCHITECTURAL.md)
+
+Este documento define todas as evoluções arquiteturais futuras planejadas
+e **deve ser consultado antes de qualquer Impact Analysis (IA)**. Itens
+do Roadmap são promovidos a ADR quando implementados, e removidos do
+Roadmap na mesma etapa.
+
