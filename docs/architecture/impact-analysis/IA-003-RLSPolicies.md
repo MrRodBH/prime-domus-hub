@@ -407,7 +407,7 @@ nesta etapa salvo justificativa arquitetural registrada em ADR.
 | T2 | Usuário tenta **inserir** registro em tenant alheio | Payload malicioso com `tenant_id` forjado | Policy INSERT `WITH CHECK (tenant_id = get_current_tenant_id())` rejeita |
 | T3 | Usuário tenta **alterar `tenant_id`** de linha própria | UPDATE malicioso | Policy UPDATE reavalia `WITH CHECK` após mutação → rejeita |
 | T4 | Usuário tenta **apagar** registro de outro tenant | DELETE direto | Policy DELETE `USING` filtra alvos → 0 rows afetadas |
-| T5 | Super Admin **sem** impersonação lê dados amplos | Login legítimo sem contexto | Estratégia adotada (Opção A §12.3) — Super Admin só enxerga tenant impersonado |
+| T5 | Super Admin **sem** impersonação lê dados amplos | Login legítimo sem contexto | Opção A §12.3 — sem impersonação, `get_current_tenant_id()` = NULL e policies RESTRICTIVE rejeitam qualquer acesso tenant-scoped; não existe "tenant default" |
 | T6 | Super Admin **com** impersonação | Fluxo legítimo | `get_current_tenant_id()` retorna tenant impersonado; policies operam normalmente; auditoria registrada (Security Audit Trail — IA futura) |
 | T7 | Server function **mal configurada** (sem `requireTenant`) | Bug de desenvolvimento | RLS é 2ª linha: mesmo sem `requireTenant`, o banco rejeita cross-tenant |
 | T8 | Policy **PERMISSIVE acidental** cobrindo múltiplos tenants | Erro em migration futura | Policies M2b são `RESTRICTIVE` — compõem por AND; PERMISSIVE errada não abre passagem |
