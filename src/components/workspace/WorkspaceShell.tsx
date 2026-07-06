@@ -8,6 +8,7 @@ import { meusPapeis } from "@/lib/api/admin.functions";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { meuTenantId } from "@/lib/api/tenant.functions";
 import { setCurrentTenantId } from "@/lib/tenant-cache";
+import { supabase } from "@/integrations/supabase/client";
 import { NavigationRail } from "./NavigationRail";
 import { AppHeader } from "./AppHeader";
 import { CommandPalette } from "./CommandPalette";
@@ -48,6 +49,14 @@ export function WorkspaceShell() {
       clearImpersonationTenantId();
     }
   }, [isSuper, impersonating]);
+
+  // Patch 2.3.1 · Regra 2 — SIGNED_OUT limpa determinística e automaticamente.
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") clearImpersonationTenantId();
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   void papeis; // reserved for role-based rail gating in Bloco 2+
 
