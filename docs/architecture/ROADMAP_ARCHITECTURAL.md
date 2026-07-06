@@ -291,7 +291,7 @@ Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
 ---
 
 
-## 7. Index Cross-Linking
+## 8. Index Cross-Linking
 
 - Constitution → [`ARCHITECTURE_CONSTITUTION.md`](./ARCHITECTURE_CONSTITUTION.md)
 - ADRs → [`ADR/`](./ADR/README.md)
@@ -301,7 +301,7 @@ Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
 
 ---
 
-## 8. Manutenção do Roadmap
+## 9. Manutenção do Roadmap
 
 - Novas decisões futuras identificadas devem ser adicionadas a §3 ou §4.
 - Itens promovidos a ADR são **removidos** do Roadmap e passam a viver
