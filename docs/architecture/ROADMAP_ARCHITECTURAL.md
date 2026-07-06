@@ -45,8 +45,12 @@ Componentes e processos estabilizados na Fase 6:
   exclusivamente hooks oficiais.
 - **IA Governance ativa** — Gate de Entrada obrigatório antes de qualquer
   implementação (Constitution §7).
-- **Tenant Middleware (IA-001)** concluída — estratégia de resolução
-  determinística de tenant server-side; base para Fase 2.2.
+- **Tenant Middleware (IA-001 / Fase 2.2)** ✔ **concluída** — módulo
+  `src/integrations/supabase/tenant-middleware.ts` implementa `requireTenant`
+  com resolução determinística: impersonação restrita a super-admin,
+  cardinalidade explícita (1 / N / 0), sem `LIMIT 1`, sem fallback implícito,
+  sem singleton. Abstração de acesso a memberships via `TenantRepository`
+  (§4.1 Anti-SQL Leakage). Runtime do Workspace intacto.
 
 ---
 
@@ -54,12 +58,19 @@ Componentes e processos estabilizados na Fase 6:
 
 ### 🔴 Fase 2 — Multi-Tenant Core
 
-#### IA-002 — Client Impersonation Layer
+| Etapa | Status |
+|---|---|
+| IA-001 · Fase 2.2 — `requireTenant` middleware | ✔ Concluída |
+| IA-002 · Fase 2.3 — Client Impersonation Layer | 🔴 Próxima |
+| M2b — RLS Policies (RESTRICTIVE por tenant) | ⏳ Depende de IA-002 |
+| M3 — Storage Isolation (`tenantId/` prefix) | ⏳ Depende de M2b |
+
+#### IA-002 — Client Impersonation Layer (próxima)
 - Propagação de `x-tenant-id` do client para server functions.
 - Super-admin session switching entre tenants.
 - Validação server-side (compõe sobre `requireTenant`) **e** validação
   client-side (guardas de UI para evitar chamadas inconsistentes).
-- Depende de IA-001 (aprovada).
+- Depende de IA-001 (concluída).
 
 #### M2b — RLS Policies (Supabase)
 - Políticas RLS **restritivas** por tenant em todas as tabelas do domínio.
@@ -167,6 +178,24 @@ Serão emitidos quando as respectivas etapas forem implementadas:
 - **ADR-008** — Workspace Ingestion Architecture
 
 Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
+
+---
+
+## 6.1 Ciclo Futuro de Governança (pós-Fase 2)
+
+Registrado apenas como evolução futura. **Não implementar** antes da
+conclusão completa do bloco Fase 2 (2.2 → 2.3 → M2b → M3).
+
+- **GA-04 — Patch Architecture System**
+  - Institucionaliza patches arquiteturais.
+  - Cria `docs/architecture/patches/` como diretório oficial.
+  - Define template padrão de patch.
+- **GA-05 — Versionamento da Arquitetura**
+  - Versionamento formal da Constitution, dos ADRs e do Roadmap.
+  - Histórico rastreável de evolução arquitetural.
+- **GA-06 (Opcional) — Architecture Backlog System**
+  - Backlog estruturado de decisões arquiteturais.
+  - Status tracking: Proposed · Approved · Scheduled · Implemented · Discarded.
 
 ---
 
