@@ -168,23 +168,22 @@ aprovadas e implementadas.
 
 ---
 
-## 6. ADRs Futuros
+## 6. Governance Evolution
 
-Serão emitidos quando as respectivas etapas forem implementadas:
+Consolidação da evolução institucional da governança arquitetural
+pós-Fase 2.2. Toda a evolução de governança a partir da conclusão de
+IA-001 vive sob esta seção, evitando crescimento horizontal da
+documentação e preservando navegabilidade.
 
-- **ADR-005** — Multi-Tenant Evolution Model
-- **ADR-006** — Storage Abstraction Strategy
-- **ADR-007** — Plugin Marketplace Remote Execution
-- **ADR-008** — Workspace Ingestion Architecture
+### 6.1 Post-Phase 2 Governance
 
-Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
+Camada de reforço institucional aplicada após a conclusão de IA-001 /
+Fase 2.2. Consolida governança de testes, estabilização da abstração de
+tenant e preparação da IA-002.
 
----
-
-## 6.1 Ciclo Futuro de Governança (pós-Fase 2)
-
-Registrado apenas como evolução futura. **Não implementar** antes da
-conclusão completa do bloco Fase 2 (2.2 → 2.3 → M2b → M3).
+Registrado também como evolução futura de governança institucional
+(**não implementar** antes da conclusão completa do bloco Fase 2:
+2.2 → 2.3 → M2b → M3):
 
 - **GA-04 — Patch Architecture System**
   - Institucionaliza patches arquiteturais.
@@ -196,16 +195,13 @@ conclusão completa do bloco Fase 2 (2.2 → 2.3 → M2b → M3).
 - **GA-06 (Opcional) — Architecture Backlog System**
   - Backlog estruturado de decisões arquiteturais.
   - Status tracking: Proposed · Approved · Scheduled · Implemented · Discarded.
+  - Responsável por registrar refinamentos arquiteturais identificados
+    durante auditorias que **não exigem IA**, **não exigem ADR** e
+    **não exigem Patch Arquitetural**, mas devem permanecer rastreáveis
+    até sua implementação ou descarte. Não criado nesta etapa; apenas
+    registrada sua responsabilidade futura.
 
----
-
-## 6.2 🔐 Governance Hardening Layer
-
-Camada de reforço institucional aplicada após a conclusão de IA-001 /
-Fase 2.2. Consolida governança de testes e a estabilização da abstração
-de tenant antes do início de IA-002.
-
-### Unit Testing Policy for Core Deterministic Logic
+#### 6.1.1 Unit Testing Policy for Core Deterministic Logic
 
 **Rule 1 — Deterministic Logic Coverage.** Toda lógica determinística
 central DEVE ter testes unitários. Inclui, no mínimo: tenant resolution,
@@ -215,23 +211,24 @@ avaliação de permissões, lógica de autorização, regras de impersonação.
 substituem testes unitários. Servem apenas como validação de integração.
 
 **Rule 3 — Framework Independence.** A ausência de um runner de testes
-unitários (ex.: Vitest) **não** justifica a remoção de especificações.
-Testes podem permanecer framework-agnostic, mock-based, ou prontos para
-adoção de runner futuro.
+unitários **não** justifica a remoção de especificações. Testes podem
+permanecer framework-agnostic, mock-based, ou prontos para adoção de
+runner futuro.
 
 **Rule 4 — Test Preservation Policy.** Nenhuma especificação de teste de
 lógica determinística pode ser removida por limitação de tooling.
 
-**Rule 5 — Future Tooling Integration.** Runner de testes unitários (ex.:
-Vitest) poderá ser introduzido em GA-04 ou GA-05 sem exigir refactor da
-intenção dos testes existentes.
+**Rule 5 — Future Tooling Integration.** A adoção de um framework ou
+runner de testes unitários poderá ocorrer em futura etapa de governança
+ou infraestrutura, sem exigir alterações na intenção, estrutura ou
+cobertura das especificações de testes existentes.
 
 Aplicação atual: `src/integrations/supabase/__tests__/tenant-middleware.spec.ts`
 cobre os 8 cenários de `resolveTenantContext` (impersonação super-admin
 ok/inválida/não-uuid/não-admin, 0/1/N memberships) de forma
 framework-agnostic.
 
-### Tenant Repository Stabilization Contract
+#### 6.1.2 Tenant Repository Stabilization Contract
 
 `src/integrations/supabase/tenant-repository.ts` é vinculado a um contrato
 permanente:
@@ -240,21 +237,22 @@ permanente:
 2. **Deterministic** — mesmo input → mesmo output.
 3. **No ORM leakage** — proibido expor SQL, query builders ou filtros.
 4. **Single Purpose** — exclusivo para tenant membership resolution.
+5. **No Business Rules** — o repositório nunca poderá conter regras de
+   negócio, decidir comportamento, aplicar heurísticas, realizar
+   validações de cardinalidade, decidir tenant ativo, aplicar políticas
+   de autorização, ou conter lógica de impersonação. Sua
+   responsabilidade limita-se **exclusivamente** à persistência e
+   recuperação determinística de dados. Todas as decisões permanecem na
+   camada de resolução (`resolveTenantContext`) ou em futuras camadas de
+   domínio autorizadas.
 
 **Proibido** evoluir para: caching layer global, ORM abstraction
 genérica, repositório multi-entidade. Novas entidades exigem repositórios
 próprios e isolados.
 
----
-
-## 6.3 IA-002 — Client Impersonation Layer (Preparation)
+#### 6.1.3 IA-002 Preparation
 
 Registrada como próxima etapa. **Não implementar nesta fase.**
-
-Pré-condições já satisfeitas por esta camada de hardening:
-- IA-001 estável (tenant resolution determinística).
-- `tenant-repository` estabilizado (contrato §6.2).
-- Testes unitários formalizados.
 
 Escopo futuro de IA-002:
 - Propagação de `x-tenant-id` client → server.
@@ -262,8 +260,33 @@ Escopo futuro de IA-002:
 - Validação dupla (client-side UX + server-side auth).
 - Session switching seguro para super-admin.
 
+**Status:** `READY`
+
+**Pré-requisitos atendidos:**
+- ✔ IA-001 aprovada
+- ✔ Tenant Middleware implementado
+- ✔ Tenant Repository estabilizado
+- ✔ Unit Testing Policy formalizada
+- ✔ Governance Hardening concluído
+- ✔ Constituição atualizada
+- ✔ Roadmap atualizado
+- ✔ Hard Gates preservados (G0–G7)
+
 Bloqueia início: apresentar IA-002 formal (Impact Analysis) antes de
 qualquer código, conforme Constitution §7.
+
+---
+
+## 7. ADRs Futuros
+
+Serão emitidos quando as respectivas etapas forem implementadas:
+
+- **ADR-005** — Multi-Tenant Evolution Model
+- **ADR-006** — Storage Abstraction Strategy
+- **ADR-007** — Plugin Marketplace Remote Execution
+- **ADR-008** — Workspace Ingestion Architecture
+
+Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
 
 ---
 
