@@ -4,6 +4,18 @@
 //
 // Conforme IA-001 §12 e ROADMAP §4.1 (Anti-SQL Leakage Rule):
 // o algoritmo de resolução NÃO deve depender de SQL diretamente.
+//
+// STABILIZATION CONTRACT (Governance Hardening Layer — ROADMAP):
+//   1. Stateless      — proibido armazenar estado interno / cache.
+//   2. Deterministic  — mesmo input → mesmo output.
+//   3. No ORM leakage — proibido expor SQL, query builders, filtros.
+//   4. Single Purpose — EXCLUSIVO para tenant membership resolution.
+//
+// PROIBIDO evoluir este módulo para:
+//   • caching layer global
+//   • ORM abstraction genérica
+//   • repositório multi-entidade
+// Novas entidades exigem seus próprios repositórios isolados.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
