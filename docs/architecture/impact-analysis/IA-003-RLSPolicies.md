@@ -356,8 +356,11 @@ nesta etapa salvo justificativa arquitetural registrada em ADR.
 1. **Migration 1 (dry-run auditoria):** apenas produz o inventário
    verificado via `information_schema`, sem alterar nada. Saída revisada
    antes da migration 2.
-2. **Migration 2 (policies em modo shadow):** aplica policies em uma
-   tabela piloto de baixo risco (ex.: `blog_categorias`), com smoke test.
+2. **Migration 2 (pilot rollout controlado em tabela de baixo risco):**
+   aplica policies RESTRICTIVE em uma tabela piloto de baixo risco
+   (ex.: `blog_categorias`), com smoke test dedicado. **Não é "shadow
+   mode"** — RLS não possui modo observacional nativo; as policies
+   passam a valer imediatamente na tabela piloto.
 3. **Migration 3 (rollout completo):** aplica policies em todas as
    tabelas tenant-scoped classificadas em §12.1.
 4. **Migration 4 (audit lock):** revoga qualquer GRANT residual que
