@@ -118,19 +118,70 @@ cross-request, injeção em fluxos de resolução), abrir ADR antes.
 de governança é alterado.
 
 ## 12. Estratégia de Implementação
+
+### 12.1. Modelo conceitual
+
+A resolução de tenant é modelada como um **algoritmo determinístico de
+resolução de contexto**, não como uma consulta SQL. A origem das
+memberships (banco, cache, serviço interno, federação de identidade) é
+detalhe de implementação e pode mudar sem alterar o algoritmo. Este
+desacoplamento preserva o princípio de baixo acoplamento da arquitetura.
+
+O algoritmo possui quatro etapas determinísticas:
+
+1. Resolver contexto de impersonação (quando aplicável).
+2. Resolver memberships do usuário.
+3. Validar cardinalidade do resultado.
+4. Produzir um único `tenantId` ou falhar de forma explícita.
+
+### 12.2. Algoritmo oficial de resolução
+
+**Etapa 1 — Impersonação (`x-tenant-id` presente):**
+- Se o header `x-tenant-id` existir:
+  - validar que `is_super_admin(userId)` é `true`;
+  - validar que o `tenantId` informado é válido;
+  - usar esse tenant;
+  - caso contrário, falhar com erro explícito (`Forbidden: impersonation not allowed` ou `Invalid tenant`).
+
+**Etapa 2 — Resolução por memberships (sem `x-tenant-id`):**
+- Consultar **todas** as memberships válidas do usuário. **Proibido usar
+  `LIMIT 1`** como regra de resolução — a cardinalidade deve ser
+  observável pelo algoritmo.
+
+**Etapa 3 — Validação de cardinalidade:**
+- **Caso A — exatamente 1 membership:** usar esse tenant automaticamente.
+  Este é exatamente o comportamento atual do sistema; nenhuma mudança
+  funcional é introduzida.
+- **Caso B — múltiplas memberships:** falhar de forma explícita:
+  `Multiple tenant memberships. Tenant selection required.` O middleware
+  **não pode** escolher arbitrariamente, aplicar heurísticas, usar
+  ordenações implícitas do banco, nem retornar a primeira linha. A seleção
+  explícita de tenant será endereçada em etapa futura própria (fora do
+  escopo desta IA).
+- **Caso C — nenhuma membership:** falhar com `Forbidden: no tenant membership`.
+
+### 12.3. Notas arquiteturais
+
+- A infraestrutura fica preparada para evolução futura (múltiplas
+  memberships, seleção explícita, federação) **sem** implementar essas
+  capacidades agora.
+- Uma limitação temporária do produto (1 membership por usuário) **não**
+  é incorporada como regra permanente da infraestrutura.
+- Nenhuma escolha implícita é feita pelo middleware.
+
+### 12.4. Passos operacionais
+
 1. Criar `src/integrations/supabase/tenant-middleware.ts` compondo com
    `requireSupabaseAuth`; expor `requireTenant`.
-2. Implementar resolução: ler `x-tenant-id` do request; se presente e
-   `is_super_admin(userId)` → usar; senão, `select tenant_id from
-   tenant_members where user_id = :uid limit 1` (única membership por
-   usuário neste momento).
-3. Fail-fast (`throw new Error("Forbidden: no tenant membership")`) quando
-   não houver tenant e o usuário não for super-admin.
-4. Testes: unit da resolução (mock Supabase) + Playwright cobrindo super-admin
-   sem impersonação, super-admin impersonando, usuário comum.
-5. Rollback: reverter apenas o arquivo novo — nada existente passa a
+2. Implementar as três etapas do algoritmo 12.2 exatamente na ordem
+   descrita, com erros explícitos por cenário.
+3. Testes: unit cobrindo os três casos (A/B/C) e os dois ramos de
+   impersonação (super-admin ok, não super-admin rejeitado); Playwright
+   cobrindo super-admin sem impersonação, super-admin impersonando e
+   usuário comum com 1 membership.
+4. Rollback: reverter apenas o arquivo novo — nada existente passa a
    depender dele nesta etapa.
-6. Validação: `tsgo --noEmit` limpo; `rg` scans confirmando ausência de
+5. Validação: `tsgo --noEmit` limpo; `rg` scans confirmando ausência de
    import cruzado com `workspace/`, `plugins/`, `resolution/`, `registry/`,
    `runtime/`.
 
