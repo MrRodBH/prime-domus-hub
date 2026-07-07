@@ -64,8 +64,7 @@ Componentes e processos estabilizados na Fase 6:
 | IA-002 · Fase 2.3 — Client Impersonation Layer | ✔ **Concluída** |
 | IA-003 · RLS Policies (RESTRICTIVE por tenant) | 🟢 Aprovada em auditoria final |
 | M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/fase6/11-fase-2-m2b-relatorio.md`) |
-| IA-004 · Tenant Storage Isolation | 🟡 **Proposed / Awaiting Audit** (`impact-analysis/IA-004-TenantStorageIsolation.md`) |
-| M3 · Tenant Storage Isolation Implementation | ⛔ **Blocked** until IA-004 approval |
+| IA-004 · Tenant Storage Isolation | 🟡 **Proposed / Awaiting Audit** (`impact-analysis/IA-004-TenantStorageIsolation.md`) — M3 bloqueada até aprovação |
 
 #### Fase 2.3 — Client Impersonation Layer ✔
 - Header `x-tenant-id` propagado via `attachTenantHeader` (client middleware)
@@ -84,11 +83,13 @@ Componentes e processos estabilizados na Fase 6:
 - Enforcement zero-trust: nenhuma leitura/escrita fora do tenant ativo.
 - Depende de IA-002 (contexto de tenant garantido server-side).
 
-#### M3 — Storage Isolation
-- Prefixação de objetos por `tenantId` no bucket ativo.
-- Migração dos assets existentes para o novo esquema de path.
+#### M3 — Tenant Storage Isolation
+- Isolamento por tenant do armazenamento de arquivos (buckets privados atuais).
+- Estratégia de path/segmentação e migração de arquivos existentes a serem
+  definidas na IA-004 e ratificadas antes da implementação — o Roadmap não
+  antecipa padrão de path específico.
 - Base para a futura Storage Abstraction Layer (Fase 4).
-- Depende de M2b.
+- Depende de M2b e de aprovação formal da IA-004.
 
 ### 🟡 Fase 3 — Membership Evolution Model
 - Suporte a **múltiplas memberships por usuário**.
@@ -161,7 +162,7 @@ IA-002 (Client Impersonation)
    ↓
 M2b (RLS Policies)
    ↓
-M3 (Storage Isolation)
+M3 (Tenant Storage Isolation)
    ↓
 Storage Abstraction (Fase 4)
 
