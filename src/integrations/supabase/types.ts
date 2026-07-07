@@ -2543,6 +2543,66 @@ export type Database = {
           },
         ]
       }
+      storage_migration_log: {
+        Row: {
+          action: string
+          batch_id: string
+          bucket: string
+          created_at: string
+          dry_run: boolean
+          entity: string
+          entity_id: string
+          error_message: string | null
+          file_size: number | null
+          id: string
+          metadata: Json
+          new_path: string
+          old_path: string | null
+          operator_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          batch_id: string
+          bucket: string
+          created_at?: string
+          dry_run?: boolean
+          entity: string
+          entity_id: string
+          error_message?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          new_path: string
+          old_path?: string | null
+          operator_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          batch_id?: string
+          bucket?: string
+          created_at?: string
+          dry_run?: boolean
+          entity?: string
+          entity_id?: string
+          error_message?: string | null
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          new_path?: string
+          old_path?: string | null
+          operator_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
