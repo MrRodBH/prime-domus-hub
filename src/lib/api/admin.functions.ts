@@ -875,12 +875,34 @@ export const adminAssinarUrl = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
+
+    // M3.4 — Signed URL Hardening:
+    //  1) Tenant efetivo server-side (IA-001).
+    //  2) Bucket precisa estar na allowlist tenant-scoped.
+    //  3) Path precisa começar com `${tenantId}/` e passar por anti-traversal.
+    //  4) TTL curto (preview admin = 15 min).
+    const { validateTenantSignRequest, SIGNED_URL_TTL_PREVIEW_SECONDS } =
+      await import("@/lib/storage/signed-url");
+    const { data: tenantRow, error: tenantErr } = await context.supabase.rpc(
+      "get_current_tenant_id",
+    );
+    if (tenantErr) throw new Error(tenantErr.message);
+    const tenantId = tenantRow as string | null;
+    if (!tenantId) throw new Error("Tenant efetivo não resolvido — assinatura negada.");
+
+    const { bucket, path } = validateTenantSignRequest({
+      bucket: data.bucket,
+      path: data.path,
+      tenantId,
+    });
+
     const opts = data.width
       ? { transform: { width: data.width, quality: data.quality ?? 70, resize: "contain" as const } }
       : undefined;
     const { data: signed, error } = await context.supabase.storage
-      .from(data.bucket)
-      .createSignedUrl(data.path, 60 * 60 * 24 * 365, opts);
+      .from(bucket)
+      .createSignedUrl(path, SIGNED_URL_TTL_PREVIEW_SECONDS, opts);
     if (error) throw new Error(error.message);
     return { url: signed.signedUrl };
   });
+
