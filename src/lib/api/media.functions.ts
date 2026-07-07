@@ -1,8 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-const SIGN_TTL = 60 * 60 * 24 * 365;
+import {
+  SIGNED_URL_TTL_DOWNLOAD_SECONDS,
+  SIGNED_URL_TTL_PREVIEW_SECONDS,
+  validateTenantSignRequest,
+} from "@/lib/storage/signed-url";
 
 /** Lista mídia do tenant atual com busca/filtro/paginação. */
 export const listarMidias = createServerFn({ method: "POST" })
