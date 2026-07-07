@@ -77,40 +77,47 @@ export const inventariarLegacyStorage = createServerFn({ method: "POST" })
         "Tenant efetivo não resolvido — inventário requer impersonation via x-tenant-id.",
       );
 
-    // 1. Storage objects reais por bucket.
+    // 1. Storage objects reais por bucket — listagem recursiva por BFS a
+    //    partir do prefixo do tenant. Não depende de subprefixos hard-coded;
+    //    percorre qualquer diretório retornado pela API do Storage. Limites
+    //    conhecidos da API do Supabase Storage:
+    //      - `list()` devolve até `limit` entradas (aqui 1000) por página;
+    //      - `list()` não expõe recursão nativa; a raiz retorna arquivos e
+    //        pseudo-diretórios (entradas cuja `metadata` é `null` e cujo
+    //        `id` é `null`); descemos manualmente em cada uma.
+    //      - Objetos com `metadata` populado são arquivos; entradas sem
+    //        `metadata` são interpretadas como diretórios.
+    //    Cobertura efetiva desta rotina: 100% do subtree `{tenantId}/**`
+    //    até profundidade arbitrária (limitada apenas por depth-safety).
     const buckets = ["site", "imoveis", "lancamentos"] as const;
     const storageIndex: Record<string, Set<string>> = {};
+    const MAX_DEPTH = 8; // profundidade defensiva; caminhos reais ~3-4
     for (const b of buckets) {
       storageIndex[b] = new Set<string>();
-      // Paginate defensively (Storage list caps at 100/req).
-      let offset = 0;
-      // Only inspect this tenant's prefix — RLS-equivalent posture.
-      for (;;) {
-        const { data: page, error } = await supabaseAdmin.storage
-          .from(b)
-          .list(tenantId, { limit: 1000, offset });
-        if (error) break;
-        if (!page || page.length === 0) break;
-        for (const o of page) storageIndex[b].add(`${tenantId}/${o.name}`);
-        if (page.length < 1000) break;
-        offset += page.length;
-      }
-      // Best-effort recursion for known sub-prefixes.
-      for (const sub of ["blog", "blog/inline", "corretores", "media"]) {
-        let o2 = 0;
+      const queue: string[] = [tenantId];
+      while (queue.length > 0) {
+        const prefix = queue.shift() as string;
+        const depth = prefix.split("/").length - 1;
+        if (depth > MAX_DEPTH) continue;
+        let offset = 0;
         for (;;) {
           const { data: page, error } = await supabaseAdmin.storage
             .from(b)
-            .list(`${tenantId}/${sub}`, { limit: 1000, offset: o2 });
+            .list(prefix, { limit: 1000, offset });
           if (error) break;
           if (!page || page.length === 0) break;
-          for (const o of page)
-            storageIndex[b].add(`${tenantId}/${sub}/${o.name}`);
+          for (const o of page) {
+            const full = `${prefix}/${o.name}`;
+            const isFile = o.metadata !== null && o.metadata !== undefined;
+            if (isFile) storageIndex[b].add(full);
+            else queue.push(full);
+          }
           if (page.length < 1000) break;
-          o2 += page.length;
+          offset += page.length;
         }
       }
     }
+
 
     // 2. Referências vindas do banco.
     type Ref = {
