@@ -52,16 +52,56 @@ export const listarMidias = createServerFn({ method: "POST" })
     return { items, total: count ?? 0 };
   });
 
-/** Registra uma mídia já enviada ao bucket (o cliente faz o upload direto). */
+/**
+ * Registra uma mídia já enviada ao bucket.
+ *
+ * PATCH M3.2.1: o client NÃO define mais o path físico. Deve passar
+ * `uploadTarget` produzido por `createUploadTarget` (domain: "media") e,
+ * opcionalmente, derivativas (medium/thumbnail) que também tenham sido
+ * geradas server-side. Todos os paths são revalidados aqui contra o tenant
+ * efetivo (IA-001) — qualquer path fora de `{tenantId}/media/…` ou bucket
+ * diferente de `site` é rejeitado fail-fast.
+ */
+const uploadTargetSchema = z.object({
+  bucket: z.string().min(1),
+  path: z.string().min(1).max(512),
+  storageFileName: z.string().min(1).max(200),
+  domain: z.literal("media"),
+});
+
+const derivativeTargetSchema = z.object({
+  bucket: z.string().min(1),
+  path: z.string().min(1).max(512),
+});
+
+function assertMediaPathSafe(path: string, tenantId: string, bucket: string) {
+  if (bucket !== "site") {
+    throw new Error(`Bucket inválido para mídia: ${bucket}`);
+  }
+  if (path.includes("..") || path.startsWith("/") || path.includes("\\")) {
+    throw new Error("Path inválido (traversal ou absoluto).");
+  }
+  const expectedPrefix = `${tenantId}/media/`;
+  if (!path.startsWith(expectedPrefix)) {
+    throw new Error("Path fora do escopo do tenant/domínio permitido.");
+  }
+  // Nome do arquivo (último segmento) — sem barras extras, sem oculto.
+  const filename = path.slice(expectedPrefix.length);
+  if (!filename || filename.includes("/") || filename.startsWith(".")) {
+    throw new Error("Filename inválido.");
+  }
+}
+
 export const registrarMidia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw) =>
     z
       .object({
+        uploadTarget: uploadTargetSchema,
+        arquivo_medium: derivativeTargetSchema.nullable().optional(),
+        arquivo_thumbnail: derivativeTargetSchema.nullable().optional(),
         nome: z.string().min(1).max(300),
-        arquivo: z.string().min(1),
-        arquivo_medium: z.string().nullable().optional(),
-        arquivo_thumbnail: z.string().nullable().optional(),
+        originalFileName: z.string().min(1).max(300).optional(),
         tipo: z.enum(["image", "video", "pdf", "audio", "other"]),
         mime_type: z.string().min(1).max(200),
         tamanho: z.number().int().min(0),
@@ -76,13 +116,34 @@ export const registrarMidia = createServerFn({ method: "POST" })
     const { assertCmsPermission, logCmsAudit } = await import("./_cms");
     await assertCmsPermission(context, "cms.midias", "criar");
     const { supabase, userId } = context;
+
+    // Resolver tenant efetivo server-side (IA-001) — não confiar em nada
+    // que veio do client.
+    const { data: tenantRow, error: tenantErr } = await supabase.rpc(
+      "get_current_tenant_id",
+    );
+    if (tenantErr) throw new Error(tenantErr.message);
+    const tenantId = tenantRow as string | null;
+    if (!tenantId) {
+      throw new Error("Tenant efetivo não resolvido — impossível registrar mídia.");
+    }
+
+    // Validação dura de todos os paths recebidos.
+    assertMediaPathSafe(data.uploadTarget.path, tenantId, data.uploadTarget.bucket);
+    if (data.arquivo_medium) {
+      assertMediaPathSafe(data.arquivo_medium.path, tenantId, data.arquivo_medium.bucket);
+    }
+    if (data.arquivo_thumbnail) {
+      assertMediaPathSafe(data.arquivo_thumbnail.path, tenantId, data.arquivo_thumbnail.bucket);
+    }
+
     const { data: row, error } = await supabase
       .from("media_library")
       .insert({
         nome: data.nome,
-        arquivo: data.arquivo,
-        arquivo_medium: data.arquivo_medium ?? null,
-        arquivo_thumbnail: data.arquivo_thumbnail ?? null,
+        arquivo: data.uploadTarget.path,
+        arquivo_medium: data.arquivo_medium?.path ?? null,
+        arquivo_thumbnail: data.arquivo_thumbnail?.path ?? null,
         tipo: data.tipo,
         mime_type: data.mime_type,
         tamanho: data.tamanho,
