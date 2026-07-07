@@ -162,7 +162,7 @@ IA-002 (Client Impersonation)
    ↓
 M2b (RLS Policies)
    ↓
-M3 (Storage Isolation)
+M3 (Tenant Storage Isolation)
    ↓
 Storage Abstraction (Fase 4)
 
