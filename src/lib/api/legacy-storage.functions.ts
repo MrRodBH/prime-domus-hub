@@ -445,8 +445,9 @@ export const inventariarLegacyStorage = createServerFn({ method: "POST" })
           status: "dry_run",
           dry_run: true,
           operator_id: context.userId,
-          metadata: { classification: "orphan" },
+          metadata: { classification: o.classification },
         })),
+
       ];
       if (rows.length > 0) {
         const { error: insErr } = await context.supabase
