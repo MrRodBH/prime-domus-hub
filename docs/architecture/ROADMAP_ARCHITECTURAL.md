@@ -83,11 +83,13 @@ Componentes e processos estabilizados na Fase 6:
 - Enforcement zero-trust: nenhuma leitura/escrita fora do tenant ativo.
 - Depende de IA-002 (contexto de tenant garantido server-side).
 
-#### M3 — Storage Isolation
-- Prefixação de objetos por `tenantId` no bucket ativo.
-- Migração dos assets existentes para o novo esquema de path.
+#### M3 — Tenant Storage Isolation
+- Isolamento por tenant do armazenamento de arquivos (buckets privados atuais).
+- Estratégia de path/segmentação e migração de arquivos existentes a serem
+  definidas na IA-004 e ratificadas antes da implementação — o Roadmap não
+  antecipa padrão de path específico.
 - Base para a futura Storage Abstraction Layer (Fase 4).
-- Depende de M2b.
+- Depende de M2b e de aprovação formal da IA-004.
 
 ### 🟡 Fase 3 — Membership Evolution Model
 - Suporte a **múltiplas memberships por usuário**.
