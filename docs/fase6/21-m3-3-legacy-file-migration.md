@@ -243,6 +243,36 @@ como fonte-verdade da normalização futura.
 
 ---
 
+## 12.1 Exceção Controlada — `storage_migration_log`
+
+A criação de `public.storage_migration_log` (tabela + GRANTs +
+RLS super-admin only + trigger `updated_at`) é uma **exceção controlada**
+ao escopo original da M3.3, formalmente registrada aqui e ratificada no
+[Patch M3.3.1](./22-m3-3-1-metadata-normalization-documentation-fix.md).
+
+Justificativa:
+
+- **Necessária para audit trail** — sem persistir `old_path` / `new_path` /
+  `batch_id` / `operator_id` / `status`, qualquer operação futura de
+  migração ficaria sem evidência forense.
+- **Necessária para rollback** — `marcarRollbackLote` opera sobre esse log;
+  sem ele, o rollback documental exigido pela IA-004 §12.10 seria
+  inviabilizado.
+- **Restrita a super_admin** — RLS bloqueia leitura/escrita para qualquer
+  papel que não seja `super_admin`; anon e authenticated são negados.
+- **Não altera domínio funcional** — nenhuma tabela de negócio referencia
+  este log; sua ausência não muda nenhum comportamento do produto.
+- **Não altera Storage** — nenhum bucket, objeto ou policy de
+  `storage.objects` foi criado, movido ou modificado.
+- **Não altera RLS de tabelas existentes** — as policies preexistentes de
+  todas as tabelas de domínio permanecem intocadas.
+- **Reduz risco operacional** — instala o canal de auditoria antes de
+  qualquer operação destrutiva, coerente com o princípio *fail-safe*.
+
+---
+
+
+
 ## 13. Riscos Remanescentes
 
 **Para M3.5 — Media Picker Validation**
