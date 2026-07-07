@@ -31,29 +31,46 @@ export const listarMidias = createServerFn({ method: "POST" })
     if (data.tag.trim()) q = q.contains("tags", [data.tag.trim()]);
     const { data: rows, count, error } = await q.range(from, to);
     if (error) throw new Error(error.message);
-    // Assina URLs (medium/thumbnail preferidos)
+
+    // Tenant efetivo resolvido server-side (IA-001). Toda assinatura passa
+    // por validação anti-cross-tenant + anti-traversal (M3.4).
+    const { data: tenantRow, error: tenantErr } = await supabase.rpc("get_current_tenant_id");
+    if (tenantErr) throw new Error(tenantErr.message);
+    const tenantId = tenantRow as string | null;
+    if (!tenantId) throw new Error("Tenant efetivo não resolvido — listagem de mídia negada.");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    async function signIfSafe(rawPath: string | null | undefined, ttl: number) {
+      if (!rawPath) return null;
+      try {
+        const { bucket, path } = validateTenantSignRequest({
+          bucket: "site",
+          path: rawPath,
+          tenantId: tenantId!,
+        });
+        const { data: s } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, ttl);
+        return s?.signedUrl ?? null;
+      } catch {
+        // Registros legados fora do prefixo tenant são silenciosamente
+        // omitidos aqui — migração formal é escopo da M3.3.
+        return null;
+      }
+    }
+
     const items = await Promise.all(
       (rows ?? []).map(async (r) => {
-        const [orig, mid, thumb] = await Promise.all([
-          supabaseAdmin.storage.from("site").createSignedUrl(r.arquivo, SIGN_TTL),
-          r.arquivo_medium
-            ? supabaseAdmin.storage.from("site").createSignedUrl(r.arquivo_medium, SIGN_TTL)
-            : Promise.resolve({ data: null }),
-          r.arquivo_thumbnail
-            ? supabaseAdmin.storage.from("site").createSignedUrl(r.arquivo_thumbnail, SIGN_TTL)
-            : Promise.resolve({ data: null }),
+        const [url, url_medium, url_thumbnail] = await Promise.all([
+          signIfSafe(r.arquivo, SIGNED_URL_TTL_DOWNLOAD_SECONDS),
+          signIfSafe(r.arquivo_medium, SIGNED_URL_TTL_PREVIEW_SECONDS),
+          signIfSafe(r.arquivo_thumbnail, SIGNED_URL_TTL_PREVIEW_SECONDS),
         ]);
-        return {
-          ...r,
-          url: orig.data?.signedUrl ?? null,
-          url_medium: (mid.data as { signedUrl?: string } | null)?.signedUrl ?? null,
-          url_thumbnail: (thumb.data as { signedUrl?: string } | null)?.signedUrl ?? null,
-        };
+        return { ...r, url, url_medium, url_thumbnail };
       }),
     );
     return { items, total: count ?? 0 };
   });
+
 
 /**
  * Registra uma mídia já enviada ao bucket.
