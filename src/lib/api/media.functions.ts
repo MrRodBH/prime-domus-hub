@@ -237,22 +237,44 @@ export const obterMidiaUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw) => z.object({ id: z.string().uuid(), variant: z.enum(["original", "medium", "thumbnail"]).optional().default("medium") }).parse(raw))
   .handler(async ({ data, context }) => {
+    // Tenant efetivo server-side (IA-001). O client não escolhe path/bucket.
+    const { data: tenantRow, error: tenantErr } = await context.supabase.rpc("get_current_tenant_id");
+    if (tenantErr) throw new Error(tenantErr.message);
+    const tenantId = tenantRow as string | null;
+    if (!tenantId) throw new Error("Tenant efetivo não resolvido — assinatura negada.");
+
+    // RLS + tenant garantem que só carregamos mídia deste tenant.
     const { data: row, error } = await context.supabase
       .from("media_library")
       .select("arquivo, arquivo_medium, arquivo_thumbnail")
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
-    const path =
+
+    const rawPath =
       data.variant === "original"
         ? row.arquivo
         : data.variant === "thumbnail"
         ? row.arquivo_thumbnail || row.arquivo
         : row.arquivo_medium || row.arquivo;
+
+    // Fail-fast: bucket allowlist + prefix tenant + anti-traversal (M3.4).
+    const { bucket, path } = validateTenantSignRequest({
+      bucket: "site",
+      path: rawPath,
+      tenantId,
+    });
+
+    const ttl =
+      data.variant === "original"
+        ? SIGNED_URL_TTL_DOWNLOAD_SECONDS
+        : SIGNED_URL_TTL_PREVIEW_SECONDS;
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: signed } = await supabaseAdmin.storage.from("site").createSignedUrl(path, SIGN_TTL);
+    const { data: signed } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, ttl);
     return { url: signed?.signedUrl ?? null };
   });
+
 
 /** Registra um uso da mídia (chamado por editores de conteúdo). */
 export const registrarUsoMidia = createServerFn({ method: "POST" })
