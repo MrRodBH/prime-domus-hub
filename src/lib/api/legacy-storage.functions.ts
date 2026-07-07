@@ -233,6 +233,13 @@ export const inventariarLegacyStorage = createServerFn({ method: "POST" })
       });
 
     // 3. Classificar cada referência.
+    //    Classificação refinada (M3.3.1):
+    //      - compliant                     : path relativo `{tid}/...`, arquivo existe
+    //      - legacy_absolute_url           : coluna guarda URL absoluta assinada
+    //      - legacy_no_prefix              : path sem prefixo tenant (M3.2 canonical exige)
+    //      - cross_tenant                  : prefixo de outro tenant (ALERTA)
+    //      - invalid_metadata              : valor quebrado (ex.: `{tid}/` sem filename, `..`, vazio)
+    //      - metadata_inconsistent         : referência coerente mas fora do padrão canônico
     type Row = {
       entity: string;
       entity_id: string;
@@ -241,45 +248,142 @@ export const inventariarLegacyStorage = createServerFn({ method: "POST" })
       classification: string;
       reason?: string;
       exists_in_storage?: boolean;
+      /** Path relativo extraído de URL absoluta legada, se aplicável. */
+      extracted_relative_path?: string | null;
     };
     const classified: Row[] = [];
+
+    // Índice de paths físicos referenciados por URL absoluta legada.
+    // Chave: `${bucket}::${relativePath}` — usada abaixo para reclassificar
+    // arquivos que apareciam como órfãos mas estão referenciados.
+    const referencedByAbsoluteUrl = new Set<string>();
+
+    // Extrator seguro do path relativo a partir de uma URL absoluta do
+    // Supabase Storage. Retorna null se a URL não corresponder a um formato
+    // reconhecível de Signed/Public URL do bucket esperado.
+    //   Formatos aceitos:
+    //     .../storage/v1/object/sign/<bucket>/<path>?token=...
+    //     .../storage/v1/object/public/<bucket>/<path>
+    //     .../storage/v1/object/authenticated/<bucket>/<path>?...
+    const extractStoragePath = (
+      absolute: string,
+      expectedBucket: string,
+    ): string | null => {
+      try {
+        const u = new URL(absolute);
+        const m = u.pathname.match(
+          /\/storage\/v1\/object\/(?:sign|public|authenticated)\/([^/]+)\/(.+)$/,
+        );
+        if (!m) return null;
+        const [, bucketFromUrl, rawPath] = m;
+        if (bucketFromUrl !== expectedBucket) return null;
+        const decoded = decodeURIComponent(rawPath);
+        if (decoded.includes("..") || decoded.startsWith("/") || decoded.includes("\\"))
+          return null;
+        return decoded;
+      } catch {
+        return null;
+      }
+    };
+
     for (const r of refs) {
       if (!r.path) continue;
       const isAbsoluteUrl = /^https?:\/\//i.test(r.path);
       if (isAbsoluteUrl) {
+        const extracted = extractStoragePath(r.path, r.bucket);
+        // Ainda que o path seja extraível, só marcamos como referenciado
+        // quando o arquivo físico existe naquele bucket sob prefixo do tenant.
+        if (extracted && extracted.startsWith(`${tenantId}/`)) {
+          const exists = storageIndex[r.bucket]?.has(extracted) ?? false;
+          if (exists) {
+            referencedByAbsoluteUrl.add(`${r.bucket}::${extracted}`);
+          }
+          classified.push({
+            entity: r.entity,
+            entity_id: r.entity_id,
+            bucket: r.bucket,
+            raw_value: r.raw_value,
+            classification: "legacy_absolute_url",
+            reason:
+              "coluna guarda URL absoluta assinada; padrão M3.2 exige path relativo",
+            exists_in_storage: exists,
+            extracted_relative_path: extracted,
+          });
+        } else {
+          classified.push({
+            entity: r.entity,
+            entity_id: r.entity_id,
+            bucket: r.bucket,
+            raw_value: r.raw_value,
+            classification: "legacy_absolute_url",
+            reason: extracted
+              ? "URL absoluta com path fora do escopo do tenant efetivo"
+              : "URL absoluta em formato desconhecido — extração de path negada",
+            exists_in_storage: false,
+            extracted_relative_path: extracted,
+          });
+        }
+        continue;
+      }
+      // Path relativo curto (ex.: `{tid}/`) ou traversal — invalid_metadata.
+      const bare = r.path.replace(/\/+$/g, "");
+      const looksTruncated =
+        r.path.endsWith("/") || bare.split("/").length < 2 || bare.length === 0;
+      if (looksTruncated) {
         classified.push({
           entity: r.entity,
           entity_id: r.entity_id,
           bucket: r.bucket,
           raw_value: r.raw_value,
-          classification: "legacy_absolute_url",
-          reason: "coluna guarda URL absoluta com token; padrão M3.2 exige path relativo",
+          classification: "invalid_metadata",
+          reason: "path truncado ou sem filename; requer reupload/nullify",
+          exists_in_storage: false,
         });
         continue;
       }
       const c = classifyPath(r.bucket, tenantId, r.path);
       const exists = storageIndex[r.bucket]?.has(r.path) ?? false;
+      const classification =
+        c.classification === "compliant"
+          ? "compliant"
+          : c.classification === "invalid"
+            ? "invalid_metadata"
+            : c.classification === "legacy_no_prefix"
+              ? "metadata_inconsistent"
+              : c.classification; // cross_tenant preserved
       classified.push({
         entity: r.entity,
         entity_id: r.entity_id,
         bucket: r.bucket,
         raw_value: r.raw_value,
-        classification: c.classification,
-        reason: c.classification === "compliant" ? undefined : c.reason,
+        classification,
+        reason: classification === "compliant" ? undefined : c.reason,
         exists_in_storage: exists,
       });
     }
 
-    // 4. Órfãos — objetos físicos sem referência em banco.
-    const referencedPaths = new Set(
+    // 4. Órfãos — objetos físicos sem referência DIRETA nem INDIRETA.
+    //    Um objeto é orphan_real apenas quando:
+    //      - nenhuma linha compliant aponta para ele (path relativo idêntico), E
+    //      - nenhuma URL absoluta legada extrai para o seu path.
+    const referencedPaths = new Set<string>(
       classified
         .filter((c) => c.classification === "compliant" && c.raw_value)
         .map((c) => `${c.bucket}::${c.raw_value}`),
     );
-    const orphans: { bucket: string; path: string }[] = [];
+    const orphans: {
+      bucket: string;
+      path: string;
+      classification: "orphan_real" | "referenced_by_legacy_absolute_url";
+    }[] = [];
     for (const b of buckets) {
       for (const p of storageIndex[b] ?? []) {
-        if (!referencedPaths.has(`${b}::${p}`)) orphans.push({ bucket: b, path: p });
+        const key = `${b}::${p}`;
+        if (referencedPaths.has(key)) continue;
+        const classification = referencedByAbsoluteUrl.has(key)
+          ? ("referenced_by_legacy_absolute_url" as const)
+          : ("orphan_real" as const);
+        orphans.push({ bucket: b, path: p, classification });
       }
     }
 
@@ -296,7 +400,13 @@ export const inventariarLegacyStorage = createServerFn({ method: "POST" })
         return acc;
       }, {}),
       orphans_count: orphans.length,
+      orphans_real_count: orphans.filter((o) => o.classification === "orphan_real")
+        .length,
+      orphans_referenced_by_legacy_absolute_url_count: orphans.filter(
+        (o) => o.classification === "referenced_by_legacy_absolute_url",
+      ).length,
     };
+
 
     // 6. Persistência opcional do snapshot (audit trail).
     if (data.persistSnapshot) {
