@@ -68,4 +68,5 @@ geram nova IA que referencia a anterior.
 ## Índice
 - [IA-001 — Tenant Middleware](./IA-001-TenantMiddleware.md) — ✔ Concluída
 - [IA-002 — Client Impersonation Layer](./IA-002-ClientImpersonationLayer.md) — ✔ Concluída (Fase 2.3 + Patch 2.3.1)
-- [IA-003 — RLS Policies](./IA-003-RLSPolicies.md) — 🟢 Aprovada · M2b implementada (`docs/fase6/11-fase-2-m2b-relatorio.md`) + Audit Clarification Report (`docs/fase6/12-m2b-audit-clarification-report.md`) — aguarda decisão final de auditoria
+- [IA-003 — RLS Policies](./IA-003-RLSPolicies.md) — 🟢 Aprovada · M2b implementada (`docs/fase6/11-fase-2-m2b-relatorio.md`) + Audit Clarification Report (`docs/fase6/12-m2b-audit-clarification-report.md`) + Patch M2b.1 (`docs/fase6/13-m2b-1-get-current-tenant-id-cardinality-fix.md`)
+- [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — 🟡 Proposed / Awaiting Audit · **M3 BLOCKED**
