@@ -568,15 +568,14 @@ IA-004 foi criada para análise arquitetural da M3.
 - **M3.4 — Signed URL Hardening** — ✔ concluída + Patch M3.4.1 aprovado
   ([`19`](../../fase6/19-m3-4-signed-url-hardening.md),
   [`20`](../../fase6/20-m3-4-1-ia-004-index-fix.md)).
-- **M3.3 — Legacy File Migration** — 🟡 implementada parcialmente, Patch M3.3.1
-  aguardando auditoria ([`21`](../../fase6/21-m3-3-legacy-file-migration.md),
+- **M3.3 — Legacy File Migration** — ✔ concluída + Patch M3.3.1 **aprovado**
+  ([`21`](../../fase6/21-m3-3-legacy-file-migration.md),
   [`22`](../../fase6/22-m3-3-1-metadata-normalization-documentation-fix.md)).
   Universo físico legado = ∅ (todos os 22 objetos já compliant, reclassificados
   no Patch M3.3.1 como `referenced_by_legacy_absolute_url`). 8 inconsistências
-  de metadata catalogadas e formalmente classificadas. Log de auditoria/rollback
-  em `public.storage_migration_log` (super-admin only) — exceção controlada
-  documentada no Patch M3.3.1.
-- **M3.3 — Legacy File Migration** — ✔ concluída + Patch M3.3.1 **aprovado**.
+  de metadata catalogadas e preservadas como backlog **M3.3.2 — Metadata
+  Rewrite Batch**. Log de auditoria/rollback em `public.storage_migration_log`
+  (super-admin only) — exceção controlada documentada no Patch M3.3.1.
 - **M3.5 — Media Picker Validation** — ✔ implementada, aguardando auditoria
   ([`23`](../../fase6/23-m3-5-media-picker-validation.md)). Nenhuma alteração
   funcional foi necessária — MediaPicker e server functions já estavam em
