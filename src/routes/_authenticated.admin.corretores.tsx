@@ -12,7 +12,7 @@ import {
 } from "@/lib/api/admin.functions";
 import { listarEquipes, listarPerfis, listarPerfisPorUsuario } from "@/lib/api/rbac.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -207,15 +207,22 @@ function AdminUsuarios() {
     if (!file || !editing) return;
     setUploading(true);
     try {
-      const sanitized = file.name
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = prefixTenant(`corretores/${crypto.randomUUID().slice(0, 8)}-${sanitized}`);
-      const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
+      // M3.2 — path server-authoritative.
+      const target = await createUploadTarget({
+        data: {
+          domain: "corretor-foto",
+          originalFileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+        },
+      });
+      const { error: upErr } = await supabase.storage
+        .from(target.bucket)
+        .upload(target.path, file, { upsert: false });
       if (upErr) throw upErr;
-      const { url } = await adminAssinarUrl({ data: { bucket: "site", path, width: 600, quality: 85 } });
+      const { url } = await adminAssinarUrl({
+        data: { bucket: target.bucket, path: target.path, width: 600, quality: 85 },
+      });
       setEditing({ ...editing, foto_url: url });
       toast.success("Foto enviada");
     } catch (err) {

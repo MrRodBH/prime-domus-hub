@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { adminSalvarPost, adminListarCategorias, adminGerarResumoPost, adminGerarSeoPost, adminImportarPdf } from "@/lib/api/blog.functions";
 import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,15 +104,22 @@ export function PostForm({ initial }: { initial?: Post }) {
     if (!file) return;
     setUploading(true);
     try {
-      const sanitized = file.name
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = prefixTenant(`blog/${crypto.randomUUID().slice(0, 8)}-${sanitized}`);
-      const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
+      // M3.2 — servidor resolve tenant e monta path (client não define prefixo).
+      const target = await createUploadTarget({
+        data: {
+          domain: "blog-cover",
+          originalFileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+        },
+      });
+      const { error: upErr } = await supabase.storage
+        .from(target.bucket)
+        .upload(target.path, file, { upsert: false });
       if (upErr) throw upErr;
-      const { url } = await adminAssinarUrl({ data: { bucket: "site", path, width: 1600, quality: 80 } });
+      const { url } = await adminAssinarUrl({
+        data: { bucket: target.bucket, path: target.path, width: 1600, quality: 80 },
+      });
       setForm((f: Post) => ({ ...f, imagem_capa: url }));
       toast.success("Imagem enviada");
     } catch (err) {

@@ -5,7 +5,7 @@ import { FileText, Upload, Trash2, Eye, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import {
   adminListarPdfsLancamento,
   adminAdicionarPdfLancamento,
@@ -103,15 +103,23 @@ function Bloco({ titulo, descricao, kind, rows, projectId, slug, onChange }: {
     if (f.type !== "application/pdf") { toast.error("Envie apenas arquivos PDF."); e.target.value = ""; return; }
     setUploading(true);
     try {
-      const safe = f.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = prefixTenant(`${slug || projectId}/${kind}/${crypto.randomUUID().slice(0, 8)}-${safe}`);
-      const { error: upErr } = await supabase.storage.from("lancamentos").upload(path, f, {
+      // M3.2 — path server-authoritative; kind vai como `variant` (enum fechado no server).
+      const target = await createUploadTarget({
+        data: {
+          domain: "lancamento-pdf",
+          entityId: projectId,
+          variant: kind,
+          originalFileName: f.name,
+          mimeType: f.type,
+          size: f.size,
+        },
+      });
+      const { error: upErr } = await supabase.storage.from(target.bucket).upload(target.path, f, {
         upsert: false, contentType: "application/pdf",
       });
       if (upErr) throw upErr;
       await adminAdicionarPdfLancamento({
-        data: { project_id: projectId, kind, titulo: tituloNovo || f.name, storage_path: path, tamanho_bytes: f.size },
+        data: { project_id: projectId, kind, titulo: tituloNovo || f.name, storage_path: target.path, tamanho_bytes: f.size },
       });
       toast.success("PDF enviado");
       setTituloNovo("");
