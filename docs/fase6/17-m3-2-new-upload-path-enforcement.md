@@ -89,7 +89,7 @@ type CreateUploadTargetResult = {
 | Gerar storageFileName | **Servidor** (`<8-uuid>-<sanitized><.ext>`) |
 | Nome original | Client (persistido apenas como metadata) |
 | Mime type / size | Client (informativo; podem ser reforçados no server) |
-| Prefixo `{tenantId}/…` | **Servidor** (client não envia, não vê antes) |
+| Prefixo `{tenantId}/…` | **Servidor** (o client pode receber o path autoritativo gerado pelo servidor para executar o upload físico, mas não pode construir, alterar ou escolher esse path) |
 | `path` completo | **Recusado** — não existe no schema de entrada |
 
 ### 3.4 Client não pode mais enviar
