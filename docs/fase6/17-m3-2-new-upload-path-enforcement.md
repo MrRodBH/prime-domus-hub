@@ -187,7 +187,7 @@ etc.), agora recebendo o `path` já autoritativo.
 | --- | --- |
 | Uploads antigos com caminhos legados não conformes ao novo template canônico | **M3.3 — Legacy File Migration** |
 | Signed URLs com TTL de 365 dias (`SIGN_TTL` em `media.functions.ts` e `lancamentos.functions.ts`) | **M3.4 — Signed URL Hardening** |
-| Media Picker (`src/components/admin/MediaPicker.tsx`) e fluxo de upload da biblioteca central de mídias — `registrarMidia` ainda aceita `arquivo` como string arbitrária no schema | **M3.5 — Media Picker Validation** (endurecer `registrarMidia` para exigir path começando com `{tenantId}/media/`) |
+| Media Picker (`src/components/admin/MediaPicker.tsx`) e fluxo de leitura/uso na biblioteca central de mídias | **M3.5 — Media Picker Validation** (o endurecimento de `registrarMidia` foi antecipado pelo Patch M3.2.1 — ver `docs/fase6/18-m3-2-1-upload-path-enforcement-patch.md`) |
 | Enforcement de mime-type por domain (ex.: PDFs só em `lancamento-pdf`) | pode virar patch M3.2.x ou entrar em M3.5 |
 | Bucket `imoveis` e `lancamentos` são privados; políticas RLS de Storage já validadas na M2b, não revisadas nesta etapa | fora do escopo M3.2 |
 
