@@ -64,7 +64,7 @@ Componentes e processos estabilizados na Fase 6:
 | IA-002 · Fase 2.3 — Client Impersonation Layer | ✔ **Concluída** |
 | IA-003 · RLS Policies (RESTRICTIVE por tenant) | 🟢 Aprovada em auditoria final |
 | M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/fase6/11-fase-2-m2b-relatorio.md`) |
-| IA-004 · Tenant Storage Isolation | 🟡 **Proposed / Awaiting Audit** (`impact-analysis/IA-004-TenantStorageIsolation.md`) — M3 bloqueada até aprovação |
+| IA-004 · Tenant Storage Isolation | ✔ **Concluída** (`impact-analysis/IA-004-TenantStorageIsolation.md`) — M3 concluída operacionalmente |
 
 #### Fase 2.3 — Client Impersonation Layer ✔
 - Header `x-tenant-id` propagado via `attachTenantHeader` (client middleware)
@@ -83,13 +83,23 @@ Componentes e processos estabilizados na Fase 6:
 - Enforcement zero-trust: nenhuma leitura/escrita fora do tenant ativo.
 - Depende de IA-002 (contexto de tenant garantido server-side).
 
-#### M3 — Tenant Storage Isolation
-- Isolamento por tenant do armazenamento de arquivos (buckets privados atuais).
-- Estratégia de path/segmentação e migração de arquivos existentes a serem
-  definidas na IA-004 e ratificadas antes da implementação — o Roadmap não
-  antecipa padrão de path específico.
+#### M3 — Tenant Storage Isolation ✔ Concluída operacionalmente
+- Isolamento por tenant do armazenamento de arquivos (buckets privados mantidos).
+- Novos uploads gravam sob path server-authoritative tenant-scoped
+  (M3.2 + Patch M3.2.1).
+- Signed URLs endurecidas e validadas server-side por tenant
+  (M3.4 + Patch M3.4.1).
+- Inventário físico de arquivos legados concluído; universo físico a migrar
+  identificado como ∅ — todos os objetos já compliant após reclassificação
+  do Patch M3.3.1 (M3.3 + Patch M3.3.1).
+- Media Picker e biblioteca central de mídia validados sob a arquitetura
+  tenant-scoped (M3.5).
+- Inconsistências de metadata legada remanescentes preservadas como backlog
+  formal (**M3.3.2 — Metadata Rewrite Batch**). Também preservados os
+  backlogs **Upload Provenance Token** e **Media Picker Return Contract
+  Normalization**. Nenhum destes foi executado — a conclusão da M3 não
+  implica execução dos backlogs futuros.
 - Base para a futura Storage Abstraction Layer (Fase 4).
-- Depende de M2b e de aprovação formal da IA-004.
 
 ### 🟡 Fase 3 — Membership Evolution Model
 - Suporte a **múltiplas memberships por usuário**.

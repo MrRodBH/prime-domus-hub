@@ -1,13 +1,11 @@
 # IA-004 — Tenant Storage Isolation
 
-**Status:** 🟡 Proposed / Awaiting Audit
+**Status:** ✔ Concluída
+**M3 — Tenant Storage Isolation:** ✔ Concluída operacionalmente
 **Precedência:** IA-001 (Tenant Middleware) · IA-002 (Client Impersonation Layer) · IA-003 (RLS Policies) · M2b (RLS Implementation) · Patch M2b.1 (get_current_tenant_id cardinality fix)
 **Etapa alvo:** M3 — Tenant Storage Isolation
 **Autor:** Arquitetura RM Prime SaaS
-**Regra de escopo:** Este documento é **exclusivamente análise arquitetural**.
-Nenhum arquivo, bucket, path, migration, schema, RLS, policy, código `src/`,
-Media Library, Media Picker ou upload pode ser alterado nesta etapa.
-**M3 permanece bloqueada até auditoria e aprovação formal desta IA-004.**
+**Fechamento formal:** [`docs/fase6/26-ia-004-m3-formal-closure.md`](../../fase6/26-ia-004-m3-formal-closure.md)
 
 ---
 
@@ -576,7 +574,7 @@ IA-004 foi criada para análise arquitetural da M3.
   de metadata catalogadas e preservadas como backlog **M3.3.2 — Metadata
   Rewrite Batch**. Log de auditoria/rollback em `public.storage_migration_log`
   (super-admin only) — exceção controlada documentada no Patch M3.3.1.
-- **M3.5 — Media Picker Validation** — ✔ implementada, aguardando auditoria/aprovação
+- **M3.5 — Media Picker Validation** — ✔ concluída
   ([`23`](../../fase6/23-m3-5-media-picker-validation.md)). Nenhuma alteração
   funcional foi necessária — MediaPicker e server functions já estavam em
   conformidade após M3.2/M3.4/M3.3. Backlog formal preservado:
@@ -584,5 +582,11 @@ IA-004 foi criada para análise arquitetural da M3.
   **M3.3.2 — Metadata Rewrite Batch** (8 inconsistências de metadata legada) e
   **Media Picker Return Contract Normalization** (contrato de retorno para
   `media_id` puro, backlog opcional não bloqueante).
+
+**Fechamento formal:** IA-004 e M3 encerradas operacionalmente em
+[`docs/fase6/26-ia-004-m3-formal-closure.md`](../../fase6/26-ia-004-m3-formal-closure.md).
+Backlogs (Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch,
+Media Picker Return Contract Normalization) permanecem preservados e
+**não foram executados**.
 
 
