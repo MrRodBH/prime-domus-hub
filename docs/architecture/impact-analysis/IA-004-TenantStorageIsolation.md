@@ -555,3 +555,18 @@ Este documento está em conformidade com:
 **Declaração explícita:**
 IA-004 foi criada para análise arquitetural da M3.
 **M3 permanece bloqueada até auditoria e aprovação formal da IA-004.**
+
+---
+
+## Status de execução das subetapas
+
+- **M3.1 — Storage Inventory & Classification** — ✔ concluída
+  ([`docs/fase6/15-m3-1-storage-inventory-classification.md`](../../fase6/15-m3-1-storage-inventory-classification.md)).
+- **M3.2 — New Upload Path Enforcement** — ✔ concluída + Patch M3.2.1
+  ([`17`](../../fase6/17-m3-2-new-upload-path-enforcement.md),
+  [`18`](../../fase6/18-m3-2-1-upload-path-enforcement-patch.md)).
+- **M3.4 — Signed URL Hardening** — 🟡 implementada, aguardando auditoria
+  ([`docs/fase6/19-m3-4-signed-url-hardening.md`](../../fase6/19-m3-4-signed-url-hardening.md)).
+- **M3.3 — Legacy File Migration** — 🔒 BLOQUEADA.
+- **M3.5 — Media Picker Validation** — 🔒 BLOQUEADA.
+
