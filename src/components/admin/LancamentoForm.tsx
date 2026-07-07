@@ -16,7 +16,7 @@ import { PdfsLancamento } from "@/components/admin/PdfsLancamento";
 import { LazerPicker } from "@/components/admin/LazerPicker";
 import { InstagramPostManager } from "@/components/admin/InstagramPostManager";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import {
   adminObterLancamento,
   adminSalvarLancamento,
@@ -204,13 +204,22 @@ export function LancamentoForm({ id }: Props) {
     if (!file) return;
     setUploadingCapa(true);
     try {
-      const sanitized = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const slug = form.slug || slugify(form.nome) || "novo";
-      const path = prefixTenant(`${slug}/capa/${crypto.randomUUID().slice(0, 8)}-${sanitized}`);
-      const { error } = await supabase.storage.from("lancamentos").upload(path, file, { upsert: false });
+      // M3.2 — servidor resolve tenant e valida ownership do lançamento (entityId obrigatório).
+      if (!form.id) throw new Error("Salve o lançamento antes de enviar a capa.");
+      const target = await createUploadTarget({
+        data: {
+          domain: "lancamento-capa",
+          entityId: form.id,
+          originalFileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+        },
+      });
+      const { error } = await supabase.storage
+        .from(target.bucket)
+        .upload(target.path, file, { upsert: false });
       if (error) throw error;
-      setForm((f) => ({ ...f, imagem_capa: path }));
+      setForm((f) => ({ ...f, imagem_capa: target.path }));
       toast.success("Imagem enviada");
     } catch (err) {
       toast.error((err as Error).message);

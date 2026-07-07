@@ -5,7 +5,7 @@ import { Loader2, Upload, Trash2, Star, Image as ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import {
   adminListarImagensLancamento,
   adminAdicionarImagemLancamento,
@@ -64,13 +64,22 @@ export function GaleriaLancamento({ projectId, slug, imagemCapa, onCapaChange }:
     try {
       let nextOrdem = (imgs.reduce((m, i) => Math.max(m, i.ordem ?? 0), 0) || 0) + 1;
       for (const file of arr) {
-        const safe = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          .replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]+/g, "_");
-        const path = prefixTenant(`${slug || projectId}/galeria/${crypto.randomUUID().slice(0, 8)}-${safe}`);
-        const { error: upErr } = await supabase.storage.from("lancamentos").upload(path, file, { upsert: false });
+        // M3.2 — servidor injeta tenantId e valida ownership do lançamento.
+        const target = await createUploadTarget({
+          data: {
+            domain: "lancamento-galeria",
+            entityId: projectId,
+            originalFileName: file.name,
+            mimeType: file.type,
+            size: file.size,
+          },
+        });
+        const { error: upErr } = await supabase.storage
+          .from(target.bucket)
+          .upload(target.path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagemLancamento({
-          data: { project_id: projectId, storage_path: path, legenda: null, ordem: nextOrdem++ },
+          data: { project_id: projectId, storage_path: target.path, legenda: null, ordem: nextOrdem++ },
         });
       }
       toast.success(`${arr.length} imagem(ns) enviada(s)`);

@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import { adminAssinarUrl } from "@/lib/api/admin.functions";
 import { toast } from "sonner";
 
@@ -120,16 +120,21 @@ export function RichTextEditor({ value, onChange }: Props) {
     if (!file) return;
     setUploadingImg(true);
     try {
-      const sanitized = file.name
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const path = prefixTenant(`blog/inline/${crypto.randomUUID().slice(0, 8)}-${sanitized}`);
-      const { error: upErr } = await supabase.storage.from("site").upload(path, file, { upsert: false });
+      // M3.2 — path server-authoritative.
+      const target = await createUploadTarget({
+        data: {
+          domain: "blog-inline",
+          originalFileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+        },
+      });
+      const { error: upErr } = await supabase.storage
+        .from(target.bucket)
+        .upload(target.path, file, { upsert: false });
       if (upErr) throw upErr;
       const { url } = await adminAssinarUrl({
-        data: { bucket: "site", path, width: 1600, quality: 80 },
+        data: { bucket: target.bucket, path: target.path, width: 1600, quality: 80 },
       });
       insertImageUrl(url);
       toast.success("Imagem inserida");

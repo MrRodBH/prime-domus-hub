@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { atualizarSiteSettings } from "@/lib/api/site.functions";
 import { adminAssinarUrl } from "@/lib/api/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,11 +154,14 @@ export function CmsPaginaSobreTab({ data }: Props) {
     const file = e.target.files?.[0]; if (!file) return;
     setUploading(true);
     try {
-      const path = prefixTenant(`sobre-${Date.now()}.${file.name.split(".").pop()}`);
-      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      // M3.2 — path server-authoritative; variant "sobre" pertence ao enum fechado.
+      const target = await createUploadTarget({
+        data: { domain: "cms-page", variant: "sobre", originalFileName: file.name, mimeType: file.type, size: file.size },
+      });
+      const { error } = await supabase.storage.from(target.bucket).upload(target.path, file, { upsert: true });
       if (error) throw error;
-      setForm({ ...form, hero_image_path: path });
-      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setForm({ ...form, hero_image_path: target.path });
+      const { url } = await adminAssinarUrl({ data: { bucket: target.bucket, path: target.path } });
       setPreview(url);
       toast.success("Imagem enviada — clique em Salvar.");
     } catch (err) { toast.error((err as Error).message); }
@@ -318,11 +321,14 @@ export function CmsPaginaAnuncieTab({ data }: Props) {
     const file = e.target.files?.[0]; if (!file) return;
     setUploading(true);
     try {
-      const path = prefixTenant(`anuncie-${Date.now()}.${file.name.split(".").pop()}`);
-      const { error } = await supabase.storage.from("site").upload(path, file, { upsert: true });
+      // M3.2 — path server-authoritative; variant "anuncie" pertence ao enum fechado.
+      const target = await createUploadTarget({
+        data: { domain: "cms-page", variant: "anuncie", originalFileName: file.name, mimeType: file.type, size: file.size },
+      });
+      const { error } = await supabase.storage.from(target.bucket).upload(target.path, file, { upsert: true });
       if (error) throw error;
-      setForm({ ...form, hero_image_path: path });
-      const { url } = await adminAssinarUrl({ data: { bucket: "site", path } });
+      setForm({ ...form, hero_image_path: target.path });
+      const { url } = await adminAssinarUrl({ data: { bucket: target.bucket, path: target.path } });
       setPreview(url);
       toast.success("Imagem enviada — clique em Salvar.");
     } catch (err) { toast.error((err as Error).message); }

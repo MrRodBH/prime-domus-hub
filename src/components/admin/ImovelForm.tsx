@@ -24,7 +24,7 @@ import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { prefixTenant } from "@/lib/tenant-cache";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
 import { Trash2, Upload, Sparkles, Crown } from "lucide-react";
 import { InstagramPostManager } from "./InstagramPostManager";
 import { LazerPicker } from "./LazerPicker";
@@ -249,17 +249,22 @@ export function ImovelForm({ initial }: Props) {
     setUploading(true);
     try {
       for (const file of aEnviar) {
-        const sanitized = file.name
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/[^a-zA-Z0-9._-]+/g, "_");
-        const prefix = crypto.randomUUID().slice(0, 8);
-        const path = prefixTenant(`${form.id}/${prefix}-${sanitized}`);
-        const { error: upErr } = await supabase.storage.from("imoveis").upload(path, file, { upsert: false });
+        // M3.2 — path autoritativo pelo servidor (tenantId + validação de ownership).
+        const target = await createUploadTarget({
+          data: {
+            domain: "imoveis",
+            entityId: form.id,
+            originalFileName: file.name,
+            mimeType: file.type,
+            size: file.size,
+          },
+        });
+        const { error: upErr } = await supabase.storage
+          .from(target.bucket)
+          .upload(target.path, file, { upsert: false });
         if (upErr) throw upErr;
         await adminAdicionarImagem({
-          data: { imovel_id: form.id, url: path, alt: form.titulo, ordem: 0 },
+          data: { imovel_id: form.id, url: target.path, alt: form.titulo, ordem: 0 },
         });
       }
       toast.success("Imagens enviadas");
