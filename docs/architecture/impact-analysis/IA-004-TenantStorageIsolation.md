@@ -576,11 +576,13 @@ IA-004 foi criada para análise arquitetural da M3.
   de metadata catalogadas e preservadas como backlog **M3.3.2 — Metadata
   Rewrite Batch**. Log de auditoria/rollback em `public.storage_migration_log`
   (super-admin only) — exceção controlada documentada no Patch M3.3.1.
-- **M3.5 — Media Picker Validation** — ✔ implementada, aguardando auditoria
+- **M3.5 — Media Picker Validation** — ✔ implementada, aguardando auditoria/aprovação
   ([`23`](../../fase6/23-m3-5-media-picker-validation.md)). Nenhuma alteração
   funcional foi necessária — MediaPicker e server functions já estavam em
   conformidade após M3.2/M3.4/M3.3. Backlog formal preservado:
-  **Upload Provenance Token** (defesa em profundidade, Opção B) e
-  **M3.3.2 — Metadata Rewrite Batch** (8 inconsistências de metadata legada).
+  **Upload Provenance Token** (defesa em profundidade, Opção B),
+  **M3.3.2 — Metadata Rewrite Batch** (8 inconsistências de metadata legada) e
+  **Media Picker Return Contract Normalization** (contrato de retorno para
+  `media_id` puro, backlog opcional não bloqueante).
 
 
