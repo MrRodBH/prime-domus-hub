@@ -323,9 +323,60 @@ Saída: planilha ou relatório `docs/fase6/14-m3-storage-inventory.md`
 - **global assets** — logos, ícones, thumbs de placeholder embutidos no
   código (`src/assets/…`). Não estão em Storage e permanecem fora de escopo.
 
-### 12.3 Estratégia de path
+### 12.3 Matriz comparativa de estratégias de path (hipóteses)
 
-**Padrão oficial proposto (a ratificar na M3):**
+Nenhuma estratégia abaixo é decisão arquitetural aprovada. Todas
+permanecem como **hipóteses técnicas em análise**, a serem ratificadas (ou
+substituídas) no início da M3, após auditoria da IA-004. O Roadmap
+Arquitetural não antecipa `tenantId/` prefix nem qualquer outro padrão.
+
+Critérios avaliados por hipótese:
+
+- **Segurança** — resistência a leakage cross-tenant e força da validação
+  server-side por prefixo/bucket.
+- **Performance** — custo de listagem, cache de derivativos e latência de
+  signed URL.
+- **Complexidade** — esforço de implementação, quantidade de policies
+  necessárias, superfície de manutenção.
+- **Escalabilidade** — comportamento com N tenants, milhões de objetos, e
+  migração futura para `StorageProvider` (Fase 4 / ADR-006).
+- **Rollback** — reversibilidade da migração e custo de retorno ao estado
+  anterior.
+- **Signed URL compat** — facilidade de gerar/validar signed URL por objeto.
+- **Aderência Architecture First** — respeito aos invariantes (client não é
+  autoridade, sem heurística, sem tenant default, path validável server-side).
+
+| Estratégia (hipótese) | Segurança | Performance | Complexidade | Escalabilidade | Rollback | Signed URL | Vazamento cross-tenant | Aderência Architecture First |
+|---|---|---|---|---|---|---|---|---|
+| **H1 — `tenants/{tenantId}/media/{filename}`** (prefixo por tenant + domínio único `media`) | Alta — policy `name LIKE 'tenants/' || tid || '/%'` cobre 100% dos objetos com uma única regra. | Alta — prefixo curto, listagem O(log) por tenant, derivativos co-localizados. | Baixa — 1 padrão único de path, 1 família de policies. | Alta — sem limite prático; migração para bucket-per-tenant é copy+rewrite. | Alto — copy+delete reversível; `arquivo_legacy` restaura path antigo. | Ótimo — signed URL por objeto, TTL curto trivial. | Muito baixo se policy correta; risco residual se código emitir path sem `tenantId`. | Alta — path derivado server-side, sem client authority. |
+| **H2 — `tenants/{tenantId}/{entity}/{entityId}/{filename}`** (prefixo por tenant + domínio funcional) | Alta — mesma policy raiz; ganho adicional de auditabilidade por entidade. | Alta — colisão zero entre domínios; cache de derivativos por entidade estável. | Média — mais convenções (`properties`, `launches`, `cms/pages`…); documentação obrigatória; risco de deriva se novos domínios não registrarem convenção. | Alta — igual a H1; segmentação favorece jobs por domínio. | Alto — igual a H1; migração pode ser feita por domínio. | Ótimo — signed URL por objeto. | Muito baixo com policy correta; risco residual se novo domínio esquecer prefixo. | Alta — path 100% server-derived; explicitação por domínio reforça auditoria. |
+| **H3 — `tenants/{tenantId}/{mediaId}/{filename}`** (prefixo por tenant + `mediaId` opaco) | Alta — policy raiz idêntica; `mediaId` opaco reduz predição de path. | Média/Alta — path curto; sem agrupamento funcional (jobs por domínio precisam de join com metadata). | Média — bom para Media Library; ruim para arquivos ligados diretamente a entidades sem `mediaId` (imagens de imóvel, PDFs). | Média — exige `media_library` como registro central para todo arquivo, o que pode não ser viável para todos os fluxos atuais. | Alto — copy+delete reversível. | Ótimo — `mediaId` estável facilita rotação de derivativos. | Baixo com policy correta. | Média — força centralização em `media_library`; pode conflitar com fluxos que hoje gravam sem passar pela Library. |
+| **H4 — Bucket por tenant** (`bucket_{tenantId}`) | Muito alta — isolamento físico; policy pode ser mais simples ("qualquer objeto do bucket X pertence ao tenant X"). | Média — criação e gestão de N buckets; overhead operacional; limites de bucket por projeto no provider. | Alta — provisionamento automático por tenant, ciclo de vida (criação/exclusão), políticas replicadas N vezes, migração de assets legados por bucket. | Baixa/Média — depende do limite de buckets do provider (Supabase possui limites) e do custo de gestão em escala. | Médio — rollback exige recriação de buckets e recopy massivo. | Ótimo — signed URL por objeto continua trivial. | Muito baixo — barreira física entre tenants. | Alta em isolamento; baixa em simplicidade — introduz camada de provisionamento que hoje não existe e aumenta acoplamento com o provider (conflita com neutralidade prevista pela Fase 4 / StorageProvider). |
+
+Notas transversais (aplicáveis a todas as hipóteses):
+
+- Nenhuma hipótese admite path enviado pelo client como autoridade; o servidor
+  sempre reconstrói o path a partir de `tenantId` (via `requireTenant` /
+  `get_current_tenant_id()`) e de identificadores derivados de metadata.
+- Nenhuma hipótese admite bucket público — todos permanecem privados;
+  qualquer exceção exige ADR próprio.
+- Nenhuma hipótese admite tenant default, fallback implícito ou bypass de
+  Super Admin sem impersonação.
+- Signed URL é canal de **entrega**, nunca de **autorização primária** — a
+  autorização vive na policy de `storage.objects` + validação server-side.
+- Todas as hipóteses são compatíveis com a futura Storage Abstraction Layer
+  (Fase 4 / ADR-006), com custos de migração distintos (menor para H1/H2,
+  maior para H4).
+
+A decisão entre H1, H2, H3 e H4 (ou combinação híbrida — ex.: H2 dentro de
+H4) será tomada na abertura da M3, com base em: inventário real (§12.1),
+classificação (§12.2), limites do provider, custo operacional e revisão de
+segurança.
+
+### 12.4 Hipótese de estratégia de path (a ratificar na M3)
+
+A título ilustrativo da hipótese H2 (prefixo por tenant + domínio
+funcional), um formato possível seria:
 
 ```
 tenants/{tenantId}/media/{mediaId}/{filename}
@@ -339,12 +390,13 @@ tenants/{tenantId}/cms/campaigns/{campaignId}/{filename}
 tenants/{tenantId}/blog/{postId}/{filename}
 ```
 
-Diretrizes:
+Este exemplo **não é decisão aprovada**; serve apenas como referência para
+avaliar diretrizes potenciais:
 
 - **Path único por tenant** no primeiro segmento (`tenants/{tenantId}/`) —
-  requisito para policy de `storage.objects` baseada em prefixo.
-- **Path por domínio funcional** no segundo segmento (`media`, `properties`,
-  `launches/gallery`, `launches/pdfs`, `cms/pages`, `cms/campaigns`, `blog`).
+  requisito comum a H1/H2/H3 para policy de `storage.objects` baseada em
+  prefixo.
+- **Path por domínio funcional** (H2) no segundo segmento.
 - **Path estável por mediaId/entidadeId** — filenames podem ser rotacionados,
   mas o pai é imutável, permitindo cache de derivativos (medium/thumbnail).
 - **Sem dependência de `media_library` no path** — para funcionar tanto para
