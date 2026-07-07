@@ -567,6 +567,10 @@ IA-004 foi criada para análise arquitetural da M3.
   [`18`](../../fase6/18-m3-2-1-upload-path-enforcement-patch.md)).
 - **M3.4 — Signed URL Hardening** — 🟡 implementada, aguardando auditoria
   ([`docs/fase6/19-m3-4-signed-url-hardening.md`](../../fase6/19-m3-4-signed-url-hardening.md)).
-- **M3.3 — Legacy File Migration** — 🔒 BLOQUEADA.
-- **M3.5 — Media Picker Validation** — 🔒 BLOQUEADA.
+- **M3.3 — Legacy File Migration** — 🟡 implementada, aguardando auditoria
+  ([`docs/fase6/21-m3-3-legacy-file-migration.md`](../../fase6/21-m3-3-legacy-file-migration.md)).
+  Universo físico legado = ∅ (todos os 22 objetos já compliant). 8 inconsistências
+  de metadata catalogadas para Patch M3.3.1 dedicado. Log de auditoria/rollback
+  em `public.storage_migration_log` (super-admin only).
+- **M3.5 — Media Picker Validation** — 🔒 BLOQUEADA até aprovação da M3.3.
 
