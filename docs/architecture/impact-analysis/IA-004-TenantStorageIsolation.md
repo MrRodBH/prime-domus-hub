@@ -561,16 +561,21 @@ IA-004 foi criada para análise arquitetural da M3.
 ## Status de execução das subetapas
 
 - **M3.1 — Storage Inventory & Classification** — ✔ concluída
-  ([`docs/fase6/15-m3-1-storage-inventory-classification.md`](../../fase6/15-m3-1-storage-inventory-classification.md)).
-- **M3.2 — New Upload Path Enforcement** — ✔ concluída + Patch M3.2.1
+  ([`15`](../../fase6/15-m3-1-storage-inventory-classification.md)).
+- **M3.2 — New Upload Path Enforcement** — ✔ concluída + Patch M3.2.1 aprovado
   ([`17`](../../fase6/17-m3-2-new-upload-path-enforcement.md),
   [`18`](../../fase6/18-m3-2-1-upload-path-enforcement-patch.md)).
-- **M3.4 — Signed URL Hardening** — 🟡 implementada, aguardando auditoria
-  ([`docs/fase6/19-m3-4-signed-url-hardening.md`](../../fase6/19-m3-4-signed-url-hardening.md)).
-- **M3.3 — Legacy File Migration** — 🟡 implementada, aguardando auditoria
-  ([`docs/fase6/21-m3-3-legacy-file-migration.md`](../../fase6/21-m3-3-legacy-file-migration.md)).
-  Universo físico legado = ∅ (todos os 22 objetos já compliant). 8 inconsistências
-  de metadata catalogadas para Patch M3.3.1 dedicado. Log de auditoria/rollback
-  em `public.storage_migration_log` (super-admin only).
-- **M3.5 — Media Picker Validation** — 🔒 BLOQUEADA até aprovação da M3.3.
+- **M3.4 — Signed URL Hardening** — ✔ concluída + Patch M3.4.1 aprovado
+  ([`19`](../../fase6/19-m3-4-signed-url-hardening.md),
+  [`20`](../../fase6/20-m3-4-1-ia-004-index-fix.md)).
+- **M3.3 — Legacy File Migration** — 🟡 implementada parcialmente, Patch M3.3.1
+  aguardando auditoria ([`21`](../../fase6/21-m3-3-legacy-file-migration.md),
+  [`22`](../../fase6/22-m3-3-1-metadata-normalization-documentation-fix.md)).
+  Universo físico legado = ∅ (todos os 22 objetos já compliant, reclassificados
+  no Patch M3.3.1 como `referenced_by_legacy_absolute_url`). 8 inconsistências
+  de metadata catalogadas e formalmente classificadas. Log de auditoria/rollback
+  em `public.storage_migration_log` (super-admin only) — exceção controlada
+  documentada no Patch M3.3.1.
+- **M3.5 — Media Picker Validation** — 🔒 BLOQUEADA até aprovação do Patch M3.3.1.
+
 

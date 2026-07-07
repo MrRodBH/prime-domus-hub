@@ -157,13 +157,28 @@ Como não houve movimentação física, as validações se aplicam ao mecanismo 
 
 ## 8. Arquivos Órfãos
 
-22 objetos físicos (bucket `site`) sem referência viva nas colunas de path relativas — todos referenciados exclusivamente por URLs absolutas legadas ainda armazenadas em `blog_posts.imagem_capa` e `corretores.foto_url`. Categoria completa:
+> **Atualização Patch M3.3.1:** os 22 objetos originalmente rotulados como
+> "órfãos" foram **reclassificados** pela versão endurecida de
+> `inventariarLegacyStorage`. A extração segura do path relativo a partir
+> das URLs absolutas legadas em `blog_posts.imagem_capa` e
+> `corretores.foto_url` mostrou que **nenhum dos 22 objetos é órfão real**
+> — todos são `referenced_by_legacy_absolute_url`. A distinção passou a
+> compor a métrica (`orphans_real_count = 0`,
+> `orphans_referenced_by_legacy_absolute_url_count = 22`). Ver relatório
+> [`22`](./22-m3-3-1-metadata-normalization-documentation-fix.md).
 
-- 7 objetos em `{tid}/blog/…` — usados via URL absoluta assinada.
-- 12 objetos em `{tid}/corretores/…` — usados via URL absoluta assinada.
-- 3 objetos em `{tid}/hero-…webp|png` — usados via `site_settings.home_hero.image_path` (path sem prefixo, mas arquivo já compliant).
+Categorias físicas conforme classificação refinada (M3.3.1):
 
-Nenhum foi apagado. Todos ficam catalogados no snapshot dry-run do `storage_migration_log` para consulta futura.
+- 7 objetos em `{tid}/blog/…` → `referenced_by_legacy_absolute_url` via
+  URL assinada em `blog_posts.imagem_capa`.
+- 12 objetos em `{tid}/corretores/…` → `referenced_by_legacy_absolute_url`
+  via URL assinada em `corretores.foto_url`.
+- 3 objetos em `{tid}/hero-…webp|png` → indexados de fato como
+  `metadata_inconsistent` (referência sem prefixo em
+  `site_settings.home_hero.image_path`).
+
+Nenhum foi apagado. Todos permanecem catalogados no snapshot dry-run do
+`storage_migration_log`.
 
 ---
 
@@ -173,10 +188,13 @@ Nenhum foi apagado. Todos ficam catalogados no snapshot dry-run do `storage_migr
 |---|---|---:|---|---|
 | `legacy_absolute_url` | `blog_posts.imagem_capa` | 3+ | Capas do blog usam URL assinada de 1 ano — vazamento potencial + drift do gate M3.4 | Patch de normalização: extrair path relativo da URL, prefixar tenant se ausente, gravar path em `imagem_capa` |
 | `legacy_absolute_url` | `corretores.foto_url` | 3 | Idem | Idem, coluna `foto_url` |
-| `invalid` | `corretores.foto_url` (1 linha) | 1 | Corretor com foto quebrada (`{tid}/`) | Nullify + reupload pelo admin |
-| `legacy_no_prefix` | `site_settings.home_hero.image_path` | 1 | Path sem prefixo tenant; renderização atual depende de prefixo em runtime | Reescrever com prefixo `{tid}/` em migração dedicada |
+| `invalid_metadata` | `corretores.foto_url` (1 linha) | 1 | Corretor com foto quebrada (`{tid}/`) | Nullify + reupload pelo admin (documentado no Patch M3.3.1) |
+| `metadata_inconsistent` | `site_settings.home_hero.image_path` | 1 | Path sem prefixo tenant; renderização atual depende de prefixo em runtime | Reescrever com prefixo `{tid}/` em migração dedicada (documentado no Patch M3.3.1) |
 
-Todas foram documentadas — **nenhuma foi corrigida automaticamente**.
+Todas foram documentadas — **nenhuma foi corrigida automaticamente**. O
+Patch M3.3.1 classifica cada uma como *pending* e mantém o log de auditoria
+como fonte-verdade da normalização futura.
+
 
 ---
 
@@ -224,6 +242,36 @@ Todas foram documentadas — **nenhuma foi corrigida automaticamente**.
 - **Nenhuma alteração em Media Picker, Upload Contract ou Signed URL.**
 
 ---
+
+## 12.1 Exceção Controlada — `storage_migration_log`
+
+A criação de `public.storage_migration_log` (tabela + GRANTs +
+RLS super-admin only + trigger `updated_at`) é uma **exceção controlada**
+ao escopo original da M3.3, formalmente registrada aqui e ratificada no
+[Patch M3.3.1](./22-m3-3-1-metadata-normalization-documentation-fix.md).
+
+Justificativa:
+
+- **Necessária para audit trail** — sem persistir `old_path` / `new_path` /
+  `batch_id` / `operator_id` / `status`, qualquer operação futura de
+  migração ficaria sem evidência forense.
+- **Necessária para rollback** — `marcarRollbackLote` opera sobre esse log;
+  sem ele, o rollback documental exigido pela IA-004 §12.10 seria
+  inviabilizado.
+- **Restrita a super_admin** — RLS bloqueia leitura/escrita para qualquer
+  papel que não seja `super_admin`; anon e authenticated são negados.
+- **Não altera domínio funcional** — nenhuma tabela de negócio referencia
+  este log; sua ausência não muda nenhum comportamento do produto.
+- **Não altera Storage** — nenhum bucket, objeto ou policy de
+  `storage.objects` foi criado, movido ou modificado.
+- **Não altera RLS de tabelas existentes** — as policies preexistentes de
+  todas as tabelas de domínio permanecem intocadas.
+- **Reduz risco operacional** — instala o canal de auditoria antes de
+  qualquer operação destrutiva, coerente com o princípio *fail-safe*.
+
+---
+
+
 
 ## 13. Riscos Remanescentes
 
