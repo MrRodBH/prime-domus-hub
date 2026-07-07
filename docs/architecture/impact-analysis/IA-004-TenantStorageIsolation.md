@@ -373,7 +373,7 @@ H4) será tomada na abertura da M3, com base em: inventário real (§12.1),
 classificação (§12.2), limites do provider, custo operacional e revisão de
 segurança.
 
-### 12.4 Hipótese de estratégia de path (a ratificar na M3)
+#### 12.3.1 Exemplo ilustrativo de path (hipótese H2, não aprovado)
 
 A título ilustrativo da hipótese H2 (prefixo por tenant + domínio
 funcional), um formato possível seria:
