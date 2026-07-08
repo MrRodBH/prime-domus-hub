@@ -308,3 +308,7 @@ $ bunx tsgo --noEmit
   - SCP-001 não criou seed de planos ou entitlements.
   - SCP-002 não foi iniciada.
 - **Conclusão:** SCP-001 implementada e pronta para auditoria.
+
+## Retificação SCP-001.1
+
+A auditoria externa identificou duplicidade documental após SCP-001: o documento oficial da F4.0 permaneceu com dois status (`Proposed / Ready for External Audit` e `Accepted`). A correção final foi realizada em SCP-001.1 e documentada em `docs/fase6/53-scp-001-1-f4-0-accepted-status-final-cleanup.md`.
