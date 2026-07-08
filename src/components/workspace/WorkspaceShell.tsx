@@ -52,9 +52,32 @@ export function WorkspaceShell() {
   }, [isSuper, impersonating]);
 
   // Patch 2.3.1 · Regra 2 — SIGNED_OUT limpa determinística e automaticamente.
+  // F3.4.1 — mesmo listener limpa também a seleção comum de tenant e
+  // reage a troca de usuário (USER_UPDATED / SIGNED_IN com uid diferente).
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") clearImpersonationTenantId();
+    let lastUserId: string | null = null;
+    void supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        lastUserId = data.user?.id ?? null;
+      })
+      .catch(() => {});
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        clearImpersonationTenantId();
+        clearSelectedTenantId();
+        lastUserId = null;
+        return;
+      }
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        const uid = session?.user?.id ?? null;
+        if (lastUserId && uid && uid !== lastUserId) {
+          // troca de conta na mesma aba — seleção prévia não vale.
+          clearImpersonationTenantId();
+          clearSelectedTenantId();
+        }
+        lastUserId = uid;
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);
