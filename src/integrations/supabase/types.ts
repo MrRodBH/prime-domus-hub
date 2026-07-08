@@ -2757,24 +2757,45 @@ export type Database = {
       }
       tenant_members: {
         Row: {
+          accepted_at: string | null
+          invited_at: string | null
           is_default: boolean
           is_owner: boolean
           joined_at: string
+          membership_status: Database["public"]["Enums"]["membership_status"]
+          revoked_at: string | null
+          suspended_at: string | null
           tenant_id: string
+          tenant_role: Database["public"]["Enums"]["tenant_role"]
+          updated_at: string
           user_id: string
         }
         Insert: {
+          accepted_at?: string | null
+          invited_at?: string | null
           is_default?: boolean
           is_owner?: boolean
           joined_at?: string
+          membership_status?: Database["public"]["Enums"]["membership_status"]
+          revoked_at?: string | null
+          suspended_at?: string | null
           tenant_id: string
+          tenant_role?: Database["public"]["Enums"]["tenant_role"]
+          updated_at?: string
           user_id: string
         }
         Update: {
+          accepted_at?: string | null
+          invited_at?: string | null
           is_default?: boolean
           is_owner?: boolean
           joined_at?: string
+          membership_status?: Database["public"]["Enums"]["membership_status"]
+          revoked_at?: string | null
+          suspended_at?: string | null
           tenant_id?: string
+          tenant_role?: Database["public"]["Enums"]["tenant_role"]
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -3101,6 +3122,7 @@ export type Database = {
         | "desistiu"
         | "aluguel"
         | "outros"
+      membership_status: "active" | "invited" | "suspended" | "revoked"
       rbac_action:
         | "visualizar"
         | "criar"
@@ -3112,6 +3134,14 @@ export type Database = {
         | "gerenciar"
         | "publicar"
       rbac_scope: "proprio" | "equipe" | "global"
+      tenant_role:
+        | "owner"
+        | "admin"
+        | "manager"
+        | "broker"
+        | "captador"
+        | "secretaria"
+        | "viewer"
       user_status: "ativo" | "inativo" | "bloqueado" | "pendente"
     }
     CompositeTypes: {
@@ -3294,6 +3324,7 @@ export const Constants = {
         "aluguel",
         "outros",
       ],
+      membership_status: ["active", "invited", "suspended", "revoked"],
       rbac_action: [
         "visualizar",
         "criar",
@@ -3306,6 +3337,15 @@ export const Constants = {
         "publicar",
       ],
       rbac_scope: ["proprio", "equipe", "global"],
+      tenant_role: [
+        "owner",
+        "admin",
+        "manager",
+        "broker",
+        "captador",
+        "secretaria",
+        "viewer",
+      ],
       user_status: ["ativo", "inativo", "bloqueado", "pendente"],
     },
   },
