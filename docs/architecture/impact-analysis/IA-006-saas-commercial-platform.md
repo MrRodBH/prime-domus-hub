@@ -261,16 +261,32 @@ Requisitos arquiteturais:
 
 ## 13. Impacto em RLS e Segurança
 
-| Tabela proposta | Escopo | RLS proposta |
+> **Correção IA-006.1:** as políticas abaixo são **conceituais** e
+> **não** autorizam o uso direto de `has_role(auth.uid(), 'admin')` nem
+> de `tenant_role = 'admin'` como autorização comercial. Toda leitura/
+> gestão administrativa de billing deve depender de uma **função
+> server-side dedicada futura**, por exemplo
+> `canManageTenantBilling(userId, tenantId)`, que só poderá existir
+> após: (i) **Role Reconciliation / Membership Role Audit**,
+> (ii) definição explícita de papel comercial dedicado (ex.
+> `billing_admin` / `commercial_admin`), (iii) ADR de Commercial
+> Authorization, (iv) testes de bypass e (v) validação server-side.
+
+**A IA-006 não autoriza usar `tenant_role = 'admin'` nem
+`has_role(auth.uid(), 'admin')` como autorização comercial real.
+Qualquer autorização administrativa de billing depende de Role
+Reconciliation e de uma função server-side dedicada futura.**
+
+| Tabela proposta | Escopo | RLS proposta (conceitual) |
 |---|---|---|
 | `plans` | Global (catálogo) | `SELECT` público autenticado; escrita apenas service_role. |
 | `plan_features` | Global | Idem. |
-| `tenant_subscriptions` | Tenant-scoped | `SELECT` restrito a `has_role(auth.uid(), 'admin')` **dentro do tenant ativo** (via `get_current_tenant_id()`); escrita apenas service_role (webhooks) e Super Admin. |
+| `tenant_subscriptions` | Tenant-scoped | `SELECT` restrito via função server-side dedicada futura (`canManageTenantBilling`) dentro do tenant ativo (via `get_current_tenant_id()`); escrita apenas service_role (webhooks) e Super Admin. |
 | `tenant_entitlements` | Tenant-scoped | `SELECT` para membros ativos do tenant; escrita apenas service_role. |
-| `billing_customers` | Tenant-scoped | Leitura restrita; escrita service_role. |
+| `billing_customers` | Tenant-scoped | Leitura restrita via `canManageTenantBilling`; escrita service_role. |
 | `billing_events` | Global admin-only | Sem leitura tenant; escrita service_role. |
-| `billing_invoices` | Tenant-scoped | Leitura para admin do tenant; escrita service_role. |
-| `billing_provider_accounts` | Global | Sem leitura tenant; admin-only. |
+| `billing_invoices` | Tenant-scoped | Leitura via `canManageTenantBilling`; escrita service_role. |
+| `billing_provider_accounts` | Global | Sem leitura tenant; admin-only via função dedicada. |
 
 **Invariantes preservados:**
 
@@ -281,6 +297,9 @@ Requisitos arquiteturais:
   verificada; nunca exposto no client.
 - Nenhuma decisão comercial concede tenant-scope: assinatura ativa não
   implica membership.
+- `tenant_role` **não** é autorização comercial.
+- `has_role(auth.uid(), 'admin')` **não** é recomendação direta para
+  billing.
 
 ## 14. Impacto em Super Admin
 
