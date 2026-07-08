@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useUI } from "./ui-store";
 import { supabase } from "@/integrations/supabase/client";
 import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
+import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
