@@ -1,7 +1,7 @@
 # ADR-006 — Billing Provider Abstraction
 
 ## Status
-Proposed / Ready for External Audit
+Accepted
 
 - **Date:** 2026-07-08
 
