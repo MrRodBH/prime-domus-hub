@@ -3071,6 +3071,10 @@ export type Database = {
       }
       super_observabilidade: { Args: { _hours?: number }; Returns: Json }
       user_belongs_to_tenant: { Args: { _tenant: string }; Returns: boolean }
+      user_has_active_membership: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_team_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
