@@ -1,7 +1,7 @@
 # F4.0 — Role Reconciliation / Membership Role Audit
 
 ## Status
-Proposed / Ready for External Audit
+Accepted
 
 - **Date:** 2026-07-08
 - **Phase:** Fase 4 — SaaS Commercial Platform (gate preparatório, pré-SCP-001)
