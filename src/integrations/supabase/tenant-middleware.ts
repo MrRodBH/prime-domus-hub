@@ -1,20 +1,27 @@
-// Tenant Middleware — Fase 2.2 (IA-001)
+// Tenant Middleware — F3.2 (Server-Side Tenant Selection)
 //
-// Resolução determinística de tenantId server-side. Compõe-se sobre
-// `requireSupabaseAuth`. Não participa do runtime do Workspace, não muta
-// Registry / Snapshot / ResolutionGraph / Executor / PluginContext /
-// Bootstrap. Camada exclusiva de autenticação + tenant resolution.
+// Evolução da IA-001 §12.2: permite que usuário comum com múltiplas
+// memberships ativas envie x-tenant-id como TRANSPORTE, sendo a seleção
+// SEMPRE validada server-side contra membership_status = 'active'.
+// O cliente nunca é autoridade; o header é apenas um veículo.
 //
-// Algoritmo (IA-001 §12.2):
-//   1. Impersonação: header `x-tenant-id` → exige super-admin + tenant válido.
-//   2. Memberships: consulta TODAS as memberships (sem LIMIT, sem ordenação).
-//   3. Cardinalidade explícita:
-//        A) 1 membership → usa esse tenantId.
-//        B) N memberships → erro "Multiple tenant memberships. Tenant selection required."
-//        C) 0 memberships → erro "Forbidden: no tenant membership".
+// Algoritmo:
+//   1. Super Admin + header  → impersonação (origin = 'impersonation').
+//   2. Super Admin sem header → erro (recurso tenant-scoped exige tenant).
+//   3. Usuário comum + header:
+//        - validar UUID
+//        - validar membership ATIVA (user_id, tenant_id, status=active)
+//        - se ok → origin = 'selection'
+//        - se não → erro
+//   4. Usuário comum sem header (cardinalidade sobre memberships ATIVAS):
+//        A) 1 membership → resolve (origin = 'single-membership')
+//        B) N memberships → erro "Tenant selection required."
+//        C) 0 memberships → erro "Forbidden: no tenant membership"
 //
-// PROIBIDO: fallback implícito, heurísticas, LIMIT 1 como regra, cache
-// global, singleton, SQL direto no algoritmo (usar TenantRepository).
+// PROIBIDO: fallback implícito, tenant default, heurística, LIMIT 1 como
+// regra, ORDER BY para escolher tenant, is_default / is_owner /
+// tenant_role como critério de seleção, mistura de impersonação com
+// seleção comum, aceitar `origin` vindo do client.
 
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -24,11 +31,18 @@ import {
   type TenantRepository,
 } from "@/integrations/supabase/tenant-repository";
 
+export type TenantContextOrigin =
+  | "impersonation"
+  | "selection"
+  | "single-membership";
+
 export interface TenantContext {
   tenantId: string;
   userId: string;
   isSuperAdmin: boolean;
   impersonation: boolean;
+  /** Sempre derivado no servidor. Nunca vem do client. */
+  origin: TenantContextOrigin;
 }
 
 const UUID_RE =
@@ -43,36 +57,69 @@ export async function resolveTenantContext(params: {
 }): Promise<TenantContext> {
   const { userId, isSuperAdmin, impersonateHeader, repo } = params;
 
-  // ETAPA 1 — Impersonação
+  // ============================================================
+  // ETAPA 1 — Super Admin
+  // Super Admin nunca resolve tenant via tenant_members: seu único
+  // caminho para acessar recursos tenant-scoped é impersonação
+  // explícita via x-tenant-id.
+  // ============================================================
+  if (isSuperAdmin) {
+    if (impersonateHeader && impersonateHeader.length > 0) {
+      if (!UUID_RE.test(impersonateHeader)) {
+        throw new Error("Invalid tenant");
+      }
+      const exists = await repo.exists(impersonateHeader);
+      if (!exists) {
+        throw new Error("Invalid tenant");
+      }
+      return {
+        tenantId: impersonateHeader,
+        userId,
+        isSuperAdmin,
+        impersonation: true,
+        origin: "impersonation",
+      };
+    }
+    // Super Admin sem impersonação não acessa recursos tenant-scoped.
+    throw new Error("Forbidden: no tenant membership");
+  }
+
+  // ============================================================
+  // ETAPA 2 — Usuário comum COM header (seleção explícita)
+  // Header é transporte; autoridade é a membership ativa validada
+  // server-side.
+  // ============================================================
   if (impersonateHeader && impersonateHeader.length > 0) {
-    if (!isSuperAdmin) {
-      throw new Error("Forbidden: impersonation not allowed");
-    }
     if (!UUID_RE.test(impersonateHeader)) {
-      throw new Error("Invalid tenant");
+      throw new Error("Invalid tenant selection.");
     }
-    const exists = await repo.exists(impersonateHeader);
-    if (!exists) {
-      throw new Error("Invalid tenant");
+    const ok = await repo.userHasActiveMembership(userId, impersonateHeader);
+    if (!ok) {
+      throw new Error("Tenant access denied.");
     }
     return {
       tenantId: impersonateHeader,
       userId,
-      isSuperAdmin,
-      impersonation: true,
+      isSuperAdmin: false,
+      impersonation: false,
+      origin: "selection",
     };
   }
 
-  // ETAPA 2 — Memberships (sem LIMIT, sem ordenação implícita)
+  // ============================================================
+  // ETAPA 3 — Usuário comum SEM header
+  // Cardinalidade explícita sobre memberships ATIVAS. Sem LIMIT,
+  // sem ORDER BY, sem is_default / is_owner / tenant_role.
+  // ============================================================
   const memberships = await repo.listByUser(userId);
 
-  // ETAPA 3 — Cardinalidade explícita
   if (memberships.length === 1) {
     return {
       tenantId: memberships[0].tenantId,
       userId,
-      isSuperAdmin,
+      isSuperAdmin: false,
       impersonation: false,
+      origin: "single-membership",
     };
   }
   if (memberships.length > 1) {
@@ -84,14 +131,6 @@ export async function resolveTenantContext(params: {
 /**
  * Middleware server-side. Compõe sobre `requireSupabaseAuth` e enriquece
  * o contexto com `tenant` (TenantContext).
- *
- * Uso:
- *   export const myFn = createServerFn({ method: "POST" })
- *     .middleware([requireTenant])
- *     .handler(async ({ context }) => {
- *       const { tenantId } = context.tenant;
- *       ...
- *     });
  */
 export const requireTenant = createMiddleware({ type: "function" })
   .middleware([requireSupabaseAuth])
