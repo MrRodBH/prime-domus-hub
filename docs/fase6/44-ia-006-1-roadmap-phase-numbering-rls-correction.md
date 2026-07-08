@@ -167,3 +167,12 @@ Confirmações obrigatórias:
 - `has_role(auth.uid(), 'admin')` não é recomendação direta para
   billing. ✓
 - Role Reconciliation permanece pré-requisito para billing admin. ✓
+
+---
+
+## Retificação IA-006.2
+
+A auditoria externa identificou que IA-006.1 havia inserido novas seções
+sem remover completamente blocos antigos. A correção final foi realizada
+em IA-006.2, documentada em
+`docs/fase6/45-ia-006-2-documentation-deduplication-consistency-patch.md`.
