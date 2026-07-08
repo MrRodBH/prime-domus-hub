@@ -187,3 +187,7 @@ explícita posterior.
 - Confirmação de escopo: F4.0 é auditoria/reconciliação documental
   e de dados; nenhum billing/commercial admin funcional foi criado.
 - Conclusão: F4.0 implementada e pronta para auditoria.
+
+## Retificação F4.0.1
+
+A auditoria externa identificou duplicidade documental após F4.0: a ADR-006 permaneceu com dois status (`Proposed / Ready for External Audit` e `Accepted`) e o README de ADRs manteve duas entradas da ADR-006. A correção final foi realizada em F4.0.1 e documentada em `docs/fase6/51-f4-0-1-adr-006-accepted-status-final-cleanup.md`.
