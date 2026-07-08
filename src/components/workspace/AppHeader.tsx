@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { contextFromPath, CONTEXTS } from "./contexts";
+import { TenantSwitcher } from "./tenant/TenantSwitcher";
 
 export function AppHeader({
   isSuper,
@@ -71,10 +72,13 @@ export function AppHeader({
       </div>
 
       <div className="flex items-center gap-1">
-        {impersonating && (
+        {impersonating ? (
           <span className="hidden lg:inline text-[10px] font-mono px-2 py-1 rounded bg-amber-500/15 text-amber-800 border border-amber-500/30">
             Impersonando {impersonating.slice(0, 8)}…
           </span>
+        ) : (
+          // F3.5 — Tenant Switcher comum (não aparece durante impersonação SA).
+          <TenantSwitcher impersonating={impersonating} />
         )}
         <Button size="icon" variant="ghost" onClick={openAi} aria-label="Assistente IA">
           <Sparkles className="size-4" />
