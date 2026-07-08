@@ -154,16 +154,20 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 2. ADR-005 — Commercial Domain — Accepted.
 3. ADR-006 — Billing Provider Abstraction — Accepted.
 4. F4.0 — Role Reconciliation / Membership Role Audit — Accepted.
-5. SCP-001 — Commercial Domain Model — próxima etapa de modelagem fundacional.
+5. SCP-001 — Commercial Domain Model — Accepted.
+6. SCP-002 — Billing Provider Abstraction Materialization — próxima etapa.
 
 Restrições permanentes:
-- SCP-001 não implementa billing admin.
-- SCP-001 não implementa commercial admin.
-- SCP-001 não implementa canManageTenantBilling.
-- SCP-001 não implementa provider integration.
-- SCP-001 não implementa webhooks.
-- SCP-001 não implementa checkout.
-- SCP-001 não implementa Stripe, Hotmart ou Kiwify.
+- SCP-002 não implementa billing real completo.
+- SCP-002 não implementa billing admin.
+- SCP-002 não implementa commercial admin.
+- SCP-002 não implementa canManageTenantBilling.
+- SCP-002 não implementa provider integration real.
+- SCP-002 não implementa adapter real de Stripe, Hotmart ou Kiwify.
+- SCP-002 não implementa webhook público real.
+- SCP-002 não implementa checkout.
+- SCP-002 não implementa customer portal.
+- SCP-002 não cria secrets de provider.
 
 
 
