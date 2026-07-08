@@ -32,7 +32,10 @@ export function AppHeader({
 
   async function signOut() {
     // Patch 2.3.1 · Regra 1 — limpar estado local ANTES do signOut.
+    // F3.4.1 — inclui limpeza da seleção comum de tenant (não é UI nova,
+    // é lifecycle: seleção não pode sobreviver a logout ou troca de conta).
     clearImpersonationTenantId();
+    clearSelectedTenantId();
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
