@@ -4,6 +4,7 @@ import { runTenantSelectionStateSpecs } from "./src/integrations/supabase/__test
 import { runTenantAttacherSpecs } from "./src/integrations/supabase/__tests__/tenant-attacher.spec";
 import { runTenantSelectionCardinalitySpecs } from "./src/integrations/supabase/__tests__/tenant-selection-cardinality.spec";
 import { runTenantGateSpecs } from "./src/integrations/supabase/__tests__/tenant-gate.spec";
+import { runMembershipValidationSpecs } from "./src/integrations/supabase/__tests__/membership-validation.spec";
 
 async function main() {
   const suites: Array<[string, () => Promise<{ passed: number; failed: number }>]> = [
@@ -11,6 +12,7 @@ async function main() {
     ["tenant-attacher", runTenantAttacherSpecs],
     ["tenant-selection-cardinality", runTenantSelectionCardinalitySpecs],
     ["tenant-gate", runTenantGateSpecs],
+    ["membership-validation", runMembershipValidationSpecs],
   ];
   let totalPass = 0;
   let totalFail = 0;
