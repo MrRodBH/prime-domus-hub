@@ -480,14 +480,17 @@ SaaS Commercial Platform, com:
 
 ## 21. Critérios para Iniciar Implementação
 
-Antes de qualquer commit funcional da macrofase:
+Antes de qualquer commit funcional da macrofase (ordem obrigatória):
 
-1. Auditoria externa aprovar esta IA-006.
-2. Executar **Role Reconciliation** (pré-requisito para SCP-007/G9).
-3. Emitir ADR-005 (Commercial Domain) e ADR-006 (Billing Provider
-   Abstraction) antes de SCP-001/SCP-002.
-4. Confirmar preservação integral dos invariantes de Fase 2/3.
-5. Registrar Secrets necessárias (nunca hardcoded, nunca no client).
+1. Auditoria externa aprovar esta IA-006 / IA-006.1.
+2. Após aprovação: emitir **ADR-005 — Commercial Domain**.
+3. Após aprovação: emitir **ADR-006 — Billing Provider Abstraction**.
+4. Executar **Role Reconciliation / Membership Role Audit** antes de
+   qualquer autorização administrativa comercial (pré-requisito para
+   SCP-007/G9 e para a função `canManageTenantBilling`).
+5. Só então iniciar **SCP-001 — Commercial Domain Model**.
+6. Confirmar preservação integral dos invariantes de Fase 2/3.
+7. Registrar Secrets necessárias (nunca hardcoded, nunca no client).
 
 ---
 
