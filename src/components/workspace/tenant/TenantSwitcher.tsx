@@ -29,18 +29,20 @@ import { resolveCardinalityAction } from "./tenant-selection-cardinality";
 
 export function TenantSwitcher({
   impersonating,
+  isSuper,
 }: {
   impersonating?: string | null;
+  isSuper?: boolean;
 }) {
   const qc = useQueryClient();
   const fetchSelectable = useServerFn(listSelectableTenants);
   const selectedId = useSelectedTenantId();
 
-  // Impersonação Super Admin tem precedência absoluta (F3.4.1 §9) e usa
-  // sua própria UX. O Tenant Switcher comum não deve aparecer nesse
-  // estado — evita ambiguidade entre "tenant selecionado" e "tenant
-  // impersonado".
-  const disabled = Boolean(impersonating);
+  // F3.5.1 — guarda defensiva:
+  //   - Impersonação Super Admin: precedência absoluta (F3.4.1 §9), usa UX própria.
+  //   - Super Admin sem impersonação: fora do escopo do switcher comum;
+  //     não deve executar `listSelectableTenants` nem renderizar dropdown.
+  const disabled = Boolean(impersonating) || Boolean(isSuper);
 
   const query = useQuery({
     queryKey: ["tenant-selection", "selectable"],
