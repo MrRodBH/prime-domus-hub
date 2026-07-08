@@ -44,4 +44,4 @@ Sequencial, sem gaps. Um ADR aceito nunca é apagado nem renumerado.
 - [ADR-003 — Plugin Architecture](./ADR-003-PluginArchitecture.md)
 - [ADR-004 — Workspace Runtime](./ADR-004-WorkspaceRuntime.md)
 - [ADR-005 — Commercial Domain](./ADR-005-commercial-domain.md) — *Accepted*
-- [ADR-006 — Billing Provider Abstraction](./ADR-006-billing-provider-abstraction.md) — *Proposed / Ready for External Audit*
+- [ADR-006 — Billing Provider Abstraction](./ADR-006-billing-provider-abstraction.md) — *Accepted*
