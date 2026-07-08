@@ -23,6 +23,7 @@ import { TenantContextProvider } from "@/components/workspace/tenant/TenantConte
 import { useImpersonation } from "@/integrations/supabase/use-impersonation";
 import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
+import { TenantSelectionGate } from "@/components/workspace/tenant/TenantSelectionRequired";
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -109,7 +110,12 @@ export function WorkspaceShell() {
           <ContextTabs />
           <main className="flex-1 min-h-0 overflow-y-auto">
             <div className="p-4 lg:p-6">
-              <Outlet />
+              {/* F3.5 — bloqueia conteúdo tenant-scoped quando N>1 sem
+                  seleção válida, ou quando 0 tenants ativos. Não afeta
+                  Super Admin nem impersonação. */}
+              <TenantSelectionGate isSuper={!!isSuper}>
+                <Outlet />
+              </TenantSelectionGate>
             </div>
           </main>
         </div>
