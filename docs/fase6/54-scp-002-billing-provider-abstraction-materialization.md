@@ -282,3 +282,7 @@ Nenhuma dessas etapas é iniciada aqui.
   - SCP-002 não criou seed de providers, eventos, customers ou subscriptions.
   - SCP-003 não foi iniciada.
 - **Conclusão:** SCP-002 implementada e pronta para auditoria externa.
+
+## Retificação SCP-002.1
+
+A auditoria externa identificou inconsistências documentais após SCP-002: o documento oficial da SCP-001 permaneceu com dois status (`Implemented / Ready for External Audit` e `Accepted`) e o Roadmap manteve duas linhas da SCP-001 na sequência inicial da Fase 4. A correção final foi realizada em SCP-002.1 e documentada em `docs/fase6/55-scp-002-1-scp-001-status-roadmap-sequence-final-cleanup.md`.
