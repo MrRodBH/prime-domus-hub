@@ -101,11 +101,46 @@ Componentes e processos estabilizados na Fase 6:
   implica execução dos backlogs futuros.
 - Base para a futura Storage Abstraction Layer (Fase 4).
 
-### 🟡 Fase 3 — Membership Evolution Model
-- Suporte a **múltiplas memberships por usuário**.
-- Estratégia de **seleção explícita de tenant** (UI + protocolo).
-- Remoção de qualquer suposição implícita de cardinalidade (§4.3).
-- Depende de IA-002.
+### ✅ Fase 3 — Membership Evolution Model — **Formalmente encerrada**
+
+Aprovada e encerrada após F3.7 — Fase 3 Closing Review
+(`docs/fase6/42-f3-7-phase-3-closing-review.md`).
+
+| Sub-etapa | Status |
+|---|---|
+| F3.1 — Membership Schema Foundation | ✔ Concluída |
+| F3.2 — Server-Side Tenant Selection (+ F3.2.1) | ✔ Concluída |
+| F3.3 — RLS Membership Selection Patch (+ F3.3.1/2/3/4/4.1) | ✔ Concluída |
+| F3.4 — Tenant Selection Transport / Client State (+ F3.4.1) | ✔ Concluída |
+| F3.5 — Tenant Switcher UX (+ F3.5.1) | ✔ Concluída |
+| F3.6 — Membership Roles & Status Validation | ✔ Concluída |
+| F3.7 — Fase 3 Closing Review | ✔ Concluída |
+
+Resultado: suporte a múltiplas memberships por usuário, seleção
+explícita de tenant server-authoritative, cardinalidade explícita,
+UX de Tenant Switcher e domínio tipado de `membership_status` /
+`tenant_role`.
+
+### 🔵 Próxima macrofase — SaaS Commercial Platform
+
+- **Status:** Planejamento arquitetural iniciado via **IA-006**
+  (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`).
+- **Implementation Status:** `BLOCKED` — aguardando aprovação da
+  IA-006 em auditoria externa antes de qualquer implementação.
+- **Escopo futuro:** planos, assinaturas, billing, trial,
+  inadimplência, entitlements, feature flags comerciais, status
+  comercial do tenant, webhooks de pagamento, integrações Stripe /
+  Hotmart / Kiwify, governança comercial Super Admin.
+- **Subetapas propostas (PROPOSED):** SCP-001..SCP-010 (ver IA-006 §17).
+- **Hard Gates propostos:** SCP-G1..SCP-G9 (ver IA-006 §18).
+- **Invariantes preservados:** client nunca é autoridade; servidor é
+  autoridade única; `x-tenant-id` é transporte; sem fallback / default /
+  heurística / dual path; Super Admin sem impersonação não acessa
+  tenant-scoped; `tenant_role` não é autorização ampla; RLS não é
+  relaxada para billing; assinatura não substitui membership e
+  vice-versa.
+
+
 
 ### 🟡 Fase 4 — Storage Abstraction Layer
 - Introdução da interface `StorageProvider`.
