@@ -121,12 +121,16 @@ explícita de tenant server-authoritative, cardinalidade explícita,
 UX de Tenant Switcher e domínio tipado de `membership_status` /
 `tenant_role`.
 
-### 🔵 Próxima macrofase — SaaS Commercial Platform
+### 🔵 Fase 4 — SaaS Commercial Platform
 
-- **Status:** Planejamento arquitetural iniciado via **IA-006**
-  (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`).
-- **Implementation Status:** `BLOCKED` — aguardando aprovação da
-  IA-006 em auditoria externa antes de qualquer implementação.
+- **Status:** Planejamento arquitetural iniciado via **IA-006** e
+  corrigido via **IA-006.1**
+  (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
+  `docs/fase6/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
+- **Implementation Status:** `BLOCKED` — aguardando aprovação externa
+  da IA-006/IA-006.1 antes de qualquer implementação.
+- **Fase 4 ainda não está em implementação funcional. SCP-001 ainda não
+  foi iniciada.**
 - **Escopo futuro:** planos, assinaturas, billing, trial,
   inadimplência, entitlements, feature flags comerciais, status
   comercial do tenant, webhooks de pagamento, integrações Stripe /
@@ -136,31 +140,38 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 - **Invariantes preservados:** client nunca é autoridade; servidor é
   autoridade única; `x-tenant-id` é transporte; sem fallback / default /
   heurística / dual path; Super Admin sem impersonação não acessa
-  tenant-scoped; `tenant_role` não é autorização ampla; RLS não é
-  relaxada para billing; assinatura não substitui membership e
-  vice-versa.
+  tenant-scoped; `tenant_role` **não** é autorização ampla nem
+  autorização comercial; `has_role(auth.uid(), 'admin')` **não** é
+  recomendação direta para billing; RLS não é relaxada para billing;
+  assinatura não substitui membership e vice-versa. Autorização
+  administrativa comercial depende de **Role Reconciliation** prévia
+  e de uma função server-side dedicada futura
+  (`canManageTenantBilling(userId, tenantId)`).
 
 
 
-### 🟡 Fase 4 — Storage Abstraction Layer
+### 🟡 Fase 5 — Storage Abstraction Layer — Provisória
+- **Reposicionamento (IA-006.1):** Storage Abstraction Layer permanece
+  planejada, mas **não é a próxima macrofase imediata**. A prioridade
+  atual pós-Fase 3 é a **Fase 4 — SaaS Commercial Platform**.
 - Introdução da interface `StorageProvider`.
 - Suporte inicial a Supabase Storage; extensível para S3 / GCS.
 - Contrato desacoplado do provider concreto.
 - Depende de M3.
 
-### 🟡 Fase 5 — Plugin Marketplace Evolution
+### 🟡 Fase 6 — Plugin Marketplace Evolution
 - Marketplace remoto de plugins.
 - Sistema de **versionamento** de plugin e `apiVersion` compat matrix.
 - **Plugin signing / trust layer** — assinatura, verificação e política
   de confiança por tenant.
 
-### 🟡 Fase 6 — Workspace Ingestion System
+### 🟡 Fase 7 — Workspace Ingestion System
 - Pipeline unificado de upload.
 - Engine de importação CSV.
 - Ingestão XML / ZIP.
 - Framework de ingestão de mídia.
 
-### 🟡 Fase 7 — Observability Layer
+### 🟡 Fase 8 — Observability Layer
 - Audit log por tenant.
 - Tracing de `ActionExecutor`.
 - Replay system (futuro).
