@@ -480,16 +480,15 @@ SaaS Commercial Platform, com:
 
 ## 21. Critérios para Iniciar Implementação
 
-Antes de qualquer commit funcional da macrofase (ordem obrigatória):
+Antes de qualquer commit funcional da macrofase, a ordem obrigatória é:
 
-1. Auditoria externa aprovar IA-006 / IA-006.1 / IA-006.2.
-2. Emitir **ADR-005 — Commercial Domain**.
-3. Emitir **ADR-006 — Billing Provider Abstraction**.
-4. Executar **Role Reconciliation / Membership Role Audit** antes de
-   qualquer autorização administrativa comercial.
-5. Só então iniciar **SCP-001 — Commercial Domain Model**.
-6. Confirmar preservação integral dos invariantes de Fase 2/3.
-7. Registrar Secrets necessárias, nunca hardcoded, nunca no client.
+1. Auditoria externa aprovar IA-006 / IA-006.1 / IA-006.2 / IA-006.3.
+2. Emitir ADR-005 — Commercial Domain.
+3. Emitir ADR-006 — Billing Provider Abstraction.
+4. Executar Role Reconciliation / Membership Role Audit antes de qualquer autorização administrativa comercial.
+5. Só então iniciar SCP-001 — Commercial Domain Model.
+6. Confirmar preservação integral dos invariantes de Fase 2 e Fase 3.
+7. Registrar secrets necessárias, nunca hardcoded e nunca no client.
 
 ---
 

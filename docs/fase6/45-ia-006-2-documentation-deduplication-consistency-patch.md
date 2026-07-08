@@ -196,3 +196,7 @@ Confirmações obrigatórias:
 - Role Reconciliation permanece pré-requisito para billing admin. ✓
 - `ROADMAP_ARCHITECTURAL.md` não contém fases duplicadas. ✓
 - IA-006 não contém tabela RLS duplicada. ✓
+
+## Retificação IA-006.3
+
+A auditoria externa identificou duplicidade remanescente na seção 21 da IA-006 e na seção 9 do relatório cronológico 43 após IA-006.2. A correção final foi realizada em IA-006.3 e documentada em docs/fase6/46-ia-006-3-final-documentation-consistency-verification-cleanup.md.

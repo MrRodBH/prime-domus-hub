@@ -88,11 +88,10 @@ Ver IA-006 §19. Todos mapeados a Hard Gates SCP-G1..G9.
 
 ## 9. Próximos Passos
 
-1. Auditoria externa da IA-006 / IA-006.1 / IA-006.2.
+1. Auditoria externa da IA-006 / IA-006.1 / IA-006.2 / IA-006.3.
 2. Após aprovação: emitir ADR-005 — Commercial Domain.
 3. Após aprovação: emitir ADR-006 — Billing Provider Abstraction.
-4. Executar **Role Reconciliation / Membership Role Audit** antes de
-   qualquer autorização administrativa comercial.
+4. Executar Role Reconciliation / Membership Role Audit antes de qualquer autorização administrativa comercial.
 5. Só então iniciar SCP-001 — Commercial Domain Model.
 
 ## 10. Testes / Typecheck
