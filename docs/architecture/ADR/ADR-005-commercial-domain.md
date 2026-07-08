@@ -1,6 +1,6 @@
 # ADR-005 — Commercial Domain
 
-- **Status:** Proposed / Ready for External Audit
+- **Status:** Accepted
 - **Date:** 2026-07-08
 
 ## Context
