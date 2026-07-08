@@ -121,6 +121,172 @@ export type Database = {
           },
         ]
       }
+      billing_event_transitions: {
+        Row: {
+          billing_event_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          billing_event_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          billing_event_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_event_transitions_billing_event_id_fkey"
+            columns: ["billing_event_id"]
+            isOneToOne: false
+            referencedRelation: "billing_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_events: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          idempotency_key: string
+          metadata: Json
+          occurred_at: string | null
+          payload_hash: string | null
+          payload_sanitized: Json
+          processed_at: string | null
+          processing_status: string
+          provider_code: string
+          provider_event_id: string
+          provider_mapping_id: string | null
+          received_at: string
+          subscription_id: string | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          idempotency_key: string
+          metadata?: Json
+          occurred_at?: string | null
+          payload_hash?: string | null
+          payload_sanitized?: Json
+          processed_at?: string | null
+          processing_status?: string
+          provider_code: string
+          provider_event_id: string
+          provider_mapping_id?: string | null
+          received_at?: string
+          subscription_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          idempotency_key?: string
+          metadata?: Json
+          occurred_at?: string | null
+          payload_hash?: string | null
+          payload_sanitized?: Json
+          processed_at?: string | null
+          processing_status?: string
+          provider_code?: string
+          provider_event_id?: string
+          provider_mapping_id?: string | null
+          received_at?: string
+          subscription_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_provider_code_fkey"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "billing_provider_definitions"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "billing_events_provider_mapping_id_fkey"
+            columns: ["provider_mapping_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_billing_provider_mappings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_provider_definitions: {
+        Row: {
+          capabilities: Json
+          code: string
+          created_at: string
+          metadata: Json
+          name: string
+          provider_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capabilities?: Json
+          code: string
+          created_at?: string
+          metadata?: Json
+          name: string
+          provider_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capabilities?: Json
+          code?: string
+          created_at?: string
+          metadata?: Json
+          name?: string
+          provider_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blog_categorias: {
         Row: {
           created_at: string
@@ -2874,6 +3040,67 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_billing_provider_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          provider_code: string
+          provider_customer_ref: string | null
+          provider_subscription_ref: string | null
+          status: string
+          subscription_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          provider_code: string
+          provider_customer_ref?: string | null
+          provider_subscription_ref?: string | null
+          status?: string
+          subscription_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          provider_code?: string
+          provider_customer_ref?: string | null
+          provider_subscription_ref?: string | null
+          status?: string
+          subscription_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_billing_provider_mappings_provider_code_fkey"
+            columns: ["provider_code"]
+            isOneToOne: false
+            referencedRelation: "billing_provider_definitions"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tenant_billing_provider_mappings_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_billing_provider_mappings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
