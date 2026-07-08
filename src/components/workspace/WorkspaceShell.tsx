@@ -22,6 +22,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
 import { useImpersonation } from "@/integrations/supabase/use-impersonation";
 import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
+import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (s) => s.location.pathname });
