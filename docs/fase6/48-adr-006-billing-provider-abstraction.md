@@ -239,3 +239,7 @@ integração de provider ou commercial admin authorization nesta etapa.
   - `has_role(auth.uid(), 'admin')` não virou autorização comercial.
   - `canManageTenantBilling` não foi implementada.
 - **Conclusão:** ADR-006 implementada e pronta para auditoria.
+
+## Retificação ADR-006.1
+
+A auditoria externa identificou duplicidade documental após ADR-006: a ADR-005 permaneceu com duas linhas de status e o README de ADRs manteve duas entradas da ADR-005. A correção final foi realizada em ADR-006.1 e documentada em `docs/fase6/49-adr-006-1-adr-status-deduplication-readme-consistency.md`.
