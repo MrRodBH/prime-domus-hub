@@ -565,6 +565,132 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_entitlement_definitions: {
+        Row: {
+          created_at: string
+          description: string | null
+          is_active: boolean
+          key: string
+          metadata: Json
+          name: string
+          unit: string | null
+          updated_at: string
+          value_type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          key: string
+          metadata?: Json
+          name: string
+          unit?: string | null
+          updated_at?: string
+          value_type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          key?: string
+          metadata?: Json
+          name?: string
+          unit?: string | null
+          updated_at?: string
+          value_type?: string
+        }
+        Relationships: []
+      }
+      commercial_plan_entitlements: {
+        Row: {
+          created_at: string
+          entitlement_key: string
+          id: string
+          metadata: Json
+          plan_id: string
+          updated_at: string
+          value_bool: boolean | null
+          value_decimal: number | null
+          value_int: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          entitlement_key: string
+          id?: string
+          metadata?: Json
+          plan_id: string
+          updated_at?: string
+          value_bool?: boolean | null
+          value_decimal?: number | null
+          value_int?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          entitlement_key?: string
+          id?: string
+          metadata?: Json
+          plan_id?: string
+          updated_at?: string
+          value_bool?: boolean | null
+          value_decimal?: number | null
+          value_int?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commercial_plan_entitlements_entitlement_key_fkey"
+            columns: ["entitlement_key"]
+            isOneToOne: false
+            referencedRelation: "commercial_entitlement_definitions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "commercial_plan_entitlements_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commercial_plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json
+          name: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       corretores: {
         Row: {
           ativo: boolean
@@ -2755,6 +2881,79 @@ export type Database = {
           },
         ]
       }
+      tenant_entitlements: {
+        Row: {
+          created_at: string
+          effective_from: string
+          effective_until: string | null
+          entitlement_key: string
+          id: string
+          metadata: Json
+          source: string
+          subscription_id: string | null
+          tenant_id: string
+          updated_at: string
+          value_bool: boolean | null
+          value_decimal: number | null
+          value_int: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string
+          effective_until?: string | null
+          entitlement_key: string
+          id?: string
+          metadata?: Json
+          source?: string
+          subscription_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          value_bool?: boolean | null
+          value_decimal?: number | null
+          value_int?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          effective_until?: string | null
+          entitlement_key?: string
+          id?: string
+          metadata?: Json
+          source?: string
+          subscription_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          value_bool?: boolean | null
+          value_decimal?: number | null
+          value_int?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_entitlements_entitlement_key_fkey"
+            columns: ["entitlement_key"]
+            isOneToOne: false
+            referencedRelation: "commercial_entitlement_definitions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "tenant_entitlements_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_entitlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_members: {
         Row: {
           accepted_at: string | null
@@ -2801,6 +3000,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_subscriptions: {
+        Row: {
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          metadata: Json
+          plan_id: string | null
+          started_at: string | null
+          status: string
+          status_reason: string | null
+          suspended_at: string | null
+          tenant_id: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_id?: string | null
+          started_at?: string | null
+          status: string
+          status_reason?: string | null
+          suspended_at?: string | null
+          tenant_id: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_id?: string | null
+          started_at?: string | null
+          status?: string
+          status_reason?: string | null
+          suspended_at?: string | null
+          tenant_id?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "commercial_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

@@ -148,6 +148,25 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
   e de uma função server-side dedicada futura
   (`canManageTenantBilling(userId, tenantId)`).
 
+#### Gates e sequência inicial da Fase 4
+
+1. IA-006 — SaaS Commercial Platform Impact Analysis — Accepted.
+2. ADR-005 — Commercial Domain — Accepted.
+3. ADR-006 — Billing Provider Abstraction — Accepted.
+4. F4.0 — Role Reconciliation / Membership Role Audit — Accepted.
+5. SCP-001 — Commercial Domain Model — próxima etapa de modelagem fundacional.
+
+Restrições permanentes:
+- SCP-001 não implementa billing admin.
+- SCP-001 não implementa commercial admin.
+- SCP-001 não implementa canManageTenantBilling.
+- SCP-001 não implementa provider integration.
+- SCP-001 não implementa webhooks.
+- SCP-001 não implementa checkout.
+- SCP-001 não implementa Stripe, Hotmart ou Kiwify.
+
+
+
 
 
 ### 🟡 Fase 5 — Storage Abstraction Layer — Provisória
