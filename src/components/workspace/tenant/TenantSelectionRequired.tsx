@@ -114,23 +114,3 @@ function EmptyState({
     </div>
   );
 }
-
-function EmptyState({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center px-6">
-      <div className="max-w-md text-center space-y-3">
-        <div className="flex justify-center">{icon}</div>
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-}
