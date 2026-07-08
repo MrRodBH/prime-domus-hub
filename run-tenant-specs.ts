@@ -3,12 +3,14 @@
 import { runTenantSelectionStateSpecs } from "./src/integrations/supabase/__tests__/tenant-selection-state.spec";
 import { runTenantAttacherSpecs } from "./src/integrations/supabase/__tests__/tenant-attacher.spec";
 import { runTenantSelectionCardinalitySpecs } from "./src/integrations/supabase/__tests__/tenant-selection-cardinality.spec";
+import { runTenantGateSpecs } from "./src/integrations/supabase/__tests__/tenant-gate.spec";
 
 async function main() {
   const suites: Array<[string, () => Promise<{ passed: number; failed: number }>]> = [
     ["tenant-selection-state", runTenantSelectionStateSpecs],
     ["tenant-attacher", runTenantAttacherSpecs],
     ["tenant-selection-cardinality", runTenantSelectionCardinalitySpecs],
+    ["tenant-gate", runTenantGateSpecs],
   ];
   let totalPass = 0;
   let totalFail = 0;
