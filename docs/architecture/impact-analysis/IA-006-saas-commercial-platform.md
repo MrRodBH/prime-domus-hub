@@ -482,15 +482,14 @@ SaaS Commercial Platform, com:
 
 Antes de qualquer commit funcional da macrofase (ordem obrigatória):
 
-1. Auditoria externa aprovar esta IA-006 / IA-006.1.
-2. Após aprovação: emitir **ADR-005 — Commercial Domain**.
-3. Após aprovação: emitir **ADR-006 — Billing Provider Abstraction**.
+1. Auditoria externa aprovar IA-006 / IA-006.1 / IA-006.2.
+2. Emitir **ADR-005 — Commercial Domain**.
+3. Emitir **ADR-006 — Billing Provider Abstraction**.
 4. Executar **Role Reconciliation / Membership Role Audit** antes de
-   qualquer autorização administrativa comercial (pré-requisito para
-   SCP-007/G9 e para a função `canManageTenantBilling`).
+   qualquer autorização administrativa comercial.
 5. Só então iniciar **SCP-001 — Commercial Domain Model**.
 6. Confirmar preservação integral dos invariantes de Fase 2/3.
-7. Registrar Secrets necessárias (nunca hardcoded, nunca no client).
+7. Registrar Secrets necessárias, nunca hardcoded, nunca no client.
 
 ---
 
