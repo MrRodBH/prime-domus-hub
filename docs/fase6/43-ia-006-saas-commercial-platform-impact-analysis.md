@@ -86,9 +86,9 @@ Nenhuma implementação funcional ocorreu nesta etapa:
 
 Ver IA-006 §19. Todos mapeados a Hard Gates SCP-G1..G9.
 
-## 9. Próximos Passos (atualizado por IA-006.1)
+## 9. Próximos Passos
 
-1. Auditoria externa da IA-006 / IA-006.1.
+1. Auditoria externa da IA-006 / IA-006.1 / IA-006.2.
 2. Após aprovação: emitir ADR-005 — Commercial Domain.
 3. Após aprovação: emitir ADR-006 — Billing Provider Abstraction.
 4. Executar **Role Reconciliation / Membership Role Audit** antes de
