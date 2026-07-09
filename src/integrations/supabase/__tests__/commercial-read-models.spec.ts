@@ -1,6 +1,7 @@
 // SCP-004 / SCP-004.1 — specs for commercial read-model pure derivation.
-// CommercialAdminDiagnostic is intentionally NOT covered: it is not exposed
-// at runtime (see SCP-004.1). Only the three sanctioned read models remain.
+// The commercial admin diagnostic surface is intentionally NOT covered:
+// it is not exposed at runtime (see SCP-004.1). Only the three
+// sanctioned read models remain.
 import {
   deriveBillingHealth,
   deriveCommercialSummary,
