@@ -70,8 +70,8 @@ o mecanismo consolidado — sem introduzir novo caminho de autorização.
 - `run-tenant-specs.ts` — adicionada suíte `commercial-read-models` ao
   runner unificado.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — sequência da Fase 4
-  atualizada: SCP-003 `Accepted`, SCP-004 `Implemented / Ready for
-  External Audit`; restrições permanentes renomeadas para SCP-004.
+  atualizada: SCP-003 `Accepted`, SCP-004 `Accepted`; restrições
+  permanentes renomeadas para SCP-004.
 - `docs/architecture/commercial/SCP-003-commercial-read-models-server-side-access-planning.md`
   — status único `Accepted`.
 

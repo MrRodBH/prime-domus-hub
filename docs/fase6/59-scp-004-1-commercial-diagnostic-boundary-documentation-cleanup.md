@@ -34,9 +34,8 @@ It confirms that `CommercialAdminDiagnostic` is not exposed in runtime and remai
 4. Correção documental do status da SCP-003 (heading e linha única
    `Accepted`).
 5. Consolidação da subseção "Gates e sequência inicial da Fase 4" no
-   roadmap, marcando SCP-004 como `Implemented / Ready for External
-   Audit` e adicionando restrição permanente de que
-   `CommercialAdminDiagnostic` não é exposto em runtime.
+   roadmap, marcando SCP-004 como `Accepted` e adicionando restrição
+   permanente de que `CommercialAdminDiagnostic` não é exposto em runtime.
 6. Atualização de `docs/fase6/58-scp-004-...md` para refletir o estado
    final correto (três funções comerciais, item futuro documentado).
 
@@ -58,9 +57,8 @@ It confirms that `CommercialAdminDiagnostic` is not exposed in runtime and remai
   — validado como `## Status` único, linha única `Accepted`.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção "Gates e
   sequência inicial da Fase 4" substituída integralmente conforme
-  especificado; SCP-004 marcada como `Implemented / Ready for External
-  Audit`; adicionada restrição permanente sobre
-  `CommercialAdminDiagnostic`.
+  especificado; SCP-004 marcada como `Accepted`; adicionada restrição
+  permanente sobre `CommercialAdminDiagnostic`.
 - `docs/fase6/58-scp-004-commercial-server-read-functions.md` —
   removido `getCommercialAdminDiagnostic` do bloco de funções
   entregues; adicionada seção "Item futuro" descrevendo as restrições
@@ -159,7 +157,7 @@ Nenhuma migration criada nesta etapa. Nenhum `CREATE POLICY`,
 ### Roadmap
 
 ```
-rg -n "SCP-003|SCP-004|próxima etapa|Accepted|Implemented / Ready" \
+rg -n "SCP-003|SCP-004|próxima etapa|Accepted" \
   docs/architecture/ROADMAP_ARCHITECTURAL.md
 ```
 
@@ -168,14 +166,14 @@ Confirmado:
 - SCP-003 aparece **uma única vez** na sequência oficial (item 7,
   `Accepted`).
 - SCP-004 aparece **uma única vez** na sequência oficial (item 8,
-  `Implemented / Ready for External Audit`).
+  `Accepted`).
 - Não há duas linhas numeradas como 7.
 - SCP-003 **não** aparece como próxima etapa.
 
 ### Status SCP-003
 
 ```
-rg -n "## Status|Implemented / Ready|Implementado / Pronto|Accepted|Aceito" \
+rg -n "## Status|Accepted" \
   docs/architecture/commercial/SCP-003-commercial-read-models-server-side-access-planning.md
 ```
 
@@ -192,8 +190,7 @@ status duplicado.
 6. SCP-002 — Billing Provider Abstraction Materialization — Accepted.
 7. SCP-003 — Commercial Read Models / Server-Side Access Planning —
    Accepted.
-8. SCP-004 — Commercial Server Read Functions — Implemented / Ready
-   for External Audit.
+8. SCP-004 — Commercial Server Read Functions — Accepted.
 
 ## Status final da SCP-003
 

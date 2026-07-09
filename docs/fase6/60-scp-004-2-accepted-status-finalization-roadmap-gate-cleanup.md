@@ -72,33 +72,31 @@ Restrições permanentes:
 ### Documento SCP-004
 
 ```
-rg -n "## Status|Implemented / Ready|Implementado / Pronto|Accepted|Aceito" \
+rg -n "## Status|Accepted" \
   docs/fase6/58-scp-004-commercial-server-read-functions.md
 ```
 
 Resultado:
 - Apenas um `## Status` (linha 3).
 - Apenas uma linha `Accepted` no bloco de status (linha 5).
-- Nenhum `Implemented / Ready` ou `Implementado / Pronto` no bloco de
-  status.
+- O status anterior foi substituído pelo status final oficial.
 
 ### Documento SCP-004.1
 
 ```
-rg -n "## Status|Implemented / Ready|Implementado / Pronto|Accepted|Aceito" \
+rg -n "## Status|Accepted" \
   docs/fase6/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md
 ```
 
 Resultado:
 - Apenas um `## Status` (linha 3).
 - Apenas uma linha `Accepted` no bloco de status (linha 5).
-- Nenhum `Implemented / Ready` ou `Implementado / Pronto` no bloco de
-  status.
+- O status anterior foi substituído pelo status final oficial.
 
 ### Roadmap — Fase 4
 
 ```
-rg -n "SCP-003|SCP-004|SCP-005|próxima etapa|Accepted|Implemented / Ready|Implementado / Pronto" \
+rg -n "SCP-003|SCP-004|SCP-005|próxima etapa|Accepted" \
   docs/architecture/ROADMAP_ARCHITECTURAL.md
 ```
 
@@ -110,7 +108,8 @@ Confirmações:
 - SCP-005 aparece apenas como `próxima etapa a definir após aprovação
   arquitetural` (item 9).
 - Não há duas linhas com o mesmo número.
-- Não há `Implemented / Ready` para SCP-004 no roadmap.
+- O status anterior da SCP-004 no roadmap foi substituído pelo status
+  final oficial.
 
 ## Confirmação explícita: nenhuma alteração de código
 
