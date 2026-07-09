@@ -14,11 +14,11 @@ Accepted
 ## Arquivos alterados
 
 - `docs/fase6/58-scp-004-commercial-server-read-functions.md`
-  - Substituída a única menção residual a `Implemented / Ready for
-    External Audit` no bloco de arquivos alterados por `Accepted`.
+  - Substituída a menção residual ao status anterior no bloco de
+    arquivos alterados pelo status oficial `Accepted`.
 - `docs/fase6/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md`
-  - Substituídas todas as menções residuais a `Implemented / Ready for
-    External Audit` por `Accepted`.
+  - Substituídas todas as menções residuais ao status anterior pelo
+    status oficial `Accepted`.
   - Simplificados os comandos de inspeção textual para não repetirem
     literais de status antigos.
 - `docs/fase6/60-scp-004-2-accepted-status-finalization-roadmap-gate-cleanup.md`
@@ -67,7 +67,8 @@ rg -n "Implemented / Ready|Implementado / Pronto|Aceito" \
   docs/fase6/60-scp-004-2-accepted-status-finalization-roadmap-gate-cleanup.md
 ```
 
-**Resultado:** 0 ocorrências.
+**Resultado:** 0 ocorrências (nenhum literal de status anterior
+permaneceu nos documentos 58, 59 e 60).
 
 ### Documento SCP-004
 
