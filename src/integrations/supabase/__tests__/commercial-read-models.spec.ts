@@ -251,41 +251,57 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
-    name: "admin diagnostic: warnings when empty",
+    name: "sanitization: no DTO ever leaks provider refs / payloads / idempotency keys",
     run: async () => {
-      const dto = deriveAdminDiagnostic({
+      const sub: SubscriptionRow = {
+        id: "s1",
+        tenant_id: TENANT,
+        plan_id: "p1",
+        status: "active",
+        status_reason: null,
+        started_at: null,
+        trial_ends_at: null,
+        current_period_start: null,
+        current_period_end: null,
+        canceled_at: null,
+        suspended_at: null,
+      };
+      const mapping: ProviderMappingRow = {
+        tenant_id: TENANT,
+        provider_code: "stub",
+        status: "active",
+        subscription_id: "s1",
+      };
+      const summary = deriveCommercialSummary({
         tenantId: TENANT,
-        subscription: null,
-        tenantEntitlementsCount: 0,
-        providerMapping: null,
-        billingEventsCount: 0,
+        subscription: sub,
+        plan: { id: "p1", code: "pro", name: "Pro", status: "active" },
+        providerMapping: mapping,
       });
-      assert(dto.commercialRecords.hasSubscription === false, "no sub");
-      assert(dto.warnings.includes("missing_subscription"), "warn sub");
-      assert(dto.warnings.includes("no_tenant_entitlements"), "warn ents");
-      assert(dto.warnings.includes("no_provider_mapping"), "warn map");
-    },
-  },
-  {
-    name: "admin diagnostic: never exposes provider refs / payloads",
-    run: async () => {
-      const dto = deriveAdminDiagnostic({
+      const snapshot = deriveEntitlementSnapshot({
         tenantId: TENANT,
-        subscription: null,
-        tenantEntitlementsCount: 3,
-        providerMapping: {
-          tenant_id: TENANT,
-          provider_code: "stub",
-          status: "active",
-          subscription_id: "s1",
-        },
-        billingEventsCount: 7,
+        activePlanId: "p1",
+        planEntitlements: [
+          { plan_id: "p1", entitlement_key: "seats", value_bool: null, value_int: 5, value_decimal: null, value_text: null },
+        ],
+        tenantEntitlements: [],
       });
-      const json = JSON.stringify(dto);
-      assert(!json.includes("provider_customer_ref"), "no customer ref");
-      assert(!json.includes("provider_subscription_ref"), "no sub ref");
-      assert(!json.includes("payload"), "no payload");
-      assert(!json.includes("idempotency"), "no idempotency");
+      const health = deriveBillingHealth({
+        tenantId: TENANT,
+        subscription: sub,
+        providerMapping: mapping,
+        lastEvent: { tenant_id: TENANT, received_at: "2026-07-01T00:00:00Z", processing_status: "processed" },
+      });
+      for (const dto of [summary, snapshot, health]) {
+        const json = JSON.stringify(dto);
+        assert(!json.includes("provider_customer_ref"), "no customer ref");
+        assert(!json.includes("provider_subscription_ref"), "no sub ref");
+        assert(!/payload/i.test(json), "no payload");
+        assert(!/idempotency/i.test(json), "no idempotency key");
+        assert(!/payload_hash/i.test(json), "no payload hash");
+        assert(!/raw/i.test(json), "no raw event");
+        assert(!/error_message/i.test(json), "no error message");
+      }
     },
   },
 ];
