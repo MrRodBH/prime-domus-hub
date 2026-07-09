@@ -1,7 +1,8 @@
 # SCP-004.1 — Commercial Diagnostic Boundary & Documentation Cleanup
 
 ## Status
-Implemented / Ready for External Audit
+
+Accepted
 
 - **Date:** 2026-07-09
 - **Phase:** Fase 4 — SaaS Commercial Platform
@@ -11,6 +12,12 @@ Implemented / Ready for External Audit
   final da SCP-004). Sem migration, sem RLS, sem grant, sem alteração
   em `tenant_members`, sem provider integration, sem billing real, sem
   autorização comercial nova.
+
+## Acceptance Note
+
+SCP-004.1 is accepted as the corrective governance patch for SCP-004.
+
+It confirms that `CommercialAdminDiagnostic` is not exposed in runtime and remains only as a future documented item requiring a dedicated commercial authorization surface.
 
 ## Escopo
 

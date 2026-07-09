@@ -1,7 +1,8 @@
 # SCP-004 — Commercial Server Read Functions
 
 ## Status
-Implemented / Ready for External Audit
+
+Accepted
 
 - **Date:** 2026-07-09
 - **Phase:** Fase 4 — SaaS Commercial Platform
@@ -10,6 +11,18 @@ Implemented / Ready for External Audit
   server functions and deterministic unit specs. **No** migrations,
   RLS, grants, provider integration, webhook, checkout, customer
   portal, billing/commercial admin role or client direct reads.
+
+## Acceptance Note
+
+SCP-004 is accepted together with SCP-004.1.
+
+SCP-004.1 corrected the commercial diagnostic boundary by removing `CommercialAdminDiagnostic` from runtime and preserving only the approved server-side commercial read functions:
+
+- `getTenantCommercialSummary`;
+- `getTenantEntitlementSnapshot`;
+- `getTenantBillingHealth`.
+
+No billing mutation surface, provider integration, webhook, checkout, customer portal, commercial admin role, billing admin role, RLS policy, grant, migration, or `tenant_members` change was introduced.
 
 ## Objetivo
 
