@@ -275,4 +275,4 @@ export function deriveBillingHealth(input: {
   };
 }
 
-// SCP-004.1: deriveAdminDiagnostic removed from runtime — see note above.
+// SCP-004.1: admin diagnostic helper removed from runtime — see note above.
