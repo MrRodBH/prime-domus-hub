@@ -15,9 +15,12 @@ Implemented / Ready for External Audit
 
 Implementar a primeira camada segura de leitura comercial server-side,
 baseada exclusivamente no planejamento da SCP-003, materializando os
-read models `TenantCommercialSummary`, `TenantEntitlementSnapshot`,
-`TenantBillingHealth` e `CommercialAdminDiagnostic` como server
-functions sanitizadas.
+read models `TenantCommercialSummary`, `TenantEntitlementSnapshot` e
+`TenantBillingHealth` como server functions sanitizadas.
+
+O quarto read model previsto na SCP-003 — a superfície de diagnóstico
+comercial administrativo — **não** é exposto em runtime nesta etapa
+(ver seção "Item futuro: diagnóstico comercial administrativo").
 
 ## Escopo implementado
 
@@ -38,23 +41,24 @@ o mecanismo consolidado — sem introduzir novo caminho de autorização.
 
 - `src/lib/api/commercial/read-models.ts` — tipos + funções puras de
   derivação (`deriveCommercialSummary`, `deriveEntitlementSnapshot`,
-  `deriveBillingHealth`, `deriveAdminDiagnostic`). Zero dependência
-  server-only para permitir specs unitários determinísticos.
-- `src/lib/api/commercial/commercial.functions.ts` — quatro server
+  `deriveBillingHealth`). Zero dependência server-only para permitir
+  specs unitários determinísticos.
+- `src/lib/api/commercial/commercial.functions.ts` — três server
   functions com `requireTenant`, `supabaseAdmin` carregado via
   `await import` dentro do handler.
 - `src/integrations/supabase/__tests__/commercial-read-models.spec.ts`
-  — 10 specs cobrindo casos vazios, override tenant×plan, janela
+  — specs cobrindo casos vazios, override tenant×plan, janela
   `effective_from/until`, matriz de status `healthy` /
-  `attention_required` / `blocked` / `unknown`, sanitização.
+  `attention_required` / `blocked` / `unknown`, sanitização de todos
+  os DTOs.
 
 ## Arquivos alterados
 
 - `run-tenant-specs.ts` — adicionada suíte `commercial-read-models` ao
   runner unificado.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — sequência da Fase 4
-  atualizada: SCP-003 `Accepted`, SCP-004 `próxima etapa`; restrições
-  permanentes renomeadas para SCP-004.
+  atualizada: SCP-003 `Accepted`, SCP-004 `Implemented / Ready for
+  External Audit`; restrições permanentes renomeadas para SCP-004.
 - `docs/architecture/commercial/SCP-003-commercial-read-models-server-side-access-planning.md`
   — status único `Accepted`.
 
@@ -96,17 +100,20 @@ Consulta `billing_events` seleciona **apenas** `tenant_id`,
 `idempotency_key`, `error_code`, `error_message` **nunca** são
 selecionados.
 
-### `getCommercialAdminDiagnostic` → `CommercialAdminDiagnostic`
+### Item futuro: diagnóstico comercial administrativo
 
-Autorização estritamente reutilizada: exige
-`context.tenant.isSuperAdmin === true && context.tenant.impersonation
-=== true`. Nenhum novo papel comercial é criado. Rejeita qualquer outro
-chamador com `Forbidden`.
+O quarto read model previsto na SCP-003 (diagnóstico comercial
+administrativo) permanece apenas como item futuro. Não há server
+function, handler, endpoint ou derivação em runtime nesta etapa.
 
-```ts
-{ tenantId, commercialRecords: { hasSubscription, hasTenantEntitlements,
-  hasProviderMapping, billingEventsCount }, warnings: string[] }
-```
+Restrições obrigatórias para reintrodução futura:
+
+- não pode ser autorizado por `tenant_role`;
+- não pode ser autorizado por `has_role(auth.uid(), 'admin')`;
+- não pode ser autorizado por Super Admin impersonation reutilizada
+  como governança comercial;
+- exige uma superfície de autorização comercial dedicada, ainda não
+  definida.
 
 ## Garantias server-only
 
