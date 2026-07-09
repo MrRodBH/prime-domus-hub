@@ -20,11 +20,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
-  deriveAdminDiagnostic,
   deriveBillingHealth,
   deriveCommercialSummary,
   deriveEntitlementSnapshot,
-  type CommercialAdminDiagnostic,
   type PlanEntitlementRow,
   type PlanRow,
   type ProviderMappingRow,
