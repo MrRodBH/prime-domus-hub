@@ -1,7 +1,7 @@
 # SCP-003 — Commercial Read Models / Server-Side Access Planning
 
 ## Status
-Implemented / Ready for External Audit
+Accepted
 
 - **Date:** 2026-07-09
 - **Phase:** Fase 4 — SaaS Commercial Platform
