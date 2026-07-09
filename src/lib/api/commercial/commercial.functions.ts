@@ -1,9 +1,9 @@
-// SCP-004 — Commercial Server Read Functions
+// SCP-004 / SCP-004.1 — Commercial Server Read Functions
 //
 // Server-only entry points for the commercial read models planned in
 // SCP-003. Every function:
-//   • runs behind requireTenant (server-side tenant resolution, active
-//     membership validated or explicit Super Admin impersonation);
+//   • runs behind requireTenant (server-side tenant resolution with
+//     active membership validated);
 //   • loads supabaseAdmin inside the handler body only (never at module
 //     scope — the file is client-reachable via the router bundle);
 //   • returns a sanitized DTO derived by pure helpers in ./read-models;
@@ -11,8 +11,8 @@
 //
 // Hard boundaries preserved from SCP-003 (SCP3-G1..G8):
 //   • no permissive RLS is created here;
-//   • no billing_admin / commercial_admin / canManageTenantBilling;
-//   • no provider integration, webhook, checkout or customer portal;
+//   • no privileged commercial role is introduced;
+//   • no provider integration, no external hook, no purchase flow;
 //   • no direct client read of commercial/billing tables;
 //   • provider refs / raw payloads / payload hashes / idempotency keys
 //     are NEVER exposed — see read-models DTO whitelist.
@@ -20,11 +20,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
-  deriveAdminDiagnostic,
   deriveBillingHealth,
   deriveCommercialSummary,
   deriveEntitlementSnapshot,
-  type CommercialAdminDiagnostic,
   type PlanEntitlementRow,
   type PlanRow,
   type ProviderMappingRow,
@@ -231,60 +229,11 @@ export const getTenantBillingHealth = createServerFn({ method: "GET" })
   });
 
 // -----------------------------------------------------------------
-// 4) CommercialAdminDiagnostic
+// 4) Commercial admin diagnostic — INTENTIONALLY NOT EXPOSED (SCP-004.1)
 //
-// Diagnostic surface. Authorization strictly reuses the existing rule:
-// Super Admin only accesses tenant-scoped data through an explicit
-// impersonation header (context.tenant.impersonation === true, origin
-// 'impersonation'). No new billing_admin / commercial_admin role is
-// introduced; no membership row is required or altered.
+// The commercial admin diagnostic surface is a future item, not
+// implemented at runtime in SCP-004. Reintroducing it requires a
+// dedicated commercial authorization layer — it must not rely on
+// tenant role, on has_role(auth.uid(), ...), or on super-user session
+// hopping used as commercial governance. Documentation-only.
 // -----------------------------------------------------------------
-export const getCommercialAdminDiagnostic = createServerFn({ method: "GET" })
-  .middleware([requireTenant])
-  .handler(async ({ context }): Promise<CommercialAdminDiagnostic> => {
-    if (!context.tenant.isSuperAdmin || !context.tenant.impersonation) {
-      throw new Error("Forbidden: super admin impersonation required");
-    }
-    const tenantId = context.tenant.tenantId;
-    const admin = await loadAdmin();
-
-    const subsRes = await admin
-      .from("tenant_subscriptions")
-      .select(
-        "id, tenant_id, plan_id, status, status_reason, started_at, trial_ends_at, current_period_start, current_period_end, canceled_at, suspended_at",
-      )
-      .eq("tenant_id", tenantId);
-    if (subsRes.error) throw new Error(subsRes.error.message);
-    const subscription = pickActiveSubscription(
-      (subsRes.data ?? []) as SubscriptionRow[],
-    );
-
-    const teCount = await admin
-      .from("tenant_entitlements")
-      .select("tenant_id", { count: "exact", head: true })
-      .eq("tenant_id", tenantId);
-    if (teCount.error) throw new Error(teCount.error.message);
-
-    const mapRes = await admin
-      .from("tenant_billing_provider_mappings")
-      .select("tenant_id, provider_code, status, subscription_id")
-      .eq("tenant_id", tenantId);
-    if (mapRes.error) throw new Error(mapRes.error.message);
-    const providerMapping = pickPrimaryMapping(
-      (mapRes.data ?? []) as ProviderMappingRow[],
-    );
-
-    const evCount = await admin
-      .from("billing_events")
-      .select("id", { count: "exact", head: true })
-      .eq("tenant_id", tenantId);
-    if (evCount.error) throw new Error(evCount.error.message);
-
-    return deriveAdminDiagnostic({
-      tenantId,
-      subscription,
-      tenantEntitlementsCount: teCount.count ?? 0,
-      providerMapping,
-      billingEventsCount: evCount.count ?? 0,
-    });
-  });

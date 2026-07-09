@@ -124,16 +124,11 @@ export interface TenantBillingHealth {
   hasProviderMapping: boolean;
 }
 
-export interface CommercialAdminDiagnostic {
-  tenantId: string;
-  commercialRecords: {
-    hasSubscription: boolean;
-    hasTenantEntitlements: boolean;
-    hasProviderMapping: boolean;
-    billingEventsCount: number;
-  };
-  warnings: string[];
-}
+// NOTE (SCP-004.1): the commercial admin diagnostic surface remains a
+// documented future item only. It is intentionally NOT implemented at
+// runtime — no DTO type, no derivation helper, no server function. A
+// dedicated commercial authorization surface is required before it can
+// be reintroduced (see docs/architecture/commercial/SCP-003).
 
 // ============================================================
 // Derivation helpers
@@ -280,25 +275,4 @@ export function deriveBillingHealth(input: {
   };
 }
 
-export function deriveAdminDiagnostic(input: {
-  tenantId: string;
-  subscription: SubscriptionRow | null;
-  tenantEntitlementsCount: number;
-  providerMapping: ProviderMappingRow | null;
-  billingEventsCount: number;
-}): CommercialAdminDiagnostic {
-  const warnings: string[] = [];
-  if (!input.subscription) warnings.push("missing_subscription");
-  if (input.tenantEntitlementsCount === 0) warnings.push("no_tenant_entitlements");
-  if (!input.providerMapping) warnings.push("no_provider_mapping");
-  return {
-    tenantId: input.tenantId,
-    commercialRecords: {
-      hasSubscription: input.subscription !== null,
-      hasTenantEntitlements: input.tenantEntitlementsCount > 0,
-      hasProviderMapping: input.providerMapping !== null,
-      billingEventsCount: input.billingEventsCount,
-    },
-    warnings,
-  };
-}
+// SCP-004.1: admin diagnostic helper removed from runtime — see note above.
