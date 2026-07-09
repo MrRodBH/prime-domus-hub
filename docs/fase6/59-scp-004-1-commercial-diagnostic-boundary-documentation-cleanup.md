@@ -157,7 +157,7 @@ Nenhuma migration criada nesta etapa. Nenhum `CREATE POLICY`,
 ### Roadmap
 
 ```
-rg -n "SCP-003|SCP-004|próxima etapa|Accepted|Implemented / Ready" \
+rg -n "SCP-003|SCP-004|próxima etapa|Accepted" \
   docs/architecture/ROADMAP_ARCHITECTURAL.md
 ```
 
@@ -173,7 +173,7 @@ Confirmado:
 ### Status SCP-003
 
 ```
-rg -n "## Status|Implemented / Ready|Implementado / Pronto|Accepted|Aceito" \
+rg -n "## Status|Accepted" \
   docs/architecture/commercial/SCP-003-commercial-read-models-server-side-access-planning.md
 ```
 

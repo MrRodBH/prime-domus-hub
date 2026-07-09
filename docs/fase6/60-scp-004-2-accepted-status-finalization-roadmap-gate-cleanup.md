@@ -72,7 +72,7 @@ Restrições permanentes:
 ### Documento SCP-004
 
 ```
-rg -n "## Status|Implemented / Ready|Implementado / Pronto|Accepted|Aceito" \
+rg -n "## Status|Accepted" \
   docs/fase6/58-scp-004-commercial-server-read-functions.md
 ```
 
@@ -84,7 +84,7 @@ Resultado:
 ### Documento SCP-004.1
 
 ```
-rg -n "## Status|Implemented / Ready|Implementado / Pronto|Accepted|Aceito" \
+rg -n "## Status|Accepted" \
   docs/fase6/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md
 ```
 
