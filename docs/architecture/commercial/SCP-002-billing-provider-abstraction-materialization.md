@@ -1,7 +1,7 @@
 # SCP-002 — Billing Provider Abstraction Materialization
 
 ## Status
-Implemented / Ready for External Audit
+Accepted
 
 - **Date:** 2026-07-08
 - **Phase:** Fase 4 — SaaS Commercial Platform
