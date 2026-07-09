@@ -1,7 +1,8 @@
 # SCP-004 — Commercial Server Read Functions
 
 ## Status
-Implemented / Ready for External Audit
+
+Accepted
 
 - **Date:** 2026-07-09
 - **Phase:** Fase 4 — SaaS Commercial Platform

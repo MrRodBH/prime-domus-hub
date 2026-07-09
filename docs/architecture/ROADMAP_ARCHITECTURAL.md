@@ -157,7 +157,8 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 5. SCP-001 — Commercial Domain Model — Accepted.
 6. SCP-002 — Billing Provider Abstraction Materialization — Accepted.
 7. SCP-003 — Commercial Read Models / Server-Side Access Planning — Accepted.
-8. SCP-004 — Commercial Server Read Functions — Implemented / Ready for External Audit.
+8. SCP-004 — Commercial Server Read Functions — Accepted.
+9. SCP-005 — próxima etapa a definir após aprovação arquitetural.
 
 Restrições permanentes:
 - SCP-004 não implementa billing real completo.
