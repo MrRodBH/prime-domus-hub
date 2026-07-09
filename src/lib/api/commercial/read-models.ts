@@ -275,25 +275,4 @@ export function deriveBillingHealth(input: {
   };
 }
 
-export function deriveAdminDiagnostic(input: {
-  tenantId: string;
-  subscription: SubscriptionRow | null;
-  tenantEntitlementsCount: number;
-  providerMapping: ProviderMappingRow | null;
-  billingEventsCount: number;
-}): CommercialAdminDiagnostic {
-  const warnings: string[] = [];
-  if (!input.subscription) warnings.push("missing_subscription");
-  if (input.tenantEntitlementsCount === 0) warnings.push("no_tenant_entitlements");
-  if (!input.providerMapping) warnings.push("no_provider_mapping");
-  return {
-    tenantId: input.tenantId,
-    commercialRecords: {
-      hasSubscription: input.subscription !== null,
-      hasTenantEntitlements: input.tenantEntitlementsCount > 0,
-      hasProviderMapping: input.providerMapping !== null,
-      billingEventsCount: input.billingEventsCount,
-    },
-    warnings,
-  };
-}
+// SCP-004.1: deriveAdminDiagnostic removed from runtime — see note above.
