@@ -134,8 +134,8 @@ Runner `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts`:
 ✓ tenant-selection-cardinality:  7 passed, 0 failed
 ✓ tenant-gate:                  12 passed, 0 failed
 ✓ membership-validation:        10 passed, 0 failed
-✓ commercial-read-models:       10 passed, 0 failed
-TOTAL: 54 passed, 0 failed
+✓ commercial-read-models:        9 passed, 0 failed
+TOTAL: 53 passed, 0 failed
 ```
 
 Typecheck (`bunx tsgo --noEmit`): clean.
