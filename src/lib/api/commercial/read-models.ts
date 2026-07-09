@@ -124,16 +124,11 @@ export interface TenantBillingHealth {
   hasProviderMapping: boolean;
 }
 
-export interface CommercialAdminDiagnostic {
-  tenantId: string;
-  commercialRecords: {
-    hasSubscription: boolean;
-    hasTenantEntitlements: boolean;
-    hasProviderMapping: boolean;
-    billingEventsCount: number;
-  };
-  warnings: string[];
-}
+// NOTE (SCP-004.1): CommercialAdminDiagnostic remains a documented future
+// item only. It is intentionally NOT implemented at runtime — no DTO type,
+// no derivation helper, no server function. A dedicated commercial
+// authorization surface (not tenant_role, not has_role('admin'), not Super
+// Admin impersonation) is required before this can be reintroduced.
 
 // ============================================================
 // Derivation helpers
