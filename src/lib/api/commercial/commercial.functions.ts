@@ -229,12 +229,11 @@ export const getTenantBillingHealth = createServerFn({ method: "GET" })
   });
 
 // -----------------------------------------------------------------
-// 4) CommercialAdminDiagnostic — INTENTIONALLY NOT EXPOSED (SCP-004.1)
+// 4) Commercial admin diagnostic — INTENTIONALLY NOT EXPOSED (SCP-004.1)
 //
-// The commercial admin diagnostic surface is a future item. It is NOT
-// implemented at runtime in SCP-004: no server function, no handler, no
-// endpoint. Reintroducing it requires a dedicated commercial
-// authorization layer — it MUST NOT be authorized by tenant_role, by
-// has_role(auth.uid(), 'admin'), or by Super Admin impersonation used as
-// commercial governance. Left here as documentation only.
+// The commercial admin diagnostic surface is a future item, not
+// implemented at runtime in SCP-004. Reintroducing it requires a
+// dedicated commercial authorization layer — it must not rely on
+// tenant role, on has_role(auth.uid(), ...), or on super-user session
+// hopping used as commercial governance. Documentation-only.
 // -----------------------------------------------------------------
