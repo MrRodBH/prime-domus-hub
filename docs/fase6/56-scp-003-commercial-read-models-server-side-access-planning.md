@@ -266,3 +266,7 @@ SCP-004 **não** foi iniciada.
   - SCP-003 não executou update em dados existentes.
   - SCP-004 não foi iniciada.
 - **Conclusão:** SCP-003 implementada e pronta para auditoria externa.
+
+## Retificação SCP-003.1
+
+A auditoria externa identificou inconsistências documentais após SCP-003: o documento oficial da SCP-002 permaneceu com dois status (`Implemented / Ready for External Audit` e `Accepted`) e o Roadmap manteve duas linhas da SCP-002 na sequência inicial da Fase 4. A correção final foi realizada em SCP-003.1 e documentada em `docs/fase6/57-scp-003-1-scp-002-status-roadmap-sequence-final-cleanup.md`.
