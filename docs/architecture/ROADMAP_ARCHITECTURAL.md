@@ -156,20 +156,22 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 4. F4.0 — Role Reconciliation / Membership Role Audit — Accepted.
 5. SCP-001 — Commercial Domain Model — Accepted.
 6. SCP-002 — Billing Provider Abstraction Materialization — Accepted.
-7. SCP-003 — Commercial Read Models / Server-Side Access Planning — próxima etapa.
+7. SCP-003 — Commercial Read Models / Server-Side Access Planning — Accepted.
+8. SCP-004 — Commercial Server Read Functions — próxima etapa.
 
 Restrições permanentes:
-- SCP-003 não implementa billing real completo.
-- SCP-003 não implementa billing admin.
-- SCP-003 não implementa commercial admin.
-- SCP-003 não implementa canManageTenantBilling.
-- SCP-003 não implementa provider integration real.
-- SCP-003 não implementa adapter real de Stripe, Hotmart ou Kiwify.
-- SCP-003 não implementa webhook público real.
-- SCP-003 não implementa checkout.
-- SCP-003 não implementa customer portal.
-- SCP-003 não cria secrets de provider.
-- SCP-003 não abre RLS permissiva para usuários finais.
+- SCP-004 não implementa billing real completo.
+- SCP-004 não implementa billing admin.
+- SCP-004 não implementa commercial admin.
+- SCP-004 não implementa canManageTenantBilling.
+- SCP-004 não implementa provider integration real.
+- SCP-004 não implementa adapter real de Stripe, Hotmart ou Kiwify.
+- SCP-004 não implementa webhook público real.
+- SCP-004 não implementa checkout.
+- SCP-004 não implementa customer portal.
+- SCP-004 não cria secrets de provider.
+- SCP-004 não abre RLS permissiva para usuários finais.
+- SCP-004 não permite direct client reads das tabelas comerciais/billing.
 
 
 
