@@ -1,9 +1,9 @@
-// SCP-004 — Commercial Server Read Functions
+// SCP-004 / SCP-004.1 — Commercial Server Read Functions
 //
 // Server-only entry points for the commercial read models planned in
 // SCP-003. Every function:
-//   • runs behind requireTenant (server-side tenant resolution, active
-//     membership validated or explicit Super Admin impersonation);
+//   • runs behind requireTenant (server-side tenant resolution with
+//     active membership validated);
 //   • loads supabaseAdmin inside the handler body only (never at module
 //     scope — the file is client-reachable via the router bundle);
 //   • returns a sanitized DTO derived by pure helpers in ./read-models;
@@ -11,8 +11,8 @@
 //
 // Hard boundaries preserved from SCP-003 (SCP3-G1..G8):
 //   • no permissive RLS is created here;
-//   • no billing_admin / commercial_admin / canManageTenantBilling;
-//   • no provider integration, webhook, checkout or customer portal;
+//   • no privileged commercial role is introduced;
+//   • no provider integration, no external hook, no purchase flow;
 //   • no direct client read of commercial/billing tables;
 //   • provider refs / raw payloads / payload hashes / idempotency keys
 //     are NEVER exposed — see read-models DTO whitelist.
