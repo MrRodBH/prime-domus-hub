@@ -13,6 +13,12 @@ Accepted
   em `tenant_members`, sem provider integration, sem billing real, sem
   autorização comercial nova.
 
+## Acceptance Note
+
+SCP-004.1 is accepted as the corrective governance patch for SCP-004.
+
+It confirms that `CommercialAdminDiagnostic` is not exposed in runtime and remains only as a future documented item requiring a dedicated commercial authorization surface.
+
 ## Escopo
 
 1. Remoção total, em runtime, de:

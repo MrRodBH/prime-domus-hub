@@ -12,6 +12,18 @@ Accepted
   RLS, grants, provider integration, webhook, checkout, customer
   portal, billing/commercial admin role or client direct reads.
 
+## Acceptance Note
+
+SCP-004 is accepted together with SCP-004.1.
+
+SCP-004.1 corrected the commercial diagnostic boundary by removing `CommercialAdminDiagnostic` from runtime and preserving only the approved server-side commercial read functions:
+
+- `getTenantCommercialSummary`;
+- `getTenantEntitlementSnapshot`;
+- `getTenantBillingHealth`.
+
+No billing mutation surface, provider integration, webhook, checkout, customer portal, commercial admin role, billing admin role, RLS policy, grant, migration, or `tenant_members` change was introduced.
+
 ## Objetivo
 
 Implementar a primeira camada segura de leitura comercial server-side,
