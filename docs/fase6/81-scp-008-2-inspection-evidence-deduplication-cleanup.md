@@ -4,7 +4,6 @@
 
 Accepted
 
-
 ## 1. Objetivo
 
 Corrigir o resíduo documental deixado após a SCP-008.1: a seção `## 10. Inspeções textuais` do relatório da SCP-008 mantinha duas linhas de evidência de roadmap. Esta etapa consolidou essa evidência em linha única e atualizou os artefatos de governança.

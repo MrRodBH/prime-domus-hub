@@ -4,7 +4,6 @@
 
 Accepted
 
-
 ## 1. Objetivo
 
 Corrigir resíduo documental após a SCP-008: consolidar as restrições permanentes da Fase 4 (adicionando o bloco `SCP-008 não ...`) e corrigir a linha de evidência de inspeção do roadmap no relatório da SCP-008 para refletir o estado final pós-SCP-008.1.
