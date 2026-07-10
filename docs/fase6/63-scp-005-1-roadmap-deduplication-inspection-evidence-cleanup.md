@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented / Ready for External Audit
+Implemented / Ready for External Audit (consolidação final da seção `## 16. Inspeções executadas` concluída pela SCP-005.2)
 
 ## 1. Objetivo
 
