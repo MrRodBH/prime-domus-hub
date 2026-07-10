@@ -61,3 +61,7 @@ Nenhuma das superfícies abaixo foi criada, alterada ou iniciada:
 ## 6. Próximo passo recomendado
 
 Aguardar auditoria externa da SCP-007, SCP-007.1, SCP-007.2, SCP-007.3, SCP-007.4, SCP-007.5 e SCP-007.6. Iniciar SCP-008 apenas após aprovação arquitetural explícita. Não iniciar SCP-008.
+
+## Correction Note
+
+A SCP-007.6 ainda deixou duplicidade textual nos relatórios da SCP-007.2, SCP-007.4 e SCP-007.5. A limpeza final foi concluída pela SCP-007.7.
