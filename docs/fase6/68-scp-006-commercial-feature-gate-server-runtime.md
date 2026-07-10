@@ -2,7 +2,21 @@
 
 ## Status
 
-Implemented / Ready for External Audit
+Accepted
+
+## Acceptance Note
+
+SCP-006 is accepted.
+
+The accepted runtime scope is limited to the server-side commercial feature decision boundary:
+
+- `getCommercialFeatureDecision`;
+- `decideCommercialFeature`;
+- `normalizeFeatureKey`;
+- sanitized `CommercialFeatureDecision` DTO;
+- deterministic allow/deny/reason/source response.
+
+SCP-006 does not implement billing real, provider integration, webhook, checkout, customer portal, billing_admin, commercial_admin, canManageTenantBilling, tenant_members changes, permissive RLS, grants, commercial mutation, direct client reads, or SCP-007.
 
 ## 1. Objetivo
 
