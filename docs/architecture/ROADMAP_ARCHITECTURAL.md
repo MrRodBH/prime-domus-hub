@@ -159,8 +159,8 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 7. SCP-003 — Commercial Read Models / Server-Side Access Planning — Accepted.
 8. SCP-004 — Commercial Server Read Functions — Accepted.
 9. SCP-005 — Commercial Entitlement Runtime Boundary Planning — Accepted.
-10. SCP-006 — Commercial Feature Gate Server Runtime — Implemented / Ready for External Audit.
-11. SCP-007 — próxima etapa a definir após auditoria da SCP-006.
+10. SCP-006 — Commercial Feature Gate Server Runtime — Accepted.
+11. SCP-007 — próxima etapa a definir após aprovação arquitetural.
 
 Restrições permanentes:
 - SCP-004 não implementa billing real completo.
@@ -211,6 +211,7 @@ Restrições permanentes:
 - SCP-006 não executa mutation comercial.
 - SCP-006 não usa entitlement como substituto de membership authorization.
 - SCP-006 não permite Super Admin bypassar entitlement.
+- SCP-006 não inicia SCP-007.
 
 
 
