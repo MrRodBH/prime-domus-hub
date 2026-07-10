@@ -55,8 +55,8 @@ Nenhuma das superfícies abaixo foi criada, alterada ou iniciada:
 
 ## Correction Note
 
-A SCP-007.4 ainda deixou duplicidade textual no final do relatório da SCP-007.2. A limpeza final foi concluída pela SCP-007.5.
+A SCP-007.4 ainda deixou duplicidade textual no final do relatório da SCP-007.2 e manteve recomendação final duplicada em seu próprio relatório. A limpeza final foi concluída pela SCP-007.6.
 
 ## 6. Próximo passo recomendado
 
-Aguardar auditoria externa da SCP-007, SCP-007.1, SCP-007.2, SCP-007.3, SCP-007.4 e SCP-007.5. Iniciar SCP-008 apenas após aprovação arquitetural explícita. Não iniciar SCP-008.
+Aguardar auditoria externa da SCP-007, SCP-007.1, SCP-007.2, SCP-007.3, SCP-007.4, SCP-007.5 e SCP-007.6. Iniciar SCP-008 apenas após aprovação arquitetural explícita. Não iniciar SCP-008.
