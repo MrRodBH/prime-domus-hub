@@ -123,7 +123,7 @@ Executadas conforme §10 do briefing:
 - 0 mutations (`.insert|.update|.upsert|.delete|.rpc`) em `src/lib/api/commercial/`.
 - 0 implementação runtime de provider/billing real em `src/lib/api/commercial/` (ocorrências são apenas comentários de fora de escopo/governança).
 - 0 ocorrências runtime de `billing_admin | commercial_admin | canManageTenantBilling`.
-- Roadmap: SCP-007 uma única vez como Accepted, SCP-008 uma única vez como Implemented / Ready for External Audit, SCP-009 apenas como próxima etapa futura.
+- Roadmap: SCP-007 aparece uma única vez como `Accepted`, SCP-008 aparece uma única vez como `Implemented / Ready for External Audit`, SCP-009 aparece apenas como próxima etapa futura, sem duplicidade de numeração.
 
 ## 11. Próximo passo recomendado
 

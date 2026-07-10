@@ -235,6 +235,30 @@ Restrições permanentes:
 - SCP-007 não cria canManageTenantBilling.
 - SCP-007 não altera tenant_members.
 - SCP-007 não inicia SCP-008.
+- SCP-008 não cria migration.
+- SCP-008 não cria tabela.
+- SCP-008 não cria RLS policy.
+- SCP-008 não cria grant.
+- SCP-008 não cria seed.
+- SCP-008 não cria UI.
+- SCP-008 não cria hook client-side.
+- SCP-008 não implementa billing real.
+- SCP-008 não implementa cobrança, upgrade, downgrade ou cancelamento.
+- SCP-008 não implementa provider integration.
+- SCP-008 não integra Stripe, Hotmart ou Kiwify.
+- SCP-008 não implementa webhook.
+- SCP-008 não implementa checkout.
+- SCP-008 não implementa customer portal.
+- SCP-008 não cria billing_admin.
+- SCP-008 não cria commercial_admin.
+- SCP-008 não cria canManageTenantBilling.
+- SCP-008 não altera tenant_members.
+- SCP-008 não abre RLS permissiva nem grant para usuários finais.
+- SCP-008 não permite direct client reads das tabelas comerciais/billing.
+- SCP-008 não executa mutation comercial.
+- SCP-008 não altera membership authorization.
+- SCP-008 não permite Super Admin bypassar entitlement.
+- SCP-008 não inicia SCP-009.
 
 
 
