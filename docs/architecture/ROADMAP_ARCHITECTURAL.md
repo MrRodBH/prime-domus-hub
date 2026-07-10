@@ -161,7 +161,8 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 9. SCP-005 — Commercial Entitlement Runtime Boundary Planning — Accepted.
 10. SCP-006 — Commercial Feature Gate Server Runtime — Accepted.
 11. SCP-007 — Commercial Feature Key Catalog Planning — Accepted.
-12. SCP-008 — próxima etapa a definir após aprovação arquitetural.
+12. SCP-008 — Commercial Feature Key Catalog Materialization & Server Validation — Implemented / Ready for External Audit.
+13. SCP-009 — próxima etapa a definir após auditoria da SCP-008.
 
 Restrições permanentes:
 - SCP-004 não implementa billing real completo.
