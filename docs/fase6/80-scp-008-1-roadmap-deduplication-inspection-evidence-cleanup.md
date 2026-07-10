@@ -50,6 +50,10 @@ Nenhuma das seguintes superfícies foi criada ou alterada nesta etapa:
 
 SCP-009 não foi iniciada.
 
+## Correction Note
+
+A SCP-008.1 deixou duplicidade residual na linha de evidência de roadmap da seção `## 10. Inspeções textuais` do documento da SCP-008. A limpeza final foi concluída pela SCP-008.2.
+
 ## 5. Próximo passo recomendado
 
 Aguardar auditoria externa da SCP-008 e SCP-008.1. Iniciar SCP-009 apenas após aprovação arquitetural explícita. Não iniciar SCP-009.
