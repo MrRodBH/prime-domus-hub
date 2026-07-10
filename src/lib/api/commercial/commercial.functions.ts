@@ -37,6 +37,7 @@ import {
   normalizeFeatureKey,
   type CommercialFeatureDecision,
 } from "./feature-gate";
+import { evaluateFeatureCatalogGate } from "./feature-catalog";
 
 // Priority order when several subscriptions exist for a tenant — the
 // most operationally-relevant status wins. Deterministic, no LIMIT-based
