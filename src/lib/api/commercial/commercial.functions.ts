@@ -271,6 +271,14 @@ export const getCommercialFeatureDecision = createServerFn({ method: "POST" })
   .handler(async ({ context, data }): Promise<CommercialFeatureDecision> => {
     const tenantId = context.tenant.tenantId;
     const featureKey = data.featureKey;
+
+    // SCP-008 — catalog gate: non-cataloged keys short-circuit as
+    // `not_evaluated` before any snapshot / billing read. This prevents
+    // arbitrary client-supplied but syntactically-valid keys from
+    // reaching entitlement evaluation.
+    const catalogGate = evaluateFeatureCatalogGate({ tenantId, featureKey });
+    if (catalogGate) return catalogGate;
+
     const admin = await loadAdmin();
 
     // Read the same rows used by getTenantEntitlementSnapshot and
