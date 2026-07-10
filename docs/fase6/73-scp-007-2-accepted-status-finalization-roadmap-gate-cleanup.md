@@ -66,8 +66,8 @@ Nenhuma das superfícies abaixo foi criada, alterada ou iniciada:
 
 ## Correction Note
 
-A SCP-007.2 deixou resíduos documentais nos blocos de status da SCP-007/SCP-007.1 e duplicidade no roadmap. A limpeza final foi concluída pela SCP-007.3.
+A SCP-007.2 deixou resíduos documentais nos blocos de status da SCP-007/SCP-007.1 e duplicidade no roadmap. A limpeza final foi concluída pela SCP-007.3 e saneada documentalmente pela SCP-007.4.
 
 ## 6. Próximo passo recomendado
 
-Aguardar auditoria externa da SCP-007, SCP-007.1, SCP-007.2 e SCP-007.3. Iniciar SCP-008 apenas após aprovação arquitetural explícita. Não iniciar SCP-008.
+Aguardar auditoria externa da SCP-007, SCP-007.1, SCP-007.2, SCP-007.3 e SCP-007.4. Iniciar SCP-008 apenas após aprovação arquitetural explícita. Não iniciar SCP-008.
