@@ -162,19 +162,25 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 10. SCP-006 — próxima etapa a definir após auditoria da SCP-005.
 
 Restrições permanentes:
-- SCP-004 não implementa billing real completo.
-- SCP-004 não implementa billing admin.
-- SCP-004 não implementa commercial admin.
-- SCP-004 não implementa canManageTenantBilling.
-- SCP-004 não implementa provider integration real.
-- SCP-004 não implementa adapter real de Stripe, Hotmart ou Kiwify.
-- SCP-004 não implementa webhook público real.
-- SCP-004 não implementa checkout.
-- SCP-004 não implementa customer portal.
-- SCP-004 não cria secrets de provider.
-- SCP-004 não abre RLS permissiva para usuários finais.
-- SCP-004 não permite direct client reads das tabelas comerciais/billing.
-- SCP-004 não expõe CommercialAdminDiagnostic em runtime.
+- SCP-005 não implementa código runtime.
+- SCP-005 não implementa FeatureGate runtime.
+- SCP-005 não implementa hook client-side.
+- SCP-005 não implementa UI.
+- SCP-005 não cria migration.
+- SCP-005 não cria tabela.
+- SCP-005 não cria RLS policy.
+- SCP-005 não cria grant.
+- SCP-005 não implementa billing enforcement definitivo.
+- SCP-005 não implementa billing real.
+- SCP-005 não implementa provider integration real.
+- SCP-005 não implementa webhook.
+- SCP-005 não implementa checkout.
+- SCP-005 não implementa customer portal.
+- SCP-005 não cria billing_admin.
+- SCP-005 não cria commercial_admin.
+- SCP-005 não cria canManageTenantBilling.
+- SCP-005 não altera tenant_members.
+- SCP-005 não inicia SCP-006.
 
 
 

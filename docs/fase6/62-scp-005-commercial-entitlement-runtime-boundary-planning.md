@@ -268,8 +268,10 @@ FORCE ROW LEVEL SECURITY|CREATE TABLE|ALTER TABLE|CREATE FUNCTION" \
   supabase docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
 ```
 
-Confirmação: nenhuma instrução de migration, RLS, grant ou função SQL
-foi introduzida por esta etapa.
+Confirmação: não há instruções operacionais de migration, RLS, grant,
+tabela ou função SQL introduzidas pela SCP-005. Ocorrências de termos
+SQL aparecem apenas nos comandos de inspeção textual ou em contexto de
+proibição/governança.
 
 Ausência de superfícies proibidas em runtime:
 
@@ -279,8 +281,11 @@ tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal" \
   docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
 ```
 
-Confirmação: ocorrências restritas a seções de fora de escopo,
-proibição ou risco arquitetural.
+Confirmação: ocorrências de billing_admin, commercial_admin,
+canManageTenantBilling, tenant_members, stripe, hotmart, kiwify,
+webhook, checkout e customer portal aparecem apenas em seções de fora
+de escopo, proibição, risco arquitetural ou critérios de governança.
+Nenhuma superfície runtime foi criada.
 
 ## 17. Próxima etapa recomendada
 
