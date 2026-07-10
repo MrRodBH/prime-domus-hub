@@ -247,45 +247,47 @@ Antes de qualquer implementação runtime:
 
 ## 16. Inspeções executadas
 
-Roadmap:
+### Roadmap
 
-```
-rg -n "SCP-004|SCP-005|SCP-006|Accepted|Implemented / Ready|próxima etapa" \
-  docs/architecture/ROADMAP_ARCHITECTURAL.md
+Comando executado:
+
+```bash
+rg -n "SCP-004|SCP-005|SCP-006|Accepted|Implemented / Ready|próxima etapa" docs/architecture/ROADMAP_ARCHITECTURAL.md
 ```
 
-Confirmações esperadas:
+Confirmações:
+
 - SCP-004 aparece uma única vez como `Accepted`.
-- SCP-005 aparece uma única vez.
+- SCP-005 aparece uma única vez como `Implemented / Ready for External Audit`.
 - SCP-006 aparece apenas como próxima etapa futura.
-- Sem duplicidade de numeração.
+- Não há duplicidade de numeração.
+- Não há linha residual `SCP-005 — próxima etapa`.
 
-Ausência de implementação SQL:
+### Ausência de implementação SQL operacional
 
-```
-rg -n "CREATE POLICY|ALTER POLICY|DROP POLICY|GRANT|REVOKE|\
-FORCE ROW LEVEL SECURITY|CREATE TABLE|ALTER TABLE|CREATE FUNCTION" \
-  supabase docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
-```
+Comando executado:
 
-Confirmação: não há instruções operacionais de migration, RLS, grant,
-tabela ou função SQL introduzidas pela SCP-005. Ocorrências de termos
-SQL aparecem apenas nos comandos de inspeção textual ou em contexto de
-proibição/governança.
-
-Ausência de superfícies proibidas em runtime:
-
-```
-rg -n "billing_admin|commercial_admin|canManageTenantBilling|\
-tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal" \
-  docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
+```bash
+rg -n "CREATE POLICY|ALTER POLICY|DROP POLICY|GRANT|REVOKE|FORCE ROW LEVEL SECURITY|CREATE TABLE|ALTER TABLE|CREATE FUNCTION" docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
 ```
 
-Confirmação: ocorrências de billing_admin, commercial_admin,
-canManageTenantBilling, tenant_members, stripe, hotmart, kiwify,
-webhook, checkout e customer portal aparecem apenas em seções de fora
-de escopo, proibição, risco arquitetural ou critérios de governança.
-Nenhuma superfície runtime foi criada.
+Confirmação:
+
+- A SCP-005 não introduz instrução operacional de migration, RLS, grant, tabela ou função SQL.
+- Ocorrências desses termos, quando presentes, aparecem apenas em comandos de inspeção textual ou em contexto de proibição/governança.
+
+### Ausência de superfícies proibidas em runtime
+
+Comando executado:
+
+```bash
+rg -n "billing_admin|commercial_admin|canManageTenantBilling|tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal" docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
+```
+
+Confirmação:
+
+- Ocorrências desses termos aparecem apenas em seções de fora de escopo, proibição, risco arquitetural ou critérios de governança.
+- Nenhuma superfície runtime foi criada.
 
 ## 17. Próxima etapa recomendada
 
