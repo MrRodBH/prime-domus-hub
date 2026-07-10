@@ -242,3 +242,118 @@ export const getTenantBillingHealth = createServerFn({ method: "GET" })
 // tenant role, on has_role(auth.uid(), ...), or on super-user session
 // hopping used as commercial governance. Documentation-only.
 // -----------------------------------------------------------------
+
+// -----------------------------------------------------------------
+// 5) SCP-006 — Commercial Feature Gate Server Runtime
+//
+// Deterministic server-side decision surface. Consumes the SCP-004
+// read models (entitlement snapshot + billing health) and returns a
+// sanitized `CommercialFeatureDecision`. Never mutates, never calls a
+// provider, never exposes raw rows.
+//
+// Hard boundaries preserved from SCP-005:
+//   • runs behind `requireTenant` — membership authorization always
+//     precedes the entitlement decision (SCP5-G2);
+//   • Super Admin has NO commercial bypass — impersonation still goes
+//     through `requireTenant` and the same decision applies (SCP5-G2);
+//   • no direct client read of commercial/billing tables (SCP5-G3);
+//   • no billing enforcement side effect — `billing_blocked` denies
+//     the feature only, no cancel/charge/provider call (SCP5-G4);
+//   • no commercial admin surface, no provider integration (SCP5-G5/G6);
+//   • allow/deny reasons are a closed enum (SCP5-G7).
+// -----------------------------------------------------------------
+export const getCommercialFeatureDecision = createServerFn({ method: "POST" })
+  .middleware([requireTenant])
+  .inputValidator((data: { featureKey: unknown }) => ({
+    featureKey: normalizeFeatureKey(data?.featureKey),
+  }))
+  .handler(async ({ context, data }): Promise<CommercialFeatureDecision> => {
+    const tenantId = context.tenant.tenantId;
+    const featureKey = data.featureKey;
+    const admin = await loadAdmin();
+
+    // Read the same rows used by getTenantEntitlementSnapshot and
+    // getTenantBillingHealth. We reuse the pure derivation helpers
+    // from SCP-004 instead of duplicating any DTO shape.
+    const subsRes = await admin
+      .from("tenant_subscriptions")
+      .select(
+        "id, tenant_id, plan_id, status, status_reason, started_at, trial_ends_at, current_period_start, current_period_end, canceled_at, suspended_at",
+      )
+      .eq("tenant_id", tenantId);
+    if (subsRes.error) throw new Error(subsRes.error.message);
+    const subs = (subsRes.data ?? []) as SubscriptionRow[];
+    const subscription = pickActiveSubscription(subs);
+    const activePlanId = subscription?.plan_id ?? null;
+
+    const teRes = await admin
+      .from("tenant_entitlements")
+      .select(
+        "tenant_id, entitlement_key, source, value_bool, value_int, value_decimal, value_text, effective_from, effective_until",
+      )
+      .eq("tenant_id", tenantId);
+    if (teRes.error) throw new Error(teRes.error.message);
+
+    let planEntitlements: PlanEntitlementRow[] = [];
+    if (activePlanId) {
+      const peRes = await admin
+        .from("commercial_plan_entitlements")
+        .select(
+          "plan_id, entitlement_key, value_bool, value_int, value_decimal, value_text",
+        )
+        .eq("plan_id", activePlanId);
+      if (peRes.error) throw new Error(peRes.error.message);
+      planEntitlements = (peRes.data ?? []) as PlanEntitlementRow[];
+    }
+
+    const mapRes = await admin
+      .from("tenant_billing_provider_mappings")
+      .select("tenant_id, provider_code, status, subscription_id")
+      .eq("tenant_id", tenantId);
+    if (mapRes.error) throw new Error(mapRes.error.message);
+    const providerMapping = pickPrimaryMapping(
+      (mapRes.data ?? []) as ProviderMappingRow[],
+    );
+
+    // Only received_at + processing_status are read from billing_events.
+    // Provider refs / payload / hash / idempotency / error_* are NEVER
+    // selected — same guard as SCP-004 (SCP3-G2 boundary).
+    const evRes = await admin
+      .from("billing_events")
+      .select("tenant_id, received_at, processing_status")
+      .eq("tenant_id", tenantId)
+      .order("received_at", { ascending: false })
+      .limit(1);
+    if (evRes.error) throw new Error(evRes.error.message);
+    const lastEvent =
+      evRes.data && evRes.data.length > 0
+        ? {
+            tenant_id: tenantId,
+            received_at: (evRes.data[0] as { received_at: string | null })
+              .received_at,
+            processing_status: (
+              evRes.data[0] as { processing_status: string | null }
+            ).processing_status,
+          }
+        : null;
+
+    const snapshot: TenantEntitlementSnapshot = deriveEntitlementSnapshot({
+      tenantId,
+      tenantEntitlements: (teRes.data ?? []) as TenantEntitlementRow[],
+      planEntitlements,
+      activePlanId,
+    });
+    const billing: TenantBillingHealth = deriveBillingHealth({
+      tenantId,
+      subscription,
+      providerMapping,
+      lastEvent,
+    });
+
+    return decideCommercialFeature({
+      tenantId,
+      featureKey,
+      snapshot,
+      billing,
+    });
+  });
