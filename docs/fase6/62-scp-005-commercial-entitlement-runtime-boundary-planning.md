@@ -2,7 +2,31 @@
 
 ## Status
 
-Implemented / Ready for External Audit
+Accepted
+
+## Acceptance Note
+
+SCP-005 is accepted together with SCP-005.1, SCP-005.2, SCP-005.3 and SCP-005.4.
+
+The final accepted scope is architectural planning only. SCP-005 defines the server-side runtime boundary for future commercial entitlement decisions and preserves the following constraints:
+
+- no runtime code;
+- no FeatureGate implementation;
+- no client-side hook;
+- no UI;
+- no migration;
+- no RLS policy;
+- no grant;
+- no billing enforcement;
+- no provider integration;
+- no webhook;
+- no checkout;
+- no customer portal;
+- no billing_admin;
+- no commercial_admin;
+- no canManageTenantBilling;
+- no tenant_members change;
+- no SCP-006 implementation.
 
 ## 1. Objetivo
 
@@ -258,7 +282,7 @@ rg -n "SCP-004|SCP-005|SCP-006|Accepted|Implemented / Ready|próxima etapa" docs
 Confirmações:
 
 - SCP-004 aparece uma única vez como `Accepted`.
-- SCP-005 aparece uma única vez como `Implemented / Ready for External Audit`.
+- SCP-005 aparece uma única vez como `Accepted`.
 - SCP-006 aparece apenas como próxima etapa futura.
 - Não há duplicidade de numeração.
 - Não há linha residual `SCP-005 — próxima etapa`.
