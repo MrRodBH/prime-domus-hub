@@ -2,7 +2,22 @@
 
 ## Status
 
-Implemented / Ready for External Audit
+Accepted
+
+## Acceptance Note
+
+SCP-008 is accepted together with SCP-008.1 and SCP-008.2.
+
+The accepted runtime scope is limited to:
+
+- server-authoritative commercial feature key catalog;
+- pure feature catalog helpers;
+- catalog integrity validation;
+- server-side catalog validation inside `getCommercialFeatureDecision`;
+- `not_evaluated` decision for syntactically valid but non-cataloged feature keys.
+
+SCP-008 does not implement billing real, provider integration, webhook, checkout, customer portal, billing_admin, commercial_admin, canManageTenantBilling, tenant_members changes, permissive RLS, grants, seed, commercial mutation, direct client reads, or SCP-009.
+
 
 ## 1. Objetivo
 
