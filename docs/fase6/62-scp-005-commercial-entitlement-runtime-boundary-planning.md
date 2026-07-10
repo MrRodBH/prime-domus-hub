@@ -271,7 +271,7 @@ Comando executado:
 rg -n "CREATE POLICY|ALTER POLICY|DROP POLICY|GRANT|REVOKE|FORCE ROW LEVEL SECURITY|CREATE TABLE|ALTER TABLE|CREATE FUNCTION" docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
 ```
 
-Confirmação:
+Confirmações:
 
 - A SCP-005 não introduz instrução operacional de migration, RLS, grant, tabela ou função SQL.
 - Ocorrências desses termos, quando presentes, aparecem apenas em comandos de inspeção textual ou em contexto de proibição/governança.
@@ -284,7 +284,7 @@ Comando executado:
 rg -n "billing_admin|commercial_admin|canManageTenantBilling|tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal" docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
 ```
 
-Confirmação:
+Confirmações:
 
 - Ocorrências desses termos aparecem apenas em seções de fora de escopo, proibição, risco arquitetural ou critérios de governança.
 - Nenhuma superfície runtime foi criada.
