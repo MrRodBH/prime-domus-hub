@@ -282,7 +282,7 @@ rg -n "SCP-004|SCP-005|SCP-006|Accepted|Implemented / Ready|próxima etapa" docs
 Confirmações:
 
 - SCP-004 aparece uma única vez como `Accepted`.
-- SCP-005 aparece uma única vez como `Implemented / Ready for External Audit`.
+- SCP-005 aparece uma única vez como `Accepted`.
 - SCP-006 aparece apenas como próxima etapa futura.
 - Não há duplicidade de numeração.
 - Não há linha residual `SCP-005 — próxima etapa`.
