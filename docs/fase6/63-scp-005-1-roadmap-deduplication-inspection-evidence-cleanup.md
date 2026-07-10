@@ -6,7 +6,7 @@ Implemented / Ready for External Audit
 
 ## Correction Note
 
-A consolidação final da seção `## 16. Inspeções executadas` foi concluída pela SCP-005.3.
+A consolidação final da seção `## 16. Inspeções executadas` foi concluída pela SCP-005.4.
 
 ## 1. Objetivo
 
