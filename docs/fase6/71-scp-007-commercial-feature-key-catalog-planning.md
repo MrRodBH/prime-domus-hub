@@ -2,7 +2,35 @@
 
 ## Status
 
-Implemented / Ready for External Audit
+Accepted
+
+## Acceptance Note
+
+SCP-007 is accepted together with SCP-007.1.
+
+The accepted scope is architectural planning only. SCP-007 defines the governance model for commercial `featureKey` cataloging and preserves the following constraints:
+
+- no runtime catalog implementation;
+- no migration;
+- no table;
+- no RLS policy;
+- no grant;
+- no seed;
+- no UI;
+- no client-side hook;
+- no billing enforcement;
+- no provider integration;
+- no webhook;
+- no checkout;
+- no customer portal;
+- no billing_admin;
+- no commercial_admin;
+- no canManageTenantBilling;
+- no tenant_members change;
+- no changes to getCommercialFeatureDecision;
+- no changes to decideCommercialFeature;
+- no changes to normalizeFeatureKey;
+- no SCP-008 implementation.
 
 ## 1. Objetivo
 
