@@ -4,6 +4,10 @@
 
 Accepted
 
+## Correction Note
+
+A SCP-006.1 deixou o bloco de status da SCP-006 com linha residual. A limpeza final foi concluída pela SCP-006.2.
+
 ## 1. Objetivo
 
 Formalizar a aceitação da SCP-006 — Commercial Feature Gate Server Runtime.
