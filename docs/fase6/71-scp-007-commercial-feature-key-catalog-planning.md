@@ -161,7 +161,7 @@ Esta lista é conceitual e não deve ser materializada em seed nesta etapa.
 
 ## 14. Inspeções executadas
 
-- `rg -n "SCP-006|SCP-007|SCP-008|Accepted|Implemented / Ready|próxima etapa" docs/architecture/ROADMAP_ARCHITECTURAL.md` — SCP-006 aparece uma única vez como Accepted (linha 162), SCP-007 uma única vez como Implemented / Ready for External Audit (linha 163), SCP-008 apenas como próxima etapa futura (linha 164).
+- `rg -n "SCP-006|SCP-007|SCP-008|Accepted|Implemented / Ready|próxima etapa" docs/architecture/ROADMAP_ARCHITECTURAL.md` — SCP-006 aparece uma única vez como `Accepted`, SCP-007 aparece uma única vez como `Implemented / Ready for External Audit`, SCP-008 aparece apenas como próxima etapa futura, sem duplicidade de numeração.
 - `rg -n "CREATE POLICY|ALTER POLICY|DROP POLICY|GRANT|REVOKE|FORCE ROW LEVEL SECURITY|CREATE TABLE|ALTER TABLE|CREATE FUNCTION|INSERT INTO|UPDATE |DELETE FROM" docs/fase6/71-scp-007-commercial-feature-key-catalog-planning.md` — sem instruções operacionais SQL; qualquer ocorrência aparece apenas em contexto de proibição/governança.
 - `rg -n "billing_admin|commercial_admin|canManageTenantBilling|tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal" docs/fase6/71-scp-007-commercial-feature-key-catalog-planning.md` — ocorrências apenas em fora de escopo, proibição e governança.
 - `rg -n "getCommercialFeatureDecision|decideCommercialFeature|normalizeFeatureKey" src/lib/api/commercial docs/fase6/71-scp-007-commercial-feature-key-catalog-planning.md` — SCP-007 apenas documenta a relação com SCP-006, sem alterar a implementação runtime.

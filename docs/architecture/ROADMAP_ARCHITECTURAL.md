@@ -213,6 +213,27 @@ Restrições permanentes:
 - SCP-006 não usa entitlement como substituto de membership authorization.
 - SCP-006 não permite Super Admin bypassar entitlement.
 - SCP-006 não inicia SCP-007.
+- SCP-007 não implementa catálogo runtime.
+- SCP-007 não cria migration.
+- SCP-007 não cria tabela.
+- SCP-007 não cria RLS policy.
+- SCP-007 não cria grant.
+- SCP-007 não cria seed.
+- SCP-007 não cria UI.
+- SCP-007 não cria hook client-side.
+- SCP-007 não altera getCommercialFeatureDecision.
+- SCP-007 não altera decideCommercialFeature.
+- SCP-007 não altera normalizeFeatureKey.
+- SCP-007 não implementa billing enforcement.
+- SCP-007 não implementa provider integration.
+- SCP-007 não implementa webhook.
+- SCP-007 não implementa checkout.
+- SCP-007 não implementa customer portal.
+- SCP-007 não cria billing_admin.
+- SCP-007 não cria commercial_admin.
+- SCP-007 não cria canManageTenantBilling.
+- SCP-007 não altera tenant_members.
+- SCP-007 não inicia SCP-008.
 
 
 
