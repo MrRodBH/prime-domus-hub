@@ -32,6 +32,11 @@ import {
   type TenantEntitlementRow,
   type TenantEntitlementSnapshot,
 } from "./read-models";
+import {
+  decideCommercialFeature,
+  normalizeFeatureKey,
+  type CommercialFeatureDecision,
+} from "./feature-gate";
 
 // Priority order when several subscriptions exist for a tenant — the
 // most operationally-relevant status wins. Deterministic, no LIMIT-based
