@@ -64,3 +64,7 @@ Nenhuma das superfícies abaixo foi criada, alterada ou iniciada:
 Aguardar auditoria externa da SCP-005, SCP-005.1 e SCP-005.2. Iniciar
 SCP-006 apenas após aprovação e conforme critérios §14 da SCP-005 e
 hard gates SCP5-G1..SCP5-G8. Não iniciar SCP-006.
+
+## Correction Note
+
+A SCP-005.2 deixou resíduos documentais na seção `## 16. Inspeções executadas` do documento da SCP-005. A limpeza final foi concluída pela SCP-005.3.
