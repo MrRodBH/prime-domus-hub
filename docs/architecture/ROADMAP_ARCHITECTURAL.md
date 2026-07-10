@@ -260,11 +260,6 @@ Restrições permanentes:
 - SCP-008 não permite Super Admin bypassar entitlement.
 - SCP-008 não inicia SCP-009.
 
-
-
-
-
-
 ### 🟡 Fase 5 — Storage Abstraction Layer — Provisória
 - **Reposicionamento (IA-006.1):** Storage Abstraction Layer permanece
   planejada, mas **não é a próxima macrofase imediata**. A prioridade

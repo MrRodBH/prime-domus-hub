@@ -85,3 +85,7 @@ Executadas conforme briefing:
 ## 7. Próximo passo recomendado
 
 Aguardar aprovação arquitetural explícita antes de iniciar SCP-009. Não iniciar SCP-009.
+
+## Correction Note
+
+A SCP-008.3 deixou resíduos documentais nos blocos de status da SCP-008/SCP-008.1/SCP-008.2 e duplicidade no roadmap. A limpeza final foi concluída pela SCP-008.4.

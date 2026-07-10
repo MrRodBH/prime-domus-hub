@@ -18,7 +18,6 @@ The accepted runtime scope is limited to:
 
 SCP-008 does not implement billing real, provider integration, webhook, checkout, customer portal, billing_admin, commercial_admin, canManageTenantBilling, tenant_members changes, permissive RLS, grants, seed, commercial mutation, direct client reads, or SCP-009.
 
-
 ## 1. Objetivo
 
 Materializar o primeiro catálogo server-authoritative de `featureKey` comerciais e integrá-lo como gate determinístico dentro de `getCommercialFeatureDecision` (SCP-006). Chaves sintaticamente válidas mas não catalogadas passam a resolver como `not_evaluated` / `source: "none"` sem tocar snapshot, billing, provider ou executar mutação.
