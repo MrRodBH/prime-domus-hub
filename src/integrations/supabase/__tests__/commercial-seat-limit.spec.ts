@@ -823,7 +823,7 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
         },
       });
       assert(d.reason === "not_evaluated", "not_evaluated on read failure");
-      assert(d.reason !== "limit_reached", "never limit_reached");
+      assert((d.reason as string) !== "limit_reached", "never limit_reached");
       assert(d.limit === 5, "limit preserved");
       assert(d.source === "plan", "source preserved");
       assert(d.used === null && d.remaining === null, "used/remaining null");
