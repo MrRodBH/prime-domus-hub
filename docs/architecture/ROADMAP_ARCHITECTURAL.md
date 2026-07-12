@@ -165,8 +165,9 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 13. SCP-009 — Commercial Usage Limit Evaluation Planning — Accepted.
 14. SCP-010 — Commercial Seat Limit Runtime Contract & Read Model Planning — Ready for External Audit.
 14.1 SCP-010.1 — Authoritative Membership Domain Verification, Contract Determinism & Roadmap Cleanup — Ready for External Audit.
-14.2 SCP-010.2 — Commercial Limit DTO Alignment & Deterministic Documentation Finalization — Ready for External Audit.
-15. SCP-011 — Commercial Seat Limit Server Runtime — próxima etapa futura planejada; não iniciada.
+ 14.2 SCP-010.2 — Commercial Limit DTO Alignment & Deterministic Documentation Finalization — Ready for External Audit.
+ 14.3 SCP-010.3 — SCP-010.1 Deterministic Full Rewrite & Final Gate Cleanup — Ready for External Audit.
+ 15. SCP-011 — Commercial Seat Limit Server Runtime — próxima etapa futura planejada; não iniciada.
 
 Restrições permanentes:
 - SCP-004 não implementa billing real completo.
