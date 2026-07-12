@@ -2,7 +2,24 @@
 
 ## Status
 
-Implemented / Ready for External Audit
+Accepted
+
+## Acceptance Note
+
+SCP-009 is accepted together with SCP-009.1 and SCP-009.2.
+
+The accepted scope is architectural planning only.
+
+SCP-009 defines the future governance model for numeric commercial usage limits, including:
+
+- numeric entitlement semantics;
+- distinction between boolean features and numeric limits;
+- future `CommercialLimitDecision` DTO;
+- future server-side usage sources;
+- reserved behavior for `limit_reached`;
+- hard gates SCP9-G1 through SCP9-G10.
+
+SCP-009 does not implement runtime code, usage counters, limit enforcement, `limit_reached` emission, billing real, provider integration, webhook, checkout, customer portal, billing_admin, commercial_admin, canManageTenantBilling, tenant_members changes, permissive RLS, grants, seeds, mutations, direct client reads, or SCP-010.
 
 ## 1. Objetivo
 
@@ -227,7 +244,7 @@ Regras:
 - `rg -n "CREATE TABLE|ALTER TABLE|CREATE POLICY|ALTER POLICY|DROP POLICY|GRANT|REVOKE|FORCE ROW LEVEL SECURITY|INSERT INTO|UPDATE |DELETE FROM|CREATE FUNCTION"` neste documento → ocorrências, se existirem, aparecem apenas em contexto de fora de escopo, proibição, risco ou inspeção.
 - `rg -n "getCommercialFeatureDecision|decideCommercialFeature|normalizeFeatureKey|feature-catalog.ts|CommercialLimitDecision|limit_reached|users.seats|storage.media_limit"` neste documento → termos aparecem em contexto documental / planejamento apenas; nenhum runtime foi alterado.
 - `rg -n "billing_admin|commercial_admin|canManageTenantBilling|tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal"` neste documento → ocorrências aparecem apenas em contexto de fora de escopo, proibição, risco ou governança.
-- Roadmap: SCP-008 aparece uma única vez como `Accepted`, SCP-009 aparece uma única vez como `Implemented / Ready for External Audit`, SCP-010 aparece apenas como próxima etapa futura, sem duplicidade de numeração.
+- Roadmap: SCP-008 aparece uma única vez como `Accepted`, SCP-009 aparece uma única vez como `Accepted`, SCP-010 aparece apenas como próxima etapa futura, sem duplicidade de numeração.
 
 ## 16. Próximo passo recomendado
 

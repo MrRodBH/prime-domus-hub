@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented / Ready for External Audit
+Accepted
 
 ## Objetivo
 
