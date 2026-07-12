@@ -398,92 +398,65 @@ async function loadTenantCommercialContext(
 }
 
 // -----------------------------------------------------------------
-// 6) SCP-011 — Commercial Seat Limit Server Runtime
+// 6) SCP-011 / SCP-011.1 — Commercial Seat Limit Server Runtime
 //
 // Read-only, server-side, quantitative decision surface for the fixed
 // feature key `users.seats`. Never accepts tenantId / featureKey /
 // used / limit / remaining / source / billing status / membership
-// count from the client. The feature key is fixed server-side.
+// count / currentSeats from the client. The feature key is fixed
+// server-side, and the input is validated with a strict boundary
+// (SCP-011.1 §6).
 //
-// Hard boundaries preserved from SCP-010.x (SCP10-G1..):
+// Runtime is delegated to `resolveCommercialSeatLimitDecision` (see
+// ./seat-limit-runtime). That module is what the specs exercise —
+// production and tests share the exact same orchestration.
+//
+// Hard boundaries preserved from SCP-010.x / SCP-011 / SCP-011.1:
 //   • requireTenant is mandatory (server-side tenant resolution);
 //   • Super Admin without impersonation is rejected by requireTenant
 //     itself (no bypass, no client-selected tenant);
 //   • Super Admin impersonating is subject to the same limit;
+//   • catalog gate runs BEFORE any commercial context load or
+//     tenant_members read (SCP-011.1 §5);
 //   • CommercialFeatureDecision precedes CommercialLimitDecision;
-//   • no dual-path — reuses loadTenantCommercialContext and the
-//     SCP-004 derivation helpers to obtain the seat limit value;
+//   • no dual-path — reuses loadTenantCommercialContext + read-model
+//     helpers to obtain the seat limit value;
 //   • used is a server-side COUNT over public.tenant_members with
-//     membership_status IN ('active', 'invited');
+//     membership_status IN ('active','invited');
 //   • no mutation, no lock, no reservation, no enforcement, no
 //     provider call, no webhook, no admin surface.
 // -----------------------------------------------------------------
 export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((data: unknown) => {
-    const input = (data ?? {}) as { requestedIncrement?: unknown };
-    return {
-      requestedIncrement: normalizeSeatIncrement(input.requestedIncrement),
-    };
-  })
+  .inputValidator((data: unknown) => normalizeCommercialSeatLimitInput(data))
   .handler(async ({ context, data }): Promise<CommercialLimitDecision> => {
     const tenantId = context.tenant.tenantId;
-    const featureKey = SEAT_FEATURE_KEY;
     const requestedIncrement = data.requestedIncrement;
 
-    const admin = await loadAdmin();
-    const { snapshot, billing } = await loadTenantCommercialContext(
-      admin,
+    return resolveCommercialSeatLimitDecision({
       tenantId,
-    );
-
-    // SCP-011 §11 — always compute the commercial decision first.
-    const featureDecision = decideCommercialFeature({
-      tenantId,
-      featureKey,
-      snapshot,
-      billing,
-    });
-
-    // §11.1 — negative feature decision: DO NOT read tenant_members,
-    // DO NOT recompute limits/billing/source. Propagate as-is.
-    if (!featureDecision.allowed) {
-      return decideCommercialSeatLimit({
-        featureDecision,
-        extracted: { limit: null, source: "none" },
-        used: null,
-        requestedIncrement,
-      });
-    }
-
-    // §12/§13 — extract the seat limit from the SAME snapshot used by
-    // the feature decision. No parallel resolver.
-    const extracted = extractSeatLimit(snapshot);
-
-    // §14 — authoritative server-side count of consumed seats.
-    // active consumes, invited reserves; suspended/revoked ignored.
-    // role does not affect the count.
-    let usedRaw: number | null = null;
-    try {
-      const countRes = await admin
-        .from("tenant_members")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .in("membership_status", ["active", "invited"]);
-      if (countRes.error) {
-        usedRaw = null;
-      } else {
-        usedRaw = countRes.count ?? null;
-      }
-    } catch {
-      usedRaw = null;
-    }
-    const used = validateSeatUsedCount(usedRaw);
-
-    return decideCommercialSeatLimit({
-      featureDecision,
-      extracted,
-      used,
       requestedIncrement,
+      deps: {
+        evaluateCatalogGate: defaultEvaluateCatalogGate,
+        loadCommercialContext: async (tid) => {
+          const admin = await loadAdmin();
+          return loadTenantCommercialContext(admin, tid);
+        },
+        readSeatUsage: async (tid) => {
+          const admin = await loadAdmin();
+          try {
+            const countRes = await admin
+              .from("tenant_members")
+              .select("*", { count: "exact", head: true })
+              .eq("tenant_id", tid)
+              .in("membership_status", ["active", "invited"]);
+            if (countRes.error) return null;
+            return countRes.count ?? null;
+          } catch {
+            return null;
+          }
+        },
+      },
     });
   });
+
