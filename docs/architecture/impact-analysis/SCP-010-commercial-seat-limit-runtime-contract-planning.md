@@ -134,9 +134,8 @@ type CommercialLimitDecision = {
 };
 ```
 
-Valores **proibidos** como membros do DTO: `within_limit`,
-`tenant_entitlement`, `plan_entitlement`, `override`, `system`,
-`unknown`, `invalid_limit`. Valores persistidos no banco poderão
+Qualquer valor de `reason` ou `source` fora dos enums acima é
+proibido como membro do DTO. Valores persistidos no banco poderão
 existir, mas serão mapeados para o contrato acima (§11).
 
 ## 9. Relação com `CommercialFeatureDecision`
