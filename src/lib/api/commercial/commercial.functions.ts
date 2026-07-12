@@ -449,7 +449,7 @@ export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
     if (!featureDecision.allowed) {
       return decideCommercialSeatLimit({
         featureDecision,
-        limit: null,
+        extracted: { limit: null, source: "none" },
         used: null,
         requestedIncrement,
       });
@@ -457,7 +457,7 @@ export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
 
     // §12/§13 — extract the seat limit from the SAME snapshot used by
     // the feature decision. No parallel resolver.
-    const { limit, source: limitSource } = extractSeatLimit(snapshot);
+    const extracted = extractSeatLimit(snapshot);
 
     // §14 — authoritative server-side count of consumed seats.
     // active consumes, invited reserves; suspended/revoked ignored.
@@ -479,27 +479,10 @@ export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
     }
     const used = validateSeatUsedCount(usedRaw);
 
-    const decision = decideCommercialSeatLimit({
+    return decideCommercialSeatLimit({
       featureDecision,
-      limit,
+      extracted,
       used,
       requestedIncrement,
     });
-
-    // The pure helper falls back to source `"none"` only when the
-    // limit itself is unresolved (§18). When the limit IS resolved but
-    // used is not, we preserve the resolved limit source explicitly.
-    if (
-      decision.reason === "not_evaluated" &&
-      decision.limit !== null &&
-      limitSource !== "none"
-    ) {
-      return { ...decision, source: limitSource };
-    }
-    if (decision.limit !== null && limitSource !== "none") {
-      // Ensure the source we report matches the resolver used to obtain
-      // the numeric limit (tenant/plan/default), not the feature source.
-      return { ...decision, source: limitSource };
-    }
-    return decision;
   });
