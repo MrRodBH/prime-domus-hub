@@ -481,7 +481,7 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "reader: no memberships → used=0",
     run: async () => {
       const admin = mockAdmin([]);
-      const used = await readUsed(admin, TENANT);
+      const used = await readCommercialSeatUsage(asUsageClient(admin), TENANT);
       assert(used === 0, "used 0");
     },
   },
@@ -492,7 +492,7 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
         { tenant_id: TENANT, membership_status: "active" },
         { tenant_id: TENANT, membership_status: "active" },
       ]);
-      assert((await readUsed(admin, TENANT)) === 2, "2 active");
+      assert((await readCommercialSeatUsage(asUsageClient(admin), TENANT)) === 2, "2 active");
     },
   },
   {
@@ -503,7 +503,7 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
         { tenant_id: TENANT, membership_status: "invited" },
         { tenant_id: TENANT, membership_status: "invited" },
       ]);
-      assert((await readUsed(admin, TENANT)) === 3, "3 invited");
+      assert((await readCommercialSeatUsage(asUsageClient(admin), TENANT)) === 3, "3 invited");
     },
   },
   {
@@ -514,7 +514,7 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
         { tenant_id: TENANT, membership_status: "invited" },
         { tenant_id: TENANT, membership_status: "active" },
       ]);
-      assert((await readUsed(admin, TENANT)) === 3, "3 total");
+      assert((await readCommercialSeatUsage(asUsageClient(admin), TENANT)) === 3, "3 total");
     },
   },
   {
@@ -526,7 +526,7 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
         { tenant_id: TENANT, membership_status: "revoked" },
         { tenant_id: TENANT, membership_status: "suspended" },
       ]);
-      assert((await readUsed(admin, TENANT)) === 1, "only 1 active");
+      assert((await readCommercialSeatUsage(asUsageClient(admin), TENANT)) === 1, "only 1 active");
     },
   },
   {
@@ -537,15 +537,15 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
         { tenant_id: OTHER_TENANT, membership_status: "active" },
         { tenant_id: OTHER_TENANT, membership_status: "invited" },
       ]);
-      assert((await readUsed(admin, TENANT)) === 1, "tenant A only");
-      assert((await readUsed(admin, OTHER_TENANT)) === 2, "tenant B only");
+      assert((await readCommercialSeatUsage(asUsageClient(admin), TENANT)) === 1, "tenant A only");
+      assert((await readCommercialSeatUsage(asUsageClient(admin), OTHER_TENANT)) === 2, "tenant B only");
     },
   },
   {
     name: "reader: filter shape matches contract (tenant_members + active/invited + count exact head)",
     run: async () => {
       const admin = mockAdmin([{ tenant_id: TENANT, membership_status: "active" }]);
-      await readUsed(admin, TENANT);
+      await readCommercialSeatUsage(asUsageClient(admin), TENANT);
       const f = admin._lastFilter();
       assert(f.table === "tenant_members", "table = tenant_members");
       assert(f.tenantId === TENANT, "tenant filter present");
