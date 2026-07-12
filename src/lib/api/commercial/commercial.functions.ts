@@ -38,6 +38,14 @@ import {
   type CommercialFeatureDecision,
 } from "./feature-gate";
 import { evaluateFeatureCatalogGate } from "./feature-catalog";
+import {
+  SEAT_FEATURE_KEY,
+  decideCommercialSeatLimit,
+  extractSeatLimit,
+  normalizeSeatIncrement,
+  validateSeatUsedCount,
+  type CommercialLimitDecision,
+} from "./limit-decision";
 
 // Priority order when several subscriptions exist for a tenant — the
 // most operationally-relevant status wins. Deterministic, no LIMIT-based
