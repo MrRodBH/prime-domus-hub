@@ -33,6 +33,7 @@ import {
   SEAT_FEATURE_KEY,
   decideCommercialSeatLimit,
   extractSeatLimit,
+  isValidCommercialInteger,
   validateSeatUsedCount,
   type CommercialLimitDecision,
 } from "./limit-decision";
@@ -101,9 +102,23 @@ export async function resolveCommercialSeatLimitDecision(input: {
     });
   }
 
-  // §8.3 — Feature allowed: extract limit from the SAME snapshot and
-  // count tenant_members exactly once via the injected reader.
+  // §8.3 — Feature allowed: extract limit from the SAME snapshot.
   const extracted = extractSeatLimit(snapshot);
+
+  // SCP-011.2 §4 — Short-circuit: if the seat limit is absent, non
+  // effective, or not a valid commercial integer, DO NOT read
+  // tenant_members. Emit not_evaluated / source=none deterministically.
+  // Note: limit=0 is a VALID commercial integer and must proceed.
+  if (extracted.limit === null || !isValidCommercialInteger(extracted.limit)) {
+    return decideCommercialSeatLimit({
+      featureDecision,
+      extracted: { limit: null, source: "none" },
+      used: null,
+      requestedIncrement,
+    });
+  }
+
+  // Count tenant_members exactly once via the injected reader.
   const rawUsed = await deps.readSeatUsage(tenantId);
   const used = validateSeatUsedCount(rawUsed);
 

@@ -175,6 +175,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 14.5.4 SCP-010.5.4 — Final Accepted Status Closure & SCP-011 Authorization — Accepted.
 15. SCP-011 — Commercial Seat Limit Server Runtime — Ready for External Audit.
 15.1 SCP-011.1 — Catalog Gate, Strict Input Boundary & Runtime Orchestration Test Hardening — Ready for External Audit.
+15.2 SCP-011.2 — Limit Resolution Short-Circuit & Production Seat Usage Reader Test Lock — Ready for External Audit.
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — próxima etapa futura planejada; não iniciada.
 
 
