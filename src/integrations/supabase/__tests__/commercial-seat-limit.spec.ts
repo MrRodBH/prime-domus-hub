@@ -965,7 +965,7 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
-    name: "short-circuit: users.seats present but effective=false → no seat read",
+    name: "short-circuit: users.seats present but non-numeric value (boolean) → no seat read",
     run: async () => {
       let usageCalls = 0;
       const d = await resolveCommercialSeatLimitDecision({
