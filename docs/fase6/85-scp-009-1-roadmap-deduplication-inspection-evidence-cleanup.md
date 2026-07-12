@@ -78,3 +78,7 @@ Nesta SCP-009.1 NÃO houve:
 
 Auditoria externa da SCP-009 consolidada (SCP-009 + SCP-009.1).
 Após aprovação, iniciar SCP-010. **Não iniciar SCP-010 nesta etapa.**
+
+## Correction Note
+
+A SCP-009.1 deixou duplicidade residual na evidência de roadmap da seção `## 15. Inspeções executadas` do documento da SCP-009. A limpeza final foi concluída pela SCP-009.2.
