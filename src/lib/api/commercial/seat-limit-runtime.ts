@@ -33,6 +33,7 @@ import {
   SEAT_FEATURE_KEY,
   decideCommercialSeatLimit,
   extractSeatLimit,
+  isValidCommercialInteger,
   validateSeatUsedCount,
   type CommercialLimitDecision,
 } from "./limit-decision";
