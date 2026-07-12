@@ -2,250 +2,383 @@
 
 ## Status
 
-Ready for External Audit (consolidado pela SCP-010.1).
+Ready for External Audit
 
 ## 1. Escopo
 
-Planejar o contrato server-authoritative do limite de assentos
-(`users.seats`) que a SCP-011 implementará como read-only, e listar os
-read models auxiliares. Etapa exclusivamente documental — sem runtime,
-migration, RLS, grant ou mutation.
+Planejar o contrato server-authoritative da decisão de limite
+numérico de assentos (`users.seats`) que a SCP-011 materializará
+como runtime read-only. Etapa exclusivamente documental — sem
+runtime, migration, schema, RLS, grant ou mutation. Não implementa
+enforcement (reservado à SCP-012). Este documento é consolidado e
+substitui integralmente as versões anteriores, incorporando as
+correções da SCP-010.1 e da SCP-010.2.
 
-## 2. Evidências do repositório (autoritativas)
+## 2. Evidências autoritativas
 
-Inspeção direta via `psql \d` e migrations:
+Inspecionadas diretamente no repositório:
 
-- `public.tenant_members` — colunas reais:
-  `tenant_id uuid NOT NULL`, `user_id uuid NOT NULL`,
-  `tenant_role tenant_role NOT NULL DEFAULT 'viewer'`,
-  `membership_status membership_status NOT NULL DEFAULT 'active'`,
-  `is_owner`, `is_default`, `joined_at`, `invited_at`, `accepted_at`,
-  `suspended_at`, `revoked_at`, `updated_at`.
-  - PRIMARY KEY `(tenant_id, user_id)` → protege duplicidade
-    `(tenant, user)` de forma total (sem predicado parcial).
-  - Índices: `tenant_members_active_lookup_idx (user_id, tenant_id,
-    membership_status)`, `tenant_members_tenant_idx`,
-    `tenant_members_user_idx`.
-  - FKs: `tenant_id → public.tenants ON DELETE CASCADE`;
-    `user_id → auth.users ON DELETE CASCADE`.
-  - RLS habilitado. Policies: `tm_select` (super_admin OR próprio
-    user OR `user_belongs_to_tenant`); `tm_write` restrita a
-    `is_super_admin()`.
-  - Migration base: `20260701204508_...` (CREATE TABLE + PK);
-    `20260708125042_...` (adiciona colunas `tenant_role`,
-    `membership_status` e timestamps de transição + índices).
+- `public.tenant_members` — colunas: `tenant_id uuid NOT NULL`,
+  `user_id uuid NOT NULL`, `tenant_role tenant_role NOT NULL
+  DEFAULT 'viewer'`, `membership_status membership_status NOT NULL
+  DEFAULT 'active'`, `is_owner`, `is_default`, `joined_at`,
+  `invited_at`, `accepted_at`, `suspended_at`, `revoked_at`,
+  `updated_at`. PK `(tenant_id, user_id)`. RLS habilitado (writes
+  restritos a `is_super_admin()`).
 - Enum `public.membership_status` = `active | invited | suspended |
-  revoked` (não existe `removed`).
+  revoked`.
 - Enum `public.tenant_role` = `owner | admin | manager | broker |
-  captador | secretaria | viewer` (não existe `agent` nem `guest`).
-- `public.tenant_entitlements` — coluna numérica é `value_int integer`
-  (`>= 0`); check `single_value_chk` restringe exatamente uma coluna
-  de valor por linha; `source ∈ {plan, override, system}`; UNIQUE
-  `(tenant_id, entitlement_key)`.
-- `public.commercial_plan_entitlements` — mesma família de colunas
-  tipadas; UNIQUE `(plan_id, entitlement_key)`.
+  captador | secretaria | viewer`.
+- `public.tenant_entitlements` — colunas de valor tipadas; coluna
+  numérica `value_int integer >= 0`; check `single_value_chk`;
+  UNIQUE `(tenant_id, entitlement_key)`; coluna persistida
+  `source text NOT NULL DEFAULT 'plan'` com CHECK
+  `source IN ('plan','override','system')`
+  (migration `20260708223211_*`).
+- `public.commercial_plan_entitlements` — mesma família de valor;
+  UNIQUE `(plan_id, entitlement_key)`.
 - `public.commercial_entitlement_definitions` — `value_type ∈
   {boolean, integer, decimal, text}`; PK `key`.
 - `public.tenant_subscriptions` — `status ∈ {trialing, active,
   past_due, suspended, canceled, internal, demo}`; UNIQUE parcial
-  `tenant_subscriptions_one_current_per_tenant_idx (tenant_id)
-  WHERE status ∈ {trialing, active, past_due, suspended, internal,
-  demo}` → garante no máximo uma subscription "vigente" por tenant.
+  garante no máximo uma subscription vigente por tenant nos status
+  operacionais.
 - Feature catalog: `users.seats` presente em
-  `src/lib/api/commercial/feature-catalog.ts` como
+  `src/lib/api/commercial/feature-catalog.ts` com
   `valueType: "number"`, `status: "active"`.
+- Runtime comercial já aceito:
+  `src/lib/api/commercial/feature-gate.ts` define
+  `CommercialFeatureDecisionReason = "entitled" | "not_entitled" |
+  "limit_reached" | "billing_unknown" |
+  "billing_attention_required" | "billing_blocked" |
+  "not_evaluated"` e `CommercialFeatureDecisionSource = "tenant" |
+  "plan" | "default" | "none"`.
+  `src/lib/api/commercial/commercial.functions.ts` expõe
+  `getCommercialFeatureDecision` como server function autoritativa;
+  `read-models.ts` fornece `getTenantCommercialSummary`,
+  `getTenantEntitlementSnapshot`, `getTenantBillingHealth`.
 
-Reconciliação F3.6 versus repositório: os domínios de
-`membership_status` e `tenant_role` publicados em
-`src/integrations/supabase/membership-types.ts` correspondem
-exatamente aos enums do banco. Nenhuma divergência documental
-identificada.
+## 3. Invariantes
 
-## 3. Contrato de contagem (final)
+- Server-authoritative: toda avaliação corre em `createServerFn`
+  server-only; nenhum cálculo é confiável a partir do cliente.
+- Tenant scope: precedido por `requireTenant`; impersonação é
+  respeitada pelos boundaries existentes.
+- Autoridade comercial anterior ao cálculo: nenhuma leitura de
+  `tenant_members` ou de limite ocorre antes de
+  `getCommercialFeatureDecision` retornar `allowed=true`.
+- DTO fechado: emissão restrita ao contrato §8; nenhum valor novo
+  de `reason` ou `source` é introduzido.
+- Determinismo: cada estado observável possui uma única decisão
+  válida (matriz §15).
+- Sem enforcement: SCP-010/011 são read-only. Enforcement atômico
+  em mutations é escopo exclusivo da SCP-012.
 
-Unidade contada: **linha de `tenant_members`**. Como a tabela tem
-PK `(tenant_id, user_id)`, cada `(tenant, user)` é único por
-construção — linha e identidade coincidem. Não é necessário
-`COUNT(DISTINCT user_id)` como mitigação; `COUNT(*)` sobre o
-predicado é suficiente e determinístico.
+## 4. Domínio de membership
 
-| Status real | Consome assento? | Justificativa | Timestamp de transição |
+Confirmado contra o banco (F3.6) e a tipagem publicada em
+`src/integrations/supabase/membership-types.ts`. Domínios legados
+`removed`, `agent`, `guest`, `membership_role` **não existem** e
+não podem ser reintroduzidos em qualquer plano subsequente.
+
+## 5. Unidade e contagem de assentos
+
+Unidade contada = linha de `public.tenant_members`. A PK
+`(tenant_id, user_id)` garante unicidade total; `COUNT(*)` sobre o
+predicado é suficiente e determinístico — `COUNT(DISTINCT user_id)`
+é proibido.
+
+| `membership_status` | Consome assento? | Justificativa | Timestamp de transição |
 | --- | --- | --- | --- |
-| `active` | sim | membership operacional (F3.2/F3.6). | `accepted_at`, `joined_at` |
-| `invited` | sim (reserva) | linha já existe com `user_id` NOT NULL; ocupa slot único `(tenant, user)`. | `invited_at` |
-| `suspended` | não | não é operacional; libera o slot lógico de uso. | `suspended_at` |
-| `revoked` | não | equivalente semântico de removido; libera o slot. | `revoked_at` |
+| `active` | sim | membership operacional. | `accepted_at`, `joined_at` |
+| `invited` | sim (reserva) | linha ocupa slot `(tenant, user)`. | `invited_at` |
+| `suspended` | não | não operacional; libera slot lógico. | `suspended_at` |
+| `revoked` | não | equivalente semântico de removido. | `revoked_at` |
 
-`removed` **não existe** no banco. A SCP-010 anterior tratava
-`revoked` como sinônimo de "removed" — mantido como convenção
-documental apenas.
+## 6. Roles
 
-## 4. Contrato de roles
+Todos os `tenant_role` reais consomem assento quando o status é
+counted; o role não altera contagem. Nenhuma equivalência com
+`agent`/`guest` é admitida.
 
-Todos os roles reais consomem assento quando o status é counted; o
-role não altera contagem.
+## 7. Convites
 
-| Role real | Consome quando counted? | Evidência |
-| --- | --- | --- |
-| `owner` | sim | enum `tenant_role`. |
-| `admin` | sim | enum `tenant_role`. |
-| `manager` | sim | enum `tenant_role`. |
-| `broker` | sim | enum `tenant_role`. |
-| `captador` | sim | enum `tenant_role`. |
-| `secretaria` | sim | enum `tenant_role`. |
-| `viewer` | sim | enum `tenant_role`. |
+`tenant_members.user_id` é `NOT NULL`. Não existe tabela separada
+de invitations. Convite pendente = linha com
+`membership_status='invited'` e `user_id` vinculado a `auth.users`.
+Duplicidade impedida pela PK.
 
-Equivalências `broker=agent`, `viewer=guest`, `tenant_role=membership_role`
-são **rejeitadas**: não existem `agent`/`guest` no enum e não existe
-coluna `membership_role`.
+## 8. DTO canônico
 
-## 5. Convites
+Preservado integralmente da SCP-009. Nenhum valor adicionado,
+renomeado ou removido.
 
-- `tenant_members.user_id` é `NOT NULL`: **não existe convite
-  somente por e-mail** nesta tabela.
-- Não existe tabela separada de invitations no repositório atual.
-- Convite pendente = linha com `membership_status='invited'` e
-  `user_id` já vinculado a `auth.users` (o convidado precisa ter
-  identidade Supabase pré-criada).
-- Duplicidade de convites é impedida pela PK `(tenant_id, user_id)`.
+```
+type CommercialLimitDecision = {
+  tenantId: string;
+  featureKey: string;
+  allowed: boolean;
+  reason:
+    | "entitled"
+    | "not_entitled"
+    | "limit_reached"
+    | "billing_unknown"
+    | "billing_attention_required"
+    | "billing_blocked"
+    | "not_evaluated";
+  source: "tenant" | "plan" | "default" | "none";
+  limit: number | null;
+  used: number | null;
+  requestedIncrement: number;
+  remaining: number | null;
+};
+```
 
-## 6. Fonte autoritativa do limite (precedência final)
+Valores **proibidos** como membros do DTO: `within_limit`,
+`tenant_entitlement`, `plan_entitlement`, `override`, `system`,
+`unknown`, `invalid_limit`. Valores persistidos no banco poderão
+existir, mas serão mapeados para o contrato acima (§11).
 
-Chave: `users.seats` (definida em
-`commercial_entitlement_definitions` com `value_type='integer'`).
-Coluna de leitura: `value_int`.
+## 9. Relação com `CommercialFeatureDecision`
 
-Ordem determinística:
+Ordem canônica obrigatória:
 
-1. **Override do tenant** — linha em `tenant_entitlements` com
-   `entitlement_key='users.seats'`, `effective_from <= now()` e
-   (`effective_until IS NULL` OR `effective_until > now()`). UNIQUE
-   `(tenant_id, entitlement_key)` garante cardinalidade única.
-2. **Plano vigente** — join `tenant_subscriptions` (status ∈
-   {trialing, active, past_due, internal, demo}; `suspended` e
-   `canceled` **não** são elegíveis) → `commercial_plan_entitlements`
-   `(plan_id, 'users.seats')`. UNIQUE parcial
-   `tenant_subscriptions_one_current_per_tenant_idx` garante no
-   máximo uma subscription vigente por tenant; UNIQUE
-   `(plan_id, entitlement_key)` garante uma linha por plano.
-3. **Sem fonte válida** → decisão `not_evaluated` (ver §8). Nenhum
-   fallback heurístico, `ORDER BY` de desempate ou tenant default.
+```
+requireTenant
+  → membership authorization aplicável
+  → normalizeFeatureKey
+  → evaluateFeatureCatalogGate
+  → getCommercialFeatureDecision
+  → somente se allowed=true e reason="entitled":
+      resolver limite numérico
+      ler uso server-side
+      emitir CommercialLimitDecision
+```
 
-Tratamento de conflitos e patologias:
+### 9.1 Feature decision negativa
 
-- Cardinalidade > 1 em qualquer nível (violação de UNIQUE) → decisão
-  determinística `not_evaluated`; não escolher `LIMIT 1`.
-- Entitlement expirado (`effective_until <= now()`) → ignorado.
-- Subscription `canceled`/`suspended` → não elegível; cai para o
-  próximo nível.
-- Registro presente com `value_int IS NULL` → tratado em §7.
+Quando `getCommercialFeatureDecision` retorna `allowed=false`, o
+limite quantitativo **não** consulta `tenant_members`, não conta
+uso, não resolve limite numérico, não substitui `reason`, não
+substitui `source`, não reinterpreta billing e não colapsa tudo
+para `not_evaluated`. A `CommercialLimitDecision` propaga
+diretamente:
 
-## 7. Semântica de ausência e unlimited
+```
+{
+  tenantId: featureDecision.tenantId,
+  featureKey: featureDecision.featureKey,
+  allowed: false,
+  reason: featureDecision.reason,   // not_entitled | billing_unknown
+                                    // | billing_attention_required
+                                    // | billing_blocked | not_evaluated
+  source: featureDecision.source,   // tenant | plan | default | none
+  limit: null,
+  used: null,
+  requestedIncrement: 1,
+  remaining: null,
+}
+```
 
-A SCP-011 **não suportará unlimited**. Nenhuma representação
-explícita de "ilimitado" existe no schema (`-1`, sentinelas grandes,
-`NULL`, ausência — todos proibidos).
+### 9.2 Feature decision positiva
 
-| Situação | `allowed` | `reason` |
-| --- | --- | --- |
-| `value_int` finito `>= 0` em fonte válida | avaliação normal | `within_limit` / `limit_reached` |
-| `value_int IS NULL` na fonte encontrada | `false` | `not_evaluated` |
-| Registro ausente em todos os níveis | `false` | `not_evaluated` |
-| Valor inválido / cardinalidade > 1 | `false` | `not_evaluated` |
-| `value_int = 0` | limite finito de zero — comportamento normal | `limit_reached` quando `used + Δ > 0` |
+Somente quando `allowed=true` e `reason="entitled"` a avaliação
+numérica prossegue.
 
-## 8. Matriz determinística de decisão
+## 10. Fonte canônica do limite
 
-| Estado comprovado | `allowed` | `reason` | `source` | `limit` |
-| --- | --- | --- | --- | --- |
-| Subscription vigente + override tenant válido | avalia `used + Δ ≤ limit` | `within_limit` / `limit_reached` | `tenant_entitlement` | `value_int` |
-| Subscription vigente + entitlement de plano válido | avalia `used + Δ ≤ limit` | `within_limit` / `limit_reached` | `plan_entitlement` | `value_int` |
-| Sem subscription (nenhuma linha) | `false` | `not_evaluated` | `none` | `null` |
-| Subscription em `canceled`/`suspended` sem override | `false` | `not_evaluated` | `none` | `null` |
-| Entitlement ausente em todos os níveis | `false` | `not_evaluated` | `none` | `null` |
-| Cardinalidade inválida (violação UNIQUE detectada) | `false` | `not_evaluated` | `none` | `null` |
+Resolução única, sem dual-path. A SCP-011 **não** implementará um
+segundo resolver comercial paralelo ao `getCommercialFeatureDecision`.
+Estratégia arquitetural adotada:
 
-`not_entitled` e `billing_unknown` são **removidos** como reasons
-distintos — todos os estados sem avaliação viável convergem para
-`not_evaluated`, reutilizando a semântica já aceita em SCP-004/005/006.
-Se auditoria futura exigir distinção contratual, revisar o DTO
-formalmente antes da SCP-011.
+**Alternativa A — reutilização.** A SCP-011 deverá extrair o valor
+numérico do read model comercial já autoritativo
+(`getTenantEntitlementSnapshot` / `getCommercialFeatureDecision`),
+consumindo o mesmo resolver que já aplica precedência tenant → plan
+→ default → none. A SCP-011 não replicará queries a
+`tenant_entitlements` / `commercial_plan_entitlements` com regras
+próprias. Se, durante a SCP-011, essa extração exigir refatoração,
+a extração de um resolver compartilhado server-only (Alternativa B)
+será proposta como pré-requisito antes de qualquer runtime novo.
 
-## 9. Contrato de `requestedIncrement`
+Chave: `users.seats`; coluna de leitura persistida: `value_int`.
 
-Contrato único para a primeira implementação (SCP-011):
+## 11. Mapeamento de `source`
+
+O DTO aceita apenas `tenant | plan | default | none`. O valor
+persistido em `tenant_entitlements.source` (`plan | override |
+system`) e a origem da resolução são mapeados assim:
+
+| Origem resolvida server-side | `source` no DTO |
+| --- | --- |
+| Linha efetiva em `tenant_entitlements` com `source='override'` | `tenant` |
+| Linha efetiva em `tenant_entitlements` com `source='plan'` (herdada) | `plan` |
+| Entitlement resolvido via `tenant_subscriptions` → `commercial_plan_entitlements` | `plan` |
+| Linha efetiva em `tenant_entitlements` com `source='system'` ou default explícito | `default` |
+| Ausência de fonte válida / resolução inválida | `none` |
+
+Nenhuma linha de `tenant_entitlements` é assumida override apenas
+pela existência: o valor persistido da coluna `source` é
+autoritativo.
+
+## 12. Semântica de billing
+
+A SCP-010 **não redefine** isoladamente o comportamento dos status
+`trialing | active | past_due | suspended | canceled | internal |
+demo`. A `CommercialLimitDecision` propaga a razão comercial já
+emitida pelo runtime aceito (`getCommercialFeatureDecision` /
+`decideCommercialFeature` / `getTenantBillingHealth`). Nenhuma das
+seguintes reinterpretações é permitida nesta camada:
+
+- `past_due` → avaliação normal automática;
+- `suspended` → `not_evaluated` automático;
+- `canceled` → `not_evaluated` automático;
+- ausência de subscription → `not_evaluated` automático.
+
+Cada estado segue o contrato já aceito do feature gate. Divergência
+observada entre documentação e runtime é bloqueio: a SCP-011 não
+inicia até que a divergência seja registrada e resolvida.
+
+## 13. Semântica de ausência e unlimited
+
+- `unlimited` **não é suportado** pela SCP-011. Nenhuma
+  representação explícita existe (`-1`, sentinelas, `NULL`,
+  ausência — todos proibidos como "ilimitado").
+- `limit = 0` é limite finito válido.
+- Ausência, `NULL` ou valor inválido não significam ilimitado.
+- Quando a feature decision for positiva mas o valor numérico não
+  puder ser resolvido de modo determinístico:
+
+```
+allowed = false
+reason = "not_evaluated"
+source = "none"
+limit = null
+used = null
+remaining = null
+requestedIncrement = 1
+```
+
+`limit_reached` só é emitido com limite finito e uso autoritativos
+comprovados.
+
+## 14. `requestedIncrement`
+
+Contrato único da primeira implementação:
 
 - Ausente → default server-side `= 1`.
 - Igual a `1` → válido.
-- Zero, negativo, fracionário, `NaN`, `Infinity`, overflow → **input
-  rejeitado no boundary** antes de emitir `CommercialLimitDecision`
-  (não usar `not_evaluated` para mascarar erro estrutural).
-- Maior que `1` → input rejeitado enquanto operações em lote
-  estiverem fora de escopo.
+- Zero, negativo, fracionário, `NaN`, `Infinity`, overflow, maior
+  que `1` → **input rejeitado no boundary** antes de emitir
+  `CommercialLimitDecision`.
 
 Consequência: `used + 1 ≤ limit` é a única condição avaliada.
+Operações em lote permanecem fora de escopo.
 
-## 10. Read models planejados (somente definição, não implementação)
+## 15. Matriz determinística
 
-- `getSeatUsage(tenantId): number` — `COUNT(*) FROM tenant_members
-  WHERE tenant_id = $1 AND membership_status IN ('active','invited')`.
-- `getSeatLimitSource(tenantId): { source, limit }` — implementa §6.
-- `getCommercialSeatLimitDecision(tenantId, { requestedIncrement = 1 }):
-  CommercialLimitDecision` — combina os dois anteriores conforme §8.
+| Cenário | `allowed` | `reason` | `source` | `limit` | `used` | `remaining` |
+| --- | --- | --- | --- | --- | --- | --- |
+| feature gate não catalogada | `false` | `not_evaluated` | `none` | `null` | `null` | `null` |
+| feature não entitled | `false` | `not_entitled` | conforme feature decision | `null` | `null` | `null` |
+| billing desconhecido | `false` | `billing_unknown` | conforme feature decision | `null` | `null` | `null` |
+| billing exige atenção | `false` | `billing_attention_required` | conforme feature decision | `null` | `null` | `null` |
+| billing bloqueado | `false` | `billing_blocked` | conforme feature decision | `null` | `null` | `null` |
+| feature allowed e limite ausente | `false` | `not_evaluated` | `none` | `null` | `null` | `null` |
+| feature allowed e limite inválido | `false` | `not_evaluated` | `none` | `null` | `null` | `null` |
+| feature allowed e used indisponível | `false` | `not_evaluated` | fonte resolvida (`tenant`\|`plan`\|`default`) | valor ou `null` | `null` | `null` |
+| feature allowed e `used + 1 ≤ limit` | `true` | `entitled` | `tenant`\|`plan`\|`default` | valor | valor | valor |
+| feature allowed e `used + 1 > limit` | `false` | `limit_reached` | `tenant`\|`plan`\|`default` | valor | valor | `0` |
+| Super Admin sem impersonação | erro anterior ao DTO | não aplicável | não aplicável | não aplicável | não aplicável | não aplicável |
+| Super Admin impersonando tenant | avaliação normal | conforme contrato | conforme contrato | conforme contrato | conforme contrato | conforme contrato |
 
-Nenhum destes existe em runtime ainda; SCP-011 é quem materializa.
+Nas linhas de propagação, `conforme feature decision` significa
+literalmente o valor emitido por `getCommercialFeatureDecision` no
+mesmo request, sem reinterpretação.
 
-## 11. Mutation boundaries (inventário completo)
+## 16. Read models planejados
 
-Busca em todo o repositório por escritas em `tenant_members`:
+Somente definição — nenhum é implementado nesta etapa.
 
-| Operação | Arquivo | Boundary atual | Aumenta uso? | Enforcement futuro? |
-| --- | --- | --- | --- | --- |
-| SELECT (leituras) | `src/lib/api/tenant-selection.functions.ts`, `src/lib/api/super.functions.ts`, `src/integrations/supabase/tenant-repository.ts` | server | não | n/a |
+- `getSeatUsage(tenantId): number` — server-only;
+  `COUNT(*) FROM tenant_members WHERE tenant_id = $1 AND
+  membership_status IN ('active','invited')`.
+- Extração do limite numérico a partir do read model comercial
+  autoritativo (§10), sem query independente.
+- `getCommercialSeatLimitDecision(tenantId,
+  { requestedIncrement = 1 }): CommercialLimitDecision` —
+  combinação read-only conforme §9, §15.
 
-**Nenhuma mutation aplicacional** (INSERT/UPDATE/UPSERT/DELETE) em
-`tenant_members` foi localizada em `src/**`, incluindo hooks,
-repositórios, seeds, admin screens e edge functions. As policies
-RLS já limitam writes a `is_super_admin()`; alterações de membership
-hoje só ocorrem por caminho SQL/admin, sem boundary aplicacional
-que consuma assento.
+## 17. `requireTenant` e impersonação
 
-Consequência arquitetural: a SCP-011 será **apenas runtime de
-avaliação read-only** — não haverá consumidor operacional imediato
-para enforcement até que uma etapa futura crie ou migre mutations
-para dentro de um boundary tipado. A SCP-012 deverá distinguir
-formalmente entre (a) criar novos boundaries, (b) migrar writes SQL
-existentes para boundaries aplicacionais e (c) integrar enforcement
-em boundaries já criados.
+Toda server function que consumir a decisão utilizará
+`requireTenant`; a precedência de impersonação já implementada
+(`impersonation-state.ts`, `tenant-attacher.ts`) é preservada. Super
+Admin sem tenant impersonado não emite `CommercialLimitDecision` —
+o erro precede o DTO.
 
-## 12. Concorrência (TOCTOU)
+## 18. RLS, grants e direct reads
 
-Avaliação read-only não é enforcement. `used` é lido fora da
-transação da mutation; entre leitura e commit outra mutation pode
-consumir o assento. Resolução deliberadamente adiada para SCP-012
-(função SQL transacional, RPC com advisory lock, ou constraint
-agregada — decisão sob auditoria).
+Nenhuma nova policy, grant ou tabela. Leituras planejadas seguem
+policies existentes (`tenant_members`, `tenant_entitlements`,
+`commercial_plan_entitlements`, `tenant_subscriptions`) via
+server-only clients já usados pelo runtime comercial aceito.
 
-## 13. Hard Gates revalidados
+## 19. Mutation inventory
 
-- Nenhum runtime de decisão será implementado antes de auditoria
-  externa da SCP-010.1.
-- SCP-011 não pode ser iniciada enquanto o inventário de mutations
-  não for revisitado no seu próprio escopo.
-- SCP-012 não pode ser iniciada antes de SCP-011.
+Busca em `src/**` por escritas em `tenant_members` (INSERT / UPDATE
+/ UPSERT / DELETE / RPC): **nenhuma mutation aplicacional** foi
+localizada. Os arquivos que citam a tabela executam apenas SELECT
+(`tenant-selection.functions.ts`, `super.functions.ts`,
+`tenant-repository.ts`). Consequência: a SCP-011 será exclusivamente
+runtime de avaliação read-only. A SCP-012 tratará (a) criação de
+novos boundaries, (b) migração de writes SQL/admin para boundaries
+aplicacionais e (c) enforcement atômico.
 
-## 14. Sequência arquitetural
+## 20. TOCTOU e separação SCP-011/SCP-012
+
+Avaliação read-only não é enforcement: `used` é lido fora da
+transação de qualquer mutation futura. Resolução (função SQL
+transacional, RPC com advisory lock, ou constraint agregada) é
+escopo exclusivo da SCP-012, sob auditoria própria.
+
+## 21. Plano de testes (planejamento apenas)
+
+A SCP-011 deverá cobrir:
+
+- Propagação da feature decision negativa (todos os `reason`
+  possíveis) sem leitura de `tenant_members`.
+- `entitled` com `used + 1 ≤ limit`.
+- `limit_reached` com `used + 1 > limit` e `remaining = 0`.
+- `not_evaluated` para limite ausente/inválido/`used` indisponível.
+- Rejeição de `requestedIncrement` inválido antes do DTO.
+- Impersonação: Super Admin sem tenant erra antes do DTO; com
+  tenant impersonado avalia normalmente.
+
+Nenhum teste novo é executado nesta etapa (documental).
+
+## 22. Hard Gates
+
+- SCP-011 não inicia sem auditoria externa aprovando SCP-010 +
+  SCP-010.1 + SCP-010.2.
+- SCP-012 não inicia sem SCP-011 aceita.
+- Nenhuma etapa 010.x pode ser marcada `Accepted` sem auditoria.
+
+## 23. Sequência arquitetural
 
 SCP-010 (contrato) → SCP-010.1 (verificação/determinismo) →
-auditoria externa → SCP-011 (runtime read-only) → SCP-012
-(enforcement atômico em mutations).
+SCP-010.2 (alinhamento de DTO e consolidação) → auditoria externa →
+SCP-011 (runtime read-only) → SCP-012 (enforcement atômico em
+mutations).
 
-## 15. Confirmações negativas
+## 24. Restrições absolutas
 
-Nenhuma migration, tabela, coluna, enum, constraint, índice, RLS
-policy, grant, seed, mutation, RPC, trigger, edge function,
-frontend, provider, webhook ou checkout foi criado/alterado nesta
-etapa. `getCommercialFeatureDecision`, `decideCommercialFeature`,
-`normalizeFeatureKey`, `feature-catalog.ts` inalterados.
-`storage.media_limit` fora de escopo. SCP-011 e SCP-012 não
-iniciadas.
+Nenhum código de produção, migration, tabela, coluna, enum,
+constraint, índice, RPC, SQL function, trigger, RLS policy, grant,
+mutation, frontend, provider, checkout, webhook, billing real ou
+enforcement foi criado ou alterado. `limit_reached` não é emitido
+em runtime. `storage.media_limit` fora de escopo.
+`getCommercialFeatureDecision`, `decideCommercialFeature`,
+`normalizeFeatureKey`, `feature-catalog.ts`, `feature-gate.ts`,
+`read-models.ts`, `commercial.functions.ts` inalterados. SCP-011 e
+SCP-012 não iniciadas.
