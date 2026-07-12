@@ -155,11 +155,11 @@ export function validateSeatUsedCount(raw: unknown): number | null {
 
 export function decideCommercialSeatLimit(input: {
   featureDecision: CommercialFeatureDecision;
-  limit: number | null;
+  extracted: ExtractedSeatLimit;
   used: number | null;
   requestedIncrement: number;
 }): CommercialLimitDecision {
-  const { featureDecision, limit, used, requestedIncrement } = input;
+  const { featureDecision, extracted, used, requestedIncrement } = input;
   const tenantId = featureDecision.tenantId;
   const featureKey = featureDecision.featureKey;
 
@@ -178,6 +178,8 @@ export function decideCommercialSeatLimit(input: {
       remaining: null,
     };
   }
+
+  const { limit, source } = extracted;
 
   // §18 — feature positive but limit unresolved → not_evaluated / none.
   if (!isValidCommercialInteger(limit)) {
@@ -202,7 +204,7 @@ export function decideCommercialSeatLimit(input: {
       featureKey,
       allowed: false,
       reason: "not_evaluated",
-      source: featureDecision.source,
+      source,
       limit,
       used: null,
       requestedIncrement,
@@ -217,13 +219,27 @@ export function decideCommercialSeatLimit(input: {
       featureKey,
       allowed: true,
       reason: "entitled",
-      source: featureDecision.source,
+      source,
       limit,
       used,
       requestedIncrement,
       remaining: Math.max(limit - used, 0),
     };
   }
+
+  // §17.2 / §17.3 — limit reached (also covers already-above-limit).
+  return {
+    tenantId,
+    featureKey,
+    allowed: false,
+    reason: "limit_reached",
+    source,
+    limit,
+    used,
+    requestedIncrement,
+    remaining: 0,
+  };
+}
 
   // §17.2 / §17.3 — limit reached (also covers already-above-limit).
   return {
