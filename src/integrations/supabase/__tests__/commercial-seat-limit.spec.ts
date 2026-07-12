@@ -1022,7 +1022,11 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
         1.5,
         "10",
         true,
-        false,
+        // `false` is intentionally omitted: a falsy value causes the
+        // upstream feature-gate to deny (not_entitled) before the seat
+        // extractor runs — that path is already covered by the
+        // "feature decision negative → no tenant_members read" spec.
+        Number.NaN,
         Number.MAX_SAFE_INTEGER + 1,
       ];
       for (const bad of badValues) {
