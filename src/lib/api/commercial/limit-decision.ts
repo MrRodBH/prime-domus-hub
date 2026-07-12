@@ -240,17 +240,3 @@ export function decideCommercialSeatLimit(input: {
     remaining: 0,
   };
 }
-
-  // §17.2 / §17.3 — limit reached (also covers already-above-limit).
-  return {
-    tenantId,
-    featureKey,
-    allowed: false,
-    reason: "limit_reached",
-    source: featureDecision.source,
-    limit,
-    used,
-    requestedIncrement,
-    remaining: 0,
-  };
-}
