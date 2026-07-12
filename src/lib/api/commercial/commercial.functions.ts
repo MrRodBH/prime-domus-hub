@@ -46,6 +46,7 @@ import {
   defaultEvaluateCatalogGate,
   resolveCommercialSeatLimitDecision,
 } from "./seat-limit-runtime";
+import { readCommercialSeatUsage } from "./seat-usage-reader";
 
 
 // Priority order when several subscriptions exist for a tenant — the
