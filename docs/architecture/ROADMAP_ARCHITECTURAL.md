@@ -260,6 +260,38 @@ Restrições permanentes:
 - SCP-008 não altera membership authorization.
 - SCP-008 não permite Super Admin bypassar entitlement.
 - SCP-008 não inicia SCP-009.
+- SCP-009 não implementa código runtime.
+- SCP-009 não altera getCommercialFeatureDecision.
+- SCP-009 não altera decideCommercialFeature.
+- SCP-009 não altera normalizeFeatureKey.
+- SCP-009 não altera feature-catalog.ts.
+- SCP-009 não cria migration.
+- SCP-009 não cria tabela.
+- SCP-009 não cria RLS policy.
+- SCP-009 não cria grant.
+- SCP-009 não cria seed.
+- SCP-009 não cria UI.
+- SCP-009 não cria hook client-side.
+- SCP-009 não implementa contador de uso.
+- SCP-009 não implementa enforcement de limite.
+- SCP-009 não emite limit_reached em runtime.
+- SCP-009 não implementa billing real.
+- SCP-009 não implementa cobrança, upgrade, downgrade ou cancelamento.
+- SCP-009 não implementa provider integration.
+- SCP-009 não integra Stripe, Hotmart ou Kiwify.
+- SCP-009 não implementa webhook.
+- SCP-009 não implementa checkout.
+- SCP-009 não implementa customer portal.
+- SCP-009 não cria billing_admin.
+- SCP-009 não cria commercial_admin.
+- SCP-009 não cria canManageTenantBilling.
+- SCP-009 não altera tenant_members.
+- SCP-009 não abre RLS permissiva nem grant para usuários finais.
+- SCP-009 não permite direct client reads das tabelas comerciais/billing.
+- SCP-009 não executa mutation comercial.
+- SCP-009 não altera membership authorization.
+- SCP-009 não permite Super Admin bypassar entitlement.
+- SCP-009 não inicia SCP-010.
 
 ### 🟡 Fase 5 — Storage Abstraction Layer — Provisória
 - **Reposicionamento (IA-006.1):** Storage Abstraction Layer permanece
