@@ -79,6 +79,48 @@ export function normalizeSeatIncrement(raw: unknown): number {
 }
 
 // ============================================================
+// Strict public input boundary — SCP-011.1 §6
+//
+// Accepts ONLY:
+//   • undefined
+//   • {}                       → { requestedIncrement: 1 }
+//   • { requestedIncrement: 1} → { requestedIncrement: 1 }
+//
+// Rejects null, arrays, primitives, and ANY property other than
+// `requestedIncrement`. `tenantId`, `featureKey`, `used`, `limit`,
+// `remaining`, `source`, `billingStatus`, `membershipCount`,
+// `currentSeats` are structurally forbidden.
+// ============================================================
+
+export interface CommercialSeatLimitInput {
+  requestedIncrement?: 1;
+}
+
+const ALLOWED_SEAT_INPUT_KEYS: ReadonlySet<string> = new Set([
+  "requestedIncrement",
+]);
+
+export function normalizeCommercialSeatLimitInput(
+  raw: unknown,
+): { requestedIncrement: number } {
+  if (raw === undefined) return { requestedIncrement: 1 };
+  if (raw === null) throw new Error("Invalid input");
+  if (typeof raw !== "object") throw new Error("Invalid input");
+  if (Array.isArray(raw)) throw new Error("Invalid input");
+  const keys = Object.keys(raw as Record<string, unknown>);
+  for (const k of keys) {
+    if (!ALLOWED_SEAT_INPUT_KEYS.has(k)) {
+      throw new Error(`Unknown input property: ${k}`);
+    }
+  }
+  const inc = normalizeSeatIncrement(
+    (raw as { requestedIncrement?: unknown }).requestedIncrement,
+  );
+  return { requestedIncrement: inc };
+}
+
+
+// ============================================================
 // Integer validation helper
 //
 // SCP-011 §14/§15: valid limit AND valid used must be finite integers

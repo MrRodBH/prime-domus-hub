@@ -15,12 +15,18 @@ import {
   decideCommercialSeatLimit,
   extractSeatLimit,
   isValidCommercialInteger,
+  normalizeCommercialSeatLimitInput,
   normalizeSeatIncrement,
   validateSeatUsedCount,
   type CommercialLimitDecision,
 } from "@/lib/api/commercial/limit-decision";
+import { resolveCommercialSeatLimitDecision } from "@/lib/api/commercial/seat-limit-runtime";
 import type { CommercialFeatureDecision } from "@/lib/api/commercial/feature-gate";
-import type { TenantEntitlementSnapshot } from "@/lib/api/commercial/read-models";
+import type {
+  TenantBillingHealth,
+  TenantEntitlementSnapshot,
+} from "@/lib/api/commercial/read-models";
+
 
 const TENANT = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const OTHER_TENANT = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
@@ -608,7 +614,310 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
       );
     },
   },
+
+  // ============================================================
+  // SCP-011.1 §7/§8 — Runtime orchestration (production path)
+  //
+  // These specs exercise `resolveCommercialSeatLimitDecision` — the
+  // SAME orchestration the server function uses in production. Deps
+  // are injected so we can assert that catalog-gate / feature-decision
+  // negatives never touch tenant_members and never load the
+  // commercial context.
+  // ============================================================
+  {
+    name: "orchestration: catalog gate negative → no context load, no seat read",
+    run: async () => {
+      let loadedContext = 0;
+      let readUsage = 0;
+      const d = await resolveCommercialSeatLimitDecision({
+        tenantId: TENANT,
+        requestedIncrement: 1,
+        deps: {
+          evaluateCatalogGate: () => ({
+            tenantId: TENANT,
+            featureKey: SEAT_FEATURE_KEY,
+            allowed: false,
+            reason: "not_evaluated",
+            source: "none",
+          }),
+          loadCommercialContext: async () => {
+            loadedContext++;
+            throw new Error("must not be called");
+          },
+          readSeatUsage: async () => {
+            readUsage++;
+            throw new Error("must not be called");
+          },
+        },
+      });
+      assert(loadedContext === 0, "context not loaded");
+      assert(readUsage === 0, "seat usage not read");
+      assert(d.reason === "not_evaluated", "reason propagated");
+      assert(d.source === "none", "source propagated");
+      assert(d.limit === null && d.used === null && d.remaining === null, "nulls");
+      assert(d.allowed === false, "deny");
+      assert(d.featureKey === SEAT_FEATURE_KEY, "fixed feature key");
+    },
+  },
+  {
+    name: "orchestration: feature decision negative → no tenant_members read",
+    run: async () => {
+      const buildBilling = (
+        status: TenantBillingHealth["status"],
+      ): TenantBillingHealth => ({
+        tenantId: TENANT,
+        status,
+        reasons: [],
+        lastBillingEventAt: null,
+        hasProviderMapping: false,
+        
+      });
+      const scenarios: Array<{
+        name: string;
+        snapshot: TenantEntitlementSnapshot;
+        billing: TenantBillingHealth;
+        expectedReason: CommercialFeatureDecision["reason"];
+      }> = [
+        {
+          name: "not_entitled",
+          snapshot: snap([]),
+          billing: buildBilling("healthy"),
+          expectedReason: "not_entitled",
+        },
+        {
+          name: "billing_unknown",
+          snapshot: snap([]),
+          billing: buildBilling("unknown"),
+          expectedReason: "billing_unknown",
+        },
+        {
+          name: "billing_attention_required",
+          snapshot: snap([
+            { key: SEAT_FEATURE_KEY, value: 10, source: "plan", effective: true },
+          ]),
+          billing: buildBilling("attention_required"),
+          expectedReason: "billing_attention_required",
+        },
+        {
+          name: "billing_blocked",
+          snapshot: snap([
+            { key: SEAT_FEATURE_KEY, value: 10, source: "plan", effective: true },
+          ]),
+          billing: buildBilling("blocked"),
+          expectedReason: "billing_blocked",
+        },
+      ];
+      for (const s of scenarios) {
+        let usageCalls = 0;
+        const d = await resolveCommercialSeatLimitDecision({
+          tenantId: TENANT,
+          requestedIncrement: 1,
+          deps: {
+            evaluateCatalogGate: () => null,
+            loadCommercialContext: async () => ({
+              snapshot: s.snapshot,
+              billing: s.billing,
+            }),
+            readSeatUsage: async () => {
+              usageCalls++;
+              return 0;
+            },
+          },
+        });
+        assert(usageCalls === 0, `${s.name}: no seat read`);
+        assert(d.reason === s.expectedReason, `${s.name}: reason`);
+        assert(d.limit === null && d.used === null && d.remaining === null, `${s.name}: nulls`);
+        assert(d.allowed === false, `${s.name}: deny`);
+      }
+    },
+  },
+  {
+    name: "orchestration: feature positive → readSeatUsage called once with resolved tenant",
+    run: async () => {
+      let usageCalls = 0;
+      let usageTenant: string | null = null;
+      const d = await resolveCommercialSeatLimitDecision({
+        tenantId: TENANT,
+        requestedIncrement: 1,
+        deps: {
+          evaluateCatalogGate: () => null,
+          loadCommercialContext: async () => ({
+            snapshot: snap([
+              { key: SEAT_FEATURE_KEY, value: 5, source: "plan", effective: true },
+            ]),
+            billing: {
+              tenantId: TENANT,
+              status: "healthy",
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+              
+            },
+          }),
+          readSeatUsage: async (tid) => {
+            usageCalls++;
+            usageTenant = tid;
+            return 2;
+          },
+        },
+      });
+      assert(usageCalls === 1, "usage read exactly once");
+      assert(usageTenant === TENANT, "usage read with resolved tenant");
+      assert(d.allowed === true && d.reason === "entitled", "entitled");
+      assert(d.limit === 5 && d.used === 2 && d.remaining === 3, "quantitative");
+      assert(d.source === "plan", "source preserved from snapshot");
+    },
+  },
+  {
+    name: "orchestration: feature positive at limit → limit_reached",
+    run: async () => {
+      const d = await resolveCommercialSeatLimitDecision({
+        tenantId: TENANT,
+        requestedIncrement: 1,
+        deps: {
+          evaluateCatalogGate: () => null,
+          loadCommercialContext: async () => ({
+            snapshot: snap([
+              { key: SEAT_FEATURE_KEY, value: 3, source: "tenant", effective: true },
+            ]),
+            billing: {
+              tenantId: TENANT,
+              status: "healthy",
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+              
+            },
+          }),
+          readSeatUsage: async () => 3,
+        },
+      });
+      assert(d.allowed === false, "deny");
+      assert(d.reason === "limit_reached", "limit_reached emitted");
+      assert(d.source === "tenant", "source preserved");
+      assert(d.remaining === 0, "remaining=0");
+    },
+  },
+  {
+    name: "orchestration: read failure → not_evaluated, no limit_reached",
+    run: async () => {
+      const d = await resolveCommercialSeatLimitDecision({
+        tenantId: TENANT,
+        requestedIncrement: 1,
+        deps: {
+          evaluateCatalogGate: () => null,
+          loadCommercialContext: async () => ({
+            snapshot: snap([
+              { key: SEAT_FEATURE_KEY, value: 5, source: "plan", effective: true },
+            ]),
+            billing: {
+              tenantId: TENANT,
+              status: "healthy",
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+              
+            },
+          }),
+          readSeatUsage: async () => null,
+        },
+      });
+      assert(d.reason === "not_evaluated", "not_evaluated on read failure");
+      assert((d.reason as string) !== "limit_reached", "never limit_reached");
+      assert(d.limit === 5, "limit preserved");
+      assert(d.source === "plan", "source preserved");
+      assert(d.used === null && d.remaining === null, "used/remaining null");
+    },
+  },
+
+  // ============================================================
+  // SCP-011.1 §6 — Strict input boundary
+  // ============================================================
+  {
+    name: "input: undefined → requestedIncrement=1",
+    run: async () => {
+      assert(
+        normalizeCommercialSeatLimitInput(undefined).requestedIncrement === 1,
+        "default 1",
+      );
+    },
+  },
+  {
+    name: "input: empty object → requestedIncrement=1",
+    run: async () => {
+      assert(
+        normalizeCommercialSeatLimitInput({}).requestedIncrement === 1,
+        "empty → 1",
+      );
+    },
+  },
+  {
+    name: "input: { requestedIncrement: 1 } accepted",
+    run: async () => {
+      assert(
+        normalizeCommercialSeatLimitInput({ requestedIncrement: 1 })
+          .requestedIncrement === 1,
+        "1 accepted",
+      );
+    },
+  },
+  {
+    name: "input: rejects forbidden extra properties",
+    run: async () => {
+      const forbidden = [
+        { tenantId: "abc" },
+        { featureKey: "users.seats" },
+        { used: 0 },
+        { limit: 10 },
+        { remaining: 5 },
+        { source: "plan" },
+        { billingStatus: "healthy" },
+        { membershipCount: 3 },
+        { currentSeats: 2 },
+        { requestedIncrement: 1, tenantId: "abc" },
+        { requestedIncrement: 1, foo: "bar" },
+      ];
+      for (const raw of forbidden) {
+        let threw = false;
+        try {
+          normalizeCommercialSeatLimitInput(raw);
+        } catch {
+          threw = true;
+        }
+        assert(threw, `must reject ${JSON.stringify(raw)}`);
+      }
+    },
+  },
+  {
+    name: "input: rejects requestedIncrement !== 1",
+    run: async () => {
+      for (const v of [0, 2, -1, 1.5, "1"]) {
+        let threw = false;
+        try {
+          normalizeCommercialSeatLimitInput({ requestedIncrement: v as unknown });
+        } catch {
+          threw = true;
+        }
+        assert(threw, `must reject ${JSON.stringify(v)}`);
+      }
+    },
+  },
+  {
+    name: "input: rejects arrays and primitives",
+    run: async () => {
+      for (const raw of [null, [], [1], "x", 1, true, false]) {
+        let threw = false;
+        try {
+          normalizeCommercialSeatLimitInput(raw as unknown);
+        } catch {
+          threw = true;
+        }
+        assert(threw, `must reject ${JSON.stringify(raw)}`);
+      }
+    },
+  },
 ];
+
 
 export async function runCommercialSeatLimitSpecs(): Promise<{
   passed: number;
