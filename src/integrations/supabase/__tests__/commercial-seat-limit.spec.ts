@@ -15,12 +15,18 @@ import {
   decideCommercialSeatLimit,
   extractSeatLimit,
   isValidCommercialInteger,
+  normalizeCommercialSeatLimitInput,
   normalizeSeatIncrement,
   validateSeatUsedCount,
   type CommercialLimitDecision,
 } from "@/lib/api/commercial/limit-decision";
+import { resolveCommercialSeatLimitDecision } from "@/lib/api/commercial/seat-limit-runtime";
 import type { CommercialFeatureDecision } from "@/lib/api/commercial/feature-gate";
-import type { TenantEntitlementSnapshot } from "@/lib/api/commercial/read-models";
+import type {
+  TenantBillingHealth,
+  TenantEntitlementSnapshot,
+} from "@/lib/api/commercial/read-models";
+
 
 const TENANT = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const OTHER_TENANT = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
