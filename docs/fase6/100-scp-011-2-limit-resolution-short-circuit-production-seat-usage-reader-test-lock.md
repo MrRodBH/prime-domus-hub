@@ -1,6 +1,9 @@
 # Relatório de execução — SCP-011.2
 
-**Status:** Ready for External Audit
+## Status
+
+Accepted
+
 **Escopo:** runtime hardening (read-only) + test lock.
 
 ## 1. Ações executadas
