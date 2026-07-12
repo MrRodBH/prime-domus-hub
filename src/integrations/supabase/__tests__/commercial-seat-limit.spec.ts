@@ -66,7 +66,10 @@ function snap(
 // ---------------------------------------------------------------
 type MemberRow = { tenant_id: string; membership_status: string };
 
-function mockAdmin(rows: MemberRow[]) {
+function mockAdmin(
+  rows: MemberRow[],
+  opts: { error?: unknown; countOverride?: unknown } = {},
+) {
   let lastFilter: {
     table: string;
     tenantId: string | null;
@@ -94,24 +97,24 @@ function mockAdmin(rows: MemberRow[]) {
       const chain = {
         select(
           _cols: string,
-          opts?: { count?: string; head?: boolean },
+          selectOpts?: { count?: string; head?: boolean },
         ) {
-          if (opts?.count) lastFilter.countMode = opts.count;
-          if (opts?.head) lastFilter.head = true;
+          if (selectOpts?.count) lastFilter.countMode = selectOpts.count;
+          if (selectOpts?.head) lastFilter.head = true;
           return chain;
         },
         eq(col: string, val: string) {
           if (col === "tenant_id") lastFilter.tenantId = val;
           return chain;
         },
-        in(col: string, vals: string[]) {
+        in(col: string, vals: readonly string[]) {
           if (col === "membership_status") lastFilter.statuses = [...vals];
           return chain;
         },
         then(
           resolve: (r: {
-            count: number | null;
-            error: null;
+            count: unknown;
+            error: unknown;
             data: null;
           }) => unknown,
         ) {
@@ -122,9 +125,11 @@ function mockAdmin(rows: MemberRow[]) {
                 ? lastFilter.statuses.includes(r.membership_status)
                 : true),
           );
+          const count =
+            "countOverride" in opts ? opts.countOverride : matched.length;
           return Promise.resolve({
-            count: matched.length,
-            error: null,
+            count: count as number | null,
+            error: opts.error ?? null,
             data: null,
           }).then(resolve);
         },
@@ -137,16 +142,12 @@ function mockAdmin(rows: MemberRow[]) {
   return admin;
 }
 
-async function readUsed(
+// SCP-011.2 §5/§7 — the specs consume the SAME production reader the
+// server function calls. No parallel `readUsed` helper exists.
+function asUsageClient(
   admin: ReturnType<typeof mockAdmin>,
-  tenantId: string,
-): Promise<number | null> {
-  const res = await admin
-    .from("tenant_members")
-    .select("*", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
-    .in("membership_status", ["active", "invited"]);
-  return validateSeatUsedCount(res.count ?? null);
+): CommercialSeatUsageClient {
+  return admin as unknown as CommercialSeatUsageClient;
 }
 
 const specs: Array<{ name: string; run: () => Promise<void> }> = [
