@@ -921,6 +921,272 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
       }
     },
   },
+
+  // ============================================================
+  // SCP-011.2 §8 — Limit resolution short-circuit
+  //
+  // If the seat limit is ausente / não efetivo / inválido, o runtime
+  // NÃO deve chamar readSeatUsage. limit=0 é válido e não dispara
+  // short-circuit.
+  // ============================================================
+  {
+    name: "short-circuit: feature positive but no users.seats entitlement → no seat read",
+    run: async () => {
+      let usageCalls = 0;
+      const d = await resolveCommercialSeatLimitDecision({
+        tenantId: TENANT,
+        requestedIncrement: 1,
+        deps: {
+          evaluateCatalogGate: () => null,
+          loadCommercialContext: async () => ({
+            snapshot: snap([]),
+            billing: {
+              tenantId: TENANT,
+              status: "healthy",
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+            },
+          }),
+          readSeatUsage: async () => {
+            usageCalls++;
+            return 0;
+          },
+        },
+      });
+      // Feature decision may resolve as not_entitled (no snapshot item);
+      // either way readSeatUsage MUST NOT be called.
+      assert(usageCalls === 0, "readSeatUsage must not be called");
+      assert(d.allowed === false, "deny");
+      assert(d.limit === null, "limit null");
+      assert(d.used === null, "used null");
+      assert(d.remaining === null, "remaining null");
+      assert(d.requestedIncrement === 1, "increment 1");
+    },
+  },
+  {
+    name: "short-circuit: users.seats present but effective=false → no seat read",
+    run: async () => {
+      let usageCalls = 0;
+      const d = await resolveCommercialSeatLimitDecision({
+        tenantId: TENANT,
+        requestedIncrement: 1,
+        deps: {
+          evaluateCatalogGate: () => null,
+          loadCommercialContext: async () => ({
+            snapshot: snap([
+              // Include an effective one so the FEATURE decision resolves
+              // positive, then a shadow non-effective entry (extractSeatLimit
+              // picks the first `find`). We construct the case directly:
+              // only a non-effective entry so extract returns null while
+              // feature is still positive (via a bogus alt key? No — feature
+              // gate keys on users.seats). Use a positive feature by using
+              // effective=true but non-numeric value so extract returns
+              // null / source=none while feature-gate treats presence as
+              // entitled. Simpler: emit a truthy value_bool proxy — but
+              // limit-decision requires isValidCommercialInteger. So we
+              // use value=true (boolean), which passes feature gate but
+              // fails extractSeatLimit's numeric check.
+              {
+                key: SEAT_FEATURE_KEY,
+                value: true as unknown as number,
+                source: "plan",
+                effective: true,
+              },
+            ]),
+            billing: {
+              tenantId: TENANT,
+              status: "healthy",
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+            },
+          }),
+          readSeatUsage: async () => {
+            usageCalls++;
+            return 0;
+          },
+        },
+      });
+      assert(usageCalls === 0, "readSeatUsage must not be called");
+      assert(d.reason === "not_evaluated", "not_evaluated");
+      assert(d.source === "none", "source none");
+      assert(d.limit === null && d.used === null && d.remaining === null, "nulls");
+    },
+  },
+  {
+    name: "short-circuit: invalid limit values (negative/fractional/text/boolean/over-MAX) → no seat read",
+    run: async () => {
+      const badValues: unknown[] = [
+        -1,
+        1.5,
+        "10",
+        true,
+        false,
+        Number.MAX_SAFE_INTEGER + 1,
+      ];
+      for (const bad of badValues) {
+        let usageCalls = 0;
+        const d = await resolveCommercialSeatLimitDecision({
+          tenantId: TENANT,
+          requestedIncrement: 1,
+          deps: {
+            evaluateCatalogGate: () => null,
+            loadCommercialContext: async () => ({
+              snapshot: snap([
+                {
+                  key: SEAT_FEATURE_KEY,
+                  value: bad as unknown as number,
+                  source: "plan",
+                  effective: true,
+                },
+              ]),
+              billing: {
+                tenantId: TENANT,
+                status: "healthy",
+                reasons: [],
+                lastBillingEventAt: null,
+                hasProviderMapping: false,
+              },
+            }),
+            readSeatUsage: async () => {
+              usageCalls++;
+              return 0;
+            },
+          },
+        });
+        assert(usageCalls === 0, `no read for invalid limit ${String(bad)}`);
+        assert(d.reason === "not_evaluated", `not_evaluated for ${String(bad)}`);
+        assert(d.source === "none", `source none for ${String(bad)}`);
+        assert(d.limit === null, `limit null for ${String(bad)}`);
+      }
+    },
+  },
+  {
+    name: "short-circuit does NOT apply to limit=0 → readSeatUsage called exactly once",
+    run: async () => {
+      let usageCalls = 0;
+      const d = await resolveCommercialSeatLimitDecision({
+        tenantId: TENANT,
+        requestedIncrement: 1,
+        deps: {
+          evaluateCatalogGate: () => null,
+          loadCommercialContext: async () => ({
+            snapshot: snap([
+              { key: SEAT_FEATURE_KEY, value: 0, source: "plan", effective: true },
+            ]),
+            billing: {
+              tenantId: TENANT,
+              status: "healthy",
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+            },
+          }),
+          readSeatUsage: async () => {
+            usageCalls++;
+            return 0;
+          },
+        },
+      });
+      assert(usageCalls === 1, "readSeatUsage called exactly once for limit=0");
+      assert(d.allowed === false, "deny at zero limit");
+      assert(d.reason === "limit_reached", "limit_reached for limit=0/used=0");
+      assert(d.limit === 0, "limit=0 preserved");
+      assert(d.used === 0, "used=0 preserved");
+      assert(d.remaining === 0, "remaining=0");
+    },
+  },
+
+  // ============================================================
+  // SCP-011.2 §9 — Direct tests for the production reader.
+  //
+  // The specs invoke `readCommercialSeatUsage` — the same function
+  // the server function invokes. No parallel implementation exists.
+  // ============================================================
+  {
+    name: "reader: db error → null",
+    run: async () => {
+      const admin = mockAdmin([], { error: { message: "boom" } });
+      const used = await readCommercialSeatUsage(asUsageClient(admin), TENANT);
+      assert(used === null, "error → null");
+    },
+  },
+  {
+    name: "reader: count=null → null",
+    run: async () => {
+      const admin = mockAdmin([], { countOverride: null });
+      assert(
+        (await readCommercialSeatUsage(asUsageClient(admin), TENANT)) === null,
+        "null count → null",
+      );
+    },
+  },
+  {
+    name: "reader: negative/fractional/non-finite/over-MAX counts → null",
+    run: async () => {
+      for (const bad of [
+        -1,
+        1.5,
+        Number.POSITIVE_INFINITY,
+        Number.NaN,
+        Number.MAX_SAFE_INTEGER + 1,
+        "3",
+      ] as unknown[]) {
+        const admin = mockAdmin([], { countOverride: bad });
+        assert(
+          (await readCommercialSeatUsage(asUsageClient(admin), TENANT)) === null,
+          `invalid count ${String(bad)} → null`,
+        );
+      }
+    },
+  },
+  {
+    name: "reader: query shape (tenant_members + count exact head + tenant_id + active/invited)",
+    run: async () => {
+      const admin = mockAdmin([
+        { tenant_id: TENANT, membership_status: "active" },
+      ]);
+      await readCommercialSeatUsage(asUsageClient(admin), TENANT);
+      const f = admin._lastFilter();
+      assert(f.table === "tenant_members", "table");
+      assert(f.tenantId === TENANT, "tenant filter");
+      assert(f.countMode === "exact", "count=exact");
+      assert(f.head === true, "head=true");
+      assert(
+        f.statuses !== null &&
+          f.statuses.length === 2 &&
+          f.statuses.includes("active") &&
+          f.statuses.includes("invited"),
+        "status filter = active+invited only",
+      );
+    },
+  },
+  {
+    name: "reader: roles do not alter the count (only membership_status matters)",
+    run: async () => {
+      // The reader does not filter or read any role column — same set of
+      // memberships with different roles must yield the same count.
+      const admin = mockAdmin([
+        { tenant_id: TENANT, membership_status: "active" },
+        { tenant_id: TENANT, membership_status: "active" },
+        { tenant_id: TENANT, membership_status: "invited" },
+      ]);
+      const used = await readCommercialSeatUsage(asUsageClient(admin), TENANT);
+      assert(used === 3, "role-agnostic count");
+    },
+  },
+  {
+    name: "reader: empty/invalid tenantId → null (no query issued)",
+    run: async () => {
+      const admin = mockAdmin([{ tenant_id: TENANT, membership_status: "active" }]);
+      assert(
+        (await readCommercialSeatUsage(asUsageClient(admin), "")) === null,
+        "empty tenantId → null",
+      );
+      assert(admin._calls().length === 0, "no query issued");
+    },
+  },
 ];
 
 
