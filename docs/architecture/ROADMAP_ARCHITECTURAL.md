@@ -169,6 +169,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 14.3 SCP-010.3 — SCP-010.1 Deterministic Full Rewrite & Final Gate Cleanup — Accepted.
 14.4 SCP-010.4 — Atomic File Replacement & Roadmap Exact-Block Deduplication — Accepted.
 14.5 SCP-010.5 — Accepted Status Finalization & Roadmap Gate Cleanup — Ready for External Audit.
+14.5.1 SCP-010.5.1 — Current Repository Status Confirmation & Exact Roadmap Verification — Ready for External Audit.
 15. SCP-011 — Commercial Seat Limit Server Runtime — próxima etapa futura planejada; não iniciada.
 
 Restrições permanentes:
