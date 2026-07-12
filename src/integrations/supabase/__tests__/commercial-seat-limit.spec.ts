@@ -21,6 +21,10 @@ import {
   type CommercialLimitDecision,
 } from "@/lib/api/commercial/limit-decision";
 import { resolveCommercialSeatLimitDecision } from "@/lib/api/commercial/seat-limit-runtime";
+import {
+  readCommercialSeatUsage,
+  type CommercialSeatUsageClient,
+} from "@/lib/api/commercial/seat-usage-reader";
 import type { CommercialFeatureDecision } from "@/lib/api/commercial/feature-gate";
 import type {
   TenantBillingHealth,
