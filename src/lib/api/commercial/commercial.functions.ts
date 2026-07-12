@@ -460,7 +460,10 @@ export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
         // and tests exercise the exact same implementation.
         readSeatUsage: async (tid) => {
           const admin = await getAdmin();
-          return readCommercialSeatUsage(admin, tid);
+          return readCommercialSeatUsage(
+            admin as unknown as Parameters<typeof readCommercialSeatUsage>[0],
+            tid,
+          );
         },
       },
     });
