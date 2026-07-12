@@ -434,28 +434,33 @@ export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
     const tenantId = context.tenant.tenantId;
     const requestedIncrement = data.requestedIncrement;
 
+    // SCP-011.2 §6 — shared lazy admin loader. loadAdmin() is only
+    // invoked when a downstream dep actually needs the admin client:
+    //   • catalog gate negative → getAdmin never called;
+    //   • feature decision negative → readSeatUsage never called;
+    //   • feature positive + limit ausente/inválido → readSeatUsage
+    //     nunca chamado (short-circuit em seat-limit-runtime).
+    let adminPromise: ReturnType<typeof loadAdmin> | null = null;
+    const getAdmin = () => {
+      adminPromise ??= loadAdmin();
+      return adminPromise;
+    };
+
     return resolveCommercialSeatLimitDecision({
       tenantId,
       requestedIncrement,
       deps: {
         evaluateCatalogGate: defaultEvaluateCatalogGate,
         loadCommercialContext: async (tid) => {
-          const admin = await loadAdmin();
+          const admin = await getAdmin();
           return loadTenantCommercialContext(admin, tid);
         },
+        // SCP-011.2 §5/§6 — the ONE authoritative production reader.
+        // The specs import readCommercialSeatUsage directly, so runtime
+        // and tests exercise the exact same implementation.
         readSeatUsage: async (tid) => {
-          const admin = await loadAdmin();
-          try {
-            const countRes = await admin
-              .from("tenant_members")
-              .select("*", { count: "exact", head: true })
-              .eq("tenant_id", tid)
-              .in("membership_status", ["active", "invited"]);
-            if (countRes.error) return null;
-            return countRes.count ?? null;
-          } catch {
-            return null;
-          }
+          const admin = await getAdmin();
+          return readCommercialSeatUsage(admin, tid);
         },
       },
     });
