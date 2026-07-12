@@ -172,8 +172,9 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 14.5.1 SCP-010.5.1 — Current Repository Status Confirmation & Exact Roadmap Verification — Accepted.
 14.5.2 SCP-010.5.2 — Final Accepted Status Consolidation & SCP-011 Gate Release — Accepted.
 14.5.3 SCP-010.5.3 — Exact Final Roadmap Dump, Hash Verification & Conditional Deduplication — Accepted.
-14.5.4 SCP-010.5.4 — Final Accepted Status Closure & SCP-011 Authorization — Ready for External Audit.
-15. SCP-011 — Commercial Seat Limit Server Runtime — próxima etapa planejada; não iniciada.
+14.5.4 SCP-010.5.4 — Final Accepted Status Closure & SCP-011 Authorization — Accepted.
+15. SCP-011 — Commercial Seat Limit Server Runtime — Ready for External Audit.
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — próxima etapa futura planejada; não iniciada.
 
 Restrições permanentes:
 - SCP-004 não implementa billing real completo.
