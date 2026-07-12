@@ -667,10 +667,10 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
       ): TenantBillingHealth => ({
         tenantId: TENANT,
         status,
-        subscriptionStatus: null,
-        providerStatus: null,
-        lastEventReceivedAt: null,
-        lastEventProcessingStatus: null,
+        reasons: [],
+        lastBillingEventAt: null,
+        hasProviderMapping: false,
+        
       });
       const scenarios: Array<{
         name: string;
@@ -748,10 +748,10 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
             billing: {
               tenantId: TENANT,
               status: "healthy",
-              subscriptionStatus: "active",
-              providerStatus: "active",
-              lastEventReceivedAt: null,
-              lastEventProcessingStatus: null,
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+              
             },
           }),
           readSeatUsage: async (tid) => {
@@ -783,10 +783,10 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
             billing: {
               tenantId: TENANT,
               status: "healthy",
-              subscriptionStatus: "active",
-              providerStatus: "active",
-              lastEventReceivedAt: null,
-              lastEventProcessingStatus: null,
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+              
             },
           }),
           readSeatUsage: async () => 3,
@@ -813,10 +813,10 @@ const specs: Array<{ name: string; run: () => Promise<void> }> = [
             billing: {
               tenantId: TENANT,
               status: "healthy",
-              subscriptionStatus: "active",
-              providerStatus: "active",
-              lastEventReceivedAt: null,
-              lastEventProcessingStatus: null,
+              reasons: [],
+              lastBillingEventAt: null,
+              hasProviderMapping: false,
+              
             },
           }),
           readSeatUsage: async () => null,
