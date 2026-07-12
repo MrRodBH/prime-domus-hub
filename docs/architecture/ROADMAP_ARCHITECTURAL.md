@@ -163,11 +163,12 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 11. SCP-007 — Commercial Feature Key Catalog Planning — Accepted.
 12. SCP-008 — Commercial Feature Key Catalog Materialization & Server Validation — Accepted.
 13. SCP-009 — Commercial Usage Limit Evaluation Planning — Accepted.
-14. SCP-010 — Commercial Seat Limit Runtime Contract & Read Model Planning — Ready for External Audit.
-14.1 SCP-010.1 — Authoritative Membership Domain Verification, Contract Determinism & Roadmap Cleanup — Ready for External Audit.
-14.2 SCP-010.2 — Commercial Limit DTO Alignment & Deterministic Documentation Finalization — Ready for External Audit.
-14.3 SCP-010.3 — SCP-010.1 Deterministic Full Rewrite & Final Gate Cleanup — Ready for External Audit.
-14.4 SCP-010.4 — Atomic File Replacement & Roadmap Exact-Block Deduplication — Ready for External Audit.
+14. SCP-010 — Commercial Seat Limit Runtime Contract & Read Model Planning — Accepted.
+14.1 SCP-010.1 — Authoritative Membership Domain Verification, Contract Determinism & Roadmap Cleanup — Accepted.
+14.2 SCP-010.2 — Commercial Limit DTO Alignment & Deterministic Documentation Finalization — Accepted.
+14.3 SCP-010.3 — SCP-010.1 Deterministic Full Rewrite & Final Gate Cleanup — Accepted.
+14.4 SCP-010.4 — Atomic File Replacement & Roadmap Exact-Block Deduplication — Accepted.
+14.5 SCP-010.5 — Accepted Status Finalization & Roadmap Gate Cleanup — Ready for External Audit.
 15. SCP-011 — Commercial Seat Limit Server Runtime — próxima etapa futura planejada; não iniciada.
 
 Restrições permanentes:
