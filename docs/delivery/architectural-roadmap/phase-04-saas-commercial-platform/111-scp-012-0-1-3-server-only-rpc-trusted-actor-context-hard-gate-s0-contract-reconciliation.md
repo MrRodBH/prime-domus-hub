@@ -176,8 +176,39 @@ documento canônico SCP-012.0.1.3.
 
 ## 15. Evidência Git
 
-- Baseline: `a29c9699ebe71ae9f5478a857856836678361571`;
-- HEAD final desta etapa: registrado no relatório de execução do
-  agente após a materialização;
+- Baseline anterior:
+  `a29c9699ebe71ae9f5478a857856836678361571` (SCP-012.0.1.2.1
+  materializada);
+- HEAD concreto da materialização SCP-012.0.1.3:
+  `4d6e2b07b6aead2b80fc4f695cc0f3fad3709a94`
+  (`Executed SCP-012.0.1.3 gate`);
 - Working tree inicial: limpo;
-- Diff limitado a `docs/**` (4 arquivos autorizados).
+- Working tree final da materialização: limpo em
+  `4d6e2b07b6aead2b80fc4f695cc0f3fad3709a94`;
+- Quantidade de commits entre baseline e HEAD: **5**;
+- Cinco commits (`git log --reverse --format="%H %s"
+  a29c9699..4d6e2b07`):
+
+  ```
+  0da928e957df30315203a5c1ae79ad126cc30d12 Changes
+  8e715f13dc434ad6833197533835f5ef0953b210 Changes
+  fd2c59224f68ce32e85410a0852581a560eeb02c Changes
+  876ea8e561c685a452ce1b5f8ef36d0b7dc0b049 Changes
+  4d6e2b07b6aead2b80fc4f695cc0f3fad3709a94 Executed SCP-012.0.1.3 gate
+  ```
+
+- Quatro arquivos alterados/criados, todos em `docs/**`
+  (`git diff --name-status a29c9699..4d6e2b07`):
+
+  ```
+  M  docs/architecture/ROADMAP_ARCHITECTURAL.md
+  M  docs/architecture/impact-analysis/SCP-012.0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
+  A  docs/architecture/impact-analysis/SCP-012.0.1.3-server-only-rpc-trusted-actor-context-hard-gate-s0-contract-reconciliation.md
+  A  docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/111-scp-012-0-1-3-server-only-rpc-trusted-actor-context-hard-gate-s0-contract-reconciliation.md
+  ```
+
+- Nenhum arquivo fora de `docs/**` alterado entre `a29c9699` e
+  `4d6e2b07`;
+- `git diff --check` da materialização: limpo;
+- Typecheck da materialização (`bunx tsc --noEmit -p tsconfig.json`):
+  exit 0.
