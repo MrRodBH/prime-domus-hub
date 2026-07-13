@@ -15,55 +15,55 @@ frontend, roles ou `storage.media_limit`.
 
 ```
 === FIRST 15 LINES ===
-# SCP-011 — Commercial Seat Limit Server Runtime
-
-## Status
-
-Accepted
+1:# SCP-011 — Commercial Seat Limit Server Runtime
+2:
+3:status-heading: ## Status
+4:
+5:status-value: Accepted
 ...
 === STATUS-RELATED LINES ===
-3:## Status
-5:Accepted
+3:status-heading: ## Status
+5:status-value: Accepted
 ```
 
 ### SCP-011.1
 
 ```
 === STATUS-RELATED LINES ===
-3:## Status
-5:Accepted
+3:status-heading: ## Status
+5:status-value: Accepted
 ```
 
 ### SCP-011.2
 
 ```
 === FIRST 15 LINES ===
-# SCP-011.2 — Limit Resolution Short-Circuit & Production Seat Usage Reader Test Lock
-
-## Status
-
-Accepted
-
-**Type:** Runtime hardening (read-only) + test lock. ...
+1:# SCP-011.2 — Limit Resolution Short-Circuit & Production Seat Usage Reader Test Lock
+2:
+3:status-heading: ## Status
+4:
+5:status-value: Accepted
+6:
+7:**Type:** Runtime hardening (read-only) + test lock. ...
 === STATUS-RELATED LINES ===
-3:## Status
-5:Accepted
+3:status-heading: ## Status
+5:status-value: Accepted
 ```
 
 ### fase6/100 SCP-011.2
 
 ```
 === FIRST 15 LINES ===
-# Relatório de execução — SCP-011.2
-
-## Status
-
-Accepted
-
-**Escopo:** runtime hardening (read-only) + test lock.
+1:# Relatório de execução — SCP-011.2
+2:
+3:status-heading: ## Status
+4:
+5:status-value: Accepted
+6:
+7:**Escopo:** runtime hardening (read-only) + test lock.
 === STATUS-RELATED LINES ===
-3:## Status
-5:Accepted
+3:status-heading: ## Status
+5:status-value: Accepted
 ```
 
 ### SCP-011.3
