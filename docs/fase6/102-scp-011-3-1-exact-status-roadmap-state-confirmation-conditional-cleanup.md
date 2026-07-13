@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 **Escopo:** confirmação documental autoritativa + limpeza condicional.
 Nenhuma alteração em runtime, testes, migrations, schema, RLS,
