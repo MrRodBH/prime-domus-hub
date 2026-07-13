@@ -12,6 +12,13 @@
 //   bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts
 
 import { createClient } from "@supabase/supabase-js";
+import {
+  CommercialSeatLimitDeniedError,
+  parseCommercialSeatLimitDeniedError,
+  COMMERCIAL_SEAT_LIMIT_DENIED_MESSAGE,
+} from "@/lib/api/commercial/membership-mutation-enforcement-error";
+import type { CommercialLimitDecision } from "@/lib/api/commercial/limit-decision";
+import { executeMembershipMutation } from "@/lib/api/commercial/membership-mutation-boundary.server";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
