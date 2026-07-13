@@ -198,7 +198,8 @@ async function main() {
     // -------------------- Scenario C: capacity 2, 4 concurrent --------------------
     await run("C. capacity=2, 4 concurrent creates → 2 applied, 2 denied, used=limit", async () => {
       const ctx = await provisionTenant(4, 1); // used=2 → 2 free
-      const targets = await Promise.all([1,2,3,4].map(() => createAuthUser("C-t")));
+      const targets: string[] = [];
+      for (let i = 0; i < 4; i++) targets.push(await createAuthUser("C-t"));
       const clients = targets.map(() => makeAdmin());
       const rs = await Promise.all(targets.map((tid, i) =>
         callRpc(clients[i], { _actor_user_id: ctx.ownerId, _tenant_id: ctx.tenantId,
