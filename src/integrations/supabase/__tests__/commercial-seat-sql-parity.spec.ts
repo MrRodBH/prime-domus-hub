@@ -128,14 +128,18 @@ function q(v: unknown): string {
 // Insert + teardown
 // ============================================================
 
+function safeSlug(prefix: string, id: string): string {
+  return (prefix + "_" + id.replace(/-/g, "").slice(0, 12)).toLowerCase();
+}
+
 async function setupFixture(f: Fixture): Promise<void> {
   await psqlSilent(
-    `INSERT INTO public.tenants (id, slug, nome) VALUES (${q(f.tenantId)}, ${q("scp0121-" + f.tenantId.slice(0, 8))}, 'SCP-012.0.2.1 harness');`,
+    `INSERT INTO public.tenants (id, slug, nome, status) VALUES (${q(f.tenantId)}, ${q(safeSlug("scp0121", f.tenantId))}, 'SCP-012.0.2.1 harness', 'active');`,
   );
 
   if (f.planId) {
     await psqlSilent(
-      `INSERT INTO public.commercial_plans (id, code, name, status) VALUES (${q(f.planId)}, ${q("scp0121-plan-" + f.planId.slice(0, 8))}, 'harness', 'active');`,
+      `INSERT INTO public.commercial_plans (id, code, name, status) VALUES (${q(f.planId)}, ${q(safeSlug("scp0121_plan", f.planId))}, 'harness', 'active');`,
     );
     if (f.planEntitlement) {
       const v = f.planEntitlement;
