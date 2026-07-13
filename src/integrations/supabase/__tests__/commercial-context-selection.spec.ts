@@ -21,7 +21,8 @@ function makeSub(partial: Partial<SubscriptionRow> & Pick<SubscriptionRow, "id">
     plan_id: partial.plan_id ?? null,
     status: partial.status ?? "active",
     status_reason: partial.status_reason ?? null,
-    started_at: partial.started_at ?? "2026-01-01T00:00:00Z",
+    // Preserve explicit null for started_at so NULLS LAST tests can pass null.
+    started_at: "started_at" in partial ? partial.started_at ?? null : "2026-01-01T00:00:00Z",
     trial_ends_at: partial.trial_ends_at ?? null,
     current_period_start: partial.current_period_start ?? null,
     current_period_end: partial.current_period_end ?? null,
@@ -29,6 +30,7 @@ function makeSub(partial: Partial<SubscriptionRow> & Pick<SubscriptionRow, "id">
     suspended_at: partial.suspended_at ?? null,
   } as SubscriptionRow;
 }
+
 
 
 
