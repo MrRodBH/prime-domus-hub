@@ -59,9 +59,9 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-lim
 ## Validações executadas
 
 - `bunx tsc --noEmit -p tsconfig.json` → exit 0.
-- `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` → 232 passed, 0 failed.
+- `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` → 233 passed, 0 failed.
 - `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` → 14 passed, 0 failed.
-- `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` → 9 passed, 0 failed.
+- `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` → 10 passed, 0 failed.
 - `git diff --check` → clean.
 - ACL efetiva: `has_function_privilege` = `false` para anon,
   authenticated e sandbox_exec; `true` apenas para service_role. Owner
