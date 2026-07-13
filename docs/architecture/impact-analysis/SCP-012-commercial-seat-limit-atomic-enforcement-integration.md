@@ -114,7 +114,7 @@ Transições fora dessa tabela são erros de domínio (`membership_not_found`,
 
 ## 7. Contrato do erro `commercial_seat_limit_denied`
 
-- `message = commercial_seat_limit_denied`.
+- `message = commercial_seat_limit_denied` — igualdade **exata**.
 - `ERRCODE = P0001`.
 - `DETAIL` contém exatamente o JSON de `CommercialLimitDecision`:
   `tenantId`, `featureKey`, `allowed`, `reason`, `source`, `limit`,
@@ -123,12 +123,23 @@ Transições fora dessa tabela são erros de domínio (`membership_not_found`,
 - A DTO de sucesso permanece imutável (SCP-012.0.3), sem `limit`,
   `used`, `remaining`, `billingStatus`, `commercialDecision`.
 
-O parser (`membership-mutation-enforcement-error.ts`) reconhece
-somente essa forma, exige `DETAIL` presente, `JSON.parse` bem-sucedido,
-`validateSeatDecisionResponse` aprovado com `tenantId` esperado e
+O parser (`membership-mutation-enforcement-error.ts`) usa igualdade
+exata sobre `message` — substrings, prefixos, sufixos ou wrappers
+(por exemplo `"prefix commercial_seat_limit_denied"`,
+`"commercial_seat_limit_denied suffix"`,
+`"commercial_seat_limit_denied_other"`) retornam `null` e são tratados
+como erro determinístico do boundary, não como negação estruturada.
+Além disso, o parser exige `DETAIL` presente, `JSON.parse` bem-sucedido,
+`validateSeatDecisionResponse` aprovado com `tenantId` esperado,
 `requestedIncrement = 1`, e `allowed = false`. Qualquer desvio lança
 determinístico. Nenhuma decisão é recomputada em TypeScript e nenhuma
 nova consulta ao banco é feita.
+
+A forma real do erro Supabase/PostgREST observada nos runners
+(`error.message === "commercial_seat_limit_denied"`,
+`error.code === "P0001"`, `error.details` string JSON) é verificada
+pelo helper `validateRealCommercialDenial` do runner atômico
+(cenários A, B, C, E e F, além do cenário J via boundary).
 
 ## 8. Boundary TypeScript
 
