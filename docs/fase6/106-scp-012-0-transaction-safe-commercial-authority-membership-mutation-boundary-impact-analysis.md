@@ -95,47 +95,42 @@ compatibilidade, segurança, testabilidade, rollback, operabilidade) em
 ## 8. Decisão recomendada
 
 **Estratégia A — SQL/Postgres como autoridade comercial canônica
-única**, exposta somente por primitive RPC server-side restrita. A
-Estratégia C (conexão Postgres direta / transaction callback
-multi-statement em TypeScript) **não é selecionada**. A transação da
+única**, exposta somente por primitive RPC server-side restrita.
+PostgREST/RPC permanece como superfície de chamada. A transação da
 mutation ocorre integralmente dentro da função Postgres invocada como
-RPC única. PostgREST/RPC permanece como superfície de chamada; não
-existe pool ou conexão Postgres direta adicional. Estratégia B
-rejeitada por introduzir staleness e dual authority por construção.
+RPC única.
 
-Auditoria externa da SCP-012.0 apontou inconsistências corrigidas na
-SCP-012.0.1:
+- não existe conexão Postgres direta controlada pelo TypeScript;
+- não existe pool adicional;
+- não existe transaction callback multi-statement na aplicação;
+- Estratégia C (conexão Postgres direta / transaction callback
+  multi-statement em TypeScript) foi analisada mas **não** é
+  selecionada;
+- Estratégia B (snapshot materializado) foi rejeitada por staleness e
+  dual authority por construção.
 
-- matriz de paridade utilizava razões inventadas
-  (`feature_not_cataloged`, `limit_unavailable`, `limit_invalid`,
-  `within_limit`, `allowed` como reason) — corrigidas para os valores
-  canônicos do DTO `CommercialLimitDecision`;
-- `billing_attention_required` estava documentado como "avaliado
-  normalmente" — corrigido para short-circuit sem leitura de
-  `tenant_members`, propagação exata da razão e
-  `limit`/`used`/`remaining` = `null`;
-- recomendação anterior "A + C parcial" — reclassificada como
-  Estratégia A pura (SQL/RPC), sem conexão direta;
-- sequenciamento anterior mantinha materialização SQL sem cutover em
-  etapa separada da delegação — substituído por SCP-012.0.2 atômica
-  (materialização + delegação + remoção do caminho TS independente no
-  mesmo conjunto de mudanças);
-- roadmap deduplicado.
+Inconsistências levantadas pela auditoria externa da SCP-012.0 foram
+integralmente corrigidas na SCP-012.0.1 (contrato canônico,
+`billing_attention_required` como short-circuit, estratégia A pura,
+sequenciamento atômico, roadmap deduplicado) e reforçadas pela
+SCP-012.0.1.1 (reescrita determinística das seções e evidence lock).
 
-Detalhes na SCP-012.0.1.
+Detalhes normativos na SCP-012.0.1 e SCP-012.0.1.1.
 
-## 9. Sequenciamento proposto (final consolidado)
+## 9. Sequenciamento proposto
 
-1. SCP-012.0 — Impact Analysis (esta etapa).
+1. SCP-012.0 — Impact Analysis.
 2. SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover
    Sequencing & Roadmap Cleanup.
-3. SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization
+3. SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock
+   & Git Readiness.
+4. SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization
    & Atomic Runtime Cutover (materialização + suíte de paridade +
    delegação + remoção/desativação do caminho TS independente, tudo
    num único conjunto auditável).
-4. SCP-012.0.3 — Membership Mutation Boundary Planning &
+5. SCP-012.0.3 — Membership Mutation Boundary Planning &
    Materialization.
-5. SCP-012 — Atomic Enforcement Integration.
+6. SCP-012 — Atomic Enforcement Integration.
 
 Sem período persistido de dual authority em produção.
 
@@ -152,11 +147,10 @@ Sem período persistido de dual authority em produção.
 ## 12. Bloco final do roadmap aplicado
 
 ```
-15.3.2 SCP-011.3.2 — Accepted Status Finalization & SCP-012 Authorization — Accepted.
-15.3.3 SCP-011.3.3 — Exact Status Token Cleanup & Final Gate Closure — Accepted.
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: architectural prerequisites required.
 16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Ready for External Audit.
 16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Ready for External Audit.
+16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Ready for External Audit.
 ```
 
 As antigas linhas `Transaction-Safe Commercial Resolver
