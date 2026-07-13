@@ -73,14 +73,20 @@ Prova de ausência de dual path confirmada.
 
 ## 6. ACL / RLS
 
-Verificação prévia (SCP-012) permanece válida, sem alterações nesta
-etapa:
+Verificação independente executada nesta etapa via consulta direta a
+`pg_proc` / `aclexplode` / `has_function_privilege` — ver §8.2 para o
+dump completo. Resumo:
 
-- `mutate_tenant_membership` e `resolve_commercial_seat_decision`:
-  EXECUTE apenas para function owner + `service_role`; PUBLIC, anon,
-  authenticated e sandbox_exec sem privilégio.
-- `tenant_members`: `authenticated` = `SELECT` somente; anon e PUBLIC
-  sem privilégio; `service_role` administrativo; RLS restritiva.
+- `resolve_commercial_seat_decision(uuid,uuid,text,integer)` e
+  `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)`: owner
+  `postgres`; EXECUTE apenas para o owner, `service_role` e para a
+  role gerenciada de sandbox `sandbox_exec` (role de exec, não é role
+  de cliente). `anon`, `authenticated` e `PUBLIC` sem privilégio.
+- `tenant_members`: `authenticated = SELECT` somente; `anon` /
+  `PUBLIC` sem grant; `service_role` administrativo; `sandbox_exec`
+  possui GRANT `SELECT, INSERT` mas RLS restritiva bloqueia escrita
+  na prática (as duas policies `tm_select` / `tm_write` estão escopadas
+  ao role `authenticated` e não cobrem `sandbox_exec`).
 
 ## 7. Catálogos e contratos
 
