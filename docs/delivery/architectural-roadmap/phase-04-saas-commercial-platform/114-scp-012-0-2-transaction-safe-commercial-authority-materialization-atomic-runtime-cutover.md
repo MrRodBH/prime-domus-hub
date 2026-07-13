@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Blocked: awaiting SCP-012.0.2.1 acceptance (SCP-012.0.2.1 corrigiu esta etapa; ver relatório 115).
 
 ## 1. Sumário executivo
 
@@ -18,14 +18,28 @@ SCP-012.
   (`Finalized SCP-012.0.1.3.1.1 gate`).
 - Working tree inicial: limpo.
 
-## 3. Reviewed Materialization Head
+## 3. Reviewed Materialization Head (corrigido pela SCP-012.0.2.1)
 
-`1002fa202a3f41c3c4204ff13985773a264606ac`.
+`aee629d07aa1697a6a4bfb771c770e00bbff96da`.
 
-Este SHA é registrado apenas neste relatório de execução, conforme o
-modelo de evidência Git não autorreferencial adotado pela
-SCP-012.0.1.3.1.1. O documento de impact analysis correspondente
-(`SCP-012.0.2-…md`) não persiste este SHA.
+O SHA `1002fa202a3f41c3c4204ff13985773a264606ac` registrado na versão
+original deste relatório estava incorreto e foi substituído pela
+SCP-012.0.2.1. `37257b26570153716804010a6e5782b6647b6a16` é o HEAD final
+da SCP-012.0.2 (commit `Executou SCP-012.0.2 completo`), posterior ao
+Reviewed Materialization Head. O SHA final desta correção está registrado
+exclusivamente no relatório textual da SCP-012.0.2.1 (modelo não
+autorreferencial).
+
+## 3.1 Inventário documental corrigido (7 arquivos)
+
+- docs/architecture/ROADMAP_ARCHITECTURAL.md
+- docs/architecture/impact-analysis/SCP-012.0.2-…md
+- docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/114-scp-012-0-2-…md
+- src/integrations/supabase/types.ts (auto-gerado)
+- src/lib/api/commercial/commercial.functions.ts
+- src/routeTree.gen.ts (auto-gerado; alteração reproduzível pelo plugin, não editada manualmente)
+- supabase/migrations/20260713194010_f9f9e8b4-1dff-463f-8bb9-81db20b972c2.sql
+
 
 ## 4. Migration criada
 

@@ -65,15 +65,21 @@ const SUB_STATUS_PRIORITY = [
 
 function pickActiveSubscription(rows: SubscriptionRow[]): SubscriptionRow | null {
   if (rows.length === 0) return null;
+  // SCP-012.0.2.1 §8 — deterministic order aligned with SQL resolver:
+  // status priority → started_at DESC NULLS LAST → id ASC (final tie).
   const sorted = [...rows].sort((a, b) => {
     const ai = SUB_STATUS_PRIORITY.indexOf(a.status ?? "");
     const bi = SUB_STATUS_PRIORITY.indexOf(b.status ?? "");
     const ax = ai === -1 ? SUB_STATUS_PRIORITY.length : ai;
     const bx = bi === -1 ? SUB_STATUS_PRIORITY.length : bi;
     if (ax !== bx) return ax - bx;
-    const at = a.started_at ? new Date(a.started_at).getTime() : 0;
-    const bt = b.started_at ? new Date(b.started_at).getTime() : 0;
-    return bt - at;
+    const at = a.started_at ? new Date(a.started_at).getTime() : Number.NEGATIVE_INFINITY;
+    const bt = b.started_at ? new Date(b.started_at).getTime() : Number.NEGATIVE_INFINITY;
+    if (bt !== at) return bt - at;
+    // Final tie-breaker: id ASC (matches SQL `id ASC`).
+    if (a.id < b.id) return -1;
+    if (a.id > b.id) return 1;
+    return 0;
   });
   return sorted[0];
 }
@@ -417,112 +423,13 @@ async function loadTenantCommercialContext(
 // -----------------------------------------------------------------
 
 // ============================================================
-// RPC response validator — SCP-012.0.2 §16.
+// RPC response validator — SCP-012.0.2.1 §12.
 //
-// Enforces DTO shape and closed enums. Rejects unknown fields, tenant
-// mismatch, feature-key mismatch, requestedIncrement mismatch, invalid
-// numbers, and structural incoherence. Pure — no I/O.
+// The strict semantic validator lives in a pure, dependency-free
+// module so it can be unit-tested without pulling supabase / server
+// imports. This file only re-exports it into the runtime handler.
 // ============================================================
-
-const SEAT_ALLOWED_REASONS: ReadonlySet<string> = new Set([
-  "entitled",
-  "not_entitled",
-  "limit_reached",
-  "billing_unknown",
-  "billing_attention_required",
-  "billing_blocked",
-  "not_evaluated",
-]);
-
-const SEAT_ALLOWED_SOURCES: ReadonlySet<string> = new Set([
-  "tenant",
-  "plan",
-  "default",
-  "none",
-]);
-
-const SEAT_ALLOWED_KEYS: ReadonlySet<string> = new Set([
-  "tenantId",
-  "featureKey",
-  "allowed",
-  "reason",
-  "source",
-  "limit",
-  "used",
-  "requestedIncrement",
-  "remaining",
-]);
-
-function isCommercialIntegerOrNull(v: unknown): v is number | null {
-  if (v === null) return true;
-  return (
-    typeof v === "number" &&
-    Number.isFinite(v) &&
-    Number.isInteger(v) &&
-    v >= 0 &&
-    v <= Number.MAX_SAFE_INTEGER
-  );
-}
-
-function validateSeatDecisionResponse(
-  raw: unknown,
-  expectedTenantId: string,
-  expectedIncrement: number,
-): CommercialLimitDecision {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new Error("Invalid RPC response");
-  }
-  const r = raw as Record<string, unknown>;
-  for (const k of Object.keys(r)) {
-    if (!SEAT_ALLOWED_KEYS.has(k)) throw new Error(`Unexpected field: ${k}`);
-  }
-  if (typeof r.tenantId !== "string" || r.tenantId.length === 0) {
-    throw new Error("Invalid tenantId");
-  }
-  if (r.tenantId !== expectedTenantId) throw new Error("Tenant mismatch");
-  if (r.featureKey !== "users.seats") throw new Error("Feature key mismatch");
-  if (typeof r.allowed !== "boolean") throw new Error("Invalid allowed");
-  if (typeof r.reason !== "string" || !SEAT_ALLOWED_REASONS.has(r.reason)) {
-    throw new Error("Invalid reason");
-  }
-  if (typeof r.source !== "string" || !SEAT_ALLOWED_SOURCES.has(r.source)) {
-    throw new Error("Invalid source");
-  }
-  if (!isCommercialIntegerOrNull(r.limit)) throw new Error("Invalid limit");
-  if (!isCommercialIntegerOrNull(r.used)) throw new Error("Invalid used");
-  if (!isCommercialIntegerOrNull(r.remaining)) {
-    throw new Error("Invalid remaining");
-  }
-  if (r.requestedIncrement !== expectedIncrement) {
-    throw new Error("Invalid requestedIncrement");
-  }
-  // Structural coherence
-  if (r.allowed === true && r.reason !== "entitled") {
-    throw new Error("Incoherent allowed/reason");
-  }
-  if (r.reason === "entitled") {
-    if (r.limit === null || r.used === null || r.remaining === null) {
-      throw new Error("Incoherent entitled response");
-    }
-    if (r.source === "none") throw new Error("Incoherent entitled source");
-  }
-  if (r.reason === "limit_reached") {
-    if (r.limit === null || r.used === null || r.remaining !== 0) {
-      throw new Error("Incoherent limit_reached response");
-    }
-  }
-  return {
-    tenantId: r.tenantId,
-    featureKey: r.featureKey,
-    allowed: r.allowed,
-    reason: r.reason as CommercialLimitDecision["reason"],
-    source: r.source as CommercialLimitDecision["source"],
-    limit: r.limit as number | null,
-    used: r.used as number | null,
-    requestedIncrement: r.requestedIncrement as number,
-    remaining: r.remaining as number | null,
-  };
-}
+import { validateSeatDecisionResponse } from "./seat-limit-rpc-contract";
 
 export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
   .middleware([requireTenant])
@@ -549,5 +456,6 @@ export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
     }
     return validateSeatDecisionResponse(rpcData, tenantId, requestedIncrement);
   });
+
 
 

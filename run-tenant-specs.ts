@@ -9,6 +9,7 @@ import { runCommercialReadModelsSpecs } from "./src/integrations/supabase/__test
 import { runCommercialFeatureGateSpecs } from "./src/integrations/supabase/__tests__/commercial-feature-gate.spec";
 import { runCommercialFeatureCatalogSpecs } from "./src/integrations/supabase/__tests__/commercial-feature-catalog.spec";
 import { runCommercialSeatLimitSpecs } from "./src/integrations/supabase/__tests__/commercial-seat-limit.spec";
+import { runCommercialSeatRpcContractSpecs } from "./src/integrations/supabase/__tests__/commercial-seat-rpc-contract.spec";
 
 async function main() {
   const suites: Array<[string, () => Promise<{ passed: number; failed: number }>]> = [
@@ -21,6 +22,7 @@ async function main() {
     ["commercial-feature-gate", runCommercialFeatureGateSpecs],
     ["commercial-feature-catalog", runCommercialFeatureCatalogSpecs],
     ["commercial-seat-limit", runCommercialSeatLimitSpecs],
+    ["commercial-seat-rpc-contract", runCommercialSeatRpcContractSpecs],
   ];
   let totalPass = 0;
   let totalFail = 0;

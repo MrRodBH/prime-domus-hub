@@ -189,7 +189,8 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 16.0.1.3 SCP-012.0.1.3 — Server-Only RPC Trusted Actor Context & Hard Gate S0 Contract Reconciliation — Accepted.
 16.0.1.3.1 SCP-012.0.1.3.1 — Trusted Context Provenance, Client Inventory & Git Evidence Lock — Accepted.
 16.0.1.3.1.1 SCP-012.0.1.3.1.1 — Non-Self-Referential Git Evidence Model, Accepted Status Finalization & SCP-012.0.2 Gate Cleanup — Accepted.
-16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — Ready for External Audit.
+16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — Blocked: awaiting SCP-012.0.2.1 acceptance.
+16.0.2.1 SCP-012.0.2.1 — Executable SQL/TypeScript Parity, Numeric Contract Hardening, RPC Validation & Evidence Reconciliation — Ready for External Audit.
 
 
 Restrições permanentes:
