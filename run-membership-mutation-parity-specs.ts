@@ -112,6 +112,38 @@ async function main() {
     } as Any);
     if (omErr) throw new Error(`owner membership insert: ${omErr.message}`);
 
+    // ---- COMMERCIAL FIXTURES (SCP-012 enforcement requires seat capacity for +1 delta ops) ----
+    planId = crypto.randomUUID();
+    const planCode = `scp012_p_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`;
+    {
+      const { error } = await admin.from("commercial_plans" as Any).insert({
+        id: planId,
+        code: planCode,
+        name: `SCP-012 harness plan ${uniq}`,
+        status: "active",
+      } as Any);
+      if (error) throw new Error(`plan insert: ${error.message}`);
+    }
+    {
+      const { error } = await admin.from("commercial_plan_entitlements" as Any).insert({
+        plan_id: planId,
+        entitlement_key: "users.seats",
+        value_int: 100,
+      } as Any);
+      if (error) throw new Error(`plan entitlement insert: ${error.message}`);
+    }
+    subscriptionId = crypto.randomUUID();
+    {
+      const { error } = await admin.from("tenant_subscriptions" as Any).insert({
+        id: subscriptionId,
+        tenant_id: tenantId,
+        plan_id: planId,
+        status: "active",
+        started_at: new Date().toISOString(),
+      } as Any);
+      if (error) throw new Error(`subscription insert: ${error.message}`);
+    }
+
     // super admin role
     const { error: srErr } = await admin
       .from("user_roles" as Any)
