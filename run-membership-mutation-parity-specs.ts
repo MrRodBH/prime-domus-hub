@@ -377,6 +377,23 @@ async function main() {
       if (error) cleanupErrors.push(`user_roles delete: ${error.message}`);
     }
 
+    // subscriptions
+    if (tenantId) {
+      const { error } = await admin.from("tenant_subscriptions" as Any).delete().eq("tenant_id", tenantId);
+      if (error) cleanupErrors.push(`subscriptions delete: ${error.message}`);
+    }
+
+    // plan entitlements + plans
+    if (planId) {
+      const { error: peErr } = await admin
+        .from("commercial_plan_entitlements" as Any)
+        .delete().eq("plan_id", planId);
+      if (peErr) cleanupErrors.push(`plan entitlements delete: ${peErr.message}`);
+      const { error: pErr } = await admin
+        .from("commercial_plans" as Any).delete().eq("id", planId);
+      if (pErr) cleanupErrors.push(`plan delete: ${pErr.message}`);
+    }
+
     // tenant
     if (tenantId) {
       const { error } = await admin.from("tenants" as Any).delete().eq("id", tenantId);
