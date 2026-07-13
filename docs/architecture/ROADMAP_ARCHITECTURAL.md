@@ -181,9 +181,11 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 15.3.2 SCP-011.3.2 — Accepted Status Finalization & SCP-012 Authorization — Accepted.
 15.3.3 SCP-011.3.3 — Exact Status Token Cleanup & Final Gate Closure — Accepted.
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: architectural prerequisites required.
-16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Ready for External Audit.
-16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Ready for External Audit.
-16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Ready for External Audit.
+16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Accepted.
+16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Accepted.
+16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Accepted.
+16.0.1.2 SCP-012.0.1.2 — Canonical Concurrency, Internal Roadmap & Accepted Status Finalization — Ready for External Audit.
+16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — futura; não iniciada.
 
 
 Restrições permanentes:
@@ -541,7 +543,7 @@ com eliminação do diretório legado de relatórios cronológicos e distribuiç
 128 relatórios de execução em `docs/delivery/**`, agrupados por namespace de
 roadmap e por macrofase/iniciativa oficialmente registrada.
 
-- **GA-08 — Documentation Repository Reorganization** — `In Progress`.
+- **GA-08 — Documentation Repository Reorganization** — `Accepted`.
 - **GA-08.0 — Documentation Repository Structure Audit &
   Controlled Migration Plan** — `Accepted`.
 - **GA-08.1 — Documentation Repository Controlled Migration** —
@@ -551,9 +553,13 @@ roadmap e por macrofase/iniciativa oficialmente registrada.
 - **GA-08.1.2 — Documentation Roadmap Namespace & Phase Identity
   Correction** — `Accepted`.
 - **GA-08.1.2.1 — Final Git Evidence, Contract Acceptance & Legacy ADR
-  Namespace Cleanup** — `Ready for External Audit`.
+  Namespace Cleanup** — `Accepted`.
 - **GA-08.2 — Documentation Path Validation & CI Gate** — futura;
-  não iniciada.
+  não iniciada; backlog não bloqueante.
+
+O núcleo da GA-08 está encerrado. A GA-08.2 é backlog não bloqueante e
+não impede a continuidade da Architectural Roadmap · Fase 4 (cadeia
+SCP-012).
 
 Regras vinculantes desta etapa:
 

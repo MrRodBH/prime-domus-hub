@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 ## 1. Saídas iniciais
 
