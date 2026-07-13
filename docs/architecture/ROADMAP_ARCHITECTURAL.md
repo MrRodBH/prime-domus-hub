@@ -197,6 +197,49 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 16.0.2.2 SCP-012.0.2.2 — Service-Role Parity Harness Completion, Isolated Fixture Lifecycle & Fail-Closed Privilege Verification — Accepted with documented non-blocking test coverage limitation.
 16.0.3 SCP-012.0.3 — Membership Mutation Boundary Planning & Materialization — Accepted.
 
+17. F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement & Runtime Consistency Check and Fix — Ready for External Audit.
+
+18. Phase 4 Closing Review — Planned; not started.
+
+PR-PH.0 — Pre-Homologation Product Readiness Impact Analysis — Planned; not started.
+
+##### Namespaces dos roadmaps (regra vinculante)
+
+- Product Roadmap e Architectural Roadmap possuem namespaces distintos;
+  os números das fases **não** formam sequência global. Nenhuma
+  referência isolada como "Fase 6" é suficiente.
+- **PR-F6** = Product Roadmap · Fase 6 — Product UX Refactor
+  (experiência do produto).
+- **AR-F6** = Architectural Roadmap · Fase 6 — Plugin Marketplace Evolution.
+- Aplicar a denominação qualificada em referências futuras. Nenhuma
+  renumeração retroativa da Product UX Refactor. A Plugin Marketplace
+  Evolution permanece não implementada.
+
+##### Diretriz futura de frontend — RM Prime SaaS Data-Dense Premium Dark Interface
+
+Registrada como diretriz vinculante para a futura fase de Product
+Readiness (PR-PH.0) — **não implementada nesta etapa**:
+
+- Dark graphite (não preto absoluto); cores vivas apenas com função
+  semântica; máximo contraste nos pontos de leitura.
+- KPIs sempre com contexto, comparação e tendência; gráficos vinculados
+  a decisões reais; alertas explicáveis; drill-down até a origem do dado.
+- Dashboard adaptado ao papel do usuário; tema claro alternativo;
+  validação com usuários reais antes da homologação.
+- Vinculação: Tenant Dashboard Finalization, CRM/Kanban Finalization,
+  Product UX/UI Final Consistency Review.
+
+##### Escopo futuro registrado para PR-PH.0 (não iniciado)
+
+Tenant Workspace Information Architecture; menu interno e
+nomenclaturas configuráveis; dashboard final por papel; CRM e Kanban
+final; branding do workspace e do site público; menus públicos; CMS e
+landing pages; custom domain por tenant; onboarding e configuration
+center; roles e autoridade de configuração; Product UX/UI Final
+Consistency Review; Environment & Operational Readiness;
+Pre-Homologation Product Closing Review; Test & Homologation Impact
+Analysis.
+
 
 Restrições permanentes:
 - SCP-004 não implementa billing real completo.
