@@ -123,30 +123,33 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 
 ### 🔵 Fase 4 — SaaS Commercial Platform
 
-- **Status:** Planejamento arquitetural iniciado via **IA-006** e
-  corrigido via **IA-006.1**
-  (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
-- **Implementation Status:** `BLOCKED` — aguardando aprovação externa
-  da IA-006/IA-006.1 antes de qualquer implementação.
-- **Fase 4 ainda não está em implementação funcional. SCP-001 ainda não
-  foi iniciada.**
-- **Escopo futuro:** planos, assinaturas, billing, trial,
-  inadimplência, entitlements, feature flags comerciais, status
-  comercial do tenant, webhooks de pagamento, integrações Stripe /
-  Hotmart / Kiwify, governança comercial Super Admin.
-- **Subetapas propostas (PROPOSED):** SCP-001..SCP-010 (ver IA-006 §17).
-- **Hard Gates propostos:** SCP-G1..SCP-G9 (ver IA-006 §18).
+- **Status:** Checkpoint final em curso — **F4-CF-01** é o próximo
+  checkpoint autorizado. A Fase 4 ainda **não** está formalmente
+  encerrada e o **Phase 4 Closing Review** ainda **não** foi iniciado.
+- **Aceites externos consolidados:** **IA-006**, **ADR-005**,
+  **ADR-006** e **F4.0** (Role Reconciliation / Membership Role Audit)
+  estão **Accepted**. **SCP-001 até SCP-012** estão **Accepted**,
+  incluindo todas as subetapas SCP-010.x, SCP-011.x e SCP-012.0.x.
+- **Contrato materializado:** domínio comercial, catálogo de feature
+  keys, resolver comercial de assentos (`resolve_commercial_seat_decision`),
+  primitive atômica de mutation de membership (`mutate_tenant_membership`)
+  com enforcement comercial em transação única e boundary server-only
+  (`membership-mutation-boundary.server.ts`). ACL fail-closed em ambas
+  as RPCs (owner + service_role); `tenant_members` mantém apenas
+  `SELECT` para `authenticated`; zero escrita direta de
+  `tenant_members` no runtime TypeScript; zero dual path; zero
+  fallback; zero recomputação comercial no client.
+- **Fora do escopo executado desta fase (permanecem como próximos
+  blocos formais antes da homologação):** provider billing real
+  (Stripe, Hotmart, Kiwify), checkout, customer portal, webhooks
+  públicos reais, upgrade/downgrade/cancelamento reais, invitation
+  flow, UI comercial, dashboards finais.
 - **Invariantes preservados:** client nunca é autoridade; servidor é
   autoridade única; `x-tenant-id` é transporte; sem fallback / default /
   heurística / dual path; Super Admin sem impersonação não acessa
   tenant-scoped; `tenant_role` **não** é autorização ampla nem
-  autorização comercial; `has_role(auth.uid(), 'admin')` **não** é
-  recomendação direta para billing; RLS não é relaxada para billing;
-  assinatura não substitui membership e vice-versa. Autorização
-  administrativa comercial depende de **Role Reconciliation** prévia
-  e de uma função server-side dedicada futura
-  (`canManageTenantBilling(userId, tenantId)`).
+  autorização comercial; RLS não é relaxada para billing; assinatura
+  não substitui membership e vice-versa.
 
 #### Gates e sequência inicial da Fase 4
 
@@ -180,7 +183,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 15.3.1 SCP-011.3.1 — Exact Status and Roadmap State Confirmation & Conditional Cleanup — Accepted.
 15.3.2 SCP-011.3.2 — Accepted Status Finalization & SCP-012 Authorization — Accepted.
 15.3.3 SCP-011.3.3 — Exact Status Token Cleanup & Final Gate Closure — Accepted.
-16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Ready for External Audit.
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Accepted.
 16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Accepted.
 16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Accepted.
 16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Accepted.
