@@ -3517,6 +3517,17 @@ export type Database = {
         }
         Returns: number
       }
+      mutate_tenant_membership: {
+        Args: {
+          _actor_user_id: string
+          _operation: string
+          _target_role?: string
+          _target_user_id: string
+          _tenant_id: string
+          _tenant_origin: string
+        }
+        Returns: Json
+      }
       portal_dlq_enqueue: {
         Args: {
           _acao: string
