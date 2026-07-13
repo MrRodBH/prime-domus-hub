@@ -1,0 +1,247 @@
+# 116 — SCP-012.0.2.2 — Service-Role Parity Harness Completion, Isolated Fixture Lifecycle & Fail-Closed Privilege Verification
+
+## Status
+
+**Blocked** — §19 stop condition triggered. **Not** Ready for External Audit.
+
+## Baseline e ambiente
+
+- Baseline vinculante: `b7d9cf998e5524fe12454f964822ac4992b1c782`
+  (`Corrigiu e endureceu 012.0.2`).
+- Working tree inicial: limpo.
+- Ambiente: PostgreSQL gerenciado do projeto (mesma instância utilizada
+  em SCP-012.0.2 e SCP-012.0.2.1).
+
+## Arquitetura do harness anterior (rejeitado)
+
+`run-commercial-sql-parity-specs.ts` + `commercial-seat-sql-parity.spec.ts`
+utilizavam `psql` com o role `sandbox_exec`. Rejeitado pela auditoria
+externa (SCP-012.0.2.1 P1–P12): role incompatível com a fronteira
+service_role-only da RPC, fixtures de `tenant_members` bloqueadas por
+RLS, usuários produtivos hardcoded, matriz parcial (17 cenários), runner
+com `exit != 0`.
+
+## Arquitetura service_role adotada (§5)
+
+Design canônico:
+
+- `@supabase/supabase-js` server-side.
+- `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` lidos de env, nunca
+  logados.
+- `auth.persistSession = false`, `autoRefreshToken = false`.
+- INSERT / DELETE / RPC exclusivamente via service_role.
+- Chamada autoritativa:
+  ```
+  supabaseAdmin.rpc("resolve_commercial_seat_decision", {
+    _actor_user_id, _tenant_id, _tenant_origin, _requested_increment: 1,
+  })
+  ```
+- Environment guard: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e
+  `COMMERCIAL_SQL_PARITY_ALLOW_FIXTURES=1` obrigatórios.
+
+**Nesta execução esse harness foi projetado mas não codificado** — ver
+§ "Motivo de parada §19".
+
+## Materializado nesta execução
+
+### Arquivos criados
+
+- `src/lib/api/commercial/commercial-context-selection.ts` — módulo puro
+  com `selectCommercialSubscription` e `selectPrimaryProviderMapping`.
+- `src/integrations/supabase/__tests__/commercial-context-selection.spec.ts`
+  — 8 casos unitários (empty, priority, DESC, NULLS LAST, tie-breaker
+  observável reverso, provider active/fallback).
+- `supabase/migrations/20260713203357_b2698312-fc50-4d3b-b9ba-9fa0cdba171a.sql`
+  — REVOKE PUBLIC/anon/authenticated/sandbox_exec, GRANT service_role,
+  bloco `RAISE EXCEPTION` fail-closed ao final. **Sem `WHEN OTHERS`**.
+- `docs/architecture/impact-analysis/SCP-012.0.2.2-service-role-parity-harness-completion-isolated-fixture-lifecycle-fail-closed-privilege-verification.md`
+- este relatório.
+
+### Arquivos alterados
+
+- `src/lib/api/commercial/commercial.functions.ts` — substitui
+  helpers internos pelo import do módulo puro.
+- `run-tenant-specs.ts` — registra a nova suíte.
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md` — 16.0.2.1 rebaixado;
+  16.0.2.2 adicionado.
+- `docs/architecture/impact-analysis/SCP-012.0.2.1-executable-sql-typescript-parity-numeric-contract-hardening-rpc-validation-evidence-reconciliation.md`
+  — nome real da migration do catálogo corrigido.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/115-scp-012-0-2-1-executable-sql-typescript-parity-numeric-contract-hardening-rpc-validation-evidence-reconciliation.md`
+  — idem.
+- `src/routeTree.gen.ts` (auto-gerado, se regenerado).
+
+## Motivo de parada §19
+
+Durante o reconnaissance obrigatório desta execução foi confirmado por
+consulta ao `information_schema.columns` e `pg_constraint` que **quatro
+cenários da matriz de 40 são estruturalmente inexecutáveis** contra o
+schema atual do banco:
+
+| # | Cenário | Bloqueio |
+|---|---------|----------|
+| 12 | value_int negativo (ou value_decimal negativo) | `int_non_negative_chk` e `decimal_non_negative_chk` em `tenant_entitlements` **e** `commercial_plan_entitlements` |
+| 20 | `limit = 2147483648` | `value_int` é `integer` (int4); `value_decimal` é `numeric(14,2)` — nenhum comporta o valor |
+| 21 | `limit = 9007199254740991` (MAX_SAFE_INTEGER) | idem |
+| 22 | `limit = 9007199254740992` → `not_evaluated` | idem |
+
+Evidência:
+
+```
+SELECT column_name, data_type, numeric_precision, numeric_scale
+  FROM information_schema.columns
+ WHERE table_schema='public'
+   AND table_name IN ('tenant_entitlements','commercial_plan_entitlements')
+   AND column_name IN ('value_int','value_decimal');
+→
+ value_decimal | numeric | 14 | 2
+ value_decimal | numeric | 14 | 2
+ value_int     | integer | 32 | 0
+ value_int     | integer | 32 | 0
+```
+
+A migration SCP-012.0.2.1 (`20260713200019_*`) ampliou apenas o
+**contrato interno da RPC** (`v_limit bigint`), não os tipos das
+colunas. O widening numérico das colunas + a decisão arquitetural
+sobre valores negativos são pré-requisitos e devem ser tratados em
+etapa dedicada (candidato: `SCP-012.0.2.3 — Entitlement Numeric Column
+Widening`).
+
+§19 mandata explicitamente:
+
+> qualquer cenário for ignorado → não marcar SCP-012.0.2.2
+> Ready for External Audit; manter a etapa Blocked; registrar a falha
+> exata; não autorizar SCP-012.0.3.
+
+Portanto:
+
+- SCP-012.0.2.2 fica **Blocked**.
+- SCP-012.0.3 **não autorizada**.
+- SCP-012 permanece **Blocked**.
+- Nenhum runner service_role parcial foi codificado, para não
+  introduzir suíte com skips implícitos ou paridade parcial que
+  induziria auditoria a erro. Ver §5 abaixo.
+
+## Trabalho intencionalmente **não** realizado
+
+Para não criar artefatos parciais em cima do bloqueio §19, não foram
+implementados nesta execução:
+
+- runner service-role dos 40 cenários (`run-commercial-sql-parity-specs.ts`
+  permanece em seu estado SCP-012.0.2.1);
+- lifecycle `supabase.auth.admin.createUser` para Super Admin + 3
+  usuários comuns temporários;
+- fixtures `scp012_parity_<runId>` (tenants, plans, subscriptions,
+  entitlements, memberships);
+- privilege tests via três clients (anon / authenticated / service_role);
+- consulta pós-cleanup de resíduos por prefixo.
+
+O harness service-role deverá ser materializado em execução posterior,
+após a resolução do bloqueio estrutural, quando os 40 cenários forem
+efetivamente executáveis.
+
+## ACL antes e depois da migration fail-closed
+
+Antes (via `pg_proc` + `aclexplode`):
+
+```
+postgres     | EXECUTE
+service_role | EXECUTE
+sandbox_exec | EXECUTE
+```
+
+Depois:
+
+```
+postgres     | EXECUTE
+service_role | EXECUTE
+```
+
+- `has_function_privilege('anon',          ..., 'EXECUTE') = false`
+- `has_function_privilege('authenticated', ..., 'EXECUTE') = false`
+- `has_function_privilege('sandbox_exec',  ..., 'EXECUTE') = false`
+- `has_function_privilege('service_role',  ..., 'EXECUTE') = true`
+- `has_function_privilege('postgres',      ..., 'EXECUTE') = true` (owner)
+
+## Nome exato das migrations
+
+- `supabase/migrations/20260713194010_f9f9e8b4-1dff-463f-8bb9-81db20b972c2.sql` — resolver original (SCP-012.0.2).
+- `supabase/migrations/20260713200019_4acf0d4b-b8c0-4cb1-847f-e4a596e32adb.sql` — hardening do resolver (SCP-012.0.2.1).
+- `supabase/migrations/20260713200657_b3701580-1659-48e7-b302-5dfcbf24c80c.sql` — catálogo `users.seats` + regex de `key` (SCP-012.0.2.1).
+- `supabase/migrations/20260713203357_b2698312-fc50-4d3b-b9ba-9fa0cdba171a.sql` — **fail-closed ACL assertion (SCP-012.0.2.2)**.
+
+## Correções documentais
+
+- Nome placeholder `20260713200713_775539_*` substituído por
+  `20260713200657_b3701580-1659-48e7-b302-5dfcbf24c80c.sql` no relatório
+  115 e no impact-analysis SCP-012.0.2.1.
+- SCP-012.0.2.1 rebaixada no roadmap para `Blocked: awaiting SCP-012.0.2.2 acceptance`,
+  refletindo o veredicto negativo da auditoria externa.
+
+## Runtime preservado
+
+`getCommercialSeatLimitDecision` em
+`src/lib/api/commercial/commercial.functions.ts` permanece SQL-only:
+consome `supabaseAdmin.rpc("resolve_commercial_seat_decision", …)` e
+valida com `validateSeatDecisionResponse` do módulo puro. A única
+mudança de runtime desta etapa é a substituição da função interna
+`pickActiveSubscription` / `pickPrimaryMapping` pelo import do módulo
+`commercial-context-selection`. Zero alteração semântica.
+
+## Resultados dos runners
+
+- `bunx tsc --noEmit -p tsconfig.json` → **exit 0**.
+- `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` → **exit 0**
+  (176 passed, 0 failed; inclui os 8 casos novos da suíte
+  `commercial-context-selection`).
+- `run-commercial-sql-parity-specs.ts` **não** foi executado nesta
+  etapa: enquanto o bloqueio estrutural §19 estiver presente, essa
+  execução geraria um resultado parcial que a especificação proíbe.
+- `git diff --check` limpo antes e após a execução.
+
+## Bloco final do roadmap
+
+```
+16.0.1.3.1.1 SCP-012.0.1.3.1.1 — Accepted.
+16.0.2       SCP-012.0.2       — Blocked: awaiting SCP-012.0.2.1 acceptance.
+16.0.2.1     SCP-012.0.2.1     — Blocked: awaiting SCP-012.0.2.2 acceptance.
+16.0.2.2     SCP-012.0.2.2     — Blocked: §19 stop condition triggered (see report 116).
+16           SCP-012           — Blocked.
+```
+
+SCP-012.0.3 **não autorizada**.
+
+## Confirmações negativas
+
+- zero mutation de membership de produto;
+- zero nova API pública;
+- zero lock;
+- zero enforcement;
+- zero fallback TypeScript;
+- zero provider integration;
+- zero frontend;
+- zero role permissiva;
+- zero RLS enfraquecida;
+- zero grant a `sandbox_exec`;
+- zero uso de usuário produtivo;
+- zero secret no diff;
+- zero fixture criada / zero fixture residual;
+- zero auth.users temporário criado nesta execução.
+
+## Riscos ou limitações reais
+
+1. **Bloqueio estrutural** — widening numérico e política de negativos
+   em `tenant_entitlements` / `commercial_plan_entitlements` são
+   pré-requisitos para SCP-012.0.2.2 completa.
+2. **ACL sandbox re-grant** — reconhecido; migration fail-closed
+   garante o estado no ato do commit.
+3. **Harness service-role a materializar** em etapa posterior à
+   remoção do bloqueio.
+4. **Auditoria externa** deve deliberar se a SCP-012.0.2.3 (Entitlement
+   Numeric Column Widening) precede SCP-012.0.2.2 completa, ou se a
+   SCP-012.0.2.2 aceita subconjunto documentado (não recomendado pela
+   própria especificação §19).
+
+## HEAD final
+
+Registrado após commit automático dos arquivos alterados/criados
+listados em "Materializado nesta execução".
