@@ -183,20 +183,23 @@ const specs: Array<{ name: string; run: () => void }> = [
     },
   },
 
-  // ---- DTO validator ----
+  // ---- DTO validator (semantic) ----
   {
     name: "validateMembershipMutationResult accepts a valid response",
     run: () => {
-      const r = validateMembershipMutationResult({
-        tenantId: T,
-        targetUserId: T,
-        operation: "suspend",
-        changed: true,
-        previousStatus: "active",
-        status: "suspended",
-        previousRole: "viewer",
-        role: "viewer",
-      });
+      const r = validateMembershipMutationResult(
+        {
+          tenantId: T,
+          targetUserId: T,
+          operation: "suspend",
+          changed: true,
+          previousStatus: "active",
+          status: "suspended",
+          previousRole: "viewer",
+          role: "viewer",
+        },
+        { tenantId: T, targetUserId: T, operation: "suspend" },
+      );
       assert(r.status === "suspended" && r.previousStatus === "active", "roundtrip");
     },
   },
@@ -205,17 +208,20 @@ const specs: Array<{ name: string; run: () => void }> = [
     run: () => {
       expectThrows(
         () =>
-          validateMembershipMutationResult({
-            tenantId: T,
-            targetUserId: T,
-            operation: "suspend",
-            changed: true,
-            previousStatus: "active",
-            status: "suspended",
-            previousRole: "viewer",
-            role: "viewer",
-            email: "leak@x.com",
-          }),
+          validateMembershipMutationResult(
+            {
+              tenantId: T,
+              targetUserId: T,
+              operation: "suspend",
+              changed: true,
+              previousStatus: "active",
+              status: "suspended",
+              previousRole: "viewer",
+              role: "viewer",
+              email: "leak@x.com",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend" },
+          ),
         /Unexpected RPC result field/i,
         "leak",
       );
@@ -226,18 +232,277 @@ const specs: Array<{ name: string; run: () => void }> = [
     run: () => {
       expectThrows(
         () =>
-          validateMembershipMutationResult({
-            tenantId: T,
-            targetUserId: T,
-            operation: "suspend",
-            changed: true,
-            previousStatus: "active",
-            status: "wat",
-            previousRole: "viewer",
-            role: "viewer",
-          }),
+          validateMembershipMutationResult(
+            {
+              tenantId: T,
+              targetUserId: T,
+              operation: "suspend",
+              changed: true,
+              previousStatus: "active",
+              status: "wat",
+              previousRole: "viewer",
+              role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend" },
+          ),
         /status/i,
         "bad status",
+      );
+    },
+  },
+
+  // ---- semantic guards (SCP-012.0.3 correction) ----
+  {
+    name: "semantic: rejects tenantId mismatch",
+    run: () => {
+      const OTHER = "22222222-2222-2222-2222-222222222222";
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: OTHER, targetUserId: T, operation: "suspend",
+              changed: true, previousStatus: "active", status: "suspended",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend" },
+          ),
+        /tenantId mismatch/i,
+        "tenant",
+      );
+    },
+  },
+  {
+    name: "semantic: rejects targetUserId mismatch",
+    run: () => {
+      const OTHER = "22222222-2222-2222-2222-222222222222";
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: OTHER, operation: "suspend",
+              changed: true, previousStatus: "active", status: "suspended",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend" },
+          ),
+        /targetUserId mismatch/i,
+        "target",
+      );
+    },
+  },
+  {
+    name: "semantic: rejects operation mismatch",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "revoke",
+              changed: true, previousStatus: "active", status: "revoked",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend" },
+          ),
+        /operation mismatch/i,
+        "op",
+      );
+    },
+  },
+  {
+    name: "semantic: rejects role=owner in result",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "change_role",
+              changed: true, previousStatus: "active", status: "active",
+              previousRole: "viewer", role: "owner",
+            },
+            { tenantId: T, targetUserId: T, operation: "change_role" },
+          ),
+        /role must not be owner/i,
+        "role owner",
+      );
+    },
+  },
+  {
+    name: "semantic: rejects previousRole=owner",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "change_role",
+              changed: true, previousStatus: "active", status: "active",
+              previousRole: "owner", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "change_role" },
+          ),
+        /previousRole must not be owner/i,
+        "prev owner",
+      );
+    },
+  },
+  {
+    name: "semantic: create_membership requires null previousStatus",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "create_membership",
+              changed: true, previousStatus: "active", status: "active",
+              previousRole: null, role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "create_membership" },
+          ),
+        /previousStatus=null/i,
+        "prev",
+      );
+    },
+  },
+  {
+    name: "semantic: create_membership must produce status=active",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "create_membership",
+              changed: true, previousStatus: null, status: "suspended",
+              previousRole: null, role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "create_membership" },
+          ),
+        /status=active/i,
+        "status",
+      );
+    },
+  },
+  {
+    name: "semantic: change_role must not alter status",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "change_role",
+              changed: true, previousStatus: "active", status: "suspended",
+              previousRole: "viewer", role: "manager",
+            },
+            { tenantId: T, targetUserId: T, operation: "change_role" },
+          ),
+        /preserve status/i,
+        "status",
+      );
+    },
+  },
+  {
+    name: "semantic: change_role changed=false must preserve role",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "change_role",
+              changed: false, previousStatus: "active", status: "active",
+              previousRole: "viewer", role: "manager",
+            },
+            { tenantId: T, targetUserId: T, operation: "change_role" },
+          ),
+        /noop must preserve role/i,
+        "noop",
+      );
+    },
+  },
+  {
+    name: "semantic: change_role changed=true must alter role",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "change_role",
+              changed: true, previousStatus: "active", status: "active",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "change_role" },
+          ),
+        /must alter role/i,
+        "changed",
+      );
+    },
+  },
+  {
+    name: "semantic: suspend invalid transition (revoked→suspended) rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "suspend",
+              changed: true, previousStatus: "revoked", status: "suspended",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend" },
+          ),
+        /suspend invalid transition/i,
+        "suspend",
+      );
+    },
+  },
+  {
+    name: "semantic: reactivate invalid transition (revoked→active) rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "reactivate",
+              changed: true, previousStatus: "revoked", status: "active",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "reactivate" },
+          ),
+        /reactivate invalid transition/i,
+        "reactivate",
+      );
+    },
+  },
+  {
+    name: "semantic: revoke changed=false must not alter status",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "revoke",
+              changed: false, previousStatus: "active", status: "revoked",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "revoke" },
+          ),
+        /revoke invalid transition/i,
+        "revoke",
+      );
+    },
+  },
+  {
+    name: "semantic: suspend must preserve role",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "suspend",
+              changed: true, previousStatus: "active", status: "suspended",
+              previousRole: "viewer", role: "manager",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend" },
+          ),
+        /preserve role/i,
+        "role",
       );
     },
   },

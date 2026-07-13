@@ -25,21 +25,40 @@ type Any = any;
 
 const uniq = `scp01203-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
-async function createAuthUser(email: string): Promise<string> {
+// Track all auth users we create so cleanup is fail-closed.
+const createdAuthUsers: string[] = [];
+let tempSuperRoleUserId: string | null = null;
+let tenantId = "";
+
+function makeAnonClient() {
+  if (!PUBLISHABLE_KEY) throw new Error("SUPABASE_PUBLISHABLE_KEY missing");
+  return createClient(SUPABASE_URL!, PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (
+          PUBLISHABLE_KEY.startsWith("sb_") &&
+          h.get("Authorization") === `Bearer ${PUBLISHABLE_KEY}`
+        ) {
+          h.delete("Authorization");
+        }
+        h.set("apikey", PUBLISHABLE_KEY);
+        return fetch(input, { ...init, headers: h });
+      },
+    },
+  });
+}
+
+async function createAuthUser(email: string, password: string): Promise<string> {
   const { data, error } = await admin.auth.admin.createUser({
     email,
-    password: `Px!${Math.random().toString(36).slice(2)}A9`,
+    password,
     email_confirm: true,
   });
   if (error || !data.user) throw new Error(`createUser failed: ${error?.message}`);
+  createdAuthUsers.push(data.user.id);
   return data.user.id;
-}
-async function deleteAuthUser(id: string) {
-  try {
-    await admin.auth.admin.deleteUser(id);
-  } catch {
-    /* ignore */
-  }
 }
 
 async function callRpc(args: Record<string, unknown>): Promise<{ data: Any; error: Any }> {
@@ -53,13 +72,15 @@ type SpecResult = { name: string; ok: boolean; err?: string };
 
 async function main() {
   const results: SpecResult[] = [];
-  const cleanup: Array<() => Promise<void>> = [];
-  let tenantId = "";
   let ownerId = "";
   let regularId = "";
   let superId = "";
   let targetId = "";
   let otherTargetId = "";
+  let authProbeUserId = "";
+  const authProbePassword = `Px!${Math.random().toString(36).slice(2)}A9`;
+
+  let cleanupError: string | null = null;
 
   try {
     // ---- FIXTURES ----
@@ -68,20 +89,13 @@ async function main() {
       .from("tenants" as Any)
       .insert({ id: tenantId, nome: `T-${uniq}`, slug: `t-${uniq}`, status: "ativo" } as Any);
     if (tErr) throw new Error(`tenant insert: ${tErr.message}`);
-    cleanup.push(async () => {
-      await admin.from("tenants" as Any).delete().eq("id", tenantId);
-    });
 
-    ownerId = await createAuthUser(`owner-${uniq}@test.local`);
-    cleanup.push(() => deleteAuthUser(ownerId));
-    regularId = await createAuthUser(`user-${uniq}@test.local`);
-    cleanup.push(() => deleteAuthUser(regularId));
-    superId = await createAuthUser(`super-${uniq}@test.local`);
-    cleanup.push(() => deleteAuthUser(superId));
-    targetId = await createAuthUser(`target-${uniq}@test.local`);
-    cleanup.push(() => deleteAuthUser(targetId));
-    otherTargetId = await createAuthUser(`t2-${uniq}@test.local`);
-    cleanup.push(() => deleteAuthUser(otherTargetId));
+    ownerId = await createAuthUser(`owner-${uniq}@test.local`, `Px!${Math.random().toString(36).slice(2)}A9`);
+    regularId = await createAuthUser(`user-${uniq}@test.local`, `Px!${Math.random().toString(36).slice(2)}A9`);
+    superId = await createAuthUser(`super-${uniq}@test.local`, `Px!${Math.random().toString(36).slice(2)}A9`);
+    targetId = await createAuthUser(`target-${uniq}@test.local`, `Px!${Math.random().toString(36).slice(2)}A9`);
+    otherTargetId = await createAuthUser(`t2-${uniq}@test.local`, `Px!${Math.random().toString(36).slice(2)}A9`);
+    authProbeUserId = await createAuthUser(`probe-${uniq}@test.local`, authProbePassword);
 
     // owner membership
     const { error: omErr } = await admin.from("tenant_members" as Any).insert({
@@ -96,15 +110,12 @@ async function main() {
     } as Any);
     if (omErr) throw new Error(`owner membership insert: ${omErr.message}`);
 
-    // regular user is not a member of this tenant → non-owner
     // super admin role
     const { error: srErr } = await admin
       .from("user_roles" as Any)
       .insert({ user_id: superId, role: "super_admin" } as Any);
     if (srErr) throw new Error(`super_admin insert: ${srErr.message}`);
-    cleanup.push(async () => {
-      await admin.from("user_roles" as Any).delete().eq("user_id", superId);
-    });
+    tempSuperRoleUserId = superId;
 
     async function currentStatus(uid: string): Promise<string | null> {
       const { data } = await admin
@@ -129,7 +140,7 @@ async function main() {
       if (!cond) throw new Error(msg);
     }
 
-    // 1) owner creates active membership for existing auth user
+    // 1) owner create
     await run("1. owner create_membership → active +1", async () => {
       const { data, error } = await callRpc({
         _actor_user_id: ownerId,
@@ -142,77 +153,50 @@ async function main() {
       expect(!error, `unexpected error: ${error?.message}`);
       expect(data.changed === true, "changed");
       expect(data.status === "active" && data.role === "manager", "state");
-      expect(data.previousStatus === null, "prev status null");
+      expect(data.previousStatus === null, "prev null");
     });
 
-    // 2) owner change_role
-    await run("2. owner change_role manager→viewer", async () => {
+    await run("2. owner change_role manager→viewer + idempotent", async () => {
       const { data, error } = await callRpc({
-        _actor_user_id: ownerId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "change_role",
-        _target_user_id: targetId,
-        _target_role: "viewer",
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "change_role", _target_user_id: targetId, _target_role: "viewer",
       });
       expect(!error, error?.message);
       expect(data.changed === true && data.role === "viewer", "state");
-      // idempotent
       const { data: d2 } = await callRpc({
-        _actor_user_id: ownerId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "change_role",
-        _target_user_id: targetId,
-        _target_role: "viewer",
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "change_role", _target_user_id: targetId, _target_role: "viewer",
       });
       expect(d2.changed === false, "idempotent");
     });
 
-    // 3) owner suspends active
     await run("3. owner suspend active", async () => {
       const { data, error } = await callRpc({
-        _actor_user_id: ownerId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "suspend",
-        _target_user_id: targetId,
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "suspend", _target_user_id: targetId,
       });
       expect(!error, error?.message);
       expect(data.status === "suspended" && data.changed === true, "state");
     });
 
-    // 4) owner reactivates suspended
     await run("4. owner reactivate suspended", async () => {
       const { data, error } = await callRpc({
-        _actor_user_id: ownerId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "reactivate",
-        _target_user_id: targetId,
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "reactivate", _target_user_id: targetId,
       });
       expect(!error, error?.message);
       expect(data.status === "active" && data.changed === true, "state");
     });
 
-    // 5) owner revokes non-owner (via other target)
     await run("5. owner revoke active → revoked", async () => {
-      // create then revoke
       const { error: cErr } = await callRpc({
-        _actor_user_id: ownerId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "create_membership",
-        _target_user_id: otherTargetId,
-        _target_role: "viewer",
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "create_membership", _target_user_id: otherTargetId, _target_role: "viewer",
       });
       expect(!cErr, cErr?.message);
       const { data, error } = await callRpc({
-        _actor_user_id: ownerId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "revoke",
-        _target_user_id: otherTargetId,
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "revoke", _target_user_id: otherTargetId,
       });
       expect(!error, error?.message);
       expect(data.status === "revoked", "status");
@@ -220,111 +204,186 @@ async function main() {
       expect(st === "revoked", `db shows ${st}`);
     });
 
-    // 6) non-owner regular user is rejected
     await run("6. non-owner regular user rejected", async () => {
       const { error } = await callRpc({
-        _actor_user_id: regularId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "suspend",
-        _target_user_id: targetId,
+        _actor_user_id: regularId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "suspend", _target_user_id: targetId,
       });
       expect(!!error, "should reject");
       expect(/not authorized/i.test(error!.message), `msg: ${error!.message}`);
     });
 
-    // 7) super admin with impersonation accepted
     await run("7. super_admin impersonation accepted", async () => {
       const { data, error } = await callRpc({
-        _actor_user_id: superId,
-        _tenant_id: tenantId,
-        _tenant_origin: "impersonation",
-        _operation: "suspend",
-        _target_user_id: targetId,
+        _actor_user_id: superId, _tenant_id: tenantId, _tenant_origin: "impersonation",
+        _operation: "suspend", _target_user_id: targetId,
       });
       expect(!error, error?.message);
       expect(data.status === "suspended", "state");
     });
 
-    // 8) super_admin without impersonation is rejected
     await run("8. super_admin without impersonation rejected", async () => {
       const { error } = await callRpc({
-        _actor_user_id: superId,
-        _tenant_id: tenantId,
-        _tenant_origin: "selection",
-        _operation: "suspend",
-        _target_user_id: targetId,
+        _actor_user_id: superId, _tenant_id: tenantId, _tenant_origin: "selection",
+        _operation: "suspend", _target_user_id: targetId,
       });
       expect(!!error, "should reject");
       expect(/impersonation/i.test(error!.message), `msg: ${error!.message}`);
     });
 
-    // 9) target owner rejected
     await run("9. target owner rejected", async () => {
       const { error } = await callRpc({
-        _actor_user_id: superId,
-        _tenant_id: tenantId,
-        _tenant_origin: "impersonation",
-        _operation: "suspend",
-        _target_user_id: ownerId,
+        _actor_user_id: superId, _tenant_id: tenantId, _tenant_origin: "impersonation",
+        _operation: "suspend", _target_user_id: ownerId,
       });
       expect(!!error, "should reject");
       expect(/owner/i.test(error!.message), `msg: ${error!.message}`);
     });
 
-    // 10) anon + authenticated do not have EXECUTE on the RPC
-    await run("10. anon/authenticated lack EXECUTE on RPC", async () => {
-      if (!PUBLISHABLE_KEY) throw new Error("SUPABASE_PUBLISHABLE_KEY missing (needed for anon probe)");
-      const anonClient = createClient(SUPABASE_URL!, PUBLISHABLE_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-        global: {
-          fetch: (input, init) => {
-            const h = new Headers(init?.headers);
-            if (PUBLISHABLE_KEY.startsWith("sb_") && h.get("Authorization") === `Bearer ${PUBLISHABLE_KEY}`) {
-              h.delete("Authorization");
-            }
-            h.set("apikey", PUBLISHABLE_KEY);
-            return fetch(input, { ...init, headers: h });
-          },
-        },
-      });
+    // ---- Privilege boundary probes (anon vs authenticated vs service_role) ----
+
+    await run("10a. anon client: RPC rejected", async () => {
+      const anonClient = makeAnonClient();
       const { error } = await anonClient.rpc("mutate_tenant_membership" as Any, {
-        _actor_user_id: ownerId,
-        _tenant_id: tenantId,
-        _tenant_origin: "single-membership",
-        _operation: "suspend",
-        _target_user_id: targetId,
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "suspend", _target_user_id: targetId,
       } as Any);
-      expect(!!error, "anon should be rejected");
-      // Postgres returns 42883 (function not found) or 42501 (permission denied) via PostgREST
+      expect(!!error, "anon RPC should be rejected");
       const msg = error!.message.toLowerCase();
       expect(
-        /permission|not exist|not found|not found in the schema/i.test(msg),
+        /permission|not exist|not found|schema cache/i.test(msg),
         `expected permission/not-exposed error, got: ${error!.message}`,
       );
     });
+
+    await run("10b. anon client: direct INSERT into tenant_members rejected", async () => {
+      const anonClient = makeAnonClient();
+      const { error } = await anonClient.from("tenant_members" as Any).insert({
+        tenant_id: tenantId,
+        user_id: targetId,
+        tenant_role: "viewer",
+        membership_status: "active",
+      } as Any);
+      expect(!!error, "anon INSERT should be rejected");
+    });
+
+    await run("10c. authenticated client: RPC rejected", async () => {
+      const authedClient = makeAnonClient();
+      const { data: signIn, error: signInErr } = await authedClient.auth.signInWithPassword({
+        email: `probe-${uniq}@test.local`,
+        password: authProbePassword,
+      });
+      expect(!signInErr, `signIn error: ${signInErr?.message}`);
+      expect(!!signIn.session?.access_token, "no access_token from signIn");
+      // Confirm this is authenticated (not anon)
+      const { data: userData, error: userErr } = await authedClient.auth.getUser();
+      expect(!userErr && userData.user?.id === authProbeUserId, "getUser should return probe user");
+
+      const { error } = await authedClient.rpc("mutate_tenant_membership" as Any, {
+        _actor_user_id: authProbeUserId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "suspend", _target_user_id: targetId,
+      } as Any);
+      expect(!!error, "authenticated RPC should be rejected");
+      const msg = error!.message.toLowerCase();
+      expect(
+        /permission|not exist|not found|schema cache/i.test(msg),
+        `expected permission/not-exposed error, got: ${error!.message}`,
+      );
+      await authedClient.auth.signOut();
+    });
+
+    await run("10d. authenticated client: direct INSERT into tenant_members rejected", async () => {
+      const authedClient = makeAnonClient();
+      const { error: signInErr } = await authedClient.auth.signInWithPassword({
+        email: `probe-${uniq}@test.local`,
+        password: authProbePassword,
+      });
+      expect(!signInErr, `signIn error: ${signInErr?.message}`);
+      const { error } = await authedClient.from("tenant_members" as Any).insert({
+        tenant_id: tenantId,
+        user_id: authProbeUserId,
+        tenant_role: "viewer",
+        membership_status: "active",
+      } as Any);
+      expect(!!error, "authenticated INSERT should be rejected (no INSERT priv + RLS)");
+      await authedClient.auth.signOut();
+    });
+
+    await run("10e. service_role probe: authorized mutation still works", async () => {
+      // Re-verify by creating and revoking a scratch membership under service_role
+      const scratchId = await createAuthUser(
+        `scratch-${uniq}@test.local`,
+        `Px!${Math.random().toString(36).slice(2)}A9`,
+      );
+      const { error: cErr } = await callRpc({
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "create_membership", _target_user_id: scratchId, _target_role: "viewer",
+      });
+      expect(!cErr, cErr?.message);
+      const { data, error } = await callRpc({
+        _actor_user_id: ownerId, _tenant_id: tenantId, _tenant_origin: "single-membership",
+        _operation: "revoke", _target_user_id: scratchId,
+      });
+      expect(!error, error?.message);
+      expect(data.status === "revoked", "revoked");
+    });
   } finally {
-    // ---- CLEANUP ----
-    // memberships auto-delete via tenant cascade if configured; explicit sweep is safer:
+    // ---- FAIL-CLOSED CLEANUP ----
+    const cleanupErrors: string[] = [];
+
+    // memberships
     if (tenantId) {
-      await admin.from("tenant_members" as Any).delete().eq("tenant_id", tenantId);
+      const { error } = await admin.from("tenant_members" as Any).delete().eq("tenant_id", tenantId);
+      if (error) cleanupErrors.push(`memberships delete: ${error.message}`);
     }
-    for (const fn of cleanup.reverse()) {
-      try {
-        await fn();
-      } catch {
-        /* ignore */
-      }
+
+    // user_roles temp
+    if (tempSuperRoleUserId) {
+      const { error } = await admin.from("user_roles" as Any).delete().eq("user_id", tempSuperRoleUserId);
+      if (error) cleanupErrors.push(`user_roles delete: ${error.message}`);
     }
-    // residual check
+
+    // tenant
     if (tenantId) {
-      const { data } = await admin
+      const { error } = await admin.from("tenants" as Any).delete().eq("id", tenantId);
+      if (error) cleanupErrors.push(`tenant delete: ${error.message}`);
+    }
+
+    // auth users — fail closed
+    for (const uid of createdAuthUsers) {
+      const { error } = await admin.auth.admin.deleteUser(uid);
+      if (error) cleanupErrors.push(`deleteUser(${uid}): ${error.message}`);
+    }
+
+    // residual verifications
+    if (tenantId) {
+      const { data: memRes } = await admin
         .from("tenant_members" as Any)
         .select("user_id")
         .eq("tenant_id", tenantId);
-      if ((data as Any)?.length) {
-        console.warn(`residual memberships: ${JSON.stringify(data)}`);
-      }
+      if ((memRes as Any)?.length) cleanupErrors.push(`residual memberships: ${JSON.stringify(memRes)}`);
+
+      const { data: tenRes } = await admin
+        .from("tenants" as Any)
+        .select("id")
+        .eq("id", tenantId);
+      if ((tenRes as Any)?.length) cleanupErrors.push(`residual tenant: ${JSON.stringify(tenRes)}`);
+    }
+    if (tempSuperRoleUserId) {
+      const { data: urRes } = await admin
+        .from("user_roles" as Any)
+        .select("user_id")
+        .eq("user_id", tempSuperRoleUserId);
+      if ((urRes as Any)?.length) cleanupErrors.push(`residual user_role: ${JSON.stringify(urRes)}`);
+    }
+    for (const uid of createdAuthUsers) {
+      const { data, error } = await admin.auth.admin.getUserById(uid);
+      // getUserById returns error when user is gone
+      if (!error && data.user) cleanupErrors.push(`residual auth user ${uid}`);
+    }
+
+    if (cleanupErrors.length) {
+      cleanupError = cleanupErrors.join(" | ");
     }
   }
 
@@ -334,6 +393,10 @@ async function main() {
     if (!r.ok) failed++;
   }
   console.log(`\nTOTAL: ${results.length - failed} passed, ${failed} failed`);
+  if (cleanupError) {
+    console.error(`CLEANUP FAILED: ${cleanupError}`);
+    process.exit(1);
+  }
   if (failed > 0) process.exit(1);
 }
 

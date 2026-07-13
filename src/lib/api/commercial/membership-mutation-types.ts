@@ -161,7 +161,26 @@ const ALLOWED_RESULT_KEYS: ReadonlySet<string> = new Set([
   "role",
 ]);
 
-export function validateMembershipMutationResult(raw: unknown): MembershipMutationResult {
+export type ExpectedMembershipMutationResult = {
+  tenantId: string;
+  targetUserId: string;
+  operation: MembershipMutationOperation;
+};
+
+/**
+ * Semantic validator for `mutate_tenant_membership` RPC results.
+ *
+ * Beyond shape/enum checks, it enforces:
+ *   • correspondência com o contexto esperado (tenantId, targetUserId, operation);
+ *   • proteção absoluta de owner (nem `role` nem `previousRole` podem ser 'owner');
+ *   • semântica determinística por operação (transições permitidas + role stability).
+ *
+ * Qualquer desvio => throw (fail-closed).
+ */
+export function validateMembershipMutationResult(
+  raw: unknown,
+  expected: ExpectedMembershipMutationResult,
+): MembershipMutationResult {
   if (!isPlainObject(raw)) throw new Error("Invalid RPC result: not an object");
   for (const k of Object.keys(raw)) {
     if (!ALLOWED_RESULT_KEYS.has(k)) {
@@ -200,6 +219,96 @@ export function validateMembershipMutationResult(raw: unknown): MembershipMutati
     throw new Error("Invalid RPC result: previousRole");
   }
   if (!isTenantRole(role)) throw new Error("Invalid RPC result: role");
+
+  // --- Context correspondence ---
+  if (tenantId !== expected.tenantId) {
+    throw new Error("RPC result tenantId mismatch");
+  }
+  if (targetUserId !== expected.targetUserId) {
+    throw new Error("RPC result targetUserId mismatch");
+  }
+  if (operation !== expected.operation) {
+    throw new Error("RPC result operation mismatch");
+  }
+
+  // --- Owner protection (this primitive NEVER returns an owner row) ---
+  if (role === "owner") {
+    throw new Error("RPC result role must not be owner");
+  }
+  if (previousRole === "owner") {
+    throw new Error("RPC result previousRole must not be owner");
+  }
+
+  // --- Operation semantics ---
+  switch (operation) {
+    case "create_membership": {
+      if (changed !== true) throw new Error("create_membership must set changed=true");
+      if (previousStatus !== null) {
+        throw new Error("create_membership must have previousStatus=null");
+      }
+      if (previousRole !== null) {
+        throw new Error("create_membership must have previousRole=null");
+      }
+      if (status !== "active") {
+        throw new Error("create_membership must produce status=active");
+      }
+      break;
+    }
+    case "change_role": {
+      if (previousStatus === null) {
+        throw new Error("change_role requires non-null previousStatus");
+      }
+      if (previousStatus === "revoked") {
+        throw new Error("change_role not permitted on revoked");
+      }
+      if (status !== previousStatus) {
+        throw new Error("change_role must preserve status");
+      }
+      if (previousRole === null) {
+        throw new Error("change_role requires non-null previousRole");
+      }
+      if (changed === false && role !== previousRole) {
+        throw new Error("change_role noop must preserve role");
+      }
+      if (changed === true && role === previousRole) {
+        throw new Error("change_role changed=true must alter role");
+      }
+      break;
+    }
+    case "suspend": {
+      if (previousStatus === null) throw new Error("suspend requires existing membership");
+      if (role !== previousRole) throw new Error("suspend must preserve role");
+      if (previousStatus === "active" && status === "suspended" && changed === true) break;
+      if (previousStatus === "suspended" && status === "suspended" && changed === false) break;
+      throw new Error(
+        `suspend invalid transition: prev=${previousStatus} next=${status} changed=${changed}`,
+      );
+    }
+    case "reactivate": {
+      if (previousStatus === null) throw new Error("reactivate requires existing membership");
+      if (role !== previousRole) throw new Error("reactivate must preserve role");
+      if (previousStatus === "suspended" && status === "active" && changed === true) break;
+      if (previousStatus === "active" && status === "active" && changed === false) break;
+      throw new Error(
+        `reactivate invalid transition: prev=${previousStatus} next=${status} changed=${changed}`,
+      );
+    }
+    case "revoke": {
+      if (previousStatus === null) throw new Error("revoke requires existing membership");
+      if (role !== previousRole) throw new Error("revoke must preserve role");
+      if (
+        (previousStatus === "active" || previousStatus === "invited" || previousStatus === "suspended") &&
+        status === "revoked" &&
+        changed === true
+      ) {
+        break;
+      }
+      if (previousStatus === "revoked" && status === "revoked" && changed === false) break;
+      throw new Error(
+        `revoke invalid transition: prev=${previousStatus} next=${status} changed=${changed}`,
+      );
+    }
+  }
 
   return {
     tenantId,
