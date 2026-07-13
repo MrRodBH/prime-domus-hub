@@ -90,31 +90,26 @@ export async function runCommercialContextSelectionSpecs(): Promise<SpecResult> 
 
   // provider mapping
   const inactiveMap: ProviderMappingRow = {
-    id: "d1",
-    provider_key: "stripe",
-    provider_definition_id: null,
+    tenant_id: "t1",
+    provider_code: "stripe",
+    subscription_id: null,
     status: "inactive",
-    metadata: {},
-    created_at: null,
-    updated_at: null,
-  } as ProviderMappingRow;
+  };
   const activeMap: ProviderMappingRow = {
-    id: "d2",
-    provider_key: "stripe",
-    provider_definition_id: null,
+    tenant_id: "t1",
+    provider_code: "stripe",
+    subscription_id: null,
     status: "active",
-    metadata: {},
-    created_at: null,
-    updated_at: null,
-  } as ProviderMappingRow;
+  };
   check(
     "provider: active wins over inactive",
-    assertEq("provider active wins", selectPrimaryProviderMapping([inactiveMap, activeMap])?.id, activeMap.id),
+    selectPrimaryProviderMapping([inactiveMap, activeMap])?.status === "active",
   );
   check(
     "provider: no active → returns first row",
-    selectPrimaryProviderMapping([inactiveMap])?.id === inactiveMap.id,
+    selectPrimaryProviderMapping([inactiveMap])?.status === "inactive",
   );
 
   return { passed, failed };
 }
+
