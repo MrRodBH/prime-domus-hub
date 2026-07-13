@@ -29,6 +29,8 @@ const uniq = `scp01203-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const createdAuthUsers: string[] = [];
 let tempSuperRoleUserId: string | null = null;
 let tenantId = "";
+let planId: string | null = null;
+let subscriptionId: string | null = null;
 
 function makeAnonClient() {
   if (!PUBLISHABLE_KEY) throw new Error("SUPABASE_PUBLISHABLE_KEY missing");
