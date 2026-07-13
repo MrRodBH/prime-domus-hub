@@ -165,6 +165,7 @@ export type ExpectedMembershipMutationResult = {
   tenantId: string;
   targetUserId: string;
   operation: MembershipMutationOperation;
+  targetRole?: NonOwnerTenantRole;
 };
 
 /**
@@ -239,6 +240,24 @@ export function validateMembershipMutationResult(
     throw new Error("RPC result previousRole must not be owner");
   }
 
+  // --- targetRole binding preconditions ---
+  const requiresTargetRole =
+    operation === "create_membership" || operation === "change_role";
+  if (requiresTargetRole) {
+    if (expected.targetRole === undefined) {
+      throw new Error(`Missing expected.targetRole for operation ${operation}`);
+    }
+    if (!isNonOwnerTenantRole(expected.targetRole)) {
+      throw new Error("Invalid expected.targetRole");
+    }
+  } else {
+    if (expected.targetRole !== undefined) {
+      throw new Error(
+        `expected.targetRole not allowed for operation ${operation}`,
+      );
+    }
+  }
+
   // --- Operation semantics ---
   switch (operation) {
     case "create_membership": {
@@ -251,6 +270,9 @@ export function validateMembershipMutationResult(
       }
       if (status !== "active") {
         throw new Error("create_membership must produce status=active");
+      }
+      if (role !== expected.targetRole) {
+        throw new Error("create_membership role must equal expected.targetRole");
       }
       break;
     }
@@ -272,6 +294,9 @@ export function validateMembershipMutationResult(
       }
       if (changed === true && role === previousRole) {
         throw new Error("change_role changed=true must alter role");
+      }
+      if (role !== expected.targetRole) {
+        throw new Error("change_role role must equal expected.targetRole");
       }
       break;
     }
