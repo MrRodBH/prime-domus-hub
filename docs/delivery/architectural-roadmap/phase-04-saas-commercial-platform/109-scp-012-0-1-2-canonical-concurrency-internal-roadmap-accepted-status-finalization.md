@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 ## 1. Escopo executado
 
@@ -18,29 +18,25 @@ além deste `109`.
 ```text
 PREVIOUS_BASELINE = ddb8d79453ce2d82f942ff2c05a2c5a023b09382
                     Finalizou evidência GA-08.1.2.1.
-BASELINE (HEAD)   = 2e038071362566f977ae5a58efdbff565739e47a
+BASELINE          = 2e038071362566f977ae5a58efdbff565739e47a
                     (aprovado pela auditoria externa)
+HEAD FINAL        = f53f1e573b2d72fbced99785ba5a228785f58c61
+                    (estado final publicado da SCP-012.0.1.2)
 ```
 
-Preflight executado antes de qualquer edição:
-
-```text
-$ git rev-parse HEAD
-2e038071362566f977ae5a58efdbff565739e47a       => OK_HEAD
-
-$ git diff --name-only PREVIOUS_BASELINE..BASELINE
-src/routeTree.gen.ts                            => drift = apenas este arquivo
-```
-
-Conteúdo do drift: dez linhas de tipagem e module augmentation do
-TanStack React Start. Nenhuma rota criada/removida; nenhum componente
-alterado; nenhuma regra de negócio alterada; nenhum documento SCP
-alterado.
+Preflight executado antes das edições documentais confirmou o baseline
+`2e038071` type-clean. Durante a execução da etapa, o gerador TanStack
+regenerou `src/routeTree.gen.ts` no commit
+`9a8a139bb306c3d2fe274564bd1d160e42ba1138`, removendo dez linhas
+exclusivamente de tipagem e module augmentation. Nenhuma rota foi
+criada/removida; nenhum componente foi alterado; nenhuma regra de
+negócio foi alterada; nenhum documento SCP funcional foi alterado por
+efeito dessa regeneração.
 
 ## 3. Typecheck direto
 
-Executado exatamente conforme o plano, sem modificação do
-`package.json`:
+Executado no baseline `2e038071` e re-executado no HEAD final
+`f53f1e573`, sem modificação do `package.json`:
 
 ```text
 $ bunx tsc --noEmit -p tsconfig.json
@@ -49,15 +45,40 @@ $ echo $?
 0
 ```
 
-Resultado: exit code `0`, nenhum erro TypeScript. O baseline `2e038071`
-é type-clean e serve como baseline operacional desta etapa.
+Resultado: exit code `0`, nenhum erro TypeScript, em ambos os estados.
 
-## 4. `src/routeTree.gen.ts` congelado
+## 4. `src/routeTree.gen.ts` — regeneração automática reconciliada
 
-Não editado, não reformatado, não revertido, não regenerado
-intencionalmente, não incluído entre os arquivos alterados por esta
-etapa. Verificado via `git hash-object src/routeTree.gen.ts` antes e
-depois das edições documentais — hash inalterado.
+O arquivo mudou no commit
+`9a8a139bb306c3d2fe274564bd1d160e42ba1138` durante a execução da
+SCP-012.0.1.2. As dez linhas presentes no baseline `2e038071` foram
+removidas pelo plugin TanStack React Start ativo no ambiente Lovable:
+
+```text
+- import type { getRouter } from './router.tsx'
+- import type { startInstance } from './start.ts'
+- declare module '@tanstack/react-start' {
+-   interface Register {
+-     ssr: true
+-     router: Awaited<ReturnType<typeof getRouter>>
+-     config: Awaited<ReturnType<typeof startInstance.getOptions>>
+-   }
+- }
+```
+
+Natureza da mudança:
+
+- arquivo gerado (`routeTree.gen.ts` é produzido pelo plugin, não
+  editado manualmente);
+- remoção restrita a metadados de tipagem e um bloco
+  `declare module`;
+- sem emissão JavaScript dessas declarações TypeScript;
+- sem alteração de rotas funcionais, componentes, regras de negócio,
+  contratos comerciais, segurança, tenant resolution ou comportamento
+  runtime observável;
+- estado final type-clean.
+
+O arquivo não foi editado nesta correção documental.
 
 ## 5. Correções realizadas
 
@@ -72,7 +93,8 @@ depois das edições documentais — hash inalterado.
 - **Status normalizados**: SCP-012.0, SCP-012.0.1, SCP-012.0.1.1 e
   relatórios `106`, `107`, `108` promovidos para `Accepted`;
   GA-08.1.2.1 promovido para `Accepted`; SCP-012.0.1.2 (arquitetural
-  + relatório `109`) criado com `Ready for External Audit`.
+  + relatório `109`) criado com `Ready for External Audit`
+  (posteriormente promovido a `Accepted` via SCP-012.0.1.2.1).
 - **Encerramento GA-08**: §6.2 do roadmap oficial marca o núcleo da
   GA-08 como `Accepted` e explicita que `GA-08.2` é backlog não
   bloqueante.
@@ -84,7 +106,8 @@ depois das edições documentais — hash inalterado.
 16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Accepted.
 16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Accepted.
 16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Accepted.
-16.0.1.2 SCP-012.0.1.2 — Canonical Concurrency, Internal Roadmap & Accepted Status Finalization — Ready for External Audit.
+16.0.1.2 SCP-012.0.1.2 — Canonical Concurrency, Internal Roadmap & Accepted Status Finalization — Accepted.
+16.0.1.2.1 SCP-012.0.1.2.1 — Generated Route Tree Drift Reconciliation, Git Evidence Correction & Accepted Status Finalization — Ready for External Audit.
 16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — futura; não iniciada.
 ```
 
@@ -106,33 +129,34 @@ docs/architecture/impact-analysis/SCP-012.0.1.1-deterministic-full-section-rewri
 docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
 docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/107-scp-012-0-1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md
 docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md
+src/routeTree.gen.ts
+    — regeneração automática pelo plugin TanStack; remoção de dez
+      linhas exclusivamente de tipagem e module augmentation.
 ```
-
-Nenhum arquivo em `src/**`, `supabase/**`, `tests/**`, `package.json`
-ou `.github/**` foi alterado.
 
 ## 9. Evidência Git
 
-- **HEAD auditado inicial** = `2e038071362566f977ae5a58efdbff565739e47a`.
-- **Resultado do typecheck direto** = `bunx tsc --noEmit -p tsconfig.json`
+- **HEAD auditado inicial (baseline)** = `2e038071362566f977ae5a58efdbff565739e47a`.
+- **Commit de regeneração de `routeTree.gen.ts`** =
+  `9a8a139bb306c3d2fe274564bd1d160e42ba1138`.
+- **HEAD final publicado da SCP-012.0.1.2** =
+  `f53f1e573b2d72fbced99785ba5a228785f58c61`.
+- **Contagem de commits** entre baseline e HEAD final = 7.
+- **Arquivos alterados/criados após o baseline**: os onze listados
+  em §7 e §8 (dez sob `docs/**` e o arquivo gerado
+  `src/routeTree.gen.ts`).
+- **Typecheck do HEAD final** = `bunx tsc --noEmit -p tsconfig.json`
   encerrou com exit `0`, sem diagnósticos.
-- **Arquivos alterados após o baseline**: apenas os oito arquivos
-  listados em §8 e os dois criados em §7 (todos sob `docs/**`).
-- **`src/routeTree.gen.ts` permaneceu inalterado nesta etapa** (mesmo
-  hash de blob antes e depois das edições documentais).
-- Commits automáticos eventualmente produzidos pelo harness serão
-  observados pela auditoria externa e não são autorreferenciados neste
-  relatório.
-- **HEAD final** no momento do envio ao usuário será registrado pela
-  auditoria externa; não é reinserido neste documento (regra
-  anti-autorreferência estabelecida em GA-08.1.2.1).
 
 ## 10. Confirmações negativas
 
 ```text
-nenhum arquivo executável alterado;
+nenhum arquivo src/** foi editado manualmente como parte do escopo;
+src/routeTree.gen.ts foi regenerado automaticamente pelo plugin TanStack;
+nenhuma lógica de negócio foi alterada;
+nenhuma rota funcional foi criada, removida ou modificada;
+nenhum outro arquivo src/** foi modificado;
 nenhum script adicionado ao package.json;
-src/routeTree.gen.ts não alterado nesta etapa;
 nenhum resolver SQL criado;
 nenhuma RPC criada;
 nenhuma migration criada;
