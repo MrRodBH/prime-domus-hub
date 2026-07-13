@@ -302,7 +302,7 @@ classificação canônica para `auth.users`. O parser unitário possui
 
 ```
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration —
-Ready for External Audit.
+Accepted.
 
 16.0   SCP-012.0   — Accepted.
 16.0.1 SCP-012.0.1 — Accepted.
