@@ -8,19 +8,22 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012.0.3-membership-muta
 ## Escopo materializado
 
 - Primitive SQL canônica `public.mutate_tenant_membership` (service_role-only, fail-closed).
-- Boundary TypeScript server-only (`membership-mutation-boundary.server.ts`) chamando exclusivamente a RPC via `supabaseAdmin`.
+  Migrations:
+  - `supabase/migrations/20260713212535_fdf03e63-87cb-4288-9806-09ff0368747c.sql` (função + tightening inicial).
+  - `supabase/migrations/20260713213947_4b389fff-0a89-446d-9cf7-753b21a79586.sql` (correção ACL de `tenant_members` + assertion fail-closed via `pg_class`/`aclexplode`).
+- Boundary TypeScript server-only (`membership-mutation-boundary.server.ts`) chamando exclusivamente a RPC via `supabaseAdmin`; validator **semântico** exige `tenantId`/`targetUserId`/`operation` esperados e enforce das transições por operação.
 - Contrato público estrito com union discriminada + rejeição explícita de campos proibidos.
 - Trusted Actor Context derivado pelos middlewares existentes; sem aceitação de `tenantId`/`actorUserId` do payload.
-- Matriz de autorização: owner + Super Admin impersonando; proteção de owner absoluta.
+- Matriz de autorização: owner + Super Admin impersonando; proteção de owner absoluta (também no validator do retorno).
 - Helper puro `classifyMembershipSeatDelta` (interno, não exposto ao cliente).
-- Testes unitários (21 casos, exit 0) e integração crítica proporcional (10 cenários contra Postgres real, exit 0).
-- Tightening dos grants em `tenant_members` (revoke `INSERT/UPDATE/DELETE` de `authenticated`/`anon`).
+- Testes unitários (35 casos em `membership-mutation-input.spec.ts`, `run-tenant-specs.ts` exit 0) e integração crítica proporcional (14 cenários contra Postgres real com probes separados anon / authenticated / service_role, exit 0).
+- ACL final de `public.tenant_members`: `PUBLIC` sem privilégio, `anon` sem privilégio, `authenticated` = `SELECT` somente, `service_role` administrativo.
 
 ## Ausências declaradas
 
 - Zero UI, zero frontend, zero rota nova, zero consumidor de produto.
 - Zero lock, zero commercial enforcement, zero `CommercialLimitDecision` no retorno.
-- Zero invitation flow, zero criação de `auth.users`, zero DELETE físico.
+- Zero invitation flow, zero criação de `auth.users` no runtime de produto (o harness cria usuários temporários exclusivamente como fixtures e os remove de forma fail-closed), zero DELETE físico.
 - Zero owner mutation.
 
 ## Roadmap final desta etapa
@@ -35,10 +38,9 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012.0.3-membership-muta
 ## Validações executadas
 
 - `bunx tsc --noEmit -p tsconfig.json` → exit 0.
-- `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` → 197 passed, 0 failed.
-- `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` → 10 passed, 0 failed.
+- `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` → 211 passed, 0 failed.
+- `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` → 14 passed, 0 failed (probes anon/authenticated/service_role separados; cleanup fail-closed sem resíduos).
 - `git diff --check` → clean.
-- Zero fixture residual (`tenants` com slug `t-scp01203-%` → 0).
 
 ## Próximo gate
 
