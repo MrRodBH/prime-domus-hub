@@ -348,8 +348,10 @@ async function main() {
         _target_user_id: t,
       });
       validateRealCommercialDenial(rErr, ctx.tenantId, "limit_reached");
-      const { data } = await admin.from("tenant_members" as Any)
+      const { data, error: verificationError } = await admin.from("tenant_members" as Any)
         .select("membership_status, suspended_at").eq("tenant_id", ctx.tenantId).eq("user_id", t).single();
+      expect(!verificationError,
+        `scenario F rollback verification query failed: ${verificationError?.message}`);
       expect((data as Any)?.membership_status === "suspended", `still suspended? ${JSON.stringify(data)}`);
       expect((data as Any)?.suspended_at !== null, `suspended_at nulled`);
     });
