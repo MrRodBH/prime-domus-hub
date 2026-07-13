@@ -25,6 +25,8 @@ async function main() {
     ["commercial-feature-catalog", runCommercialFeatureCatalogSpecs],
     ["commercial-seat-limit", runCommercialSeatLimitSpecs],
     ["commercial-seat-rpc-contract", runCommercialSeatRpcContractSpecs],
+    ["commercial-context-selection", runCommercialContextSelectionSpecs],
+
   ];
   let totalPass = 0;
   let totalFail = 0;
