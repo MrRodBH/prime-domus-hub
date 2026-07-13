@@ -184,8 +184,8 @@ service_role | EXECUTE
 - Nome placeholder `20260713200713_775539_*` substituído por
   `20260713200657_b3701580-1659-48e7-b302-5dfcbf24c80c.sql` no relatório
   115 e no impact-analysis SCP-012.0.2.1.
-- SCP-012.0.2.1 rebaixada no roadmap para `Blocked: awaiting SCP-012.0.2.2 acceptance`,
-  refletindo o veredicto negativo da auditoria externa.
+- Entrada 16.0.2.1 do roadmap reconciliada com o status final `Accepted`
+  após a decisão da auditoria crítica externa proporcional ao risco.
 
 ## Runtime preservado
 
