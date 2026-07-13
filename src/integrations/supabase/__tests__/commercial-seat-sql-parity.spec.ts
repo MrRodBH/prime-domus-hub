@@ -167,7 +167,7 @@ async function setupFixture(f: Fixture): Promise<void> {
 
   for (const m of f.memberships ?? []) {
     await psqlSilent(
-      `INSERT INTO public.tenant_members (tenant_id, user_id, is_owner, is_default, joined_at, tenant_role, membership_status, updated_at) VALUES (${q(f.tenantId)}, ${q(m.user_id)}, FALSE, FALSE, now(), 'corretor', ${q(m.status)}, now()) ON CONFLICT (tenant_id, user_id) DO UPDATE SET membership_status = EXCLUDED.membership_status;`,
+      `INSERT INTO public.tenant_members (tenant_id, user_id, is_owner, is_default, joined_at, tenant_role, membership_status, updated_at) VALUES (${q(f.tenantId)}, ${q(m.user_id)}, FALSE, FALSE, now(), 'broker', ${q(m.status)}, now()) ON CONFLICT (tenant_id, user_id) DO UPDATE SET membership_status = EXCLUDED.membership_status;`,
     );
   }
 
