@@ -553,7 +553,7 @@ export async function runCommercialSeatSqlParitySpecs(): Promise<{ passed: numbe
       await setupFixture(f);
       if (extraPlanId) {
         await psqlSilent(
-          `INSERT INTO public.commercial_plans (id, code, name, status) VALUES (${q(extraPlanId)}, 'scp0121-plan-b', 'harness-b', 'active');`,
+          `INSERT INTO public.commercial_plans (id, code, name, status) VALUES (${q(extraPlanId)}, 'scp0121_plan_b', 'harness-b', 'active');`,
         );
       }
 
