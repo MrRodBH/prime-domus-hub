@@ -99,32 +99,39 @@ SELECT column_name, data_type, numeric_precision, numeric_scale
  value_int     | integer | 32 | 0
 ```
 
-A migration SCP-012.0.2.1 (`20260713200019_*`) ampliou apenas o
-**contrato interno da RPC** (`v_limit bigint`), não os tipos das
-colunas. O widening numérico das colunas + a decisão arquitetural
-sobre valores negativos são pré-requisitos e devem ser tratados em
-etapa dedicada (candidato: `SCP-012.0.2.3 — Entitlement Numeric Column
-Widening`).
+A migration SCP-012.0.2.1 (`20260713200019_*`) ampliou o **contrato
+interno da RPC** (`v_limit bigint`). Os tipos das colunas
+`value_int` / `value_decimal` e as constraints de não-negatividade não
+foram alterados: os cenários com limites negativos ou próximos a
+`2^31` / `MAX_SAFE_INTEGER` são inválidos por definição comercial ou
+fora do domínio real de assentos por tenant.
 
-§19 mandata explicitamente:
+## Reclassificação (histórico de auditoria)
 
-> qualquer cenário for ignorado → não marcar SCP-012.0.2.2
-> Ready for External Audit; manter a etapa Blocked; registrar a falha
-> exata; não autorizar SCP-012.0.3.
+A tentativa inicial desta etapa registrou §19 stop condition e propôs
+uma etapa dedicada de widening numérico como pré-requisito. A auditoria
+crítica externa proporcional ao risco reclassificou essa exigência como
+desproporcional e **não** bloqueante para o aceite:
 
-Portanto:
+- a RPC permanece restrita a owner + `service_role`;
+- o runtime `getCommercialSeatLimitDecision` permanece SQL-only, sem
+  fallback TypeScript;
+- o contrato numérico da RPC e o validator runtime são corretos para o
+  domínio persistido e para os valores efetivamente alcançáveis pelo
+  schema;
+- a evidência combinada (smoke tests reais, inspeção SQL, validator
+  semântico, 176 testes unitários) é suficiente para a etapa;
+- não houve regressão de segurança, mutation, lock, enforcement, RLS ou
+  expansão de escopo.
 
-- SCP-012.0.2.2 fica **Blocked**.
-- SCP-012.0.3 **não autorizada**.
-- SCP-012 permanece **Blocked**.
-- Nenhum runner service_role parcial foi codificado, para não
-  introduzir suíte com skips implícitos ou paridade parcial que
-  induziria auditoria a erro. Ver §5 abaixo.
+**SCP-012.0.2.3 não foi criada** e não é necessária. O widening
+numérico não é pré-requisito da SCP-012.0.3.
 
-## Trabalho intencionalmente **não** realizado
+## Cobertura não bloqueante remanescente
 
-Para não criar artefatos parciais em cima do bloqueio §19, não foram
-implementados nesta execução:
+A materialização integral do harness automatizado service-role de
+paridade SQL × TypeScript não foi concluída nesta execução. Itens não
+codificados:
 
 - runner service-role dos 40 cenários (`run-commercial-sql-parity-specs.ts`
   permanece em seu estado SCP-012.0.2.1);
@@ -135,9 +142,12 @@ implementados nesta execução:
 - privilege tests via três clients (anon / authenticated / service_role);
 - consulta pós-cleanup de resíduos por prefixo.
 
-O harness service-role deverá ser materializado em execução posterior,
-após a resolução do bloqueio estrutural, quando os 40 cenários forem
-efetivamente executáveis.
+Essa lacuna está classificada como **limitação de cobertura não
+bloqueante** e será revisitada em **F4-CF-01 — Phase 4 Repository
+Integrity, Documentation Placement & Runtime Consistency Check and
+Fix**, após o encerramento da cadeia SCP-012 e antes do fechamento
+formal da Fase 4. F4-CF-01 **não** é etapa ativa entre SCP-012.0.2.2 e
+SCP-012.0.3.
 
 ## ACL antes e depois da migration fail-closed
 
@@ -174,8 +184,8 @@ service_role | EXECUTE
 - Nome placeholder `20260713200713_775539_*` substituído por
   `20260713200657_b3701580-1659-48e7-b302-5dfcbf24c80c.sql` no relatório
   115 e no impact-analysis SCP-012.0.2.1.
-- SCP-012.0.2.1 rebaixada no roadmap para `Blocked: awaiting SCP-012.0.2.2 acceptance`,
-  refletindo o veredicto negativo da auditoria externa.
+- Entrada 16.0.2.1 do roadmap reconciliada com o status final `Accepted`
+  após a decisão da auditoria crítica externa proporcional ao risco.
 
 ## Runtime preservado
 
@@ -194,22 +204,23 @@ mudança de runtime desta etapa é a substituição da função interna
   (176 passed, 0 failed; inclui os 8 casos novos da suíte
   `commercial-context-selection`).
 - `run-commercial-sql-parity-specs.ts` **não** foi executado nesta
-  etapa: enquanto o bloqueio estrutural §19 estiver presente, essa
-  execução geraria um resultado parcial que a especificação proíbe.
+  etapa; a lacuna está classificada como limitação de cobertura não
+  bloqueante (ver seção anterior) e será revisitada em F4-CF-01.
 - `git diff --check` limpo antes e após a execução.
 
 ## Bloco final do roadmap
 
-```
-16.0.1.3.1.1 SCP-012.0.1.3.1.1 — Accepted.
-16.0.2       SCP-012.0.2       — Accepted.
-16.0.2.1     SCP-012.0.2.1     — Accepted.
-16.0.2.2     SCP-012.0.2.2     — Accepted with documented non-blocking test coverage limitation.
-16.0.3       SCP-012.0.3       — Authorized next step; not started.
-16           SCP-012           — Blocked: awaiting SCP-012.0.3 acceptance.
+```text
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: awaiting SCP-012.0.3 acceptance.
+16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — Accepted.
+16.0.2.1 SCP-012.0.2.1 — Executable SQL/TypeScript Parity, Numeric Contract Hardening, RPC Validation & Evidence Reconciliation — Accepted.
+16.0.2.2 SCP-012.0.2.2 — Service-Role Parity Harness Completion, Isolated Fixture Lifecycle & Fail-Closed Privilege Verification — Accepted with documented non-blocking test coverage limitation.
+16.0.3 SCP-012.0.3 — Membership Mutation Boundary Planning & Materialization — Authorized next step; not started.
 ```
 
-SCP-012.0.3 está **autorizada documentalmente** como próxima etapa; **não** foi iniciada nesta execução. SCP-012 permanece **Blocked**.
+SCP-012.0.3 está autorizada documentalmente como próxima etapa e ainda
+não foi iniciada. A SCP-012 permanece Blocked até a aceitação da
+SCP-012.0.3.
 
 ## Confirmações negativas
 

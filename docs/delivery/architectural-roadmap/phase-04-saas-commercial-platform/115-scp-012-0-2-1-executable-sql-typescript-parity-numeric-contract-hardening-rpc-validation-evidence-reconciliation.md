@@ -89,9 +89,9 @@ canônicos ajustados.
   `id ASC` em `pickActiveSubscription`; validator inline substituído
   por import do módulo puro.
 - `run-tenant-specs.ts` — inclui a suíte `commercial-seat-rpc-contract`.
-- `docs/architecture/ROADMAP_ARCHITECTURAL.md` — entrada 16.0.2
-  passa a `Blocked: awaiting SCP-012.0.2.1 acceptance`; adiciona
-  16.0.2.1 `Ready for External Audit`.
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md` — entradas 16.0.2 e
+  16.0.2.1 reconciliadas com o status final `Accepted` após decisão da
+  auditoria crítica externa proporcional ao risco.
 - `docs/architecture/impact-analysis/SCP-012.0.2-*.md` — nota do
   Reviewed Materialization Head corrigido e limitações reconciliadas.
 - `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/114-scp-012-0-2-*.md`
@@ -133,16 +133,17 @@ Limpo (verificado antes de cada commit).
 
 ## Bloco final do roadmap
 
-```
-16.0.1.3.1.1 SCP-012.0.1.3.1.1 — Accepted.
-16.0.2 SCP-012.0.2 — Accepted.
-16.0.2.1 SCP-012.0.2.1 — Accepted.
-16.0.2.2 SCP-012.0.2.2 — Accepted with documented non-blocking test coverage limitation.
-16.0.3 SCP-012.0.3 — Authorized next step; not started.
-16 SCP-012 — Blocked: awaiting SCP-012.0.3 acceptance.
+```text
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: awaiting SCP-012.0.3 acceptance.
+16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — Accepted.
+16.0.2.1 SCP-012.0.2.1 — Executable SQL/TypeScript Parity, Numeric Contract Hardening, RPC Validation & Evidence Reconciliation — Accepted.
+16.0.2.2 SCP-012.0.2.2 — Service-Role Parity Harness Completion, Isolated Fixture Lifecycle & Fail-Closed Privilege Verification — Accepted with documented non-blocking test coverage limitation.
+16.0.3 SCP-012.0.3 — Membership Mutation Boundary Planning & Materialization — Authorized next step; not started.
 ```
 
-SCP-012.0.3 está autorizada documentalmente como próxima etapa; não foi iniciada. SCP-012 permanece Blocked.
+SCP-012.0.3 está autorizada documentalmente como próxima etapa e ainda
+não foi iniciada. A SCP-012 permanece Blocked até a aceitação da
+SCP-012.0.3.
 
 ## Riscos / limitações remanescentes
 
