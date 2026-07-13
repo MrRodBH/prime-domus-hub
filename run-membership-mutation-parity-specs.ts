@@ -406,35 +406,26 @@ async function main() {
       if (error) cleanupErrors.push(`deleteUser(${uid}): ${error.message}`);
     }
 
-    // residual verifications
+    // residual verifications — fail-closed: query errors count as inconclusive.
+    async function residual(table: string, column: string, value: string, label: string) {
+      const { data, error } = await admin.from(table as Any).select(column).eq(column, value);
+      if (error) {
+        cleanupErrors.push(`residual verification failed for ${label}: ${error.message}`);
+      } else if ((data ?? []).length > 0) {
+        cleanupErrors.push(`residual rows in ${label}: ${JSON.stringify(data)}`);
+      }
+    }
     if (tenantId) {
-      const { data: memRes } = await admin
-        .from("tenant_members" as Any)
-        .select("user_id")
-        .eq("tenant_id", tenantId);
-      if ((memRes as Any)?.length) cleanupErrors.push(`residual memberships: ${JSON.stringify(memRes)}`);
-
-      const { data: tenRes } = await admin
-        .from("tenants" as Any)
-        .select("id")
-        .eq("id", tenantId);
-      if ((tenRes as Any)?.length) cleanupErrors.push(`residual tenant: ${JSON.stringify(tenRes)}`);
-
-      const { data: subRes } = await admin
-        .from("tenant_subscriptions" as Any)
-        .select("id").eq("tenant_id", tenantId);
-      if ((subRes as Any)?.length) cleanupErrors.push(`residual subscriptions: ${JSON.stringify(subRes)}`);
+      await residual("tenant_members", "tenant_id", tenantId, `tenant_members(${tenantId})`);
+      await residual("tenants", "id", tenantId, `tenants(${tenantId})`);
+      await residual("tenant_subscriptions", "tenant_id", tenantId, `tenant_subscriptions(${tenantId})`);
     }
     if (planId) {
-      const { data: pRes } = await admin.from("commercial_plans" as Any).select("id").eq("id", planId);
-      if ((pRes as Any)?.length) cleanupErrors.push(`residual plan: ${JSON.stringify(pRes)}`);
+      await residual("commercial_plan_entitlements", "plan_id", planId, `commercial_plan_entitlements(${planId})`);
+      await residual("commercial_plans", "id", planId, `commercial_plans(${planId})`);
     }
     if (tempSuperRoleUserId) {
-      const { data: urRes } = await admin
-        .from("user_roles" as Any)
-        .select("user_id")
-        .eq("user_id", tempSuperRoleUserId);
-      if ((urRes as Any)?.length) cleanupErrors.push(`residual user_role: ${JSON.stringify(urRes)}`);
+      await residual("user_roles", "user_id", tempSuperRoleUserId, `user_roles(${tempSuperRoleUserId})`);
     }
     for (const uid of createdAuthUsers) {
       const { data, error } = await admin.auth.admin.getUserById(uid);
