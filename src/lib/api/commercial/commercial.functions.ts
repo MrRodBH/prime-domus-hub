@@ -50,45 +50,14 @@ import {
 
 
 
-// Priority order when several subscriptions exist for a tenant — the
-// most operationally-relevant status wins. Deterministic, no LIMIT-based
-// implicit selection.
-const SUB_STATUS_PRIORITY = [
-  "active",
-  "trialing",
-  "past_due",
-  "grace",
-  "suspended",
-  "canceled",
-  "unpaid",
-];
+// SCP-012.0.2.2 §12 — Deterministic selection extracted to a pure
+// module (`./commercial-context-selection`) so runtime and unit tests
+// exercise the same canonical ordering.
+import {
+  selectCommercialSubscription as pickActiveSubscription,
+  selectPrimaryProviderMapping as pickPrimaryMapping,
+} from "./commercial-context-selection";
 
-function pickActiveSubscription(rows: SubscriptionRow[]): SubscriptionRow | null {
-  if (rows.length === 0) return null;
-  // SCP-012.0.2.1 §8 — deterministic order aligned with SQL resolver:
-  // status priority → started_at DESC NULLS LAST → id ASC (final tie).
-  const sorted = [...rows].sort((a, b) => {
-    const ai = SUB_STATUS_PRIORITY.indexOf(a.status ?? "");
-    const bi = SUB_STATUS_PRIORITY.indexOf(b.status ?? "");
-    const ax = ai === -1 ? SUB_STATUS_PRIORITY.length : ai;
-    const bx = bi === -1 ? SUB_STATUS_PRIORITY.length : bi;
-    if (ax !== bx) return ax - bx;
-    const at = a.started_at ? new Date(a.started_at).getTime() : Number.NEGATIVE_INFINITY;
-    const bt = b.started_at ? new Date(b.started_at).getTime() : Number.NEGATIVE_INFINITY;
-    if (bt !== at) return bt - at;
-    // Final tie-breaker: id ASC (matches SQL `id ASC`).
-    if (a.id < b.id) return -1;
-    if (a.id > b.id) return 1;
-    return 0;
-  });
-  return sorted[0];
-}
-
-function pickPrimaryMapping(rows: ProviderMappingRow[]): ProviderMappingRow | null {
-  if (rows.length === 0) return null;
-  const active = rows.find((r) => r.status === "active");
-  return active ?? rows[0];
-}
 
 // Async import keeps client.server out of the client bundle graph.
 async function loadAdmin() {

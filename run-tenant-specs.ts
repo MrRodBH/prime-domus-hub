@@ -10,6 +10,8 @@ import { runCommercialFeatureGateSpecs } from "./src/integrations/supabase/__tes
 import { runCommercialFeatureCatalogSpecs } from "./src/integrations/supabase/__tests__/commercial-feature-catalog.spec";
 import { runCommercialSeatLimitSpecs } from "./src/integrations/supabase/__tests__/commercial-seat-limit.spec";
 import { runCommercialSeatRpcContractSpecs } from "./src/integrations/supabase/__tests__/commercial-seat-rpc-contract.spec";
+import { runCommercialContextSelectionSpecs } from "./src/integrations/supabase/__tests__/commercial-context-selection.spec";
+
 
 async function main() {
   const suites: Array<[string, () => Promise<{ passed: number; failed: number }>]> = [
@@ -23,6 +25,8 @@ async function main() {
     ["commercial-feature-catalog", runCommercialFeatureCatalogSpecs],
     ["commercial-seat-limit", runCommercialSeatLimitSpecs],
     ["commercial-seat-rpc-contract", runCommercialSeatRpcContractSpecs],
+    ["commercial-context-selection", runCommercialContextSelectionSpecs],
+
   ];
   let totalPass = 0;
   let totalFail = 0;

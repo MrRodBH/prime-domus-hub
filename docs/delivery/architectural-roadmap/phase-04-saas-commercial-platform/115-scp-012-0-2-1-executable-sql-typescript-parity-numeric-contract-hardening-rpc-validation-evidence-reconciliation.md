@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Blocked: awaiting SCP-012.0.2.2 acceptance
 
 ## Baseline e HEAD técnico revisado
 
@@ -25,7 +25,7 @@ providas pelo sandbox.
 
 1. `20260713200019_4acf0d4b-b8c0-4cb1-847f-e4a596e32adb.sql` — resolver
    hardening (bigint/numeric, REVOKE sandbox_exec, tie-breaker).
-2. `20260713200713_775539_*.sql` — realinhamento do CHECK regex de
+2. `20260713200657_b3701580-1659-48e7-b302-5dfcbf24c80c.sql` — realinhamento do CHECK regex de
    `commercial_entitlement_definitions.key` para admitir `.` e seed
    canônico de `users.seats` (`value_type='integer'`).
 
@@ -75,7 +75,7 @@ canônicos ajustados.
 ## Arquivos criados nesta etapa
 
 - `supabase/migrations/20260713200019_*.sql` (migration corretiva do resolver).
-- `supabase/migrations/20260713200713_*.sql` (migration corretiva do catálogo).
+- `supabase/migrations/20260713200657_b3701580-1659-48e7-b302-5dfcbf24c80c.sql` (migration corretiva do catálogo).
 - `src/lib/api/commercial/seat-limit-rpc-contract.ts` (validator puro).
 - `src/integrations/supabase/__tests__/commercial-seat-rpc-contract.spec.ts`.
 - `src/integrations/supabase/__tests__/commercial-seat-sql-parity.spec.ts`.
