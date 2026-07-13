@@ -53,7 +53,8 @@ export function parseCommercialSeatLimitDeniedError(
 ): CommercialSeatLimitDeniedError | null {
   if (!isPlainObject(err)) return null;
   const message = typeof err.message === "string" ? err.message : "";
-  if (!message.includes(COMMERCIAL_SEAT_LIMIT_DENIED_MESSAGE)) return null;
+  // Exact-match only. Substrings, prefixes, suffixes, and wrapped messages MUST NOT be classified.
+  if (message !== COMMERCIAL_SEAT_LIMIT_DENIED_MESSAGE) return null;
 
   const detail = err.details;
   if (typeof detail !== "string" || detail.length === 0) {
