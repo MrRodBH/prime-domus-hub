@@ -537,7 +537,7 @@ Constitution §7.
 #### 6.2 GA-08 — Documentation Repository Reorganization
 
 Reorganização controlada do repositório documental do RM Prime SaaS,
-com eliminação do diretório legado `docs/fase6/` e distribuição dos
+com eliminação do diretório legado de relatórios cronológicos e distribuição dos
 128 relatórios de execução em `docs/delivery/**`, agrupados por
 macrofase/iniciativa oficialmente registrada neste roadmap.
 
