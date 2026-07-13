@@ -234,9 +234,11 @@ async function main() {
           _target_user_id: t2, _target_role: "viewer" }),
       ]);
       const applied = [r1, r2].filter((r: Any) => !r.error).length;
-      const denied = [r1, r2].filter((r: Any) => r.error && /commercial_seat_limit_denied/.test(r.error.message)).length;
-      expect(applied === 1 && denied === 1,
-        `expected 1 applied + 1 denied, got applied=${applied} denied=${denied} messages=${JSON.stringify([r1, r2].map((r: Any) => r.error?.message ?? r.data))}`);
+      const deniedErrs = [r1, r2].map((r: Any) => r.error).filter(Boolean);
+      expect(applied === 1 && deniedErrs.length === 1,
+        `expected 1 applied + 1 denied, got applied=${applied} denied=${deniedErrs.length}`);
+      const dec = validateRealCommercialDenial(deniedErrs[0], ctx.tenantId, "limit_reached");
+      expect(dec.limit === 3 && dec.used === 3 && dec.remaining === 0, `dec ${JSON.stringify(dec)}`);
       const cnt = await countActiveInvited(ctx.tenantId);
       expect(cnt === 3, `count should be 3 (== limit), got ${cnt}`);
     });
