@@ -89,9 +89,9 @@ canônicos ajustados.
   `id ASC` em `pickActiveSubscription`; validator inline substituído
   por import do módulo puro.
 - `run-tenant-specs.ts` — inclui a suíte `commercial-seat-rpc-contract`.
-- `docs/architecture/ROADMAP_ARCHITECTURAL.md` — entrada 16.0.2
-  passa a `Blocked: awaiting SCP-012.0.2.1 acceptance`; adiciona
-  16.0.2.1 `Ready for External Audit`.
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md` — entradas 16.0.2 e
+  16.0.2.1 reconciliadas com o status final `Accepted` após decisão da
+  auditoria crítica externa proporcional ao risco.
 - `docs/architecture/impact-analysis/SCP-012.0.2-*.md` — nota do
   Reviewed Materialization Head corrigido e limitações reconciliadas.
 - `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/114-scp-012-0-2-*.md`
