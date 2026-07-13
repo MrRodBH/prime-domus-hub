@@ -578,16 +578,21 @@ Regras vinculantes desta etapa:
 
 
 
-## 7. ADRs Futuros
+## 7. ADRs — Estado Atual e Futuros
 
-Serão emitidos quando as respectivas etapas forem implementadas:
+### ADRs materializados
 
-- **ADR-005** — Multi-Tenant Evolution Model
-- **ADR-006** — Storage Abstraction Strategy
-- **ADR-007** — Plugin Marketplace Remote Execution
-- **ADR-008** — Workspace Ingestion Architecture
+- **ADR-005 — Commercial Domain** — Accepted.
+- **ADR-006 — Billing Provider Abstraction** — Accepted.
 
-Cada ADR seguirá o formato obrigatório definido em `ADR/README.md`.
+### ADRs futuros
+
+- **ADR-007 — Plugin Marketplace Remote Execution** — futura; não iniciada.
+- **ADR-008 — Workspace Ingestion Architecture** — futura; não iniciada.
+
+Cada novo ADR deverá possuir numeração exclusiva, identidade única e
+entrada coerente no índice de ADRs e neste roadmap antes de sua
+materialização.
 
 ---
 
