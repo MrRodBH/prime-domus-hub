@@ -183,6 +183,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: architectural prerequisites required.
 16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Ready for External Audit.
 16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Ready for External Audit.
+16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Ready for External Audit.
 
 
 Restrições permanentes:
