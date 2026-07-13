@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 ## 1. Estado inicial
 
@@ -68,6 +68,10 @@ $ echo $?
 
 Exit code `0`, sem diagnósticos. O HEAD final é type-clean.
 
+**HEAD externamente auditado da SCP-012.0.1.2.1**:
+`78fbcde79ae9aa6df0406b3e2f4bb27be290c5aa` — commit "Finalizou
+SCP-012.0.1.2 Accepted".
+
 ## 6. Documentos corrigidos
 
 - `docs/architecture/impact-analysis/SCP-012.0.1.2-canonical-concurrency-internal-roadmap-accepted-status-finalization.md`
@@ -107,8 +111,8 @@ GA-08.2        = futura; não iniciada (backlog não bloqueante)
 16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Accepted.
 16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Accepted.
 16.0.1.2 SCP-012.0.1.2 — Canonical Concurrency, Internal Roadmap & Accepted Status Finalization — Accepted.
-16.0.1.2.1 SCP-012.0.1.2.1 — Generated Route Tree Drift Reconciliation, Git Evidence Correction & Accepted Status Finalization — Ready for External Audit.
-16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — futura; não iniciada.
+16.0.1.2.1 SCP-012.0.1.2.1 — Generated Route Tree Drift Reconciliation, Git Evidence Correction & Accepted Status Finalization — Accepted.
+16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — Authorized next step; not started.
 ```
 
 ## 9. Arquivos alterados nesta correção
