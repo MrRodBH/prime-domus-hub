@@ -461,8 +461,10 @@ async function main() {
       expect(err.decision.reason === "limit_reached", `reason ${err.decision.reason}`);
       expect(err.decision.tenantId === ctx.tenantId, "tenantId");
       expect(err.decision.requestedIncrement === 1, "requestedIncrement");
-      const { data } = await admin.from("tenant_members" as Any)
+      const { data, error: verificationError } = await admin.from("tenant_members" as Any)
         .select("membership_status").eq("tenant_id", ctx.tenantId).eq("user_id", t);
+      expect(!verificationError,
+        `scenario J rollback verification query failed: ${verificationError?.message}`);
       expect(((data as Any[]) ?? []).length === 0, `residual row after boundary denial ${JSON.stringify(data)}`);
     });
   } finally {
