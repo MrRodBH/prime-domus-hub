@@ -2,7 +2,7 @@
 
 **Status:** 🟡 Impact Analysis (documental) — aguardando auditoria externa
 **Tipo:** Impact Analysis / Arquitetura / Segurança / Dados / UX / Preparação para Fase 3
-**Precedência:** IA-001 (Tenant Middleware) · IA-002 (Client Impersonation Layer) · IA-003 / M2b + Patch M2b.1 (RLS Policies) · IA-004 / M3 (Tenant Storage Isolation) · Fase 2 Closing Review ([`27`](../../delivery/phase-02-multi-tenancy/27-phase-2-closing-review.md))
+**Precedência:** IA-001 (Tenant Middleware) · IA-002 (Client Impersonation Layer) · IA-003 / M2b + Patch M2b.1 (RLS Policies) · IA-004 / M3 (Tenant Storage Isolation) · Fase 2 Closing Review ([`27`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/27-phase-2-closing-review.md))
 **Etapa alvo (futura):** Fase 3 — Membership Evolution Model
 **Autor:** Arquitetura RM Prime SaaS
 

@@ -5,7 +5,7 @@
 **Precedência:** IA-001 (Tenant Middleware) · IA-002 (Client Impersonation Layer) · IA-003 (RLS Policies) · M2b (RLS Implementation) · Patch M2b.1 (get_current_tenant_id cardinality fix)
 **Etapa alvo:** M3 — Tenant Storage Isolation
 **Autor:** Arquitetura RM Prime SaaS
-**Fechamento formal:** [`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md)
+**Fechamento formal:** [`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md)
 
 ---
 
@@ -559,23 +559,23 @@ IA-004 foi criada para análise arquitetural da M3.
 ## Status de execução das subetapas
 
 - **M3.1 — Storage Inventory & Classification** — ✔ concluída
-  ([`15`](../../delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md)).
+  ([`15`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md)).
 - **M3.2 — New Upload Path Enforcement** — ✔ concluída + Patch M3.2.1 aprovado
-  ([`17`](../../delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md),
-  [`18`](../../delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md)).
+  ([`17`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md),
+  [`18`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md)).
 - **M3.4 — Signed URL Hardening** — ✔ concluída + Patch M3.4.1 aprovado
-  ([`19`](../../delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md),
-  [`20`](../../delivery/phase-02-multi-tenancy/20-m3-4-1-ia-004-index-fix.md)).
+  ([`19`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md),
+  [`20`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/20-m3-4-1-ia-004-index-fix.md)).
 - **M3.3 — Legacy File Migration** — ✔ concluída + Patch M3.3.1 **aprovado**
-  ([`21`](../../delivery/phase-02-multi-tenancy/21-m3-3-legacy-file-migration.md),
-  [`22`](../../delivery/phase-02-multi-tenancy/22-m3-3-1-metadata-normalization-documentation-fix.md)).
+  ([`21`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/21-m3-3-legacy-file-migration.md),
+  [`22`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/22-m3-3-1-metadata-normalization-documentation-fix.md)).
   Universo físico legado = ∅ (todos os 22 objetos já compliant, reclassificados
   no Patch M3.3.1 como `referenced_by_legacy_absolute_url`). 8 inconsistências
   de metadata catalogadas e preservadas como backlog **M3.3.2 — Metadata
   Rewrite Batch**. Log de auditoria/rollback em `public.storage_migration_log`
   (super-admin only) — exceção controlada documentada no Patch M3.3.1.
 - **M3.5 — Media Picker Validation** — ✔ concluída
-  ([`23`](../../delivery/phase-02-multi-tenancy/23-m3-5-media-picker-validation.md)). Nenhuma alteração
+  ([`23`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/23-m3-5-media-picker-validation.md)). Nenhuma alteração
   funcional foi necessária — MediaPicker e server functions já estavam em
   conformidade após M3.2/M3.4/M3.3. Backlog formal preservado:
   **Upload Provenance Token** (defesa em profundidade, Opção B),
@@ -584,7 +584,7 @@ IA-004 foi criada para análise arquitetural da M3.
   `media_id` puro, backlog opcional não bloqueante).
 
 **Fechamento formal:** IA-004 e M3 encerradas operacionalmente em
-[`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md).
+[`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md).
 Backlogs (Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch,
 Media Picker Return Contract Normalization) permanecem preservados e
 **não foram executados**.
