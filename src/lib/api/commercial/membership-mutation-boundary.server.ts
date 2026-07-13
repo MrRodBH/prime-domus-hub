@@ -68,7 +68,11 @@ export async function executeMembershipMutation(
     throw new Error("membership_mutation_rpc_failed: empty response");
   }
 
-  const result = validateMembershipMutationResult(data);
+  const result = validateMembershipMutationResult(data, {
+    tenantId: context.tenantId,
+    targetUserId: input.targetUserId,
+    operation: input.operation,
+  });
   const seatDelta = classifyMembershipSeatDelta({
     operation: result.operation,
     previousStatus: result.previousStatus,
