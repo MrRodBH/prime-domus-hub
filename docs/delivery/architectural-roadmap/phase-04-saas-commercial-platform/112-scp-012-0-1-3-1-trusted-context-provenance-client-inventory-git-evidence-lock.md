@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 ## 1. Escopo executado
 
@@ -28,9 +28,27 @@ Actor Context + revalidação SQL) foi **preservada integralmente**.
 - Baseline inicial desta etapa:
   `4d6e2b07b6aead2b80fc4f695cc0f3fad3709a94`
   (`Executed SCP-012.0.1.3 gate`);
-- Working tree inicial: limpo;
-- HEAD final: registrado após materialização automática desta etapa;
-- Commits criados: registrados após materialização automática.
+- Reviewed Materialization Head:
+  `88a15b7127d81a4d3150ae2539e8fef4c8cb4a34`
+  (`Finalizou SCP-012.0.1.3.1`);
+- Quantidade de commits entre baseline e Reviewed Materialization
+  Head: **11**;
+- Onze commits (`git log --reverse --format="%H %s"
+  4d6e2b07..88a15b71`):
+
+  ```
+  56bcc5e99e88c23c3c5f0e83239f983de43026f7 Changes
+  a62249da4ddf6b807aedbf14ef3d6308cc11c5a4 Changes
+  71d3605ceff938d4ac380164da35cafeaeb64372 Changes
+  12858a18e979a006d32ec553967a67982c951c52 Changes
+  720ecc044fbd4f17e3a1b8ba81a03ec1f7f8ed80 Changes
+  9bc32cf17638f2a80bf44f76594d9d21cc0e5723 Changes
+  84e8d3f5b005d4ce94c802de8d36eafc57a0519a Changes
+  df53dfa4cf87f0c761699b0c82b758c9d003d3d0 Changes
+  626ede44edfe5b070e6a83d0a9c5e7e2e74c854d Changes
+  66bf07f1c8aff297dc1f76d238597b8ba7b6a341 Changes
+  88a15b7127d81a4d3150ae2539e8fef4c8cb4a34 Finalizou SCP-012.0.1.3.1
+  ```
 
 ## 3. Arquivos alterados (todos em `docs/**`)
 
@@ -115,16 +133,22 @@ declaração e do consumidor. Não houve remoção.
 
 ## 11. Typecheck e Git
 
-- `bunx tsc --noEmit -p tsconfig.json` — resultado registrado ao final
-  desta execução (esperado exit 0);
-- `git diff --check` — resultado registrado ao final desta execução
-  (esperado limpo);
-- `git diff --name-only 4d6e2b07..HEAD | rg -v "^docs/"` — esperado
-  vazio.
+- `bunx tsc --noEmit -p tsconfig.json`: exit 0;
+- `git diff --check`: limpo;
+- `git diff --name-only 4d6e2b07..88a15b71 | rg -v "^docs/"`: nenhum
+  arquivo retornado (zero alterações fora de `docs/**`);
+- formulações residuais de "esperado" / "a registrar" / "após
+  materialização automática": nenhuma.
 
 ## 12. Working tree final
 
-Registrado após materialização automática. Esperado: limpo.
+- Working tree inicial da materialização: limpo;
+- Working tree final no Reviewed Materialization Head
+  `88a15b7127d81a4d3150ae2539e8fef4c8cb4a34`: limpo;
+- Modelo de evidência: não autorreferencial — o HEAD do patch
+  posterior que finaliza esta etapa como `Accepted` não é persistido
+  dentro deste relatório; é apresentado no relatório textual de
+  execução e verificado externamente.
 
 ## 13. Hard Gates
 
