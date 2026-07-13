@@ -29,11 +29,11 @@ Etapa exclusivamente documental/governança.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção
   `#### Gates e sequência inicial da Fase 4` substituída integralmente
   pelo conteúdo consolidado.
-- `docs/delivery/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
   seção `## 16. Inspeções executadas` reescrita com formulação precisa
   para as duas confirmações (ausência de SQL operacional e ausência de
   superfícies runtime proibidas).
-- `docs/delivery/phase-04-saas-commercial-platform/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
   criado (este relatório).
 
 ## 3. Confirmações

@@ -64,7 +64,7 @@ Documentos oficiais aplicáveis:
 - `docs/architecture/security/SECURITY_ARCHITECTURE.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 - `docs/architecture/impact-analysis/IA-001..IA-004`
-- `docs/delivery/phase-02-multi-tenancy/27-phase-2-closing-review.md`
+- `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/27-phase-2-closing-review.md`
 
 ---
 
@@ -498,8 +498,8 @@ das sub-etapas segundo a **Alternativa B**.
 - `docs/architecture/impact-analysis/IA-002-ClientImpersonationLayer.md`
 - `docs/architecture/impact-analysis/IA-003-RLSPolicies.md`
 - `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md`
-- `docs/delivery/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`
-- `docs/delivery/phase-02-multi-tenancy/27-phase-2-closing-review.md`
+- `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`
+- `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/27-phase-2-closing-review.md`
 
 ## Apêndice B — Arquivos / schema inspecionados (leitura apenas)
 

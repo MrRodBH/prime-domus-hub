@@ -15,7 +15,7 @@ limite comercial `users.seats`, materializando o DTO
 - `src/lib/api/commercial/limit-decision.ts`
 - `src/integrations/supabase/__tests__/commercial-seat-limit.spec.ts`
 - `docs/architecture/impact-analysis/SCP-011-commercial-seat-limit-server-runtime.md`
-- `docs/delivery/phase-04-saas-commercial-platform/98-scp-011-commercial-seat-limit-server-runtime.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/98-scp-011-commercial-seat-limit-server-runtime.md`
 
 ## Arquivos alterados
 
@@ -69,7 +69,7 @@ Suítes:
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-010.5.4-final-accepted-status-closure-scp-011-authorization.md
 docs/architecture/impact-analysis/SCP-011-commercial-seat-limit-server-runtime.md
-docs/delivery/phase-04-saas-commercial-platform/98-scp-011-commercial-seat-limit-server-runtime.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/98-scp-011-commercial-seat-limit-server-runtime.md
 run-tenant-specs.ts
 src/integrations/supabase/__tests__/commercial-seat-limit.spec.ts
 src/lib/api/commercial/commercial.functions.ts

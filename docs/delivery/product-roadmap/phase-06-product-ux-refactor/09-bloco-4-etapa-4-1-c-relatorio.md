@@ -176,7 +176,7 @@ Pane direito ainda instancia `ContentEditor`/`ContentSessionProvider` diretament
 - `src/components/workspace/views/KanbanView.tsx`
 - `src/components/workspace/panels/LeadFunilPanel.tsx`
 - `src/routes/_authenticated.admin.leads-workspace.tsx`
-- `docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-1-c-relatorio.md` (este documento)
+- `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-etapa-4-1-c-relatorio.md` (este documento)
 
 **Editados:**
 - `src/components/content/types.ts` (adiciona `"lead"` à união `EntityKind` — AE-4.1-03 continuada)

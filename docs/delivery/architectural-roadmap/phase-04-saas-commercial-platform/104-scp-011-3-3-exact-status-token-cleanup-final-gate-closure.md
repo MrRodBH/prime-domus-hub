@@ -17,7 +17,7 @@ FILE=docs/architecture/impact-analysis/SCP-011.3-...md
 5:Accepted
 status_headings=1 accepted=1 ready=0 bold_status=0
 
-FILE=docs/delivery/phase-04-saas-commercial-platform/101-scp-011-3-...md
+FILE=docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/101-scp-011-3-...md
 3:## Status
 5:Accepted
 status_headings=1 accepted=1 ready=0 bold_status=0
@@ -27,7 +27,7 @@ FILE=docs/architecture/impact-analysis/SCP-011.3.1-...md
 5:Accepted
 status_headings=1 accepted=1 ready=0 bold_status=0
 
-FILE=docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-...md
+FILE=docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/102-scp-011-3-1-...md
 3:## Status
 5:Accepted
 20:## Status
@@ -43,7 +43,7 @@ FILE=docs/architecture/impact-analysis/SCP-011.3.2-...md
 5:Ready for External Audit
 status_headings=1 accepted=0 ready=1 bold_status=0
 
-FILE=docs/delivery/phase-04-saas-commercial-platform/103-scp-011-3-2-...md
+FILE=docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/103-scp-011-3-2-...md
 3:## Status
 5:Ready for External Audit
 status_headings=1 accepted=0 ready=1 bold_status=0
@@ -51,7 +51,7 @@ status_headings=1 accepted=0 ready=1 bold_status=0
 
 ## 2. Linhas conflitantes encontradas
 
-Somente `docs/delivery/phase-04-saas-commercial-platform/102-...md`, linhas 20, 22, 43, 45, 59, 61 —
+Somente `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/102-...md`, linhas 20, 22, 43, 45, 59, 61 —
 blocos de evidência em code fence citando headings de outros
 documentos.
 
@@ -69,11 +69,11 @@ documento (linhas 3/5) não foi alterado.
 ## 4. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-011.3.3-exact-status-token-cleanup-final-gate-closure.md`
-- `docs/delivery/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md`
 
 ## 5. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 
 ## 6. Saídas finais completas
@@ -131,8 +131,8 @@ indentadas 15./16.       => 0
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-011.3.3-exact-status-token-cleanup-final-gate-closure.md
-docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
-docs/delivery/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md
 ```
 
 Somente `docs/**` foi alterado.

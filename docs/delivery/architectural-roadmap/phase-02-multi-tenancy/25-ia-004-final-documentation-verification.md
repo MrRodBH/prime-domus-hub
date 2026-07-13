@@ -21,7 +21,7 @@ Verificação documental final da **IA-004 — Tenant Storage Isolation** após 
 
 Apenas foi criado:
 
-- `docs/delivery/phase-02-multi-tenancy/25-ia-004-final-documentation-verification.md` (este relatório).
+- `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/25-ia-004-final-documentation-verification.md` (este relatório).
 
 ---
 

@@ -37,7 +37,7 @@ preservados. Nenhuma alteração funcional foi realizada nesta etapa.
 | `docs/architecture/ROADMAP_ARCHITECTURAL.md` | Editado | Atualizar status IA-004 e M3 para concluídos. |
 | `docs/architecture/impact-analysis/README.md` | Editado | Atualizar entrada única IA-004 para status "Concluída". |
 | `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md` | Editado | Atualizar status geral, remover "aguardando auditoria" da M3.5, adicionar bloco de fechamento formal. |
-| `docs/delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md` | Criado | Relatório de fechamento formal (este documento). |
+| `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md` | Criado | Relatório de fechamento formal (este documento). |
 
 ---
 

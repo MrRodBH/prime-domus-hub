@@ -292,7 +292,7 @@ Confirmações:
 Comando executado:
 
 ```bash
-rg -n "CREATE POLICY|ALTER POLICY|DROP POLICY|GRANT|REVOKE|FORCE ROW LEVEL SECURITY|CREATE TABLE|ALTER TABLE|CREATE FUNCTION" docs/delivery/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
+rg -n "CREATE POLICY|ALTER POLICY|DROP POLICY|GRANT|REVOKE|FORCE ROW LEVEL SECURITY|CREATE TABLE|ALTER TABLE|CREATE FUNCTION" docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
 ```
 
 Confirmações:
@@ -305,7 +305,7 @@ Confirmações:
 Comando executado:
 
 ```bash
-rg -n "billing_admin|commercial_admin|canManageTenantBilling|tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal" docs/delivery/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
+rg -n "billing_admin|commercial_admin|canManageTenantBilling|tenant_members|stripe|hotmart|kiwify|webhook|checkout|customer portal" docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md
 ```
 
 Confirmações:

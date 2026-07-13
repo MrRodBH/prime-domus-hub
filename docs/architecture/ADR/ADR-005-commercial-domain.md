@@ -6,7 +6,7 @@
 ## Context
 
 A Fase 3 — Membership Evolution Model foi formalmente encerrada
-(`docs/delivery/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`). A IA-006 — SaaS
+(`docs/delivery/architectural-roadmap/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`). A IA-006 — SaaS
 Commercial Platform Impact Analysis foi aprovada após correções
 IA-006.1, IA-006.2 e IA-006.3
 (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`),
@@ -226,8 +226,8 @@ Esta ordem é coerente com IA-006 §21 e não a altera.
 - Constitution — `docs/architecture/ARCHITECTURE_CONSTITUTION.md`
 - Security Architecture — `docs/architecture/security/SECURITY_ARCHITECTURE.md`
 - IA-006 — `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
-- IA-006.1 — `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
-- IA-006.2 — `docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
-- IA-006.3 — `docs/delivery/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
+- IA-006.1 — `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
+- IA-006.2 — `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
+- IA-006.3 — `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
 - Roadmap — `docs/architecture/ROADMAP_ARCHITECTURAL.md`
-- F3.7 Closing Review — `docs/delivery/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`
+- F3.7 Closing Review — `docs/delivery/architectural-roadmap/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`

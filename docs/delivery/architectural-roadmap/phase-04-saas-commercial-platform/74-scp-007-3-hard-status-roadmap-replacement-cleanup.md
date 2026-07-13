@@ -16,11 +16,11 @@ Esta etapa é exclusivamente documental/governança.
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/71-scp-007-commercial-feature-key-catalog-planning.md` — bloco `## Status` consolidado em formato único: um heading `## Status`, uma linha `Accepted`, remoção de `Implemented / Ready for External Audit`, preservação da `## Acceptance Note` sem duplicação.
-- `docs/delivery/phase-04-saas-commercial-platform/72-scp-007-1-roadmap-deduplication-inspection-evidence-cleanup.md` — bloco `## Status` consolidado em formato único: um heading `## Status`, uma linha `Accepted`, remoção de `Implemented / Ready for External Audit`.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/71-scp-007-commercial-feature-key-catalog-planning.md` — bloco `## Status` consolidado em formato único: um heading `## Status`, uma linha `Accepted`, remoção de `Implemented / Ready for External Audit`, preservação da `## Acceptance Note` sem duplicação.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/72-scp-007-1-roadmap-deduplication-inspection-evidence-cleanup.md` — bloco `## Status` consolidado em formato único: um heading `## Status`, uma linha `Accepted`, remoção de `Implemented / Ready for External Audit`.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção `#### Gates e sequência inicial da Fase 4` substituída integralmente pela versão consolidada, sem duplicidade de SCP-007 e sem linha residual de próxima etapa para SCP-007.
-- `docs/delivery/phase-04-saas-commercial-platform/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — adicionada `## Correction Note` explicando os resíduos documentais corrigidos pela SCP-007.3.
-- `docs/delivery/phase-04-saas-commercial-platform/74-scp-007-3-hard-status-roadmap-replacement-cleanup.md` — criado (este relatório).
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — adicionada `## Correction Note` explicando os resíduos documentais corrigidos pela SCP-007.3.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/74-scp-007-3-hard-status-roadmap-replacement-cleanup.md` — criado (este relatório).
 
 ## 3. Confirmações
 

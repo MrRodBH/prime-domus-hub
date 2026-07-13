@@ -13,7 +13,7 @@
  *  - Bucket precisa estar em allowlist tenant-scoped.
  *
  * NÃO USAR para public website assets (branding/hero público) — esses
- * seguem fluxo próprio documentado em docs/delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md.
+ * seguem fluxo próprio documentado em docs/delivery/architectural-roadmap/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md.
  */
 
 /** 15 minutos — previews administrativos (Media Library, admin viewer). */

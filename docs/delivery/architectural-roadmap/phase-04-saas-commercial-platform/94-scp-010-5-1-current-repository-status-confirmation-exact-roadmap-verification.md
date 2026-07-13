@@ -43,7 +43,7 @@ nova entrada `14.5.1`.
 ## 4. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010.5.1-current-repository-status-confirmation-exact-roadmap-verification.md`
-- `docs/delivery/phase-04-saas-commercial-platform/94-scp-010-5-1-current-repository-status-confirmation-exact-roadmap-verification.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/94-scp-010-5-1-current-repository-status-confirmation-exact-roadmap-verification.md`
 
 ## 5. Arquivos alterados
 
@@ -85,7 +85,7 @@ Indentadas: zero. Statuses de SCP-010..SCP-010.4: `## Status = 1`,
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-010.5.1-current-repository-status-confirmation-exact-roadmap-verification.md
-docs/delivery/phase-04-saas-commercial-platform/94-scp-010-5-1-current-repository-status-confirmation-exact-roadmap-verification.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/94-scp-010-5-1-current-repository-status-confirmation-exact-roadmap-verification.md
 ```
 
 Todos os caminhos alterados estão sob `docs/`.

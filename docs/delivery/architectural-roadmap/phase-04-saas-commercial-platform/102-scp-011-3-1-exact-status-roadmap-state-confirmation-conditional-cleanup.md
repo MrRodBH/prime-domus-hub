@@ -127,7 +127,7 @@ apresentadas na SCP-011.3 eram artefatos da representação de edição.
 ## 5. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-011.3.1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
-- `docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
 
 ## 6. Arquivos alterados
 
@@ -175,7 +175,7 @@ indentadas               => 0
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-011.3.1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
-docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
 ```
 
 ## 13. Confirmações negativas

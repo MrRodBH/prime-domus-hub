@@ -24,14 +24,14 @@ IA-006.2 e comprovar o estado final consolidado dos documentos:
 
 - `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
   — seção 21 consolidada em versão única final.
-- `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`
   — seção 9 consolidada em versão única final.
-- `docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
   — nota de retificação IA-006.3 anexada ao final.
 
 ## 3. Arquivos criados
 
-- `docs/delivery/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
   (este relatório).
 
 ## 4. Confirmação de não implementação funcional
@@ -93,7 +93,7 @@ IA-006.2 / IA-006.3.
 ### 7.2 Relatório 43 §9
 
 ```
-$ rg -n "^## 9\. Próximos Passos|atualizado por IA-006\.1|^1\. Auditoria externa|^2\. Após aprovação|^3\. Após aprovação|^4\. Executar|^5\. Só então|IA-006 / IA-006\.1" docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md
+$ rg -n "^## 9\. Próximos Passos|atualizado por IA-006\.1|^1\. Auditoria externa|^2\. Após aprovação|^3\. Após aprovação|^4\. Executar|^5\. Só então|IA-006 / IA-006\.1" docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md
 89:## 9. Próximos Passos
 91:1. Auditoria externa da IA-006 / IA-006.1 / IA-006.2 / IA-006.3.
 92:2. Após aprovação: emitir ADR-005 — Commercial Domain.
@@ -171,10 +171,10 @@ $ bunx tsgo --noEmit
   auditoria.
 - **Arquivos alterados:**
   `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`,
-  `docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`.
+  `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`,
+  `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`.
 - **Arquivos criados:**
-  `docs/delivery/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`.
+  `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma alteração.
 - **RLS policies:** nenhuma alteração.

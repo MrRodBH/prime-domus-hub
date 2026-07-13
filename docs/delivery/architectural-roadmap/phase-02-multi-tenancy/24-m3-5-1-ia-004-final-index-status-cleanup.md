@@ -19,7 +19,7 @@ Nenhuma alteração funcional, de código, storage, bucket, policy, migration, S
 |---|---|
 | `docs/architecture/impact-analysis/README.md` | Atualização da única entrada oficial da IA-004 para refletir status final completo e backlog completo. |
 | `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md` | Atualização do status da M3.5 para incluir backlog completo. |
-| `docs/delivery/phase-02-multi-tenancy/24-m3-5-1-ia-004-final-index-status-cleanup.md` | Criação deste relatório documental. |
+| `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/24-m3-5-1-ia-004-final-index-status-cleanup.md` | Criação deste relatório documental. |
 
 ---
 

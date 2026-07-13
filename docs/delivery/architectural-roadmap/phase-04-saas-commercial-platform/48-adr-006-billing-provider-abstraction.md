@@ -25,12 +25,12 @@ da ADR-005 para *Accepted* após aprovação externa.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 - `docs/architecture/ARCHITECTURE_CONSTITUTION.md`
 - `docs/architecture/security/SECURITY_ARCHITECTURE.md`
-- `docs/delivery/phase-04-saas-commercial-platform/47-adr-005-commercial-domain.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/47-adr-005-commercial-domain.md`
 
 ## 3. Arquivos criados
 
 - `docs/architecture/ADR/ADR-006-billing-provider-abstraction.md`
-- `docs/delivery/phase-04-saas-commercial-platform/48-adr-006-billing-provider-abstraction.md` (este relatório)
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/48-adr-006-billing-provider-abstraction.md` (este relatório)
 
 ## 4. Arquivos alterados
 
@@ -197,7 +197,7 @@ integração de provider ou commercial admin authorization nesta etapa.
   *Proposed / Ready for External Audit*; ADR-005 promovida a
   *Accepted*.
 - **Arquivos inspecionados:** ver §2.
-- **Arquivos criados:** `docs/architecture/ADR/ADR-006-billing-provider-abstraction.md`, `docs/delivery/phase-04-saas-commercial-platform/48-adr-006-billing-provider-abstraction.md`.
+- **Arquivos criados:** `docs/architecture/ADR/ADR-006-billing-provider-abstraction.md`, `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/48-adr-006-billing-provider-abstraction.md`.
 - **Arquivos alterados:** `docs/architecture/ADR/ADR-005-commercial-domain.md` (status), `docs/architecture/ADR/README.md` (índice).
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
@@ -242,4 +242,4 @@ integração de provider ou commercial admin authorization nesta etapa.
 
 ## Retificação ADR-006.1
 
-A auditoria externa identificou duplicidade documental após ADR-006: a ADR-005 permaneceu com duas linhas de status e o README de ADRs manteve duas entradas da ADR-005. A correção final foi realizada em ADR-006.1 e documentada em `docs/delivery/phase-04-saas-commercial-platform/49-adr-006-1-adr-status-deduplication-readme-consistency.md`.
+A auditoria externa identificou duplicidade documental após ADR-006: a ADR-005 permaneceu com duas linhas de status e o README de ADRs manteve duas entradas da ADR-005. A correção final foi realizada em ADR-006.1 e documentada em `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/49-adr-006-1-adr-status-deduplication-readme-consistency.md`.

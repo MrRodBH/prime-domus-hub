@@ -137,7 +137,7 @@ Sem período persistido de dual authority em produção.
 ## 10. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-012.0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
-- `docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
 
 ## 11. Arquivos alterados
 
@@ -164,7 +164,7 @@ Apenas `docs/**`:
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-012.0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
-docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
 ```
 
 Nenhum arquivo fora de `docs/**` foi alterado.

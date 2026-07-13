@@ -47,7 +47,7 @@ Esta etapa **não implementa** nova funcionalidade e **não altera** código, po
 - `docs/architecture/impact-analysis/IA-003-RLSPolicies.md`
 - `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md`
 - `docs/architecture/glossary.md` · `docs/architecture/diagrams/`
-- Relatórios `docs/delivery/phase-02-multi-tenancy/10` a `docs/delivery/phase-02-multi-tenancy/26` (sequência completa Fase 2 → encerramento IA-004/M3)
+- Relatórios `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/10` a `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26` (sequência completa Fase 2 → encerramento IA-004/M3)
 
 ---
 
@@ -74,17 +74,17 @@ Esta etapa **não implementa** nova funcionalidade e **não altera** código, po
 - Cobertura: `impersonation-state.spec.ts`.
 
 ### 4.4 IA-003 / M2b — RLS Policies
-- **Status:** IA-003 🟢 Aprovada. M2b 🟢 Implementada (`docs/delivery/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`) + Audit Clarification Report (`docs/delivery/phase-02-multi-tenancy/12`).
+- **Status:** IA-003 🟢 Aprovada. M2b 🟢 Implementada (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`) + Audit Clarification Report (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/12`).
 - Policies RESTRICTIVE por tenant em todo o domínio; enforcement zero-trust.
 - Sem bypass de Super Admin em policies restritivas (Super Admin acessa somente sob impersonação válida).
 - Sem fallback, sem tenant default, sem seleção automática.
 
 ### 4.5 Patch M2b.1 — Cardinality Fix em `get_current_tenant_id()`
-- **Status:** ✔ Concluído (`docs/delivery/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`).
+- **Status:** ✔ Concluído (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`).
 - Função ajustada para retornar `NULL` em 0 ou N memberships (sem `LIMIT 1` implícito) e único `tenant_id` em 1 membership; impersonação continua fluindo pelo header validado server-side.
 
 ### 4.6 IA-004 / M3 — Tenant Storage Isolation
-- **Status:** ✔ Concluída · M3 encerrada operacionalmente (fechamento formal em `docs/delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`).
+- **Status:** ✔ Concluída · M3 encerrada operacionalmente (fechamento formal em `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`).
 - Novos uploads sob path server-authoritative tenant-scoped (M3.2 + Patch M3.2.1).
 - Signed URLs endurecidas com TTLs privados reduzidos e validação server-side por tenant (M3.4 + Patch M3.4.1).
 - Inventário físico legado concluído; universo físico a migrar identificado como **∅** após reclassificação (M3.3 + Patch M3.3.1).
@@ -92,11 +92,11 @@ Esta etapa **não implementa** nova funcionalidade e **não altera** código, po
 - Buckets privados mantidos; client não monta path físico; `registrarMidia` não aceita string livre; path cross-tenant e traversal são rejeitados server-side.
 
 ### 4.7 Patches M3.1.1, M3.2.1, M3.3.1, M3.4.1
-- **M3.1.1** (`docs/delivery/phase-02-multi-tenancy/16`): correção de índice/documentação do inventário M3.1.
-- **M3.2.1** (`docs/delivery/phase-02-multi-tenancy/18`): endurecimento e correção do enforcement de path server-authoritative.
-- **M3.3.1** (`docs/delivery/phase-02-multi-tenancy/22`): normalização de metadata legada + correções documentais que reclassificaram o universo físico como ∅.
-- **M3.4.1** (`docs/delivery/phase-02-multi-tenancy/20`): correção de índice IA-004 pós-hardening de Signed URLs.
-- Adicionalmente: **Patch M3.5.1** (`docs/delivery/phase-02-multi-tenancy/24`) — limpeza final de índice/status e verificação em `docs/delivery/phase-02-multi-tenancy/25`.
+- **M3.1.1** (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/16`): correção de índice/documentação do inventário M3.1.
+- **M3.2.1** (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/18`): endurecimento e correção do enforcement de path server-authoritative.
+- **M3.3.1** (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/22`): normalização de metadata legada + correções documentais que reclassificaram o universo físico como ∅.
+- **M3.4.1** (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/20`): correção de índice IA-004 pós-hardening de Signed URLs.
+- Adicionalmente: **Patch M3.5.1** (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/24`) — limpeza final de índice/status e verificação em `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/25`.
 
 ---
 

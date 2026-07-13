@@ -22,7 +22,7 @@ O header é **transporte de contexto**, nunca autoridade.
 |---|---|
 | `src/integrations/supabase/__tests__/tenant-middleware.spec.ts` | +3 cenários: empty header, stale impersonation (ex-super), tenant hopping |
 | `docs/architecture/ROADMAP_ARCHITECTURAL.md` | Fase 2.3 marcada `✔ Concluída`; M2b promovido a NEXT (pending IA-003) |
-| `docs/delivery/phase-02-multi-tenancy/10-fase-2-3-relatorio.md` | Este relatório |
+| `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/10-fase-2-3-relatorio.md` | Este relatório |
 
 ### Já em vigor (implementados em blocos anteriores e agora oficializados como Fase 2.3)
 

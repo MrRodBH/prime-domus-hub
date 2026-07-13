@@ -31,7 +31,7 @@ Regra central preservada: **`x-tenant-id` é transporte, nunca autoridade.**
 - `src/integrations/supabase/tenant-repository.ts`
 - `src/integrations/supabase/tenant-middleware.ts`
 - `src/integrations/supabase/__tests__/tenant-middleware.spec.ts`
-- `docs/delivery/phase-03-membership-evolution/29-f3-2-server-side-tenant-selection.md` (novo)
+- `docs/delivery/architectural-roadmap/phase-03-membership-evolution/29-f3-2-server-side-tenant-selection.md` (novo)
 
 ## 5. Arquivos Inspecionados e Não Alterados
 

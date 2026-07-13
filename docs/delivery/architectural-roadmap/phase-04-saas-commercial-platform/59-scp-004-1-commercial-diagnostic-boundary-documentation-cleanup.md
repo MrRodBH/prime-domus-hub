@@ -36,7 +36,7 @@ It confirms that `CommercialAdminDiagnostic` is not exposed in runtime and remai
 5. Consolidação da subseção "Gates e sequência inicial da Fase 4" no
    roadmap, marcando SCP-004 como `Accepted` e adicionando restrição
    permanente de que `CommercialAdminDiagnostic` não é exposto em runtime.
-6. Atualização de `docs/delivery/phase-04-saas-commercial-platform/58-scp-004-...md` para refletir o estado
+6. Atualização de `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/58-scp-004-...md` para refletir o estado
    final correto (três funções comerciais, item futuro documentado).
 
 ## Arquivos alterados
@@ -59,7 +59,7 @@ It confirms that `CommercialAdminDiagnostic` is not exposed in runtime and remai
   sequência inicial da Fase 4" substituída integralmente conforme
   especificado; SCP-004 marcada como `Accepted`; adicionada restrição
   permanente sobre `CommercialAdminDiagnostic`.
-- `docs/delivery/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md` —
   removido `getCommercialAdminDiagnostic` do bloco de funções
   entregues; adicionada seção "Item futuro" descrevendo as restrições
   para futura reintrodução.

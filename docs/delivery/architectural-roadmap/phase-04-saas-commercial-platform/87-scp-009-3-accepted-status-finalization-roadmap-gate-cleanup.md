@@ -13,19 +13,19 @@ governança.
 
 ## Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/84-scp-009-commercial-usage-limit-evaluation-planning.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/84-scp-009-commercial-usage-limit-evaluation-planning.md`
   — bloco `## Status` substituído por `Accepted`, seção
   `## Acceptance Note` adicionada, evidência de roadmap
   reescrita para refletir SCP-009 como `Accepted`.
-- `docs/delivery/phase-04-saas-commercial-platform/85-scp-009-1-roadmap-deduplication-inspection-evidence-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/85-scp-009-1-roadmap-deduplication-inspection-evidence-cleanup.md`
   — bloco `## Status` substituído por `Accepted`.
-- `docs/delivery/phase-04-saas-commercial-platform/86-scp-009-2-inspection-evidence-deduplication-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/86-scp-009-2-inspection-evidence-deduplication-cleanup.md`
   — bloco `## Status` substituído por `Accepted`.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção
   `#### Gates e sequência inicial da Fase 4` reescrita
   deterministicamente com SCP-009 marcada como `Accepted` e SCP-010
   como próxima etapa futura.
-- `docs/delivery/phase-04-saas-commercial-platform/87-scp-009-3-accepted-status-finalization-roadmap-gate-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/87-scp-009-3-accepted-status-finalization-roadmap-gate-cleanup.md`
   — este relatório.
 
 ## Confirmações

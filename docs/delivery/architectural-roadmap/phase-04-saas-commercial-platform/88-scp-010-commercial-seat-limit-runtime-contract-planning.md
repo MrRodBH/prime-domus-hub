@@ -29,7 +29,7 @@ Ready for External Audit
 ## 33.2 Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010-commercial-seat-limit-runtime-contract-planning.md`
-- `docs/delivery/phase-04-saas-commercial-platform/88-scp-010-commercial-seat-limit-runtime-contract-planning.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/88-scp-010-commercial-seat-limit-runtime-contract-planning.md`
 
 ## 33.3 Arquivos alterados
 

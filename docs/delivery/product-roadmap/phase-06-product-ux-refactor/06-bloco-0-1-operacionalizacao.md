@@ -226,7 +226,7 @@ Nenhum bloco da Fase 6 avança sem validar **todos** os itens:
 
 ## 9. Entregável
 
-Este arquivo: `docs/delivery/product-ux-refactor/06-bloco-0-1-operacionalizacao.md`.
+Este arquivo: `docs/delivery/product-roadmap/phase-06-product-ux-refactor/06-bloco-0-1-operacionalizacao.md`.
 
 Estrutura seguida:
 1. Hierarquia oficial

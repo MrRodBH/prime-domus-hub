@@ -21,11 +21,11 @@ UI, contador de uso ou enforcement de limite foi produzido.
   `#### Gates e sequência inicial da Fase 4` reescrita
   deterministicamente por script Python (substituição do bloco
   entre o marcador de início da subseção e o marcador `### 🟡 Fase 5`).
-- `docs/delivery/phase-04-saas-commercial-platform/84-scp-009-commercial-usage-limit-evaluation-planning.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/84-scp-009-commercial-usage-limit-evaluation-planning.md`
   — única linha de evidência de roadmap na seção
   `## 15. Inspeções executadas` normalizada ao texto canônico
   exigido pela SCP-009.1.
-- `docs/delivery/phase-04-saas-commercial-platform/85-scp-009-1-roadmap-deduplication-inspection-evidence-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/85-scp-009-1-roadmap-deduplication-inspection-evidence-cleanup.md`
   — este relatório.
 
 ## Confirmações

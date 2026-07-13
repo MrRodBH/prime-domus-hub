@@ -34,7 +34,7 @@ Media Picker, componente de upload ou signed URL foi alterado.**
 |---|---|---|
 | `docs/architecture/ROADMAP_ARCHITECTURAL.md` | Documental | Deduplicação de IA-004, remoção da antecipação `tenantId/ prefix`, padronização de nomenclatura, referência à IA-004 como gate obrigatório da M3. |
 | `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md` | Documental | Reposicionamento de `tenantId/ prefix` como hipótese (§12.3/§12.3.1) e adição de matriz comparativa H1–H4 com critérios de segurança, performance, complexidade, escalabilidade, rollback, signed URL, vazamento cross-tenant e aderência Architecture First. |
-| `docs/delivery/phase-02-multi-tenancy/14-ia-004-documental-cleanup-report.md` | Criação | Este relatório de auditoria. |
+| `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/14-ia-004-documental-cleanup-report.md` | Criação | Este relatório de auditoria. |
 
 Nenhum outro arquivo foi tocado.
 

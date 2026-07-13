@@ -4,7 +4,7 @@
 **Escopo:** documental e evidências; **zero alterações funcionais**
 **Governança:** IA-001, IA-002, IA-003, ARCHITECTURE_CONSTITUTION, SECURITY_ARCHITECTURE
 
-Este relatório complementa `docs/delivery/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md` fornecendo
+Este relatório complementa `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md` fornecendo
 as evidências arquiteturais solicitadas pela auditoria externa da M2b.
 
 ---
@@ -520,7 +520,7 @@ da migration única e ausência de qualquer edição em `src/` no ciclo):
 
 | Item | Resultado |
 |---|---|
-| Arquivos alterados nesta etapa | `docs/architecture/impact-analysis/README.md` (rótulo IA-003) e `docs/delivery/phase-02-multi-tenancy/12-m2b-audit-clarification-report.md` (novo). **Zero código, zero SQL, zero policy.** |
+| Arquivos alterados nesta etapa | `docs/architecture/impact-analysis/README.md` (rótulo IA-003) e `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/12-m2b-audit-clarification-report.md` (novo). **Zero código, zero SQL, zero policy.** |
 | Duplicidade IA-003 | Não existia — verificado |
 | `get_current_tenant_id()` documentada | Parte 2 |
 | Fluxo por tipo de usuário | Parte 2.3 (matriz de 9 cenários) |

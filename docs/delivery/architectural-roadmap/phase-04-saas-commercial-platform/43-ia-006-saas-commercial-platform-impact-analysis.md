@@ -18,7 +18,7 @@ Fases 2 e 3 e sem implementar qualquer feature comercial funcional.
 - `docs/architecture/security/SECURITY_ARCHITECTURE.md`
 - `docs/architecture/ADR/` (ADR-001..004)
 - `docs/architecture/impact-analysis/` (IA-001..005)
-- `docs/delivery/phase-03-membership-evolution/28..42-*.md` (Fase 3 completa)
+- `docs/delivery/architectural-roadmap/phase-03-membership-evolution/28..42-*.md` (Fase 3 completa)
 - `src/integrations/supabase/tenant-middleware.ts`
 - `src/integrations/supabase/tenant-repository.ts`
 - `src/integrations/supabase/membership-types.ts`
@@ -29,7 +29,7 @@ Fases 2 e 3 e sem implementar qualquer feature comercial funcional.
 ## 3. Arquivos Criados
 
 - `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
-- `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`
 
 ## 4. Arquivos Alterados
 
@@ -108,7 +108,7 @@ Ver IA-006 §19. Todos mapeados a Hard Gates SCP-G1..G9.
 - **Arquivos inspecionados:** ver §2.
 - **Arquivos alterados:** `docs/architecture/ROADMAP_ARCHITECTURAL.md`.
 - **Arquivos criados:** `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`.
+  `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
 - **RLS policies:** nenhuma.

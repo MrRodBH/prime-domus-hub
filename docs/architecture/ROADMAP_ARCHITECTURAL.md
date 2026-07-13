@@ -63,7 +63,7 @@ Componentes e processos estabilizados na Fase 6:
 | IA-001 · Fase 2.2 — `requireTenant` middleware | ✔ Concluída |
 | IA-002 · Fase 2.3 — Client Impersonation Layer | ✔ **Concluída** |
 | IA-003 · RLS Policies (RESTRICTIVE por tenant) | 🟢 Aprovada em auditoria final |
-| M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/delivery/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`) |
+| M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`) |
 | IA-004 · Tenant Storage Isolation | ✔ **Concluída** (`impact-analysis/IA-004-TenantStorageIsolation.md`) — M3 concluída operacionalmente |
 
 #### Fase 2.3 — Client Impersonation Layer ✔
@@ -104,7 +104,7 @@ Componentes e processos estabilizados na Fase 6:
 ### ✅ Fase 3 — Membership Evolution Model — **Formalmente encerrada**
 
 Aprovada e encerrada após F3.7 — Fase 3 Closing Review
-(`docs/delivery/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`).
+(`docs/delivery/architectural-roadmap/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`).
 
 | Sub-etapa | Status |
 |---|---|
@@ -126,7 +126,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 - **Status:** Planejamento arquitetural iniciado via **IA-006** e
   corrigido via **IA-006.1**
   (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
+  `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
 - **Implementation Status:** `BLOCKED` — aguardando aprovação externa
   da IA-006/IA-006.1 antes de qualquer implementação.
 - **Fase 4 ainda não está em implementação funcional. SCP-001 ainda não

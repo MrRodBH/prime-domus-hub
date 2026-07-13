@@ -12,11 +12,11 @@ Etapa exclusivamente documental/governança. Sem código de produto.
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — tail (`## Correction Note` + `## 6. Próximo passo recomendado`) reescrito integralmente via script determinístico.
-- `docs/delivery/phase-04-saas-commercial-platform/75-scp-007-4-correction-note-next-step-deduplication-cleanup.md` — tail reescrito integralmente via script determinístico.
-- `docs/delivery/phase-04-saas-commercial-platform/76-scp-007-5-hard-tail-replacement-evidence-correction.md` — tail reescrito integralmente via script determinístico.
-- `docs/delivery/phase-04-saas-commercial-platform/77-scp-007-6-dual-tail-hard-replacement-final-evidence-cleanup.md` — recebeu nota corretiva única confirmando fechamento pela SCP-007.7.
-- `docs/delivery/phase-04-saas-commercial-platform/78-scp-007-7-deterministic-tail-rewrite-evidence-lock.md` — este relatório.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — tail (`## Correction Note` + `## 6. Próximo passo recomendado`) reescrito integralmente via script determinístico.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/75-scp-007-4-correction-note-next-step-deduplication-cleanup.md` — tail reescrito integralmente via script determinístico.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/76-scp-007-5-hard-tail-replacement-evidence-correction.md` — tail reescrito integralmente via script determinístico.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/77-scp-007-6-dual-tail-hard-replacement-final-evidence-cleanup.md` — recebeu nota corretiva única confirmando fechamento pela SCP-007.7.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/78-scp-007-7-deterministic-tail-rewrite-evidence-lock.md` — este relatório.
 
 ## 3. Confirmações
 

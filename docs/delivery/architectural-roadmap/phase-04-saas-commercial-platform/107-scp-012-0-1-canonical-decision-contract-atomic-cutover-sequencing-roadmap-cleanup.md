@@ -14,7 +14,7 @@ webhooks, checkout ou frontend.
 ## 2. Arquivos inspecionados
 
 - `docs/architecture/impact-analysis/SCP-012.0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
-- `docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 - `src/lib/api/commercial/feature-gate.ts` (contrato de reasons/sources)
 - `src/lib/api/commercial/seat-limit-runtime.ts` (short-circuits confirmados)
@@ -137,13 +137,13 @@ ocorrências semânticas.
 ## 9. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-012.0.1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md`
-- `docs/delivery/phase-04-saas-commercial-platform/107-scp-012-0-1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/107-scp-012-0-1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md`
 
 ## 10. Arquivos alterados
 
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` (adição de `16.0.1`);
 - `docs/architecture/impact-analysis/SCP-012.0-...md` (§7–§15);
-- `docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-...md` (§8, §9, §11, §12).
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-...md` (§8, §9, §11, §12).
 
 ## 11. Bloco final real do roadmap
 
@@ -170,8 +170,8 @@ ocorrências semânticas.
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-012.0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
 docs/architecture/impact-analysis/SCP-012.0.1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md
-docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
-docs/delivery/phase-04-saas-commercial-platform/107-scp-012-0-1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/107-scp-012-0-1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md
 ```
 
 Nenhum caminho fora de `docs/**`.
@@ -188,8 +188,8 @@ git add \
   docs/architecture/ROADMAP_ARCHITECTURAL.md \
   docs/architecture/impact-analysis/SCP-012.0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md \
   docs/architecture/impact-analysis/SCP-012.0.1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md \
-  docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md \
-  docs/delivery/phase-04-saas-commercial-platform/107-scp-012-0-1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md
+  docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md \
+  docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/107-scp-012-0-1-canonical-decision-contract-atomic-cutover-sequencing-roadmap-cleanup.md
 git commit -m "docs: correct SCP-012.0 architecture and roadmap"
 git push origin "$(git branch --show-current)"
 ```

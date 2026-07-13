@@ -12,11 +12,11 @@ Accepted
 
 ## Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md`
   - Status substituído por `Accepted`.
   - Adicionada `## Acceptance Note` confirmando aceitação conjunta com
     SCP-004.1 e listando as três funções runtime aprovadas.
-- `docs/delivery/phase-04-saas-commercial-platform/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md`
   - Status substituído por `Accepted`.
   - Adicionada `## Acceptance Note` confirmando SCP-004.1 como patch
     corretivo de governança para SCP-004.
@@ -73,7 +73,7 @@ Restrições permanentes:
 
 ```
 rg -n "## Status|Accepted" \
-  docs/delivery/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md
+  docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md
 ```
 
 Resultado:
@@ -85,7 +85,7 @@ Resultado:
 
 ```
 rg -n "## Status|Accepted" \
-  docs/delivery/phase-04-saas-commercial-platform/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md
+  docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md
 ```
 
 Resultado:

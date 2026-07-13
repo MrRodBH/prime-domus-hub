@@ -179,7 +179,7 @@ Redirects declarados em `beforeLoad`, client-side.
   versionamento. **OK**.
 - **Bloco 3.1** — 100% do Conteúdo migrado, zero coexistência, zero
   parallel flows, `if (kind === …)` = 0 no núcleo. **OK — encerrado**.
-- **Product UX Contract** (`docs/delivery/product-ux-refactor/09-product-ux-contract.md`) —
+- **Product UX Contract** (`docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-contract.md`) —
   **dependência obrigatória e normativa**. Documento que define os
   comportamentos obrigatórios da plataforma (Vision, Continuity, Memory,
   Zero Context Reset, Workspace Tokens, Progressive Workspace,
@@ -188,7 +188,7 @@ Redirects declarados em `beforeLoad`, client-side.
   este contrato**; qualquer conflito entre este Plano Executivo e o
   contrato é resolvido a favor do contrato.
 - **Product UX Compliance Checklist**
-  (`docs/delivery/product-ux-refactor/09-product-ux-compliance-checklist.md`) — **instrumento
+  (`docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-compliance-checklist.md`) — **instrumento
   oficial de auditoria** da experiência do produto durante todo o
   Bloco 4. Transforma o UX Contract em processo objetivo de validação
   (PASS/FAIL por item, com evidência). **Nenhuma etapa (4.0 → 4.5)
@@ -258,20 +258,20 @@ verdadeiros e evidenciados por auditoria:
 
 ### 8.5 Documentação
 
-- [ ] `docs/delivery/product-ux-refactor/09-bloco-4-relatorio-tecnico.md` — o que mudou, onde,
+- [ ] `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-relatorio-tecnico.md` — o que mudou, onde,
       por quê.
-- [ ] `docs/delivery/product-ux-refactor/09-bloco-4-ux-evolution.md` — antes × depois por área,
+- [ ] `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-ux-evolution.md` — antes × depois por área,
       com métricas de cliques.
-- [ ] `docs/delivery/product-ux-refactor/09-bloco-4-auditoria-final.md` — matriz de cobertura,
+- [ ] `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-auditoria-final.md` — matriz de cobertura,
       indicadores, exceções arquiteturais (se houver, no formato
       read-only do Bloco 3.1).
-- [ ] `docs/delivery/product-ux-refactor/09-bloco-4-etapa-<n>-ux-checklist.md` — uma cópia por
+- [ ] `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-etapa-<n>-ux-checklist.md` — uma cópia por
       etapa, integralmente preenchida (ver §8.7).
 
 ### 8.6 Aderência ao Product UX Contract
 
 Todos os critérios do §11 (UX Definition of Done) do
-`docs/delivery/product-ux-refactor/09-product-ux-contract.md` são condição obrigatória de
+`docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-contract.md` são condição obrigatória de
 encerramento do Bloco 4, **em adição** aos critérios técnicos acima.
 Cada etapa (4.0 → 4.5) deve apresentar, em seu DoD parcial, uma
 checagem explícita de aderência ao contrato — incluindo Vision Test
@@ -281,13 +281,13 @@ Consistency Rules (§7), Navigation Contract (§8), Performance Contract
 
 ### 8.7 Product UX Compliance Checklist (governança obrigatória)
 
-O `docs/delivery/product-ux-refactor/09-product-ux-compliance-checklist.md` é o **instrumento
+O `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-compliance-checklist.md` é o **instrumento
 oficial de auditoria da experiência do produto** durante todo o Bloco 4.
 Ele transforma o Product UX Contract em processo objetivo de validação
 (PASS/FAIL por item, com evidência). Regras:
 
 - Cada etapa (4.0 → 4.5) deve produzir uma cópia preenchida como
-  `docs/delivery/product-ux-refactor/09-bloco-4-etapa-<n>-ux-checklist.md`.
+  `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-etapa-<n>-ux-checklist.md`.
 - **Nenhuma etapa pode ser encerrada** sem o checklist integralmente
   preenchido, com evidências objetivas por linha.
 - O relatório de encerramento de cada etapa deve conter, além do
@@ -384,7 +384,7 @@ Para evitar escopo criativo:
 ## Aprovação necessária
 
 Este plano é o **contrato de escopo** do Bloco 4 e opera em conjunto
-com o **Product UX Contract** (`docs/delivery/product-ux-refactor/09-product-ux-contract.md`),
+com o **Product UX Contract** (`docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-contract.md`),
 que é o **contrato de experiência** e prevalece em caso de conflito.
 
 ### Critério de início da Etapa 4.0
@@ -392,9 +392,9 @@ que é o **contrato de experiência** e prevalece em caso de conflito.
 A Etapa 4.0 só pode ser iniciada após:
 
 1. Revisão e aprovação explícita deste Plano Executivo revisado.
-2. Criação e aprovação do `docs/delivery/product-ux-refactor/09-product-ux-contract.md`.
+2. Criação e aprovação do `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-contract.md`.
 3. Criação e incorporação formal do
-   `docs/delivery/product-ux-refactor/09-product-ux-compliance-checklist.md` como instrumento
+   `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-compliance-checklist.md` como instrumento
    oficial de auditoria (§8.7).
 4. Validação de que **todas** as etapas do Bloco 4 (4.0 → 4.5) estão
    aderentes ao contrato e ao checklist — verificação registrada no

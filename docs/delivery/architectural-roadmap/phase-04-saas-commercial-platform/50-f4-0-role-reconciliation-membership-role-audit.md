@@ -30,13 +30,13 @@ dados nem introduzir autorização comercial funcional.
 - `src/components/workspace/tenant/tenant-selection-cardinality.ts`
 - `supabase/migrations/20260708125042_*.sql` (F3.1)
 - `supabase/migrations/20260708132329_*.sql`
-- `docs/delivery/phase-03-membership-evolution/28-f3-1-membership-schema-foundation.md`
-- `docs/delivery/phase-03-membership-evolution/41-f3-6-membership-roles-status-validation.md`
+- `docs/delivery/architectural-roadmap/phase-03-membership-evolution/28-f3-1-membership-schema-foundation.md`
+- `docs/delivery/architectural-roadmap/phase-03-membership-evolution/41-f3-6-membership-roles-status-validation.md`
 
 ## 4. Arquivos criados
 
 - `docs/architecture/security/F4-0-role-reconciliation-membership-role-audit.md`
-- `docs/delivery/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md`
 
 ## 5. Arquivos alterados
 
@@ -160,7 +160,7 @@ explícita posterior.
 - Status da implementação: implementada, pronta para auditoria.
 - Identificação da etapa: F4.0 — Role Reconciliation / Membership Role Audit
 - Arquivos inspecionados: ver §3.
-- Arquivos criados: `docs/architecture/security/F4-0-role-reconciliation-membership-role-audit.md`; `docs/delivery/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md`.
+- Arquivos criados: `docs/architecture/security/F4-0-role-reconciliation-membership-role-audit.md`; `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md`.
 - Arquivos alterados: `docs/architecture/ADR/ADR-006-billing-provider-abstraction.md`; `docs/architecture/ADR/README.md`.
 - Migrations: nenhuma.
 - SQL functions: nenhuma.
@@ -190,4 +190,4 @@ explícita posterior.
 
 ## Retificação F4.0.1
 
-A auditoria externa identificou duplicidade documental após F4.0: a ADR-006 permaneceu com dois status (`Proposed / Ready for External Audit` e `Accepted`) e o README de ADRs manteve duas entradas da ADR-006. A correção final foi realizada em F4.0.1 e documentada em `docs/delivery/phase-04-saas-commercial-platform/51-f4-0-1-adr-006-accepted-status-final-cleanup.md`.
+A auditoria externa identificou duplicidade documental após F4.0: a ADR-006 permaneceu com dois status (`Proposed / Ready for External Audit` e `Accepted`) e o README de ADRs manteve duas entradas da ADR-006. A correção final foi realizada em F4.0.1 e documentada em `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/51-f4-0-1-adr-006-accepted-status-final-cleanup.md`.

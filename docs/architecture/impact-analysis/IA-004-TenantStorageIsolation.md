@@ -5,7 +5,7 @@
 **Precedência:** IA-001 (Tenant Middleware) · IA-002 (Client Impersonation Layer) · IA-003 (RLS Policies) · M2b (RLS Implementation) · Patch M2b.1 (get_current_tenant_id cardinality fix)
 **Etapa alvo:** M3 — Tenant Storage Isolation
 **Autor:** Arquitetura RM Prime SaaS
-**Fechamento formal:** [`docs/delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md)
+**Fechamento formal:** [`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md)
 
 ---
 
@@ -301,7 +301,7 @@ Antes de qualquer migração, coletar (via `supabase.storage` + `pg_catalog`):
   `cms_blocks`, `cms_campaigns`, `blog_posts`.
 - Objetos com signed URL "quente" recente (heurística por logs, opcional).
 
-Saída: planilha ou relatório `docs/delivery/phase-02-multi-tenancy/14-m3-storage-inventory.md`
+Saída: planilha ou relatório `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/14-m3-storage-inventory.md`
 (a ser criado em M3, **não nesta IA**).
 
 ### 12.2 Classificação dos arquivos
@@ -546,9 +546,9 @@ Este documento está em conformidade com:
 - `IA-001-TenantMiddleware.md`
 - `IA-002-ClientImpersonationLayer.md`
 - `IA-003-RLSPolicies.md`
-- Relatório M2b (`docs/delivery/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`)
-- Relatório M2b Audit Clarification (`docs/delivery/phase-02-multi-tenancy/12-m2b-audit-clarification-report.md`)
-- Patch M2b.1 (`docs/delivery/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`)
+- Relatório M2b (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`)
+- Relatório M2b Audit Clarification (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/12-m2b-audit-clarification-report.md`)
+- Patch M2b.1 (`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`)
 
 **Declaração explícita:**
 IA-004 foi criada para análise arquitetural da M3.
@@ -584,7 +584,7 @@ IA-004 foi criada para análise arquitetural da M3.
   `media_id` puro, backlog opcional não bloqueante).
 
 **Fechamento formal:** IA-004 e M3 encerradas operacionalmente em
-[`docs/delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md).
+[`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md).
 Backlogs (Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch,
 Media Picker Return Contract Normalization) permanecem preservados e
 **não foram executados**.

@@ -11,12 +11,12 @@ Runtime Core, integrações comerciais ou a modelagem SCP-001.
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/52-scp-001-commercial-domain-model.md` — adicionada
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/52-scp-001-commercial-domain-model.md` — adicionada
   nota `## Retificação SCP-001.1` ao final, sem apagar histórico.
 
 ## 3. Arquivos criados
 
-- `docs/delivery/phase-04-saas-commercial-platform/53-scp-001-1-f4-0-accepted-status-final-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/53-scp-001-1-f4-0-accepted-status-final-cleanup.md`
 
 ## 4. Arquivos verificados sem alteração
 
@@ -58,7 +58,7 @@ Gates RR-G1..RR-G7 preservados integralmente.
 - Documento arquitetural
   `docs/architecture/commercial/SCP-001-commercial-domain-model.md`:
   preservado, não alterado.
-- Relatório `docs/delivery/phase-04-saas-commercial-platform/52-scp-001-commercial-domain-model.md`:
+- Relatório `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/52-scp-001-commercial-domain-model.md`:
   histórico preservado; apenas nota de retificação anexada ao final.
 
 ## 8. Output das inspeções obrigatórias
@@ -115,8 +115,8 @@ a preservação).
 ## 11. Audit Package
 
 - **Status da implementação:** implementada, pronta para auditoria.
-- **Arquivos alterados:** `docs/delivery/phase-04-saas-commercial-platform/52-scp-001-commercial-domain-model.md`.
-- **Arquivos criados:** `docs/delivery/phase-04-saas-commercial-platform/53-scp-001-1-f4-0-accepted-status-final-cleanup.md`.
+- **Arquivos alterados:** `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/52-scp-001-commercial-domain-model.md`.
+- **Arquivos criados:** `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/53-scp-001-1-f4-0-accepted-status-final-cleanup.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
 - **RLS policies:** nenhuma.

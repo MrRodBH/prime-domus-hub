@@ -7,7 +7,7 @@ Ready for External Audit
 ## 1. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010.2-commercial-limit-dto-alignment-deterministic-documentation-finalization.md`
-- `docs/delivery/phase-04-saas-commercial-platform/90-scp-010-2-commercial-limit-dto-alignment-deterministic-documentation-finalization.md` (este relatório)
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/90-scp-010-2-commercial-limit-dto-alignment-deterministic-documentation-finalization.md` (este relatório)
 
 ## 2. Arquivos alterados
 

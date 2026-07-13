@@ -19,7 +19,7 @@ alteração em `tenant_members` ou início da SCP-007 foi produzido.
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/68-scp-006-commercial-feature-gate-server-runtime.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/68-scp-006-commercial-feature-gate-server-runtime.md` —
   bloco de status atualizado para `Accepted`; adicionada
   `## Acceptance Note` confirmando o escopo runtime aceito e
   reafirmando todas as restrições permanentes.
@@ -28,7 +28,7 @@ alteração em `tenant_members` ou início da SCP-007 foi produzido.
   SCP-006 marcada como `Accepted` na linha 10, SCP-007 apenas como
   próxima etapa a definir após aprovação arquitetural na linha 11, e
   restrições permanentes consolidadas para SCP-004, SCP-005 e SCP-006.
-- `docs/delivery/phase-04-saas-commercial-platform/69-scp-006-1-accepted-status-finalization-roadmap-gate-cleanup.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/69-scp-006-1-accepted-status-finalization-roadmap-gate-cleanup.md` —
   criado (este relatório).
 
 ## 3. Confirmações

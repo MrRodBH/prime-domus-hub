@@ -21,12 +21,12 @@ Etapa exclusivamente documental/governança.
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
   bloco `## Correction Note` atualizado para atribuir a consolidação
   final à SCP-005.4. Status permanece com heading único e linha única.
-- `docs/delivery/phase-04-saas-commercial-platform/65-scp-005-3-clean-section-replacement-status-block-deduplication.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/65-scp-005-3-clean-section-replacement-status-block-deduplication.md` —
   nota corretiva adicionada em `## Correction Note`.
-- `docs/delivery/phase-04-saas-commercial-platform/66-scp-005-4-status-block-hard-cleanup-final-evidence-snapshot.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/66-scp-005-4-status-block-hard-cleanup-final-evidence-snapshot.md` —
   criado (este relatório).
 
 ## 3. Confirmações

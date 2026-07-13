@@ -70,9 +70,9 @@ Aplicada substituição pontual `Ready for External Audit` → `Accepted`
 em:
 
 - `docs/architecture/impact-analysis/SCP-011.3.2-accepted-status-finalization-scp-012-authorization.md`
-- `docs/delivery/phase-04-saas-commercial-platform/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md`
 - `docs/architecture/impact-analysis/SCP-011.3.3-exact-status-token-cleanup-final-gate-closure.md`
-- `docs/delivery/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md`
 
 ### 3.2 Roadmap atualizado (bloco final)
 
@@ -99,14 +99,14 @@ runtime alterado.
 ## 5. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-012-commercial-seat-limit-atomic-enforcement-integration.md`
-- `docs/delivery/phase-04-saas-commercial-platform/105-scp-012-commercial-seat-limit-atomic-enforcement-integration.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/105-scp-012-commercial-seat-limit-atomic-enforcement-integration.md`
 
 ## 6. Arquivos alterados
 
 - `docs/architecture/impact-analysis/SCP-011.3.2-accepted-status-finalization-scp-012-authorization.md`
-- `docs/delivery/phase-04-saas-commercial-platform/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md`
 - `docs/architecture/impact-analysis/SCP-011.3.3-exact-status-token-cleanup-final-gate-closure.md`
-- `docs/delivery/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/104-scp-011-3-3-exact-status-token-cleanup-final-gate-closure.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 
 ## 7. Confirmações negativas

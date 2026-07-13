@@ -209,7 +209,7 @@ PluginRegistry, Bootstrap, `requireTenant`, `tenant-repository`,
 
 - **Criado:** `supabase/migrations/20260707-143044-*.sql` — `CREATE OR REPLACE`
   de `public.get_current_tenant_id()`.
-- **Criado:** `docs/delivery/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`
+- **Criado:** `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`
   (este relatório).
 
 Nenhum outro arquivo modificado.

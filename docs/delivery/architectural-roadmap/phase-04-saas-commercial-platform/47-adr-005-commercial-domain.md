@@ -19,15 +19,15 @@ ordem obrigatória definida em IA-006 §21 (aprovar IA-006 → ADR-005
 - `docs/architecture/ADR/ADR-004-WorkspaceRuntime.md`
 - `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
-- `docs/delivery/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`
-- `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
-- `docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
-- `docs/delivery/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
 
 ## 3. Arquivos criados
 
 - `docs/architecture/ADR/ADR-005-commercial-domain.md`
-- `docs/delivery/phase-04-saas-commercial-platform/47-adr-005-commercial-domain.md` (este relatório)
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/47-adr-005-commercial-domain.md` (este relatório)
 
 ## 4. Arquivos alterados
 
@@ -159,7 +159,7 @@ Não iniciar ADR-006 nem SCP-001 nesta etapa.
 - **Status da implementação:** Documental — ADR-005 emitida como
   *Proposed / Ready for External Audit*.
 - **Arquivos inspecionados:** ver §2.
-- **Arquivos criados:** `docs/architecture/ADR/ADR-005-commercial-domain.md`, `docs/delivery/phase-04-saas-commercial-platform/47-adr-005-commercial-domain.md`.
+- **Arquivos criados:** `docs/architecture/ADR/ADR-005-commercial-domain.md`, `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/47-adr-005-commercial-domain.md`.
 - **Arquivos alterados:** `docs/architecture/ADR/README.md` (índice).
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.

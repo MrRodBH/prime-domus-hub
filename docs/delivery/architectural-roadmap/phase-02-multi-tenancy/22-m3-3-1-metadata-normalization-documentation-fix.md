@@ -44,7 +44,7 @@ neste patch e no relatório da M3.3.
 
 **Criados**
 
-- `docs/delivery/phase-02-multi-tenancy/22-m3-3-1-metadata-normalization-documentation-fix.md` — este relatório.
+- `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/22-m3-3-1-metadata-normalization-documentation-fix.md` — este relatório.
 
 **Editados**
 
@@ -54,7 +54,7 @@ neste patch e no relatório da M3.3.
 - `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md` —
   seção "Status de execução das subetapas" reescrita, uma linha por
   subetapa, sem status contraditório.
-- `docs/delivery/phase-02-multi-tenancy/21-m3-3-legacy-file-migration.md` — reclassificação dos 22
+- `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/21-m3-3-legacy-file-migration.md` — reclassificação dos 22
   objetos, atualização das inconsistências para a nomenclatura refinada
   (`invalid_metadata`, `metadata_inconsistent`), nova seção 12.1 com a
   justificativa formal da exceção controlada `storage_migration_log`.

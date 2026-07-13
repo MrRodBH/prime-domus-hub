@@ -12,9 +12,9 @@ Etapa exclusivamente documental/governança. Sem código.
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — substituídas as linhas duplicadas de evidência de roadmap por linha única consolidada.
-- `docs/delivery/phase-04-saas-commercial-platform/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — adicionado `## Correction Note` reconhecendo o resíduo residual e a limpeza pela SCP-008.2.
-- `docs/delivery/phase-04-saas-commercial-platform/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` — este relatório.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — substituídas as linhas duplicadas de evidência de roadmap por linha única consolidada.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — adicionado `## Correction Note` reconhecendo o resíduo residual e a limpeza pela SCP-008.2.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` — este relatório.
 
 ## 3. Confirmações
 
@@ -52,8 +52,8 @@ Nenhuma das seguintes superfícies foi criada ou alterada nesta etapa:
 
 Executadas conforme briefing:
 
-- `rg -n "Roadmap: SCP-007" docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` → 1 ocorrência.
-- `rg -n "SCP-007 uma única vez como Accepted|SCP-007 aparece uma única vez como \`Accepted\`" docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` → apenas a redação consolidada.
+- `rg -n "Roadmap: SCP-007" docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` → 1 ocorrência.
+- `rg -n "SCP-007 uma única vez como Accepted|SCP-007 aparece uma única vez como \`Accepted\`" docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` → apenas a redação consolidada.
 - `rg -n "SCP-008 — próxima etapa|12\. SCP-008|13\. SCP-009|Implemented / Ready" docs/architecture/ROADMAP_ARCHITECTURAL.md` → SCP-008 aparece uma única vez na linha 12 como `Implemented / Ready for External Audit`; SCP-009 aparece uma única vez na linha 13 como próxima etapa futura; não existe linha residual `SCP-008 — próxima etapa`; não há duplicidade de numeração.
 
 ## 6. Próximo passo recomendado

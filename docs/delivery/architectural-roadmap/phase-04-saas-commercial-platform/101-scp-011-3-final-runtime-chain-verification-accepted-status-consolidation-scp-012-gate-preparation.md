@@ -14,7 +14,7 @@ enforcement, provider, webhook, checkout, frontend, roles ou
 - `SCP-011-...md` → `## Status` / `Ready for External Audit`.
 - `SCP-011.1-...md` → `## Status` / `Ready for External Audit`.
 - `SCP-011.2-...md` → `**Status:** Ready for External Audit` (não canônico).
-- `docs/delivery/phase-04-saas-commercial-platform/100-...md` → `**Status:** Ready for External Audit`.
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/100-...md` → `**Status:** Ready for External Audit`.
 - Roadmap linhas 176–179 com todos em `Ready for External Audit`;
   SCP-011.3 ausente.
 
@@ -77,14 +77,14 @@ Nenhum teste redundante adicionado.
 ## 7. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-011.3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md`
-- `docs/delivery/phase-04-saas-commercial-platform/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md`
 
 ## 8. Arquivos alterados
 
 - `docs/architecture/impact-analysis/SCP-011-commercial-seat-limit-server-runtime.md`
 - `docs/architecture/impact-analysis/SCP-011.1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md`
 - `docs/architecture/impact-analysis/SCP-011.2-limit-resolution-short-circuit-production-seat-usage-reader-test-lock.md`
-- `docs/delivery/phase-04-saas-commercial-platform/100-scp-011-2-limit-resolution-short-circuit-production-seat-usage-reader-test-lock.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/100-scp-011-2-limit-resolution-short-circuit-production-seat-usage-reader-test-lock.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 
 ## 9. Status anteriores e finais
@@ -122,8 +122,8 @@ docs/architecture/impact-analysis/SCP-011-commercial-seat-limit-server-runtime.m
 docs/architecture/impact-analysis/SCP-011.1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md
 docs/architecture/impact-analysis/SCP-011.2-limit-resolution-short-circuit-production-seat-usage-reader-test-lock.md
 docs/architecture/impact-analysis/SCP-011.3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md
-docs/delivery/phase-04-saas-commercial-platform/100-scp-011-2-limit-resolution-short-circuit-production-seat-usage-reader-test-lock.md
-docs/delivery/phase-04-saas-commercial-platform/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/100-scp-011-2-limit-resolution-short-circuit-production-seat-usage-reader-test-lock.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md
 ```
 
 ## 13. Confirmações negativas

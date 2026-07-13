@@ -135,9 +135,9 @@ Contagens de code fences (esperado: par em cada arquivo):
 
 ```
 docs/architecture/impact-analysis/SCP-012.0-...md         : 14
-docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-...md                            : 6
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-...md                            : 6
 docs/architecture/impact-analysis/SCP-012.0.1.1-...md     : par
-docs/delivery/phase-04-saas-commercial-platform/108-scp-012-0-1-1-...md                        : par
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/108-scp-012-0-1-1-...md                        : par
 ```
 
 Nenhum code fence desbalanceado.
@@ -164,14 +164,14 @@ esperado:
 
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
-docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
+docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
 ```
 
 Arquivos novos (untracked em `git status --short`):
 
 ```
 ?? docs/architecture/impact-analysis/SCP-012.0.1.1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md
-?? docs/delivery/phase-04-saas-commercial-platform/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md
+?? docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md
 ```
 
 `git diff --check`: sem whitespace errors.
@@ -191,12 +191,12 @@ aprovação integral da SCP-012.0.1.1.
 ## 10. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-012.0.1.1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md`
-- `docs/delivery/phase-04-saas-commercial-platform/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md`
 
 ## 11. Arquivos alterados
 
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
-- `docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
 
 ## 12. Confirmações negativas
 

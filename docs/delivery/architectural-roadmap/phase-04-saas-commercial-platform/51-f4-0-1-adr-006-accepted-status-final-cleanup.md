@@ -16,7 +16,7 @@ auditoria externa após F4.0:
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md`
   — adicionada nota de retificação F4.0.1 ao final; conteúdo
   histórico preservado.
 
@@ -29,7 +29,7 @@ duplicidade). Inspeções em §6 comprovam.
 
 ## 3. Arquivos criados
 
-- `docs/delivery/phase-04-saas-commercial-platform/51-f4-0-1-adr-006-accepted-status-final-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/51-f4-0-1-adr-006-accepted-status-final-cleanup.md`
   (este relatório).
 
 ## 4. Confirmação de não implementação funcional
@@ -128,8 +128,8 @@ Baseline preservada. Nenhum arquivo `src/` foi tocado.
 ## 11. Audit Package
 
 - **Status da implementação:** Documental corretiva concluída.
-- **Arquivos alterados:** `docs/delivery/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md` (nota de retificação).
-- **Arquivos criados:** `docs/delivery/phase-04-saas-commercial-platform/51-f4-0-1-adr-006-accepted-status-final-cleanup.md`.
+- **Arquivos alterados:** `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/50-f4-0-role-reconciliation-membership-role-audit.md` (nota de retificação).
+- **Arquivos criados:** `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/51-f4-0-1-adr-006-accepted-status-final-cleanup.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
 - **RLS policies:** nenhuma.

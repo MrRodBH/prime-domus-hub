@@ -4,8 +4,8 @@
 > produto durante todo o Bloco 4 (Product UX Refactor).
 >
 > Este checklist opera em conjunto com:
-> - `docs/delivery/product-ux-refactor/09-product-ux-contract.md` (contrato normativo)
-> - `docs/delivery/product-ux-refactor/09-bloco-4-plano-executivo.md` (contrato de escopo)
+> - `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-product-ux-contract.md` (contrato normativo)
+> - `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-plano-executivo.md` (contrato de escopo)
 >
 > **Nenhuma etapa do Bloco 4 (4.0 → 4.5) pode ser encerrada sem este
 > checklist integralmente preenchido**, com evidências objetivas
@@ -18,7 +18,7 @@
 ## Como usar
 
 1. Copiar este arquivo por etapa como
-   `docs/delivery/product-ux-refactor/09-bloco-4-etapa-<n>-ux-checklist.md`.
+   `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-etapa-<n>-ux-checklist.md`.
 2. Preencher **cada linha** com `PASS`, `FAIL` ou `N/A` acompanhado de
    evidência (arquivo, commit, screenshot, comando executado, print de
    busca semântica, etc.). Nunca deixar em branco.

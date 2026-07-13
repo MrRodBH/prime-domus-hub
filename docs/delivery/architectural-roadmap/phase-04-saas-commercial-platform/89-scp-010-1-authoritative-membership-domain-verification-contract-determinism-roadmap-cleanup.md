@@ -7,7 +7,7 @@ Ready for External Audit.
 ## 17.1 Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010.1-authoritative-membership-domain-verification-contract-determinism-roadmap-cleanup.md`
-- `docs/delivery/phase-04-saas-commercial-platform/89-scp-010-1-authoritative-membership-domain-verification-contract-determinism-roadmap-cleanup.md`
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/89-scp-010-1-authoritative-membership-domain-verification-contract-determinism-roadmap-cleanup.md`
 
 ## 17.2 Arquivos alterados
 

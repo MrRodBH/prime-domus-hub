@@ -15,7 +15,7 @@ O patch consolidou a entrada única da IA-004 com a redação precisa do estado 
 | Arquivo | Alteração |
 |---|---|
 | `docs/architecture/impact-analysis/README.md` | Ajuste redacional na única entrada oficial da IA-004 para refletir aprovação da M3.2 + Patch M3.2.1 e o status de auditoria da M3.4. |
-| `docs/delivery/phase-02-multi-tenancy/20-m3-4-1-ia-004-index-fix.md` | Criação deste relatório documental. |
+| `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/20-m3-4-1-ia-004-index-fix.md` | Criação deste relatório documental. |
 
 ---
 
@@ -30,7 +30,7 @@ Nenhuma entrada duplicada foi encontrada no estado atual do índice. O arquivo j
 A linha final consolidada no índice é:
 
 ```markdown
-- [IA-004 — Tenant Storage Isolation](../../architecture/impact-analysis/IA-004-TenantStorageIsolation.md) — 🟡 Em execução controlada · **M3 permanece BLOQUEADA para migração de legado** · M3.1 concluída ([`docs/delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md`](../../delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md)) · M3.2 + Patch M3.2.1 **aprovados** ([`docs/delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md`](../../delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md), [`docs/delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md`](../../delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md)) · **M3.4 implementada, aguardando auditoria/aprovação** ([`docs/delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md`](../../delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md)) · **M3.3 e M3.5 BLOCKED**
+- [IA-004 — Tenant Storage Isolation](../../architecture/impact-analysis/IA-004-TenantStorageIsolation.md) — 🟡 Em execução controlada · **M3 permanece BLOQUEADA para migração de legado** · M3.1 concluída ([`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md`](../../delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md)) · M3.2 + Patch M3.2.1 **aprovados** ([`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md`](../../delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md), [`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md`](../../delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md)) · **M3.4 implementada, aguardando auditoria/aprovação** ([`docs/delivery/architectural-roadmap/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md`](../../delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md)) · **M3.3 e M3.5 BLOCKED**
 ```
 
 ---

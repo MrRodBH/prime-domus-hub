@@ -112,7 +112,7 @@ antes e depois.
 ## 3. Product UX Compliance Checklist — Etapa 4.0
 
 Ver arquivo dedicado:
-`docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-0-ux-checklist.md`.
+`docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-etapa-4-0-ux-checklist.md`.
 
 Resultado consolidado: **PASS** em todos os itens aplicáveis a esta
 etapa (a etapa 4.0 não introduz novas superfícies visuais nem novos

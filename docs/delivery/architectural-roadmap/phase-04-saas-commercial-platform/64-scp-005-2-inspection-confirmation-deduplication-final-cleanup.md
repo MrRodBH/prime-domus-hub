@@ -18,12 +18,12 @@ canManageTenantBilling ou alteração em `tenant_members` foi produzido.
 
 ## 2. Arquivos alterados
 
-- `docs/delivery/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
   seção `## 16. Inspeções executadas` substituída integralmente pela
   versão final consolidada (três subseções: Roadmap, Ausência de
   implementação SQL operacional, Ausência de superfícies proibidas em
   runtime).
-- `docs/delivery/phase-04-saas-commercial-platform/64-scp-005-2-inspection-confirmation-deduplication-final-cleanup.md` —
+- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/64-scp-005-2-inspection-confirmation-deduplication-final-cleanup.md` —
   criado (este relatório).
 
 ## 3. Confirmações
