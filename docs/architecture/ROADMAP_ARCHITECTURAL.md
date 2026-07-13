@@ -63,7 +63,7 @@ Componentes e processos estabilizados na Fase 6:
 | IA-001 · Fase 2.2 — `requireTenant` middleware | ✔ Concluída |
 | IA-002 · Fase 2.3 — Client Impersonation Layer | ✔ **Concluída** |
 | IA-003 · RLS Policies (RESTRICTIVE por tenant) | 🟢 Aprovada em auditoria final |
-| M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/delivery/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`) |
+| M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`) |
 | IA-004 · Tenant Storage Isolation | ✔ **Concluída** (`impact-analysis/IA-004-TenantStorageIsolation.md`) — M3 concluída operacionalmente |
 
 #### Fase 2.3 — Client Impersonation Layer ✔
@@ -104,7 +104,7 @@ Componentes e processos estabilizados na Fase 6:
 ### ✅ Fase 3 — Membership Evolution Model — **Formalmente encerrada**
 
 Aprovada e encerrada após F3.7 — Fase 3 Closing Review
-(`docs/delivery/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`).
+(`docs/delivery/architectural-roadmap/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`).
 
 | Sub-etapa | Status |
 |---|---|
@@ -126,7 +126,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 - **Status:** Planejamento arquitetural iniciado via **IA-006** e
   corrigido via **IA-006.1**
   (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
+  `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
 - **Implementation Status:** `BLOCKED` — aguardando aprovação externa
   da IA-006/IA-006.1 antes de qualquer implementação.
 - **Fase 4 ainda não está em implementação funcional. SCP-001 ainda não
@@ -538,25 +538,37 @@ Constitution §7.
 
 Reorganização controlada do repositório documental do RM Prime SaaS,
 com eliminação do diretório legado de relatórios cronológicos e distribuição dos
-128 relatórios de execução em `docs/delivery/**`, agrupados por
-macrofase/iniciativa oficialmente registrada neste roadmap.
+128 relatórios de execução em `docs/delivery/**`, agrupados por namespace de
+roadmap e por macrofase/iniciativa oficialmente registrada.
 
 - **GA-08 — Documentation Repository Reorganization** — `In Progress`.
 - **GA-08.0 — Documentation Repository Structure Audit &
   Controlled Migration Plan** — `Accepted`.
 - **GA-08.1 — Documentation Repository Controlled Migration** —
-  `Ready for External Audit`.
+  `Accepted`.
 - **GA-08.1.1 — Governance Contract Consistency, Canonical Status &
-  Git Evidence Cleanup** — `Ready for External Audit`.
+  Git Evidence Cleanup** — `Accepted`.
+- **GA-08.1.2 — Documentation Roadmap Namespace & Phase Identity
+  Correction** — `Ready for External Audit`.
 - **GA-08.2 — Documentation Path Validation & CI Gate** — futura;
   não iniciada.
 
 Regras vinculantes desta etapa:
 
+- Os diretórios de delivery utilizam namespaces distintos:
+  `docs/delivery/product-roadmap/` (Product Roadmap) e
+  `docs/delivery/architectural-roadmap/` (Architectural Roadmap).
+- A `Product Roadmap · Fase 6 — Product UX Refactor (Experiência do
+  Produto)` é fase histórica preservada em
+  `docs/delivery/product-roadmap/phase-06-product-ux-refactor/`.
+- As `Architectural Roadmap · Fases 2, 3 e 4` vivem sob
+  `docs/delivery/architectural-roadmap/phase-02-multi-tenancy/`,
+  `.../phase-03-membership-evolution/` e
+  `.../phase-04-saas-commercial-platform/`.
+- Os números de fase dos dois roadmaps não formam uma sequência numérica
+  global única; toda nova referência deve declarar o namespace.
 - O antigo diretório cronológico de relatórios foi removido pela GA-08.1 e é
   proibido para novos documentos.
-- Novos relatórios devem ser classificados pela macrofase ou iniciativa
-  oficial registrada neste roadmap.
 - Nenhum status da cadeia SCP-012, SCP-012.0, SCP-012.0.1 ou
   SCP-012.0.1.1 foi alterado por esta etapa.
 

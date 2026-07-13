@@ -48,4 +48,4 @@ altera Resolution / Registry / Snapshot / Executor.
 ## References
 - Constituição §3.5, §5 (invariante 8), §6, §8 (G1–G5).
 - `src/components/workspace/plugins/*`
-- `docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-4-relatorio.md`
+- `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-etapa-4-4-relatorio.md`

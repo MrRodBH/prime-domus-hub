@@ -52,4 +52,4 @@ runtime.
 ## References
 - Constituição §3.3, §3.8, §4, §5 (invariantes 5–7).
 - `src/components/workspace/resolution/ResolutionGraph.ts`
-- `docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-3-4-relatorio.md`
+- `docs/delivery/product-roadmap/phase-06-product-ux-refactor/09-bloco-4-etapa-4-3-4-relatorio.md`
