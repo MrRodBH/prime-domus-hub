@@ -125,9 +125,9 @@ funcional; não é necessário para concluir esta etapa.
 
 ## 13. Inspeções executadas
 
-- `rg -n "tenant_role|TenantRole|isTenantAdminRole|isTenantOwnerRole|isTenantRole|assertTenantRole" src supabase docs/architecture docs/fase6`
-- `rg -n "has_role\(auth\.uid\(\), 'admin'\)|has_role\(auth\.uid\(\), \"admin\"\)" src supabase docs/architecture docs/fase6`
-- `rg -n "billing_admin|commercial_admin|canManageTenantBilling|billing admin|commercial admin" src supabase docs/architecture docs/fase6`
+- `rg -n "tenant_role|TenantRole|isTenantAdminRole|isTenantOwnerRole|isTenantRole|assertTenantRole" src supabase docs/architecture docs/delivery`
+- `rg -n "has_role\(auth\.uid\(\), 'admin'\)|has_role\(auth\.uid\(\), \"admin\"\)" src supabase docs/architecture docs/delivery`
+- `rg -n "billing_admin|commercial_admin|canManageTenantBilling|billing admin|commercial admin" src supabase docs/architecture docs/delivery`
 - `rg -n "tenant_role" src supabase` (usos restritos a
   type/helper/test/comentário/migration).
 - Queries §8.1–§8.5 do prompt via `psql` gerenciado.

@@ -184,7 +184,7 @@ O histórico apresenta duas denominações para a próxima macrofase:
 
 ## 10. Itens Não Executados Nesta Etapa
 
-- **GA-08 — Documentation Repository Reorganization:** não executada. Diretório `docs/fase6/` permanece como repositório cronológico provisório de relatórios.
+- **GA-08 — Documentation Repository Reorganization:** não executada. Diretório `docs/delivery` permanece como repositório cronológico provisório de relatórios.
 - **Upload Provenance Token:** não implementado.
 - **M3.3.2 — Metadata Rewrite Batch:** não implementado.
 - **Media Picker Return Contract Normalization:** não implementado.

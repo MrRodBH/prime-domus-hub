@@ -458,7 +458,7 @@ Uma implementação da Fase 3 só será considerada apta a iniciar quando:
 - [ ] Esta IA-005 aprovada em auditoria externa.
 - [ ] Sub-etapas planejadas em formato M-x (ex.: M4.1 schema, M4.2
   middleware, M4.3 SQL patch, M4.4 UI switcher, M4.5 billing prep).
-- [ ] Cada sub-etapa com relatório próprio em `docs/fase6/`.
+- [ ] Cada sub-etapa com relatório próprio em `docs/delivery`.
 - [ ] `tenant-middleware.spec.ts` e novos testes SQL cobrindo:
   seleção válida, seleção inválida, membership suspensa, tenant
   inexistente, impersonação vs seleção, cardinalidade 0/1/N.

@@ -311,7 +311,7 @@ autorizado (fora do escopo deste patch).
 
 **Para GA-08 — Documentation Repository Reorganization**
 
-- Novos documentos em `docs/fase6/*` seguem o padrão sequencial; convite
+- Novos documentos em `docs/delivery` seguem o padrão sequencial; convite
   explícito para consolidação futura na reorganização.
 
 **Riscos residuais do próprio Patch M3.3.1**

@@ -286,7 +286,7 @@ Justificativa:
 
 **Para GA-08 — Documentation Repository Reorganization**
 
-- Novos documentos em `docs/fase6/*` seguem o padrão sequencial; convite explícito para consolidação futura na reorganização.
+- Novos documentos em `docs/delivery` seguem o padrão sequencial; convite explícito para consolidação futura na reorganização.
 
 **Riscos residuais da própria M3.3**
 
