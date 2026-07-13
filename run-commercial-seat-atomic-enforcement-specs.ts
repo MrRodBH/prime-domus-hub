@@ -511,7 +511,15 @@ async function main() {
     }
     for (const uid of createdAuthUsers) {
       const { data, error } = await admin.auth.admin.getUserById(uid);
-      if (!error && data.user) cleanupErrors.push(`residual auth ${uid}`);
+      if (!error && data?.user) {
+        cleanupErrors.push(`residual auth user ${uid}`);
+      } else if (error && isCanonicalAuthUserNotFoundError(error)) {
+        // deletion proved: canonical AuthApiError { status:404, code:'user_not_found' }
+      } else if (error) {
+        cleanupErrors.push(`auth residual verification failed for ${uid}: ${error.message}`);
+      } else {
+        cleanupErrors.push(`auth residual verification returned an invalid empty response for ${uid}`);
+      }
     }
     if (cleanupErrors.length) cleanupError = cleanupErrors.join(" | ");
   }
