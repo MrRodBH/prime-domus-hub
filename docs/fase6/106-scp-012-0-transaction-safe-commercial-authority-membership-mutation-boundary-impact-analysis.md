@@ -94,20 +94,50 @@ compatibilidade, segurança, testabilidade, rollback, operabilidade) em
 
 ## 8. Decisão recomendada
 
-**A + C parcial**: SQL como autoridade única, invocada pela server
-function autorizada dentro da mesma transação da mutation, sem
-introduzir conexão paralela. Estratégia B rejeitada por introduzir
-staleness e dual authority por construção.
+**Estratégia A — SQL/Postgres como autoridade comercial canônica
+única**, exposta somente por primitive RPC server-side restrita. A
+Estratégia C (conexão Postgres direta / transaction callback
+multi-statement em TypeScript) **não é selecionada**. A transação da
+mutation ocorre integralmente dentro da função Postgres invocada como
+RPC única. PostgREST/RPC permanece como superfície de chamada; não
+existe pool ou conexão Postgres direta adicional. Estratégia B
+rejeitada por introduzir staleness e dual authority por construção.
 
-## 9. Sequenciamento proposto
+Auditoria externa da SCP-012.0 apontou inconsistências corrigidas na
+SCP-012.0.1:
+
+- matriz de paridade utilizava razões inventadas
+  (`feature_not_cataloged`, `limit_unavailable`, `limit_invalid`,
+  `within_limit`, `allowed` como reason) — corrigidas para os valores
+  canônicos do DTO `CommercialLimitDecision`;
+- `billing_attention_required` estava documentado como "avaliado
+  normalmente" — corrigido para short-circuit sem leitura de
+  `tenant_members`, propagação exata da razão e
+  `limit`/`used`/`remaining` = `null`;
+- recomendação anterior "A + C parcial" — reclassificada como
+  Estratégia A pura (SQL/RPC), sem conexão direta;
+- sequenciamento anterior mantinha materialização SQL sem cutover em
+  etapa separada da delegação — substituído por SCP-012.0.2 atômica
+  (materialização + delegação + remoção do caminho TS independente no
+  mesmo conjunto de mudanças);
+- roadmap deduplicado.
+
+Detalhes na SCP-012.0.1.
+
+## 9. Sequenciamento proposto (final consolidado)
 
 1. SCP-012.0 — Impact Analysis (esta etapa).
-2. SCP-012.0.1 — Transaction-Safe Commercial Authority Materialization.
-3. SCP-012.0.2 — Runtime Delegation & Semantic Parity Lock.
-4. SCP-012.0.3 — Membership Mutation Boundary Planning/Materialization.
+2. SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover
+   Sequencing & Roadmap Cleanup.
+3. SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization
+   & Atomic Runtime Cutover (materialização + suíte de paridade +
+   delegação + remoção/desativação do caminho TS independente, tudo
+   num único conjunto auditável).
+4. SCP-012.0.3 — Membership Mutation Boundary Planning &
+   Materialization.
 5. SCP-012 — Atomic Enforcement Integration.
 
-Sem período de dual authority.
+Sem período persistido de dual authority em produção.
 
 ## 10. Arquivos criados
 
@@ -116,9 +146,8 @@ Sem período de dual authority.
 
 ## 11. Arquivos alterados
 
-- `docs/architecture/ROADMAP_ARCHITECTURAL.md` (linhas 181–184: promoção
-  de SCP-011.3.2 e SCP-011.3.3 para `Accepted` já vigente; substituição
-  integral da linha 16.0 antiga por SCP-012.0 — Impact Analysis).
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md` (bloco 16/16.0/16.0.1
+  consolidado pela SCP-012.0.1).
 
 ## 12. Bloco final do roadmap aplicado
 
@@ -127,10 +156,12 @@ Sem período de dual authority.
 15.3.3 SCP-011.3.3 — Exact Status Token Cleanup & Final Gate Closure — Accepted.
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: architectural prerequisites required.
 16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Ready for External Audit.
+16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Ready for External Audit.
 ```
 
-A antiga linha `16.0 SCP-012.0 — Transaction-Safe Commercial Resolver
-Materialization` foi substituída integralmente.
+As antigas linhas `Transaction-Safe Commercial Resolver
+Materialization` e `transaction-safe commercial authority unavailable`
+foram substituídas integralmente.
 
 ## 13. Escopo alterado
 
