@@ -11,6 +11,8 @@ import { runCommercialFeatureCatalogSpecs } from "./src/integrations/supabase/__
 import { runCommercialSeatLimitSpecs } from "./src/integrations/supabase/__tests__/commercial-seat-limit.spec";
 import { runCommercialSeatRpcContractSpecs } from "./src/integrations/supabase/__tests__/commercial-seat-rpc-contract.spec";
 import { runCommercialContextSelectionSpecs } from "./src/integrations/supabase/__tests__/commercial-context-selection.spec";
+import { runMembershipMutationInputSpecs } from "./src/integrations/supabase/__tests__/membership-mutation-input.spec";
+
 
 
 async function main() {
@@ -26,6 +28,8 @@ async function main() {
     ["commercial-seat-limit", runCommercialSeatLimitSpecs],
     ["commercial-seat-rpc-contract", runCommercialSeatRpcContractSpecs],
     ["commercial-context-selection", runCommercialContextSelectionSpecs],
+    ["membership-mutation-input", runMembershipMutationInputSpecs],
+
 
   ];
   let totalPass = 0;
