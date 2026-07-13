@@ -152,6 +152,19 @@ function expect(cond: unknown, msg: string): asserts cond {
 }
 
 /**
+ * Canonical shape of `admin.auth.admin.getUserById(uid)` when the user does
+ * not exist, as returned by @supabase/supabase-js against real GoTrue:
+ *   { name: "AuthApiError", status: 404, code: "user_not_found", ... }.
+ * Any other error (network, auth, server, unexpected shape) must fail the
+ * cleanup — not silently be interpreted as proof of deletion.
+ */
+function isCanonicalAuthUserNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { name?: unknown; status?: unknown; code?: unknown };
+  return e.name === "AuthApiError" && e.status === 404 && e.code === "user_not_found";
+}
+
+/**
  * Validates that a raw Supabase error object corresponds to a real
  * commercial_seat_limit_denied denial with the canonical error contract
  * (message, ERRCODE=P0001, DETAIL carrying a valid CommercialLimitDecision).
@@ -298,8 +311,10 @@ async function main() {
         _target_user_id: t, _target_role: "viewer",
       });
       validateRealCommercialDenial(error, ctx.tenantId, "limit_reached");
-      const { data } = await admin.from("tenant_members" as Any)
+      const { data, error: verificationError } = await admin.from("tenant_members" as Any)
         .select("membership_status").eq("tenant_id", ctx.tenantId).eq("user_id", t);
+      expect(!verificationError,
+        `scenario E rollback verification query failed: ${verificationError?.message}`);
       expect(((data as Any[]) ?? []).length === 0, `residual row ${JSON.stringify(data)}`);
     });
 
@@ -333,8 +348,10 @@ async function main() {
         _target_user_id: t,
       });
       validateRealCommercialDenial(rErr, ctx.tenantId, "limit_reached");
-      const { data } = await admin.from("tenant_members" as Any)
+      const { data, error: verificationError } = await admin.from("tenant_members" as Any)
         .select("membership_status, suspended_at").eq("tenant_id", ctx.tenantId).eq("user_id", t).single();
+      expect(!verificationError,
+        `scenario F rollback verification query failed: ${verificationError?.message}`);
       expect((data as Any)?.membership_status === "suspended", `still suspended? ${JSON.stringify(data)}`);
       expect((data as Any)?.suspended_at !== null, `suspended_at nulled`);
     });
@@ -444,8 +461,10 @@ async function main() {
       expect(err.decision.reason === "limit_reached", `reason ${err.decision.reason}`);
       expect(err.decision.tenantId === ctx.tenantId, "tenantId");
       expect(err.decision.requestedIncrement === 1, "requestedIncrement");
-      const { data } = await admin.from("tenant_members" as Any)
+      const { data, error: verificationError } = await admin.from("tenant_members" as Any)
         .select("membership_status").eq("tenant_id", ctx.tenantId).eq("user_id", t);
+      expect(!verificationError,
+        `scenario J rollback verification query failed: ${verificationError?.message}`);
       expect(((data as Any[]) ?? []).length === 0, `residual row after boundary denial ${JSON.stringify(data)}`);
     });
   } finally {
@@ -492,7 +511,15 @@ async function main() {
     }
     for (const uid of createdAuthUsers) {
       const { data, error } = await admin.auth.admin.getUserById(uid);
-      if (!error && data.user) cleanupErrors.push(`residual auth ${uid}`);
+      if (!error && data?.user) {
+        cleanupErrors.push(`residual auth user ${uid}`);
+      } else if (error && isCanonicalAuthUserNotFoundError(error)) {
+        // deletion proved: canonical AuthApiError { status:404, code:'user_not_found' }
+      } else if (error) {
+        cleanupErrors.push(`auth residual verification failed for ${uid}: ${error.message}`);
+      } else {
+        cleanupErrors.push(`auth residual verification returned an invalid empty response for ${uid}`);
+      }
     }
     if (cleanupErrors.length) cleanupError = cleanupErrors.join(" | ");
   }

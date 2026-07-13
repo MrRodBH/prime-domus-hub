@@ -247,11 +247,23 @@ fail-closed executa verificação residual explícita para
 `tenant_members`, `tenant_subscriptions`, `tenant_entitlements`,
 `tenants`, `commercial_plan_entitlements`, `commercial_plans` e
 `auth.users`, e trata erro de consulta residual como falha do cleanup
-(nunca como comprovação de ausência). O runner de membership
+(nunca como comprovação de ausência). Adicionalmente, os cenários E,
+F e J verificam explicitamente o erro da consulta de rollback contra
+`public.tenant_members`: uma falha de leitura nunca comprova ausência
+de membership; o cenário só declara rollback quando a consulta tem
+sucesso e retorna zero linhas (E, J) ou o snapshot esperado (F,
+`suspended` com `suspended_at` não nulo). A verificação de ausência
+em `auth.users` foi endurecida via helper local
+`isCanonicalAuthUserNotFoundError`, que aceita apenas a resposta
+canônica de `@supabase/supabase-js` (`AuthApiError`, `status = 404`,
+`code = "user_not_found"`); qualquer outro erro — rede, autenticação,
+autorização, servidor ou shape inesperado — falha o cleanup, assim
+como uma resposta sem erro e sem `data.user`. O runner de membership
 (`run-membership-mutation-parity-specs.ts`) executa 14 cenários com
 verificação residual equivalente, agora incluindo
-`commercial_plan_entitlements` por `plan_id`. O parser unitário
-possui 14 casos (13 originais + a asserção de rejeição de substring).
+`commercial_plan_entitlements` por `plan_id` e a mesma
+classificação canônica para `auth.users`. O parser unitário possui
+14 casos (13 originais + a asserção de rejeição de substring).
 
 ## 13. Confirmações negativas
 
