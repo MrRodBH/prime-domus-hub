@@ -413,6 +413,41 @@ async function main() {
       expect(!error, `no-op reactivate should not be denied, got ${(error as Any)?.message}`);
       expect((data as Any).changed === false, `changed=false`);
     });
+
+    // -------------------- Scenario J: real boundary conversion --------------------
+    await run("J. server boundary converts real RPC denial into CommercialSeatLimitDeniedError", async () => {
+      const ctx = await provisionTenant(1, 0); // owner=1, limit=1 → 0 free
+      const t = await createAuthUser("J");
+      let thrown: unknown = null;
+      try {
+        await executeMembershipMutation(
+          {
+            actorUserId: ctx.ownerId,
+            tenantId: ctx.tenantId,
+            tenantOrigin: "single-membership",
+          },
+          {
+            operation: "create_membership",
+            targetUserId: t,
+            targetRole: "viewer",
+          },
+        );
+      } catch (e) {
+        thrown = e;
+      }
+      expect(thrown instanceof CommercialSeatLimitDeniedError,
+        `expected CommercialSeatLimitDeniedError, got ${thrown instanceof Error ? thrown.name + ": " + thrown.message : JSON.stringify(thrown)}`);
+      const err = thrown as CommercialSeatLimitDeniedError;
+      expect(err.code === "commercial_seat_limit_denied", `code ${err.code}`);
+      expect(err.message === "commercial_seat_limit_denied", `message ${err.message}`);
+      expect(err.decision.allowed === false, "allowed");
+      expect(err.decision.reason === "limit_reached", `reason ${err.decision.reason}`);
+      expect(err.decision.tenantId === ctx.tenantId, "tenantId");
+      expect(err.decision.requestedIncrement === 1, "requestedIncrement");
+      const { data } = await admin.from("tenant_members" as Any)
+        .select("membership_status").eq("tenant_id", ctx.tenantId).eq("user_id", t);
+      expect(((data as Any[]) ?? []).length === 0, `residual row after boundary denial ${JSON.stringify(data)}`);
+    });
   } finally {
     const cleanupErrors: string[] = [];
     // memberships + subscriptions + entitlements + tenants
