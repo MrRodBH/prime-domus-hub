@@ -202,13 +202,14 @@ mudança de runtime desta etapa é a substituição da função interna
 
 ```
 16.0.1.3.1.1 SCP-012.0.1.3.1.1 — Accepted.
-16.0.2       SCP-012.0.2       — Blocked: awaiting SCP-012.0.2.1 acceptance.
-16.0.2.1     SCP-012.0.2.1     — Blocked: awaiting SCP-012.0.2.2 acceptance.
-16.0.2.2     SCP-012.0.2.2     — Blocked: §19 stop condition triggered (see report 116).
-16           SCP-012           — Blocked.
+16.0.2       SCP-012.0.2       — Accepted.
+16.0.2.1     SCP-012.0.2.1     — Accepted.
+16.0.2.2     SCP-012.0.2.2     — Accepted with documented non-blocking test coverage limitation.
+16.0.3       SCP-012.0.3       — Authorized next step; not started.
+16           SCP-012           — Blocked: awaiting SCP-012.0.3 acceptance.
 ```
 
-SCP-012.0.3 **não autorizada**.
+SCP-012.0.3 está **autorizada documentalmente** como próxima etapa; **não** foi iniciada nesta execução. SCP-012 permanece **Blocked**.
 
 ## Confirmações negativas
 
