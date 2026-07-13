@@ -1,0 +1,89 @@
+# 118 — SCP-012 — Commercial Seat Limit Atomic Enforcement Integration
+
+**Status:** Ready for External Audit
+**Phase:** 04 — SaaS Commercial Platform
+
+Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-limit-atomic-enforcement-integration.md`](../../../architecture/impact-analysis/SCP-012-commercial-seat-limit-atomic-enforcement-integration.md).
+
+## Escopo materializado
+
+- `CREATE OR REPLACE FUNCTION public.mutate_tenant_membership(...)` — a
+  primitive canônica de mutation passa a executar, dentro de uma única
+  transação PostgreSQL: (a) lock canônico `SELECT id FROM public.tenants
+  WHERE id = _tenant_id FOR UPDATE`; (b) revalidação do Trusted Actor
+  Context; (c) validação e proteção de owner; (d) planejamento integral
+  da transição; (e) classificação server-side do seat delta; (f) para
+  delta +1, chamada a `resolve_commercial_seat_decision(actor, tenant,
+  origin, 1)`; (g) rollback determinístico via `commercial_seat_limit_denied`
+  carregando `CommercialLimitDecision` em `DETAIL`; (h) DML após
+  enforcement; (i) DTO whitelisted inalterado.
+- Reclosure fail-closed da ACL de `mutate_tenant_membership` e
+  `resolve_commercial_seat_decision` na mesma migration, com assertion
+  dinâmica (`pg_proc` + `aclexplode` + `pg_roles`) que aborta caso
+  qualquer *grantee* fora de function owner + service_role possua
+  EXECUTE.
+- Parser server-only-adjacent
+  (`src/lib/api/commercial/membership-mutation-enforcement-error.ts`)
+  reconhece exclusivamente a mensagem canônica, exige DETAIL presente,
+  parseável e semanticamente coerente via `validateSeatDecisionResponse`,
+  e lança `CommercialSeatLimitDeniedError` com decisão validada.
+- Boundary TypeScript
+  (`src/lib/api/commercial/membership-mutation-boundary.server.ts`)
+  preserva chamada única a `mutate_tenant_membership` via
+  `supabaseAdmin` e passa a converter apenas o erro canônico em
+  `CommercialSeatLimitDeniedError`. Zero fallback. Zero segunda escrita.
+- Harness atualizado
+  (`run-membership-mutation-parity-specs.ts`) — passa a criar plano
+  sintético + subscription active + entitlement `users.seats = 100`,
+  com cleanup fail-closed para todas as tabelas comerciais. 14 cenários
+  originais preservados.
+- Runner de enforcement + concorrência
+  (`run-commercial-seat-atomic-enforcement-specs.ts`) — 9 cenários
+  reais contra PostgreSQL, com clientes service_role independentes e
+  `Promise.all`.
+- Testes unitários — 13 casos em
+  `src/integrations/supabase/__tests__/commercial-seat-limit-denied-parser.spec.ts`.
+
+## Validações executadas
+
+- `bunx tsc --noEmit -p tsconfig.json` → exit 0.
+- `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` → 232 passed, 0 failed.
+- `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` → 14 passed, 0 failed.
+- `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` → 9 passed, 0 failed.
+- `git diff --check` → clean.
+- ACL efetiva: `has_function_privilege` = `false` para anon,
+  authenticated e sandbox_exec; `true` apenas para service_role. Owner
+  + service_role únicos EXECUTE presentes em `aclexplode`.
+- `tenant_members`: `authenticated` mantém apenas SELECT; anon sem
+  privilégios; nenhuma mudança nesta etapa.
+
+## Ausências declaradas
+
+- Zero UI, frontend, rota nova, invitation flow, criação de `auth.users`
+  no runtime de produto.
+- Zero DELETE físico, zero owner mutation, zero segunda RPC, zero
+  fallback TypeScript, zero enforcement após mutation, zero
+  compensating transaction, zero snapshot ou reservation table.
+- Zero grant de escrita a `authenticated`, zero policy RLS permissiva
+  criada, zero acesso direto do browser à RPC.
+- Zero segundo resolver comercial. Zero recomputo de decisão comercial
+  em TypeScript. Zero override de `requestedIncrement` a partir do
+  client — sempre literal `1` dentro da RPC.
+- Zero mudança em provider adapters (Stripe / Hotmart / Kiwify), zero
+  checkout, zero customer portal, zero webhook, zero upgrade/downgrade
+  de plano.
+
+## Roadmap final desta etapa
+
+```
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration —
+Ready for External Audit.
+
+16.0   SCP-012.0   — Accepted.
+16.0.1 SCP-012.0.1 — Accepted.
+16.0.2 SCP-012.0.2 — Accepted.
+16.0.3 SCP-012.0.3 — Accepted.
+```
+
+F4-CF-01 permanece como checkpoint planejado após a aceitação da
+SCP-012 e antes do fechamento formal da Fase 4.
