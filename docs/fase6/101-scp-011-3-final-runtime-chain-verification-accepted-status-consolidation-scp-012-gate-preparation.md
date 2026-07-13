@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 **Escopo:** verificação final documental + normalização de Status.
 Nenhuma alteração de runtime, schema, RLS, grants, mutations,
