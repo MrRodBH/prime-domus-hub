@@ -42,11 +42,12 @@ import {
   normalizeCommercialSeatLimitInput,
   type CommercialLimitDecision,
 } from "./limit-decision";
-import {
-  defaultEvaluateCatalogGate,
-  resolveCommercialSeatLimitDecision,
-} from "./seat-limit-runtime";
-import { readCommercialSeatUsage } from "./seat-usage-reader";
+// SCP-012.0.2 — The TypeScript seat-limit orchestrator and reader are
+// no longer part of the production seat-limit path. They remain
+// available to the commercial-seat-limit specs (parity harness) and to
+// any future non-production consumer, but the runtime server function
+// below invokes the SQL RPC exclusively (§14/§15 — no dual authority).
+
 
 
 // Priority order when several subscriptions exist for a tenant — the
@@ -399,73 +400,154 @@ async function loadTenantCommercialContext(
 }
 
 // -----------------------------------------------------------------
-// 6) SCP-011 / SCP-011.1 — Commercial Seat Limit Server Runtime
+// 6) SCP-012.0.2 — Commercial Seat Limit Runtime Cutover to SQL Authority
 //
-// Read-only, server-side, quantitative decision surface for the fixed
-// feature key `users.seats`. Never accepts tenantId / featureKey /
-// used / limit / remaining / source / billing status / membership
-// count / currentSeats from the client. The feature key is fixed
-// server-side, and the input is validated with a strict boundary
-// (SCP-011.1 §6).
+// The runtime authority for CommercialLimitDecision(users.seats) is
+// now the SQL function public.resolve_commercial_seat_decision.
 //
-// Runtime is delegated to `resolveCommercialSeatLimitDecision` (see
-// ./seat-limit-runtime). That module is what the specs exercise —
-// production and tests share the exact same orchestration.
-//
-// Hard boundaries preserved from SCP-010.x / SCP-011 / SCP-011.1:
-//   • requireTenant is mandatory (server-side tenant resolution);
-//   • Super Admin without impersonation is rejected by requireTenant
-//     itself (no bypass, no client-selected tenant);
-//   • Super Admin impersonating is subject to the same limit;
-//   • catalog gate runs BEFORE any commercial context load or
-//     tenant_members read (SCP-011.1 §5);
-//   • CommercialFeatureDecision precedes CommercialLimitDecision;
-//   • no dual-path — reuses loadTenantCommercialContext + read-model
-//     helpers to obtain the seat limit value;
-//   • used is a server-side COUNT over public.tenant_members with
-//     membership_status IN ('active','invited');
-//   • no mutation, no lock, no reservation, no enforcement, no
-//     provider call, no webhook, no admin surface.
+// Preserved boundaries:
+//   • requireTenant remains the sole tenant/membership authority;
+//   • Trusted Actor Context (actorUserId, tenantId, tenantOrigin) is
+//     derived server-side and never accepted from the public payload;
+//   • the RPC is service_role-only (REVOKE anon/authenticated + GRANT
+//     service_role) — invocation goes through supabaseAdmin;
+//   • no client fallback: an RPC error / invalid response is a
+//     deterministic failure — the legacy TypeScript evaluator MUST NOT
+//     recompute the decision. SCP-012.0.2 §15.
 // -----------------------------------------------------------------
+
+// ============================================================
+// RPC response validator — SCP-012.0.2 §16.
+//
+// Enforces DTO shape and closed enums. Rejects unknown fields, tenant
+// mismatch, feature-key mismatch, requestedIncrement mismatch, invalid
+// numbers, and structural incoherence. Pure — no I/O.
+// ============================================================
+
+const SEAT_ALLOWED_REASONS: ReadonlySet<string> = new Set([
+  "entitled",
+  "not_entitled",
+  "limit_reached",
+  "billing_unknown",
+  "billing_attention_required",
+  "billing_blocked",
+  "not_evaluated",
+]);
+
+const SEAT_ALLOWED_SOURCES: ReadonlySet<string> = new Set([
+  "tenant",
+  "plan",
+  "default",
+  "none",
+]);
+
+const SEAT_ALLOWED_KEYS: ReadonlySet<string> = new Set([
+  "tenantId",
+  "featureKey",
+  "allowed",
+  "reason",
+  "source",
+  "limit",
+  "used",
+  "requestedIncrement",
+  "remaining",
+]);
+
+function isCommercialIntegerOrNull(v: unknown): v is number | null {
+  if (v === null) return true;
+  return (
+    typeof v === "number" &&
+    Number.isFinite(v) &&
+    Number.isInteger(v) &&
+    v >= 0 &&
+    v <= Number.MAX_SAFE_INTEGER
+  );
+}
+
+function validateSeatDecisionResponse(
+  raw: unknown,
+  expectedTenantId: string,
+  expectedIncrement: number,
+): CommercialLimitDecision {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("Invalid RPC response");
+  }
+  const r = raw as Record<string, unknown>;
+  for (const k of Object.keys(r)) {
+    if (!SEAT_ALLOWED_KEYS.has(k)) throw new Error(`Unexpected field: ${k}`);
+  }
+  if (typeof r.tenantId !== "string" || r.tenantId.length === 0) {
+    throw new Error("Invalid tenantId");
+  }
+  if (r.tenantId !== expectedTenantId) throw new Error("Tenant mismatch");
+  if (r.featureKey !== "users.seats") throw new Error("Feature key mismatch");
+  if (typeof r.allowed !== "boolean") throw new Error("Invalid allowed");
+  if (typeof r.reason !== "string" || !SEAT_ALLOWED_REASONS.has(r.reason)) {
+    throw new Error("Invalid reason");
+  }
+  if (typeof r.source !== "string" || !SEAT_ALLOWED_SOURCES.has(r.source)) {
+    throw new Error("Invalid source");
+  }
+  if (!isCommercialIntegerOrNull(r.limit)) throw new Error("Invalid limit");
+  if (!isCommercialIntegerOrNull(r.used)) throw new Error("Invalid used");
+  if (!isCommercialIntegerOrNull(r.remaining)) {
+    throw new Error("Invalid remaining");
+  }
+  if (r.requestedIncrement !== expectedIncrement) {
+    throw new Error("Invalid requestedIncrement");
+  }
+  // Structural coherence
+  if (r.allowed === true && r.reason !== "entitled") {
+    throw new Error("Incoherent allowed/reason");
+  }
+  if (r.reason === "entitled") {
+    if (r.limit === null || r.used === null || r.remaining === null) {
+      throw new Error("Incoherent entitled response");
+    }
+    if (r.source === "none") throw new Error("Incoherent entitled source");
+  }
+  if (r.reason === "limit_reached") {
+    if (r.limit === null || r.used === null || r.remaining !== 0) {
+      throw new Error("Incoherent limit_reached response");
+    }
+  }
+  return {
+    tenantId: r.tenantId,
+    featureKey: r.featureKey,
+    allowed: r.allowed,
+    reason: r.reason as CommercialLimitDecision["reason"],
+    source: r.source as CommercialLimitDecision["source"],
+    limit: r.limit as number | null,
+    used: r.used as number | null,
+    requestedIncrement: r.requestedIncrement as number,
+    remaining: r.remaining as number | null,
+  };
+}
+
 export const getCommercialSeatLimitDecision = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((data: unknown) => normalizeCommercialSeatLimitInput(data))
   .handler(async ({ context, data }): Promise<CommercialLimitDecision> => {
     const tenantId = context.tenant.tenantId;
+    const actorUserId = context.tenant.userId;
+    const tenantOrigin = context.tenant.origin;
     const requestedIncrement = data.requestedIncrement;
 
-    // SCP-011.2 §6 — shared lazy admin loader. loadAdmin() is only
-    // invoked when a downstream dep actually needs the admin client:
-    //   • catalog gate negative → getAdmin never called;
-    //   • feature decision negative → readSeatUsage never called;
-    //   • feature positive + limit ausente/inválido → readSeatUsage
-    //     nunca chamado (short-circuit em seat-limit-runtime).
-    let adminPromise: ReturnType<typeof loadAdmin> | null = null;
-    const getAdmin = () => {
-      adminPromise ??= loadAdmin();
-      return adminPromise;
-    };
-
-    return resolveCommercialSeatLimitDecision({
-      tenantId,
-      requestedIncrement,
-      deps: {
-        evaluateCatalogGate: defaultEvaluateCatalogGate,
-        loadCommercialContext: async (tid) => {
-          const admin = await getAdmin();
-          return loadTenantCommercialContext(admin, tid);
-        },
-        // SCP-011.2 §5/§6 — the ONE authoritative production reader.
-        // The specs import readCommercialSeatUsage directly, so runtime
-        // and tests exercise the exact same implementation.
-        readSeatUsage: async (tid) => {
-          const admin = await getAdmin();
-          return readCommercialSeatUsage(
-            admin as unknown as Parameters<typeof readCommercialSeatUsage>[0],
-            tid,
-          );
-        },
+    const admin = await loadAdmin();
+    const { data: rpcData, error } = await admin.rpc(
+      "resolve_commercial_seat_decision",
+      {
+        _actor_user_id: actorUserId,
+        _tenant_id: tenantId,
+        _tenant_origin: tenantOrigin,
+        _requested_increment: requestedIncrement,
       },
-    });
+    );
+    if (error) {
+      // SCP-012.0.2 §15 — no fallback. Fail deterministically.
+      throw new Error(`Commercial seat decision RPC failed: ${error.message}`);
+    }
+    return validateSeatDecisionResponse(rpcData, tenantId, requestedIncrement);
   });
+
 
