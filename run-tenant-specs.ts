@@ -30,6 +30,7 @@ async function main() {
     ["commercial-seat-rpc-contract", runCommercialSeatRpcContractSpecs],
     ["commercial-context-selection", runCommercialContextSelectionSpecs],
     ["membership-mutation-input", runMembershipMutationInputSpecs],
+    ["commercial-seat-limit-denied-parser", runCommercialSeatLimitDeniedParserSpecs],
 
 
   ];
