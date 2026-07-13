@@ -239,19 +239,24 @@ SCP-012.0.3.
 - zero fixture criada / zero fixture residual;
 - zero auth.users temporário criado nesta execução.
 
-## Riscos ou limitações reais
+## Limitações não bloqueantes
 
-1. **Bloqueio estrutural** — widening numérico e política de negativos
-   em `tenant_entitlements` / `commercial_plan_entitlements` são
-   pré-requisitos para SCP-012.0.2.2 completa.
-2. **ACL sandbox re-grant** — reconhecido; migration fail-closed
-   garante o estado no ato do commit.
-3. **Harness service-role a materializar** em etapa posterior à
-   remoção do bloqueio.
-4. **Auditoria externa** deve deliberar se a SCP-012.0.2.3 (Entitlement
-   Numeric Column Widening) precede SCP-012.0.2.2 completa, ou se a
-   SCP-012.0.2.2 aceita subconjunto documentado (não recomendado pela
-   própria especificação §19).
+1. O harness automatizado service-role de paridade SQL × TypeScript não
+   foi integralmente materializado nesta etapa. Sua revisão abrangente
+   foi transferida para F4-CF-01.
+
+2. Processos administrativos externos ao repositório podem conceder
+   novamente privilégios no ambiente gerenciado. A migration
+   fail-closed garante o estado no momento de sua aplicação; a
+   verificação periódica da ACL deverá integrar F4-CF-01.
+
+3. Os limites negativos permanecem proibidos pelas constraints e os
+   tipos numéricos persistidos permanecem inalterados. Isso é uma
+   decisão final do domínio atual, não um bloqueio estrutural.
+
+4. SCP-012.0.2.3 não foi criada e não é necessária.
+
+5. Nenhuma dessas limitações impede o início da SCP-012.0.3.
 
 ## HEAD final
 

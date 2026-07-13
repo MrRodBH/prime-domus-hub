@@ -145,16 +145,18 @@ SCP-012.0.3 está autorizada documentalmente como próxima etapa e ainda
 não foi iniciada. A SCP-012 permanece Blocked até a aceitação da
 SCP-012.0.3.
 
-## Riscos / limitações remanescentes
+## Limitações remanescentes não bloqueantes
 
-1. **Harness parcialmente executável**: cenários 12-14 (membership
-   fixtures) e 25-30 (actor rejections automatizados) não passam pelo
-   role sandbox_exec devido a RLS em `tenant_members`. Todos os
-   cenários estão codificados e prontos para execução em role
-   privilegiado; requer decisão de auditoria sobre estratégia de
-   fixture (harness com service role vs. Supabase Admin API).
-2. `grace`/`unpaid` são código morto no resolver enquanto o CHECK
-   constraint de `tenant_subscriptions.status` não for ampliado.
-3. `source = 'default'` continua reservado e inalcançável.
-4. A correção introduziu duas migrations adicionais; toda a matriz
-   deve ser re-verificada por auditoria contra o schema pós-correção.
+1. O harness automatizado service-role de paridade SQL × TypeScript não
+   foi integralmente materializado. A revisão abrangente foi
+   transferida para F4-CF-01 e não bloqueia a SCP-012.0.3.
+
+2. Os tokens de subscription `grace` e `unpaid` permanecem preservados
+   no código para compatibilidade futura, embora não sejam atualmente
+   produzidos pelo CHECK vigente da tabela.
+
+3. `source = 'default'` permanece token reservado no contrato, sem
+   produtor persistido no runtime atual.
+
+4. Nenhuma alteração adicional em schema, RPC, ACL ou runtime é
+   necessária antes da SCP-012.0.3.

@@ -153,18 +153,27 @@ Resultados:
   autenticadas — a exceção da SCP-012.0.1.3 §10 cobre apenas esta RPC
   service_role-only.
 
-## 12. Limitações reais declaradas
+## 12. Limitação de cobertura não bloqueante
 
-- **Harness de paridade quantitativa TS×SQL não materializado nesta
-  etapa.** O runtime foi validado por (a) inspeção linha a linha, (b)
-  smoke tests SQL contra o banco real, (c) validator estrito da
-  resposta. A cobertura exaustiva por fixture de matriz (todas as
-  linhas da §12 do escopo) via chamadas reais à RPC deverá ser
-  materializada em SCP-012.0.2.1 (Parity Harness Materialization).
-  Esta é a única limitação real remanescente, declarada honestamente,
-  e é o item que a auditoria crítica externa deve examinar.
-- **SCP-012** permanece Blocked até a aceitação da SCP-012.0.3
-  (Membership Mutation Boundary Planning & Materialization).
+O harness automatizado service-role de paridade SQL × TypeScript não
+foi integralmente materializado durante a cadeia SCP-012.0.2.
+
+Essa ausência não bloqueia o aceite da autoridade comercial já
+materializada, considerando a evidência combinada de inspeção SQL,
+smoke tests reais, validator semântico, testes unitários e ausência de
+regressão de segurança.
+
+A revisão de cobertura abrangente foi transferida para:
+
+`F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement &
+Runtime Consistency Check and Fix`.
+
+F4-CF-01 deverá ocorrer após o encerramento da cadeia SCP-012 e antes
+do fechamento formal da Fase 4. Não é pré-requisito para iniciar a
+SCP-012.0.3.
+
+A SCP-012 permanece Blocked exclusivamente até a aceitação da
+SCP-012.0.3.
 
 ## 13. Bloco final do roadmap (§3, Fase 4, cadeia SCP-012)
 
