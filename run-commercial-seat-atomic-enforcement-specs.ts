@@ -151,6 +151,41 @@ function expect(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 
+/**
+ * Validates that a raw Supabase error object corresponds to a real
+ * commercial_seat_limit_denied denial with the canonical error contract
+ * (message, ERRCODE=P0001, DETAIL carrying a valid CommercialLimitDecision).
+ * Returns the parsed, semantically-validated decision.
+ */
+function validateRealCommercialDenial(
+  error: unknown,
+  expectedTenantId: string,
+  expectedReason?: CommercialLimitDecision["reason"],
+): CommercialLimitDecision {
+  expect(!!error && typeof error === "object", `no error object: ${JSON.stringify(error)}`);
+  const e = error as { message?: unknown; code?: unknown; details?: unknown };
+  expect(
+    e.message === COMMERCIAL_SEAT_LIMIT_DENIED_MESSAGE,
+    `expected message === commercial_seat_limit_denied, got: ${JSON.stringify(e.message)}`,
+  );
+  expect(e.code === "P0001", `expected code=P0001, got: ${JSON.stringify(e.code)}`);
+  expect(
+    typeof e.details === "string" && (e.details as string).length > 0,
+    `expected non-empty string details, got: ${JSON.stringify(e.details)}`,
+  );
+  const parsed = parseCommercialSeatLimitDeniedError(error, expectedTenantId);
+  expect(parsed instanceof CommercialSeatLimitDeniedError, "parser did not return CommercialSeatLimitDeniedError");
+  const dec = parsed!.decision;
+  expect(dec.tenantId === expectedTenantId, `tenantId mismatch: ${dec.tenantId} != ${expectedTenantId}`);
+  expect(dec.featureKey === "users.seats", `featureKey ${dec.featureKey}`);
+  expect(dec.allowed === false, "allowed must be false");
+  expect(dec.requestedIncrement === 1, `requestedIncrement ${dec.requestedIncrement}`);
+  if (expectedReason) {
+    expect(dec.reason === expectedReason, `expected reason=${expectedReason}, got ${dec.reason}`);
+  }
+  return dec;
+}
+
 async function main() {
   let cleanupError: string | null = null;
   try {
