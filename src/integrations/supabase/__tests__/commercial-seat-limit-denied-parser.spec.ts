@@ -48,6 +48,24 @@ const specs: Array<{ name: string; run: () => void }> = [
     },
   },
   {
+    name: "returns null when message merely contains the token as substring",
+    run: () => {
+      const wrappers = [
+        "unexpected commercial_seat_limit_denied wrapper",
+        "prefix commercial_seat_limit_denied",
+        "commercial_seat_limit_denied suffix",
+        "commercial_seat_limit_denied_other",
+      ];
+      for (const message of wrappers) {
+        const r = parseCommercialSeatLimitDeniedError(
+          { message, details: JSON.stringify(baseDecision()) },
+          TENANT,
+        );
+        assert(r === null, `substring message must not be classified: "${message}"`);
+      }
+    },
+  },
+  {
     name: "returns null when error is not an object",
     run: () => {
       assert(parseCommercialSeatLimitDeniedError(null, TENANT) === null, "null err");

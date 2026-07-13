@@ -12,6 +12,13 @@
 //   bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts
 
 import { createClient } from "@supabase/supabase-js";
+import {
+  CommercialSeatLimitDeniedError,
+  parseCommercialSeatLimitDeniedError,
+  COMMERCIAL_SEAT_LIMIT_DENIED_MESSAGE,
+} from "@/lib/api/commercial/membership-mutation-enforcement-error";
+import type { CommercialLimitDecision } from "@/lib/api/commercial/limit-decision";
+import { executeMembershipMutation } from "@/lib/api/commercial/membership-mutation-boundary.server";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -144,6 +151,41 @@ function expect(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 
+/**
+ * Validates that a raw Supabase error object corresponds to a real
+ * commercial_seat_limit_denied denial with the canonical error contract
+ * (message, ERRCODE=P0001, DETAIL carrying a valid CommercialLimitDecision).
+ * Returns the parsed, semantically-validated decision.
+ */
+function validateRealCommercialDenial(
+  error: unknown,
+  expectedTenantId: string,
+  expectedReason?: CommercialLimitDecision["reason"],
+): CommercialLimitDecision {
+  expect(!!error && typeof error === "object", `no error object: ${JSON.stringify(error)}`);
+  const e = error as { message?: unknown; code?: unknown; details?: unknown };
+  expect(
+    e.message === COMMERCIAL_SEAT_LIMIT_DENIED_MESSAGE,
+    `expected message === commercial_seat_limit_denied, got: ${JSON.stringify(e.message)}`,
+  );
+  expect(e.code === "P0001", `expected code=P0001, got: ${JSON.stringify(e.code)}`);
+  expect(
+    typeof e.details === "string" && (e.details as string).length > 0,
+    `expected non-empty string details, got: ${JSON.stringify(e.details)}`,
+  );
+  const parsed = parseCommercialSeatLimitDeniedError(error, expectedTenantId);
+  expect(parsed instanceof CommercialSeatLimitDeniedError, "parser did not return CommercialSeatLimitDeniedError");
+  const dec = parsed!.decision;
+  expect(dec.tenantId === expectedTenantId, `tenantId mismatch: ${dec.tenantId} != ${expectedTenantId}`);
+  expect(dec.featureKey === "users.seats", `featureKey ${dec.featureKey}`);
+  expect(dec.allowed === false, "allowed must be false");
+  expect(dec.requestedIncrement === 1, `requestedIncrement ${dec.requestedIncrement}`);
+  if (expectedReason) {
+    expect(dec.reason === expectedReason, `expected reason=${expectedReason}, got ${dec.reason}`);
+  }
+  return dec;
+}
+
 async function main() {
   let cleanupError: string | null = null;
   try {
@@ -167,8 +209,12 @@ async function main() {
       ]);
       const errs = [r1, r2].map((r: Any) => r.error);
       expect(errs.every((e) => !!e), `both should error, got ${JSON.stringify(errs.map((e) => e?.message))}`);
-      expect(errs.every((e) => /commercial_seat_limit_denied/.test(e.message)),
-        `expected commercial_seat_limit_denied, got ${JSON.stringify(errs.map((e) => e?.message))}`);
+      for (const e of errs) {
+        validateRealCommercialDenial(e, ctx.tenantId, "limit_reached");
+        expect((e as Any).details && JSON.parse((e as Any).details).limit === 2, "limit=2");
+        expect(JSON.parse((e as Any).details).used === 2, "used=2");
+        expect(JSON.parse((e as Any).details).remaining === 0, "remaining=0");
+      }
       const cnt = await countActiveInvited(ctx.tenantId);
       expect(cnt === 2, `count should stay 2, got ${cnt}`);
     });
@@ -188,9 +234,11 @@ async function main() {
           _target_user_id: t2, _target_role: "viewer" }),
       ]);
       const applied = [r1, r2].filter((r: Any) => !r.error).length;
-      const denied = [r1, r2].filter((r: Any) => r.error && /commercial_seat_limit_denied/.test(r.error.message)).length;
-      expect(applied === 1 && denied === 1,
-        `expected 1 applied + 1 denied, got applied=${applied} denied=${denied} messages=${JSON.stringify([r1, r2].map((r: Any) => r.error?.message ?? r.data))}`);
+      const deniedErrs = [r1, r2].map((r: Any) => r.error).filter(Boolean);
+      expect(applied === 1 && deniedErrs.length === 1,
+        `expected 1 applied + 1 denied, got applied=${applied} denied=${deniedErrs.length}`);
+      const dec = validateRealCommercialDenial(deniedErrs[0], ctx.tenantId, "limit_reached");
+      expect(dec.limit === 3 && dec.used === 3 && dec.remaining === 0, `dec ${JSON.stringify(dec)}`);
       const cnt = await countActiveInvited(ctx.tenantId);
       expect(cnt === 3, `count should be 3 (== limit), got ${cnt}`);
     });
@@ -207,9 +255,13 @@ async function main() {
           _target_user_id: tid, _target_role: "viewer" }),
       ));
       const applied = rs.filter((r: Any) => !r.error).length;
-      const denied = rs.filter((r: Any) => r.error && /commercial_seat_limit_denied/.test(r.error.message)).length;
-      expect(applied === 2 && denied === 2,
-        `expected 2/2, got applied=${applied} denied=${denied}: ${JSON.stringify(rs.map((r: Any) => r.error?.message))}`);
+      const deniedErrs = rs.map((r: Any) => r.error).filter(Boolean);
+      expect(applied === 2 && deniedErrs.length === 2,
+        `expected 2/2, got applied=${applied} denied=${deniedErrs.length}`);
+      for (const e of deniedErrs) {
+        const dec = validateRealCommercialDenial(e, ctx.tenantId, "limit_reached");
+        expect(dec.limit === 4 && dec.used === 4 && dec.remaining === 0, `dec ${JSON.stringify(dec)}`);
+      }
       const cnt = await countActiveInvited(ctx.tenantId);
       expect(cnt === 4, `count should be 4, got ${cnt}`);
     });
@@ -245,7 +297,7 @@ async function main() {
         _tenant_origin: "single-membership", _operation: "create_membership",
         _target_user_id: t, _target_role: "viewer",
       });
-      expect(!!error && /commercial_seat_limit_denied/.test((error as Any).message), `expected denial, got ${JSON.stringify(error)}`);
+      validateRealCommercialDenial(error, ctx.tenantId, "limit_reached");
       const { data } = await admin.from("tenant_members" as Any)
         .select("membership_status").eq("tenant_id", ctx.tenantId).eq("user_id", t);
       expect(((data as Any[]) ?? []).length === 0, `residual row ${JSON.stringify(data)}`);
@@ -280,7 +332,7 @@ async function main() {
         _tenant_origin: "single-membership", _operation: "reactivate",
         _target_user_id: t,
       });
-      expect(!!rErr && /commercial_seat_limit_denied/.test((rErr as Any).message), `expected denial`);
+      validateRealCommercialDenial(rErr, ctx.tenantId, "limit_reached");
       const { data } = await admin.from("tenant_members" as Any)
         .select("membership_status, suspended_at").eq("tenant_id", ctx.tenantId).eq("user_id", t).single();
       expect((data as Any)?.membership_status === "suspended", `still suspended? ${JSON.stringify(data)}`);
@@ -361,6 +413,41 @@ async function main() {
       expect(!error, `no-op reactivate should not be denied, got ${(error as Any)?.message}`);
       expect((data as Any).changed === false, `changed=false`);
     });
+
+    // -------------------- Scenario J: real boundary conversion --------------------
+    await run("J. server boundary converts real RPC denial into CommercialSeatLimitDeniedError", async () => {
+      const ctx = await provisionTenant(1, 0); // owner=1, limit=1 → 0 free
+      const t = await createAuthUser("J");
+      let thrown: unknown = null;
+      try {
+        await executeMembershipMutation(
+          {
+            actorUserId: ctx.ownerId,
+            tenantId: ctx.tenantId,
+            tenantOrigin: "single-membership",
+          },
+          {
+            operation: "create_membership",
+            targetUserId: t,
+            targetRole: "viewer",
+          },
+        );
+      } catch (e) {
+        thrown = e;
+      }
+      expect(thrown instanceof CommercialSeatLimitDeniedError,
+        `expected CommercialSeatLimitDeniedError, got ${thrown instanceof Error ? thrown.name + ": " + thrown.message : JSON.stringify(thrown)}`);
+      const err = thrown as CommercialSeatLimitDeniedError;
+      expect(err.code === "commercial_seat_limit_denied", `code ${err.code}`);
+      expect(err.message === "commercial_seat_limit_denied", `message ${err.message}`);
+      expect(err.decision.allowed === false, "allowed");
+      expect(err.decision.reason === "limit_reached", `reason ${err.decision.reason}`);
+      expect(err.decision.tenantId === ctx.tenantId, "tenantId");
+      expect(err.decision.requestedIncrement === 1, "requestedIncrement");
+      const { data } = await admin.from("tenant_members" as Any)
+        .select("membership_status").eq("tenant_id", ctx.tenantId).eq("user_id", t);
+      expect(((data as Any[]) ?? []).length === 0, `residual row after boundary denial ${JSON.stringify(data)}`);
+    });
   } finally {
     const cleanupErrors: string[] = [];
     // memberships + subscriptions + entitlements + tenants
@@ -384,16 +471,24 @@ async function main() {
       const { error } = await admin.auth.admin.deleteUser(uid);
       if (error) cleanupErrors.push(`deleteUser(${uid}): ${error.message}`);
     }
-    // residual checks
+    // residual checks — fail-closed: query error counts as inconclusive, not proof of absence.
+    async function residual(table: string, column: string, value: string, label: string) {
+      const { data, error } = await admin.from(table as Any).select(column).eq(column, value);
+      if (error) {
+        cleanupErrors.push(`residual verification failed for ${label}: ${error.message}`);
+      } else if ((data ?? []).length > 0) {
+        cleanupErrors.push(`residual rows in ${label}: ${JSON.stringify(data)}`);
+      }
+    }
     for (const tid of createdTenants) {
-      const { data } = await admin.from("tenant_members" as Any).select("user_id").eq("tenant_id", tid);
-      if ((data as Any)?.length) cleanupErrors.push(`residual members ${tid}`);
-      const { data: t } = await admin.from("tenants" as Any).select("id").eq("id", tid);
-      if ((t as Any)?.length) cleanupErrors.push(`residual tenant ${tid}`);
+      await residual("tenant_members", "tenant_id", tid, `tenant_members(${tid})`);
+      await residual("tenant_subscriptions", "tenant_id", tid, `tenant_subscriptions(${tid})`);
+      await residual("tenant_entitlements", "tenant_id", tid, `tenant_entitlements(${tid})`);
+      await residual("tenants", "id", tid, `tenants(${tid})`);
     }
     for (const pid of createdPlans) {
-      const { data } = await admin.from("commercial_plans" as Any).select("id").eq("id", pid);
-      if ((data as Any)?.length) cleanupErrors.push(`residual plan ${pid}`);
+      await residual("commercial_plan_entitlements", "plan_id", pid, `commercial_plan_entitlements(${pid})`);
+      await residual("commercial_plans", "id", pid, `commercial_plans(${pid})`);
     }
     for (const uid of createdAuthUsers) {
       const { data, error } = await admin.auth.admin.getUserById(uid);

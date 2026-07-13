@@ -114,7 +114,7 @@ Transições fora dessa tabela são erros de domínio (`membership_not_found`,
 
 ## 7. Contrato do erro `commercial_seat_limit_denied`
 
-- `message = commercial_seat_limit_denied`.
+- `message = commercial_seat_limit_denied` — igualdade **exata**.
 - `ERRCODE = P0001`.
 - `DETAIL` contém exatamente o JSON de `CommercialLimitDecision`:
   `tenantId`, `featureKey`, `allowed`, `reason`, `source`, `limit`,
@@ -123,12 +123,23 @@ Transições fora dessa tabela são erros de domínio (`membership_not_found`,
 - A DTO de sucesso permanece imutável (SCP-012.0.3), sem `limit`,
   `used`, `remaining`, `billingStatus`, `commercialDecision`.
 
-O parser (`membership-mutation-enforcement-error.ts`) reconhece
-somente essa forma, exige `DETAIL` presente, `JSON.parse` bem-sucedido,
-`validateSeatDecisionResponse` aprovado com `tenantId` esperado e
+O parser (`membership-mutation-enforcement-error.ts`) usa igualdade
+exata sobre `message` — substrings, prefixos, sufixos ou wrappers
+(por exemplo `"prefix commercial_seat_limit_denied"`,
+`"commercial_seat_limit_denied suffix"`,
+`"commercial_seat_limit_denied_other"`) retornam `null` e são tratados
+como erro determinístico do boundary, não como negação estruturada.
+Além disso, o parser exige `DETAIL` presente, `JSON.parse` bem-sucedido,
+`validateSeatDecisionResponse` aprovado com `tenantId` esperado,
 `requestedIncrement = 1`, e `allowed = false`. Qualquer desvio lança
 determinístico. Nenhuma decisão é recomputada em TypeScript e nenhuma
 nova consulta ao banco é feita.
+
+A forma real do erro Supabase/PostgREST observada nos runners
+(`error.message === "commercial_seat_limit_denied"`,
+`error.code === "P0001"`, `error.details` string JSON) é verificada
+pelo helper `validateRealCommercialDenial` do runner atômico
+(cenários A, B, C, E e F, além do cenário J via boundary).
 
 ## 8. Boundary TypeScript
 
@@ -209,22 +220,38 @@ limite. Todos os 14 cenários originais continuam passando.
 
 `run-commercial-seat-atomic-enforcement-specs.ts` executa contra
 PostgreSQL real com clientes service-role independentes e requisições
-realmente concorrentes (`Promise.all`). Resultados finais:
+realmente concorrentes (`Promise.all`). Cada cenário de negação valida
+o erro real através do helper `validateRealCommercialDenial`, que
+exige `error.message === "commercial_seat_limit_denied"` (igualdade
+exata), `error.code === "P0001"`, `error.details` string não vazia, e
+`validateSeatDecisionResponse` aprovado sobre o `DETAIL` real. O
+cenário J executa `executeMembershipMutation` — o boundary
+server-only real — e observa `CommercialSeatLimitDeniedError` com
+`decision` estruturado sendo lançado. Resultados finais (10 cenários):
 
 | Cenário | Descrição                                                  | Resultado |
 |---------|------------------------------------------------------------|-----------|
-| A       | limit=used, 2 creates concorrentes → 2 negações, uso mantido | ✓        |
-| B       | 1 unidade livre, 2 creates → 1 aplicado, 1 negado           | ✓        |
-| C       | capacidade=2, 4 creates → 2 aplicados, 2 negados, uso=limite | ✓        |
-| D       | cross-tenant → locks independentes, ambos aplicam           | ✓        |
-| E       | denied create → target sem row                              | ✓        |
-| F       | denied reactivate → membership permanece suspended          | ✓        |
-| G       | billing_blocked → suspend active aplica (delta −1)          | ✓        |
-| H       | billing_blocked → change_role aplica (delta 0)              | ✓        |
-| I       | reactivate no-op em active → sem chamada ao resolver        | ✓        |
+| A       | limit=used, 2 creates concorrentes → 2 negações reais validadas | ✓        |
+| B       | 1 unidade livre, 2 creates → 1 aplicado, 1 negação real         | ✓        |
+| C       | capacidade=2, 4 creates → 2 aplicados, 2 negações reais          | ✓        |
+| D       | cross-tenant → locks independentes, ambos aplicam                | ✓        |
+| E       | denied create → target sem row, DETAIL real validado             | ✓        |
+| F       | denied reactivate → membership permanece suspended, DETAIL real  | ✓        |
+| G       | billing_blocked → suspend active aplica (delta −1)               | ✓        |
+| H       | billing_blocked → change_role aplica (delta 0)                   | ✓        |
+| I       | reactivate no-op em active → sem chamada ao resolver             | ✓        |
+| J       | boundary server-only converte negação real em CommercialSeatLimitDeniedError | ✓ |
 
-Zero over-allocation observada. Zero fixture residual (cleanup e
-verificação de resíduos limpa em todos os runs).
+Zero over-allocation observada. Zero fixture residual — o cleanup
+fail-closed executa verificação residual explícita para
+`tenant_members`, `tenant_subscriptions`, `tenant_entitlements`,
+`tenants`, `commercial_plan_entitlements`, `commercial_plans` e
+`auth.users`, e trata erro de consulta residual como falha do cleanup
+(nunca como comprovação de ausência). O runner de membership
+(`run-membership-mutation-parity-specs.ts`) executa 14 cenários com
+verificação residual equivalente, agora incluindo
+`commercial_plan_entitlements` por `plan_id`. O parser unitário
+possui 14 casos (13 originais + a asserção de rejeição de substring).
 
 ## 13. Confirmações negativas
 
