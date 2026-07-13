@@ -471,16 +471,24 @@ async function main() {
       const { error } = await admin.auth.admin.deleteUser(uid);
       if (error) cleanupErrors.push(`deleteUser(${uid}): ${error.message}`);
     }
-    // residual checks
+    // residual checks — fail-closed: query error counts as inconclusive, not proof of absence.
+    async function residual(table: string, column: string, value: string, label: string) {
+      const { data, error } = await admin.from(table as Any).select(column).eq(column, value);
+      if (error) {
+        cleanupErrors.push(`residual verification failed for ${label}: ${error.message}`);
+      } else if ((data ?? []).length > 0) {
+        cleanupErrors.push(`residual rows in ${label}: ${JSON.stringify(data)}`);
+      }
+    }
     for (const tid of createdTenants) {
-      const { data } = await admin.from("tenant_members" as Any).select("user_id").eq("tenant_id", tid);
-      if ((data as Any)?.length) cleanupErrors.push(`residual members ${tid}`);
-      const { data: t } = await admin.from("tenants" as Any).select("id").eq("id", tid);
-      if ((t as Any)?.length) cleanupErrors.push(`residual tenant ${tid}`);
+      await residual("tenant_members", "tenant_id", tid, `tenant_members(${tid})`);
+      await residual("tenant_subscriptions", "tenant_id", tid, `tenant_subscriptions(${tid})`);
+      await residual("tenant_entitlements", "tenant_id", tid, `tenant_entitlements(${tid})`);
+      await residual("tenants", "id", tid, `tenants(${tid})`);
     }
     for (const pid of createdPlans) {
-      const { data } = await admin.from("commercial_plans" as Any).select("id").eq("id", pid);
-      if ((data as Any)?.length) cleanupErrors.push(`residual plan ${pid}`);
+      await residual("commercial_plan_entitlements", "plan_id", pid, `commercial_plan_entitlements(${pid})`);
+      await residual("commercial_plans", "id", pid, `commercial_plans(${pid})`);
     }
     for (const uid of createdAuthUsers) {
       const { data, error } = await admin.auth.admin.getUserById(uid);
