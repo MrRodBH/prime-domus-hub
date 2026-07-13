@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked: awaiting SCP-012.0.2.2 acceptance
+Accepted
 
 ## Baseline e HEAD técnico revisado
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked: awaiting SCP-012.0.2.1 acceptance (SCP-012.0.2.1 corrigiu esta etapa; ver relatório 115).
+Accepted
 
 ## 1. Sumário executivo
 

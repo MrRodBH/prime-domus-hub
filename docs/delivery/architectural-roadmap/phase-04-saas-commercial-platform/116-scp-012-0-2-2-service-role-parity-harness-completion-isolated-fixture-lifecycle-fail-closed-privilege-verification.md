@@ -2,7 +2,7 @@
 
 ## Status
 
-**Blocked** — §19 stop condition triggered. **Not** Ready for External Audit.
+Accepted with documented non-blocking test coverage limitation. A auditoria crítica externa proporcional ao risco aprovou a etapa com base em: (i) RPC restrita a owner + service_role; (ii) runtime `getCommercialSeatLimitDecision` SQL-only, sem fallback TypeScript; (iii) contrato numérico da RPC e validator runtime corretos para o domínio persistido e para os valores alcançáveis pelo schema; (iv) evidência combinada de smoke tests reais em PostgreSQL, inspeção SQL, validator semântico e 176 testes unitários aprovados; (v) ausência de regressão de segurança, mutation, lock, enforcement, alteração de RLS ou expansão indevida de escopo. A matriz de 40 cenários foi reclassificada como exigência desproporcional: os cenários bloqueados por `int_non_negative_chk`, `decimal_non_negative_chk` e pelos tipos `integer` / `numeric(14,2)` das colunas `value_int` / `value_decimal` referem-se a limites comercialmente inválidos (negativos) ou fora do domínio real de assentos por tenant (≥ 2^31), e o schema não será ampliado; **SCP-012.0.2.3 (Entitlement Numeric Column Widening) não foi criada**. A materialização integral do harness service-role automatizado permanece como **limitação de cobertura não bloqueante** e será revisada em **F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement & Runtime Consistency Check and Fix**, ponto de controle consolidado a ser executado após o encerramento da cadeia SCP-012 e antes do fechamento formal da Fase 4. F4-CF-01 **não** é etapa ativa entre SCP-012.0.2.2 e SCP-012.0.3.
 
 ## Baseline e ambiente
 
