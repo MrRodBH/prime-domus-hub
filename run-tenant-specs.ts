@@ -28,6 +28,8 @@ async function main() {
     ["commercial-seat-limit", runCommercialSeatLimitSpecs],
     ["commercial-seat-rpc-contract", runCommercialSeatRpcContractSpecs],
     ["commercial-context-selection", runCommercialContextSelectionSpecs],
+    ["membership-mutation-input", runMembershipMutationInputSpecs],
+
 
   ];
   let totalPass = 0;
