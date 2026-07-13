@@ -134,7 +134,7 @@ function safeSlug(prefix: string, id: string): string {
 
 async function setupFixture(f: Fixture): Promise<void> {
   await psqlSilent(
-    `INSERT INTO public.tenants (id, slug, nome, status) VALUES (${q(f.tenantId)}, ${q(safeSlug("scp0121", f.tenantId))}, 'SCP-012.0.2.1 harness', 'active');`,
+    `INSERT INTO public.tenants (id, slug, nome, status) VALUES (${q(f.tenantId)}, ${q(safeSlug("scp0121", f.tenantId))}, 'SCP-012.0.2.1 harness', 'ativo');`,
   );
 
   if (f.planId) {
