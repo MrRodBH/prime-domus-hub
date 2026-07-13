@@ -24,7 +24,9 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-lim
   EXECUTE.
 - Parser server-only-adjacent
   (`src/lib/api/commercial/membership-mutation-enforcement-error.ts`)
-  reconhece exclusivamente a mensagem canônica, exige DETAIL presente,
+  reconhece exclusivamente a mensagem canônica por **igualdade exata**
+  (`message === "commercial_seat_limit_denied"`); substrings, prefixos,
+  sufixos ou wrappers retornam `null`. Exige DETAIL presente,
   parseável e semanticamente coerente via `validateSeatDecisionResponse`,
   e lança `CommercialSeatLimitDeniedError` com decisão validada.
 - Boundary TypeScript
@@ -33,16 +35,26 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-lim
   `supabaseAdmin` e passa a converter apenas o erro canônico em
   `CommercialSeatLimitDeniedError`. Zero fallback. Zero segunda escrita.
 - Harness atualizado
-  (`run-membership-mutation-parity-specs.ts`) — passa a criar plano
-  sintético + subscription active + entitlement `users.seats = 100`,
-  com cleanup fail-closed para todas as tabelas comerciais. 14 cenários
-  originais preservados.
+  (`run-membership-mutation-parity-specs.ts`) — plano sintético +
+  subscription active + entitlement `users.seats = 100`, cleanup
+  fail-closed com verificação residual explícita para
+  `tenant_members`, `tenants`, `tenant_subscriptions`,
+  `commercial_plan_entitlements`, `commercial_plans`, `user_roles` e
+  `auth.users`; erros de consulta residual falham o cleanup. 14
+  cenários originais preservados.
 - Runner de enforcement + concorrência
-  (`run-commercial-seat-atomic-enforcement-specs.ts`) — 9 cenários
-  reais contra PostgreSQL, com clientes service_role independentes e
-  `Promise.all`.
-- Testes unitários — 13 casos em
-  `src/integrations/supabase/__tests__/commercial-seat-limit-denied-parser.spec.ts`.
+  (`run-commercial-seat-atomic-enforcement-specs.ts`) — **10 cenários
+  reais** contra PostgreSQL (A–I + J), com clientes service_role
+  independentes, `Promise.all`, helper `validateRealCommercialDenial`
+  que verifica `error.message` exato, `error.code === "P0001"`,
+  `error.details` real parseado por `validateSeatDecisionResponse`, e
+  cenário J executando `executeMembershipMutation` diretamente para
+  observar `CommercialSeatLimitDeniedError` produzido pelo boundary
+  contra negação real do PostgREST.
+- Testes unitários — **14 casos** em
+  `src/integrations/supabase/__tests__/commercial-seat-limit-denied-parser.spec.ts`
+  (adicionado caso que rejeita mensagens contendo o token apenas como
+  substring).
 
 ## Validações executadas
 
