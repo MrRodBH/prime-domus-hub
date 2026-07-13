@@ -332,7 +332,7 @@ async function main() {
         _tenant_origin: "single-membership", _operation: "reactivate",
         _target_user_id: t,
       });
-      expect(!!rErr && /commercial_seat_limit_denied/.test((rErr as Any).message), `expected denial`);
+      validateRealCommercialDenial(rErr, ctx.tenantId, "limit_reached");
       const { data } = await admin.from("tenant_members" as Any)
         .select("membership_status, suspended_at").eq("tenant_id", ctx.tenantId).eq("user_id", t).single();
       expect((data as Any)?.membership_status === "suspended", `still suspended? ${JSON.stringify(data)}`);
