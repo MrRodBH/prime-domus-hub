@@ -59,8 +59,8 @@ A decisão arquitetural da Alternativa A foi preservada integralmente.
 - Relatório 111 — **Accepted**;
 - SCP-012.0.1.3.1 — **Accepted**;
 - Relatório 112 — **Accepted**;
-- SCP-012.0.1.3.1.1 — **Ready for External Audit**;
-- SCP-012.0.2 — **Blocked** (aguardando SCP-012.0.1.3.1.1);
+- SCP-012.0.1.3.1.1 — **Accepted**;
+- SCP-012.0.2 — Authorized next step; not started;
 - SCP-012 — **Blocked**.
 
 ## 6. Evidência materializada revisada (SCP-012.0.1.3.1)
@@ -132,9 +132,8 @@ Lovable. Modelo não autorreferencial aplicado.
 - nenhum tipo Supabase regenerado;
 - nenhum runtime alterado;
 - SCP-012 permanece Blocked;
-- SCP-012.0.2 permanece Blocked;
-- SCP-012.0.1.3.1.1 permanece Ready for External Audit — não
-  autoaceita.
+- SCP-012.0.2 foi autorizada como próxima etapa, mas ainda não foi iniciada;
+- SCP-012.0.1.3.1.1 foi finalizada como Accepted após aprovação da auditoria crítica externa.
 
 ## 11. Confirmações negativas
 
@@ -147,5 +146,5 @@ Lovable. Modelo não autorreferencial aplicado.
 - nenhum teste alterado;
 - nenhum enforcement implementado;
 - nenhum provider integrado;
-- SCP-012.0.2 não autorizada;
+- SCP-012.0.2 autorizada documentalmente, mas não implementada;
 - SCP-012 não liberada.
