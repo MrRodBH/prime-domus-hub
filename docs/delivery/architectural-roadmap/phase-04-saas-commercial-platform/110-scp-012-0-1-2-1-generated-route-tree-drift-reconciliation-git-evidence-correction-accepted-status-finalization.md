@@ -68,6 +68,10 @@ $ echo $?
 
 Exit code `0`, sem diagnósticos. O HEAD final é type-clean.
 
+**HEAD externamente auditado da SCP-012.0.1.2.1**:
+`78fbcde79ae9aa6df0406b3e2f4bb27be290c5aa` — commit "Finalizou
+SCP-012.0.1.2 Accepted".
+
 ## 6. Documentos corrigidos
 
 - `docs/architecture/impact-analysis/SCP-012.0.1.2-canonical-concurrency-internal-roadmap-accepted-status-finalization.md`
