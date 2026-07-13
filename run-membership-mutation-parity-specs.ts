@@ -52,6 +52,20 @@ function makeAnonClient() {
   });
 }
 
+/**
+ * Canonical shape of `admin.auth.admin.getUserById(uid)` when the user does
+ * not exist, as returned by @supabase/supabase-js against real GoTrue:
+ *   { name: "AuthApiError", status: 404, code: "user_not_found", ... }.
+ * Any other error (network, auth, server, unexpected shape) must fail the
+ * cleanup — not silently be interpreted as proof of deletion.
+ */
+function isCanonicalAuthUserNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { name?: unknown; status?: unknown; code?: unknown };
+  return e.name === "AuthApiError" && e.status === 404 && e.code === "user_not_found";
+}
+
+
 async function createAuthUser(email: string, password: string): Promise<string> {
   const { data, error } = await admin.auth.admin.createUser({
     email,
