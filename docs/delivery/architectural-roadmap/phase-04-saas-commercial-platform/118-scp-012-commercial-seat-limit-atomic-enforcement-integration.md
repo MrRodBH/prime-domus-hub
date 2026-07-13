@@ -40,8 +40,14 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-lim
   fail-closed com verificação residual explícita para
   `tenant_members`, `tenants`, `tenant_subscriptions`,
   `commercial_plan_entitlements`, `commercial_plans`, `user_roles` e
-  `auth.users`; erros de consulta residual falham o cleanup. 14
-  cenários originais preservados.
+  `auth.users`; erros de consulta residual falham o cleanup. A
+  verificação de ausência em `auth.users` foi endurecida via helper
+  local `isCanonicalAuthUserNotFoundError`, que aceita apenas a
+  resposta canônica de `@supabase/supabase-js` (`AuthApiError`,
+  `status = 404`, `code = "user_not_found"`); qualquer outro erro —
+  rede, autenticação, autorização, servidor ou shape inesperado —
+  falha o cleanup, assim como uma resposta sem erro sem `data.user`.
+  14 cenários originais preservados.
 - Runner de enforcement + concorrência
   (`run-commercial-seat-atomic-enforcement-specs.ts`) — **10 cenários
   reais** contra PostgreSQL (A–I + J), com clientes service_role
@@ -50,7 +56,15 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-lim
   `error.details` real parseado por `validateSeatDecisionResponse`, e
   cenário J executando `executeMembershipMutation` diretamente para
   observar `CommercialSeatLimitDeniedError` produzido pelo boundary
-  contra negação real do PostgREST.
+  contra negação real do PostgREST. Cenários E, F e J agora
+  desestruturam `error` da consulta de rollback contra
+  `public.tenant_members` e falham explicitamente se a leitura não
+  puder ser concluída — uma falha de consulta nunca é interpretada
+  como ausência de membership; o rollback só é declarado quando a
+  consulta tem sucesso e retorna zero linhas (E, J) ou o snapshot
+  esperado (F, `suspended` com `suspended_at` não nulo). O runner
+  compartilha o mesmo classificador canônico
+  `isCanonicalAuthUserNotFoundError` para `auth.users`.
 - Testes unitários — **14 casos** em
   `src/integrations/supabase/__tests__/commercial-seat-limit-denied-parser.spec.ts`
   (adicionado caso que rejeita mensagens contendo o token apenas como
