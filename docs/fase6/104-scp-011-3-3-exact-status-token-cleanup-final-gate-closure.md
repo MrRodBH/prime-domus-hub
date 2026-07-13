@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 **Escopo:** neutralização de tokens de status em blocos de evidência.
 Nenhuma alteração em runtime, testes, migrations, schema, RLS,
