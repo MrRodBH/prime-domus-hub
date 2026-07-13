@@ -534,8 +534,33 @@ Bloqueia início da implementação: apresentar IA-002 formal (Impact
 Analysis) e obter aprovação antes de qualquer código, conforme
 Constitution §7.
 
+#### 6.2 GA-08 — Documentation Repository Reorganization
+
+Reorganização controlada do repositório documental do RM Prime SaaS,
+com eliminação do diretório legado `docs/fase6/` e distribuição dos
+128 relatórios de execução em `docs/delivery/**`, agrupados por
+macrofase/iniciativa oficialmente registrada neste roadmap.
+
+- **GA-08 — Documentation Repository Reorganization** — `In Progress`.
+- **GA-08.0 — Documentation Repository Structure Audit &
+  Controlled Migration Plan** — `Accepted`.
+- **GA-08.1 — Documentation Repository Controlled Migration** —
+  `Ready for External Audit`.
+- **GA-08.2 — Documentation Path Validation & CI Gate** — futura;
+  não iniciada.
+
+Regras vinculantes desta etapa:
+
+- `docs/fase6/` é caminho legado, foi removido pela GA-08.1 e é
+  proibido para novos documentos.
+- Novos relatórios devem ser classificados pela macrofase ou iniciativa
+  oficial registrada neste roadmap.
+- Nenhum status da cadeia SCP-012, SCP-012.0, SCP-012.0.1 ou
+  SCP-012.0.1.1 foi alterado por esta etapa.
 
 ---
+
+
 
 ## 7. ADRs Futuros
 
