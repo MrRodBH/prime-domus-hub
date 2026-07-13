@@ -11,7 +11,7 @@ Após a F3.3.3 (Null-Auth Guard em `get_current_tenant_id()`), auditoria externa
 - Inventário de policies `RESTRICTIVE` no schema `public` para cruzamento com as `PERMISSIVE` que mencionam `is_super_admin()`.
 - Classificação de risco por policy (CRÍTICO/ALTO/MÉDIO/BAIXO/JUSTIFICADO/INCONCLUSIVO).
 - Recomendação por policy e recomendação geral sobre F3.3.5 vs. F3.4.
-- Redação deste relatório em `docs/fase6/35-f3-3-4-super-admin-policy-bypass-inventory.md`.
+- Redação deste relatório em `docs/delivery/phase-03-membership-evolution/35-f3-3-4-super-admin-policy-bypass-inventory.md`.
 
 ## 3. Escopo não executado
 
@@ -176,13 +176,13 @@ Ver linha 38 acima. Não é bypass Super Admin cross-tenant — SA sempre viu me
 
 ## 12. Arquivos criados ou alterados
 
-- **Criado**: `docs/fase6/35-f3-3-4-super-admin-policy-bypass-inventory.md` (este arquivo).
+- **Criado**: `docs/delivery/phase-03-membership-evolution/35-f3-3-4-super-admin-policy-bypass-inventory.md` (este arquivo).
 
 Nenhum outro arquivo foi criado, alterado ou removido. Nenhuma migration criada. Nenhuma function ou policy modificada.
 
 ## 13. Diff / edit disponibilizado para auditoria
 
-Último edit disponível: criação de `docs/fase6/35-f3-3-4-super-admin-policy-bypass-inventory.md` com o inventário completo, tabela por policy, classificação de risco e recomendações. Nenhum outro diff nesta etapa.
+Último edit disponível: criação de `docs/delivery/phase-03-membership-evolution/35-f3-3-4-super-admin-policy-bypass-inventory.md` com o inventário completo, tabela por policy, classificação de risco e recomendações. Nenhum outro diff nesta etapa.
 
 ## 14. Conclusão
 

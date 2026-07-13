@@ -50,7 +50,7 @@ frontend, roles ou `storage.media_limit`.
 5:status-value: Accepted
 ```
 
-### fase6/100 SCP-011.2
+### delivery/phase-04-saas-commercial-platform/100 SCP-011.2
 
 ```
 === FIRST 15 LINES ===
@@ -74,7 +74,7 @@ frontend, roles ou `storage.media_limit`.
 5:Ready for External Audit
 ```
 
-### fase6/101 SCP-011.3
+### delivery/phase-04-saas-commercial-platform/101 SCP-011.3
 
 ```
 === STATUS-RELATED LINES ===
@@ -89,9 +89,9 @@ frontend, roles ou `storage.media_limit`.
 | SCP-011               | 1           | 1          | 0          | 0             |
 | SCP-011.1             | 1           | 1          | 0          | 0             |
 | SCP-011.2             | 1           | 1          | 0          | 0             |
-| fase6/100 (011.2)     | 1           | 1          | 0          | 0             |
+| delivery/phase-04-saas-commercial-platform/100 (011.2)     | 1           | 1          | 0          | 0             |
 | SCP-011.3             | 1           | 0          | 1          | 0             |
-| fase6/101 (011.3)     | 1           | 0          | 1          | 0             |
+| delivery/phase-04-saas-commercial-platform/101 (011.3)     | 1           | 0          | 1          | 0             |
 
 Todos correspondem ao estado canônico.
 
@@ -127,7 +127,7 @@ apresentadas na SCP-011.3 eram artefatos da representação de edição.
 ## 5. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-011.3.1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
-- `docs/fase6/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
 
 ## 6. Arquivos alterados
 
@@ -175,7 +175,7 @@ indentadas               => 0
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-011.3.1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
-docs/fase6/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
+docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
 ```
 
 ## 13. Confirmações negativas

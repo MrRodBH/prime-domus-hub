@@ -13,8 +13,8 @@ Esta etapa é exclusivamente documental/governança.
 ## 2. Arquivos alterados
 
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção `#### Gates e sequência inicial da Fase 4` substituída integralmente pela versão consolidada, com SCP-007 aparecendo uma única vez como `Implemented / Ready for External Audit`, SCP-008 como próxima etapa futura, e adição das restrições permanentes da SCP-007.
-- `docs/fase6/71-scp-007-commercial-feature-key-catalog-planning.md` — seção `## 14. Inspeções executadas` atualizada para declarar o estado final do roadmap sem duplicidade e sem referências de linha obsoletas.
-- `docs/fase6/72-scp-007-1-roadmap-deduplication-inspection-evidence-cleanup.md` — criado (este relatório).
+- `docs/delivery/phase-04-saas-commercial-platform/71-scp-007-commercial-feature-key-catalog-planning.md` — seção `## 14. Inspeções executadas` atualizada para declarar o estado final do roadmap sem duplicidade e sem referências de linha obsoletas.
+- `docs/delivery/phase-04-saas-commercial-platform/72-scp-007-1-roadmap-deduplication-inspection-evidence-cleanup.md` — criado (este relatório).
 
 ## 3. Confirmações
 

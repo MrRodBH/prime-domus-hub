@@ -26,11 +26,11 @@ para:
 
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 - `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
-- `docs/fase6/43-ia-006-saas-commercial-platform-impact-analysis.md`
+- `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`
 
 ## 3. Arquivos Criados
 
-- `docs/fase6/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
+- `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
 
 ## 4. Confirmação de Não-Implementação
 
@@ -127,9 +127,9 @@ Reconciliation → SCP-001.
   para auditoria.
 - **Arquivos alterados:** `docs/architecture/ROADMAP_ARCHITECTURAL.md`,
   `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/fase6/43-ia-006-saas-commercial-platform-impact-analysis.md`.
+  `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`.
 - **Arquivos criados:**
-  `docs/fase6/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`.
+  `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
 - **RLS policies:** nenhuma.
@@ -175,4 +175,4 @@ Confirmações obrigatórias:
 A auditoria externa identificou que IA-006.1 havia inserido novas seções
 sem remover completamente blocos antigos. A correção final foi realizada
 em IA-006.2, documentada em
-`docs/fase6/45-ia-006-2-documentation-deduplication-consistency-patch.md`.
+`docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`.

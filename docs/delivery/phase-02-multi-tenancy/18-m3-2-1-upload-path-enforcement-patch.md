@@ -35,9 +35,9 @@ bucket `site` é rejeitado fail-fast, sem fallback.
 | Caminho | Tipo | Motivo |
 | --- | --- | --- |
 | `docs/architecture/impact-analysis/README.md` | documental | Entrada única consolidada da IA-004 com referência ao Patch M3.2.1. |
-| `docs/fase6/17-m3-2-new-upload-path-enforcement.md` | documental | Redação arquiteturalmente precisa sobre autoridade do path e atualização dos riscos remanescentes. |
+| `docs/delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md` | documental | Redação arquiteturalmente precisa sobre autoridade do path e atualização dos riscos remanescentes. |
 | `src/lib/api/media.functions.ts` | arquitetural | `registrarMidia` reescrita para exigir `uploadTarget` server-authoritative + validação dura de path/bucket/tenant. |
-| `docs/fase6/18-m3-2-1-upload-path-enforcement-patch.md` | novo | Este relatório. |
+| `docs/delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md` | novo | Este relatório. |
 
 Nenhum outro arquivo foi tocado. Nenhuma migration, política RLS, bucket,
 policy de Storage ou TTL de Signed URL foi alterado.

@@ -7,7 +7,7 @@ Ready for External Audit
 ## 1. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010.5-accepted-status-finalization-roadmap-gate-cleanup.md`
-- `docs/fase6/93-scp-010-5-accepted-status-finalization-roadmap-gate-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/93-scp-010-5-accepted-status-finalization-roadmap-gate-cleanup.md`
 
 ## 2. Arquivos alterados
 
@@ -73,7 +73,7 @@ docs/architecture/impact-analysis/SCP-010.2-commercial-limit-dto-alignment-deter
 docs/architecture/impact-analysis/SCP-010.3-scp-010-1-deterministic-full-rewrite-final-gate-cleanup.md
 docs/architecture/impact-analysis/SCP-010.4-atomic-file-replacement-roadmap-exact-block-deduplication.md
 docs/architecture/impact-analysis/SCP-010.5-accepted-status-finalization-roadmap-gate-cleanup.md
-docs/fase6/93-scp-010-5-accepted-status-finalization-roadmap-gate-cleanup.md
+docs/delivery/phase-04-saas-commercial-platform/93-scp-010-5-accepted-status-finalization-roadmap-gate-cleanup.md
 ```
 
 ## 7. Confirmações negativas

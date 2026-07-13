@@ -1,9 +1,9 @@
 # Fase 6 · Bloco 4 · Etapa 4.1 — Plano Executivo (Pipeline como Prova Arquitetural)
 
 **Status:** Aguardando aprovação · **Data:** 2026-07-03
-**Contrato normativo:** `docs/fase6/09-product-ux-contract.md`
-**Checklist obrigatório:** `docs/fase6/09-product-ux-compliance-checklist.md`
-**Herança direta:** `docs/fase6/09-bloco-4-etapa-4-0-relatorio-tecnico.md`
+**Contrato normativo:** `docs/delivery/product-ux-refactor/09-product-ux-contract.md`
+**Checklist obrigatório:** `docs/delivery/product-ux-refactor/09-product-ux-compliance-checklist.md`
+**Herança direta:** `docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-0-relatorio-tecnico.md`
 
 ---
 

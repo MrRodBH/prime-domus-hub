@@ -287,8 +287,8 @@ Esta ordem é coerente com IA-006 §21 e ADR-005, e não a altera.
 - Constitution — `docs/architecture/ARCHITECTURE_CONSTITUTION.md`
 - Security Architecture — `docs/architecture/security/SECURITY_ARCHITECTURE.md`
 - IA-006 — `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
-- IA-006.1 — `docs/fase6/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
-- IA-006.2 — `docs/fase6/45-ia-006-2-documentation-deduplication-consistency-patch.md`
-- IA-006.3 — `docs/fase6/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
+- IA-006.1 — `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
+- IA-006.2 — `docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
+- IA-006.3 — `docs/delivery/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md`
 - ADR-005 — `docs/architecture/ADR/ADR-005-commercial-domain.md`
 - Roadmap — `docs/architecture/ROADMAP_ARCHITECTURAL.md`

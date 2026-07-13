@@ -28,7 +28,7 @@ webhook, checkout ou autorização administrativa comercial é implementado.
 
 - `supabase/migrations/20260708225736_e07e7782-191e-4228-a91f-e0c2f7d91252.sql`
 - `docs/architecture/commercial/SCP-002-billing-provider-abstraction-materialization.md`
-- `docs/fase6/54-scp-002-billing-provider-abstraction-materialization.md`
+- `docs/delivery/phase-04-saas-commercial-platform/54-scp-002-billing-provider-abstraction-materialization.md`
 
 ## 5. Arquivos alterados
 
@@ -285,4 +285,4 @@ Nenhuma dessas etapas é iniciada aqui.
 
 ## Retificação SCP-002.1
 
-A auditoria externa identificou inconsistências documentais após SCP-002: o documento oficial da SCP-001 permaneceu com dois status (`Implemented / Ready for External Audit` e `Accepted`) e o Roadmap manteve duas linhas da SCP-001 na sequência inicial da Fase 4. A correção final foi realizada em SCP-002.1 e documentada em `docs/fase6/55-scp-002-1-scp-001-status-roadmap-sequence-final-cleanup.md`.
+A auditoria externa identificou inconsistências documentais após SCP-002: o documento oficial da SCP-001 permaneceu com dois status (`Implemented / Ready for External Audit` e `Accepted`) e o Roadmap manteve duas linhas da SCP-001 na sequência inicial da Fase 4. A correção final foi realizada em SCP-002.1 e documentada em `docs/delivery/phase-04-saas-commercial-platform/55-scp-002-1-scp-001-status-roadmap-sequence-final-cleanup.md`.

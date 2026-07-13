@@ -35,7 +35,7 @@ os Hard Gates RR-G1..RR-G7 da F4.0 e os limites de ADR-005/ADR-006.
   — migration `scp001_commercial_domain_model`.
 - `docs/architecture/commercial/SCP-001-commercial-domain-model.md`
   — documento arquitetural oficial da SCP-001.
-- `docs/fase6/52-scp-001-commercial-domain-model.md` — este relatório.
+- `docs/delivery/phase-04-saas-commercial-platform/52-scp-001-commercial-domain-model.md` — este relatório.
 
 ## 5. Arquivos alterados
 
@@ -311,4 +311,4 @@ $ bunx tsgo --noEmit
 
 ## Retificação SCP-001.1
 
-A auditoria externa identificou duplicidade documental após SCP-001: o documento oficial da F4.0 permaneceu com dois status (`Proposed / Ready for External Audit` e `Accepted`). A correção final foi realizada em SCP-001.1 e documentada em `docs/fase6/53-scp-001-1-f4-0-accepted-status-final-cleanup.md`.
+A auditoria externa identificou duplicidade documental após SCP-001: o documento oficial da F4.0 permaneceu com dois status (`Proposed / Ready for External Audit` e `Accepted`). A correção final foi realizada em SCP-001.1 e documentada em `docs/delivery/phase-04-saas-commercial-platform/53-scp-001-1-f4-0-accepted-status-final-cleanup.md`.

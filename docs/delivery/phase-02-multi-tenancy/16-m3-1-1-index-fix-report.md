@@ -20,10 +20,10 @@ Portanto, nenhuma remoção de duplicidade foi necessária no estado atual do re
 - **Entrada que permaneceu:** a única entrada oficial existente:
 
   ```markdown
-  - [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — 🟡 Proposed / Awaiting Audit · **M3 BLOCKED** · Subetapa **M3.1 — Storage Inventory & Classification** concluída (analítica): [`docs/fase6/15-m3-1-storage-inventory-classification.md`](../../fase6/15-m3-1-storage-inventory-classification.md)
+  - [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — 🟡 Proposed / Awaiting Audit · **M3 BLOCKED** · Subetapa **M3.1 — Storage Inventory & Classification** concluída (analítica): [`docs/delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md`](../../delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md)
   ```
 
-- **Consolidação da M3.1:** a referência ao relatório analítico `docs/fase6/15-m3-1-storage-inventory-classification.md` já estava presente na entrada única, registrando o encerramento da subetapa M3.1.
+- **Consolidação da M3.1:** a referência ao relatório analítico `docs/delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md` já estava presente na entrada única, registrando o encerramento da subetapa M3.1.
 
 ## 4. Confirmação
 

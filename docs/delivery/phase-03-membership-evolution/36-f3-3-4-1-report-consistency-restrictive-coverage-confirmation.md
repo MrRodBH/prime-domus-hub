@@ -17,7 +17,7 @@ Consultas SQL de leitura em:
 - `pg_policies` (contagens, cross-schema, cruzamento restrictive × permissive)
 - `pg_class`, `pg_namespace`, `pg_attribute` (colunas `tenant_id`)
 - `pg_proc` (hashes de definição das funções críticas para provar não-alteração)
-- Leitura do relatório anterior `docs/fase6/35-f3-3-4-super-admin-policy-bypass-inventory.md`
+- Leitura do relatório anterior `docs/delivery/phase-03-membership-evolution/35-f3-3-4-super-admin-policy-bypass-inventory.md`
 
 Nenhum comando de escrita foi executado.
 
@@ -292,7 +292,7 @@ Justificativa objetiva:
 
 ## 14. Verificação de acesso via conector Lovable
 
-- **Arquivo criado:** `docs/fase6/36-f3-3-4-1-report-consistency-restrictive-coverage-confirmation.md`
+- **Arquivo criado:** `docs/delivery/phase-03-membership-evolution/36-f3-3-4-1-report-consistency-restrictive-coverage-confirmation.md`
 - **Caminho:** exatamente conforme exigido pelo prompt.
 - **Deve estar disponível via `read_file`:** sim — escrito com o mesmo mecanismo dos relatórios 28–35, todos previamente acessíveis à auditoria externa.
 - **Sem limitação conhecida** de get_diff / list_files nesta etapa (apenas 1 arquivo criado, 0 alterados).
@@ -302,7 +302,7 @@ Justificativa objetiva:
 ## 15. Audit Package / Pacote de Auditoria
 
 1. **Commit/edit ID:** este relatório corresponde ao edit produzido nesta resposta (etapa F3.3.4.1). Lovable não expõe SHA git ao agente; o edit é rastreável via histórico da conversa (mensagem imediatamente anterior à confirmação).
-2. **Arquivos alterados:** `docs/fase6/36-f3-3-4-1-report-consistency-restrictive-coverage-confirmation.md` (criado). **Nenhum outro arquivo tocado.**
+2. **Arquivos alterados:** `docs/delivery/phase-03-membership-evolution/36-f3-3-4-1-report-consistency-restrictive-coverage-confirmation.md` (criado). **Nenhum outro arquivo tocado.**
 3. **Migrations criadas:** **NENHUMA** (confirmação expressa).
 4. **Diff resumido:** apenas adição de novo arquivo documental — 0 linhas alteradas em código ou SQL.
 5. **Antes/depois de funções SQL:** **NENHUMA função foi alterada.** Hashes MD5 provam integridade (§11).

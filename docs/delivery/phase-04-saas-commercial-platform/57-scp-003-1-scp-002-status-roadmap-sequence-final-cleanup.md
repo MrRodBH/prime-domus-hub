@@ -12,11 +12,11 @@ Nenhuma alteração funcional, de schema, migrations, RLS, grants, Storage ou Ru
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/56-scp-003-commercial-read-models-server-side-access-planning.md` — adicionada seção final `## Retificação SCP-003.1` (histórico preservado).
+- `docs/delivery/phase-04-saas-commercial-platform/56-scp-003-commercial-read-models-server-side-access-planning.md` — adicionada seção final `## Retificação SCP-003.1` (histórico preservado).
 
 ## 3. Arquivos criados
 
-- `docs/fase6/57-scp-003-1-scp-002-status-roadmap-sequence-final-cleanup.md` (este relatório).
+- `docs/delivery/phase-04-saas-commercial-platform/57-scp-003-1-scp-002-status-roadmap-sequence-final-cleanup.md` (este relatório).
 
 ## 4. Estado inspecionado (pré-existente correto)
 
@@ -123,8 +123,8 @@ Dentro da subseção "Gates e sequência inicial da Fase 4":
 ### 8.5 Ausência de alterações funcionais
 
 Arquivos alterados/criados declarados:
-- `docs/fase6/56-scp-003-commercial-read-models-server-side-access-planning.md` (retificação anexada).
-- `docs/fase6/57-scp-003-1-scp-002-status-roadmap-sequence-final-cleanup.md` (novo).
+- `docs/delivery/phase-04-saas-commercial-platform/56-scp-003-commercial-read-models-server-side-access-planning.md` (retificação anexada).
+- `docs/delivery/phase-04-saas-commercial-platform/57-scp-003-1-scp-002-status-roadmap-sequence-final-cleanup.md` (novo).
 
 Nenhum arquivo em `src/` ou `supabase/`.
 
@@ -140,8 +140,8 @@ Nenhum. Etapa estritamente documental corretiva; nenhum caminho de execução fo
 ## 11. Audit Package
 
 - **Status da implementação:** Implementada e pronta para auditoria externa.
-- **Arquivos alterados:** `docs/fase6/56-scp-003-commercial-read-models-server-side-access-planning.md`.
-- **Arquivos criados:** `docs/fase6/57-scp-003-1-scp-002-status-roadmap-sequence-final-cleanup.md`.
+- **Arquivos alterados:** `docs/delivery/phase-04-saas-commercial-platform/56-scp-003-commercial-read-models-server-side-access-planning.md`.
+- **Arquivos criados:** `docs/delivery/phase-04-saas-commercial-platform/57-scp-003-1-scp-002-status-roadmap-sequence-final-cleanup.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
 - **RLS policies:** nenhuma.

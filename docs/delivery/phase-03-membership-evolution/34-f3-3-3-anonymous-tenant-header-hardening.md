@@ -110,7 +110,7 @@ Inventário via `pg_policies` filtrando `qual`/`with_check ILIKE '%get_current_t
 
 **Arquivos alterados:**
 - `supabase/migrations/20260708145027_40ef6e97-158c-4a05-bb9c-84fb27c322e6.sql` (novo)
-- `docs/fase6/34-f3-3-3-anonymous-tenant-header-hardening.md` (novo)
+- `docs/delivery/phase-03-membership-evolution/34-f3-3-3-anonymous-tenant-header-hardening.md` (novo)
 
 **Diff resumido:**
 - Migration: apenas `CREATE OR REPLACE FUNCTION public.get_current_tenant_id()`, com bloco novo inserido logo após a declaração de `v_uid` bloqueando `auth.uid() IS NULL`.

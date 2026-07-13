@@ -32,7 +32,7 @@ pendências arquiteturais permanecem formalmente registradas como backlog:
 
 ## 2. Arquivos Alterados / Criados
 
-- **Criado:** `docs/fase6/23-m3-5-media-picker-validation.md` (este relatório).
+- **Criado:** `docs/delivery/phase-02-multi-tenancy/23-m3-5-media-picker-validation.md` (este relatório).
 - **Editado:** `docs/architecture/impact-analysis/README.md` (índice IA-004).
 - **Editado:** `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md`
   (status da M3.5 e backlog).

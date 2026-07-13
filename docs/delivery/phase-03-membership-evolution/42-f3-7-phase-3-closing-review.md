@@ -239,9 +239,9 @@ aguardando aprovação.
 - **Arquivos inspecionados:** `src/integrations/supabase/{tenant-middleware,tenant-repository,tenant-attacher,tenant-selection-state,use-tenant-selection,membership-types,membership-validation}.ts`,
   `src/lib/api/tenant-selection.functions.ts`,
   `src/components/workspace/tenant/*`,
-  `docs/fase6/28..41`, ADRs, impact-analyses e Security Architecture.
+  `docs/delivery/phase-03-membership-evolution/28..41`, ADRs, impact-analyses e Security Architecture.
 - **Arquivos alterados:** nenhum.
-- **Arquivos criados:** `docs/fase6/42-f3-7-phase-3-closing-review.md`.
+- **Arquivos criados:** `docs/delivery/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma alteração.
 - **RLS policies:** nenhuma alteração.

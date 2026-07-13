@@ -14,14 +14,14 @@ frontend, roles ou `storage.media_limit`.
 ## 1. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-011.3.2-accepted-status-finalization-scp-012-authorization.md`
-- `docs/fase6/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md`
+- `docs/delivery/phase-04-saas-commercial-platform/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md`
 
 ## 2. Arquivos alterados
 
 - `docs/architecture/impact-analysis/SCP-011.3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md`
-- `docs/fase6/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md`
+- `docs/delivery/phase-04-saas-commercial-platform/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md`
 - `docs/architecture/impact-analysis/SCP-011.3.1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
-- `docs/fase6/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 
 ## 3. Status anteriores e finais
@@ -36,7 +36,7 @@ frontend, roles ou `storage.media_limit`.
 ## 4. Contagens dos headings e status
 
 Para cada um dos quatro documentos alvo
-(`SCP-011.3`, `fase6/101`, `SCP-011.3.1`, `fase6/102`):
+(`SCP-011.3`, `delivery/phase-04-saas-commercial-platform/101`, `SCP-011.3.1`, `delivery/phase-04-saas-commercial-platform/102`):
 
 ```
 status_headings=1
@@ -77,9 +77,9 @@ docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-011.3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md
 docs/architecture/impact-analysis/SCP-011.3.1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
 docs/architecture/impact-analysis/SCP-011.3.2-accepted-status-finalization-scp-012-authorization.md
-docs/fase6/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md
-docs/fase6/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
-docs/fase6/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md
+docs/delivery/phase-04-saas-commercial-platform/101-scp-011-3-final-runtime-chain-verification-accepted-status-consolidation-scp-012-gate-preparation.md
+docs/delivery/phase-04-saas-commercial-platform/102-scp-011-3-1-exact-status-roadmap-state-confirmation-conditional-cleanup.md
+docs/delivery/phase-04-saas-commercial-platform/103-scp-011-3-2-accepted-status-finalization-scp-012-authorization.md
 ```
 
 Somente `docs/**` foi alterado.

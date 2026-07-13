@@ -88,7 +88,7 @@ Comandos e resultados (evidência integral capturada durante a etapa):
 5. Cenários F3.3 (13/17/21 asserções sobre `get_current_tenant_id()`):
    nenhuma mudança de retorno — o corpo da função e os grants dos objetos
    consultados (`tenant_members`, `tenants`) não foram tocados. As 21
-   asserções PASS registradas em `docs/fase6/31-f3-3-...md §9` permanecem
+   asserções PASS registradas em `docs/delivery/phase-03-membership-evolution/31-f3-3-...md §9` permanecem
    válidas por construção (mesmas queries, mesmo owner).
 6-8. Cenários de resolução (usuário comum válido, header alheio, super
    admin com/sem header) idem — herdados da F3.3, sem regressão pois nem o
@@ -210,7 +210,7 @@ DEFINER` executa como owner e não depende de grants a
 
 Confirmo que os testes da F3.3 continuam válidos: corpo da função e dos
 objetos consultados não foram alterados; as 21 asserções PASS registradas
-em `docs/fase6/31-...md §9` permanecem verdadeiras por construção.
+em `docs/delivery/phase-03-membership-evolution/31-...md §9` permanecem verdadeiras por construção.
 
 Confirmo que F3.4 **não** foi implementada.
 

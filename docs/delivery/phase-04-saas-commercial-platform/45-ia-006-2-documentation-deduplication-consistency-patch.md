@@ -17,15 +17,15 @@ foi alterado.
 
 - `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
   — §21 consolidada com a nova ordem obrigatória incluindo IA-006.2.
-- `docs/fase6/43-ia-006-saas-commercial-platform-impact-analysis.md`
+- `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`
   — §9 renomeada de "Próximos Passos (atualizado por IA-006.1)" para
     "Próximos Passos" (lista única) e alinhada com IA-006.2.
-- `docs/fase6/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
+- `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`
   — anexada nota de retificação IA-006.2.
 
 ## 3. Arquivos Criados
 
-- `docs/fase6/45-ia-006-2-documentation-deduplication-consistency-patch.md`
+- `docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`
 
 ## 4. Estado do ROADMAP_ARCHITECTURAL.md
 
@@ -97,7 +97,7 @@ A seção 21 foi consolidada em uma única lista de sete passos:
 
 ## 7. Relatório 43 — Seção 9 consolidada
 
-`docs/fase6/43-ia-006-saas-commercial-platform-impact-analysis.md` §9
+`docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md` §9
 foi renomeada de "Próximos Passos (atualizado por IA-006.1)" para
 apenas "Próximos Passos", com lista única alinhada ao §21 da IA-006 e
 incluindo a IA-006.2. Não existe duplicidade de §9.
@@ -105,7 +105,7 @@ incluindo a IA-006.2. Não existe duplicidade de §9.
 ### 7.1 Inspeção — Duplicidade de próximos passos
 
 ```
-$ rg -n "^## 9\. Próximos Passos|^Antes de qualquer commit funcional|^1\. Auditoria externa" docs/fase6/43-...md docs/architecture/impact-analysis/IA-006-...md
+$ rg -n "^## 9\. Próximos Passos|^Antes de qualquer commit funcional|^1\. Auditoria externa" docs/delivery/phase-04-saas-commercial-platform/43-...md docs/architecture/impact-analysis/IA-006-...md
 IA-006-...:483: Antes de qualquer commit funcional da macrofase (ordem obrigatória):
 IA-006-...:485: 1. Auditoria externa aprovar IA-006 / IA-006.1 / IA-006.2.
 43-...:89:  ## 9. Próximos Passos
@@ -116,7 +116,7 @@ Uma única seção/lista final por documento.
 
 ## 8. Relatório 44 — Retificação anexada
 
-Anexada nota final ao `docs/fase6/44-...md` registrando a existência da
+Anexada nota final ao `docs/delivery/phase-04-saas-commercial-platform/44-...md` registrando a existência da
 IA-006.2, sem apagar o histórico da IA-006.1.
 
 ## 9. Testes / Typecheck
@@ -151,10 +151,10 @@ esta etapa é exclusivamente documental).
   auditoria.
 - **Arquivos alterados:**
   `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/fase6/43-ia-006-saas-commercial-platform-impact-analysis.md`,
-  `docs/fase6/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`.
+  `docs/delivery/phase-04-saas-commercial-platform/43-ia-006-saas-commercial-platform-impact-analysis.md`,
+  `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`.
 - **Arquivos criados:**
-  `docs/fase6/45-ia-006-2-documentation-deduplication-consistency-patch.md`.
+  `docs/delivery/phase-04-saas-commercial-platform/45-ia-006-2-documentation-deduplication-consistency-patch.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
 - **RLS policies:** nenhuma.
@@ -199,4 +199,4 @@ Confirmações obrigatórias:
 
 ## Retificação IA-006.3
 
-A auditoria externa identificou duplicidade remanescente na seção 21 da IA-006 e na seção 9 do relatório cronológico 43 após IA-006.2. A correção final foi realizada em IA-006.3 e documentada em docs/fase6/46-ia-006-3-final-documentation-consistency-verification-cleanup.md.
+A auditoria externa identificou duplicidade remanescente na seção 21 da IA-006 e na seção 9 do relatório cronológico 43 após IA-006.2. A correção final foi realizada em IA-006.3 e documentada em docs/delivery/phase-04-saas-commercial-platform/46-ia-006-3-final-documentation-consistency-verification-cleanup.md.

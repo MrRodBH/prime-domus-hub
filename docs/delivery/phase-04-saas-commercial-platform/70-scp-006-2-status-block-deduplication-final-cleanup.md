@@ -9,7 +9,7 @@ Accepted
 Corrigir o bloqueio documental remanescente após a SCP-006.1.
 
 A SCP-006.1 formalizou a aceitação da SCP-006, mas o documento principal
-`docs/fase6/68-scp-006-commercial-feature-gate-server-runtime.md` manteve
+`docs/delivery/phase-04-saas-commercial-platform/68-scp-006-commercial-feature-gate-server-runtime.md` manteve
 uma linha residual `Implemented / Ready for External Audit` no bloco de
 status junto com `Accepted`. Esta etapa removeu o resíduo e consolidou o
 bloco em uma única linha `Accepted`.
@@ -21,20 +21,20 @@ em `tenant_members` ou início da SCP-007 foi produzido.
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/68-scp-006-commercial-feature-gate-server-runtime.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/68-scp-006-commercial-feature-gate-server-runtime.md` —
   bloco de status substituído integralmente por `## Status` seguido de uma
   única linha `Accepted`; removida a linha residual
   `Implemented / Ready for External Audit`.
-- `docs/fase6/69-scp-006-1-accepted-status-finalization-roadmap-gate-cleanup.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/69-scp-006-1-accepted-status-finalization-roadmap-gate-cleanup.md` —
   adicionada `## Correction Note` reconhecendo que a SCP-006.1 deixou o
   bloco de status da SCP-006 com linha residual e que a limpeza final foi
   concluída pela SCP-006.2.
-- `docs/fase6/70-scp-006-2-status-block-deduplication-final-cleanup.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/70-scp-006-2-status-block-deduplication-final-cleanup.md` —
   criado (este relatório).
 
 ## 3. Confirmações
 
-- `docs/fase6/68-scp-006-commercial-feature-gate-server-runtime.md` possui
+- `docs/delivery/phase-04-saas-commercial-platform/68-scp-006-commercial-feature-gate-server-runtime.md` possui
   heading `## Status` único e linha única `Accepted` no bloco de status.
 - `Implemented / Ready for External Audit` foi removido do bloco de status
   do documento da SCP-006.

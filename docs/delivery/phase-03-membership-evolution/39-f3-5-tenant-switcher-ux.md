@@ -41,7 +41,7 @@ Nenhum arquivo aprovado na F3.4/F3.4.1 foi modificado. A F3.5 é estritamente ad
 | `src/components/workspace/tenant/TenantSelectionRequired.tsx` | `<TenantSelectionGate />` — bloqueia conteúdo tenant-scoped quando N>1 sem seleção ou 0 tenants ativos. |
 | `src/integrations/supabase/__tests__/tenant-selection-cardinality.spec.ts` | 7 specs cobrindo a matriz de cardinalidade. |
 | `run-tenant-specs.ts` | Runner unificado das 3 suítes tenant (state + attacher + cardinality). |
-| `docs/fase6/39-f3-5-tenant-switcher-ux.md` | Este relatório. |
+| `docs/delivery/phase-03-membership-evolution/39-f3-5-tenant-switcher-ux.md` | Este relatório. |
 
 ## 5. Confirmações de escopo
 
@@ -216,7 +216,7 @@ F3.5 implementada e pronta para auditoria.
 - `src/components/workspace/tenant/TenantSelectionRequired.tsx`
 - `src/integrations/supabase/__tests__/tenant-selection-cardinality.spec.ts`
 - `run-tenant-specs.ts`
-- `docs/fase6/39-f3-5-tenant-switcher-ux.md`
+- `docs/delivery/phase-03-membership-evolution/39-f3-5-tenant-switcher-ux.md`
 
 **Migrations:** nenhuma.
 **SQL functions:** nenhuma alteração (antes = depois).

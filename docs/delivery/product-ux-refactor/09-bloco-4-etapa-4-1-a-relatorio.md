@@ -3,8 +3,8 @@
 **Status:** Concluída · aguardando aprovação para iniciar 4.1.b
 **Data:** 2026-07-03
 **Escopo:** Extensão exclusivamente contratual do `EntityWorkspace`. Nenhuma UI de domínio implementada.
-**Contrato normativo:** `docs/fase6/09-product-ux-contract.md` (§12 — Three-Domain Rule)
-**Plano Executivo:** `docs/fase6/09-bloco-4-etapa-4-1-plano-executivo.md`
+**Contrato normativo:** `docs/delivery/product-ux-refactor/09-product-ux-contract.md` (§12 — Three-Domain Rule)
+**Plano Executivo:** `docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-1-plano-executivo.md`
 
 ---
 
@@ -23,10 +23,10 @@ Toda decisão desta subetapa foi validada contra o **Multi-Domain Validation Tes
 
 ### 2.1 · Governança documental
 
-- **`docs/fase6/09-product-ux-contract.md` §12 (novo)** — Three-Domain Rule
+- **`docs/delivery/product-ux-refactor/09-product-ux-contract.md` §12 (novo)** — Three-Domain Rule
   formalizada como cláusula normativa do contrato. Regras derivadas de
   nomenclatura, prova em código, falha no critério e escopo do núcleo.
-- **`docs/fase6/09-bloco-4-etapa-4-1-plano-executivo.md`** — permanece a
+- **`docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-1-plano-executivo.md`** — permanece a
   referência do plano da etapa 4.1 completa; 4.1.a é sua primeira subetapa.
 - **Este relatório** — congela a superfície de contrato aceita.
 

@@ -13,15 +13,15 @@ Accepted
 
 ## Arquivos alterados
 
-- `docs/fase6/58-scp-004-commercial-server-read-functions.md`
+- `docs/delivery/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md`
   - Substituída a menção residual ao status anterior no bloco de
     arquivos alterados pelo status oficial `Accepted`.
-- `docs/fase6/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md`
   - Substituídas todas as menções residuais ao status anterior pelo
     status oficial `Accepted`.
   - Simplificados os comandos de inspeção textual para não repetirem
     literais de status antigos.
-- `docs/fase6/60-scp-004-2-accepted-status-finalization-roadmap-gate-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/60-scp-004-2-accepted-status-finalization-roadmap-gate-cleanup.md`
   - Reescritas as seções de resultado das inspeções sem repetir os
     literais de status anteriores.
   - Simplificados os comandos de inspeção textual.
@@ -62,9 +62,9 @@ limpeza final sem reintroduzir os literais antigos.
 
 ```
 rg -n "Implemented / Ready|Implementado / Pronto|Aceito" \
-  docs/fase6/58-scp-004-commercial-server-read-functions.md \
-  docs/fase6/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md \
-  docs/fase6/60-scp-004-2-accepted-status-finalization-roadmap-gate-cleanup.md
+  docs/delivery/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md \
+  docs/delivery/phase-04-saas-commercial-platform/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md \
+  docs/delivery/phase-04-saas-commercial-platform/60-scp-004-2-accepted-status-finalization-roadmap-gate-cleanup.md
 ```
 
 **Resultado:** 0 ocorrências (nenhum literal de status anterior
@@ -73,7 +73,7 @@ permaneceu nos documentos 58, 59 e 60).
 ### Documento SCP-004
 
 ```
-rg -n "## Status|Accepted" docs/fase6/58-scp-004-commercial-server-read-functions.md
+rg -n "## Status|Accepted" docs/delivery/phase-04-saas-commercial-platform/58-scp-004-commercial-server-read-functions.md
 ```
 
 **Resultado:**
@@ -83,7 +83,7 @@ rg -n "## Status|Accepted" docs/fase6/58-scp-004-commercial-server-read-function
 ### Documento SCP-004.1
 
 ```
-rg -n "## Status|Accepted" docs/fase6/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md
+rg -n "## Status|Accepted" docs/delivery/phase-04-saas-commercial-platform/59-scp-004-1-commercial-diagnostic-boundary-documentation-cleanup.md
 ```
 
 **Resultado:**

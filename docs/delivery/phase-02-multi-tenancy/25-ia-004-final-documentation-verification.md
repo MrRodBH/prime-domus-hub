@@ -21,7 +21,7 @@ Verificação documental final da **IA-004 — Tenant Storage Isolation** após 
 
 Apenas foi criado:
 
-- `docs/fase6/25-ia-004-final-documentation-verification.md` (este relatório).
+- `docs/delivery/phase-02-multi-tenancy/25-ia-004-final-documentation-verification.md` (este relatório).
 
 ---
 
@@ -44,7 +44,7 @@ Ocorrências textuais de "IA-004" no arquivo referem-se exclusivamente a: (a) a 
 ### Linha final consolidada (trecho lido diretamente do arquivo, linha 72)
 
 ```
-- [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — 🟡 Em execução controlada · M3.1 concluída ([`15`](../../fase6/15-m3-1-storage-inventory-classification.md)) · M3.2 + Patch M3.2.1 **aprovados** ([`17`](../../fase6/17-m3-2-new-upload-path-enforcement.md), [`18`](../../fase6/18-m3-2-1-upload-path-enforcement-patch.md)) · M3.4 + Patch M3.4.1 **aprovados** ([`19`](../../fase6/19-m3-4-signed-url-hardening.md), [`20`](../../fase6/20-m3-4-1-ia-004-index-fix.md)) · M3.3 + Patch M3.3.1 **aprovados** ([`21`](../../fase6/21-m3-3-legacy-file-migration.md), [`22`](../../fase6/22-m3-3-1-metadata-normalization-documentation-fix.md)) · **M3.5 implementada, aguardando auditoria/aprovação** ([`23`](../../fase6/23-m3-5-media-picker-validation.md)) · Backlog: Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch, Media Picker Return Contract Normalization
+- [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — 🟡 Em execução controlada · M3.1 concluída ([`15`](../../delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md)) · M3.2 + Patch M3.2.1 **aprovados** ([`17`](../../delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md), [`18`](../../delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md)) · M3.4 + Patch M3.4.1 **aprovados** ([`19`](../../delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md), [`20`](../../delivery/phase-02-multi-tenancy/20-m3-4-1-ia-004-index-fix.md)) · M3.3 + Patch M3.3.1 **aprovados** ([`21`](../../delivery/phase-02-multi-tenancy/21-m3-3-legacy-file-migration.md), [`22`](../../delivery/phase-02-multi-tenancy/22-m3-3-1-metadata-normalization-documentation-fix.md)) · **M3.5 implementada, aguardando auditoria/aprovação** ([`23`](../../delivery/phase-02-multi-tenancy/23-m3-5-media-picker-validation.md)) · Backlog: Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch, Media Picker Return Contract Normalization
 ```
 
 Confere com o conteúdo esperado (M3.1 concluída · M3.2 + M3.2.1 aprovados · M3.4 + M3.4.1 aprovados · M3.3 + M3.3.1 aprovados · M3.5 implementada, aguardando auditoria/aprovação · Backlog completo com 3 itens).
@@ -59,23 +59,23 @@ Confere com o conteúdo esperado (M3.1 concluída · M3.2 + M3.2.1 aprovados · 
 ## Status de execução das subetapas
 
 - **M3.1 — Storage Inventory & Classification** — ✔ concluída
-  ([`15`](../../fase6/15-m3-1-storage-inventory-classification.md)).
+  ([`15`](../../delivery/phase-02-multi-tenancy/15-m3-1-storage-inventory-classification.md)).
 - **M3.2 — New Upload Path Enforcement** — ✔ concluída + Patch M3.2.1 aprovado
-  ([`17`](../../fase6/17-m3-2-new-upload-path-enforcement.md),
-  [`18`](../../fase6/18-m3-2-1-upload-path-enforcement-patch.md)).
+  ([`17`](../../delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md),
+  [`18`](../../delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md)).
 - **M3.4 — Signed URL Hardening** — ✔ concluída + Patch M3.4.1 aprovado
-  ([`19`](../../fase6/19-m3-4-signed-url-hardening.md),
-  [`20`](../../fase6/20-m3-4-1-ia-004-index-fix.md)).
+  ([`19`](../../delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md),
+  [`20`](../../delivery/phase-02-multi-tenancy/20-m3-4-1-ia-004-index-fix.md)).
 - **M3.3 — Legacy File Migration** — ✔ concluída + Patch M3.3.1 **aprovado**
-  ([`21`](../../fase6/21-m3-3-legacy-file-migration.md),
-  [`22`](../../fase6/22-m3-3-1-metadata-normalization-documentation-fix.md)).
+  ([`21`](../../delivery/phase-02-multi-tenancy/21-m3-3-legacy-file-migration.md),
+  [`22`](../../delivery/phase-02-multi-tenancy/22-m3-3-1-metadata-normalization-documentation-fix.md)).
   Universo físico legado = ∅ (todos os 22 objetos já compliant, reclassificados
   no Patch M3.3.1 como `referenced_by_legacy_absolute_url`). 8 inconsistências
   de metadata catalogadas e preservadas como backlog **M3.3.2 — Metadata
   Rewrite Batch**. Log de auditoria/rollback em `public.storage_migration_log`
   (super-admin only) — exceção controlada documentada no Patch M3.3.1.
 - **M3.5 — Media Picker Validation** — ✔ implementada, aguardando auditoria/aprovação
-  ([`23`](../../fase6/23-m3-5-media-picker-validation.md)). Nenhuma alteração
+  ([`23`](../../delivery/phase-02-multi-tenancy/23-m3-5-media-picker-validation.md)). Nenhuma alteração
   funcional foi necessária — MediaPicker e server functions já estavam em
   conformidade após M3.2/M3.4/M3.3. Backlog formal preservado:
   **Upload Provenance Token** (defesa em profundidade, Opção B),

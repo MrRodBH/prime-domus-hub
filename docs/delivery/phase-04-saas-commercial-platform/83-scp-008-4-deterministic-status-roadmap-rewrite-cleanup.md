@@ -10,12 +10,12 @@ Corrigir definitivamente os resíduos documentais deixados após a SCP-008.3 usa
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — bloco de status substituído integralmente; `## Acceptance Note` reescrito.
-- `docs/fase6/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — bloco de status substituído integralmente.
-- `docs/fase6/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` — bloco de status substituído integralmente.
+- `docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — bloco de status substituído integralmente; `## Acceptance Note` reescrito.
+- `docs/delivery/phase-04-saas-commercial-platform/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — bloco de status substituído integralmente.
+- `docs/delivery/phase-04-saas-commercial-platform/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` — bloco de status substituído integralmente.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — seção `#### Gates e sequência inicial da Fase 4` substituída integralmente.
-- `docs/fase6/82-scp-008-3-accepted-status-finalization-roadmap-gate-cleanup.md` — adicionada `## Correction Note` referenciando a SCP-008.4.
-- `docs/fase6/83-scp-008-4-deterministic-status-roadmap-rewrite-cleanup.md` — este relatório.
+- `docs/delivery/phase-04-saas-commercial-platform/82-scp-008-3-accepted-status-finalization-roadmap-gate-cleanup.md` — adicionada `## Correction Note` referenciando a SCP-008.4.
+- `docs/delivery/phase-04-saas-commercial-platform/83-scp-008-4-deterministic-status-roadmap-rewrite-cleanup.md` — este relatório.
 
 ## 3. Método
 

@@ -32,7 +32,7 @@ Headings do impact analysis
 ## 17. Confirmações negativas
 ```
 
-Headings do relatório fase6/106 antes da etapa:
+Headings do relatório delivery/phase-04-saas-commercial-platform/106 antes da etapa:
 
 ```
 ## Status
@@ -55,7 +55,7 @@ Headings do relatório fase6/106 antes da etapa:
 
 Padrões proibidos no impact analysis: **nenhuma ocorrência**.
 
-Padrões proibidos no relatório fase6/106 antes da etapa:
+Padrões proibidos no relatório delivery/phase-04-saas-commercial-platform/106 antes da etapa:
 
 ```
 117:- recomendação anterior "A + C parcial" — reclassificada como
@@ -72,7 +72,7 @@ Bloco 16 do roadmap antes da etapa:
 ## 2. Cenário identificado
 
 **Cenário A — arquivos já consolidados** pela SCP-012.0.1, com
-exceções residuais localizadas exclusivamente no relatório fase6/106
+exceções residuais localizadas exclusivamente no relatório delivery/phase-04-saas-commercial-platform/106
 (§8 continha frase `"A + C parcial"`; §9 usava título antigo
 `Sequenciamento proposto (final consolidado)`; §12 mantinha bloco de
 roadmap desatualizado sem a entrada 16.0.1.1).
@@ -82,7 +82,7 @@ integral (headings 7–15 canônicos, únicos, sem padrões proibidos).
 
 ## 3. Anchors usados
 
-Substituições cirúrgicas via search-replace no relatório fase6/106
+Substituições cirúrgicas via search-replace no relatório delivery/phase-04-saas-commercial-platform/106
 apenas nas seções afetadas:
 
 - anchor `## 8. Decisão recomendada` → `Sem período persistido de
@@ -92,10 +92,10 @@ apenas nas seções afetadas:
 
 ## 4. Seções substituídas
 
-- fase6/106 §8 (Decisão recomendada) — reescrita integral;
-- fase6/106 §9 — heading renomeado para `## 9. Sequenciamento
+- delivery/phase-04-saas-commercial-platform/106 §8 (Decisão recomendada) — reescrita integral;
+- delivery/phase-04-saas-commercial-platform/106 §9 — heading renomeado para `## 9. Sequenciamento
   proposto` e lista atualizada incluindo SCP-012.0.1.1;
-- fase6/106 §12 (Bloco final do roadmap aplicado) — bloco substituído
+- delivery/phase-04-saas-commercial-platform/106 §12 (Bloco final do roadmap aplicado) — bloco substituído
   pelas quatro linhas canônicas 16 / 16.0 / 16.0.1 / 16.0.1.1;
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — inserção da linha
   `16.0.1.1` imediatamente após `16.0.1`.
@@ -116,7 +116,7 @@ Headings do impact analysis 7–15 (contagens):
 ## 15. Roadmap => 1
 ```
 
-Headings do relatório fase6/106 8–12 (contagens):
+Headings do relatório delivery/phase-04-saas-commercial-platform/106 8–12 (contagens):
 
 ```
 ## 8. Decisão recomendada => 1
@@ -135,9 +135,9 @@ Contagens de code fences (esperado: par em cada arquivo):
 
 ```
 docs/architecture/impact-analysis/SCP-012.0-...md         : 14
-docs/fase6/106-scp-012-0-...md                            : 6
+docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-...md                            : 6
 docs/architecture/impact-analysis/SCP-012.0.1.1-...md     : par
-docs/fase6/108-scp-012-0-1-1-...md                        : par
+docs/delivery/phase-04-saas-commercial-platform/108-scp-012-0-1-1-...md                        : par
 ```
 
 Nenhum code fence desbalanceado.
@@ -164,14 +164,14 @@ esperado:
 
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
-docs/fase6/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
+docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md
 ```
 
 Arquivos novos (untracked em `git status --short`):
 
 ```
 ?? docs/architecture/impact-analysis/SCP-012.0.1.1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md
-?? docs/fase6/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md
+?? docs/delivery/phase-04-saas-commercial-platform/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md
 ```
 
 `git diff --check`: sem whitespace errors.
@@ -191,12 +191,12 @@ aprovação integral da SCP-012.0.1.1.
 ## 10. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-012.0.1.1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md`
-- `docs/fase6/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md`
+- `docs/delivery/phase-04-saas-commercial-platform/108-scp-012-0-1-1-deterministic-full-section-rewrite-evidence-lock-git-readiness.md`
 
 ## 11. Arquivos alterados
 
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
-- `docs/fase6/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
+- `docs/delivery/phase-04-saas-commercial-platform/106-scp-012-0-transaction-safe-commercial-authority-membership-mutation-boundary-impact-analysis.md`
 
 ## 12. Confirmações negativas
 

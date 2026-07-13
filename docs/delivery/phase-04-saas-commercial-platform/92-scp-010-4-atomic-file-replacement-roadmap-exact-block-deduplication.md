@@ -31,7 +31,7 @@ edição direcionada (line-range) sem preservar linhas indentadas.
 ## 3. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010.4-atomic-file-replacement-roadmap-exact-block-deduplication.md`
-- `docs/fase6/92-scp-010-4-atomic-file-replacement-roadmap-exact-block-deduplication.md`
+- `docs/delivery/phase-04-saas-commercial-platform/92-scp-010-4-atomic-file-replacement-roadmap-exact-block-deduplication.md`
 
 ## 4. Arquivos alterados
 
@@ -115,7 +115,7 @@ $ rg -n '^[[:space:]]+14\.|^[[:space:]]+15\. SCP-011' ROADMAP
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-010.1-authoritative-membership-domain-verification-contract-determinism-roadmap-cleanup.md
 docs/architecture/impact-analysis/SCP-010.4-atomic-file-replacement-roadmap-exact-block-deduplication.md
-docs/fase6/92-scp-010-4-atomic-file-replacement-roadmap-exact-block-deduplication.md
+docs/delivery/phase-04-saas-commercial-platform/92-scp-010-4-atomic-file-replacement-roadmap-exact-block-deduplication.md
 ```
 
 Todos os caminhos começam por `docs/`.

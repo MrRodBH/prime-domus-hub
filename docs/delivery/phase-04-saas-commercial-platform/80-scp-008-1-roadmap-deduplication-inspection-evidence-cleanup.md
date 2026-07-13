@@ -13,8 +13,8 @@ Etapa exclusivamente documental/governança. Sem código.
 ## 2. Arquivos alterados
 
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — bloco `Restrições permanentes` estendido com as restrições da SCP-008 (sem duplicar numeração da lista ordenada da Fase 4).
-- `docs/fase6/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — linha única de evidência de inspeção do roadmap reescrita no formato consolidado.
-- `docs/fase6/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — este relatório.
+- `docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — linha única de evidência de inspeção do roadmap reescrita no formato consolidado.
+- `docs/delivery/phase-04-saas-commercial-platform/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — este relatório.
 
 ## 3. Confirmações
 

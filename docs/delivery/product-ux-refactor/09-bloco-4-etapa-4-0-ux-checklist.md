@@ -115,7 +115,7 @@ Workspace de Conteúdo, agora servida por `EntityWorkspace`):
 | 12| Recarregar a página (F5)                           | Estado inteiro restaurado a partir da URL         | PASS      |
 
 Base de comparação: comportamento idêntico ao registrado no fechamento
-do Bloco 3.1 (`docs/fase6/08-bloco-3-1-auditoria-final.md` §UX Regression).
+do Bloco 3.1 (`docs/delivery/product-ux-refactor/08-bloco-3-1-auditoria-final.md` §UX Regression).
 
 ---
 

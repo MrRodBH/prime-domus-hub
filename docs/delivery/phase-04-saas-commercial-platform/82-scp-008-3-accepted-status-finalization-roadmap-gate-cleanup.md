@@ -12,11 +12,11 @@ Esta etapa é exclusivamente documental/governança. Nenhuma alteração de runt
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — status alterado para `Accepted`; adicionada `## Acceptance Note` com o escopo aceito e as exclusões permanentes.
-- `docs/fase6/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — status alterado para `Accepted`.
-- `docs/fase6/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` — status alterado para `Accepted`.
+- `docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` — status alterado para `Accepted`; adicionada `## Acceptance Note` com o escopo aceito e as exclusões permanentes.
+- `docs/delivery/phase-04-saas-commercial-platform/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md` — status alterado para `Accepted`.
+- `docs/delivery/phase-04-saas-commercial-platform/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` — status alterado para `Accepted`.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção `#### Gates e sequência inicial da Fase 4` atualizada: SCP-008 como `Accepted`, SCP-009 como próxima etapa futura, sem duplicidade e sem estado `Implemented / Ready for External Audit`.
-- `docs/fase6/82-scp-008-3-accepted-status-finalization-roadmap-gate-cleanup.md` — este relatório.
+- `docs/delivery/phase-04-saas-commercial-platform/82-scp-008-3-accepted-status-finalization-roadmap-gate-cleanup.md` — este relatório.
 
 ## 3. Confirmações
 
@@ -78,9 +78,9 @@ SCP-009 não foi iniciada.
 
 Executadas conforme briefing:
 
-- `rg -n "## Status|Accepted|Implemented / Ready" docs/fase6/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md docs/fase6/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md docs/fase6/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` → cada arquivo possui apenas um `## Status`, apenas uma linha `Accepted` no bloco de status, e nenhum arquivo mantém `Implemented / Ready` no bloco de status.
+- `rg -n "## Status|Accepted|Implemented / Ready" docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md docs/delivery/phase-04-saas-commercial-platform/80-scp-008-1-roadmap-deduplication-inspection-evidence-cleanup.md docs/delivery/phase-04-saas-commercial-platform/81-scp-008-2-inspection-evidence-deduplication-cleanup.md` → cada arquivo possui apenas um `## Status`, apenas uma linha `Accepted` no bloco de status, e nenhum arquivo mantém `Implemented / Ready` no bloco de status.
 - `rg -n "12\. SCP-008|13\. SCP-009|SCP-008 — próxima etapa|Implemented / Ready" docs/architecture/ROADMAP_ARCHITECTURAL.md` → SCP-008 aparece uma única vez na linha 12 como `Accepted`; SCP-009 aparece uma única vez na linha 13 como próxima etapa futura; não existe linha residual `SCP-008 — próxima etapa`; não existe `Implemented / Ready` para SCP-008 no roadmap.
-- `rg -n "Roadmap: SCP-007" docs/fase6/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` → 1 ocorrência.
+- `rg -n "Roadmap: SCP-007" docs/delivery/phase-04-saas-commercial-platform/79-scp-008-commercial-feature-key-catalog-materialization-server-validation.md` → 1 ocorrência.
 
 ## 7. Próximo passo recomendado
 

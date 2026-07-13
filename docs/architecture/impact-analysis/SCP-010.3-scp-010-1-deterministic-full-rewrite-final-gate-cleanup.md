@@ -59,7 +59,7 @@ Estrutura final única:
 
 - `docs/architecture/impact-analysis/SCP-010.3-scp-010-1-deterministic-full-rewrite-final-gate-cleanup.md`
   (este documento).
-- `docs/fase6/91-scp-010-3-scp-010-1-deterministic-full-rewrite-final-gate-cleanup.md`.
+- `docs/delivery/phase-04-saas-commercial-platform/91-scp-010-3-scp-010-1-deterministic-full-rewrite-final-gate-cleanup.md`.
 
 ## 5. Arquivos alterados
 

@@ -42,7 +42,7 @@ A partir desta etapa:
 | `src/components/admin/RichTextEditor.tsx` | refatoração | Imagem inline via `createUploadTarget` (`domain: "blog-inline"`). |
 | `src/components/admin/CmsPaginasTabs.tsx` | refatoração | Hero das páginas Sobre/Anuncie via `createUploadTarget` (`domain: "cms-page"`, variant validada). |
 | `src/routes/_authenticated.admin.corretores.tsx` | refatoração | Foto de corretor via `createUploadTarget` (`domain: "corretor-foto"`). |
-| `docs/fase6/17-m3-2-new-upload-path-enforcement.md` | novo | Este relatório. |
+| `docs/delivery/phase-02-multi-tenancy/17-m3-2-new-upload-path-enforcement.md` | novo | Este relatório. |
 | `docs/architecture/impact-analysis/README.md` | atualização | Registro de progresso da IA-004 / M3.2. |
 
 `src/lib/tenant-cache.ts` **não** foi removido — `prefixTenant()` deixa de
@@ -187,7 +187,7 @@ etc.), agora recebendo o `path` já autoritativo.
 | --- | --- |
 | Uploads antigos com caminhos legados não conformes ao novo template canônico | **M3.3 — Legacy File Migration** |
 | Signed URLs com TTL de 365 dias (`SIGN_TTL` em `media.functions.ts` e `lancamentos.functions.ts`) | **M3.4 — Signed URL Hardening** |
-| Media Picker (`src/components/admin/MediaPicker.tsx`) e fluxo de leitura/uso na biblioteca central de mídias | **M3.5 — Media Picker Validation** (o endurecimento de `registrarMidia` foi antecipado pelo Patch M3.2.1 — ver `docs/fase6/18-m3-2-1-upload-path-enforcement-patch.md`) |
+| Media Picker (`src/components/admin/MediaPicker.tsx`) e fluxo de leitura/uso na biblioteca central de mídias | **M3.5 — Media Picker Validation** (o endurecimento de `registrarMidia` foi antecipado pelo Patch M3.2.1 — ver `docs/delivery/phase-02-multi-tenancy/18-m3-2-1-upload-path-enforcement-patch.md`) |
 | Enforcement de mime-type por domain (ex.: PDFs só em `lancamento-pdf`) | pode virar patch M3.2.x ou entrar em M3.5 |
 | Bucket `imoveis` e `lancamentos` são privados; políticas RLS de Storage já validadas na M2b, não revisadas nesta etapa | fora do escopo M3.2 |
 

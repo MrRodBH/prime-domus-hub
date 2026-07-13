@@ -34,7 +34,7 @@ Nenhuma normalização automática das referências legadas foi executada nesta 
 
 - `supabase/migrations/…_storage_migration_log.sql` (via ferramenta de migração) — tabela `public.storage_migration_log` + GRANTs + RLS super-admin only + trigger `updated_at`.
 - `src/lib/api/legacy-storage.functions.ts` — `inventariarLegacyStorage` (analítico, dry-run) e `marcarRollbackLote` (rollback documental).
-- `docs/fase6/21-m3-3-legacy-file-migration.md` — este relatório.
+- `docs/delivery/phase-02-multi-tenancy/21-m3-3-legacy-file-migration.md` — este relatório.
 
 **Editados**
 

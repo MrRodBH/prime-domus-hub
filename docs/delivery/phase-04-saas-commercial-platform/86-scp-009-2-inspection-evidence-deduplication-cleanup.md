@@ -13,13 +13,13 @@ Etapa exclusivamente documental/governança.
 
 ## Arquivos alterados
 
-- `docs/fase6/84-scp-009-commercial-usage-limit-evaluation-planning.md`
+- `docs/delivery/phase-04-saas-commercial-platform/84-scp-009-commercial-usage-limit-evaluation-planning.md`
   — seção `## 15. Inspeções executadas` limpa por script determinístico:
   removidas todas as linhas prévias iniciadas por `- Roadmap:` e
   reinserida a linha canônica única.
-- `docs/fase6/85-scp-009-1-roadmap-deduplication-inspection-evidence-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/85-scp-009-1-roadmap-deduplication-inspection-evidence-cleanup.md`
   — nota `## Correction Note` adicionada, sem alterar o status.
-- `docs/fase6/86-scp-009-2-inspection-evidence-deduplication-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/86-scp-009-2-inspection-evidence-deduplication-cleanup.md`
   — este relatório.
 
 ## Confirmações

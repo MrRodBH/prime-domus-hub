@@ -37,7 +37,7 @@ preservados. Nenhuma alteração funcional foi realizada nesta etapa.
 | `docs/architecture/ROADMAP_ARCHITECTURAL.md` | Editado | Atualizar status IA-004 e M3 para concluídos. |
 | `docs/architecture/impact-analysis/README.md` | Editado | Atualizar entrada única IA-004 para status "Concluída". |
 | `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md` | Editado | Atualizar status geral, remover "aguardando auditoria" da M3.5, adicionar bloco de fechamento formal. |
-| `docs/fase6/26-ia-004-m3-formal-closure.md` | Criado | Relatório de fechamento formal (este documento). |
+| `docs/delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md` | Criado | Relatório de fechamento formal (este documento). |
 
 ---
 
@@ -79,7 +79,7 @@ Próximos marcos do Roadmap (Fase 3 — Membership Evolution Model, Fase 4
 Entrada final única da IA-004 em
 `docs/architecture/impact-analysis/README.md`:
 
-> - [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — ✔ **Concluída** · M3 — Tenant Storage Isolation concluída operacionalmente · Subetapas M3.1, M3.2 + Patch M3.2.1, M3.4 + Patch M3.4.1, M3.3 + Patch M3.3.1 e M3.5 aprovadas · Fechamento formal em [`26`](../../fase6/26-ia-004-m3-formal-closure.md) · Backlog preservado: Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch, Media Picker Return Contract Normalization
+> - [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — ✔ **Concluída** · M3 — Tenant Storage Isolation concluída operacionalmente · Subetapas M3.1, M3.2 + Patch M3.2.1, M3.4 + Patch M3.4.1, M3.3 + Patch M3.3.1 e M3.5 aprovadas · Fechamento formal em [`26`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md) · Backlog preservado: Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch, Media Picker Return Contract Normalization
 
 Confirmação: **existe apenas uma entrada IA-004** no índice.
 

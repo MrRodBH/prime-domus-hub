@@ -18,7 +18,7 @@ Correção documental cirúrgica após SCP-002:
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/54-scp-002-billing-provider-abstraction-materialization.md`
+- `docs/delivery/phase-04-saas-commercial-platform/54-scp-002-billing-provider-abstraction-materialization.md`
   → apenas anexada a seção `## Retificação SCP-002.1` ao final. Histórico
   preservado integralmente.
 
@@ -31,7 +31,7 @@ foi necessária. As inspeções obrigatórias abaixo confirmam.
 
 ## 3. Arquivos criados
 
-- `docs/fase6/55-scp-002-1-scp-001-status-roadmap-sequence-final-cleanup.md`
+- `docs/delivery/phase-04-saas-commercial-platform/55-scp-002-1-scp-001-status-roadmap-sequence-final-cleanup.md`
   (este relatório).
 
 ## 4. Confirmação de não implementação funcional
@@ -190,8 +190,8 @@ $ bunx tsgo --noEmit
 ## 11. Audit Package
 
 - **Status da implementação:** Implementada e pronta para auditoria externa.
-- **Arquivos alterados:** `docs/fase6/54-scp-002-billing-provider-abstraction-materialization.md`.
-- **Arquivos criados:** `docs/fase6/55-scp-002-1-scp-001-status-roadmap-sequence-final-cleanup.md`.
+- **Arquivos alterados:** `docs/delivery/phase-04-saas-commercial-platform/54-scp-002-billing-provider-abstraction-materialization.md`.
+- **Arquivos criados:** `docs/delivery/phase-04-saas-commercial-platform/55-scp-002-1-scp-001-status-roadmap-sequence-final-cleanup.md`.
 - **Migrations:** nenhuma criada ou alterada.
 - **SQL functions:** nenhuma criada ou alterada.
 - **RLS policies:** nenhuma criada ou alterada.

@@ -59,7 +59,7 @@ representação, não ao conteúdo real.
 ## 6. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010.5.3-exact-final-roadmap-dump-hash-verification-conditional-deduplication.md`
-- `docs/fase6/96-scp-010-5-3-exact-final-roadmap-dump-hash-verification-conditional-deduplication.md`
+- `docs/delivery/phase-04-saas-commercial-platform/96-scp-010-5-3-exact-final-roadmap-dump-hash-verification-conditional-deduplication.md`
 
 ## 7. Arquivos alterados
 
@@ -110,7 +110,7 @@ Indentadas: 0
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-010.5.3-exact-final-roadmap-dump-hash-verification-conditional-deduplication.md
-docs/fase6/96-scp-010-5-3-exact-final-roadmap-dump-hash-verification-conditional-deduplication.md
+docs/delivery/phase-04-saas-commercial-platform/96-scp-010-5-3-exact-final-roadmap-dump-hash-verification-conditional-deduplication.md
 ```
 
 Todos os caminhos alterados estão sob `docs/`.

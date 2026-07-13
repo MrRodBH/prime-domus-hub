@@ -17,24 +17,24 @@ canManageTenantBilling ou alteração em `tenant_members` foi produzido.
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
   bloco de status atualizado para `Accepted`; adicionada
   `## Acceptance Note` consolidando SCP-005.1..SCP-005.4 e reafirmando
   todas as restrições permanentes.
-- `docs/fase6/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
   bloco de status atualizado para `Accepted`.
-- `docs/fase6/64-scp-005-2-inspection-confirmation-deduplication-final-cleanup.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/64-scp-005-2-inspection-confirmation-deduplication-final-cleanup.md` —
   bloco de status atualizado para `Accepted`.
-- `docs/fase6/65-scp-005-3-clean-section-replacement-status-block-deduplication.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/65-scp-005-3-clean-section-replacement-status-block-deduplication.md` —
   bloco de status atualizado para `Accepted`.
-- `docs/fase6/66-scp-005-4-status-block-hard-cleanup-final-evidence-snapshot.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/66-scp-005-4-status-block-hard-cleanup-final-evidence-snapshot.md` —
   bloco de status atualizado para `Accepted`.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção
   `#### Gates e sequência inicial da Fase 4` substituída integralmente:
   SCP-005 marcada como `Accepted` na linha 9, SCP-006 apenas como
   próxima etapa a definir após aprovação arquitetural na linha 10, e
   restrições permanentes consolidadas para SCP-004 e SCP-005.
-- `docs/fase6/67-scp-005-5-accepted-status-finalization-roadmap-gate-cleanup.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/67-scp-005-5-accepted-status-finalization-roadmap-gate-cleanup.md` —
   criado (este relatório).
 
 ## 3. Confirmações

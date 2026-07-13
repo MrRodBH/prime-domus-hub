@@ -18,7 +18,7 @@ ADR-006 como *Proposed / Ready for External Audit*.
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/48-adr-006-billing-provider-abstraction.md` — adicionada
+- `docs/delivery/phase-04-saas-commercial-platform/48-adr-006-billing-provider-abstraction.md` — adicionada
   nota "Retificação ADR-006.1" ao final. Histórico preservado.
 
 Nota: `docs/architecture/ADR/ADR-005-commercial-domain.md` e
@@ -32,7 +32,7 @@ ADR-006.1.
 
 ## 3. Arquivos criados
 
-- `docs/fase6/49-adr-006-1-adr-status-deduplication-readme-consistency.md`
+- `docs/delivery/phase-04-saas-commercial-platform/49-adr-006-1-adr-status-deduplication-readme-consistency.md`
   (este relatório).
 
 ## 4. Confirmação de não implementação funcional
@@ -128,8 +128,8 @@ marcação como Accepted.
 ## 11. Audit Package
 
 - **Status da implementação:** Documental corretiva concluída.
-- **Arquivos alterados:** `docs/fase6/48-adr-006-billing-provider-abstraction.md` (nota de retificação).
-- **Arquivos criados:** `docs/fase6/49-adr-006-1-adr-status-deduplication-readme-consistency.md`.
+- **Arquivos alterados:** `docs/delivery/phase-04-saas-commercial-platform/48-adr-006-billing-provider-abstraction.md` (nota de retificação).
+- **Arquivos criados:** `docs/delivery/phase-04-saas-commercial-platform/49-adr-006-1-adr-status-deduplication-readme-consistency.md`.
 - **Migrations:** nenhuma.
 - **SQL functions:** nenhuma.
 - **RLS policies:** nenhuma.

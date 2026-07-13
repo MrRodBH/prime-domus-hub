@@ -7,7 +7,7 @@ Ready for External Audit
 ## 1. Arquivos criados
 
 - `docs/architecture/impact-analysis/SCP-010.5.2-final-accepted-status-consolidation-scp-011-gate-release.md`
-- `docs/fase6/95-scp-010-5-2-final-accepted-status-consolidation-scp-011-gate-release.md`
+- `docs/delivery/phase-04-saas-commercial-platform/95-scp-010-5-2-final-accepted-status-consolidation-scp-011-gate-release.md`
 
 ## 2. Arquivos alterados
 
@@ -68,7 +68,7 @@ docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-010.5-accepted-status-finalization-roadmap-gate-cleanup.md
 docs/architecture/impact-analysis/SCP-010.5.1-current-repository-status-confirmation-exact-roadmap-verification.md
 docs/architecture/impact-analysis/SCP-010.5.2-final-accepted-status-consolidation-scp-011-gate-release.md
-docs/fase6/95-scp-010-5-2-final-accepted-status-consolidation-scp-011-gate-release.md
+docs/delivery/phase-04-saas-commercial-platform/95-scp-010-5-2-final-accepted-status-consolidation-scp-011-gate-release.md
 ```
 
 Todos os caminhos alterados estão sob `docs/`.

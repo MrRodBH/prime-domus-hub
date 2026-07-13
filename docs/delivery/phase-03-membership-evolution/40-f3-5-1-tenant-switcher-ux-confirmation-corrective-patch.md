@@ -64,7 +64,7 @@ Alterados:
 Criados:
 - `src/components/workspace/tenant/tenant-gate-decision.ts` (helper puro)
 - `src/integrations/supabase/__tests__/tenant-gate.spec.ts` (testes gate + guardas estruturais)
-- `docs/fase6/40-f3-5-1-tenant-switcher-ux-confirmation-corrective-patch.md` (este relatório)
+- `docs/delivery/phase-03-membership-evolution/40-f3-5-1-tenant-switcher-ux-confirmation-corrective-patch.md` (este relatório)
 
 ## 4. Diff resumido
 

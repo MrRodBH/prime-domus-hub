@@ -12,7 +12,7 @@ Esta etapa é exclusivamente documental/governança.
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — seção `
+- `docs/delivery/phase-04-saas-commercial-platform/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — seção `
 
 ## Correction Note
 

@@ -49,7 +49,7 @@ Arquivos criados / alterados:
 | `src/integrations/supabase/use-tenant-selection.ts` | **novo** | Hook React reativo (`useSyncExternalStore`) |
 | `src/integrations/supabase/tenant-attacher.ts` | **alterado** | Adiciona precedência: impersonação SA > seleção comum > sem header |
 | `src/integrations/supabase/__tests__/tenant-selection-state.spec.ts` | **novo** | Testes unitários do estado local |
-| `docs/fase6/37-f3-4-tenant-selection-transport-client-state.md` | **novo** | Este relatório |
+| `docs/delivery/phase-03-membership-evolution/37-f3-4-tenant-selection-transport-client-state.md` | **novo** | Este relatório |
 
 Nenhum outro arquivo foi alterado.
 
@@ -272,7 +272,7 @@ switcher e wire-ar limpeza em SIGNED_OUT / troca de usuário no
     precedência SA > seleção comum)*
   - `src/integrations/supabase/__tests__/tenant-selection-state.spec.ts`
     *(novo)*
-  - `docs/fase6/37-f3-4-tenant-selection-transport-client-state.md`
+  - `docs/delivery/phase-03-membership-evolution/37-f3-4-tenant-selection-transport-client-state.md`
     *(novo — este relatório)*
 - **Migrations criadas:** **NENHUMA**.
 - **Diff resumido:**

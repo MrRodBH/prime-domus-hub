@@ -68,7 +68,7 @@ memberships precisam de reconciliação explícita — vide §Recomendação.
 - `src/integrations/supabase/membership-types.ts`
 - `src/integrations/supabase/membership-validation.ts`
 - `src/integrations/supabase/__tests__/membership-validation.spec.ts`
-- `docs/fase6/41-f3-6-membership-roles-status-validation.md` (este)
+- `docs/delivery/phase-03-membership-evolution/41-f3-6-membership-roles-status-validation.md` (este)
 
 ## Arquivos alterados
 

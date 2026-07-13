@@ -236,7 +236,7 @@ arquitetural pré-existente. F3.3.3 não é necessária.
 1. **Commit/edit ID:** F3.3.2 · migration timestamp `20260708142917`.
 2. **Arquivos alterados:**
    - `supabase/migrations/20260708142917_<hash>.sql` (nova)
-   - `docs/fase6/33-f3-3-2-policy-alignment-legacy-membership-function-deprecation.md` (novo)
+   - `docs/delivery/phase-03-membership-evolution/33-f3-3-2-policy-alignment-legacy-membership-function-deprecation.md` (novo)
    - `src/integrations/supabase/types.ts` (regenerado automaticamente pela migration; comment metadata)
 3. **Migrations criadas:** 1 (acima).
 4. **Diff resumido:**

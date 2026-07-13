@@ -172,7 +172,7 @@ comentários de documentação.
 - `src/components/workspace/tenant/TenantContext.tsx`
 - `src/components/workspace/plugins/PluginContext.ts`
 - `scripts/etapa-4-3-stress-test.mjs`
-- `docs/fase6/09-bloco-4-etapa-4-3-relatorio.md`
+- `docs/delivery/product-ux-refactor/09-bloco-4-etapa-4-3-relatorio.md`
 
 **Editados**
 - `src/components/workspace/registry/ActionRegistry.ts` — remove `execute`, expõe `__entries`.

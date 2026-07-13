@@ -12,10 +12,10 @@ Esta etapa é exclusivamente documental/governança.
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/71-scp-007-commercial-feature-key-catalog-planning.md` — bloco `## Status` substituído por `Accepted`; adicionada `## Acceptance Note` confirmando o escopo arquitetural aceito e as restrições preservadas.
-- `docs/fase6/72-scp-007-1-roadmap-deduplication-inspection-evidence-cleanup.md` — bloco `## Status` substituído por `Accepted`.
+- `docs/delivery/phase-04-saas-commercial-platform/71-scp-007-commercial-feature-key-catalog-planning.md` — bloco `## Status` substituído por `Accepted`; adicionada `## Acceptance Note` confirmando o escopo arquitetural aceito e as restrições preservadas.
+- `docs/delivery/phase-04-saas-commercial-platform/72-scp-007-1-roadmap-deduplication-inspection-evidence-cleanup.md` — bloco `## Status` substituído por `Accepted`.
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md` — subseção `#### Gates e sequência inicial da Fase 4` atualizada: SCP-007 aparece uma única vez como `Accepted`; SCP-008 aparece apenas como próxima etapa futura.
-- `docs/fase6/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — criado (este relatório).
+- `docs/delivery/phase-04-saas-commercial-platform/73-scp-007-2-accepted-status-finalization-roadmap-gate-cleanup.md` — criado (este relatório).
 
 ## 3. Confirmações
 

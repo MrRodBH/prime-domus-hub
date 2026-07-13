@@ -27,7 +27,7 @@ grant ou migration é tocado. Não avança para F3.5.
 | `src/components/workspace/AppHeader.tsx` | alterado | `signOut()` limpa também `selected_tenant_id` antes de `supabase.auth.signOut()` |
 | `src/components/workspace/WorkspaceShell.tsx` | alterado | `onAuthStateChange` limpa `selected_tenant_id` em `SIGNED_OUT` e em troca de `user.id` (`SIGNED_IN` / `USER_UPDATED`) |
 | `src/integrations/supabase/__tests__/tenant-attacher.spec.ts` | novo | 7 specs framework-agnostic do resolvedor de header |
-| `docs/fase6/38-f3-4-1-tenant-attacher-fix-lifecycle-cleanup.md` | novo | Este relatório |
+| `docs/delivery/phase-03-membership-evolution/38-f3-4-1-tenant-attacher-fix-lifecycle-cleanup.md` | novo | Este relatório |
 
 Nenhum outro arquivo alterado. Nenhum arquivo criado fora dos autorizados
 pelo §4 do prompt.
@@ -307,7 +307,7 @@ Confirmado:
   - `src/components/workspace/AppHeader.tsx` *(alterado)*
   - `src/components/workspace/WorkspaceShell.tsx` *(alterado)*
   - `src/integrations/supabase/__tests__/tenant-attacher.spec.ts` *(novo)*
-  - `docs/fase6/38-f3-4-1-tenant-attacher-fix-lifecycle-cleanup.md` *(novo)*
+  - `docs/delivery/phase-03-membership-evolution/38-f3-4-1-tenant-attacher-fix-lifecycle-cleanup.md` *(novo)*
 - **Migrations criadas:** **NENHUMA**.
 - **Diff resumido por arquivo:**
   - `tenant-attacher.ts`: extração de `resolveTenantTransportHeader`
@@ -332,7 +332,7 @@ Confirmado:
 ## 15. Verificação de acesso para auditoria
 
 - Relatório salvo em
-  `docs/fase6/38-f3-4-1-tenant-attacher-fix-lifecycle-cleanup.md`.
+  `docs/delivery/phase-03-membership-evolution/38-f3-4-1-tenant-attacher-fix-lifecycle-cleanup.md`.
 - Deve estar acessível via conector Lovable (`get_diff`, `list_files`,
   `read_file`, `list_edits`).
 - Limitação conhecida: o conector Lovable não expõe **commit SHA** ao

@@ -21,16 +21,16 @@ Etapa exclusivamente documental/governança.
 
 ## 2. Arquivos alterados
 
-- `docs/fase6/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/62-scp-005-commercial-entitlement-runtime-boundary-planning.md` —
   seção `## 16. Inspeções executadas` substituída integralmente pela
   versão final consolidada.
-- `docs/fase6/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/63-scp-005-1-roadmap-deduplication-inspection-evidence-cleanup.md` —
   bloco de status corrigido para heading único e linha única; nota
   corretiva movida para seção separada `## Correction Note`.
-- `docs/fase6/64-scp-005-2-inspection-confirmation-deduplication-final-cleanup.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/64-scp-005-2-inspection-confirmation-deduplication-final-cleanup.md` —
   adicionada nota corretiva curta na seção `## Correction Note`, sem
   alterar o status da SCP-005.2.
-- `docs/fase6/65-scp-005-3-clean-section-replacement-status-block-deduplication.md` —
+- `docs/delivery/phase-04-saas-commercial-platform/65-scp-005-3-clean-section-replacement-status-block-deduplication.md` —
   criado (este relatório).
 
 ## 3. Confirmações

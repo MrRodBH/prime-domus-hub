@@ -24,7 +24,7 @@ Bloqueios auditados da SCP-011 corrigidos:
 
 - `src/lib/api/commercial/seat-limit-runtime.ts`
 - `docs/architecture/impact-analysis/SCP-011.1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md`
-- `docs/fase6/99-scp-011-1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md`
+- `docs/delivery/phase-04-saas-commercial-platform/99-scp-011-1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md`
 
 ## Arquivos alterados
 
@@ -74,7 +74,7 @@ bunx tsx ./run-tenant-specs.ts            → 126 passed / 0 failed (SPECS_EXIT=
 ```
 docs/architecture/ROADMAP_ARCHITECTURAL.md
 docs/architecture/impact-analysis/SCP-011.1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md
-docs/fase6/99-scp-011-1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md
+docs/delivery/phase-04-saas-commercial-platform/99-scp-011-1-catalog-gate-strict-input-runtime-orchestration-test-hardening.md
 src/integrations/supabase/__tests__/commercial-seat-limit.spec.ts
 src/lib/api/commercial/commercial.functions.ts
 src/lib/api/commercial/limit-decision.ts

@@ -37,7 +37,7 @@ ou de policy RLS foi executada — escopo restrito a assinatura.
 | `src/lib/storage/signed-url.ts` | **novo** | Centraliza TTLs e valida bucket/path tenant-scoped. |
 | `src/lib/api/media.functions.ts` | edição | `listarMidias` e `obterMidiaUrl` passam a resolver tenant server-side, validar path e usar TTL curto. Remove `SIGN_TTL = 365d`. |
 | `src/lib/api/admin.functions.ts` | edição | `adminAssinarUrl` deixa de aceitar bucket/path arbitrários — agora exige tenant efetivo + allowlist + anti-traversal + TTL 15 min. |
-| `docs/fase6/19-m3-4-signed-url-hardening.md` | **novo** | Este relatório. |
+| `docs/delivery/phase-02-multi-tenancy/19-m3-4-signed-url-hardening.md` | **novo** | Este relatório. |
 | `docs/architecture/impact-analysis/README.md` | edição | Registra avanço da M3.4. |
 | `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md` | edição | Marca M3.4 como implementada. |
 
