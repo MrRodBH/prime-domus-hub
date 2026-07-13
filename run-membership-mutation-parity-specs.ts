@@ -29,6 +29,8 @@ const uniq = `scp01203-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const createdAuthUsers: string[] = [];
 let tempSuperRoleUserId: string | null = null;
 let tenantId = "";
+let planId: string | null = null;
+let subscriptionId: string | null = null;
 
 function makeAnonClient() {
   if (!PUBLISHABLE_KEY) throw new Error("SUPABASE_PUBLISHABLE_KEY missing");
@@ -109,6 +111,38 @@ async function main() {
       accepted_at: new Date().toISOString(),
     } as Any);
     if (omErr) throw new Error(`owner membership insert: ${omErr.message}`);
+
+    // ---- COMMERCIAL FIXTURES (SCP-012 enforcement requires seat capacity for +1 delta ops) ----
+    planId = crypto.randomUUID();
+    const planCode = `scp012_p_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`;
+    {
+      const { error } = await admin.from("commercial_plans" as Any).insert({
+        id: planId,
+        code: planCode,
+        name: `SCP-012 harness plan ${uniq}`,
+        status: "active",
+      } as Any);
+      if (error) throw new Error(`plan insert: ${error.message}`);
+    }
+    {
+      const { error } = await admin.from("commercial_plan_entitlements" as Any).insert({
+        plan_id: planId,
+        entitlement_key: "users.seats",
+        value_int: 100,
+      } as Any);
+      if (error) throw new Error(`plan entitlement insert: ${error.message}`);
+    }
+    subscriptionId = crypto.randomUUID();
+    {
+      const { error } = await admin.from("tenant_subscriptions" as Any).insert({
+        id: subscriptionId,
+        tenant_id: tenantId,
+        plan_id: planId,
+        status: "active",
+        started_at: new Date().toISOString(),
+      } as Any);
+      if (error) throw new Error(`subscription insert: ${error.message}`);
+    }
 
     // super admin role
     const { error: srErr } = await admin
@@ -343,6 +377,23 @@ async function main() {
       if (error) cleanupErrors.push(`user_roles delete: ${error.message}`);
     }
 
+    // subscriptions
+    if (tenantId) {
+      const { error } = await admin.from("tenant_subscriptions" as Any).delete().eq("tenant_id", tenantId);
+      if (error) cleanupErrors.push(`subscriptions delete: ${error.message}`);
+    }
+
+    // plan entitlements + plans
+    if (planId) {
+      const { error: peErr } = await admin
+        .from("commercial_plan_entitlements" as Any)
+        .delete().eq("plan_id", planId);
+      if (peErr) cleanupErrors.push(`plan entitlements delete: ${peErr.message}`);
+      const { error: pErr } = await admin
+        .from("commercial_plans" as Any).delete().eq("id", planId);
+      if (pErr) cleanupErrors.push(`plan delete: ${pErr.message}`);
+    }
+
     // tenant
     if (tenantId) {
       const { error } = await admin.from("tenants" as Any).delete().eq("id", tenantId);
@@ -368,6 +419,15 @@ async function main() {
         .select("id")
         .eq("id", tenantId);
       if ((tenRes as Any)?.length) cleanupErrors.push(`residual tenant: ${JSON.stringify(tenRes)}`);
+
+      const { data: subRes } = await admin
+        .from("tenant_subscriptions" as Any)
+        .select("id").eq("tenant_id", tenantId);
+      if ((subRes as Any)?.length) cleanupErrors.push(`residual subscriptions: ${JSON.stringify(subRes)}`);
+    }
+    if (planId) {
+      const { data: pRes } = await admin.from("commercial_plans" as Any).select("id").eq("id", planId);
+      if ((pRes as Any)?.length) cleanupErrors.push(`residual plan: ${JSON.stringify(pRes)}`);
     }
     if (tempSuperRoleUserId) {
       const { data: urRes } = await admin

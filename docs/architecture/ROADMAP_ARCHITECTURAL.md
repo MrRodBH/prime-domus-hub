@@ -180,7 +180,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 15.3.1 SCP-011.3.1 — Exact Status and Roadmap State Confirmation & Conditional Cleanup — Accepted.
 15.3.2 SCP-011.3.2 — Accepted Status Finalization & SCP-012 Authorization — Accepted.
 15.3.3 SCP-011.3.3 — Exact Status Token Cleanup & Final Gate Closure — Accepted.
-16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Authorized next step; not started.
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Ready for External Audit.
 16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Accepted.
 16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Accepted.
 16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Accepted.

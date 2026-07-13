@@ -1,175 +1,285 @@
 # SCP-012 — Commercial Seat Limit Atomic Enforcement Integration
 
-## Status
+**Status:** Ready for External Audit
+**Blocks:** None — Phase 4 closure (F4-CF-01) is planned after external acceptance.
 
-Blocked — Architectural Prerequisite Required
+## 1. Baseline confirmado
 
-## 1. Resultado do Preflight
+Antes desta etapa (confirmado por inventário no repositório):
 
-Execução do preflight arquitetural obrigatório (§3) concluída com
-decisão determinística de **Cenário B (§4.2)**: a resolução comercial
-autoritativa existe **exclusivamente em runtime TypeScript** e **não é
-capaz de participar da mesma transação Postgres** da mutation. A
-implementação da enforcement atômica **não pode prosseguir** sem uma
-prerequisite arquitetural dedicada.
+- `public.resolve_commercial_seat_decision(uuid,uuid,text,integer)` era a
+  única autoridade comercial runtime para `users.seats` (SCP-012.0.2 /
+  0.2.1 / 0.2.2, Accepted).
+- `getCommercialSeatLimitDecision` delega exclusivamente para a RPC.
+- Não existe fallback TypeScript produtivo para a decisão.
+- `public.mutate_tenant_membership` era a única primitive de mutation
+  runtime de `public.tenant_members` (SCP-012.0.3, Accepted), sem
+  enforcement comercial.
+- `membership-mutation-boundary.server.ts` chama exclusivamente a RPC
+  via `supabaseAdmin`; zero escrita direta em `tenant_members` no
+  runtime TypeScript.
+- `authenticated` possui apenas `SELECT` em `tenant_members`. `anon` sem
+  privilégios. `service_role` administrativo.
+- Ambas as RPCs restritas a *function owner* + `service_role`.
+- Nenhuma UI / rota de produto consome o boundary hoje.
+- Working tree inicial limpo (`git status --short` vazio).
 
-Nenhum runtime, schema, RLS, grant, RPC, migration, mutation, teste ou
-frontend foi alterado. SCP-011 permanece integralmente read-only e
-Accepted. Esta etapa é exclusivamente documental.
+## 2. Arquitetura final
 
-## 2. Inventário de mutations de membership
+Uma única RPC — `public.mutate_tenant_membership` — assume, em uma única
+transação PostgreSQL:
 
-Comando executado:
+1. Validação primitiva de parâmetros.
+2. **Lock canônico**: `SELECT id FROM public.tenants WHERE id = _tenant_id
+   FOR UPDATE`. É a primeira linha bloqueada pela função. Tenant
+   inexistente → `Tenant not found`.
+3. Revalidação do Trusted Actor Context (existência + super_admin vs
+   owner ativo).
+4. Validação de target user + `targetRole` (owner rejeitado).
+5. Carga do estado atual da membership alvo.
+6. Owner protection.
+7. **Planejamento**: computa `previousStatus/Role`, `newStatus/Role`,
+   `changed`, `seat_delta` sem executar DML.
+8. **Enforcement**: se `seat_delta = +1`, chama
+   `public.resolve_commercial_seat_decision(actor, tenant, origin, 1)`.
+9. Se `allowed != true`, aborta a transação com
+   `RAISE EXCEPTION 'commercial_seat_limit_denied' USING
+   ERRCODE='P0001', DETAIL=v_decision::text`.
+10. Caso contrário, executa o DML planejado (`INSERT` ou `UPDATE`).
+11. Retorna o mesmo DTO whitelisted da SCP-012.0.3.
+
+A substituição via `CREATE OR REPLACE FUNCTION` mantém assinatura,
+nome, DTO, `LANGUAGE plpgsql`, `VOLATILE`, `SECURITY DEFINER`,
+`search_path = public, pg_temp`, sem SQL dinâmico, sem fallback, sem
+`DELETE` físico, sem mutation de owner. Não existe segunda RPC. A
+versão anterior sem enforcement foi eliminada no mesmo commit.
+
+## 3. Ordem do lock
+
+O lock em `public.tenants` é adquirido **imediatamente após** a
+validação primitiva de parâmetros e **antes** de qualquer leitura de
+`tenant_members` (target ou actor), da revalidação de Trusted Actor
+Context, da chamada ao resolver comercial e de qualquer `INSERT`/
+`UPDATE`. Uma única linha é bloqueada por transação, sempre para o
+mesmo `_tenant_id`. Tenants diferentes bloqueiam linhas diferentes
+(isolamento comprovado pelo Cenário D). O lock é liberado apenas ao
+final da transação.
+
+Nenhum `pg_advisory_xact_lock`, tabela de lock, ordem variável ou
+liberação manual foi introduzido.
+
+## 4. Planejamento antes do DML
+
+O planejamento é integralmente concluído antes do primeiro `INSERT`/
+`UPDATE`. Nenhuma linha de `tenant_members` é escrita antes de:
+
+- o lock estar adquirido;
+- o Trusted Actor Context estar revalidado;
+- a proteção de owner estar aplicada;
+- o `seat_delta` estar classificado;
+- a decisão comercial ter sido executada (quando aplicável) e permitida.
+
+## 5. Classificação de delta (server-side, PostgreSQL)
+
+| Operation           | Transição alvo                     | changed | seat_delta |
+|---------------------|-------------------------------------|---------|------------|
+| create_membership   | (nada) → active                     | true    | +1         |
+| change_role         | role != prev                        | true    | 0          |
+| change_role         | role == prev                        | false   | 0          |
+| suspend             | active → suspended                  | true    | -1         |
+| suspend             | suspended → suspended               | false   | 0          |
+| reactivate          | suspended → active                  | true    | +1         |
+| reactivate          | active → active                     | false   | 0          |
+| revoke              | active|invited → revoked            | true    | -1         |
+| revoke              | suspended → revoked                 | true    | 0          |
+| revoke              | revoked → revoked                   | false   | 0          |
+
+Transições fora dessa tabela são erros de domínio (`membership_not_found`,
+`invalid_transition_to_*`, `change_role_not_permitted_on_revoked`,
+`membership_already_exists`).
+
+## 6. Regra de enforcement
+
+- `seat_delta = +1`: chamar `resolve_commercial_seat_decision(actor,
+  tenant, origin, 1)`. O argumento `1` é literal — nunca vem do client
+  nem é derivado no TypeScript. Se `decision.allowed != true`, aborta
+  toda a transação com `commercial_seat_limit_denied` carregando o
+  DTO canônico no `DETAIL`.
+- `seat_delta = 0`: resolver não é chamado. `change_role` e no-ops
+  passam mesmo com billing_blocked ou limite atingido.
+- `seat_delta = -1`: resolver não é chamado. `suspend active` / `revoke
+  active|invited` reduzem uso mesmo com billing_blocked, limite
+  atingido, billing_unknown, billing_attention_required, not_entitled,
+  not_evaluated.
+
+## 7. Contrato do erro `commercial_seat_limit_denied`
+
+- `message = commercial_seat_limit_denied`.
+- `ERRCODE = P0001`.
+- `DETAIL` contém exatamente o JSON de `CommercialLimitDecision`:
+  `tenantId`, `featureKey`, `allowed`, `reason`, `source`, `limit`,
+  `used`, `requestedIncrement`, `remaining`.
+- Nenhuma row interna, stack, secret ou tenant divergente é incluído.
+- A DTO de sucesso permanece imutável (SCP-012.0.3), sem `limit`,
+  `used`, `remaining`, `billingStatus`, `commercialDecision`.
+
+O parser (`membership-mutation-enforcement-error.ts`) reconhece
+somente essa forma, exige `DETAIL` presente, `JSON.parse` bem-sucedido,
+`validateSeatDecisionResponse` aprovado com `tenantId` esperado e
+`requestedIncrement = 1`, e `allowed = false`. Qualquer desvio lança
+determinístico. Nenhuma decisão é recomputada em TypeScript e nenhuma
+nova consulta ao banco é feita.
+
+## 8. Boundary TypeScript
+
+`membership-mutation-boundary.server.ts` continua sendo a única
+escrita autorizada — uma chamada à RPC via `supabaseAdmin`, validador
+semântico da membership, binding de `targetRole`, `seatDelta` não
+exposto ao client. Adiciona apenas o parser de erro comercial: se o
+erro corresponde à negação canônica válida, lança
+`CommercialSeatLimitDeniedError` com a decisão validada; caso
+contrário, o erro é reembalado como falha determinística do boundary
+(zero conversão silenciosa).
+
+O helper `membership-seat-delta.ts` permanece disponível para
+paridade/observabilidade e é executado **após** o DTO de sucesso; ele
+não autoriza nada, não decide se o resolver será chamado, não cria
+fallback e não executa compensação após commit. A autoridade do
+enforcement está integralmente na função SQL.
+
+## 9. ACL final
+
+Verificado por `pg_proc.proacl`, `aclexplode` e `has_function_privilege`
+(inspeção pós-migration):
+
+| Função                                | Grantee       | EXECUTE |
+|---------------------------------------|---------------|---------|
+| `mutate_tenant_membership(6-arg)`     | postgres      | ✓ (owner) |
+| `mutate_tenant_membership(6-arg)`     | service_role  | ✓        |
+| `mutate_tenant_membership(6-arg)`     | anon          | ✗        |
+| `mutate_tenant_membership(6-arg)`     | authenticated | ✗        |
+| `mutate_tenant_membership(6-arg)`     | sandbox_exec  | ✗        |
+| `mutate_tenant_membership(6-arg)`     | PUBLIC        | ✗        |
+| `resolve_commercial_seat_decision`    | postgres      | ✓ (owner) |
+| `resolve_commercial_seat_decision`    | service_role  | ✓        |
+| `resolve_commercial_seat_decision`    | anon          | ✗        |
+| `resolve_commercial_seat_decision`    | authenticated | ✗        |
+| `resolve_commercial_seat_decision`    | sandbox_exec  | ✗        |
+| `resolve_commercial_seat_decision`    | PUBLIC        | ✗        |
+
+Uma assertion dinâmica dentro da migration (via `pg_proc`, `aclexplode`
+e `pg_roles`) aborta caso qualquer grantee além de owner + service_role
+possua `EXECUTE` em qualquer das duas funções.
+
+`public.tenant_members` permanece inalterada:
+- `PUBLIC` sem privilégio.
+- `anon` sem privilégio.
+- `authenticated` = `SELECT` (nenhum `INSERT`/`UPDATE`/`DELETE`).
+- `service_role` administrativo.
+
+## 10. Ausência de caminhos alternativos
+
+Inventário confirmado:
+
+- Zero `INSERT`/`UPDATE`/`UPSERT`/`DELETE` direto em `tenant_members`
+  no runtime TypeScript (`rg 'from\\(.tenant_members.\\).*\\.(insert|update|upsert|delete)' src/` → 0).
+- Zero segunda RPC de mutation.
+- Zero função legada sem enforcement (a versão sem enforcement foi
+  substituída no mesmo commit).
+- Zero feature flag SQL versus TypeScript.
+- Zero fallback de decisão.
+- Zero enforcement após a mutation.
+- Zero compensating transaction.
+
+Migrations históricas que ainda inserem em `tenant_members` são
+exclusivamente de bootstrap/seed e não runtime.
+
+## 11. Adaptação do harness existente
+
+`run-membership-mutation-parity-specs.ts` provisiona agora, além de
+`tenant + owner + super_admin`, um plano sintético `commercial_plans`
+com `commercial_plan_entitlements(users.seats = 100)` e uma
+`tenant_subscriptions(status='active')`. Cleanup fail-closed remove
+tenants, memberships, subscriptions, entitlements, planos e usuários
+auth criados; residual checks impedem falso positivo. Nenhum bypass de
+enforcement foi introduzido; nenhuma flag de ambiente desativa o
+limite. Todos os 14 cenários originais continuam passando.
+
+## 12. Runner de concorrência
+
+`run-commercial-seat-atomic-enforcement-specs.ts` executa contra
+PostgreSQL real com clientes service-role independentes e requisições
+realmente concorrentes (`Promise.all`). Resultados finais:
+
+| Cenário | Descrição                                                  | Resultado |
+|---------|------------------------------------------------------------|-----------|
+| A       | limit=used, 2 creates concorrentes → 2 negações, uso mantido | ✓        |
+| B       | 1 unidade livre, 2 creates → 1 aplicado, 1 negado           | ✓        |
+| C       | capacidade=2, 4 creates → 2 aplicados, 2 negados, uso=limite | ✓        |
+| D       | cross-tenant → locks independentes, ambos aplicam           | ✓        |
+| E       | denied create → target sem row                              | ✓        |
+| F       | denied reactivate → membership permanece suspended          | ✓        |
+| G       | billing_blocked → suspend active aplica (delta −1)          | ✓        |
+| H       | billing_blocked → change_role aplica (delta 0)              | ✓        |
+| I       | reactivate no-op em active → sem chamada ao resolver        | ✓        |
+
+Zero over-allocation observada. Zero fixture residual (cleanup e
+verificação de resíduos limpa em todos os runs).
+
+## 13. Confirmações negativas
+
+- Zero UI / frontend / rota nova.
+- Zero invitation flow, zero criação de `auth.users` no runtime de
+  produto (usuários auth só existem como fixtures nos runners).
+- Zero DELETE físico de membership.
+- Zero mutation de owner, zero transferência, zero segundo owner.
+- Zero lock adicional; um único `FOR UPDATE` em `public.tenants`.
+- Zero grant de escrita a `authenticated`.
+- Zero segundo resolver comercial; a autoridade continua sendo a RPC
+  `resolve_commercial_seat_decision`.
+- Zero snapshot comercial, zero reservation table, zero pool paralelo.
+- Zero SDK de provider real (Stripe/Hotmart/Kiwify) tocado.
+- Zero mudança em `storage.media_limit` ou qualquer outro entitlement.
+- Zero alteração em `client.server.ts`, `client.ts`, `auth-middleware`,
+  `types.ts`, `.env`, `supabase/config.toml`.
+
+## 14. Riscos ou limitações reais
+
+- O boundary continua sendo consumido apenas por harnesses. Uma
+  eventual UI de gestão de equipe deverá converter
+  `CommercialSeatLimitDeniedError` em mensagem de produto — o contrato
+  estruturado já expõe `reason/limit/used/remaining` para essa
+  finalidade.
+- `resolve_commercial_seat_decision` continua marcada `STABLE`. Dentro
+  da mesma transação e sob o lock do tenant sua releitura de
+  `tenant_members` (via `COUNT` em `active|invited`) permanece
+  consistente. Cenários A–D provam isso; se, em evolução futura, a
+  função for reescrita para depender de estado volátil, o *invariant*
+  precisará ser reavaliado.
+- F4-CF-01 permanece como checkpoint planejado após a aceitação da
+  SCP-012 e antes do fechamento formal da Fase 4.
+
+## 15. Bloco final do roadmap
 
 ```
-rg -n 'from\(.tenant_members.\).*\.(insert|update|upsert|delete)' src/
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration —
+Ready for External Audit.
+
+16.0   SCP-012.0   — Accepted.
+16.0.1 SCP-012.0.1 — Accepted.
+16.0.2 SCP-012.0.2 — Accepted.
+16.0.3 SCP-012.0.3 — Accepted.
 ```
 
-Resultado: **zero ocorrências**.
+## 16. Arquivos criados / alterados
 
-Referências a `tenant_members` no runtime (`src/`) são exclusivamente
-de **leitura** — resolução de tenant, cardinalidade, gate, reader de
-seat usage — e nunca de escrita. As únicas escritas em `tenant_members`
-no repositório inteiro estão em migrations históricas
-(`supabase/migrations/*.sql`), correspondendo a criação da tabela,
-backfill inicial e seed de owner default.
-
-Consequência: **não existe fluxo de mutation de membership em runtime
-hoje** — nem `insert`, nem `update` de status, nem `upsert`, nem
-`delete`, nem tabela de invitations separada, nem aceite de convite,
-nem reativação, nem suspensão, nem revogação server-side. Portanto,
-não há sítio de mutação ao qual conectar enforcement, e a criação
-simultânea de (a) fluxo de mutation e (b) enforcement atômico
-excederia amplamente o escopo desta etapa, além de esbarrar no bloqueio
-arquitetural descrito abaixo.
-
-## 3. Schema real confirmado
-
-`public.tenant_members` (migrations `20260701204508` + `20260708125042`):
-
-- PK: `(tenant_id, user_id)` (composta).
-- FKs: `tenant_id → public.tenants(id)`; `user_id → auth.users(id)`.
-- Colunas relevantes: `membership_status membership_status NOT NULL
-  DEFAULT 'active'`, `tenant_role tenant_role NOT NULL`, `is_owner`,
-  `is_default`, `invited_at`, `created_at`, `updated_at`.
-- Enums: `membership_status = ('active','invited','suspended','revoked')`;
-  `tenant_role = ('owner','admin','manager','broker','captador',
-  'secretaria','viewer')`.
-- Trigger: `tg_tenant_members_set_updated_at` (`BEFORE UPDATE`).
-- Índices: `tenant_members_tenant_idx (tenant_id)`,
-  `tenant_members_active_lookup_idx (user_id, tenant_id,
-  membership_status)`, `tenant_members_user_idx (user_id)`.
-- RLS: `tm_select` (authenticated), `tm_write` (authenticated) — ambas
-  atualmente permissivas para membros do próprio tenant; sem policy
-  específica de enforcement comercial.
-- Grants: `SELECT` para `authenticated`; `ALL` para `service_role`.
-- `public.tenants` disponível como linha autoritativa por tenant
-  (candidata natural a `SELECT ... FOR UPDATE`).
-
-Nenhuma coluna `version` / optimistic concurrency existe em
-`tenant_members`; qualquer contagem consistente por tenant depende de
-lock explícito (row-lock em `tenants` ou `pg_advisory_xact_lock`).
-
-## 4. Autoridade comercial — inspeção
-
-Módulos inspecionados:
-
-- `src/lib/api/commercial/feature-catalog.ts`
-- `src/lib/api/commercial/feature-gate.ts`
-- `src/lib/api/commercial/read-models.ts`
-- `src/lib/api/commercial/limit-decision.ts`
-- `src/lib/api/commercial/seat-limit-runtime.ts`
-- `src/lib/api/commercial/seat-usage-reader.ts`
-- `src/lib/api/commercial/commercial.functions.ts`
-
-Constatações:
-
-- **Toda** a precedência comercial (tenant entitlement > plan
-  entitlement > default), o catalog gate, o mapeamento de billing
-  health, os motivos da feature decision e a extração do limite
-  `users.seats` residem exclusivamente em **TypeScript**, executando no
-  processo do server function TanStack (Worker/Node), não em Postgres.
-- **Não existe** função SQL, view materializada, RPC transacional ou
-  primitive server-side que reproduza — ou permita reutilizar — essa
-  autoridade dentro de uma transação Postgres.
-- O client Supabase utilizado (`@supabase/supabase-js`) opera via
-  PostgREST HTTP sem transação callback multi-statement; não há
-  conexão Postgres direta preservando uma transação através das
-  chamadas do resolver TypeScript.
-- Não existe primitive de lock por tenant no runtime atual.
-
-## 5. Análise de viabilidade — Cenário B (§4.2)
-
-Para satisfazer o critério de conclusão (§27), a **decisão comercial**
-e a **mutation** devem ocorrer **atomicamente na mesma transação**, com
-lock determinístico do tenant, recontagem de assentos consumidores e
-comparação `used + delta ≤ limit` **dentro** da transação.
-
-Isso exige que a resolução comercial canônica seja executável **dentro
-do banco**. Hoje ela não é. As duas alternativas hipotéticas colidem
-com proibições explícitas da própria SCP-012:
-
-1. **Reimplementar o resolver em SQL** (função SECURITY DEFINER que
-   replique entitlement precedence, catalog gate, billing health,
-   limit extraction) — **proibido por §5**: cria um segundo resolver
-   comercial que pode divergir da autoridade TypeScript aprovada na
-   cadeia SCP-011.
-2. **Passar `limit`/`used`/`source`/`decision` como argumento à RPC**
-   — **proibido por §9**: transforma o cliente/servidor de aplicação
-   em fonte de confiança de decisão comercial e viola o boundary
-   estrito consolidado na SCP-011.1.
-
-Enforcement **parcialmente** atômico (advisory lock TS + resolver TS +
-mutation isolada), enforcement apenas em memória, ou enforcement no
-frontend também são **proibidos** (§4.2, §11, §26). Não há caminho
-válido para a implementação nesta etapa.
-
-## 6. Prerequisite proposta
-
-**SCP-012.0 — Transaction-Safe Commercial Resolver Materialization**
-
-Escopo mínimo (a ser detalhado quando a etapa for autorizada):
-
-- Materializar em SQL, sob forma canônica única, a resolução
-  autoritativa de `CommercialLimitDecision` para `users.seats`,
-  consumindo apenas as tabelas comerciais já existentes
-  (`tenant_subscriptions`, `tenant_entitlements`, `commercial_plans`,
-  `commercial_plan_entitlements`, `commercial_entitlement_definitions`,
-  `billing_events`/derivados de billing health).
-- Provar equivalência semântica formal entre o resolver SQL e o
-  resolver TypeScript aprovado (mesmos inputs → mesmos
-  `allowed`/`reason`/`source`/`limit`), fazendo a autoridade TS passar
-  a **delegar** ao resolver SQL — mantendo **um único** resolver
-  semântico (§5).
-- Expor a primitive ao runtime via `SECURITY DEFINER`, `search_path`
-  fixo, identificadores qualificados, sem SQL dinâmico, com
-  `REVOKE ALL FROM PUBLIC, anon, authenticated` e `GRANT EXECUTE` só
-  a `service_role`.
-- Não introduzir enforcement de mutation (segue como SCP-012 após a
-  aprovação da prerequisite).
-
-Somente após SCP-012.0 estar `Accepted` a SCP-012 poderá ser
-retomada e satisfazer §11 (lock + releitura + resolver + mutation na
-mesma transação) sem violar §5.
-
-## 7. Confirmações negativas
-
-Nenhuma alteração em `src/**`, `supabase/**` (migrations, schema,
-tabelas, colunas, enums, constraints, índices, triggers, RPCs, RLS
-policies, grants), testes, `run-tenant-specs.ts`, providers, webhooks,
-checkout, customer portal, frontend, roles comerciais, ou
-`storage.media_limit`. Nenhum segundo resolver comercial criado.
-Nenhuma mutation em `tenant_members`. Nenhum bypass de Super Admin.
-Nenhum boundary server-side novo. Nenhum enforcement em memória.
-Nenhum teste de concorrência declarado. Runtime read-only da SCP-011
-integralmente preservado. SCP-012 permanece **Blocked**; SCP-012.0
-permanece **não iniciada**.
-
-## 8. Bloco final do roadmap
-
-```
-15.3.2 SCP-011.3.2 — Accepted Status Finalization & SCP-012 Authorization — Accepted.
-15.3.3 SCP-011.3.3 — Exact Status Token Cleanup & Final Gate Closure — Accepted.
-16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: transaction-safe commercial authority unavailable.
-16.0 SCP-012.0 — Transaction-Safe Commercial Resolver Materialization — prerequisite futura planejada; não iniciada.
-```
+- created `supabase/migrations/*_commercial_seat_atomic_enforcement.sql`
+- created `src/lib/api/commercial/membership-mutation-enforcement-error.ts`
+- created `src/integrations/supabase/__tests__/commercial-seat-limit-denied-parser.spec.ts`
+- created `run-commercial-seat-atomic-enforcement-specs.ts`
+- edited  `src/lib/api/commercial/membership-mutation-boundary.server.ts`
+- edited  `run-membership-mutation-parity-specs.ts`
+- edited  `run-tenant-specs.ts`
+- edited  `docs/architecture/ROADMAP_ARCHITECTURAL.md`
+- created `docs/architecture/impact-analysis/SCP-012-commercial-seat-limit-atomic-enforcement-integration.md` (this file — substitui o placeholder da preflight anterior)
+- created `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/118-scp-012-commercial-seat-limit-atomic-enforcement-integration.md`

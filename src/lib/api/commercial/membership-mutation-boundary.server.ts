@@ -17,6 +17,7 @@ import {
   classifyMembershipSeatDelta,
   type MembershipSeatDelta,
 } from "@/lib/api/commercial/membership-seat-delta";
+import { parseCommercialSeatLimitDeniedError } from "@/lib/api/commercial/membership-mutation-enforcement-error";
 
 export type TrustedActorContext = {
   actorUserId: string;
@@ -61,7 +62,11 @@ export async function executeMembershipMutation(
   );
 
   if (error) {
-    // fail-closed determinístico
+    // Reconhecimento estruturado da negação comercial. Qualquer DETAIL
+    // inválido lança dentro do parser — fail-closed.
+    const denied = parseCommercialSeatLimitDeniedError(error, context.tenantId);
+    if (denied) throw denied;
+    // fail-closed determinístico para erros não comerciais
     throw new Error(`membership_mutation_rpc_failed: ${error.message}`);
   }
   if (data === null || data === undefined) {
