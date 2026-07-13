@@ -551,7 +551,7 @@ macrofase/iniciativa oficialmente registrada neste roadmap.
 
 Regras vinculantes desta etapa:
 
-- `docs/fase6/` é caminho legado, foi removido pela GA-08.1 e é
+- O antigo diretório cronológico de relatórios foi removido pela GA-08.1 e é
   proibido para novos documentos.
 - Novos relatórios devem ser classificados pela macrofase ou iniciativa
   oficial registrada neste roadmap.
