@@ -319,7 +319,7 @@ const specs: Array<{ name: string; run: () => void }> = [
               changed: true, previousStatus: "active", status: "active",
               previousRole: "viewer", role: "owner",
             },
-            { tenantId: T, targetUserId: T, operation: "change_role" },
+            { tenantId: T, targetUserId: T, operation: "change_role", targetRole: "manager" },
           ),
         /role must not be owner/i,
         "role owner",
@@ -337,7 +337,7 @@ const specs: Array<{ name: string; run: () => void }> = [
               changed: true, previousStatus: "active", status: "active",
               previousRole: "owner", role: "viewer",
             },
-            { tenantId: T, targetUserId: T, operation: "change_role" },
+            { tenantId: T, targetUserId: T, operation: "change_role", targetRole: "viewer" },
           ),
         /previousRole must not be owner/i,
         "prev owner",
@@ -355,7 +355,7 @@ const specs: Array<{ name: string; run: () => void }> = [
               changed: true, previousStatus: "active", status: "active",
               previousRole: null, role: "viewer",
             },
-            { tenantId: T, targetUserId: T, operation: "create_membership" },
+            { tenantId: T, targetUserId: T, operation: "create_membership", targetRole: "viewer" },
           ),
         /previousStatus=null/i,
         "prev",
@@ -373,7 +373,7 @@ const specs: Array<{ name: string; run: () => void }> = [
               changed: true, previousStatus: null, status: "suspended",
               previousRole: null, role: "viewer",
             },
-            { tenantId: T, targetUserId: T, operation: "create_membership" },
+            { tenantId: T, targetUserId: T, operation: "create_membership", targetRole: "viewer" },
           ),
         /status=active/i,
         "status",
@@ -391,7 +391,7 @@ const specs: Array<{ name: string; run: () => void }> = [
               changed: true, previousStatus: "active", status: "suspended",
               previousRole: "viewer", role: "manager",
             },
-            { tenantId: T, targetUserId: T, operation: "change_role" },
+            { tenantId: T, targetUserId: T, operation: "change_role", targetRole: "manager" },
           ),
         /preserve status/i,
         "status",
@@ -409,7 +409,7 @@ const specs: Array<{ name: string; run: () => void }> = [
               changed: false, previousStatus: "active", status: "active",
               previousRole: "viewer", role: "manager",
             },
-            { tenantId: T, targetUserId: T, operation: "change_role" },
+            { tenantId: T, targetUserId: T, operation: "change_role", targetRole: "manager" },
           ),
         /noop must preserve role/i,
         "noop",
@@ -427,11 +427,153 @@ const specs: Array<{ name: string; run: () => void }> = [
               changed: true, previousStatus: "active", status: "active",
               previousRole: "viewer", role: "viewer",
             },
-            { tenantId: T, targetUserId: T, operation: "change_role" },
+            { tenantId: T, targetUserId: T, operation: "change_role", targetRole: "viewer" },
           ),
         /must alter role/i,
         "changed",
       );
+    },
+  },
+
+  // ---- targetRole binding (SCP-012.0.3 final correction) ----
+  {
+    name: "binding: create_membership role != expected.targetRole rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "create_membership",
+              changed: true, previousStatus: null, status: "active",
+              previousRole: null, role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "create_membership", targetRole: "manager" },
+          ),
+        /create_membership role must equal expected.targetRole/i,
+        "create binding",
+      );
+    },
+  },
+  {
+    name: "binding: change_role role != expected.targetRole rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "change_role",
+              changed: true, previousStatus: "active", status: "active",
+              previousRole: "viewer", role: "manager",
+            },
+            { tenantId: T, targetUserId: T, operation: "change_role", targetRole: "admin" },
+          ),
+        /change_role role must equal expected.targetRole/i,
+        "change binding",
+      );
+    },
+  },
+  {
+    name: "binding: create_membership without expected.targetRole rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "create_membership",
+              changed: true, previousStatus: null, status: "active",
+              previousRole: null, role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "create_membership" },
+          ),
+        /Missing expected.targetRole/i,
+        "create no expected",
+      );
+    },
+  },
+  {
+    name: "binding: change_role without expected.targetRole rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "change_role",
+              changed: true, previousStatus: "active", status: "active",
+              previousRole: "viewer", role: "manager",
+            },
+            { tenantId: T, targetUserId: T, operation: "change_role" },
+          ),
+        /Missing expected.targetRole/i,
+        "change no expected",
+      );
+    },
+  },
+  {
+    name: "binding: suspend with expected.targetRole rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "suspend",
+              changed: true, previousStatus: "active", status: "suspended",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "suspend", targetRole: "viewer" },
+          ),
+        /expected.targetRole not allowed/i,
+        "suspend extra",
+      );
+    },
+  },
+  {
+    name: "binding: reactivate with expected.targetRole rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "reactivate",
+              changed: true, previousStatus: "suspended", status: "active",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "reactivate", targetRole: "viewer" },
+          ),
+        /expected.targetRole not allowed/i,
+        "reactivate extra",
+      );
+    },
+  },
+  {
+    name: "binding: revoke with expected.targetRole rejected",
+    run: () => {
+      expectThrows(
+        () =>
+          validateMembershipMutationResult(
+            {
+              tenantId: T, targetUserId: T, operation: "revoke",
+              changed: true, previousStatus: "active", status: "revoked",
+              previousRole: "viewer", role: "viewer",
+            },
+            { tenantId: T, targetUserId: T, operation: "revoke", targetRole: "viewer" },
+          ),
+        /expected.targetRole not allowed/i,
+        "revoke extra",
+      );
+    },
+  },
+  {
+    name: "binding: create_membership with matching targetRole accepted",
+    run: () => {
+      const r = validateMembershipMutationResult(
+        {
+          tenantId: T, targetUserId: T, operation: "create_membership",
+          changed: true, previousStatus: null, status: "active",
+          previousRole: null, role: "manager",
+        },
+        { tenantId: T, targetUserId: T, operation: "create_membership", targetRole: "manager" },
+      );
+      assert(r.role === "manager", "role bound");
     },
   },
   {
