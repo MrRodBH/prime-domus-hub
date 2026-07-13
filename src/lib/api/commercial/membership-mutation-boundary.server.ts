@@ -17,6 +17,7 @@ import {
   classifyMembershipSeatDelta,
   type MembershipSeatDelta,
 } from "@/lib/api/commercial/membership-seat-delta";
+import { parseCommercialSeatLimitDeniedError } from "@/lib/api/commercial/membership-mutation-enforcement-error";
 
 export type TrustedActorContext = {
   actorUserId: string;
