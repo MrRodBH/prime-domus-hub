@@ -528,12 +528,14 @@ interface ScenarioResult {
 
 export async function runCommercialSeatSqlParitySpecs(): Promise<{ passed: number; failed: number; results: ScenarioResult[] }> {
   // SCP-012.0.2.1 §13 — ensure the users.seats definition exists in the
-  // catalog table (FK target for tenant_entitlements /
-  // commercial_plan_entitlements). Idempotent; never removed by the
-  // harness because it is canonical catalog metadata.
+  // catalog table. Idempotent; canonical seed lives in the corrective
+  // migration but this second guard makes the harness self-sufficient
+  // if run against a fresh baseline. value_type must satisfy the CHECK
+  // constraint (allowed: boolean/integer/decimal/text).
   await psqlSilent(
-    `INSERT INTO public.commercial_entitlement_definitions (key, name, description, value_type, unit, is_active) VALUES ('users.seats', 'Seat limit', 'Seat limit', 'number', 'seats', TRUE) ON CONFLICT (key) DO NOTHING;`,
+    `INSERT INTO public.commercial_entitlement_definitions (key, name, description, value_type, unit, is_active) VALUES ('users.seats', 'Seat limit', 'Seat limit', 'integer', 'seats', TRUE) ON CONFLICT (key) DO NOTHING;`,
   );
+
 
   const results: ScenarioResult[] = [];
   let passed = 0;
