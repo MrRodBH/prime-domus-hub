@@ -63,7 +63,7 @@ Componentes e processos estabilizados na Fase 6:
 | IA-001 · Fase 2.2 — `requireTenant` middleware | ✔ Concluída |
 | IA-002 · Fase 2.3 — Client Impersonation Layer | ✔ **Concluída** |
 | IA-003 · RLS Policies (RESTRICTIVE por tenant) | 🟢 Aprovada em auditoria final |
-| M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/fase6/11-fase-2-m2b-relatorio.md`) |
+| M2b · RLS Policies Implementation | 🟢 **Implementada** — aguarda auditoria externa (ver `docs/delivery/phase-02-multi-tenancy/11-fase-2-m2b-relatorio.md`) |
 | IA-004 · Tenant Storage Isolation | ✔ **Concluída** (`impact-analysis/IA-004-TenantStorageIsolation.md`) — M3 concluída operacionalmente |
 
 #### Fase 2.3 — Client Impersonation Layer ✔
@@ -104,7 +104,7 @@ Componentes e processos estabilizados na Fase 6:
 ### ✅ Fase 3 — Membership Evolution Model — **Formalmente encerrada**
 
 Aprovada e encerrada após F3.7 — Fase 3 Closing Review
-(`docs/fase6/42-f3-7-phase-3-closing-review.md`).
+(`docs/delivery/phase-03-membership-evolution/42-f3-7-phase-3-closing-review.md`).
 
 | Sub-etapa | Status |
 |---|---|
@@ -126,7 +126,7 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 - **Status:** Planejamento arquitetural iniciado via **IA-006** e
   corrigido via **IA-006.1**
   (`docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`,
-  `docs/fase6/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
+  `docs/delivery/phase-04-saas-commercial-platform/44-ia-006-1-roadmap-phase-numbering-rls-correction.md`).
 - **Implementation Status:** `BLOCKED` — aguardando aprovação externa
   da IA-006/IA-006.1 antes de qualquer implementação.
 - **Fase 4 ainda não está em implementação funcional. SCP-001 ainda não
@@ -534,8 +534,33 @@ Bloqueia início da implementação: apresentar IA-002 formal (Impact
 Analysis) e obter aprovação antes de qualquer código, conforme
 Constitution §7.
 
+#### 6.2 GA-08 — Documentation Repository Reorganization
+
+Reorganização controlada do repositório documental do RM Prime SaaS,
+com eliminação do diretório legado de relatórios cronológicos e distribuição dos
+128 relatórios de execução em `docs/delivery/**`, agrupados por
+macrofase/iniciativa oficialmente registrada neste roadmap.
+
+- **GA-08 — Documentation Repository Reorganization** — `In Progress`.
+- **GA-08.0 — Documentation Repository Structure Audit &
+  Controlled Migration Plan** — `Accepted`.
+- **GA-08.1 — Documentation Repository Controlled Migration** —
+  `Ready for External Audit`.
+- **GA-08.2 — Documentation Path Validation & CI Gate** — futura;
+  não iniciada.
+
+Regras vinculantes desta etapa:
+
+- O antigo diretório cronológico de relatórios foi removido pela GA-08.1 e é
+  proibido para novos documentos.
+- Novos relatórios devem ser classificados pela macrofase ou iniciativa
+  oficial registrada neste roadmap.
+- Nenhum status da cadeia SCP-012, SCP-012.0, SCP-012.0.1 ou
+  SCP-012.0.1.1 foi alterado por esta etapa.
 
 ---
+
+
 
 ## 7. ADRs Futuros
 

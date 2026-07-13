@@ -257,9 +257,9 @@ sem criar `billing_admin` / `canManageTenantBilling`.
 - Constitution — `docs/architecture/ARCHITECTURE_CONSTITUTION.md`
 - Security Architecture — `docs/architecture/security/SECURITY_ARCHITECTURE.md`
 - IA-006 — `docs/architecture/impact-analysis/IA-006-saas-commercial-platform.md`
-- IA-006.1/2/3 — `docs/fase6/44..46-*.md`
+- IA-006.1/2/3 — `docs/delivery/phase-04-saas-commercial-platform/44..46-*.md`
 - ADR-005 — `docs/architecture/ADR/ADR-005-commercial-domain.md`
 - ADR-006 — `docs/architecture/ADR/ADR-006-billing-provider-abstraction.md`
-- F3.1 — `docs/fase6/28-f3-1-membership-schema-foundation.md`
-- F3.6 — `docs/fase6/41-f3-6-membership-roles-status-validation.md`
+- F3.1 — `docs/delivery/phase-03-membership-evolution/28-f3-1-membership-schema-foundation.md`
+- F3.6 — `docs/delivery/phase-03-membership-evolution/41-f3-6-membership-roles-status-validation.md`
 - Roadmap — `docs/architecture/ROADMAP_ARCHITECTURAL.md`

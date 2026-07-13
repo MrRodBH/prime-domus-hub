@@ -10,7 +10,7 @@
 //   • falhas de impersonação sinalizadas pelo server;
 //   • inicialização com usuário não-Super.
 //
-// Cf. `docs/fase6/10-fase-2-3-relatorio.md` §Patch 2.3.1.
+// Cf. `docs/delivery/phase-02-multi-tenancy/10-fase-2-3-relatorio.md` §Patch 2.3.1.
 
 const KEY = "impersonate_tenant_id";
 const listeners = new Set<() => void>();

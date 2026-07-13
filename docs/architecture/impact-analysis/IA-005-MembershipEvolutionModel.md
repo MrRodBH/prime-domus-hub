@@ -2,7 +2,7 @@
 
 **Status:** 🟡 Impact Analysis (documental) — aguardando auditoria externa
 **Tipo:** Impact Analysis / Arquitetura / Segurança / Dados / UX / Preparação para Fase 3
-**Precedência:** IA-001 (Tenant Middleware) · IA-002 (Client Impersonation Layer) · IA-003 / M2b + Patch M2b.1 (RLS Policies) · IA-004 / M3 (Tenant Storage Isolation) · Fase 2 Closing Review ([`27`](../../fase6/27-phase-2-closing-review.md))
+**Precedência:** IA-001 (Tenant Middleware) · IA-002 (Client Impersonation Layer) · IA-003 / M2b + Patch M2b.1 (RLS Policies) · IA-004 / M3 (Tenant Storage Isolation) · Fase 2 Closing Review ([`27`](../../delivery/phase-02-multi-tenancy/27-phase-2-closing-review.md))
 **Etapa alvo (futura):** Fase 3 — Membership Evolution Model
 **Autor:** Arquitetura RM Prime SaaS
 
@@ -64,7 +64,7 @@ Documentos oficiais aplicáveis:
 - `docs/architecture/security/SECURITY_ARCHITECTURE.md`
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`
 - `docs/architecture/impact-analysis/IA-001..IA-004`
-- `docs/fase6/27-phase-2-closing-review.md`
+- `docs/delivery/phase-02-multi-tenancy/27-phase-2-closing-review.md`
 
 ---
 
@@ -458,7 +458,7 @@ Uma implementação da Fase 3 só será considerada apta a iniciar quando:
 - [ ] Esta IA-005 aprovada em auditoria externa.
 - [ ] Sub-etapas planejadas em formato M-x (ex.: M4.1 schema, M4.2
   middleware, M4.3 SQL patch, M4.4 UI switcher, M4.5 billing prep).
-- [ ] Cada sub-etapa com relatório próprio em `docs/fase6/`.
+- [ ] Cada sub-etapa com relatório próprio em `docs/delivery`.
 - [ ] `tenant-middleware.spec.ts` e novos testes SQL cobrindo:
   seleção válida, seleção inválida, membership suspensa, tenant
   inexistente, impersonação vs seleção, cardinalidade 0/1/N.
@@ -498,8 +498,8 @@ das sub-etapas segundo a **Alternativa B**.
 - `docs/architecture/impact-analysis/IA-002-ClientImpersonationLayer.md`
 - `docs/architecture/impact-analysis/IA-003-RLSPolicies.md`
 - `docs/architecture/impact-analysis/IA-004-TenantStorageIsolation.md`
-- `docs/fase6/13-m2b-1-get-current-tenant-id-cardinality-fix.md`
-- `docs/fase6/27-phase-2-closing-review.md`
+- `docs/delivery/phase-02-multi-tenancy/13-m2b-1-get-current-tenant-id-cardinality-fix.md`
+- `docs/delivery/phase-02-multi-tenancy/27-phase-2-closing-review.md`
 
 ## Apêndice B — Arquivos / schema inspecionados (leitura apenas)
 
