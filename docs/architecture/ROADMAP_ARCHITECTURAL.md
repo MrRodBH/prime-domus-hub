@@ -546,6 +546,8 @@ macrofase/iniciativa oficialmente registrada neste roadmap.
   Controlled Migration Plan** — `Accepted`.
 - **GA-08.1 — Documentation Repository Controlled Migration** —
   `Ready for External Audit`.
+- **GA-08.1.1 — Governance Contract Consistency, Canonical Status &
+  Git Evidence Cleanup** — `Ready for External Audit`.
 - **GA-08.2 — Documentation Path Validation & CI Gate** — futura;
   não iniciada.
 

@@ -1,5 +1,11 @@
 # Document Repository Contract
 
+## Status
+
+Ready for External Audit
+
+
+
 **Governance:** GA-08 — Documentation Repository Reorganization.
 **Autoridade:** Este contrato é normativo para toda a documentação do
 RM Prime SaaS e prevalece sobre convenções ad-hoc anteriores.
@@ -98,20 +104,71 @@ docs/
 
 ## 8. Status documental
 
-Os status permitidos para qualquer documento (arquitetural ou de
-entrega) são exatamente:
+### 8.1 Status permitidos
+
+Os status canônicos permitidos para qualquer documento arquitetural,
+de entrega ou de governança são exatamente:
 
 ```text
 Draft
+Proposed
 Ready for External Audit
 Accepted
+Blocked — <motivo determinístico>
 ```
 
-- Cada documento deve conter **um único heading `## Status`** e uma
-  única linha canônica com o status real do documento.
-- Ocorrências textuais adicionais que colidam com os tokens canônicos
-  são proibidas fora de blocos de evidência explicitamente marcados
-  como exemplos.
+`Blocked — <motivo determinístico>` é reservado para etapas que não
+podem avançar por prerequisite arquitetural, segurança, evidência
+insuficiente ou bloqueio externo. O motivo deve ser textual, curto e
+determinístico.
+
+### 8.2 Regra para documentos novos
+
+Todo documento criado após a GA-08.1 deve possuir:
+
+- um único heading `## Status`;
+- uma única linha canônica com o status real do documento;
+- nenhum token de status entre crases;
+- nenhum status duplicado ou intercalado com versões antigas.
+
+### 8.3 Regra para documentos materialmente alterados
+
+Documento histórico que seja materialmente alterado após a GA-08.1
+deve ter seu Status normalizado ao formato canônico quando essa
+normalização estiver dentro do escopo aprovado da etapa em execução.
+Documentos fora do escopo aprovado não são modificados apenas por
+uniformização estética.
+
+### 8.4 Exceção para o acervo legado (grandfathering)
+
+Os 128 relatórios movidos pela GA-08.1 constituem acervo histórico
+preservado. Eles podem manter formatos anteriores, incluindo:
+
+```text
+**Status:** ...
+status textual histórico
+ausência de heading ## Status
+```
+
+Essa preservação é apenas retrospectiva e não constitui recomendação
+para novos documentos. Qualquer normalização massiva do acervo legado
+deve ser planejada em etapa futura específica, sem reescrita
+indiscriminada do histórico.
+
+### 8.5 Escopo do futuro gate GA-08.2
+
+O gate automatizado da GA-08.2 deve validar prioritariamente:
+
+- documentos novos criados após a GA-08.1;
+- documentos materialmente modificados após a GA-08.1;
+- documentos arquiteturais ativos;
+- contratos de governança ativos.
+
+O gate não pode declarar automaticamente inválidos os 128 relatórios
+históricos migrados pela GA-08.1 apenas por sua formatação anterior
+ao presente contrato.
+
+
 
 ## 9. Tratamento de patches
 
