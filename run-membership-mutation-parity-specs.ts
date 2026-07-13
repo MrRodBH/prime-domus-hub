@@ -419,6 +419,15 @@ async function main() {
         .select("id")
         .eq("id", tenantId);
       if ((tenRes as Any)?.length) cleanupErrors.push(`residual tenant: ${JSON.stringify(tenRes)}`);
+
+      const { data: subRes } = await admin
+        .from("tenant_subscriptions" as Any)
+        .select("id").eq("tenant_id", tenantId);
+      if ((subRes as Any)?.length) cleanupErrors.push(`residual subscriptions: ${JSON.stringify(subRes)}`);
+    }
+    if (planId) {
+      const { data: pRes } = await admin.from("commercial_plans" as Any).select("id").eq("id", planId);
+      if ((pRes as Any)?.length) cleanupErrors.push(`residual plan: ${JSON.stringify(pRes)}`);
     }
     if (tempSuperRoleUserId) {
       const { data: urRes } = await admin
