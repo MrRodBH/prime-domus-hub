@@ -3553,6 +3553,15 @@ export type Database = {
           read_ct: number
         }[]
       }
+      resolve_commercial_seat_decision: {
+        Args: {
+          _actor_user_id: string
+          _requested_increment: number
+          _tenant_id: string
+          _tenant_origin: string
+        }
+        Returns: Json
+      }
       seed_default_lead_reasons: {
         Args: { _tenant: string }
         Returns: undefined
