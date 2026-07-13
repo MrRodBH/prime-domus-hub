@@ -1,6 +1,6 @@
 # 118 — SCP-012 — Commercial Seat Limit Atomic Enforcement Integration
 
-**Status:** Ready for External Audit
+**Status:** Accepted
 **Phase:** 04 — SaaS Commercial Platform
 
 Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-limit-atomic-enforcement-integration.md`](../../../architecture/impact-analysis/SCP-012-commercial-seat-limit-atomic-enforcement-integration.md).
@@ -103,7 +103,7 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-lim
 
 ```
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration —
-Ready for External Audit.
+Accepted.
 
 16.0   SCP-012.0   — Accepted.
 16.0.1 SCP-012.0.1 — Accepted.

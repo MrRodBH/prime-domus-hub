@@ -1,7 +1,7 @@
 # SCP-012 — Commercial Seat Limit Atomic Enforcement Integration
 
-**Status:** Ready for External Audit
-**Blocks:** None — Phase 4 closure (F4-CF-01) is planned after external acceptance.
+**Status:** Accepted
+**Blocks:** None — F4-CF-01 is authorized as the next checkpoint and has not started.
 
 ## 1. Baseline confirmado
 
@@ -302,7 +302,7 @@ classificação canônica para `auth.users`. O parser unitário possui
 
 ```
 16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration —
-Ready for External Audit.
+Accepted.
 
 16.0   SCP-012.0   — Accepted.
 16.0.1 SCP-012.0.1 — Accepted.
