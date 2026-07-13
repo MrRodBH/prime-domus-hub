@@ -30,13 +30,8 @@ function makeSub(partial: Partial<SubscriptionRow> & Pick<SubscriptionRow, "id">
   } as SubscriptionRow;
 }
 
-function assertEq(name: string, actual: unknown, expected: unknown): boolean {
-  const ok = JSON.stringify(actual) === JSON.stringify(expected);
-  if (!ok) {
-    console.log(`  ✗ ${name}\n    expected: ${JSON.stringify(expected)}\n    actual:   ${JSON.stringify(actual)}`);
-  }
-  return ok;
-}
+
+
 
 export async function runCommercialContextSelectionSpecs(): Promise<SpecResult> {
   let passed = 0;
