@@ -327,19 +327,6 @@ async function main() {
       expect(!error, error?.message);
       expect(data.status === "revoked", "revoked");
     });
-
-    await run("10f. RPC ACL canonical inspection: owner + service_role only", async () => {
-      // Canonical evidence is pg_proc + aclexplode + has_function_privilege, executed
-      // as part of the ACL reclosure migration (fail-closed DO block). The migration
-      // aborts unless EXECUTE is granted to EXACTLY the function owner and service_role.
-      // Reaching this line means the migration executed and its assertion passed.
-      //
-      // Sibling probes (10a-10d) prove anon and authenticated cannot call the RPC,
-      // and 10e proves service_role can. The migration assertion is the authoritative
-      // check for sandbox_exec and any other unexpected grantee — inference from probe
-      // behavior alone is not sufficient.
-      expect(true, "ACL invariant enforced by fail-closed migration assertion");
-    });
   } finally {
     // ---- FAIL-CLOSED CLEANUP ----
     const cleanupErrors: string[] = [];
