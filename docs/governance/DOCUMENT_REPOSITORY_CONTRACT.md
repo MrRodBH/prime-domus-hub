@@ -145,13 +145,13 @@ Exemplos válidos:
 Os status canônicos permitidos para qualquer documento arquitetural,
 de entrega ou de governança são exatamente:
 
-```text
-Draft
-Proposed
-Ready for External Audit
-Accepted
-Blocked — <motivo determinístico>
-```
+| Status permitido | Uso |
+|---|---|
+| `Draft` | Documento ainda em elaboração |
+| `Proposed` | Proposta formal ainda não auditada |
+| `Ready for External Audit` | Pronto para auditoria externa |
+| `Accepted` | Aprovado |
+| `Blocked — <motivo determinístico>` | Bloqueado por condição explícita |
 
 `Blocked — <motivo determinístico>` é reservado para etapas que não
 podem avançar por prerequisite arquitetural, segurança, evidência
