@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Accepted
 
 **Escopo:** finalização de status Accepted para SCP-011.3 e
 SCP-011.3.1, registro da SCP-011.3.2 como Ready for External Audit
