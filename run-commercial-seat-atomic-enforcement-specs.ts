@@ -297,7 +297,7 @@ async function main() {
         _tenant_origin: "single-membership", _operation: "create_membership",
         _target_user_id: t, _target_role: "viewer",
       });
-      expect(!!error && /commercial_seat_limit_denied/.test((error as Any).message), `expected denial, got ${JSON.stringify(error)}`);
+      validateRealCommercialDenial(error, ctx.tenantId, "limit_reached");
       const { data } = await admin.from("tenant_members" as Any)
         .select("membership_status").eq("tenant_id", ctx.tenantId).eq("user_id", t);
       expect(((data as Any[]) ?? []).length === 0, `residual row ${JSON.stringify(data)}`);
