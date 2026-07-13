@@ -72,6 +72,10 @@ export async function executeMembershipMutation(
     tenantId: context.tenantId,
     targetUserId: input.targetUserId,
     operation: input.operation,
+    targetRole:
+      input.operation === "create_membership" || input.operation === "change_role"
+        ? input.targetRole
+        : undefined,
   });
   const seatDelta = classifyMembershipSeatDelta({
     operation: result.operation,
