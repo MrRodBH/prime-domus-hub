@@ -54,13 +54,46 @@ docs/
 │   ├── ROADMAP_ARCHITECTURAL.md
 │   └── glossary.md
 ├── delivery/
-│   ├── product-ux-refactor/
-│   ├── phase-02-multi-tenancy/
-│   ├── phase-03-membership-evolution/
-│   └── phase-04-saas-commercial-platform/
+│   ├── product-roadmap/
+│   │   └── phase-06-product-ux-refactor/
+│   └── architectural-roadmap/
+│       ├── phase-02-multi-tenancy/
+│       ├── phase-03-membership-evolution/
+│       └── phase-04-saas-commercial-platform/
 └── governance/
     └── DOCUMENT_REPOSITORY_CONTRACT.md
 ```
+
+## 3.1 Roadmap namespaces
+
+O RM Prime SaaS possui **dois roadmaps distintos**, cada um com seu próprio
+namespace documental sob `docs/delivery/`:
+
+- **Product Roadmap** (`docs/delivery/product-roadmap/`) — sequência histórica
+  de evolução geral do produto. Autoridade: histórico oficial do produto.
+- **Architectural Roadmap** (`docs/delivery/architectural-roadmap/`) —
+  sequência posterior governada por Architecture First e por
+  `docs/architecture/ROADMAP_ARCHITECTURAL.md`.
+
+**Regra de não comparação numérica global:** os números de fase dos dois
+roadmaps NÃO formam uma sequência numérica global única. "Fase 6" do Product
+Roadmap não significa que a "Fase 4" do Architectural Roadmap esteja
+retrocedendo. Toda referência futura a uma fase deve declarar seu namespace.
+
+Exemplos válidos:
+
+- `Product Roadmap · Fase 6 — Product UX Refactor (Experiência do Produto)`
+- `Architectural Roadmap · Fase 4 — SaaS Commercial Platform`
+
+**Identidade oficial das fases:**
+
+- `Product Roadmap · Fase 6 — Product UX Refactor (Experiência do Produto)`
+  foi o marco de direcionamento do produto para SaaS, consolidando
+  Workspace First, EntityWorkspace, Resolution Graph, Plugin Marketplace,
+  feature flags e os fundamentos da experiência integrada do produto.
+- `Architectural Roadmap · Fase 2 — Multi-Tenant Core`.
+- `Architectural Roadmap · Fase 3 — Membership Evolution Model`.
+- `Architectural Roadmap · Fase 4 — SaaS Commercial Platform`.
 
 ## 4. Regra para `docs/architecture/`
 
@@ -73,18 +106,21 @@ docs/
 ## 5. Regra para `docs/delivery/`
 
 - Contém exclusivamente evidências e relatórios de execução.
-- Cada relatório vive sob o diretório correspondente à macrofase ou
-  iniciativa registrada em `ROADMAP_ARCHITECTURAL.md`.
+- Cada relatório vive sob o namespace de roadmap (§3.1) e sob o diretório
+  de fase correspondente à macrofase ou iniciativa oficial.
 - Diretórios canônicos atualmente definidos:
-  - `product-ux-refactor/` — refatoração de UX/Workspace (prefixos 00–09).
-  - `phase-02-multi-tenancy/` — Fase 2 — Multi-Tenant Core (prefixos 10–27).
-  - `phase-03-membership-evolution/` — Fase 3 — Membership Evolution
-    Model (prefixos 28–42).
-  - `phase-04-saas-commercial-platform/` — Fase 4 — SaaS Commercial
-    Platform (prefixos 43–108 e continuidade).
+  - `product-roadmap/phase-06-product-ux-refactor/` — Product Roadmap ·
+    Fase 6 — Product UX Refactor (Experiência do Produto), prefixos 00–09.
+  - `architectural-roadmap/phase-02-multi-tenancy/` — Architectural
+    Roadmap · Fase 2 — Multi-Tenant Core, prefixos 10–27.
+  - `architectural-roadmap/phase-03-membership-evolution/` — Architectural
+    Roadmap · Fase 3 — Membership Evolution Model, prefixos 28–42.
+  - `architectural-roadmap/phase-04-saas-commercial-platform/` —
+    Architectural Roadmap · Fase 4 — SaaS Commercial Platform,
+    prefixos 43–108 e continuidade.
 - Novos diretórios genéricos de relatórios estão proibidos. Toda
   iniciativa nova requer entrada explícita no roadmap antes de existir
-  como diretório em `docs/delivery/`.
+  como diretório em `docs/delivery/`, e deve declarar seu namespace.
 
 ## 6. Regra para `docs/governance/`
 
