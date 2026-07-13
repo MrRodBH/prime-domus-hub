@@ -169,7 +169,7 @@ Resultados:
 ## 13. Bloco final do roadmap (§3, Fase 4, cadeia SCP-012)
 
 ```
-16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: architectural prerequisites required.
+16. SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Blocked: awaiting SCP-012.0.3 acceptance.
 16.0 SCP-012.0 — Transaction-Safe Commercial Authority & Membership Mutation Boundary Impact Analysis — Accepted.
 16.0.1 SCP-012.0.1 — Canonical Decision Contract, Atomic Cutover Sequencing & Roadmap Cleanup — Accepted.
 16.0.1.1 SCP-012.0.1.1 — Deterministic Full-Section Rewrite, Evidence Lock & Git Readiness — Accepted.
@@ -178,8 +178,10 @@ Resultados:
 16.0.1.3 SCP-012.0.1.3 — Server-Only RPC Trusted Actor Context & Hard Gate S0 Contract Reconciliation — Accepted.
 16.0.1.3.1 SCP-012.0.1.3.1 — Trusted Context Provenance, Client Inventory & Git Evidence Lock — Accepted.
 16.0.1.3.1.1 SCP-012.0.1.3.1.1 — Non-Self-Referential Git Evidence Model, Accepted Status Finalization & SCP-012.0.2 Gate Cleanup — Accepted.
-16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — Ready for External Audit.
+16.0.2 SCP-012.0.2 — Transaction-Safe Commercial Authority Materialization & Atomic Runtime Cutover — Accepted.
+16.0.2.1 SCP-012.0.2.1 — Executable SQL/TypeScript Parity, Numeric Contract Hardening, RPC Validation & Evidence Reconciliation — Accepted.
+16.0.2.2 SCP-012.0.2.2 — Service-Role Parity Harness Completion, Isolated Fixture Lifecycle & Fail-Closed Privilege Verification — Accepted with documented non-blocking test coverage limitation.
+16.0.3 SCP-012.0.3 — Membership Mutation Boundary Planning & Materialization — Authorized next step; not started.
 ```
 
-A SCP-012.0.3 ainda **não** aparece como autorizada. A SCP-012
-permanece `Blocked`.
+A SCP-012.0.3 está **autorizada documentalmente** como próxima etapa; **não** foi iniciada. A SCP-012 permanece `Blocked` até a aceitação de SCP-012.0.3.
