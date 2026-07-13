@@ -15,7 +15,7 @@ Verificação executada em `docs/architecture/impact-analysis/README.md`:
 
 ```
 $ grep -n "IA-003" docs/architecture/impact-analysis/README.md
-71:- [IA-003 — RLS Policies](./IA-003-RLSPolicies.md) — 🟢 Aprovada · M2b implementada …
+71:- [IA-003 — RLS Policies](../../architecture/impact-analysis/IA-003-RLSPolicies.md) — 🟢 Aprovada · M2b implementada …
 ```
 
 **Resultado:** existe **uma única entrada** da IA-003 no índice. Nenhuma

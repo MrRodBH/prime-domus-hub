@@ -63,7 +63,7 @@ ocorrência de `Proposed / Ready for External Audit` no arquivo.
 ## 6. Conteúdo final consolidado — entrada da ADR-006 no README
 
 ```
-- [ADR-006 — Billing Provider Abstraction](./ADR-006-billing-provider-abstraction.md) — *Accepted*
+- [ADR-006 — Billing Provider Abstraction](../../architecture/ADR/ADR-006-billing-provider-abstraction.md) — *Accepted*
 ```
 
 Apenas uma entrada da ADR-006, marcada como *Accepted*.
@@ -71,7 +71,7 @@ Apenas uma entrada da ADR-006, marcada como *Accepted*.
 ## 7. ADR-005 preservada como Accepted
 
 ```
-- [ADR-005 — Commercial Domain](./ADR-005-commercial-domain.md) — *Accepted*
+- [ADR-005 — Commercial Domain](../../architecture/ADR/ADR-005-commercial-domain.md) — *Accepted*
 ```
 
 ## 8. Inspeções obrigatórias
@@ -93,8 +93,8 @@ Nenhuma ocorrência de `Proposed / Ready for External Audit`.
 $ rg -n "ADR-005|ADR-006|Proposed / Ready for External Audit|Accepted" \
     docs/architecture/ADR/README.md
 30:2. **Status** — `Proposed | Accepted | Superseded by ADR-XXX`
-46:- [ADR-005 — Commercial Domain](./ADR-005-commercial-domain.md) — *Accepted*
-47:- [ADR-006 — Billing Provider Abstraction](./ADR-006-billing-provider-abstraction.md) — *Accepted*
+46:- [ADR-005 — Commercial Domain](../../architecture/ADR/ADR-005-commercial-domain.md) — *Accepted*
+47:- [ADR-006 — Billing Provider Abstraction](../../architecture/ADR/ADR-006-billing-provider-abstraction.md) — *Accepted*
 ```
 
 Linha 30 é a legenda geral do formato de ADRs, não uma entrada de
@@ -104,7 +104,7 @@ ADR. Não há entradas duplicadas de ADR-006.
 
 ```
 $ rg -n "ADR-006 — Billing Provider Abstraction" docs/architecture/ADR/README.md
-47:- [ADR-006 — Billing Provider Abstraction](./ADR-006-billing-provider-abstraction.md) — *Accepted*
+47:- [ADR-006 — Billing Provider Abstraction](../../architecture/ADR/ADR-006-billing-provider-abstraction.md) — *Accepted*
 ```
 
 Uma única linha, como esperado.

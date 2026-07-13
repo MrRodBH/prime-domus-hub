@@ -65,8 +65,8 @@ ADR-006.1.
 ## 6. Conteúdo final consolidado — README ADR-005 / ADR-006
 
 ```
-- [ADR-005 — Commercial Domain](./ADR-005-commercial-domain.md) — *Accepted*
-- [ADR-006 — Billing Provider Abstraction](./ADR-006-billing-provider-abstraction.md) — *Proposed / Ready for External Audit*
+- [ADR-005 — Commercial Domain](../../architecture/ADR/ADR-005-commercial-domain.md) — *Accepted*
+- [ADR-006 — Billing Provider Abstraction](../../architecture/ADR/ADR-006-billing-provider-abstraction.md) — *Proposed / Ready for External Audit*
 ```
 
 Uma entrada por ADR. ADR-005 *Accepted*. ADR-006 preservada como
@@ -97,8 +97,8 @@ comercial), não status da ADR. Nenhuma ocorrência de
 $ rg -n "ADR-005|ADR-006|Proposed / Ready for External Audit|Accepted" \
     docs/architecture/ADR/README.md
 30:2. **Status** — `Proposed | Accepted | Superseded by ADR-XXX`
-46:- [ADR-005 — Commercial Domain](./ADR-005-commercial-domain.md) — *Accepted*
-47:- [ADR-006 — Billing Provider Abstraction](./ADR-006-billing-provider-abstraction.md) — *Proposed / Ready for External Audit*
+46:- [ADR-005 — Commercial Domain](../../architecture/ADR/ADR-005-commercial-domain.md) — *Accepted*
+47:- [ADR-006 — Billing Provider Abstraction](../../architecture/ADR/ADR-006-billing-provider-abstraction.md) — *Proposed / Ready for External Audit*
 ```
 Uma entrada por ADR. Linha 30 é definição do formato ADR, não índice.
 

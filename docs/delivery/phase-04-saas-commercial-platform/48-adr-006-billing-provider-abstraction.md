@@ -129,7 +129,7 @@ ADR-006-billing-provider-abstraction.md
 $ rg -n "Status" docs/architecture/ADR/ADR-005-commercial-domain.md
 - **Status:** Accepted
 $ rg -n "ADR-005" docs/architecture/ADR/README.md
-- [ADR-005 — Commercial Domain](./ADR-005-commercial-domain.md) — *Accepted*
+- [ADR-005 — Commercial Domain](../../architecture/ADR/ADR-005-commercial-domain.md) — *Accepted*
 ```
 Nenhuma ocorrência de ADR-005 como `Proposed / Ready for External Audit`.
 

@@ -80,7 +80,7 @@ migrations SQL de tabelas de domínio.
 Única entrada oficial da IA-004:
 
 ```markdown
-- [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — 🟡 Em execução controlada · M3.1 concluída · M3.2 + Patch M3.2.1 aprovados · M3.4 + Patch M3.4.1 aprovados · M3.3 implementada parcialmente + Patch M3.3.1 aguardando auditoria · M3.5 BLOCKED
+- [IA-004 — Tenant Storage Isolation](../../architecture/impact-analysis/IA-004-TenantStorageIsolation.md) — 🟡 Em execução controlada · M3.1 concluída · M3.2 + Patch M3.2.1 aprovados · M3.4 + Patch M3.4.1 aprovados · M3.3 implementada parcialmente + Patch M3.3.1 aguardando auditoria · M3.5 BLOCKED
 ```
 
 - **Duplicidade:** não há segunda entrada da IA-004.

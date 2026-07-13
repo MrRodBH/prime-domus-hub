@@ -79,7 +79,7 @@ Próximos marcos do Roadmap (Fase 3 — Membership Evolution Model, Fase 4
 Entrada final única da IA-004 em
 `docs/architecture/impact-analysis/README.md`:
 
-> - [IA-004 — Tenant Storage Isolation](./IA-004-TenantStorageIsolation.md) — ✔ **Concluída** · M3 — Tenant Storage Isolation concluída operacionalmente · Subetapas M3.1, M3.2 + Patch M3.2.1, M3.4 + Patch M3.4.1, M3.3 + Patch M3.3.1 e M3.5 aprovadas · Fechamento formal em [`26`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md) · Backlog preservado: Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch, Media Picker Return Contract Normalization
+> - [IA-004 — Tenant Storage Isolation](../../architecture/impact-analysis/IA-004-TenantStorageIsolation.md) — ✔ **Concluída** · M3 — Tenant Storage Isolation concluída operacionalmente · Subetapas M3.1, M3.2 + Patch M3.2.1, M3.4 + Patch M3.4.1, M3.3 + Patch M3.3.1 e M3.5 aprovadas · Fechamento formal em [`26`](../../delivery/phase-02-multi-tenancy/26-ia-004-m3-formal-closure.md) · Backlog preservado: Upload Provenance Token, M3.3.2 — Metadata Rewrite Batch, Media Picker Return Contract Normalization
 
 Confirmação: **existe apenas uma entrada IA-004** no índice.
 
