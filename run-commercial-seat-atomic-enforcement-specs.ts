@@ -209,8 +209,12 @@ async function main() {
       ]);
       const errs = [r1, r2].map((r: Any) => r.error);
       expect(errs.every((e) => !!e), `both should error, got ${JSON.stringify(errs.map((e) => e?.message))}`);
-      expect(errs.every((e) => /commercial_seat_limit_denied/.test(e.message)),
-        `expected commercial_seat_limit_denied, got ${JSON.stringify(errs.map((e) => e?.message))}`);
+      for (const e of errs) {
+        validateRealCommercialDenial(e, ctx.tenantId, "limit_reached");
+        expect((e as Any).details && JSON.parse((e as Any).details).limit === 2, "limit=2");
+        expect(JSON.parse((e as Any).details).used === 2, "used=2");
+        expect(JSON.parse((e as Any).details).remaining === 0, "remaining=0");
+      }
       const cnt = await countActiveInvited(ctx.tenantId);
       expect(cnt === 2, `count should stay 2, got ${cnt}`);
     });
