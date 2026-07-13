@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready for External Audit
+Blocked: awaiting SCP-012.0.2.2 acceptance
 
 ## Baseline e HEAD técnico revisado
 
