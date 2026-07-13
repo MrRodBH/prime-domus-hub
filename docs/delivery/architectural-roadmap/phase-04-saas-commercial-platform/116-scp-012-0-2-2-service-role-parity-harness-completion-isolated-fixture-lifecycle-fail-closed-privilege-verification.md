@@ -204,8 +204,8 @@ mudança de runtime desta etapa é a substituição da função interna
   (176 passed, 0 failed; inclui os 8 casos novos da suíte
   `commercial-context-selection`).
 - `run-commercial-sql-parity-specs.ts` **não** foi executado nesta
-  etapa: enquanto o bloqueio estrutural §19 estiver presente, essa
-  execução geraria um resultado parcial que a especificação proíbe.
+  etapa; a lacuna está classificada como limitação de cobertura não
+  bloqueante (ver seção anterior) e será revisitada em F4-CF-01.
 - `git diff --check` limpo antes e após a execução.
 
 ## Bloco final do roadmap
