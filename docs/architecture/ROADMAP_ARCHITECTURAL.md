@@ -549,7 +549,9 @@ roadmap e por macrofase/iniciativa oficialmente registrada.
 - **GA-08.1.1 — Governance Contract Consistency, Canonical Status &
   Git Evidence Cleanup** — `Accepted`.
 - **GA-08.1.2 — Documentation Roadmap Namespace & Phase Identity
-  Correction** — `Ready for External Audit`.
+  Correction** — `Accepted`.
+- **GA-08.1.2.1 — Final Git Evidence, Contract Acceptance & Legacy ADR
+  Namespace Cleanup** — `Ready for External Audit`.
 - **GA-08.2 — Documentation Path Validation & CI Gate** — futura;
   não iniciada.
 
