@@ -1017,24 +1017,35 @@ aplicável” quando genuinamente ausentes.
    & Content Architecture.
 2. **Objetivo:** consolidar autoridade das entidades do CMS
    (`site`, `pagina`, `post`, `form`, `campanha`, `midia`,
-   `auditoria`), remover redirects legados (`cms-transferencia`,
-   `cms-auditoria`) como aliases finais, formalizar menus
-   públicos, SEO, sitemap, versionamento, agendamento e LGPD.
+   `auditoria`), formalizar menus públicos, SEO, sitemap,
+   versionamento, agendamento e LGPD. **Ownership de redirects
+   e aliases administrativos permanece exclusivamente com
+   PR-PH.1** — PR-PH.6 **consome** a política aprovada em
+   PR-PH.1 e não cria, remove nem mantém redirects
+   administrativos por conta própria.
 3. **Baseline:** §§8, 10 desta análise.
-4. **Dependências:** PR-PH.5 Accepted.
+4. **Dependências:** PR-PH.5 Accepted (gate serial), portando PR-PH.1 … PR-PH.5 Accepted. Política de aliases administrativos herdada de PR-PH.1.
 5. **Autoridades atuais:** `EntityWorkspace` com descriptors
    já registrados; renderers públicos.
 6. **Lacunas:** consolidação formal de agendamento, SEO e
    LGPD; contratos por bloco.
 7. **Escopo autorizado:** ajustes documentais + eventuais
-   migrations não-destrutivas de versionamento.
+   migrations não-destrutivas de versionamento; **consumo** da
+   política de aliases herdada de PR-PH.1.
 8. **Fora de escopo:** landing pages (PR-PH.7); domínio
-   (PR-PH.8).
+   (PR-PH.8); criação/remoção autônoma de redirects
+   administrativos (autoridade exclusiva de PR-PH.1).
 9. **Arquivos e módulos previstos:** `src/lib/api/pages.functions.ts`,
    `src/lib/api/site.functions.ts`, `src/lib/api/site-versions.functions.ts`,
    `src/components/content/*`, `src/components/site/*`.
-10. **Rotas previstas:** manutenção; redirects legados
-    permanecem como aliases documentados.
+10. **Rotas previstas:** manutenção. **Estratégia única de
+    aliases administrativos** (herdada de PR-PH.1): manter
+    temporariamente `cms-transferencia` e `cms-auditoria` como
+    aliases sob *deprecation contract*, com critério objetivo
+    de remoção (ausência comprovada de consumidores externos
+    ao workspace ou expiração da janela de deprecação definida
+    em PR-PH.1). Estratégias contraditórias (“remover” + “manter
+    como alias”) são proibidas.
 11. **Tabelas afetadas:** `pages`, `posts`, `forms`,
     `campaigns`, `media`, `site_settings*`.
 12. **Migrations possíveis:** apenas se necessárias para
