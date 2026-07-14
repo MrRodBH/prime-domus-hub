@@ -533,34 +533,72 @@ Responsável: PR-PH.9.
 
 ## 14. Roles, permissions e autoridade de configuração
 
-- `has_role(admin)` (F4.0) — **Implemented**.
-- `tenant_role` e `membership_status` (Fase 3) — **Implemented**.
-- Entitlement comercial (SCP-006 … SCP-012) — **Implemented**.
-- Autoridade server-side única via `auth-middleware.ts` +
-  `tenant-middleware.ts` + `membership-validation.ts` —
+Autoridades existentes (descoberta encerrada nesta PR-PH.0):
+
+- `has_role(admin)` (F4.0) — **Implemented and connected**.
+- `tenant_role` (`owner|admin|manager|member|viewer`) e
+  `membership_status` (`active|invited|suspended|removed`)
+  (Fase 3) — **Implemented and connected**.
+- Entitlement comercial (SCP-006 … SCP-012) — **Implemented
+  and connected**.
+- Autoridade server-side única via
+  `src/integrations/supabase/auth-middleware.ts`,
+  `tenant-middleware.ts`, `membership-validation.ts` —
   **Implemented and connected**.
-- **Matriz de autoridade por operação administrativa
-  planejada** (papel mínimo, membership_status exigido,
-  necessidade de owner, autorização comercial, impersonação,
-  server function, tabela, RLS, audit trail, teste negativo) —
-  **Missing**. Responsável: **PR-PH.2** (baseline vinculante
-  antes de qualquer ampliação de operação administrativa,
-  antes do dashboard final e antes do cutover do CRM).
+
+Inventário atual por módulo (autoridades observadas hoje —
+PR-PH.2 canonicaliza a matriz e endurece; **não** descobre):
+
+| Módulo | Rotas | Server fns (arquivo) | Escrita | Leitura | Middleware | Tabelas | RLS | membership_status | tenant_role usado | has_role | RBAC profile | Owner req. | Impersonação | Entitlement | Audit trail | Lacuna atual |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Workspace shell | `/admin` | `tenant.functions.ts`, `tenant-selection.functions.ts` | seleção | listagem | `requireSupabaseAuth`+`requireTenant` | `tenant_members` | ✓ | `active` | any | não | não | não | via header | não | não | matriz não formalizada |
+| CRM (pipeline) | `/admin/pipeline`, `/admin/leads*` | `admin.functions.ts`, `leads-crm.functions.ts`, `historico.functions.ts` | ✓ | ✓ | `requireSupabaseAuth`(+tenant) | `leads`, `lead_descartes`, `lead_historico` | ✓ | `active` | admin/gerente/secretaria (papel via `user_roles`) — corretor escopo próprio | admin | ✓ (via `user_roles`) | não | via impersonate header | não | parcial (`lead_descartes`) | audit trail por card ausente (§6) |
+| Corretores/Equipes/Perfis | `/admin/corretores`, `/admin/equipes`, `/admin/perfis` | `admin.functions.ts`, `rbac.functions.ts` | ✓ | ✓ | idem | `corretores`, `teams`, `user_roles` | ✓ | `active` | admin | admin | ✓ | admin/owner | auditada | não | parcial | matriz não formalizada |
+| Catálogo (imóveis/lançamentos) | `/admin/imoveis*`, `/admin/lancamentos*` | `catalogo.functions.ts`, `lancamentos.functions.ts` | ✓ | ✓ | idem | `imoveis`, `lancamentos`, `unidades` | ✓ | `active` | admin/gerente | admin | ✓ | não | auditada | não | parcial | — |
+| CMS (site/páginas/blog/forms/campanhas) | `/admin/site`, `/admin/paginas*`, `/admin/blog*`, `/admin/formularios*`, `/admin/campanhas*` | `site.functions.ts`, `site-versions.functions.ts`, `pages.functions.ts`, `blog.functions.ts`, `forms.functions.ts`, `campaigns.functions.ts`, `_cms.ts` (`assertCmsPermission`, `logCmsAudit`) | ✓ | ✓ | idem | `site_settings*`, `cms_pages`, `cms_posts`, `cms_forms`, `cms_campaigns`, `cms_audit` | ✓ | `active` | admin/editor via `assertCmsPermission` | admin | RBAC via `cms_permissions` (`use-cms-permissions.ts`) | admin/owner | auditada | não | ✓ (`cms_audit`) | granularidade fina por operação |
+| Mídias | `/admin/midias` | `media.functions.ts`, `uploads.functions.ts`, `legacy-storage.functions.ts` | ✓ | ✓ | idem | `media_assets`, storage buckets | ✓ | `active` | admin | admin | ✓ | não | auditada | não | não | tenant scoping validado (M3) |
+| Portais / Distribuição | `/admin/portais` | `portals.functions.ts` | ✓ | ✓ | idem | `portal_configs` | ✓ | `active` | admin | admin | ✓ | admin | auditada | não | parcial | — |
+| Configurações (site branding) | `/admin/site` | `site.functions.ts`, `site-versions.functions.ts` | ✓ | ✓ | idem | `site_settings`, `site_settings_versions` | ✓ | `active` | admin | admin | ✓ | admin/owner | auditada | não | ✓ (versions) | contraste WCAG não gate |
+| Branding (workspace) | — | — | — | — | — | — | — | — | — | — | — | — | — | — | não | **autoridade ausente** — Missing |
+| Super Admin / Operação | `/super*` | `super.functions.ts`, `tenant-selection.functions.ts` | ✓ | ✓ | `requireSupabaseAuth` + `is_super_admin` RPC | globais | ✓ (super bypass explícito) | n/a | n/a | ✓ (`is_super_admin`) | não | ✓ | via `x-tenant-id` (auditada) | não | parcial | catálogo formal ausente |
+| Autorização — Matriz canônica | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | não formalizada | **Missing** — Responsável **PR-PH.2** |
+
+PR-PH.2 continua responsável pela canonicalização da matriz e
+pelo hardening, mas **não** pela descoberta inicial — o baseline
+acima é vinculante.
 
 ## 15. Prontidão operacional
 
-Auditar/consolidar em PR-PH.11:
+Inventário atual (descoberta encerrada nesta PR-PH.0 —
+PR-PH.11 implementa e valida, sem redescobrir):
 
-- Ambientes, variáveis, secrets (Lovable Cloud gerenciado).
-- Migrations (93 aplicadas), seed, backup, restore.
-- Observabilidade (`src/lib/observability.server.ts`,
-  `src/lib/lovable-error-reporting.ts`), logs, alertas.
-- Auditoria (`admin.auditoria.tsx`, `logCmsAudit`).
-- E-mail (`src/lib/email/notify.server.ts`,
-  `src/lib/email-templates/*`), WhatsApp (botão flutuante),
-  rate limits (`rate-limit.server.ts`), cron, webhooks,
-  health checks.
-- Rollback, runbooks, LGPD, retenção, exportação, exclusão.
+| Item | Estado atual | Evidência |
+|---|---|---|
+| Ambientes | **Managed external dependency** (Lovable Cloud gerenciado; preview + published) | `.env` gerenciado; publicações e domínios via plataforma |
+| Variáveis (por nome) | **Implemented and connected**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`, `LOVABLE_API_KEY` | `client.ts`, `client.server.ts`, `pages.functions.ts:publicClient` |
+| Secrets (por nome) | **Managed external dependency**: `SUPABASE_SERVICE_ROLE_KEY` (server-only, inacessível a agente); `LOVABLE_API_KEY` (AI Gateway) | `client.server.ts` — nunca referenciada em código de cliente |
+| Migrations | **Implemented and connected** — 93 aplicadas | `supabase/migrations/` |
+| Seed | **Missing** como pipeline formal (fixtures existem apenas em runners de teste) | `run-*.ts` |
+| Backup / Restore | **Managed external dependency** (Lovable Cloud) | plataforma |
+| Observabilidade | **Implemented but incomplete** — coleta server-side sem dashboard consumidor | `src/lib/observability.server.ts` |
+| Logs | **Implemented but incomplete** | idem + `console.error` em handlers |
+| Error reporting | **Implemented and connected** (client) | `src/lib/lovable-error-reporting.ts`, `error-capture.ts` |
+| Alertas operacionais | **Missing** — sem canal formal | — |
+| Health checks | **Missing** como rota dedicada | — |
+| Rate limits | **Implemented and connected** para superfícies sensíveis | `src/lib/rate-limit.server.ts` |
+| Cron | **Missing** — sem `pg_cron` ou scheduler declarado | — |
+| Webhooks | **Missing** — sem `/api/public/*` de webhook em uso | — |
+| E-mail | **Implemented and connected** (envio + templates) | `src/lib/email/notify.server.ts`, `src/lib/email-templates/*` |
+| WhatsApp | **Implemented and connected** (botão flutuante público apenas; sem API oficial — por decisão do produto) | `src/components/site/WhatsAppFab.tsx` |
+| Analytics | **Implemented but incomplete** — pixel/tag sem dashboard analítico | `src/lib/meta-pixel.ts` |
+| Auditoria CMS | **Implemented and connected** | `_cms.ts` (`logCmsAudit`), `admin.auditoria.tsx` |
+| Runbooks | **Missing** | — |
+| Rollback operacional | **Implemented and connected** (site versions/restore); **Missing** para CRM/comercial | `site-versions.functions.ts` |
+| Retenção / Exportação / Exclusão / LGPD | **Implemented but incomplete** — páginas públicas (`privacidade.tsx`, `unsubscribe.tsx`) presentes; processo interno de export/erase **Missing** | rotas públicas |
+| Suporte / SLA | **Missing** — sem canal formal declarado | — |
+
+PR-PH.11 deverá implementar/validar as lacunas acima; **não**
+deverá repetir descoberta básica.
 
 ## 16. Diretriz vinculante — RM Prime SaaS Data-Dense Premium Dark Interface
 
