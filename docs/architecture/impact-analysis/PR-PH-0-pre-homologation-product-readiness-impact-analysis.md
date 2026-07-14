@@ -1325,21 +1325,30 @@ aplicável” quando genuinamente ausentes.
 ### 19.12 PR-PH.12 — Pre-Homologation Product Closing Review
 
 1. **Nome oficial:** Pre-Homologation Product Closing Review.
-2. **Objetivo:** consolidar todas as etapas anteriores e
-   emitir declaração final de Product Readiness.
+2. **Objetivo:** consolidar todas as etapas anteriores e emitir
+   declaração final de Product Readiness. **Não implementa
+   produto**, mas **obrigatoriamente reexecuta ou consolida** as
+   suítes críticas listadas em (26)–(30) desta cláusula.
 3. **Baseline:** contratos individuais PR-PH.1 … PR-PH.11.
-4. **Dependências:** PR-PH.1 … PR-PH.11 Accepted.
+4. **Dependências:** PR-PH.11 Accepted (gate serial) e todas as
+   etapas anteriores PR-PH.1 … PR-PH.10 Accepted.
 5. **Autoridades atuais:** todas as consolidadas.
 6. **Lacunas:** nenhuma pendente esperada.
-7. **Escopo autorizado:** documentação de encerramento.
-8. **Fora de escopo:** qualquer alteração de runtime.
+7. **Escopo autorizado:** documentação de encerramento;
+   reexecução/consolidação de evidências de teste.
+8. **Fora de escopo:** qualquer alteração de runtime, schema,
+   RLS, grants, componentes ou rotas.
 9. **Arquivos e módulos previstos:** `docs/architecture/*`,
    `docs/delivery/*`.
 10. **Rotas previstas:** Não aplicável.
 11. **Tabelas afetadas:** Não aplicável.
-12. **Migrations possíveis:** Não aplicável.
-13. **Impacto em RLS:** Não aplicável.
-14. **Impacto em grants:** Não aplicável.
+12. **Migrations possíveis:** Não aplicável — mas **validar** que
+    o total permanece o baseline vigente e que nenhuma migration
+    espúria foi adicionada.
+13. **Impacto em RLS:** Não aplicável — mas **validar** ausência
+    de regressão em políticas existentes.
+14. **Impacto em grants:** Não aplicável — mas **validar**
+    grants por tabela pública.
 15. **Server boundaries:** Não aplicável.
 16. **Contratos de dados:** Não aplicável.
 17. **Autoridade de autorização:** Não aplicável.
@@ -1347,23 +1356,59 @@ aplicável” quando genuinamente ausentes.
 19. **Entitlement comercial:** Não aplicável.
 20. **Impersonação:** Não aplicável.
 21. **UX:** Não aplicável.
-22. **Responsividade:** Não aplicável.
-23. **Acessibilidade:** Não aplicável.
+22. **Responsividade:** Não aplicável — validada em PR-PH.10.
+23. **Acessibilidade:** Não aplicável — validada em PR-PH.10.
 24. **Analytics:** Não aplicável.
-25. **Observabilidade:** Não aplicável.
-26. **Testes unitários:** Não aplicável.
-27. **Testes de integração:** Não aplicável.
-28. **Testes E2E:** Não aplicável.
-29. **Testes visuais:** Não aplicável.
-30. **Testes de segurança:** Não aplicável.
-31. **Fixtures e cleanup fail-closed:** Não aplicável.
-32. **Hard gates:** nenhuma etapa anterior aberta.
-33. **Definition of Done:** Ready for External Audit no
-    fechamento da Product Readiness.
-34. **Complexidade relativa:** baixa.
+25. **Observabilidade:** validada em PR-PH.11.
+26. **Testes unitários:** **obrigatório reexecutar/consolidar.**
+    Comando: `bunx vitest run` (unit). Evidência: log de execução
+    + contagem verde. Resultado esperado: 100% verde. Responsável:
+    executor da etapa. Condição de falha: qualquer teste vermelho,
+    skipped não justificado, ou suíte ausente. Teste indisponível:
+    registrar como bloqueador — proibido aceite silencioso.
+27. **Testes de integração:** **obrigatório reexecutar/
+    consolidar.** Comando: os quatro runners canônicos
+    (`bun run-tenant-specs.ts`,
+    `bun run-membership-mutation-parity-specs.ts`,
+    `bun run-commercial-seat-atomic-enforcement-specs.ts`,
+    `bun run-commercial-sql-parity-specs.ts`). Evidência: exit 0 e
+    contagem por cenário. Falha: qualquer exit ≠ 0 ou cenário
+    ausente. Indisponível: bloqueador.
+28. **Testes E2E:** **obrigatório reexecutar/consolidar** os
+    smokes existentes em `tests/*/test_*.py`. Comando:
+    `bash tests/_helpers/run_all.sh` (ou equivalente aprovado).
+    Evidência: relatório final. Falha: qualquer smoke vermelho.
+    Indisponível: bloqueador com registro formal.
+29. **Testes visuais:** **obrigatório consolidar snapshots**
+    materializados em PR-PH.10. Evidência: hash de referência
+    conferido. Falha: divergência sem justificativa aprovada.
+    Indisponível: bloqueador.
+30. **Testes de segurança:** **obrigatório reexecutar/
+    consolidar** — `tests/security/test_tenant_isolation.py` +
+    revisão de RLS/grants (`supabase--linter` equivalente).
+    Evidência: exit 0 + relatório. Falha: qualquer regressão.
+    Indisponível: bloqueador.
+31. **Fixtures e cleanup fail-closed:** obrigatório validar que
+    todos os runners emitem cleanup via `try/finally` global
+    (herdado do harness canônico de F4-CF-01).
+32. **Hard gates:** **PR-PH.12 não poderá declarar Product
+    Readiness se alguma evidência obrigatória (12–14, 26–31)
+    estiver ausente, inconclusiva, desatualizada ou aceita
+    silenciosamente.** Validações adicionais obrigatórias:
+    typecheck (`bunx tsc --noEmit -p tsconfig.json`) verde;
+    `git diff --check` clean; ausência de dual paths;
+    ausência de rotas órfãs; documentação e roadmap
+    reconciliados; riscos aceitos registrados; rollback
+    documentado.
+33. **Definition of Done:** todas as evidências (12–14, 26–31)
+    coletadas, verdes e datadas; declaração final Ready for
+    External Audit no fechamento da Product Readiness.
+34. **Complexidade relativa:** média (consolidação disciplinada).
 35. **Adequação a um único prompt macro:** sim.
 36. **Condições objetivas de replanejamento:** qualquer etapa
-    anterior não Accepted.
+    anterior não Accepted; qualquer evidência obrigatória
+    ausente/vermelha/indisponível sem plano de correção
+    imediato.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.12 —
     Accepted; TH-001 — Ready for Impact Analysis; homologação
     permanece Blocked até TH-006.
