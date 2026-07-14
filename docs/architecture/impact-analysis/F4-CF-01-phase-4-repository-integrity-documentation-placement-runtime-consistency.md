@@ -74,19 +74,19 @@ Prova de ausência de dual path confirmada.
 ## 6. ACL / RLS
 
 Verificação independente executada nesta etapa via consulta direta a
-`pg_proc` / `aclexplode` / `has_function_privilege` — ver §8.2 para o
-dump completo. Resumo:
+`pg_proc` / `aclexplode` / `has_function_privilege` /
+`has_table_privilege` — ver §8.2 para o dump completo. Resumo pós
+reclosure:
 
 - `resolve_commercial_seat_decision(uuid,uuid,text,integer)` e
   `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)`: owner
-  `postgres`; EXECUTE apenas para o owner, `service_role` e para a
-  role gerenciada de sandbox `sandbox_exec` (role de exec, não é role
-  de cliente). `anon`, `authenticated` e `PUBLIC` sem privilégio.
-- `tenant_members`: `authenticated = SELECT` somente; `anon` /
-  `PUBLIC` sem grant; `service_role` administrativo; `sandbox_exec`
-  possui GRANT `SELECT, INSERT` mas RLS restritiva bloqueia escrita
-  na prática (as duas policies `tm_select` / `tm_write` estão escopadas
-  ao role `authenticated` e não cobrem `sandbox_exec`).
+  `postgres`; **EXECUTE somente para o owner e `service_role`**.
+  `anon`, `authenticated`, `sandbox_exec` e `PUBLIC` sem privilégio.
+- `tenant_members`: `authenticated = SELECT` somente; `sandbox_exec =
+  SELECT` somente (`INSERT`, `UPDATE`, `DELETE` revogados nesta etapa);
+  `anon` / `PUBLIC` sem grant; `service_role` administrativo. As
+  policies `tm_select` / `tm_write` continuam escopadas ao role
+  `authenticated`.
 
 ## 7. Catálogos e contratos
 
@@ -106,105 +106,116 @@ com igualdade exata.
 | Feature decision                  | `commercial-feature-gate.spec.ts`                        | unit         | passed    |
 | Seat usage / limit                | `commercial-seat-limit.spec.ts`                          | unit         | passed    |
 | Seat decision RPC contract        | `commercial-seat-rpc-contract.spec.ts`                   | unit         | passed    |
-| Seat decision SQL parity          | `commercial-seat-sql-parity.spec.ts`                     | unit         | passed    |
 | Denial parser                     | `commercial-seat-limit-denied-parser.spec.ts`            | unit (14)    | passed    |
 | Membership mutation input         | `membership-mutation-input.spec.ts`                      | unit (43)    | passed    |
 | Membership validation             | `membership-validation.spec.ts`                          | unit         | passed    |
 | Tenant runner                     | `run-tenant-specs.ts`                                    | integration  | 233 passed |
-| Membership parity + ACL           | `run-membership-mutation-parity-specs.ts`                | integration  | 14 passed |
-| Atomic seat enforcement           | `run-commercial-seat-atomic-enforcement-specs.ts`        | concurrency  | 10 passed |
-| Legacy SQL parity runner           | `run-commercial-sql-parity-specs.ts`                     | psql harness | **Superseded; not executed as current gate** (see §8.1) |
+| Membership parity + ACL           | `run-membership-mutation-parity-specs.ts`                | integration  | 14 passed  |
+| Atomic seat enforcement           | `run-commercial-seat-atomic-enforcement-specs.ts`        | concurrency  | 10 passed  |
+| **SQL/TS parity (canonical)**     | `run-commercial-sql-parity-specs.ts`                     | integration  | **17 passed / 0 failed** |
 
-### 8.1 Legacy SQL parity runner — supersession matrix
+### 8.1 SQL/TypeScript parity runner — canonical integration gate
 
-The historical harness `run-commercial-sql-parity-specs.ts` was designed
-for a PostgreSQL connection with authority to seed `public.tenant_members`
-directly (superuser or `service_role`). Under the current SCP-012 ACL /
-RLS contract, no exec-accessible role has that authority, so the harness
-aborts during fixture seeding — BEFORE the parity matrix runs — with a
-sanitized error of the form:
+O runner `run-commercial-sql-parity-specs.ts` foi **modernizado** nesta
+etapa e volta a ser gate corrente. A classificação anterior
+(historical / superseded) foi encerrada.
 
-```
-psql (role: sandbox_exec)
-ERROR:  permission denied for table tenant_members
-context: INSERT INTO public.tenant_members ... (fixture seeding, scenario
-"12. limit = 2 + one active member") — teardown finally block did NOT run
-for that fixture because the setup phase aborted.
-```
+Arquitetura final do harness:
 
-A seeding abort is NOT evidence of RPC ACL correctness, is NOT evidence
-of SQL/TypeScript parity, and MUST NOT be recorded as a passed gate.
-It only demonstrates that the exec role lacks authority to bypass the
-`tenant_members` RLS — the RLS fail-closed posture can *explain* the
-impossibility of seeding by this role, but does not by itself validate
-the RPC ACL nor the parity contract.
+- Cliente admin criado com `createClient(SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false,
+  autoRefreshToken: false } })`. Nenhuma dependência de `psql`,
+  `PGHOST`, `execFile` ou role `sandbox_exec`.
+- Fixtures sintéticas isoladas por execução com namespace UUID próprio:
+  auth users criados via `admin.auth.admin.createUser`, tenants,
+  planos, entitlements, assinaturas, memberships e provider mappings
+  inseridos via `admin.from(...).insert(...)`.
+- Um único super-admin sintético por run recebe `super_admin` em
+  `public.user_roles`; nenhum ID de usuário fixo permanece no arquivo.
+- A RPC `resolve_commercial_seat_decision` é invocada por
+  `admin.rpc(...)` a cada cenário.
+- Oracle TypeScript computado a partir da MESMA fixture:
+  `decideCommercialFeature` + `extractSeatLimit` +
+  `decideCommercialSeatLimit`, com o mesmo tie-break de subscription
+  (status priority, `started_at` DESC NULLS LAST, `id` ASC).
+- Cada cenário compara integralmente SQL DTO × TS DTO × expected DTO
+  sobre todo o contrato canônico: `tenantId`, `featureKey`, `allowed`,
+  `reason`, `source`, `limit`, `used`, `requestedIncrement`,
+  `remaining`. Nenhum campo é validado parcialmente.
+- Cleanup fail-closed: erros de delete e de verificação residual são
+  acumulados e o runner encerra com exit 1 se qualquer resíduo for
+  detectado. Nenhum `.catch(() => {})` permanece no arquivo.
+- Escopo de fixtures da limpeza: `tenant_billing_provider_mappings`,
+  `tenant_members`, `tenant_entitlements`, `tenant_subscriptions`,
+  `tenants`, `commercial_plan_entitlements`, `commercial_plans`,
+  `user_roles` e `auth.users` (com validação canônica de
+  `AuthApiError { status: 404, code: 'user_not_found' }`).
 
-Runner formally reclassified as **historical / superseded**. It still
-compiles and is retained for reference; a header comment in the file
-points to the substitute runners. Modernizing the harness to a
-controlled service_role fixture path is a Class C future item.
+Matriz canônica preservada — 17 cenários totais, cobrindo:
+`no subscription → billing_unknown`; `active + no entitlement → not_entitled`;
+`past_due → billing_attention_required`; `canceled → billing_blocked`;
+entitlement de tenant efetivo; entitlement de tenant NÃO efetivo
+(janela expirada); entitlement `value_bool=false`; entitlement de plano
+(sem override); entitlement com valor `text` (não numérico) →
+`not_evaluated`; entitlement decimal fracionário → `not_evaluated`;
+`limit=0` (`limit_reached`); `limit=2` + 1 active; `limit=2` + 1 active
++ 1 invited (`limit_reached`); `suspended`/`revoked` não contam;
+`limit=2^31` (fronteira int4); `limit` numérico além de int4 dentro do
+domínio `numeric(14,2)` do schema real (exercitando aritmética bigint
+end-to-end); tie-break de subscription (mesmo status/started_at → id
+ASC). Todos os cenários exigem `deepEqual(SQL, TS) && deepEqual(SQL,
+expected) && deepEqual(TS, expected)`.
 
-Supersession matrix (each legacy contract → current substitute evidence):
+Resultado: **17 passed / 0 failed**, cleanup errors = 0, resíduos = 0.
 
-| Legacy contract | Substitute evidence | Runner / file | Scenarios | Result |
-|---|---|---|---|---|
-| Real SQL RPC invocation | Real `mutate_tenant_membership` + `resolve_commercial_seat_decision` via `supabaseAdmin` | `run-commercial-seat-atomic-enforcement-specs.ts` | 10 | 10 passed |
-| TypeScript oracle | `decideCommercialSeatLimit` / `decideCommercialFeature` unit specs | `commercial-seat-limit.spec.ts`, `commercial-feature-gate.spec.ts`, `commercial-feature-catalog.spec.ts` | unit | passed |
-| DTO integral equality | RPC contract spec + real-denial parser | `commercial-seat-rpc-contract.spec.ts`, `commercial-seat-limit-denied-parser.spec.ts` | unit + 14 | passed |
-| Billing statuses (active/trialing/past_due/canceled/grace/unpaid) | Feature gate spec + atomic runner rollback paths | `commercial-feature-gate.spec.ts`, `run-commercial-seat-atomic-enforcement-specs.ts` | unit + 10 | passed |
-| Tenant entitlement override | Feature gate + atomic runner scenarios A/B/C | `commercial-feature-gate.spec.ts`, `run-commercial-seat-atomic-enforcement-specs.ts` | unit + 10 | passed |
-| Plan entitlement fallback | Feature gate + atomic runner (plan-source scenarios) | `commercial-feature-gate.spec.ts`, `run-commercial-seat-atomic-enforcement-specs.ts` | unit + 10 | passed |
-| requestedIncrement contract (=1 literal) | RPC contract + validator + atomic runner | `commercial-seat-rpc-contract.spec.ts`, `membership-mutation-input.spec.ts`, `run-commercial-seat-atomic-enforcement-specs.ts` | 43 + 10 | passed |
-| Seat usage counting (active + invited) | Real RPC counts observed via atomic runner + parity runner | `run-commercial-seat-atomic-enforcement-specs.ts`, `run-membership-mutation-parity-specs.ts` | 10 + 14 | passed |
-| Trusted-actor context errors | Parity runner ACL scenarios + membership validation | `run-membership-mutation-parity-specs.ts`, `membership-validation.spec.ts` | 14 + unit | passed |
-| Fixture cleanup / zero residuals | Atomic runner fail-closed rollback + auth-user canonical parser | `run-commercial-seat-atomic-enforcement-specs.ts`, `run-membership-mutation-parity-specs.ts` | 10 + 14 | passed |
+Observação sobre o cenário 16 (limite acima de int4): a coluna
+`tenant_entitlements.value_decimal` é `numeric(14, 2)`. A constante
+lógica `MAX_SAFE_INTEGER` (9.007.199.254.740.991) definida na RPC não
+é atingível no armazenamento — o teto real do schema é
+`999.999.999.999`. O cenário canônico foi mantido como "limite muito
+acima de int4 dentro do domínio do schema", preservando a semântica de
+aritmética bigint contra `int4 overflow`. A capacidade formal
+`MAX_SAFE_INTEGER` da RPC permanece coberta pelo contrato unitário
+(`commercial-seat-rpc-contract.spec.ts`, `commercial-seat-limit.spec.ts`)
+e pelo próprio comentário no CREATE FUNCTION.
 
-Every semantic contract of the legacy harness is covered by at least
-one substitute runner that (a) invokes real PostgreSQL through
-`supabaseAdmin` for the mutation and enforcement paths, or (b) provides
-the deterministic TypeScript oracle used to validate the RPC DTO.
-Remaining limitation: the substitute evidence does not run a
-side-by-side numerical parity comparison of the raw SQL DTO against the
-TS oracle across all 13 legacy scenarios — this is registered as a
-Class C follow-up (harness modernization). It is NOT required for the
-F4-CF-01 gate because the atomic runner already asserts the exact SQL
-DTO fields against the canonical `CommercialSeatLimitDeniedError`
-contract.
+### 8.2 Independent ACL evidence (pós reclosure)
 
-### 8.2 Independent ACL evidence
-
-ACL of the two SCP-012 SECURITY DEFINER RPCs, obtained via `pg_proc` /
-`aclexplode` / `has_function_privilege` (NOT inferred from any runner
-failure):
+Dump direto do catálogo, sem inferência a partir de qualquer runner:
 
 ```
 proname                              | grantee       | privilege
 resolve_commercial_seat_decision (4) | postgres      | EXECUTE   (owner)
 resolve_commercial_seat_decision (4) | service_role  | EXECUTE
-resolve_commercial_seat_decision (4) | sandbox_exec  | EXECUTE   (managed sandbox role)
 mutate_tenant_membership (6)         | postgres      | EXECUTE   (owner)
 mutate_tenant_membership (6)         | service_role  | EXECUTE
-mutate_tenant_membership (6)         | sandbox_exec  | EXECUTE   (managed sandbox role)
 
-has_function_privilege:
-  anon           → false (both RPCs)
-  authenticated  → false (both RPCs)
-  service_role   → true  (both RPCs)
-  sandbox_exec   → true  (both RPCs; managed exec role, not a client role)
+has_function_privilege (both RPCs):
+  postgres       → true   (owner)
+  service_role   → true
+  anon           → false
+  authenticated  → false
+  sandbox_exec   → false
   PUBLIC         → not in ACL (no implicit EXECUTE)
 ```
 
-`tenant_members` grants: `authenticated = SELECT` only; `sandbox_exec =
-SELECT, INSERT` (managed exec role) — but the two `authenticated`-scoped
-policies `tm_select` / `tm_write` do NOT cover `sandbox_exec`, so RLS
-denies its INSERT at runtime even though the GRANT exists. `anon` /
-`PUBLIC` have no grants and no policies.
+`tenant_members` grants pós-migration:
 
-Conclusion: RPC ACL is fail-closed for every real client role
-(`anon`, `authenticated`, `PUBLIC`); write access to `tenant_members`
-from the client remains blocked by both the missing GRANTs on
-`anon`/`authenticated` and the policy scope. This is proven directly
-against catalog state and does not depend on the legacy runner.
+```
+grantee       | privilege
+authenticated | SELECT
+sandbox_exec  | SELECT           -- INSERT/UPDATE/DELETE revogados
+service_role  | (administrative)
+anon          | (none)
+PUBLIC        | (none)
+```
+
+`has_table_privilege('sandbox_exec', 'public.tenant_members', 'INSERT')`
+= false; UPDATE = false; DELETE = false. `has_table_privilege
+('authenticated', 'public.tenant_members', 'INSERT')` = false;
+UPDATE = false; DELETE = false; SELECT = true. As assertions da própria
+migration `20260714001218_*.sql` re-verificam esse estado dentro da
+transação de aplicação (fail-closed).
 
 ## 9. Artefatos gerados
 
