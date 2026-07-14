@@ -1,9 +1,19 @@
 # Phase 4 Closing Review — SaaS Commercial Platform Formal Closure, Managed-Role Trust Boundary Reconciliation & Product Readiness Gate
 
-**Status:** Ready for External Audit
+**Status:** Accepted (external audit)
 **Depends on:** IA-006 / ADR-005 / ADR-006 / F4.0 / SCP-001 … SCP-012
 (all Accepted) and F4-CF-01 (Accepted, external audit).
-**Blocks:** PR-PH.0 (Planned; not started) and homologation.
+**Blocks:** PR-PH.0 (Ready for External Audit) and homologation.
+
+**Architectural Roadmap · Fase 4 — SaaS Commercial Platform —
+Closed / Accepted.**
+
+Nota de reconciliação: onde este documento e artefatos derivados
+descrevem o contrato dos cenários de rejeição do harness, a leitura
+correta do payload de sucesso ausente é `data == null` (ausência
+canônica de payload) — a redação `data === null` deve ser lida com
+essa semântica. Nenhum runtime, harness ou migration é alterado por
+esta nota; a correção é exclusivamente redacional.
 
 ## 1. Baseline
 
