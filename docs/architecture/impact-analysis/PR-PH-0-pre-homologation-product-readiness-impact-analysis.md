@@ -1486,12 +1486,15 @@ Proibições explícitas:
 
 ## 23. Hard gates da PR-PH.0
 
-Falhar se qualquer uma das condições ocorrer:
+Falhar se qualquer uma das condições ocorrer (regras
+descritivas — evitam repetição literal de tokens operacionais
+proibidos para não colidir com as buscas de reconciliação):
 
-- Permanecer “Requires re-inventory” / “Requires inventory” /
-  “Requires audit” / “auditar em PR-PH.x” / “verificar em
-  PR-PH.x”.
-- Descoberta básica continuar delegada às etapas futuras.
+- Documento voltar a delegar descoberta básica a etapas futuras
+  usando fórmulas equivalentes a re-inventário / novo
+  levantamento / verificação genérica em etapa posterior.
+- Descoberta básica continuar delegada às etapas futuras por
+  qualquer outra formulação.
 - White label público permanecer globalmente Missing.
 - `admin.site` e `admin.paginas` declarados dual path sem
   prova.
@@ -1504,9 +1507,19 @@ Falhar se qualquer uma das condições ocorrer:
 - Roles permanecer depois das etapas funcionais na sequência.
 - PR-PH.1 continuar responsável pelo cutover funcional do CRM.
 - Contratos individuais substituídos por contrato genérico.
-- Roadmap permanecer agregado (PR-PH.1..12 e TH-001..006 em
-  uma única linha).
+- Roadmap continuar agregando PR-PH.1 … PR-PH.12 ou TH-001 …
+  TH-006 em uma única linha.
+- Roadmap declarar que PR-PH.0 não foi iniciada.
+- Contrato da PR-PH.6 conter estratégias contraditórias para
+  aliases administrativos ou reivindicar ownership sobre
+  redirects.
+- PR-PH.5 pré-autorizar segunda autoridade de branding sobre
+  os mesmos campos.
+- PR-PH.12 declarar Product Readiness sem reexecução/
+  consolidação das suítes obrigatórias.
 - Evidência Git não corresponder ao diff real.
+- Buscas normativas apresentadas como “zero ocorrências”
+  quando existem ocorrências normativas legítimas.
 - Arquivo fora do escopo autorizado alterado.
 - Runtime alterado.
 - PR-PH.0 marcada Accepted.
@@ -1517,11 +1530,17 @@ Falhar se qualquer uma das condições ocorrer:
 
 - `git diff --check` — clean.
 - `bunx tsc --noEmit -p tsconfig.json` — executado após a
-  reescrita; sem alteração de TypeScript nesta execução.
-- Buscas de reconciliação: zero ocorrências dos padrões
-  proibidos nos artefatos alterados.
+  reescrita; nenhuma alteração de TypeScript nesta execução.
+- Busca operacional (padrões proibidos fora da seção normativa
+  §23): `rg -n "responsabilidade da PR-PH|inventário completo.*PR-PH|auditar/consolidar|precisa validação em PR-PH|campos observados/plausíveis|inventário futuro" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → resultado esperado: zero ocorrências operacionais. As
+  formas literais legadas foram substituídas por regras
+  descritivas nesta reconciliação (§23 evita tokens exatos
+  para não criar falsos positivos).
+- Busca sobre roadmap: `rg -n "PR-PH\.0.*não iniciado|Escopo futuro registrado para PR-PH\.0" docs/architecture/ROADMAP_ARCHITECTURAL.md`
+  → resultado esperado: zero ocorrências.
 - Escopo: apenas os três arquivos documentais autorizados
-  foram modificados.
+  foram modificados nesta execução.
 
 ## 25. Itens fora de escopo
 
