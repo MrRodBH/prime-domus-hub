@@ -315,7 +315,7 @@ type DescartadoRow = Lead & { descartado_at?: string | null; motivo?: { nome: st
 export function DescartadosPanel({ onOpen }: { onOpen: (id: string) => void }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["admin", "descartados"], queryFn: () => listarLeadsDescartados() });
-  const rows = (data ?? []) as DescartadoRow[];
+  const rows = (data ?? []) as unknown as DescartadoRow[];
   const reabrir = useMutation({
     mutationFn: (lead_id: string) => reabrirLead({ data: { lead_id } }),
     onSuccess: () => { toast.success("Lead reaberto (Novo)."); qc.invalidateQueries({ queryKey: ["admin", "descartados"] }); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); },
