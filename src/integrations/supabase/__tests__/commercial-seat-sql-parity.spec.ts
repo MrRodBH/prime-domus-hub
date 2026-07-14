@@ -682,10 +682,10 @@ interface RejectionCase {
   name: string;
   /** Called with the shared super admin actor id, may create fixtures. */
   run: (superActorId: string) => Promise<{ data: unknown; error: RpcErrorShape | null }>;
-  /** substring or prefix that must appear in error.message */
-  expectMessageIncludes: string;
-  /** optional SQLSTATE code */
-  expectCode?: string;
+  /** Canonical message contract — either literal equality or prefix. */
+  message: { kind: "exact" | "prefix"; value: string };
+  /** SQLSTATE — required, fail-closed. Missing code fails the assertion. */
+  expectCode: string;
 }
 
 function buildRejectionCases(): RejectionCase[] {
@@ -693,25 +693,25 @@ function buildRejectionCases(): RejectionCase[] {
     {
       name: "R1. requestedIncrement = 0 → Invalid requestedIncrement (22023)",
       run: (uid) => sqlOracleExpectError(uid, uuid(), "impersonation", 0),
-      expectMessageIncludes: "Invalid requestedIncrement",
+      message: { kind: "prefix", value: "Invalid requestedIncrement" },
       expectCode: "22023",
     },
     {
       name: "R2. requestedIncrement = 2 → Invalid requestedIncrement (22023)",
       run: (uid) => sqlOracleExpectError(uid, uuid(), "impersonation", 2),
-      expectMessageIncludes: "Invalid requestedIncrement",
+      message: { kind: "prefix", value: "Invalid requestedIncrement" },
       expectCode: "22023",
     },
     {
       name: "R3. tenant_origin = 'bogus' → Invalid tenant origin (22023)",
       run: (uid) => sqlOracleExpectError(uid, uuid(), "bogus", 1),
-      expectMessageIncludes: "Invalid tenant origin",
+      message: { kind: "prefix", value: "Invalid tenant origin" },
       expectCode: "22023",
     },
     {
       name: "R4. actor uuid not in auth.users → Actor not found (22023)",
       run: () => sqlOracleExpectError(uuid(), uuid(), "impersonation", 1),
-      expectMessageIncludes: "Actor not found",
+      message: { kind: "prefix", value: "Actor not found" },
       expectCode: "22023",
     },
     {
@@ -729,14 +729,14 @@ function buildRejectionCases(): RejectionCase[] {
         createdTenants.add(tid);
         return sqlOracleExpectError(uid, tid, "selection", 1);
       },
-      expectMessageIncludes: "Super admin requires impersonation origin",
+      message: { kind: "prefix", value: "Super admin requires impersonation origin" },
       expectCode: "22023",
     },
     {
       name: "R6. super admin with impersonation but tenant not found → Tenant not found (22023)",
       // super admin passes actor validation; tenant existence is checked next.
       run: (uid) => sqlOracleExpectError(uid, uuid(), "impersonation", 1),
-      expectMessageIncludes: "Tenant not found",
+      message: { kind: "prefix", value: "Tenant not found" },
       expectCode: "22023",
     },
   ];
@@ -961,21 +961,40 @@ async function executeAllChecks(actorId: string): Promise<{
     }
   }
 
-  // Rejection contract.
+  // Rejection contract — fail-closed:
+  //   • data MUST be null (no hybrid success payload alongside error);
+  //   • error MUST exist;
+  //   • error.code MUST equal expectCode exactly (missing code = fail);
+  //   • error.message MUST satisfy exact-equality or canonical prefix.
   const rejections = buildRejectionCases();
   for (const rc of rejections) {
     try {
       const { data, error } = await rc.run(actorId);
+      if (data !== null && data !== undefined) {
+        rejectionResults.push({ name: rc.name, ok: false, reason: `expected null data alongside error, got data=${JSON.stringify(data)}` });
+        continue;
+      }
       if (!error) {
         rejectionResults.push({ name: rc.name, ok: false, reason: `expected error, got data=${JSON.stringify(data)}` });
         continue;
       }
-      if (!error.message.includes(rc.expectMessageIncludes)) {
-        rejectionResults.push({ name: rc.name, ok: false, reason: `message '${error.message}' does not include '${rc.expectMessageIncludes}'` });
+      if (error.code !== rc.expectCode) {
+        rejectionResults.push({
+          name: rc.name, ok: false,
+          reason: `code '${error.code ?? "<missing>"}' != expected '${rc.expectCode}'`,
+        });
         continue;
       }
-      if (rc.expectCode && error.code && error.code !== rc.expectCode) {
-        rejectionResults.push({ name: rc.name, ok: false, reason: `code '${error.code}' != expected '${rc.expectCode}'` });
+      const msg = error.message ?? "";
+      const messageOk =
+        rc.message.kind === "exact"
+          ? msg === rc.message.value
+          : msg.startsWith(rc.message.value);
+      if (!messageOk) {
+        rejectionResults.push({
+          name: rc.name, ok: false,
+          reason: `message '${msg}' does not satisfy ${rc.message.kind}='${rc.message.value}'`,
+        });
         continue;
       }
       rejectionResults.push({ name: rc.name, ok: true });
