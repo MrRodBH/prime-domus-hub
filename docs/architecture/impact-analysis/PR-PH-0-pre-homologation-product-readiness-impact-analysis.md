@@ -681,36 +681,47 @@ o baseline acima é vinculante.
 
 ## 15. Prontidão operacional
 
-Inventário atual (descoberta encerrada nesta PR-PH.0 —
-PR-PH.11 implementa e valida, sem redescobrir):
+Cada linha declara a **classe de evidência**:
+Repository-observable (só o código/arquivos comprovam);
+Environment-observable (exige o ambiente rodando);
+Externally managed (capacidade da plataforma, não do repo);
+Externally verified (confirmada fora do repo — cite a fonte);
+Not verified; Missing (ausente). Presença de código **não**
+autoriza classificação de entrega operacional.
 
-| Item | Estado atual | Evidência |
-|---|---|---|
-| Ambientes | **Managed external dependency** (Lovable Cloud gerenciado; preview + published) | `.env` gerenciado; publicações e domínios via plataforma |
-| Variáveis (por nome) | **Implemented and connected**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`, `LOVABLE_API_KEY` | `client.ts`, `client.server.ts`, `pages.functions.ts:publicClient` |
-| Secrets (por nome) | **Managed external dependency**: `SUPABASE_SERVICE_ROLE_KEY` (server-only, inacessível a agente); `LOVABLE_API_KEY` (AI Gateway) | `client.server.ts` — nunca referenciada em código de cliente |
-| Migrations | **Implemented and connected** — 93 aplicadas | `supabase/migrations/` |
-| Seed | **Missing** como pipeline formal (fixtures existem apenas em runners de teste) | `run-*.ts` |
-| Backup / Restore | **Managed external dependency** (Lovable Cloud) | plataforma |
-| Observabilidade | **Implemented but incomplete** — coleta server-side sem dashboard consumidor | `src/lib/observability.server.ts` |
-| Logs | **Implemented but incomplete** | idem + `console.error` em handlers |
-| Error reporting | **Implemented and connected** (client) | `src/lib/lovable-error-reporting.ts`, `error-capture.ts` |
-| Alertas operacionais | **Missing** — sem canal formal | — |
-| Health checks | **Missing** como rota dedicada | — |
-| Rate limits | **Implemented and connected** para superfícies sensíveis | `src/lib/rate-limit.server.ts` |
-| Cron | **Missing** — sem `pg_cron` ou scheduler declarado | — |
-| Webhooks | **Missing** — sem `/api/public/*` de webhook em uso | — |
-| E-mail | **Implemented and connected** (envio + templates) | `src/lib/email/notify.server.ts`, `src/lib/email-templates/*` |
-| WhatsApp | **Implemented and connected** (botão flutuante público apenas; sem API oficial — por decisão do produto) | `src/components/site/WhatsAppFab.tsx` |
-| Analytics | **Implemented but incomplete** — pixel/tag sem dashboard analítico | `src/lib/meta-pixel.ts` |
-| Auditoria CMS | **Implemented and connected** | `_cms.ts` (`logCmsAudit`), `admin.auditoria.tsx` |
-| Runbooks | **Missing** | — |
-| Rollback operacional | **Implemented and connected** (site versions/restore); **Missing** para CRM/comercial | `site-versions.functions.ts` |
-| Retenção / Exportação / Exclusão / LGPD | **Implemented but incomplete** — páginas públicas (`privacidade.tsx`, `unsubscribe.tsx`) presentes; processo interno de export/erase **Missing** | rotas públicas |
-| Suporte / SLA | **Missing** — sem canal formal declarado | — |
+| Item | Estado | Classe de evidência | Evidência |
+|---|---|---|---|
+| Ambientes (preview / published) | Capacidade declarada da plataforma; teste de restore **Not verified** | Externally managed | plataforma gerenciada; PR-PH.11 responsável por validação operacional |
+| Variáveis (por nome) | Nomes referenciados em código: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`, `LOVABLE_API_KEY` | Repository-observable (referência); operacional Not verified | `client.ts`, `client.server.ts`, `pages.functions.ts` |
+| Secrets (por nome) | Nomes referenciados: `SUPABASE_SERVICE_ROLE_KEY`, `LOVABLE_API_KEY`, `CRON_SECRET`, `SUPABASE_DB_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Referência Repository-observable; provisionamento Externally managed; validação operacional Not verified | `client.server.ts`, secrets store |
+| Migrations | **93 migration files versionados no repositório auditado.** Estado remoto de aplicação (ordem real, drift, checksums) **Not verified** pelo repositório | Repository-observable (contagem/ordem em `supabase/migrations/`); aplicação remota Not verified | `ls supabase/migrations/*.sql | wc -l` = 93 |
+| Seed | Missing como pipeline formal (fixtures existem apenas em runners de teste) | Repository-observable | `run-*.ts` |
+| Backup | Capacidade declarada da plataforma; execução periódica **Not verified**; teste de restore obrigatório em PR-PH.11 | Externally managed | plataforma |
+| Restore | Capacidade declarada da plataforma; **restore drill Not verified** — obrigatório em PR-PH.11 | Externally managed | plataforma |
+| Observabilidade | Coleta server-side implementada; dashboard consumidor Missing | Repository-observable + Missing | `src/lib/observability.server.ts`, `super_observabilidade` RPC |
+| Logs | Implementados server-side (`log_system_event`); coleta cliente parcial | Repository-observable | `log_system_event`, `console.error` em handlers |
+| Error reporting (client) | Implementado e conectado | Repository-observable | `lovable-error-reporting.ts`, `error-capture.ts` |
+| Alertas operacionais | Missing — sem canal formal | Missing | — |
+| Health checks | Missing como rota dedicada | Missing | — |
+| Rate limits | Implementados em superfícies sensíveis; validação operacional Not verified | Repository-observable | `rate-limit.server.ts`, `rate_limit_hit` RPC |
+| Cron | `pg_cron` referenciado por `email_queue_wake`/`email_queue_dispatch`; declaração de agendamento externa Not verified | Repository-observable (referência); Not verified operacionalmente | funções `email_queue_*` |
+| Webhooks internos | `email_queue/process`, `portal-dlq-retry` em `/api/public/*` implementados; entrega operacional Not verified | Repository-observable | rotas em `src/routes/api/public/` |
+| E-mail — código | Implementado (envio + templates) | Repository-observable | `email/notify.server.ts`, `email-templates/*` |
+| E-mail — provider configurado | Externally managed | Externally managed; Not verified | Lovable email infra |
+| E-mail — entrega real (com observabilidade, retry, DLQ, teste) | **Not verified** — obrigatório em PR-PH.11 | Not verified | — |
+| WhatsApp | Botão flutuante público apenas; sem API oficial (decisão de produto) | Repository-observable | `WhatsAppFab.tsx` |
+| Analytics | Pixel/tag implementado; dashboard analítico Missing | Repository-observable + Missing | `meta-pixel.ts` |
+| Auditoria CMS | Implementada e conectada | Repository-observable | `_cms.ts:logCmsAudit`, `admin.auditoria.tsx` |
+| Runbooks | Missing | Missing | — |
+| Rollback operacional | Site versions/restore implementado; CRM/comercial Missing | Repository-observable + Missing | `site-versions.functions.ts` |
+| Retenção / Exportação / Exclusão / LGPD | Páginas públicas presentes; processo interno de export/erase Missing | Repository-observable + Missing | `privacidade.tsx`, `unsubscribe.tsx` |
+| Suporte / SLA | Missing — sem canal formal declarado | Missing | — |
 
 PR-PH.11 deverá implementar/validar as lacunas acima; **não**
-deverá repetir descoberta básica.
+deverá repetir descoberta básica. Toda entrada `Not verified`
+depende de evidência operacional externa e não pode ser
+promovida por inferência.
+
 
 ## 16. Diretriz vinculante — RM Prime SaaS Data-Dense Premium Dark Interface
 
