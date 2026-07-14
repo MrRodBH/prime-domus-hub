@@ -54,19 +54,21 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
 - ACL das RPCs `resolve_commercial_seat_decision` e
   `mutate_tenant_membership` verificada de forma independente via
   `pg_proc` / `aclexplode` / `has_function_privilege` (ver §8.2 do
-  impact analysis): `anon`, `authenticated`, `PUBLIC` sem EXECUTE;
-  EXECUTE apenas para owner (`postgres`), `service_role` e a role
-  gerenciada de sandbox `sandbox_exec` (role de exec, não é role de
-  cliente).
+  impact analysis): EXECUTE **apenas para owner (`postgres`) e
+  `service_role`**. `anon`, `authenticated`, `sandbox_exec` e `PUBLIC`
+  sem EXECUTE. `tenant_members`: `authenticated = SELECT` somente;
+  `sandbox_exec = SELECT` somente (INSERT/UPDATE/DELETE revogados);
+  `anon`/`PUBLIC` sem grant; `service_role` administrativo.
 - Grep de escritas diretas em `tenant_members` no runtime TypeScript:
   zero ocorrências. Grep de referências a
   `mutate_tenant_membership` / `resolve_commercial_seat_decision` fora
   do boundary/server/tests/types: zero ocorrências.
-- ACL e RLS previamente verificadas em SCP-012 permanecem inalteradas.
 
 ## Ausências declaradas
 
-- Zero migration, zero mudança de runtime, zero mudança de RLS/grants.
+- Uma única migration nova (reclosure de ACL — grants/revokes e
+  assertions). Zero alteração em runtime, schema, RLS policies ou
+  lógica das RPCs.
 - Zero UI, zero frontend, zero rota nova, zero componente novo.
 - Zero implementação de provider billing, checkout, customer portal,
   webhook público real, invitation flow, dashboard final, Kanban final,
@@ -74,6 +76,7 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
 - Zero início da PR-PH.0. Zero abertura do Phase 4 Closing Review.
 - Zero renumeração retroativa do Product Roadmap. Zero alteração no
   Architectural Roadmap · Fase 6 (Plugin Marketplace Evolution).
+- Zero alteração no `ROADMAP_ARCHITECTURAL.md` nesta execução.
 
 ## Bloco final do roadmap
 
