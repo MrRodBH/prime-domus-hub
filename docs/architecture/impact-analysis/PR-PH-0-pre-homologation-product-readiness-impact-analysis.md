@@ -778,25 +778,40 @@ como valor de evidência.
 
 ### 14.5 Verificação de nomes de tabelas
 
-Cada tabela citada acima existe no schema atual (confrontado
-com `src/integrations/supabase/types.ts` e migrations):
-`tenant_members`, `leads`, `lead_descartes`, `corretores`,
-`teams`, `team_members`, `user_roles`, `user_profiles`,
-`rbac_profiles`, `rbac_modules`, `rbac_permissions`, `imoveis`,
-`launch_projects`, `launch_units`, `site_settings`,
-`site_settings_versions`, `cms_pages`, `blog_posts`, `cms_forms`,
-`cms_campaigns`, `media_library`, `media_usage`,
-`portal_connectors`, `imovel_portais`, `portal_sync_dlq`,
-`portal_sync_logs`, `tenant_subscriptions`, `tenant_entitlements`,
-`commercial_plan_entitlements`, `system_events`, `tenants`.
-Nomes previamente citados que **não** existem no schema
-(`lead_historico`, `cms_posts`, `cms_audit`, `media_assets`,
-`portal_configs`, `lancamentos`, `unidades`, `cms_permissions`)
-foram substituídos pelos nomes reais acima.
+Todas as tabelas citadas na matriz existem no schema atual
+(confrontado com `src/integrations/supabase/types.ts` e
+migrations em `supabase/migrations/`): `tenant_members`,
+`leads`, `lead_discard_reasons`, `lead_descartes`,
+`deal_lost_reasons`, `lead_perdas`, `corretores`, `teams`,
+`team_members`, `user_roles`, `user_profiles`, `rbac_profiles`,
+`rbac_modules`, `rbac_permissions`, `imoveis`, `imovel_imagens`,
+`imovel_portais`, `launch_projects`, `launch_units`,
+`launch_pdfs`, `launch_project_imagens`, `launch_amenities`,
+`launch_payment_conditions`, `launch_statuses`,
+`launch_project_amenities`, `site_settings`,
+`site_settings_versions`, `cms_pages`, `blog_posts`,
+`blog_categorias`, `cms_forms`, `cms_form_fields`,
+`form_submissions`, `cms_campaigns`, `cms_campaign_events`,
+`media_library`, `media_usage`, `portal_connectors`,
+`portal_sync_dlq`, `portal_sync_logs`, `tenant_subscriptions`,
+`tenant_entitlements`, `commercial_plan_entitlements`,
+`commercial_plans`, `commercial_entitlement_definitions`,
+`system_events`, `tenants`, `audit_log`.
+
+Nomes proibidos (não existem no schema; não podem ser citados
+como objetos físicos): `pages`, `posts`, `forms`, `campaigns`,
+`media`, `discard_reasons`, `lead_historico`, `cms_posts`,
+`cms_audit`, `media_assets`, `portal_configs`, `lancamentos`,
+`unidades`, `cms_permissions`, `tenant_domains` (planejada,
+ainda não migrada). Padrões-glob (`site_settings*`, `rbac_*`,
+`launch_*`) são termos conceituais para agrupamento textual e
+não representam objetos físicos.
 
 PR-PH.2 continua responsável pela canonicalização formal da
 matriz e pelo hardening, mas **não** pela descoberta inicial —
 o baseline acima é vinculante.
+
+
 
 ## 15. Prontidão operacional
 
