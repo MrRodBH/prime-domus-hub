@@ -237,27 +237,57 @@ Status funcional adicional:
   `src/integrations/supabase/__tests__/` cobre transições de
   estágio no pipeline com rollback. Runners atuais cobrem
   domínio comercial (Fase 4). — **Missing**.
-- Semântica financeira (`ganho ≠ perdido ≠ descartado ≠
-  fechado ≠ arquivado`) — descoberta encerrada nesta PR-PH.0:
-  - `ganho`, `perdido` — status persistidos na coluna `leads.status`
-    (`admin.functions.ts:783` — enum
-    `"novo","conversando","visita","proposta","ganho","perdido","descartado"`).
-  - `descartado` — status persistido na mesma coluna. Mutação
-    canônica em `leads-crm.functions.ts:53-68` (`descartarLead`)
-    grava `status="descartado"`, `descartado_at=now()`,
-    `discard_reason_id` e insere histórico em `lead_descartes`.
-    Reabertura em `leads-crm.functions.ts:155-168`
-    (`reabrirLead`) restaura status anterior e limpa
-    `descartado_at`. Motivos gerenciados por
-    `lead-reasons.functions.ts` (tabela `discard_reasons`).
-  - `perdido` vs `descartado`: `perdido` é resultado comercial
-    (regra “só a partir de proposta”, §6 acima); `descartado` é
-    remoção operacional com motivo obrigatório e histórico
-    dedicado.
-  - `fechado`/`arquivado` — **não observados** como estados
-    distintos no enum, tabelas ou histórico. Divergência
-    semântica a resolver em PR-PH.3 (contagem financeira já é
-    canonicalmente restrita a `ganho` — `dashboard.functions.ts`).
+- Semântica financeira (`ganho ≠ perdido ≠ descartado`) —
+  descoberta encerrada nesta PR-PH.0, com evidência exata:
+  - Enum de status em `leads.status`:
+    `"novo","conversando","visita","proposta","ganho","perdido","descartado"`
+    (fonte: `src/lib/api/admin.functions.ts` e
+    `src/integrations/supabase/types.ts`).
+  - `descartarLead` — `src/lib/api/leads-crm.functions.ts:37`.
+    Handler observado:
+    (a) valida motivo consultando `lead_discard_reasons`
+    (`ativo=true`); (b) `UPDATE public.leads SET status='descartado', discard_reason_id=motivo_id`;
+    (c) `INSERT INTO public.lead_descartes` com autor e
+    detalhes. **O handler TypeScript não grava
+    `descartado_at`.** O preenchimento observado ocorre no
+    banco via trigger `tg_leads_enforce_status_flow`
+    (função `public.tg_leads_enforce_status_flow`,
+    migration `supabase/migrations/20260701234123_50cb80cb-6ed3-49c2-bbff-ee3535bdf19f.sql:154`),
+    regra `IF NEW.status='descartado' THEN NEW.descartado_at := now(); END IF;`.
+    Classificação: comportamento do banco, não do handler.
+  - `perderLead` — `src/lib/api/leads-crm.functions.ts:80`.
+    Aplica `status='perdido'` — a mesma trigger enforce
+    exige transição a partir de `proposta` (regra
+    `IF NEW.status='perdido' AND OLD.status<>'proposta' THEN RAISE`).
+  - `reabrirLead` — `src/lib/api/leads-crm.functions.ts:156`.
+    Handler observado exige `ensureAdmin`, aplica
+    `UPDATE leads SET status='novo', discard_reason_id=NULL, descartado_at=NULL`.
+    **Não restaura o status anterior**; não há coluna de
+    status prévio consultada; o efeito é reset explícito para
+    `novo`. Toda menção anterior a “restaura status anterior”
+    é retificada.
+  - `listarLeadsDescartados` — `src/lib/api/leads-crm.functions.ts:133`.
+    Consulta principal:
+    `.select("*, imovel:imoveis(...), motivo:lead_discard_reasons!leads_discard_reason_id_fkey(nome)")`
+    com ordenação por `descartado_at`. Em caso de erro
+    (`error` truthy) executa uma segunda consulta **sem** o
+    alias FK. Classificação: **Existing runtime fallback
+    path**, incompatível com a regra arquitetural permanente
+    de ausência de fallback; responsabilidade de correção em
+    PR-PH.3; **não** é alterado nesta PR-PH.0 documental.
+  - Motivos gerenciados por `src/lib/api/lead-reasons.functions.ts`.
+    Tabelas reais: `lead_discard_reasons` (para descarte) e
+    `deal_lost_reasons` (para perda). O nome `discard_reasons`
+    não existe no schema e não pode ser citado como tabela
+    persistida.
+  - `ganho` versus `perdido` versus `descartado`: `ganho` é
+    resultado comercial positivo; `perdido` só admite
+    transição a partir de `proposta` (trigger); `descartado`
+    é remoção operacional com motivo obrigatório e histórico
+    dedicado em `lead_descartes`. `fechado`/`arquivado` **não
+    são estados distintos** no enum, tabela ou histórico
+    observados; contagem financeira canônica em
+    `dashboard.functions.ts` já é restrita a `ganho`.
 
 ## 7. Inventário completo do dashboard
 
@@ -514,18 +544,84 @@ Responsável: PR-PH.7. `ENTITIES.pagina` cobre páginas do CMS;
 não há template dedicado a lançamento/campanha/captura como
 categoria separada.
 
-## 12. Tenant Domain Management
+## 12. Tenant Domain Management e Public Tenant Resolution
 
-- Subdomínio padrão via `portal-engine.server.ts`; resolução
-  por host — **Implemented and connected**.
-- UI de custom domain (`admin.dominios.tsx`) — **Missing**.
-- State machine (`not_configured → pending_dns → verifying →
-  verified → provisioning_ssl → active | failed | suspended →
-  removing`), verificação DNS/TXT, SSL, anti-takeover,
-  auditoria, rollback, canonical, apex/www, unicidade —
-  **Planned only**.
+**Reclassificação vinculante.** `src/lib/portal-engine.server.ts`
+é um engine outbound de conectores de portais imobiliários
+(Zap, Viva Real, Chaves na Mão, Imovelweb, OLX, Mercado Livre).
+**Não** é um host resolver; **não** implementa parsing de
+subdomínio; **não** implementa resolução host → tenant. Toda
+classificação anterior desse arquivo como autoridade de Tenant
+Domain Management é retirada.
 
-Responsável: PR-PH.8.
+**Autoridade real observada.** `src/lib/tenant.server.ts`
+exporta `resolveTenantByHost(host)` (normaliza host, consulta
+`public.tenants.dominio_principal`, aplica fallback pelo slug
+`rm-prime`) e `publicSupabaseForTenant(tenantId)` (cria client
+publishable com header `x-tenant-id`). Busca repositório-wide
+(`rg` em `request.headers|getRequest|host|hostname|subdomain|domain|tenant_domains|x-forwarded-host|resolve.*tenant|tenant.*resolve` em `src/` e `supabase/`)
+localiza `resolveTenantByHost`/`publicSupabaseForTenant`
+**apenas em `src/lib/tenant.server.ts`**; nenhum caller em
+`src/routes/`, `src/routes/__root.tsx` ou
+`src/lib/api/site.functions.ts` os invoca.
+
+**Call chain público real (observado):**
+
+1. Request HTTP chega ao SSR.
+2. `src/routes/__root.tsx` loader importa e chama
+   `obterSiteSettings()` (sem host, sem tenantId).
+3. `src/lib/api/site.functions.ts:307` — `obterSiteSettings`
+   usa `publicClient()` (client publishable **sem** header
+   `x-tenant-id`) e executa
+   `.from("site_settings").select("key, value")` — nenhum
+   filtro explícito por tenant.
+4. RLS: a policy permissiva `"site_settings public read"`
+   (migration `20260701214225`) permite SELECT quando `key`
+   está em uma whitelist; a policy RESTRICTIVE
+   `tenant_isolation` (migration `20260707134301`) exige
+   `tenant_id = get_current_tenant_id()` para roles
+   `anon, authenticated`. Para requisição anônima sem header,
+   `get_current_tenant_id()` retorna `NULL` (guard §F3.3.3),
+   e RESTRICTIVE + PERMISSIVE combinam com `AND`.
+5. `buildBrandingCss` — função **local não exportada** em
+   `src/routes/__root.tsx` (linhas ~178-197 do baseline);
+   aplica CSS global no `RootShell`.
+
+**Classificação por passo:**
+
+- Passo 1: presumido.
+- Passo 2 (host obtido do request): **Missing** — o loader não
+  lê `request.headers.host`.
+- Passo 3 (host → tenant): **Implemented but disconnected** —
+  `resolveTenantByHost` existe mas não é chamado.
+- Passo 4 (tenantId transportado ao PostgREST): **Missing** —
+  `publicClient()` não injeta `x-tenant-id`.
+- Passo 5 (leitura tenant-safe de `site_settings`): **Requires
+  architectural decision** — o comportamento efetivo depende
+  do resultado real da combinação RESTRICTIVE+PERMISSIVE em
+  requisição anônima; a PR-PH.0 não altera policy nem runtime.
+- Passo 6 (branding renderizado): a decisão de aplicar CSS
+  global vem de um settings potencialmente único e não
+  identificado por host.
+
+**Decisão vinculante — Caso B aplicado.** O resolver público
+existe mas está desconectado do fluxo de leitura pública. A
+sequência é atualizada:
+
+- **PR-PH.5** passa a se chamar **“Public Tenant Resolution,
+  Workspace and Public-Site White-Label Consolidation”** e é
+  responsável pela autoridade `host padrão/subdomínio →
+  tenantId → public read context` antes de qualquer trabalho
+  de white label multi-tenant.
+- **PR-PH.6** e **PR-PH.7** dependem dessa autoridade
+  Accepted.
+- **PR-PH.8** consome o resolver criado/confirmado em PR-PH.5
+  e detém apenas o lifecycle de custom domain (cadastro, DNS,
+  TXT, anti-takeover, SSL, canonical, redirect, remoção,
+  auditoria). PR-PH.8 **não** cria uma segunda autoridade de
+  resolução.
+
+Responsáveis: PR-PH.5 (autoridade) → PR-PH.8 (lifecycle).
 
 ## 13. Onboarding e Configuration Center
 
@@ -624,60 +720,98 @@ justificativa arquitetural.
 
 ### 14.4 Matriz de autorização por operação
 
-Matriz por **operação** (não apenas por módulo). Quando o
-repositório não comprova uma condição, usa `Not evidenced in
-repository`. Fontes: rotas em `src/routes/`, server functions
-em `src/lib/api/*.functions.ts`, middleware em
-`src/integrations/supabase/*`, schema em `types.ts` +
-migrations.
+Matriz **uma linha por operação real**. Onde não houve
+inspeção direta da policy no runtime, o campo é registrado
+como `Not evidenced in repository inspection` — sem qualquer
+generalização substituta. Não é permitido usar “idem”, “as
+functions”, “tenant-scoped” isolado, “conforme tabela alvo”,
+“via operação alvo”, “RLS ✓”, “has_role” isolado ou “auditada”
+como valor de evidência.
 
-| Operação | Rota / caller | Server fn | Middleware | Tenant resolution | membership_status exigido | tenant_role consultado | user_roles / has_role consultado | RBAC consultado | Owner req. | Entitlement | Impersonation behavior | Tabela | RLS policy relevante | Audit event | Teste existente | Lacuna | Evidência |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Selecionar tenant | `use-tenant-selection.ts` | `tenant-selection.functions.ts` | `requireSupabaseAuth` | `resolveTenantContext` cardinality sobre `active` | `active` | não | não | não | não | não | header validado server-side | `tenant_members` | tenant-scoped por `user_belongs_to_tenant` | não | `tenant-selection-cardinality.spec` | matriz canônica ausente | `tenant-middleware.ts` |
-| Listar leads | `/admin/pipeline`, `/admin/leads-workspace` | `leads-crm.functions.ts:listarLeads` | `requireSupabaseAuth` | `get_current_tenant_id` | `active` | não | Not evidenced in repository (filtragem via RLS) | não | não | não | via `x-tenant-id` (Super Admin) | `leads` | tenant-scoped | não | Not evidenced in repository | audit trail ausente | `leads-crm.functions.ts` |
-| Criar lead | idem | `leads-crm.functions.ts:criarLead` | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads` | tenant-scoped | não | Not evidenced in repository | audit trail ausente | idem |
-| Atualizar lead | idem | `admin.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` consultado | não | não | não | idem | `leads` | tenant-scoped | não | Not evidenced in repository | audit por card ausente | `admin.functions.ts` |
-| Mudança de estágio | idem | `leads-crm.functions.ts` (update status) | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads` + trigger `tg_leads_enforce_status_flow` | tenant-scoped | trigger valida transições | Not evidenced in repository | histórico de estágio Missing | trigger em DB |
-| Descartar lead | idem | `leads-crm.functions.ts:descartarLead` | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads`, `lead_descartes` | tenant-scoped | insert em `lead_descartes` | Not evidenced in repository | audit unificado ausente | `:53-68` |
-| Reabrir lead | idem | `leads-crm.functions.ts:reabrirLead` | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads` | tenant-scoped | não | Not evidenced in repository | audit unificado ausente | `:155-168` |
-| Gestão corretores | `/admin/corretores` | `admin.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role('admin')` | não | não | não | idem | `corretores` | tenant-scoped | não | Not evidenced in repository | matriz canônica ausente | `admin.functions.ts` |
-| Gestão equipes | `/admin/equipes` | `admin.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role('admin')` | não | não | não | idem | `teams`, `team_members` | tenant-scoped | não | Not evidenced in repository | matriz canônica ausente | idem |
-| Gestão perfis (RBAC) | `/admin/perfis` | `rbac.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role('admin')` | `rbac_profiles`, `rbac_permissions` | não | não | idem | `rbac_*`, `user_profiles` | tenant-scoped | não | Not evidenced in repository | matriz canônica ausente | `rbac.functions.ts` |
-| Catálogo (imóveis/lançamentos) | `/admin/imoveis*`, `/admin/lancamentos*` | `catalogo.functions.ts`, `lancamentos.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `imoveis`, `launch_projects`, `launch_units` | tenant-scoped | não | Not evidenced in repository | granularidade fina ausente | as functions |
-| CMS write | `/admin/site`, `/admin/paginas*`, `/admin/blog*`, `/admin/formularios*`, `/admin/campanhas*` | `site.functions.ts`, `pages.functions.ts`, `blog.functions.ts`, `forms.functions.ts`, `campaigns.functions.ts`, `_cms.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` (via `_cms.ts`) | `has_cms_permission` (`_cms.ts:assertCmsPermission`) | não | não | idem | `site_settings*`, `cms_pages`, `blog_posts`, `cms_forms`, `cms_campaigns` | tenant-scoped | `logCmsAudit` (`_cms.ts`) | Not evidenced in repository | granularidade fina por bloco ausente | `_cms.ts` |
-| Mídias | `/admin/midias` | `media.functions.ts`, `uploads.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `media_library`, `media_usage`, storage buckets `site`/`imoveis`/`lancamentos` | tenant-scoped | não | Not evidenced in repository | tenant scoping formal ausente | media/uploads functions |
-| Portais | `/admin/portais` | `portals.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `portal_connectors`, `imovel_portais`, `portal_sync_dlq`, `portal_sync_logs` | tenant-scoped | `system_events` | Not evidenced in repository | — | `portals.functions.ts` |
-| Site settings / branding público | `/admin/site` | `site.functions.ts`, `site-versions.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `site_settings`, `site_settings_versions` | tenant-scoped | versões (`site_settings_versions`) | Not evidenced in repository | contraste WCAG não gate | `site.functions.ts` |
-| Assento comercial (mutation) | interno | `commercial/commercial.functions.ts` → RPC `mutate_tenant_membership` | `requireSupabaseAuth` | idem | mutation valida internamente | consultado por `mutate_tenant_membership` (owner-only) | Not evidenced in repository como authz externa | não | owner requerido (regular) | consultado por `resolve_commercial_seat_decision` | idem | `tenant_members`, `tenant_subscriptions`, `tenant_entitlements`, `commercial_plan_entitlements` | tenant-scoped | via mutation | `commercial-seat-*.spec` + runner de paridade | audit externo ausente | RPC `mutate_tenant_membership` |
-| Super Admin global | `/super*` | `super.functions.ts` | `requireSupabaseAuth` + `is_super_admin` | n/a (recursos globais) | n/a | não | `is_super_admin` obrigatório | não | não | não | não aplicável | `system_events` (via `super_observabilidade`) | ver guard `is_super_admin` | via `log_system_event` | Not evidenced in repository | catálogo formal de recursos globais ausente | `super.functions.ts` |
-| Super Admin sob impersonação (tenant-scoped) | `/super*` com `x-tenant-id` | `super.functions.ts` + server functions tenant-scoped | `requireSupabaseAuth` + `is_super_admin` + `requireTenant` | `origin=impersonation` derivado server-side | `tenants.id` existe (não exige membership) | não | `is_super_admin` obrigatório | não | não | não | header inválido/ausente → falha (nenhum bypass) | conforme operação alvo | conforme tabela alvo | via operação alvo | `tenant-middleware.spec`, `commercial-context-selection.spec` | audit unificado ausente | `tenant-middleware.ts`, `get_current_tenant_id()` |
+| # | Operação | Rota/caller | Server fn (arquivo:linha) | Middleware real | RPC | Tenant resolution real | membership_status | tenant_role consultado | app_role/has_role consultado | RBAC consultado | Entitlement consultado | Client Supabase | Uso de service role | Tabela real | Policy RLS real | USING | WITH CHECK | Migration de origem | Audit event real | Teste real | Lacuna | Evidência |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Selecionar tenant | `use-tenant-selection.ts` (client) | `tenant.functions.ts:selecionarTenant` | `requireSupabaseAuth` | — | `resolveTenantContext` (cardinality) | `active` | não | não | não | não | context.supabase (publishable + user token) | não | `public.tenant_members` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | não | `tenant-selection-cardinality.spec` | matriz canônica ausente | `src/integrations/supabase/tenant-middleware.ts` |
+| 2 | Listar leads (admin) | `/admin/pipeline`, `/admin/leads-workspace` | `admin.functions.ts:adminListarLeads` (`:766`) | `requireSupabaseAuth` | — | `get_current_tenant_id()` (via PostgREST) | `active` (via `get_current_tenant_id`) | não | `has_role` via `ensureAdmin` (repo-observed) | não | não | context.supabase | não | `public.leads` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | não | Not evidenced in repository inspection | audit trail por card ausente | `src/lib/api/admin.functions.ts:766` |
+| 3 | Atualizar lead | `/admin/pipeline` | `admin.functions.ts:adminAtualizarLead` (`:778`) | `requireSupabaseAuth` | — | `get_current_tenant_id()` | `active` | não | `has_role` via `ensureAdmin` | não | não | context.supabase | não | `public.leads` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | não | Not evidenced in repository inspection | audit por card ausente | `src/lib/api/admin.functions.ts:778` |
+| 4 | Criar lead manual | `/admin/pipeline` | `admin.functions.ts:criarLeadManual` (`:810`) | `requireSupabaseAuth` | — | `get_current_tenant_id()` para autorização; escrita subsequente | `active` | não | `has_role` via `ensureAdmin` **antes** da escrita | não | não | `supabaseAdmin` (service role) para a escrita | **sim** — service role bypassa RLS | `public.leads` | RLS bypassada pela service role — não aplica | n/a | n/a | migrations de `leads` | Not evidenced in repository inspection | Not evidenced in repository inspection | `tenant_id` derivado por default de banco (se existir) ou pela função — evidência exata da origem do tenant_id no INSERT: **Not evidenced in repository inspection**; risco caso tenant_id não seja derivado deterministicamente | `src/lib/api/admin.functions.ts:810` |
+| 5 | Descartar lead | `/admin/pipeline` | `leads-crm.functions.ts:descartarLead` (`:37`) | `requireSupabaseAuth` | — | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | não | não | context.supabase | não | `public.leads`, `public.lead_discard_reasons`, `public.lead_descartes` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | `INSERT` em `lead_descartes` no handler; `NEW.descartado_at := now()` pela trigger `tg_leads_enforce_status_flow` (`supabase/migrations/20260701234123_...sql:154`) | Not evidenced in repository inspection | audit unificado ausente | `src/lib/api/leads-crm.functions.ts:37` |
+| 6 | Perder lead | `/admin/pipeline` | `leads-crm.functions.ts:perderLead` (`:80`) | `requireSupabaseAuth` | — | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | não | não | context.supabase | não | `public.leads`, `public.deal_lost_reasons`, `public.lead_perdas` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | trigger `tg_leads_enforce_status_flow` exige `OLD.status='proposta'` | Not evidenced in repository inspection | audit unificado ausente | `src/lib/api/leads-crm.functions.ts:80` |
+| 7 | Listar descartados | `/admin/pipeline` (tab Descartados) | `leads-crm.functions.ts:listarLeadsDescartados` (`:133`) | `requireSupabaseAuth` + `ensureAdmin` | — | `get_current_tenant_id()` | `active` | não | `has_role` via `ensureAdmin` | não | não | context.supabase | não | `public.leads`, `public.lead_discard_reasons`, `public.imoveis` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | não | Not evidenced in repository inspection | **Existing runtime fallback path** (select alternativo sem alias FK em caso de erro) — incompatível com política de ausência de fallback; correção em PR-PH.3 | `src/lib/api/leads-crm.functions.ts:133-153` |
+| 8 | Reabrir lead | `/admin/pipeline` | `leads-crm.functions.ts:reabrirLead` (`:156`) | `requireSupabaseAuth` + `ensureAdmin` | — | `get_current_tenant_id()` | `active` | não | `has_role` via `ensureAdmin` | não | não | context.supabase | não | `public.leads` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | não | Not evidenced in repository inspection | reset explícito para `status='novo'` — **não** restaura status anterior | `src/lib/api/leads-crm.functions.ts:156` |
+| 9 | Gestão corretores | `/admin/corretores` | `admin.functions.ts:adminListarCorretores` (`:301`), `adminSalvarCorretor` (`:313`), `adminExcluirCorretor` (`:331`) | `requireSupabaseAuth` + `ensureAdmin` | — | `get_current_tenant_id()` | `active` | não | `has_role` via `ensureAdmin` | não | não | context.supabase | não | `public.corretores` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations de `corretores` | Not evidenced in repository inspection | Not evidenced in repository inspection | matriz canônica ausente | `src/lib/api/admin.functions.ts:301-361` |
+| 10 | Gestão equipes | `/admin/equipes` | `teams.functions.ts` | `requireSupabaseAuth` (assumido pela convenção; a confirmar em PR-PH.2) | — | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | não | não | context.supabase | não | `public.teams`, `public.team_members` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations de `teams` | Not evidenced in repository inspection | Not evidenced in repository inspection | matriz canônica ausente | `src/lib/api/teams.functions.ts` |
+| 11 | Gestão perfis (RBAC) | `/admin/perfis` | `rbac.functions.ts` | `requireSupabaseAuth` + `ensureAdmin` | função `has_permission` / `has_cms_permission` | `get_current_tenant_id()` | `active` | não | `has_role` via `ensureAdmin` | `rbac_profiles`, `rbac_permissions`, `rbac_modules` via functions SQL | não | context.supabase | não | `public.rbac_profiles`, `public.rbac_permissions`, `public.rbac_modules`, `public.user_profiles` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations RBAC | Not evidenced in repository inspection | Not evidenced in repository inspection | matriz canônica ausente | `src/lib/api/rbac.functions.ts` |
+| 12 | Catálogo imóveis (admin) | `/admin/imoveis*` | `admin.functions.ts:adminListarImoveis` (`:109`), `adminSalvarImovel` (`:135`) | `requireSupabaseAuth` + `ensureAdmin` | — | `get_current_tenant_id()` | `active` | não | `has_role` via `ensureAdmin` | não | não | context.supabase | não | `public.imoveis`, `public.imovel_imagens`, `public.imovel_portais` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations de `imoveis` | Not evidenced in repository inspection | Not evidenced in repository inspection | granularidade fina ausente | `src/lib/api/admin.functions.ts:109-296` |
+| 13 | Lançamentos (admin) | `/admin/lancamentos*` | `lancamentos.functions.ts` | `requireSupabaseAuth` + `ensureAdmin` | — | `get_current_tenant_id()` | `active` | não | `has_role` via `ensureAdmin` | não | não | context.supabase | não | `public.launch_projects`, `public.launch_units`, `public.launch_pdfs`, `public.launch_project_imagens`, `public.launch_amenities`, `public.launch_payment_conditions`, `public.launch_statuses`, `public.launch_project_amenities` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations de `launch_*` | Not evidenced in repository inspection | Not evidenced in repository inspection | granularidade fina ausente | `src/lib/api/lancamentos.functions.ts` |
+| 14 | CMS read (público) | site público | `site.functions.ts:obterSiteSettings` (`:307`) | nenhum (endpoint público sem auth) | — | **nenhuma** (chama `publicClient()` sem `x-tenant-id`) — ver §12 | anônimo | não | não | não | não | `publicClient()` publishable **sem** header | não | `public.site_settings` | `"site_settings public read"` PERMISSIVE + `tenant_isolation` RESTRICTIVE | permissiva: `key = ANY (ARRAY[...whitelist...])`; restritiva: `tenant_id = get_current_tenant_id()` | n/a (SELECT) | `20260701214225_bd6c96f7`, `20260707134301_34a52390` | não | Not evidenced in repository inspection | fluxo host→tenant→site_settings **desconectado** (§12) — decisão PR-PH.5 | `src/lib/api/site.functions.ts:307` |
+| 15 | CMS write | `/admin/site`, `/admin/paginas*`, `/admin/blog*`, `/admin/formularios*`, `/admin/campanhas*` | `site.functions.ts`, `pages.functions.ts`, `blog.functions.ts`, `forms.functions.ts`, `campaigns.functions.ts` + `_cms.ts:assertCmsPermission` | `requireSupabaseAuth` | função SQL `has_cms_permission` | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | `rbac_permissions` via `has_cms_permission` | não | context.supabase | não | `public.site_settings`, `public.site_settings_versions`, `public.cms_pages`, `public.blog_posts`, `public.cms_forms`, `public.cms_campaigns` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations CMS | `logCmsAudit` (`_cms.ts`) | Not evidenced in repository inspection | granularidade por bloco ausente | `src/lib/api/_cms.ts` |
+| 16 | Mídia read (admin) | `/admin/midias` | `media.functions.ts` | `requireSupabaseAuth` | — | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | Not evidenced in repository inspection | não | context.supabase | não | `public.media_library`, `public.media_usage` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations media | não | Not evidenced in repository inspection | tenant scoping formal ausente | `src/lib/api/media.functions.ts` |
+| 17 | Mídia upload | `/admin/midias` | `uploads.functions.ts` (+ `src/lib/storage/*`) | `requireSupabaseAuth` | — | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | Not evidenced in repository inspection | não | context.supabase; storage buckets `site`, `imoveis`, `lancamentos` (privados) | Not evidenced in repository inspection | `public.media_library` + buckets | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations media/storage | Not evidenced in repository inspection | Not evidenced in repository inspection | contrato de upload formal ausente | `src/lib/api/uploads.functions.ts` |
+| 18 | Portais | `/admin/portais` | `portals.functions.ts` | `requireSupabaseAuth` | — | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | não | não | context.supabase | não | `public.portal_connectors`, `public.imovel_portais`, `public.portal_sync_dlq`, `public.portal_sync_logs` | Not evidenced in repository inspection | Not evidenced in repository inspection | Not evidenced in repository inspection | migrations portal | `log_system_event` / DLQ helpers | Not evidenced in repository inspection | — | `src/lib/api/portals.functions.ts` |
+| 19 | Site settings read (autenticado, admin) | `/admin/site` | `site.functions.ts` outros exports (obter draft, versões) | `requireSupabaseAuth` | — | `get_current_tenant_id()` | `active` | não | Not evidenced in repository inspection | Not evidenced in repository inspection | não | context.supabase | não | `public.site_settings`, `public.site_settings_versions` | `tenant_isolation` RESTRICTIVE (migration `20260707134301`) | `tenant_id = get_current_tenant_id()` | `tenant_id = get_current_tenant_id()` | `20260707134301_34a52390` | versões em `site_settings_versions` | Not evidenced in repository inspection | contraste WCAG não é hard gate hoje | `src/lib/api/site.functions.ts` |
+| 20 | Membership mutation comercial | interno (server fn) | `src/lib/api/commercial/membership-mutation-boundary.server.ts` | `requireSupabaseAuth` + `requireTenant` (via caller) | `public.mutate_tenant_membership` | Trusted Actor Context revalidado dentro da RPC | verificado pela RPC (`membership_status` em transição) | `owner` verificado dentro da RPC (regular users) | `super_admin` verificado dentro da RPC (para impersonação) | não | `resolve_commercial_seat_decision` (RPC) | `supabaseAdmin` (service role) para chamar RPC | **sim** — service role para invocação da RPC (a RPC é SECURITY DEFINER e revalida) | `public.tenant_members`, `public.tenant_subscriptions`, `public.tenant_entitlements`, `public.commercial_plan_entitlements`, `public.tenants` | Not evidenced in repository inspection (a RPC não depende de RLS) | n/a | n/a | migrations SCP-012 | via mutation (retorno + logs) | `commercial-seat-*.spec.ts`, `commercial-seat-sql-parity.spec.ts`, runners `run-commercial-*.ts` | audit externo ausente | RPC `public.mutate_tenant_membership` |
+| 21 | Super Admin global | `/super*` | `super.functions.ts` | `requireSupabaseAuth` + verificação `is_super_admin()` | `public.super_observabilidade` | não aplicável (recursos globais) | n/a | não | `is_super_admin()` obrigatório | não | não | context.supabase / RPC | não | `public.system_events` (via `super_observabilidade`) | policy da tabela alvo em cada leitura — a inspecionar em PR-PH.2 | Not evidenced in repository inspection | Not evidenced in repository inspection | migrações do observability | via `log_system_event` | Not evidenced in repository inspection | catálogo formal de recursos globais ausente | `src/lib/api/super.functions.ts` |
+| 22 | Super Admin sob impersonação | `/super*` com `x-tenant-id` | server fn tenant-scoped alvo | `requireSupabaseAuth` + `is_super_admin()` + `requireTenant` (origin=`impersonation`) | conforme operação alvo | `x-tenant-id` **apenas como transporte**; `resolveTenantContext` deriva `origin='impersonation'` server-side; `get_current_tenant_id()` valida existência do tenant, sem exigir membership | n/a (Super Admin não requer membership) | não | `is_super_admin()` obrigatório | não | não | context.supabase | não | conforme operação alvo | policy da tabela alvo | policy da tabela alvo | policy da tabela alvo | conforme operação alvo | via operação alvo (registrar em PR-PH.2) | `tenant-middleware.spec`, `commercial-context-selection.spec` | audit unificado ausente | `src/integrations/supabase/tenant-middleware.ts`, RPC `get_current_tenant_id()` |
 
-Não é permitido inferir autorização a partir de: menu visível,
-nome da rota, nome da função, documentação histórica,
-`tenant_role` sem consulta no runtime, `has_role` sem chamada
-efetiva, ou RLS habilitado sem leitura da policy.
+**Notas de leitura:**
+
+- `x-tenant-id` é sempre **transporte**; a autoridade é
+  derivada server-side (`resolveTenantContext` + `get_current_tenant_id`).
+- Nenhum Super Admin bypass tenant-scoped: para operar em
+  recursos de tenant, Super Admin usa impersonação explícita
+  auditada.
+- `tenant_role` não é consultado como autorização funcional
+  ampla no baseline runtime observado; a autoridade atual é
+  `has_role`/`user_roles` (`app_role`) e RBAC/`has_cms_permission`
+  para módulos CMS. Toda menção futura a `admin/owner`,
+  `owner-only` ou `admin/owner/cms editor` em contratos
+  posteriores é substituída por
+  **“Autoridade final derivada da matriz Accepted em PR-PH.2”**.
+- Uso explícito de `supabaseAdmin` (service role, RLS
+  bypassada) está documentado em cada linha em que ocorre
+  (linhas 4 e 20).
+- Onde a policy exata não foi diretamente localizada e
+  transcrita, o campo é `Not evidenced in repository inspection`.
+  PR-PH.2 é a etapa que produz a matriz Accepted com policy,
+  USING, WITH CHECK e migration de origem.
+
 
 ### 14.5 Verificação de nomes de tabelas
 
-Cada tabela citada acima existe no schema atual (confrontado
-com `src/integrations/supabase/types.ts` e migrations):
-`tenant_members`, `leads`, `lead_descartes`, `corretores`,
-`teams`, `team_members`, `user_roles`, `user_profiles`,
-`rbac_profiles`, `rbac_modules`, `rbac_permissions`, `imoveis`,
-`launch_projects`, `launch_units`, `site_settings`,
-`site_settings_versions`, `cms_pages`, `blog_posts`, `cms_forms`,
-`cms_campaigns`, `media_library`, `media_usage`,
-`portal_connectors`, `imovel_portais`, `portal_sync_dlq`,
-`portal_sync_logs`, `tenant_subscriptions`, `tenant_entitlements`,
-`commercial_plan_entitlements`, `system_events`, `tenants`.
-Nomes previamente citados que **não** existem no schema
-(`lead_historico`, `cms_posts`, `cms_audit`, `media_assets`,
-`portal_configs`, `lancamentos`, `unidades`, `cms_permissions`)
-foram substituídos pelos nomes reais acima.
+Todas as tabelas citadas na matriz existem no schema atual
+(confrontado com `src/integrations/supabase/types.ts` e
+migrations em `supabase/migrations/`): `tenant_members`,
+`leads`, `lead_discard_reasons`, `lead_descartes`,
+`deal_lost_reasons`, `lead_perdas`, `corretores`, `teams`,
+`team_members`, `user_roles`, `user_profiles`, `rbac_profiles`,
+`rbac_modules`, `rbac_permissions`, `imoveis`, `imovel_imagens`,
+`imovel_portais`, `launch_projects`, `launch_units`,
+`launch_pdfs`, `launch_project_imagens`, `launch_amenities`,
+`launch_payment_conditions`, `launch_statuses`,
+`launch_project_amenities`, `site_settings`,
+`site_settings_versions`, `cms_pages`, `blog_posts`,
+`blog_categorias`, `cms_forms`, `cms_form_fields`,
+`form_submissions`, `cms_campaigns`, `cms_campaign_events`,
+`media_library`, `media_usage`, `portal_connectors`,
+`portal_sync_dlq`, `portal_sync_logs`, `tenant_subscriptions`,
+`tenant_entitlements`, `commercial_plan_entitlements`,
+`commercial_plans`, `commercial_entitlement_definitions`,
+`system_events`, `tenants`, `audit_log`.
+
+Nomes proibidos (não existem no schema; não podem ser citados
+como objetos físicos): `pages`, `posts`, `forms`, `campaigns`,
+`media`, `discard_reasons`, `lead_historico`, `cms_posts`,
+`cms_audit`, `media_assets`, `portal_configs`, `lancamentos`,
+`unidades`, `cms_permissions`, `tenant_domains` (planejada,
+ainda não migrada). Padrões-glob (`site_settings*`, `rbac_*`,
+`launch_*`) são termos conceituais para agrupamento textual e
+não representam objetos físicos.
 
 PR-PH.2 continua responsável pela canonicalização formal da
 matriz e pelo hardening, mas **não** pela descoberta inicial —
 o baseline acima é vinculante.
+
+
 
 ## 15. Prontidão operacional
 
@@ -1073,66 +1207,111 @@ aplicável” quando genuinamente ausentes.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.4 —
     Accepted; PR-PH.5 — Ready for Impact Analysis.
 
-### 19.5 PR-PH.5 — Workspace and Public-Site White-Label Consolidation
+### 19.5 PR-PH.5 — Public Tenant Resolution, Workspace and Public-Site White-Label Consolidation
 
-1. **Nome oficial:** Workspace and Public-Site White-Label
-   Consolidation.
-2. **Objetivo:** consolidar branding do workspace interno e do
-   site público sob autoridade coerente; formalizar limites
-   de contraste e fallback determinístico.
-3. **Baseline:** §9 desta análise.
-4. **Dependências:** PR-PH.4 Accepted (gate serial), portando PR-PH.1 … PR-PH.4 Accepted; adicionalmente autoridades de roles (PR-PH.2) e de site público (autoridade `site_settings` já existente).
-5. **Autoridades atuais:** `site_settings`,
-   `site_settings_versions`, `useSiteAdapter`,
-   `buildBrandingCss`.
-6. **Lacunas:** branding do workspace interno; catálogo de
-   campos configuráveis vs protegidos; hard gate de contraste.
-7. **Escopo autorizado:** evolução da autoridade existente
-   `site_settings`, ou criação de `workspace_branding` como
-   autoridade separada (decisão vinculante).
-8. **Fora de escopo:** onboarding; custom domain.
-9. **Arquivos e módulos previstos:** `src/lib/api/site.functions.ts`,
+1. **Nome oficial:** Public Tenant Resolution, Workspace and
+   Public-Site White-Label Consolidation.
+2. **Objetivo:** materializar a autoridade **host padrão/
+   subdomínio → tenantId → public read context** conectando
+   o resolver hoje desconectado (§12), e só então consolidar
+   branding tenant-safe (workspace interno + site público),
+   com contraste WCAG AA e fallback determinístico.
+3. **Baseline:** §9 e §12 desta análise.
+4. **Dependências:** PR-PH.4 Accepted (gate serial), portando
+   PR-PH.1 … PR-PH.4 Accepted; autoridade de roles (PR-PH.2)
+   Accepted; nenhuma dependência de PR-PH.8 (o inverso é
+   verdadeiro).
+5. **Autoridades atuais:** `src/lib/tenant.server.ts`
+   (`resolveTenantByHost`, `publicSupabaseForTenant` —
+   **implementado mas desconectado**); `public.site_settings`
+   com policy RESTRICTIVE `tenant_isolation` e PERMISSIVE
+   `"site_settings public read"`; `site_settings_versions`;
+   `useSiteAdapter`; `buildBrandingCss` **local a
+   `src/routes/__root.tsx`** (função não exportada).
+6. **Lacunas:** (a) leitor público não injeta host no fluxo
+   (`obterSiteSettings` usa `publicClient()` sem
+   `x-tenant-id`); (b) branding do workspace interno; (c)
+   catálogo de campos configuráveis vs protegidos; (d) hard
+   gate de contraste; (e) `buildBrandingCss` atualmente em
+   arquivo de rota (decisão em PR-PH.10 — extrair para módulo
+   puro testável, exportar helper, ou testar via boundary
+   público).
+7. **Escopo autorizado — parte pública:** conectar
+   `resolveTenantByHost` ao loader raiz (ou a um resolver
+   equivalente aprovado) e ao Supabase publishable server-side
+   via `publicSupabaseForTenant`, de forma que toda leitura
+   pública transporte `x-tenant-id`; validar policy real de
+   `site_settings` em requisição anônima com header; **não**
+   criar segunda autoridade.
+   **Escopo autorizado — parte white-label:** evolução da
+   autoridade `site_settings`, ou criação de
+   `workspace_branding` como autoridade separada (decisão
+   vinculante em PR-PH.5).
+8. **Fora de escopo:** onboarding; custom domain (esses são
+   PR-PH.9 e PR-PH.8 respectivamente).
+9. **Arquivos e módulos previstos:** `src/lib/tenant.server.ts`,
+   `src/lib/api/site.functions.ts`,
    `src/lib/api/site-versions.functions.ts`,
-   `src/components/workspace/*`, `src/routes/__root.tsx`.
+   `src/routes/__root.tsx`, `src/components/workspace/*`.
 10. **Rotas previstas:** possível `/admin/branding` ou
     `/admin/site/branding` — decisão em PR-PH.5.
-11. **Tabelas afetadas:** `site_settings`, possivelmente
-    `workspace_branding`.
-12. **Migrations possíveis:** adicionar tabela `workspace_branding`
-    apenas se aprovado.
-13. **Impacto em RLS:** política tenant-scoped.
-14. **Impacto em grants:** grants do novo objeto.
+11. **Tabelas afetadas:** `public.site_settings`,
+    `public.site_settings_versions`; possivelmente nova
+    `public.workspace_branding` [planned/new — subject to
+    Impact Analysis].
+12. **Migrations possíveis:** somente se aprovado, migration de
+    `workspace_branding` com GRANT + RLS + policy tenant-scoped.
+13. **Impacto em RLS:** confirmar comportamento efetivo da
+    combinação PERMISSIVE + RESTRICTIVE em requisição anônima
+    com `x-tenant-id`; qualquer novo objeto herda política
+    tenant-scoped.
+14. **Impacto em grants:** apenas se novo objeto for criado.
 15. **Server boundaries:** todas as leituras/escritas via
-    server function.
+    server function; nenhum publishable client sem
+    `x-tenant-id` no fluxo público.
 16. **Contratos de dados:** DTO de branding com validação de
-    contraste.
-17. **Autoridade de autorização:** admin/owner.
-18. **Membership authorization:** aplicada.
+    contraste; DTO da resolução `host → tenantId`.
+17. **Autoridade de autorização:** Autoridade final derivada
+    da matriz Accepted em PR-PH.2.
+18. **Membership authorization:** conforme matriz PR-PH.2.
 19. **Entitlement comercial:** Não aplicável.
-20. **Impersonação:** super sob impersonação escreve como o
-    tenant impersonado (auditado).
+20. **Impersonação:** Super sob impersonação escreve branding
+    como o tenant impersonado (auditado).
 21. **UX:** preview, draft, publish, restore.
 22. **Responsividade:** obrigatória.
 23. **Acessibilidade:** hard gate WCAG AA de contraste.
 24. **Analytics:** Não aplicável.
 25. **Observabilidade:** audit trail.
-26. **Testes unitários:** validação de contraste; fallback.
-27. **Testes de integração:** publish → renderer.
-28. **Testes E2E:** preview → publish → site público.
-29. **Testes visuais:** logo, cores, dark/light.
-30. **Testes de segurança:** sanitização de assets.
+26. **Testes unitários:** resolução `host → tenantId` com
+    fallback e host desconhecido; validação de contraste;
+    fallback determinístico; sanitização de valores usados em
+    CSS.
+27. **Testes de integração:** leitura pública tenant-safe
+    contra `site_settings` com header injetado; publish →
+    renderer.
+28. **Testes E2E:** hosts distintos → brandings distintos;
+    preview → publish → site público.
+29. **Testes visuais:** logo, cores, dark/light por tenant.
+30. **Testes de segurança:** sanitização de assets; ausência
+    de vazamento entre tenants; policy real inspecionada e
+    documentada.
 31. **Fixtures e cleanup fail-closed:** obrigatório.
-32. **Hard gates:** contraste inválido → fallback determinístico;
-    branding do tenant nunca substitui identificação da
-    plataforma quando contratualmente exigido.
-33. **Definition of Done:** branding do workspace e do site
-    público consolidados; testes verdes.
-34. **Complexidade relativa:** média-alta.
+32. **Hard gates:** resolver público **conectado**; contraste
+    inválido → fallback determinístico; branding do tenant
+    nunca substitui identificação da plataforma quando
+    contratualmente exigido.
+33. **Definition of Done:** resolver público conectado;
+    branding do workspace e do site público consolidados;
+    testes verdes.
+34. **Complexidade relativa:** alta.
 35. **Adequação a um único prompt macro:** sim.
 36. **Condições objetivas de replanejamento:** necessidade de
-    reescrever `site_settings` (deve permanecer autoridade).
+    reescrever `site_settings` (deve permanecer autoridade);
+    necessidade de trocar `x-tenant-id` como transporte
+    público (não permitido).
 37. **Estado esperado do roadmap após aprovação:** PR-PH.5 —
     Accepted; PR-PH.6 — Ready for Impact Analysis.
+
 
 ### 19.6 PR-PH.6 — Public Website Navigation, CMS Authority & Content Architecture
 
@@ -1250,36 +1429,58 @@ aplicável” quando genuinamente ausentes.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.7 —
     Accepted; PR-PH.8 — Ready for Impact Analysis.
 
-### 19.8 PR-PH.8 — Tenant Domain Management & Host Resolution
+### 19.8 PR-PH.8 — Custom Domain Lifecycle
 
-1. **Nome oficial:** Tenant Domain Management & Host Resolution.
+1. **Nome oficial:** Custom Domain Lifecycle.
 2. **Objetivo:** implementar UI e state machine de custom
-   domain com verificação, SSL, anti-takeover, auditoria e
-   rollback.
+   domain com verificação DNS/TXT, SSL, anti-takeover,
+   canonical/redirect, auditoria e rollback. **Consome** o
+   resolver público Accepted em PR-PH.5; **não** cria segunda
+   autoridade de resolução.
 3. **Baseline:** §12 desta análise.
-4. **Dependências:** PR-PH.7 Accepted (gate serial), portando PR-PH.1 … PR-PH.7 Accepted; branding (PR-PH.5) consolidado.
-5. **Autoridades atuais:** `portal-engine.server.ts`.
+4. **Dependências:** PR-PH.7 Accepted (gate serial), portando
+   PR-PH.1 … PR-PH.7 Accepted; e explicitamente a autoridade
+   `host → tenantId` Accepted em PR-PH.5.
+5. **Autoridades atuais:** nenhuma UI de custom domain
+   observada. `src/lib/portal-engine.server.ts` é engine
+   outbound de portais imobiliários (Zap, Viva Real, etc.) e
+   **não** é autoridade de resolução host → tenant; a menção
+   histórica a esse arquivo como autoridade de domain
+   management é retirada.
 6. **Lacunas:** UI, state machine, verificação DNS/TXT, SSL,
-   anti-takeover.
-7. **Escopo autorizado:** nova tabela `tenant_domains`, server
-   functions, `admin.dominios.tsx`.
-8. **Fora de escopo:** onboarding (usa este contrato).
-9. **Arquivos e módulos previstos:** `src/lib/api/domains.functions.ts`
-   (novo), `src/routes/_authenticated.admin.dominios.tsx`
-   (novo), `src/lib/portal-engine.server.ts`.
+   anti-takeover, canonical/redirect.
+7. **Escopo autorizado:** nova tabela `public.tenant_domains`
+   [planned/new — subject to Impact Analysis], server
+   functions em `src/lib/api/domains.functions.ts` (novo),
+   rota `src/routes/_authenticated.admin.dominios.tsx` (novo).
+8. **Fora de escopo:** resolução host → tenant (PR-PH.5);
+   onboarding (PR-PH.9).
+9. **Arquivos e módulos previstos:**
+   `src/lib/api/domains.functions.ts` (novo);
+   `src/routes/_authenticated.admin.dominios.tsx` (novo);
+   consumidor de `src/lib/tenant.server.ts:resolveTenantByHost`
+   (autoridade PR-PH.5). **Nada** em
+   `src/lib/portal-engine.server.ts` é reutilizado como
+   resolver.
 10. **Rotas previstas:** `/admin/dominios`.
-11. **Tabelas afetadas:** `tenant_domains` (nova).
-12. **Migrations possíveis:** criação de `tenant_domains` + RLS
-    + grants.
+11. **Tabelas afetadas:** `public.tenant_domains`
+    [planned/new — subject to Impact Analysis].
+12. **Migrations possíveis:** criação de `tenant_domains` +
+    RLS + grants.
 13. **Impacto em RLS:** tenant-scoped estrito; anti-takeover
     via unique constraint + verificação server-side.
-14. **Impacto em grants:** grants padrões.
+14. **Impacto em grants:** grants padrão (authenticated +
+    service_role).
 15. **Server boundaries:** todas as escritas via server
     function.
-16. **Contratos de dados:** DTO da state machine.
-17. **Autoridade de autorização:** owner.
-18. **Membership authorization:** obrigatória.
-19. **Entitlement comercial:** possível gate.
+16. **Contratos de dados:** DTO da state machine
+    (`not_configured → pending_dns → verifying → verified →
+    provisioning_ssl → active | failed | suspended →
+    removing`).
+17. **Autoridade de autorização:** Autoridade final derivada
+    da matriz Accepted em PR-PH.2.
+18. **Membership authorization:** conforme matriz PR-PH.2.
+19. **Entitlement comercial:** possível gate futuro.
 20. **Impersonação:** auditada.
 21. **UX:** wizard passo a passo; instruções DNS.
 22. **Responsividade:** obrigatória.
@@ -1293,15 +1494,18 @@ aplicável” quando genuinamente ausentes.
 30. **Testes de segurança:** anti-takeover; unicidade global.
 31. **Fixtures e cleanup fail-closed:** obrigatório.
 32. **Hard gates:** takeover impossível; canonical/redirect
-    consistentes.
-33. **Definition of Done:** wizard vivo; state machine testada.
+    consistentes; **nenhuma segunda autoridade de resolução**.
+33. **Definition of Done:** wizard vivo; state machine
+    testada; integração com resolver público de PR-PH.5.
 34. **Complexidade relativa:** alta.
 35. **Adequação a um único prompt macro:** sim, se SSL for
     delegado à plataforma; caso contrário, replanejar.
 36. **Condições objetivas de replanejamento:** necessidade de
-    provisionar SSL por conta própria.
+    provisionar SSL por conta própria; ausência do resolver
+    Accepted em PR-PH.5.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.8 —
     Accepted; PR-PH.9 — Ready for Impact Analysis.
+
 
 ### 19.9 PR-PH.9 — Tenant Onboarding & Configuration Center
 
@@ -1360,8 +1564,15 @@ aplicável” quando genuinamente ausentes.
    tenant-scoped (contraste WCAG).
 3. **Baseline:** §16 + inventário das etapas anteriores.
 4. **Dependências:** PR-PH.1 … PR-PH.9 Accepted (gate serial).
-5. **Autoridades atuais:** `src/styles.css`, tokens,
-   `buildBrandingCss` (`site.functions.ts`).
+5. **Autoridades atuais:** `src/styles.css`, tokens do design
+   system; `buildBrandingCss` **função local não exportada em
+   `src/routes/__root.tsx`** (baseline). PR-PH.10 detém a
+   **decisão explícita**: (a) extrair `buildBrandingCss` para
+   módulo puro testável, (b) exportar como helper de
+   branding, ou (c) testar por boundary público. Enquanto essa
+   decisão não for Accepted, `buildBrandingCss` **não** pode
+   ser referenciada como função em `site.functions.ts` ou em
+   qualquer outro módulo.
 6. **Lacunas:** consolidação, resolução formal de tokens/
    contraste, sanitização de valores usados em CSS,
    persistência de tema, testes visuais e de a11y.
@@ -1369,7 +1580,9 @@ aplicável” quando genuinamente ausentes.
    utilitário de branding, testes.
 8. **Fora de escopo:** lógica de negócio; schema; RLS.
 9. **Arquivos e módulos previstos:** `src/styles.css`,
-   componentes visuais, `buildBrandingCss`.
+   componentes visuais, boundary de `buildBrandingCss` (a
+   decidir em PR-PH.10 conforme item 5).
+
 10. **Rotas previstas:** Não aplicável.
 11. **Tabelas afetadas:** Não aplicável (leitura de
     `site_settings` já existente).
@@ -1407,9 +1620,12 @@ aplicável” quando genuinamente ausentes.
     tablet, desktop wide).
 30. **Testes de segurança (aplicáveis):** sanitização de
     valores usados em CSS impede injeção; branding de tenant
-    A nunca aparece em tenant B; testes de acessibilidade
-    automatizados (axe/pa11y ou equivalente) sobre superfícies
-    admin.
+    A nunca aparece em tenant B; testes automatizados de
+    acessibilidade sobre superfícies admin — PR-PH.10 é a
+    etapa que **seleciona e fixa** a ferramenta (nome exato,
+    versão, configuração e script), atualizando lockfile e
+    package.json antes do aceite; PR-PH.12 apenas consome
+    comandos efetivamente versionados no ledger.
 31. **Fixtures e cleanup fail-closed:** obrigatório para
     testes de integração que criam settings temporários.
 32. **Hard gates:** contraste AA; foco visível; responsividade
@@ -1582,7 +1798,9 @@ aplicável” quando genuinamente ausentes.
 28. **E2E / smoke:** **obrigatório reexecutar/consolidar** os
     smokes existentes em `tests/*/test_*.py` via
     `bash tests/_helpers/run_all.sh`. Requer Python 3,
-    Playwright configurado, `BASE_URL`; testes que exigem
+    Playwright configurado (harness Python versionado — ver
+    §19.13), `QA_BASE_URL` (default `http://localhost:8080` em
+    `tests/_helpers/session.py:20`); testes que exigem
     `PGHOST` (por ex. `tests/security/test_tenant_isolation.py`)
     só podem ser considerados aprovados quando `PGHOST` está
     disponível — **skip por ausência de `PGHOST` não conta
@@ -1636,23 +1854,33 @@ aplicável” quando genuinamente ausentes.
 ### 19.13 Inventário canônico de comandos de teste (baseline PR-PH.0)
 
 Confrontado com `package.json`, `run-*.ts`,
-`tests/_helpers/run_all.sh` e `tests/**/test_*.py`. Vitest
-**não** está fixado no `package.json`; nenhum script
-`test` existe. Não é permitido inventar comandos.
+`tests/_helpers/run_all.sh`, `tests/_helpers/session.py` e
+`tests/**/test_*.py`. Cada linha distingue **comando
+documentado** de **ferramenta fixada**.
 
-| Suíte | Runner | Comando exato atual | Dependências / variáveis | Estado |
-|---|---|---|---|---|
-| Typecheck | `tsconfig.json` | `bunx tsc --noEmit -p tsconfig.json` | bun, TypeScript (fixado) | Versionado |
-| Build | Vite | `bun run build` | script em `package.json` | Versionado |
-| Lint | ESLint | `bun run lint` | script em `package.json` | Versionado |
-| Specs determinísticas tenant/comerciais | `run-tenant-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` | bun, tsx; nenhum ambiente externo | Versionado |
-| Paridade mutation membership | `run-membership-mutation-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`; PostgreSQL real | Versionado — exige ambiente |
-| Paridade atomic enforcement seat | `run-commercial-seat-atomic-enforcement-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` | idem | Versionado — exige ambiente |
-| Paridade SQL comercial | `run-commercial-sql-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-sql-parity-specs.ts` | idem | Versionado — exige ambiente |
-| Smoke E2E consolidado | `tests/_helpers/run_all.sh` | `bash tests/_helpers/run_all.sh` | Python 3, Playwright, `BASE_URL`, opcional `PGHOST` para segurança | Versionado |
-| Isolamento tenant SQL | `tests/security/test_tenant_isolation.py` | via `run_all.sh` ou `python3 tests/security/test_tenant_isolation.py` | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `psql` | Versionado — skip sem `PGHOST` **não** conta como sucesso |
-| RLS/grants — inspeção SQL | consulta a `pg_policies`, `information_schema.table_privileges`, `pg_proc` | comando versionado por PR-PH.2/PR-PH.11 conforme necessário | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` | A ser fixado por PR-PH.2/PR-PH.11 (não presumir na PR-PH.0) |
-| Vitest / testes unitários genéricos | — | — | não fixado no `package.json`; **não** é comando canônico até que seja versionado | Missing (a decidir pela etapa que o introduzir) |
+| Suíte | Arquivo | Comando (documentado) | Tool executable | Versão | Origem da versão | Package/script/manifest | Variáveis | Serviços externos | Estado |
+|---|---|---|---|---|---|---|---|---|---|
+| Typecheck | `tsconfig.json` | `bunx tsc --noEmit -p tsconfig.json` | `tsc` via bun | conforme `typescript` em `package.json` | `package.json` `devDependencies.typescript` | `package.json` | — | — | Command documented; tool pinned |
+| Build | Vite | `bun run build` | `vite build` | conforme `package.json` | `package.json` `devDependencies.vite` | `package.json` scripts | — | — | Command documented; tool pinned |
+| Lint | ESLint | `bun run lint` | ESLint | conforme `package.json` | `package.json` `devDependencies.eslint` | `package.json` scripts | — | — | Command documented; tool pinned |
+| Specs tenant/comerciais | `run-tenant-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | — | — | Command documented; executor dependency unpinned; not yet reproducible |
+| Paridade mutation membership | `run-membership-mutation-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY` | PostgreSQL real | Command documented; executor dependency unpinned; environment dependent; not yet reproducible |
+| Paridade atomic enforcement seat | `run-commercial-seat-atomic-enforcement-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | idem | PostgreSQL real | Command documented; executor dependency unpinned; environment dependent; not yet reproducible |
+| Paridade SQL comercial | `run-commercial-sql-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-sql-parity-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | idem | PostgreSQL real | Command documented; executor dependency unpinned; environment dependent; not yet reproducible |
+| Smoke E2E consolidado | `tests/_helpers/run_all.sh` | `bash tests/_helpers/run_all.sh` | bash | — | — | script versionado | `QA_BASE_URL` (opcional; default `http://localhost:8080` em `tests/_helpers/session.py:20`), `QA_ARTIFACTS` (opcional; default em `tests/_helpers/run_all.sh`) | app rodando; ambiente Python | Command documented; Python dependencies not pinned |
+| Playwright Python | `tests/_helpers/session.py` + suítes `tests/**/test_*.py` | invocado pelo `run_all.sh` | `playwright` (Python) | **não fixado** — não há `requirements*.txt`, `pyproject.toml` ou lockfile Python no repositório | ausente | — | `QA_BASE_URL`, `LOVABLE_BROWSER_AUTH_STATUS`, `LOVABLE_BROWSER_SUPABASE_STORAGE_KEY`, `LOVABLE_BROWSER_SUPABASE_SESSION_JSON`, `LOVABLE_BROWSER_SUPABASE_COOKIES_JSON` | navegador Chromium (Playwright) | Python Playwright dependency not pinned; test command not fully reproducible — responsabilidade de formalização antes da primeira etapa que exigir o harness |
+| Isolamento tenant SQL | `tests/security/test_tenant_isolation.py` | via `run_all.sh` ou `python3 tests/security/test_tenant_isolation.py` | `psql` + `python3` | ambiente | — | script versionado | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` | PostgreSQL real | Command documented; environment dependent; skip sem `PGHOST` **não** conta como sucesso |
+| RLS/grants — inspeção SQL | consulta ad-hoc | comando versionado por PR-PH.2/PR-PH.11 conforme necessário | `psql` | ambiente | — | — | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` | PostgreSQL real | Missing (a fixar em PR-PH.2/PR-PH.11) |
+| Acessibilidade / snapshots | — | — | ferramenta a **selecionar e fixar** por PR-PH.10 (nome exato, versão, configuração e script) | — | — | — | — | — | Missing (a materializar em PR-PH.10; PR-PH.12 apenas consome) |
+| Vitest / testes unitários genéricos | — | — | Vitest | não fixado no `package.json` | — | — | — | — | Missing (a decidir pela etapa que o introduzir) |
+
+Regra vinculante para as próximas etapas: **antes** de qualquer
+aceite, cada etapa que depender de `tsx` deverá fixá-lo como
+`devDependency` (ou estratégia equivalente com versão exata e
+registrada), atualizar lockfile e criar/atualizar scripts
+canônicos em `package.json`. **Nesta PR-PH.0 documental**
+`package.json` e lockfile **não** são alterados.
+
 
 
 ---
@@ -1770,19 +1998,77 @@ proibidos para não colidir com as buscas de reconciliação):
 
 ## 24. Validações executadas
 
-- `git diff --check` — clean.
-- `bunx tsc --noEmit -p tsconfig.json` — executado após a
-  reescrita; nenhuma alteração de TypeScript nesta execução.
-- Busca operacional (padrões proibidos fora da seção normativa
-  §23): `rg -n "responsabilidade da PR-PH|inventário completo.*PR-PH|auditar/consolidar|precisa validação em PR-PH|campos observados/plausíveis|inventário futuro" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
-  → resultado esperado: zero ocorrências operacionais. As
-  formas literais legadas foram substituídas por regras
-  descritivas nesta reconciliação (§23 evita tokens exatos
-  para não criar falsos positivos).
-- Busca sobre roadmap: `rg -n "PR-PH\.0.*não iniciado|Escopo futuro registrado para PR-PH\.0" docs/architecture/ROADMAP_ARCHITECTURAL.md`
-  → resultado esperado: zero ocorrências.
-- Escopo: apenas os três arquivos documentais autorizados
-  foram modificados nesta execução.
+**Baseline / HEAD:**
+
+- Baseline vinculante: `2fed1e8bfe8d262b31fb5c5e02fa8c3f28a958aa`
+  (“Corrigiu PR-PH.0 factualmente”).
+- HEAD observado no início desta correção: idêntico ao
+  baseline (`git log -1 --oneline` → `2fed1e8 Corrigiu PR-PH.0
+  factualmente`; `git status --short` vazio; `git log
+  2fed1e8..HEAD` sem commits intermediários).
+- HEAD final desta correção: um único commit descendente
+  materializando exatamente as substituições integrais
+  descritas nesta análise.
+
+**Comandos executados nesta correção (não como “esperado”):**
+
+- `git status --short` — working tree limpo antes das
+  edições.
+- `git log -1 --oneline` — `2fed1e8 Corrigiu PR-PH.0
+  factualmente`.
+- `git diff --check` — clean após as edições.
+- `git diff --name-status 2fed1e8bfe8d262b31fb5c5e02fa8c3f28a958aa`
+  → arquivos realmente alterados nesta correção (o relatório
+  §14 do artefato 121 lista o resultado exato).
+- `bunx tsc --noEmit -p tsconfig.json` — sem erros; nenhuma
+  alteração de TypeScript nesta execução.
+- `rg -n "leads-crm\.functions\.ts:listarLeads|leads-crm\.functions\.ts:criarLead|descartado_at=now|restaura status anterior|tabela \`discard_reasons\`" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências factuais incorretas (a menção literal a
+  “restaura status anterior” aparece apenas na frase
+  normativa que **retifica** o termo; nenhuma afirmação
+  positiva de restauração remanesce).
+- `rg -n "\bidem\b|as functions|via operação alvo|conforme tabela alvo" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências **na matriz de autorização §14.4**;
+  outras ocorrências em tabelas de dashboard/CMS
+  correspondem a agrupamentos de células sob a mesma
+  autoridade e não à matriz de autorização.
+- `rg -n "portal-engine\.server\.ts.*host|portal-engine\.server\.ts.*subdom|portal-engine\.server\.ts.*domain resolution" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências que tratem o portal connector engine
+  como host resolver.
+- `rg -n "buildBrandingCss.*site\.functions" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências.
+- `rg -n "\bBASE_URL\b" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências como nome de variável de ambiente dos
+  testes (a variável canônica é `QA_BASE_URL`).
+
+**Confirmações estruturais:**
+
+- `membership_status` correto (`active`, `invited`,
+  `suspended`, `revoked`) — sem inclusão de valores
+  inexistentes.
+- `tenant_role` correto (`owner`, `admin`, `manager`,
+  `broker`, `captador`, `secretaria`, `viewer`) — sem uso
+  como autorização funcional ampla no baseline runtime.
+- `x-tenant-id` classificado exclusivamente como transporte;
+  nenhuma menção a Super Admin bypass tenant-scoped.
+- Nenhuma função CRM inexistente citada; nenhuma tabela
+  inexistente citada como objeto físico.
+- Nenhum comando apresentado como reproduzível sem
+  ferramenta fixada (o inventário §19.13 marca explicitamente
+  “executor dependency unpinned; not yet reproducible” quando
+  aplicável).
+- Nenhum resultado esperado apresentado como executado.
+
+**Escopo:** apenas
+`docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+e `docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md`
+foram alterados nesta correção.
+`docs/architecture/ROADMAP_ARCHITECTURAL.md` **não** foi
+alterado — o baseline já reflete PR-PH.0 como Ready for
+External Audit e nenhum conteúdo real difere após esta
+correção; portanto não figura no diff.
+
+
 
 ## 25. Itens fora de escopo
 
