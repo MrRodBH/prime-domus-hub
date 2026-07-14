@@ -745,7 +745,8 @@ function readCanonicalResolveFunctionBody(): { body: string; migration: string }
   const dir = "supabase/migrations";
   const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
   let picked: { body: string; migration: string } | null = null;
-  const rx = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.resolve_commercial_seat_decision\b[\s\S]*?\$function\$([\s\S]*?)\$function\$/gi;
+  // Match any dollar-quoted tag: `$fn$`, `$function$`, `$$`, `$body$`, etc.
+  const rx = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.resolve_commercial_seat_decision\b[\s\S]*?AS\s+(\$[A-Za-z_]*\$)([\s\S]*?)\1/gi;
   for (const f of files) {
     const src = readFileSync(join(dir, f), "utf8");
     let m: RegExpExecArray | null;
