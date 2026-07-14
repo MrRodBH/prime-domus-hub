@@ -213,10 +213,38 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 
 PR-PH.0 — Pre-Homologation Product Readiness Impact Analysis — **Ready for External Audit**.
 
-PR-PH.1 até PR-PH.12 — Planned; not started.
+PR-PH.1 — Tenant Workspace Information Architecture, Navigation & Canonical Route Map — Planned; not started.
+PR-PH.2 — Roles, Permissions & Configuration Authority Baseline — Planned; not started.
+PR-PH.3 — CRM & Kanban Canonicalization and Finalization — Planned; not started.
+PR-PH.4 — Role-Aware Dashboard & Decision Intelligence Finalization — Planned; not started.
+PR-PH.5 — Workspace and Public-Site White-Label Consolidation — Planned; not started.
+PR-PH.6 — Public Website Navigation, CMS Authority & Content Architecture — Planned; not started.
+PR-PH.7 — Landing Page & Dynamic Page Builder Finalization — Planned; not started.
+PR-PH.8 — Tenant Domain Management & Host Resolution — Planned; not started.
+PR-PH.9 — Tenant Onboarding & Configuration Center — Planned; not started.
+PR-PH.10 — Product UX/UI Final Consistency, Accessibility & Responsive Review — Planned; not started.
+PR-PH.11 — Environment, Observability & Operational Readiness — Planned; not started.
+PR-PH.12 — Pre-Homologation Product Closing Review — Planned; not started.
 
-TH-001 até TH-006 — Planned; not started.
+TH-001 — Test & Homologation Impact Analysis — Planned; not started.
+TH-002 — Homologation Environment Provisioning — Planned; not started.
+TH-003 — General Test Execution — Planned; not started.
+TH-004 — Pilot Tenant Homologation — Planned; not started.
+TH-005 — Defect Correction & Regression Cycles — Planned; not started.
+TH-006 — Production Readiness Review — Planned; not started.
+
 Homologação — **Blocked** until completion and acceptance of Product Readiness.
+
+Sequência vinculante (caminho crítico mínimo): PR-PH.1 → PR-PH.2 →
+PR-PH.3 → PR-PH.4 → PR-PH.5 → PR-PH.6 → PR-PH.7 → PR-PH.8 → PR-PH.9
+→ PR-PH.10 → PR-PH.11 → PR-PH.12 → TH-001 → TH-002 → TH-003 →
+TH-004 → TH-005 → TH-006. Roles precede CRM; CRM precede o
+dashboard final; branding consolidado precede onboarding e
+domínio. Ownership vinculante: PR-PH.1 formaliza IA/navegação/
+redirects e nunca executa cutover funcional do CRM; PR-PH.3 é a
+única responsável pela canonicalização funcional do CRM e do
+Kanban. Contratos executáveis individuais por etapa em
+`impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md §19`.
 
 ##### Namespaces dos roadmaps (regra vinculante)
 
