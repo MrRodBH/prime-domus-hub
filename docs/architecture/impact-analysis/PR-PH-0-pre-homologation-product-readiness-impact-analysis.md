@@ -389,13 +389,40 @@ Implementados como autoridade única `site_settings` +
   `Footer.tsx`, `WhatsAppFab.tsx`, `CmsPreviewOverlay.tsx`;
 - audit trail via `logCmsAudit`.
 
-Campos observados/plausíveis (para inventário de PR-PH.5, sem
-alteração aqui): logo, logo mobile, favicon, site name, razão
-social, nome fantasia, CNPJ, CRECI, responsável técnico,
-slogan, contatos, redes sociais, footer, SEO global, cores,
-fontes, Open Graph, theme-color, CSS variables. Consolidação
-formal do inventário completo e limites de contraste é
-responsabilidade da PR-PH.5.
+Campos efetivamente suportados hoje pela autoridade única
+`site_settings` (evidência direta: `interface SiteSettings` em
+`src/lib/api/site.functions.ts:32-…` — descoberta encerrada
+nesta PR-PH.0, sem “campos plausíveis”):
+
+- `branding`: `logo_path`, `logo_url`, `favicon_path`,
+  `favicon_url`, `site_name`.
+- `branding_v2`: `color_primary`, `color_secondary`,
+  `color_accent`, `color_button`, `color_link`, `font_primary`,
+  `font_secondary`, `logo_mobile_path`, `logo_mobile_url`
+  (aplicados em runtime via CSS variables por `buildBrandingCss`
+  em `src/routes/__root.tsx`).
+- `empresa`: `razao_social`, `nome_fantasia`, `cnpj`, `creci`,
+  `responsavel_tecnico`, `fundacao`, `slogan`, `sobre_curto`.
+- `footer`: `copyright`, `coluna1_titulo`, `coluna1_links`,
+  `coluna2_titulo`, `coluna2_links`, `mostrar_redes`,
+  `texto_legal`.
+- `seo_global`: `default_title`, `default_description`,
+  `default_og_image_path`, `default_og_image_url`, `keywords`,
+  `twitter_handle`.
+- `home_hero`, `home_secoes`, `home_diferenciais`,
+  `home_depoimentos`, `pagina_lancamentos`, `pagina_sobre`,
+  `contato` — conteúdo/SEO por página pública (não branding
+  puro; mesma autoridade).
+
+Persistência: tabela `site_settings` (tenant-scoped) +
+`site_settings_versions` (audit + restore). Server functions:
+`obterSiteSettings`, `atualizarSiteSettings`
+(`site.functions.ts:307-…`), draft/publish/restore
+(`site-versions.functions.ts`). Renderização pública:
+`buildBrandingCss` no root loader; consumo em
+`src/components/site/{Header,Footer,WhatsAppFab,CmsPreviewOverlay}.tsx`.
+Fallbacks: valores default em `hydrateSiteSettings` quando
+campos ausentes.
 
 ### 9.3 Branding da plataforma — protegido
 
@@ -403,17 +430,31 @@ Elementos institucionais RM Prime SaaS (identidade da
 plataforma, logos institucionais, badges), não configuráveis
 pelo tenant. Formalizar catálogo em PR-PH.5.
 
-### 9.4 Sistema unificado de branding — lacuna de consolidação
+### 9.4 Sistema unificado de branding — autoridade única e não sobreposição
 
-- **Não** criar segunda autoridade de branding.
-- **Não** introduzir `tenant_branding` como tabela presumida
-  sem Impact Analysis e justificativa formal.
-- Avaliar evolução da autoridade existente `site_settings` para
-  cobrir também o workspace interno (com escopo distinto), ou
-  criar autoridade separada `workspace_branding` — decisão
-  necessária em PR-PH.5.
-- Preservar compatibilidade, isolamento multi-tenant,
-  contraste WCAG AA mínimo e fallback determinístico.
+Regra vinculante desta PR-PH.0:
+
+> Nenhum mesmo campo de branding pode possuir duas autoridades
+> persistentes ou dois caminhos de publicação.
+
+- **Não** criar segunda autoridade de branding sem Impact
+  Analysis.
+- **Não** pré-autorizar a tabela `workspace_branding` — ela é
+  registrada aqui apenas como alternativa **sujeita a Impact
+  Analysis** em PR-PH.5.
+- PR-PH.5 deverá realizar Impact Analysis antes de decidir entre:
+  (A) extensão controlada de `site_settings` para cobrir também
+  o workspace interno com escopo declarado (mesma autoridade,
+  campos declaradamente separados); ou (B) autoridade separada
+  exclusivamente para o workspace interno.
+- A opção (B) somente será permitida se: os campos forem
+  não-sobrepostos com `site_settings`; o domínio for
+  explicitamente distinto; não existir fallback entre
+  autoridades; a resolução for determinística; a precedência
+  for proibida; não houver dual write; não houver sincronização
+  implícita; a decisão estiver documentada.
+- Preservar compatibilidade, isolamento multi-tenant, contraste
+  WCAG AA mínimo e fallback determinístico.
 
 ## 10. Inventário site público, CMS e blocos
 
