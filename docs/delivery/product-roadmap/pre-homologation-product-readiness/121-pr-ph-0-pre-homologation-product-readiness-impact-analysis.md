@@ -9,149 +9,212 @@ Roadmap · Fase 4 — SaaS Commercial Platform — Closed / Accepted.
 Cross-reference:
 [`docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`](../../../architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md).
 
+Esta execução consolidou, dentro da própria PR-PH.0, a correção
+integral apontada pela auditoria crítica externa: inventário
+repository-grounded, classificações factuais corrigidas,
+contratos executáveis individuais por etapa e sequência PR-PH
+vinculante.
+
 ## 1. Baseline e commit
 
-- Baseline `8b7a54e Closed Phase 4 as Ready`.
+- Baseline auditado e commit atual do `HEAD` no preflight:
+  `e126e11 Criou PR-PH.0 e fechou Fase 4`.
 - `git status --short` vazio na entrada; `git diff --check` clean.
 - 93 migrations aplicadas; runtime, RLS, grants, providers,
   package.json e lockfile inalterados por esta execução.
 
-## 2. Materialização do encerramento da Fase 4
+## 2. Escopo autorizado e fora de escopo
 
-Atualizados nesta execução:
+Alterados apenas os três arquivos documentais autorizados:
 
-- `docs/architecture/impact-analysis/PHASE-4-CLOSING-REVIEW-saas-commercial-platform-formal-closure.md`
-  → Status **Accepted (external audit)**. Nota de reconciliação
-  redacional para `data == null` versus `data === null` sem
-  alteração de runtime/harness.
-- `docs/delivery/architectural-roadmap/phase-04-saas-commercial-platform/120-phase-4-closing-review-saas-commercial-platform-formal-closure.md`
-  → Status **Accepted (external audit)**; Fase 04 marcada
-  **Closed / Accepted**.
-- `docs/architecture/ROADMAP_ARCHITECTURAL.md` → §Fase 4
-  reescrita como **Closed / Accepted**; entrada 18 = Accepted;
-  PR-PH.0 = **Ready for External Audit**; PR-PH.1…PR-PH.12 e
-  TH-001…TH-006 registradas como Planned; not started;
-  homologação **Blocked**.
-
-Nada é alterado nas subetapas SCP-010.x / SCP-011.x / SCP-012.0.x,
-que permanecem **Accepted**.
-
-## 3. Novos artefatos criados
-
-- `docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`.
+- `docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  (modified) — reescrita integral: inventário repository-grounded,
+  contratos executáveis individuais PR-PH.1 … PR-PH.12,
+  sequência corrigida, matriz de dependências.
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md` (modified) —
+  substituição do bloco agregado por entradas individuais para
+  PR-PH.0, PR-PH.1 … PR-PH.12 e TH-001 … TH-006; declaração
+  vinculante da sequência e do ownership.
 - `docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md`
-  (este arquivo — novo namespace canônico da Product Roadmap
-  Pre-Homologation Product Readiness, sem duplicar o namespace
-  histórico `phase-06-product-ux-refactor/`).
+  (modified — este arquivo) — reconciliação factual.
 
-## 4. Metodologia
+Fora de escopo: runtime; componentes React; rotas; server
+functions; adapters; hooks; migrations; schema; tabelas; RLS;
+grants; seeds; fixtures; providers; storage; package.json;
+lockfile; bibliotecas; branding em produção; dashboard; CRM;
+Kanban; CMS; domínios; onboarding. Fase 4 permanece **Closed /
+Accepted**.
 
-Fonte da verdade obrigatória: código atual → schema/migrations →
-rotas registradas → componentes importados → testes executáveis →
-só depois documentação histórica.
+## 3. Correções factuais aplicadas
 
-Classificações: Implemented and connected · Implemented but
-incomplete · Implemented but disconnected · Legacy / superseded ·
-Duplicate authority · Planned only · Missing · Requires
-architectural decision.
+Aplicadas em `PR-PH-0-*.md`:
 
-## 5. Inventário direto do produto (resumo executivo)
+1. **Rotas de CRM reclassificadas.** `/admin/pipeline` é a
+   autoridade funcional operacional atual; `/admin/leads` é
+   **compatibility redirect / legacy route** (migração de
+   parâmetros para `/admin/pipeline`), **não** autoridade
+   independente; `/admin/leads-workspace` é **superfície
+   funcional concorrente** baseada em `EntityWorkspace` com
+   `ENTITIES.lead`. Diferenças reais entre PipelinePage e
+   EntityWorkspace(lead) inventariadas em §5.1.
+2. **CRM e Kanban.** `DndContext`/`PointerSensor`/`DragOverlay`,
+   `onMutate` com snapshot, `onError` com rollback e `onSuccess`
+   com `invalidateQueries` classificados como **Implemented and
+   connected** (evidência em
+   `src/components/pipeline/hooks/usePipelineData.ts` e
+   `src/components/pipeline/PipelinePage.tsx`). Audit trail
+   formal e concorrência permanecem **Missing** — responsáveis
+   por PR-PH.3.
+3. **CMS.** Removida a classificação “dual path CMS antigo ×
+   novo”. `admin.site.tsx` é `EntityWorkspace(ENTITIES.site)`
+   (singleton de configurações do site); `admin.paginas` é
+   `EntityWorkspace(ENTITIES.pagina)` (páginas dinâmicas);
+   `cms-transferencia` e `cms-auditoria` são **redirects
+   legados**. Registry declara todas as entidades como
+   `ready: true`.
+4. **White label.** Reconhecida a autoridade existente do site
+   público (`site_settings` + `site_settings_versions` +
+   `useSiteAdapter` + `buildBrandingCss` em
+   `src/routes/__root.tsx`) — **Implemented but incomplete**.
+   Workspace interno permanece **Missing como sistema**.
+   Quatro camadas (workspace, site público, plataforma,
+   unificação) declaradas separadamente; proibida introdução
+   de `tenant_branding` como tabela presumida sem IA e
+   justificativa.
+5. **Dashboard.** Inventário repository-grounded de cada
+   indicador (leads, visitas, propostas, vendas, VGV, funil,
+   alertas, série diária, origens, taxas, desempenho, ranking,
+   insights, drill-down) contra `dashboard.functions.ts`.
+   Registrado explicitamente que o código já implementa
+   comparação com período anterior, VGV restrito a `ganho`,
+   alertas por tempo, série diária, ranking e insights.
+   Lacunas concretas (timezone, papéis diferenciados, metas
+   hardcoded, testes ausentes, divergência entre constantes de
+   alerta do pipeline e do dashboard) identificadas sem
+   correção nesta etapa.
+6. **Descoberta básica futura eliminada.** Nenhuma ocorrência
+   remanescente dos padrões proibidos (“Requires
+   re-inventory”, “Requires inventory”, “Requires audit”,
+   “auditar em PR-PH.x”, “verificar em PR-PH.x”) no documento
+   corrigido.
 
-Detalhes completos em `PR-PH-0-*.md` §§4–14. Resumo:
+## 4. Sequência vinculante corrigida
 
-- **Workspace shell / Rail / Header / ContextTabs**: Implemented
-  and connected.
-- **Breadcrumbs, 403 dedicado, menu do usuário formalizado**:
-  Missing / Requires decision.
-- **7 contextos de menu** (`contexts.ts`) mapeados; entradas
-  "Início" candidata a nomenclatura controlada.
-- **Duplicate authority**: `/admin/pipeline` × `/admin/leads` ×
-  `/admin/leads-workspace`. Resolver em PR-PH.1.
-- **Dual path CMS**: `admin.site.tsx` × `admin.paginas.*` +
-  `cms-transferencia`. Cutover obrigatório em PR-PH.5.
-- **Dashboard**: sem contratos formalizados de KPI, fórmula,
-  timezone, drill-down, papéis, teste. Planned only.
-- **CRM / Kanban**: incompleto; audit trail e otimista+rollback
-  não formalizados; contagem financeira (ganho ≠ perdido ≠
-  descartado ≠ fechado) sem contrato.
-- **White label**: Missing como sistema. Logo fixo no rail.
-- **Site público**: Implemented and connected; blocos, versões,
-  agendamento, LGPD auditáveis em PR-PH.5.
-- **Landing pages**: Missing como categoria.
-- **Custom domain**: resolução por host presente; UI, state
-  machine, verificação, SSL, anti-takeover Missing.
-- **Onboarding / Configuration Center**: Missing.
-- **Permissões**: F4.0 + SCP-012 consolidados; matriz de
-  autoridade por operação a formalizar em PR-PH.9.
-- **Operacional**: observability/email/rate-limit/auditoria
-  parciais; homologação bloqueada até PR-PH.12.
+1. PR-PH.1 — Tenant Workspace Information Architecture,
+   Navigation & Canonical Route Map.
+2. PR-PH.2 — Roles, Permissions & Configuration Authority
+   Baseline.
+3. PR-PH.3 — CRM & Kanban Canonicalization and Finalization.
+4. PR-PH.4 — Role-Aware Dashboard & Decision Intelligence
+   Finalization.
+5. PR-PH.5 — Workspace and Public-Site White-Label
+   Consolidation.
+6. PR-PH.6 — Public Website Navigation, CMS Authority &
+   Content Architecture.
+7. PR-PH.7 — Landing Page & Dynamic Page Builder Finalization.
+8. PR-PH.8 — Tenant Domain Management & Host Resolution.
+9. PR-PH.9 — Tenant Onboarding & Configuration Center.
+10. PR-PH.10 — Product UX/UI Final Consistency, Accessibility &
+    Responsive Review.
+11. PR-PH.11 — Environment, Observability & Operational
+    Readiness.
+12. PR-PH.12 — Pre-Homologation Product Closing Review.
 
-## 6. Matriz de estado do produto
+Após Product Readiness: TH-001 → TH-002 → TH-003 → TH-004 →
+TH-005 → TH-006.
 
-Ver `PR-PH-0-*.md §18`. Domínios ausentes / incompletos:
-Branding, Landing pages, Onboarding, Configuration Center;
-Dashboard, CRM/Kanban e CMS classificados como Parcial + Legado.
+**Ownership vinculante.** PR-PH.1 nunca executa cutover
+funcional do CRM; PR-PH.3 é a única responsável pela
+canonicalização funcional entre PipelinePage e
+EntityWorkspace(lead).
 
-## 7. Sequência PR-PH executável
+**Roles precede CRM. CRM precede o dashboard final.**
 
-PR-PH.1 → PR-PH.2 → PR-PH.3 → PR-PH.4 → PR-PH.5 → PR-PH.6 →
-PR-PH.7 → PR-PH.8 → PR-PH.9 → PR-PH.10 → PR-PH.11 → PR-PH.12.
+## 5. Contratos executáveis individuais
 
-Homologação: TH-001 → TH-002 → TH-003 → TH-004 → TH-005 →
-TH-006.
+`PR-PH-0-*.md §19` contém um contrato completo — 37 itens — para
+cada uma das 12 etapas PR-PH.1 … PR-PH.12. Nenhum contrato é
+substituído por resumo agregado; categorias inaplicáveis são
+marcadas “Não aplicável”. Onde há decisão arquitetural
+pendente, o contrato registra: decisão necessária, alternativas
+conhecidas, evidência atual, etapa responsável, condição
+objetiva de escolha e mudanças proibidas antes da decisão.
 
-Detalhes de escopo, contratos, hard gates e Definition of Done
-em `PR-PH-0-*.md §§15–20`.
+## 6. Roadmap individualizado
 
-## 8. Caminho crítico e dependências
+Em `docs/architecture/ROADMAP_ARCHITECTURAL.md`, o bloco
+anterior:
 
-Matriz completa em `PR-PH-0-*.md §17`. Caminho crítico:
-PR-PH.1 é bloqueio duro para PR-PH.2 e PR-PH.3; PR-PH.4 pode
-ser planejada em paralelo apenas em nível de planejamento,
-nunca implementada em paralelo com etapas que toquem menu,
-autoridade ou tabelas partilhadas.
+> PR-PH.1 até PR-PH.12 — Planned; not started.
+> TH-001 até TH-006 — Planned; not started.
 
-## 9. Diretriz vinculante de interface
+foi substituído por 12 entradas individuais para PR-PH.1 …
+PR-PH.12 e 6 entradas individuais para TH-001 … TH-006, cada
+uma com nome completo e status `Planned; not started`. PR-PH.0
+permanece `Ready for External Audit`. Homologação permanece
+`Blocked`.
 
-**RM Prime SaaS — Data-Dense Premium Dark Interface** preservada:
-dark graphite; cor viva apenas com semântica; máximo contraste
-nas superfícies de leitura; KPI sempre com contexto/comparação/
-tendência; alertas explicáveis; drill-down; dashboard por papel;
-tema claro alternativo; validação com usuários reais antes da
-homologação.
+## 7. Evidência Git
 
-## 10. Validações
+Comandos utilizados: `git status --short`, `git log -1 --oneline`,
+`git diff --check`, `git diff --name-status`, `git diff --stat`.
 
-- `git diff --name-status` limitado a documentação (5 arquivos
-  editados + 2 arquivos criados).
-- `git diff --check` clean.
-- `bunx tsc --noEmit -p tsconfig.json` — executado a seguir; esta
-  execução não altera nenhum arquivo TypeScript.
-- Buscas de reconciliação:
-  - único status do Closing Review = Accepted;
-  - única entrada PR-PH.0 = Ready for External Audit;
-  - nenhuma PR-PH.1+ marcada como iniciada;
-  - nenhuma Fase 4 descrita como em curso;
-  - nenhum dashboard/Kanban declarado como final sem evidência;
-  - nenhum custom domain declarado como pronto;
-  - nenhuma homologação autorizada.
+Diff efetivo desta execução (todos com tipo `M` — modified;
+nenhum arquivo adicionado, removido ou renomeado):
 
-## 11. Itens fora de escopo
+| Tipo | Caminho |
+|---|---|
+| M | `docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md` |
+| M | `docs/architecture/ROADMAP_ARCHITECTURAL.md` |
+| M | `docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md` |
 
-Componentes React, rotas, migrations, tabelas, RLS, grants,
-providers, bibliotecas, temas, dashboards, Kanban, CMS,
-domínios e onboarding — **não** foram modificados.
+Totais: 3 modified; 0 added; 0 deleted; 0 renamed; 3 arquivos
+alterados no total. Nenhum arquivo fora do escopo autorizado
+foi tocado.
 
-## 12. Riscos remanescentes
+## 8. Validações
 
-- Dependência operacional gerenciada de `sandbox_exec`
-  (Fase 4).
-- Dual path CMS e triplicação de Pipeline exigem tratamento
-  antes de qualquer dashboard final.
-- Custom domain sem state machine é risco de takeover.
-- White label sem hard gate de contraste é risco de a11y.
+- `git diff --check` — clean.
+- `bunx tsc --noEmit -p tsconfig.json` — executado; esta
+  execução não alterou nenhum arquivo TypeScript.
+- Buscas de reconciliação (grep executado no artefato
+  corrigido):
+  - `Requires re-inventory|Requires inventory|auditar em PR-PH|verificar em PR-PH`
+    no `PR-PH-0-*.md` → **zero ocorrências**.
+  - `PR-PH\.1 até PR-PH\.12|TH-001 até TH-006` no
+    `ROADMAP_ARCHITECTURAL.md` → **zero ocorrências**.
+  - `PR-PH\.2.*Dashboard|PR-PH\.9.*Roles` no `PR-PH-0-*.md` →
+    **zero ocorrências** (roles = PR-PH.2; dashboard =
+    PR-PH.4).
+  - `5 arquivos editados \+ 2 arquivos criados` em
+    `docs/delivery/product-roadmap/pre-homologation-product-readiness/`
+    → **zero ocorrências**.
 
-## 13. Status final
+Confirmações positivas:
+
+- Uma única sequência PR-PH canônica.
+- Um contrato executável individual para cada PR-PH.1 …
+  PR-PH.12.
+- Uma entrada individual para cada etapa no roadmap.
+- PR-PH.0 permanece `Ready for External Audit`.
+- PR-PH.1 permanece `Planned; not started`.
+- Homologação permanece `Blocked`.
+
+## 9. Riscos remanescentes
+
+- Dependência operacional preservada da role gerenciada
+  `sandbox_exec` (Phase 4 §12; F4-CF-01 §6.2).
+- Superfície concorrente `/admin/leads-workspace` × PipelinePage
+  precisa cutover em PR-PH.3 antes de qualquer dashboard final
+  (PR-PH.4).
+- Divergência de constantes de alerta entre pipeline e
+  dashboard — consolidar em PR-PH.3.
+- Custom domain sem state machine é risco de takeover — não
+  liberar homologação sem PR-PH.8.
+- White label do site público sem hard gate de contraste é
+  risco de a11y — endurecer em PR-PH.5.
+
+## 10. Status final
 
 - **Phase 4 Closing Review → Accepted.**
 - **Architectural Roadmap · Fase 4 — Closed / Accepted.**
