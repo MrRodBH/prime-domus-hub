@@ -31,52 +31,98 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
   Finalization e Product UX/UI Final Consistency Review; sem
   implementação de tema, dashboard ou Kanban nesta etapa.
 
-## Verificações executadas
+## Verificações executadas nesta execução
 
 - `bunx tsc --noEmit -p tsconfig.json` → exit 0.
 - `bunx tsx ./run-tenant-specs.ts` → 233 passed / 0 failed.
 - `bunx tsx ./run-membership-mutation-parity-specs.ts` → 14 passed / 0 failed.
 - `bunx tsx ./run-commercial-seat-atomic-enforcement-specs.ts` → 10 passed / 0 failed.
-- `bunx tsx ./run-commercial-sql-parity-specs.ts` → **17 passed / 0 failed**
-  (canonical integration gate — RLS-safe, service-role fixtures, SQL DTO
-  vs TypeScript oracle vs expected DTO deep-equal across the full field
-  set for every scenario). Zero cleanup errors; zero residuals.
-- Migration `20260714001218_*.sql` — ACL reclosure:
-  `resolve_commercial_seat_decision(uuid,uuid,text,integer)` and
-  `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)` now expose
-  EXECUTE only to owner (`postgres`) and `service_role`. `sandbox_exec`
-  loses EXECUTE on both RPCs and loses INSERT/UPDATE/DELETE on
-  `public.tenant_members` (retains SELECT). `authenticated` remains
-  SELECT-only on `tenant_members`; `anon`/`PUBLIC` remain empty. All
-  transitions verified inside the migration via `pg_proc` / `aclexplode`
-  / `has_function_privilege` / `has_table_privilege` fail-closed
-  assertions.
-- ACL das RPCs `resolve_commercial_seat_decision` e
-  `mutate_tenant_membership` verificada de forma independente via
-  `pg_proc` / `aclexplode` / `has_function_privilege` (ver §8.2 do
-  impact analysis): EXECUTE **apenas para owner (`postgres`) e
-  `service_role`**. `anon`, `authenticated`, `sandbox_exec` e `PUBLIC`
-  sem EXECUTE. `tenant_members`: `authenticated = SELECT` somente;
-  `sandbox_exec = SELECT` somente (INSERT/UPDATE/DELETE revogados);
-  `anon`/`PUBLIC` sem grant; `service_role` administrativo.
-- Grep de escritas diretas em `tenant_members` no runtime TypeScript:
-  zero ocorrências. Grep de referências a
-  `mutate_tenant_membership` / `resolve_commercial_seat_decision` fora
-  do boundary/server/tests/types: zero ocorrências.
+- `bunx tsx ./run-commercial-sql-parity-specs.ts` (**canonical
+  integration gate**) → **decision: 17/17, rejection: 6/6,
+  structural: 1/1**, cleanup errors 0, fatal no, catalog unchanged
+  yes, exit 0.
+- `COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP=1 bunx tsx
+  ./run-commercial-sql-parity-specs.ts` → fatal yes, cleanup errors
+  0, catalog unchanged yes, **exit 1**. Demonstra fail-closed
+  lifecycle: fixtures parciais são removidas mesmo com erro
+  sintético injetado após o primeiro `setupFixture()`.
+- Snapshot read-only do catálogo `commercial_entitlement_definitions.
+  users.seats` idêntico antes e depois da execução:
+  `{key: users.seats, value_type: integer, is_active: true,
+  name: Seat limit, unit: seats, description: Seat limit}`.
+- Consultas pós-run confirmam zero tenants de fixture, zero plans
+  de fixture e zero linhas residuais nas tabelas escopadas pelo
+  harness.
+- ACL das RPCs consultada diretamente via `pg_proc` / `aclexplode`:
+  owner (`postgres`) + `service_role` retêm `EXECUTE`; `anon`,
+  `authenticated` e `PUBLIC` continuam sem privilégio. `sandbox_exec`
+  volta a possuir `EXECUTE` após o reprovisionamento automático do
+  ambiente gerenciado — registrado como risco residual no §11 do
+  impact analysis. Nenhum runtime produtivo depende de `sandbox_exec`.
+
+## Escopo materializado nesta execução
+
+Alterações restritas aos quatro arquivos autorizados:
+
+- `src/integrations/supabase/__tests__/commercial-seat-sql-parity.spec.ts`
+  — refatoração canônica do harness:
+  1. `commercial_entitlement_definitions` deixa de ser mutada; o
+     upsert anterior foi removido e substituído por preflight
+     read-only fail-closed (`validateCatalogPreconditions`).
+  2. Toda a orquestração passa a rodar em `try/finally` global;
+     `runCleanupFailClosed` é sempre executado.
+  3. Verificação residual explícita inclui `user_roles`.
+  4. Cenário 17 usa dois UUIDs dinâmicos por run e foi renomeado
+     para descrever o que ele realmente prova
+     (decisão canônica `billing_blocked` sob duplicidade), sem
+     alegar tie-break `id ASC` observável no DTO.
+  5. Nova assertion estrutural (`S1`) lê a definição canônica
+     `CREATE OR REPLACE FUNCTION resolve_commercial_seat_decision`
+     das migrations versionadas e valida a sequência de ordenação
+     (`status priority`, `started_at DESC NULLS LAST`, `id ASC`).
+     Contabilizada separadamente dos cenários RPC.
+  6. Grupo dedicado de **rejection contract** (6 casos) exercita
+     erros reais da RPC via `service_role`: `Invalid
+     requestedIncrement` (22023, incrementos 0 e 2), `Invalid tenant
+     origin` (22023), `Actor not found` (22023), `Super admin
+     requires impersonation origin` (22023, com tenant real
+     provisionado) e `Tenant not found` (22023).
+  7. Snapshot de `users.seats` capturado antes e depois; catálogo
+     validado byte-a-byte inalterado.
+  8. Flag test-only
+     `COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP=1` demonstra o
+     lifecycle fail-closed.
+- `run-commercial-sql-parity-specs.ts` — runner raiz reporta os
+  três grupos separadamente, imprime snapshots de catálogo, encerra
+  com exit ≠ 0 em qualquer falha (fatal, cenário, cleanup, catálogo
+  divergente) e sanitiza o log de erro inesperado.
+- `docs/architecture/impact-analysis/F4-CF-01-…md` — §6/§7/§8/§11
+  reescritos para refletir a arquitetura atual: catálogo
+  read-only, cleanup em `try/finally` global, `user_roles` no
+  residual verification, cenário 17 sem falsa evidência,
+  contagens 17 + 6 + 1, drift residual de `sandbox_exec` como
+  risco de ambiente.
+- Este relatório — atualizado consistentemente.
 
 ## Ausências declaradas
 
-- Uma única migration nova (reclosure de ACL — grants/revokes e
-  assertions). Zero alteração em runtime, schema, RLS policies ou
-  lógica das RPCs.
+- **Zero alteração em `supabase/migrations/**`.** Nenhuma migration
+  nova foi criada; a reclosure permanece em
+  `20260714001218_174dfdbe-2a4e-40ff-adbc-79068e369823.sql`.
+- Zero alteração em `docs/architecture/ROADMAP_ARCHITECTURAL.md`.
+- Zero alteração em runtime produtivo (`src/lib/api/commercial/**`,
+  RPCs `resolve_commercial_seat_decision` /
+  `mutate_tenant_membership`, RLS, grants, schema, frontend,
+  providers, secrets).
 - Zero UI, zero frontend, zero rota nova, zero componente novo.
 - Zero implementação de provider billing, checkout, customer portal,
-  webhook público real, invitation flow, dashboard final, Kanban final,
-  custom domain, onboarding ou CMS.
+  webhook público real, invitation flow, dashboard final, Kanban
+  final, custom domain, onboarding ou CMS.
 - Zero início da PR-PH.0. Zero abertura do Phase 4 Closing Review.
-- Zero renumeração retroativa do Product Roadmap. Zero alteração no
-  Architectural Roadmap · Fase 6 (Plugin Marketplace Evolution).
-- Zero alteração no `ROADMAP_ARCHITECTURAL.md` nesta execução.
+- Zero mutação de `commercial_entitlement_definitions` (catálogo
+  `users.seats` idêntico antes e depois).
+- Zero renumeração retroativa do Product Roadmap.
+
 
 ## Bloco final do roadmap
 

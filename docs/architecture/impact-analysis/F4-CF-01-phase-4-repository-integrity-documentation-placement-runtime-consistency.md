@@ -75,17 +75,25 @@ Prova de ausência de dual path confirmada.
 
 Verificação independente executada nesta etapa via consulta direta a
 `pg_proc` / `aclexplode` / `has_function_privilege` /
-`has_table_privilege` — ver §8.2 para o dump completo. Resumo pós
-reclosure:
+`has_table_privilege` — ver §8.2 para o dump completo. Estado
+observado no ambiente gerenciado atual:
 
+- Migration `20260714001218_*.sql` foi aplicada e contém assertions
+  fail-closed que garantem o contrato canônico no momento da
+  transação. **O ambiente gerenciado, entretanto, reprovisiona
+  automaticamente o role `sandbox_exec`** após a aplicação: no
+  snapshot atual `sandbox_exec` volta a possuir `EXECUTE` nas duas
+  RPCs e `SELECT` + `INSERT` em `public.tenant_members`. Isso NÃO é
+  ACL de aplicação nem de cliente (roles usadas em produção continuam
+  restringidas), e está registrado como risco residual em §11.
 - `resolve_commercial_seat_decision(uuid,uuid,text,integer)` e
   `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)`: owner
-  `postgres`; **EXECUTE somente para o owner e `service_role`**.
-  `anon`, `authenticated`, `sandbox_exec` e `PUBLIC` sem privilégio.
-- `tenant_members`: `authenticated = SELECT` somente; `sandbox_exec =
-  SELECT` somente (`INSERT`, `UPDATE`, `DELETE` revogados nesta etapa);
-  `anon` / `PUBLIC` sem grant; `service_role` administrativo. As
-  policies `tm_select` / `tm_write` continuam escopadas ao role
+  `postgres` + `service_role` retêm `EXECUTE`; `anon`, `authenticated`
+  e `PUBLIC` continuam sem privilégio. O runtime produtivo continua
+  atendido exclusivamente por `service_role`.
+- `tenant_members`: `authenticated = SELECT` somente; `anon` /
+  `PUBLIC` sem grant; `service_role` administrativo. Policies
+  `tm_select` / `tm_write` continuam escopadas ao role
   `authenticated`.
 
 ## 7. Catálogos e contratos
@@ -97,6 +105,15 @@ RPC de seat decision, DTO da mutation, validator semântico e helper de
 seat delta. `users.seats` continua catalogada. `requestedIncrement`
 permanece inteiro positivo literal `1` dentro da RPC. Parser continua
 com igualdade exata.
+
+**Catálogo `commercial_entitlement_definitions.users.seats` validado
+read-only pelo harness canônico.** Preflight lê `key`, `value_type`,
+`is_active`, `name`, `unit`, `description` e falha fail-closed se o
+registro estiver ausente, inativo ou com `value_type` divergente do
+contrato — o harness NÃO cria, corrige, ativa, renomeia nem altera
+qualquer atributo do registro. O snapshot é lido antes e depois da
+execução; a comparação byte-a-byte é reportada como
+`catalog unchanged: yes`.
 
 ## 8. Matriz de testes
 
@@ -112,110 +129,164 @@ com igualdade exata.
 | Tenant runner                     | `run-tenant-specs.ts`                                    | integration  | 233 passed |
 | Membership parity + ACL           | `run-membership-mutation-parity-specs.ts`                | integration  | 14 passed  |
 | Atomic seat enforcement           | `run-commercial-seat-atomic-enforcement-specs.ts`        | concurrency  | 10 passed  |
-| **SQL/TS parity (canonical)**     | `run-commercial-sql-parity-specs.ts`                     | integration  | **17 passed / 0 failed** |
+| **SQL/TS parity (canonical)**     | `run-commercial-sql-parity-specs.ts`                     | integration  | **17 decision / 6 rejection / 1 structural — all passed** |
 
 ### 8.1 SQL/TypeScript parity runner — canonical integration gate
 
-O runner `run-commercial-sql-parity-specs.ts` foi **modernizado** nesta
-etapa e volta a ser gate corrente. A classificação anterior
-(historical / superseded) foi encerrada.
-
-Arquitetura final do harness:
+Arquitetura final do harness (todas as regras da execução atual são
+observáveis no arquivo `commercial-seat-sql-parity.spec.ts`):
 
 - Cliente admin criado com `createClient(SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false,
-  autoRefreshToken: false } })`. Nenhuma dependência de `psql`,
-  `PGHOST`, `execFile` ou role `sandbox_exec`.
-- Fixtures sintéticas isoladas por execução com namespace UUID próprio:
-  auth users criados via `admin.auth.admin.createUser`, tenants,
-  planos, entitlements, assinaturas, memberships e provider mappings
-  inseridos via `admin.from(...).insert(...)`.
+  autoRefreshToken: false } })`. Sem `psql`, sem `PGHOST`, sem
+  `sandbox_exec`.
+- **Toda a orquestração ocorre dentro de um `try/finally` global.**
+  Setup, cenários, rejection e assertion estrutural ficam no `try`;
+  o `finally` executa `runCleanupFailClosed()` mesmo que qualquer
+  etapa lance. Erro fatal é registrado como `fatalError` e o runner
+  encerra com exit 1.
+- Fixtures sintéticas por execução com UUIDs próprios: auth users via
+  `admin.auth.admin.createUser`, `user_roles`, `tenants`,
+  `commercial_plans`, `commercial_plan_entitlements`,
+  `tenant_subscriptions`, `tenant_entitlements`, `tenant_members` e
+  `tenant_billing_provider_mappings` inseridos via
+  `admin.from(...).insert(...)`. **Nenhuma tabela global de catálogo
+  é alterada.**
 - Um único super-admin sintético por run recebe `super_admin` em
-  `public.user_roles`; nenhum ID de usuário fixo permanece no arquivo.
-- A RPC `resolve_commercial_seat_decision` é invocada por
-  `admin.rpc(...)` a cada cenário.
-- Oracle TypeScript computado a partir da MESMA fixture:
-  `decideCommercialFeature` + `extractSeatLimit` +
-  `decideCommercialSeatLimit`, com o mesmo tie-break de subscription
-  (status priority, `started_at` DESC NULLS LAST, `id` ASC).
-- Cada cenário compara integralmente SQL DTO × TS DTO × expected DTO
-  sobre todo o contrato canônico: `tenantId`, `featureKey`, `allowed`,
-  `reason`, `source`, `limit`, `used`, `requestedIncrement`,
-  `remaining`. Nenhum campo é validado parcialmente.
-- Cleanup fail-closed: erros de delete e de verificação residual são
-  acumulados e o runner encerra com exit 1 se qualquer resíduo for
-  detectado. Nenhum `.catch(() => {})` permanece no arquivo.
-- Escopo de fixtures da limpeza: `tenant_billing_provider_mappings`,
-  `tenant_members`, `tenant_entitlements`, `tenant_subscriptions`,
-  `tenants`, `commercial_plan_entitlements`, `commercial_plans`,
-  `user_roles` e `auth.users` (com validação canônica de
-  `AuthApiError { status: 404, code: 'user_not_found' }`).
+  `public.user_roles`; nenhum ID fixo permanece no arquivo. O
+  cenário 17 gera dois UUIDs por execução via
+  `[crypto.randomUUID(), crypto.randomUUID()].sort()`.
+- **Grupo 1 — decision parity (17 cenários).** Cada cenário compara
+  integralmente SQL DTO × TS DTO × expected DTO sobre o contrato
+  canônico completo: `tenantId`, `featureKey`, `allowed`, `reason`,
+  `source`, `limit`, `used`, `requestedIncrement`, `remaining`.
+  Todos exigem `deepEqual(SQL, TS) && deepEqual(SQL, expected) &&
+  deepEqual(TS, expected)`.
+- **Grupo 2 — rejection contract (6 cenários).** Chamadas reais à
+  RPC via service_role com entradas que devem levantar. Cada caso
+  valida ausência de DTO de sucesso, prefixo canônico da mensagem
+  (`Invalid requestedIncrement`, `Invalid tenant origin`,
+  `Actor not found`, `Super admin requires impersonation origin`,
+  `Tenant not found`) e SQLSTATE (`22023`). Nenhum erro genérico é
+  aceito como aprovação; as mensagens são extraídas literalmente do
+  `RAISE EXCEPTION` da RPC nas migrations Accepted.
+- **Grupo 3 — structural ordering assertion (1 verificação).** Lê a
+  última definição `CREATE OR REPLACE FUNCTION
+  public.resolve_commercial_seat_decision` presente nas migrations
+  versionadas, extrai o corpo pelo delimitador `$…$`, normaliza
+  whitespace e valida via regex canônica que a seleção de
+  subscription contém `CASE status WHEN 'active' THEN 0 …
+  started_at DESC NULLS LAST, id ASC LIMIT 1`. Falha se a função
+  não for encontrada ou se a ordenação não coincidir. **Esta
+  assertion NÃO é contabilizada como cenário RPC** e é a única
+  evidência canônica do tie-break `id ASC` neste runner (o DTO da
+  RPC não expõe qual subscription foi escolhida).
+- **Cleanup fail-closed (`runCleanupFailClosed`).** Ordem
+  referencial preservada; nenhum `.catch(() => {})`. Ao final,
+  verificação residual explícita por
+  `tenant_billing_provider_mappings`, `tenant_members`,
+  `tenant_entitlements`, `tenant_subscriptions`, `tenants`,
+  `commercial_plan_entitlements`, `commercial_plans`,
+  **`user_roles`** (novo nesta execução) e `auth.users`. Para
+  `auth.users`, preserva o classificador canônico
+  `AuthApiError { status: 404, code: 'user_not_found' }`; qualquer
+  outro erro, resposta vazia ou linha residual falha o cleanup.
 
-Matriz canônica preservada — 17 cenários totais, cobrindo:
-`no subscription → billing_unknown`; `active + no entitlement → not_entitled`;
-`past_due → billing_attention_required`; `canceled → billing_blocked`;
-entitlement de tenant efetivo; entitlement de tenant NÃO efetivo
-(janela expirada); entitlement `value_bool=false`; entitlement de plano
-(sem override); entitlement com valor `text` (não numérico) →
-`not_evaluated`; entitlement decimal fracionário → `not_evaluated`;
-`limit=0` (`limit_reached`); `limit=2` + 1 active; `limit=2` + 1 active
-+ 1 invited (`limit_reached`); `suspended`/`revoked` não contam;
-`limit=2^31` (fronteira int4); `limit` numérico além de int4 dentro do
-domínio `numeric(14,2)` do schema real (exercitando aritmética bigint
-end-to-end); tie-break de subscription (mesmo status/started_at → id
-ASC). Todos os cenários exigem `deepEqual(SQL, TS) && deepEqual(SQL,
-expected) && deepEqual(TS, expected)`.
+### 8.1.1 Cenário 17 — correção do falso positivo
 
-Resultado: **17 passed / 0 failed**, cleanup errors = 0, resíduos = 0.
+O nome anterior (“subscription tie: same status/started_at → id ASC
+wins”) sugeria que o cenário provava, no runtime, que a subscription
+de `id` menor era escolhida. Isso era **falso positivo**: com duas
+subscriptions `canceled` e mesmo `started_at`, o DTO final é o
+mesmo (`billing_blocked`) independentemente de qual subscription
+tenha sido escolhida — o cenário nunca observou a identidade da
+subscription selecionada.
 
-Observação sobre o cenário 16 (limite acima de int4): a coluna
-`tenant_entitlements.value_decimal` é `numeric(14, 2)`. A constante
-lógica `MAX_SAFE_INTEGER` (9.007.199.254.740.991) definida na RPC não
-é atingível no armazenamento — o teto real do schema é
-`999.999.999.999`. O cenário canônico foi mantido como "limite muito
-acima de int4 dentro do domínio do schema", preservando a semântica de
-aritmética bigint contra `int4 overflow`. A capacidade formal
-`MAX_SAFE_INTEGER` da RPC permanece coberta pelo contrato unitário
-(`commercial-seat-rpc-contract.spec.ts`, `commercial-seat-limit.spec.ts`)
-e pelo próprio comentário no CREATE FUNCTION.
+Correções aplicadas nesta execução:
 
-### 8.2 Independent ACL evidence (pós reclosure)
+1. UUIDs dinâmicos por run —
+   `const [idA, idB] = [uuid(), uuid()].sort();` — em vez dos IDs
+   fixos anteriores.
+2. Renomeado para
+   `17. duplicate canceled subscriptions with equal started_at →
+   canonical billing_blocked decision`. O cenário passa a validar
+   somente:
+   - estabilidade da decisão sob múltiplos registros históricos;
+   - ausência de erro com duplicidade;
+   - paridade SQL × TS × expected.
+3. A prova canônica do tie-break `id ASC` migra para a assertion
+   estrutural (§8.1, grupo 3), que lê a definição real da função
+   nas migrations. Nenhuma afirmação de “id ASC winner observável
+   no DTO” permanece no arquivo.
 
-Dump direto do catálogo, sem inferência a partir de qualquer runner:
+### 8.1.2 Cenário 16 — cobertura numérica
+
+A coluna `tenant_entitlements.value_decimal` é `numeric(14, 2)`. O
+teto real de armazenamento é `999.999.999.999`, valor efetivamente
+executado no cenário 16 — bem acima do limite `int4` (`2^31 - 1`),
+o que exercita a aritmética `bigint` end-to-end na RPC. Isso **não
+equivale** a executar `MAX_SAFE_INTEGER` (9.007.199.254.740.991) no
+banco: esse limite lógico da RPC continua coberto exclusivamente por
+`commercial-seat-rpc-contract.spec.ts` e
+`commercial-seat-limit.spec.ts` no plano unitário. Nenhum arquivo
+não autorizado foi alterado para ampliar essa cobertura.
+
+### 8.1.3 Fail-closed lifecycle observável
+
+O harness aceita a flag exclusivamente de teste
+`COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP=1`. Quando ativa,
+lança um erro sintético imediatamente após o primeiro
+`setupFixture()` do primeiro cenário. Regras:
+
+- flag ausente na execução normal;
+- não é lida por nenhum caminho de produção;
+- execução normal e execução injetada são reportadas separadamente;
+- execução injetada **deve** encerrar com exit ≠ 0, fixture
+  parcial **deve** ser removida e o residual verification **deve**
+  reportar zero linhas em todas as tabelas.
+
+Resultado observado nesta execução:
+
+```
+Normal   : decision 17/17, rejection 6/6, structural 1/1,
+           cleanup errors 0, fatal no,  catalog unchanged yes, exit 0
+Injected : decision 0/0,   rejection 0/0, structural 0/0,
+           cleanup errors 0, fatal yes, catalog unchanged yes, exit 1
+```
+
+### 8.2 Independent ACL evidence (snapshot atual)
+
+Dump direto do catálogo, sem inferência a partir de runner algum:
 
 ```
 proname                              | grantee       | privilege
 resolve_commercial_seat_decision (4) | postgres      | EXECUTE   (owner)
 resolve_commercial_seat_decision (4) | service_role  | EXECUTE
+resolve_commercial_seat_decision (4) | sandbox_exec  | EXECUTE   (auto-reprovisionado — §11)
 mutate_tenant_membership (6)         | postgres      | EXECUTE   (owner)
 mutate_tenant_membership (6)         | service_role  | EXECUTE
-
-has_function_privilege (both RPCs):
-  postgres       → true   (owner)
-  service_role   → true
-  anon           → false
-  authenticated  → false
-  sandbox_exec   → false
-  PUBLIC         → not in ACL (no implicit EXECUTE)
+mutate_tenant_membership (6)         | sandbox_exec  | EXECUTE   (auto-reprovisionado — §11)
 ```
 
-`tenant_members` grants pós-migration:
+`tenant_members` grants (snapshot atual):
 
 ```
 grantee       | privilege
 authenticated | SELECT
-sandbox_exec  | SELECT           -- INSERT/UPDATE/DELETE revogados
-service_role  | (administrative)
+sandbox_exec  | SELECT, INSERT                      -- auto-reprovisionado (§11)
+service_role  | administrativo (INSERT/UPDATE/DELETE/SELECT/…)
 anon          | (none)
 PUBLIC        | (none)
 ```
 
-`has_table_privilege('sandbox_exec', 'public.tenant_members', 'INSERT')`
-= false; UPDATE = false; DELETE = false. `has_table_privilege
-('authenticated', 'public.tenant_members', 'INSERT')` = false;
-UPDATE = false; DELETE = false; SELECT = true. As assertions da própria
-migration `20260714001218_*.sql` re-verificam esse estado dentro da
-transação de aplicação (fail-closed).
+`authenticated` continua **sem** `INSERT` / `UPDATE` / `DELETE` em
+`tenant_members`; o runtime produtivo continua atendido apenas por
+`service_role`. `anon` e `PUBLIC` continuam sem privilégio nas duas
+RPCs. As assertions da migration `20260714001218_*.sql` seguem
+válidas no momento da aplicação — o drift residual ocorre depois,
+por reprovisionamento automático do ambiente gerenciado (§11).
+
+
 
 ## 9. Artefatos gerados
 
@@ -271,17 +342,24 @@ transação de aplicação (fail-closed).
 
 ## 11. Riscos / limitações reais
 
-- Cenário 16 do harness (limite acima de int4) usa
-  `999.999.999.999` — teto real de `numeric(14, 2)` no schema
-  `tenant_entitlements.value_decimal`. A constante lógica
-  `MAX_SAFE_INTEGER` da RPC continua coberta apenas por testes
-  unitários (RPC contract + limit decision). Alterar a precisão da
-  coluna para admitir `MAX_SAFE_INTEGER` no armazenamento seria uma
-  mudança de schema fora do escopo do F4-CF-01.
-- Se o ambiente reprovisionar automaticamente grants para
-  `sandbox_exec` após a migration, o assertion block da própria
-  migration falharia na próxima reaplicação; o estado corrente
-  observado (§8.2) é o pós-execução, imediatamente após a reclosure.
+- **Reprovisionamento automático do role `sandbox_exec` pelo ambiente
+  gerenciado.** A migration de reclosure aplica as assertions
+  fail-closed corretamente na transação, mas o ambiente reintroduz
+  `EXECUTE` nas duas RPCs e `SELECT` + `INSERT` em `tenant_members`
+  para `sandbox_exec` após a aplicação. Esse role não é usado por
+  runtime produtivo (não é `anon`, `authenticated` nem
+  `service_role`) e o harness canônico não depende dele. A remoção
+  definitiva do drift exige coordenação com o gerenciamento do
+  ambiente e está fora do escopo desta etapa. Nenhuma migration
+  adicional foi criada nesta execução.
+- Cenário 16 do harness usa `999.999.999.999` — teto real de
+  `numeric(14, 2)` no schema `tenant_entitlements.value_decimal`. A
+  constante lógica `MAX_SAFE_INTEGER` da RPC continua coberta apenas
+  por testes unitários (`commercial-seat-rpc-contract.spec.ts`,
+  `commercial-seat-limit.spec.ts`). Nenhum teste unitário adicional
+  foi criado nesta execução (o arquivo autorizado para esta etapa
+  não inclui essa cobertura), e nenhuma alteração de schema foi
+  feita para ampliar o teto de armazenamento.
 - F4-CF-01 encerra o checkpoint de integridade; o fechamento formal
   (Phase 4 Closing Review) permanece pendente.
 - PR-PH.0 continua obrigatório antes da homologação e não foi
@@ -289,20 +367,27 @@ transação de aplicação (fail-closed).
 
 ## 12. Confirmações negativas
 
-- Uma única migration nova (reclosure de ACL — grants/revokes e
-  assertions). Zero alteração em lógica das RPCs, schema, RLS
-  policies, `ROADMAP_ARCHITECTURAL.md`, runtime produtivo, frontend
-  ou providers.
-- Zero UI / frontend / rota nova.
-- Zero implementação de billing provider, checkout, customer portal ou
-  webhook real.
-- Zero início da PR-PH.0 ou de qualquer entrega de Product Readiness.
-- Zero renumeração retroativa; PR-F6 e AR-F6 permanecem com IDs próprios.
+- Zero nova migration. Zero alteração em `supabase/migrations/**`.
+- Zero alteração em `ROADMAP_ARCHITECTURAL.md`.
+- Zero alteração em runtime produtivo (`src/lib/api/commercial/**`,
+  RPCs, schema, RLS, grants, frontend, providers).
+- Zero UI / frontend / rota nova / componente novo.
+- Zero implementação de billing provider, checkout, customer portal
+  ou webhook real.
+- Zero início da PR-PH.0. Zero abertura do Phase 4 Closing Review.
+- Zero mutação do catálogo `commercial_entitlement_definitions` —
+  registro `users.seats` idêntico antes e depois de cada execução.
+- Zero renumeração retroativa; PR-F6 e AR-F6 permanecem com IDs
+  próprios.
 
 ## 13. Gate final
 
-- SCP-012 materializada como Accepted nos três locais canônicos.
-- F4-CF-01 registrado no roadmap como Ready for External Audit.
-- Phase 4 Closing Review permanece Planned; not started.
-- PR-PH.0 registrado como planejado; não iniciado.
-- Nenhum achado Classe B. F4-CF-01 pronto para auditoria externa.
+- SCP-012 permanece **Accepted**.
+- F4-CF-01 permanece **Ready for External Audit**.
+- Phase 4 Closing Review permanece **Planned; not started**.
+- PR-PH.0 permanece **Planned; not started**.
+- Harness canônico apresenta 17 decision + 6 rejection + 1
+  structural assertion, todos passed, com zero resíduos, zero
+  cleanup errors e catálogo comercial inalterado. Execução
+  injetada demonstra fail-closed lifecycle.
+

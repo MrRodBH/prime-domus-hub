@@ -2,32 +2,38 @@
 //
 // Executes against real PostgreSQL (Supabase managed) exclusively via
 // the service-role admin client — no `psql`, no `PGHOST`, no
-// sandbox_exec role. Each scenario:
+// sandbox_exec role.
 //
-//   1. builds isolated synthetic fixtures under a per-run UUID
-//      namespace using service-role INSERTs (auth users included);
-//   2. invokes the SQL authority
-//      `public.resolve_commercial_seat_decision(...)` via
-//      `admin.rpc(...)`;
-//   3. computes the TypeScript oracle
-//      (`decideCommercialFeature` + `extractSeatLimit` +
-//      `decideCommercialSeatLimit`) from the SAME fixture definition;
-//   4. asserts deep equality of BOTH DTOs against a canonical
-//      expected DTO hand-crafted per scenario across the full field
-//      set (tenantId, featureKey, allowed, reason, source, limit,
-//      used, requestedIncrement, remaining);
-//   5. cleans up every inserted row and every auth user fail-closed —
-//      any deletion or residual-verification error fails the runner.
+// Groups (reported separately):
+//   • decision parity scenarios — real RPC invocation vs TS oracle vs
+//     canonical expected DTO, deep-equal across the full field set;
+//   • rejection contract scenarios — real RPC invocation with inputs
+//     that MUST raise, asserting exact contract code + message prefix;
+//   • structural ordering assertion — reads the latest CREATE FUNCTION
+//     of `resolve_commercial_seat_decision` from versioned migrations
+//     and verifies the canonical status priority + started_at DESC
+//     NULLS LAST + id ASC ordering is present.
 //
 // Boundaries:
-//   • zero mutation of production commercial data — every fixture uses
-//     fresh UUIDs and a synthetic auth user set;
-//   • no fixed auth user id, no fixed tenant / plan / subscription;
-//   • no `.catch(() => {})` in cleanup — errors are accumulated and
-//     surfaced;
+//   • the harness does NOT mutate global catalog rows. The
+//     `commercial_entitlement_definitions.users.seats` row is verified
+//     read-only in preflight; a missing / disabled / mistyped row
+//     fails the runner fail-closed — the harness does not repair
+//     production catalog state.
+//   • every fixture uses freshly generated UUIDs and synthetic auth
+//     users; nothing is fixed across runs.
+//   • all setup runs inside a top-level try/finally; cleanup is always
+//     executed and its errors are surfaced.
+//   • `COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP=1` injects a
+//     synthetic error after the first setupFixture returns, to
+//     demonstrate that cleanup runs and residues stay zero. This flag
+//     is test-only; production code never reads it.
 //   • harness fixtures use service_role because the SCP-012 ACL
 //     forbids client roles from seeding these tables. This is test
 //     infrastructure and does not create a production runtime path.
+
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -72,6 +78,56 @@ const createdAuthUsers = new Set<string>();
 const createdTenants = new Set<string>();
 const createdPlans = new Set<string>();
 const grantedSuperAdmins = new Set<string>();
+
+// ============================================================
+// Catalog snapshot (read-only)
+// ============================================================
+
+export interface CatalogSnapshot {
+  key: string | null;
+  value_type: string | null;
+  is_active: boolean | null;
+  name: string | null;
+  unit: string | null;
+  description: string | null;
+}
+
+async function readCatalogSnapshot(): Promise<CatalogSnapshot> {
+  const { data, error } = await admin
+    .from("commercial_entitlement_definitions" as Any)
+    .select("key, value_type, is_active, name, unit, description")
+    .eq("key", SEAT_FEATURE_KEY)
+    .maybeSingle();
+  if (error) throw new Error(`catalog snapshot read failed: ${error.message}`);
+  if (!data) return { key: null, value_type: null, is_active: null, name: null, unit: null, description: null };
+  const d = data as Record<string, unknown>;
+  return {
+    key: (d.key as string | null) ?? null,
+    value_type: (d.value_type as string | null) ?? null,
+    is_active: (d.is_active as boolean | null) ?? null,
+    name: (d.name as string | null) ?? null,
+    unit: (d.unit as string | null) ?? null,
+    description: (d.description as string | null) ?? null,
+  };
+}
+
+/**
+ * Read-only preflight for the `users.seats` catalog row.
+ * Fail-closed: any drift is a precondition failure, not a repair opportunity.
+ */
+async function validateCatalogPreconditions(): Promise<CatalogSnapshot> {
+  const snap = await readCatalogSnapshot();
+  const fail = (msg: string) => {
+    throw new Error(
+      `catalog precondition failed: ${msg}. ` +
+      `the integration harness does not repair production catalog state.`,
+    );
+  };
+  if (snap.key !== SEAT_FEATURE_KEY) fail(`missing ${SEAT_FEATURE_KEY} definition`);
+  if (snap.value_type !== "integer") fail(`value_type=${String(snap.value_type)} (expected integer)`);
+  if (snap.is_active !== true) fail(`is_active=${String(snap.is_active)} (expected true)`);
+  return snap;
+}
 
 // ============================================================
 // Auth user helpers
@@ -131,7 +187,6 @@ interface FixtureSpec {
     | null;
   memberships?: MembershipSpec[];
   providerMapping?: boolean;
-  // Populated by setupFixture.
   memberUserIds?: string[];
 }
 
@@ -345,6 +400,11 @@ function tsOracle(f: FixtureSpec, requestedIncrement: number): CommercialLimitDe
 // SQL invocation
 // ============================================================
 
+interface RpcErrorShape {
+  message: string;
+  code?: string;
+}
+
 async function sqlOracle(
   actorUserId: string,
   tenantId: string,
@@ -365,6 +425,24 @@ async function sqlOracle(
   return data as CommercialLimitDecision;
 }
 
+async function sqlOracleExpectError(
+  actorUserId: string,
+  tenantId: string,
+  tenantOrigin: string,
+  increment: number,
+): Promise<{ data: unknown; error: RpcErrorShape | null }> {
+  const { data, error } = await admin.rpc(
+    "resolve_commercial_seat_decision" as Any,
+    {
+      _actor_user_id: actorUserId,
+      _tenant_id: tenantId,
+      _tenant_origin: tenantOrigin,
+      _requested_increment: increment,
+    } as Any,
+  );
+  return { data, error: error as RpcErrorShape | null };
+}
+
 // ============================================================
 // Deep equality
 // ============================================================
@@ -383,7 +461,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 // ============================================================
-// Scenarios
+// Decision parity scenarios
 // ============================================================
 
 interface Scenario {
@@ -551,10 +629,13 @@ function buildScenarios(): Scenario[] {
       expected: (f) => baseDto(f.tenantId, { allowed: true, reason: "entitled", source: "tenant", limit: 2147483648, used: 0, remaining: 2147483648 }),
     },
     {
-      // Column `value_decimal` is numeric(14,2); the RPC's MAX_SAFE_INTEGER
-      // ceiling is unreachable at storage. Use the largest integer that
-      // fits the column and is still well beyond int4 (2^31 - 1) — this
-      // exercises the bigint arithmetic path end-to-end.
+      // Column `value_decimal` is numeric(14,2); the RPC's logical
+      // MAX_SAFE_INTEGER ceiling is NOT reachable at storage. We
+      // exercise the largest integer that fits the schema (10^12-1)
+      // — this is well beyond int4 (2^31-1) and thus exercises the
+      // bigint arithmetic path end-to-end. This is NOT equivalent to
+      // executing MAX_SAFE_INTEGER against the database; that upper
+      // bound is only exercised by the unit-level RPC contract test.
       name: "16. limit beyond int4 (numeric(14,2) upper bound) → entitled bigint arithmetic",
       build: () => ({
         tenantId: uuid(),
@@ -564,11 +645,18 @@ function buildScenarios(): Scenario[] {
       expected: (f) => baseDto(f.tenantId, { allowed: true, reason: "entitled", source: "tenant", limit: 999999999999, used: 0, remaining: 999999999999 }),
     },
     {
-      name: "17. subscription tie: same status/started_at → id ASC wins",
+      // Historically named "id ASC winner". That framing was a false
+      // positive: with two `canceled` subscriptions and identical
+      // started_at, the RPC DTO cannot expose which subscription won
+      // (no subscription id in the output). Renamed to reflect what
+      // this scenario ACTUALLY proves: the decision is stable and
+      // canonical under duplicate rows, and SQL / TS / expected agree.
+      // The true id-ASC tie-break rule is proven separately by the
+      // structural ordering assertion below (not counted as a
+      // decision scenario).
+      name: "17. duplicate canceled subscriptions with equal started_at → canonical billing_blocked decision",
       build: () => {
-        // Two canonical UUIDs — a<b, both canceled.
-        const idA = "00000000-0000-0000-0000-0000000000a1";
-        const idB = "00000000-0000-0000-0000-0000000000b1";
+        const [idA, idB] = [uuid(), uuid()].sort();
         const planA = uuid();
         const planB = uuid();
         return {
@@ -587,6 +675,123 @@ function buildScenarios(): Scenario[] {
 }
 
 // ============================================================
+// Rejection contract scenarios
+// ============================================================
+
+interface RejectionCase {
+  name: string;
+  /** Called with the shared super admin actor id, may create fixtures. */
+  run: (superActorId: string) => Promise<{ data: unknown; error: RpcErrorShape | null }>;
+  /** substring or prefix that must appear in error.message */
+  expectMessageIncludes: string;
+  /** optional SQLSTATE code */
+  expectCode?: string;
+}
+
+function buildRejectionCases(): RejectionCase[] {
+  return [
+    {
+      name: "R1. requestedIncrement = 0 → Invalid requestedIncrement (22023)",
+      run: (uid) => sqlOracleExpectError(uid, uuid(), "impersonation", 0),
+      expectMessageIncludes: "Invalid requestedIncrement",
+      expectCode: "22023",
+    },
+    {
+      name: "R2. requestedIncrement = 2 → Invalid requestedIncrement (22023)",
+      run: (uid) => sqlOracleExpectError(uid, uuid(), "impersonation", 2),
+      expectMessageIncludes: "Invalid requestedIncrement",
+      expectCode: "22023",
+    },
+    {
+      name: "R3. tenant_origin = 'bogus' → Invalid tenant origin (22023)",
+      run: (uid) => sqlOracleExpectError(uid, uuid(), "bogus", 1),
+      expectMessageIncludes: "Invalid tenant origin",
+      expectCode: "22023",
+    },
+    {
+      name: "R4. actor uuid not in auth.users → Actor not found (22023)",
+      run: () => sqlOracleExpectError(uuid(), uuid(), "impersonation", 1),
+      expectMessageIncludes: "Actor not found",
+      expectCode: "22023",
+    },
+    {
+      // Requires a real tenant, otherwise "Tenant not found" fires first
+      // (existence checks precede the origin/role check in the RPC).
+      name: "R5. super admin actor with origin=selection → Super admin requires impersonation origin (22023)",
+      run: async (uid) => {
+        const tid = uuid();
+        await insertOrThrow("tenants", {
+          id: tid,
+          slug: slug("r5", tid),
+          nome: `F4CF01 rej ${tid.slice(0, 8)}`,
+          status: "ativo",
+        }, `rejection tenant ${tid}`);
+        createdTenants.add(tid);
+        return sqlOracleExpectError(uid, tid, "selection", 1);
+      },
+      expectMessageIncludes: "Super admin requires impersonation origin",
+      expectCode: "22023",
+    },
+    {
+      name: "R6. super admin with impersonation but tenant not found → Tenant not found (22023)",
+      // super admin passes actor validation; tenant existence is checked next.
+      run: (uid) => sqlOracleExpectError(uid, uuid(), "impersonation", 1),
+      expectMessageIncludes: "Tenant not found",
+      expectCode: "22023",
+    },
+  ];
+}
+
+// ============================================================
+// Structural ordering assertion — reads canonical CREATE FUNCTION
+// from versioned migrations. NOT counted as a decision scenario.
+// ============================================================
+
+interface StructuralResult {
+  name: string;
+  ok: boolean;
+  reason?: string;
+}
+
+function readCanonicalResolveFunctionBody(): { body: string; migration: string } {
+  const dir = "supabase/migrations";
+  const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  let picked: { body: string; migration: string } | null = null;
+  // Match any dollar-quoted tag: `$fn$`, `$function$`, `$$`, `$body$`, etc.
+  const rx = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.resolve_commercial_seat_decision\b[\s\S]*?AS\s+(\$[A-Za-z_]*\$)([\s\S]*?)\1/gi;
+  for (const f of files) {
+    const src = readFileSync(join(dir, f), "utf8");
+    let m: RegExpExecArray | null;
+    rx.lastIndex = 0;
+    while ((m = rx.exec(src)) !== null) {
+      picked = { body: m[2], migration: f };
+    }
+  }
+  if (!picked) throw new Error("canonical CREATE FUNCTION resolve_commercial_seat_decision not found in migrations");
+  return picked;
+}
+
+function structuralOrderingAssertion(): StructuralResult {
+  const name = "S1. resolve_commercial_seat_decision subscription ordering (status priority, started_at DESC NULLS LAST, id ASC)";
+  try {
+    const { body, migration } = readCanonicalResolveFunctionBody();
+    const norm = body.replace(/\s+/g, " ").toLowerCase();
+    // Locate the ORDER BY that governs subscription pick. We look for
+    // the sequence: CASE status ... 'active' ... ORDER BY appears
+    // implicitly via the ORDER BY … CASE status WHEN 'active' THEN 0
+    // pattern, followed by started_at desc nulls last, then id asc,
+    // then limit 1.
+    const orderRx = /order by\s+case status[\s\S]*?when 'active'\s*then 0[\s\S]*?started_at desc nulls last[\s\S]*?,\s*id asc\s+limit 1/;
+    if (!orderRx.test(norm)) {
+      return { name, ok: false, reason: `canonical ordering not matched in ${migration}` };
+    }
+    return { name, ok: true };
+  } catch (e) {
+    return { name, ok: false, reason: (e as Error).message };
+  }
+}
+
+// ============================================================
 // Cleanup (fail-closed)
 // ============================================================
 
@@ -596,7 +801,7 @@ function isCanonicalAuthUserNotFound(error: unknown): boolean {
   return e.name === "AuthApiError" && e.status === 404 && e.code === "user_not_found";
 }
 
-async function runCleanup(): Promise<string[]> {
+async function runCleanupFailClosed(): Promise<string[]> {
   const errors: string[] = [];
 
   // Leaf tables scoped by tenant first.
@@ -612,7 +817,6 @@ async function runCleanup(): Promise<string[]> {
     }
   }
 
-  // Plans and their entitlements.
   for (const pid of createdPlans) {
     const { error: peErr } = await admin.from("commercial_plan_entitlements" as Any).delete().eq("plan_id", pid);
     if (peErr) errors.push(`delete commercial_plan_entitlements for ${pid}: ${peErr.message}`);
@@ -620,40 +824,41 @@ async function runCleanup(): Promise<string[]> {
     if (pErr) errors.push(`delete commercial_plans ${pid}: ${pErr.message}`);
   }
 
-  // Tenants.
   for (const tid of createdTenants) {
     const { error } = await admin.from("tenants" as Any).delete().eq("id", tid);
     if (error) errors.push(`delete tenants ${tid}: ${error.message}`);
   }
 
-  // user_roles cascade on auth.users delete; explicit delete first anyway.
   for (const uid of grantedSuperAdmins) {
     const { error } = await admin.from("user_roles" as Any).delete().eq("user_id", uid);
     if (error) errors.push(`delete user_roles ${uid}: ${error.message}`);
   }
 
-  // Auth users.
   for (const uid of createdAuthUsers) {
     const { error } = await admin.auth.admin.deleteUser(uid);
     if (error) errors.push(`deleteUser ${uid}: ${error.message}`);
   }
 
-  // Residual verification — errors count as inconclusive, not proof of absence.
+  // Residual verification.
   async function residual(table: string, column: string, value: string, label: string) {
     const { data, error } = await admin.from(table as Any).select(column).eq(column, value);
     if (error) errors.push(`residual ${label}: ${error.message}`);
+    else if (data == null) errors.push(`residual ${label}: unexpected null response`);
     else if ((data ?? []).length > 0) errors.push(`residual rows ${label}: ${JSON.stringify(data)}`);
   }
   for (const tid of createdTenants) {
-    await residual("tenant_members", "tenant_id", tid, `tenant_members(${tid})`);
-    await residual("tenant_subscriptions", "tenant_id", tid, `tenant_subscriptions(${tid})`);
-    await residual("tenant_entitlements", "tenant_id", tid, `tenant_entitlements(${tid})`);
     await residual("tenant_billing_provider_mappings", "tenant_id", tid, `tenant_billing_provider_mappings(${tid})`);
+    await residual("tenant_members", "tenant_id", tid, `tenant_members(${tid})`);
+    await residual("tenant_entitlements", "tenant_id", tid, `tenant_entitlements(${tid})`);
+    await residual("tenant_subscriptions", "tenant_id", tid, `tenant_subscriptions(${tid})`);
     await residual("tenants", "id", tid, `tenants(${tid})`);
   }
   for (const pid of createdPlans) {
     await residual("commercial_plan_entitlements", "plan_id", pid, `commercial_plan_entitlements(${pid})`);
     await residual("commercial_plans", "id", pid, `commercial_plans(${pid})`);
+  }
+  for (const uid of grantedSuperAdmins) {
+    await residual("user_roles", "user_id", uid, `user_roles(${uid})`);
   }
   for (const uid of createdAuthUsers) {
     const { data, error } = await admin.auth.admin.getUserById(uid);
@@ -662,7 +867,7 @@ async function runCleanup(): Promise<string[]> {
     } else if (error && isCanonicalAuthUserNotFound(error)) {
       // deletion proven
     } else if (error) {
-      errors.push(`auth residual verification ${uid}: ${error.message}`);
+      errors.push(`auth residual verification ${uid}: ${(error as Error).message}`);
     } else {
       errors.push(`auth residual verification returned empty response for ${uid}`);
     }
@@ -685,76 +890,163 @@ interface ScenarioResult {
 }
 
 export interface SqlParityResult {
-  passed: number;
-  failed: number;
-  results: ScenarioResult[];
+  decisionPassed: number;
+  decisionFailed: number;
+  decisionResults: ScenarioResult[];
+  rejectionPassed: number;
+  rejectionFailed: number;
+  rejectionResults: ScenarioResult[];
+  structuralPassed: number;
+  structuralFailed: number;
+  structuralResults: StructuralResult[];
   cleanupErrors: string[];
+  fatalError: string | null;
+  catalogBefore: CatalogSnapshot | null;
+  catalogAfter: CatalogSnapshot | null;
+  catalogUnchanged: boolean;
 }
 
-export async function runCommercialSeatSqlParitySpecs(): Promise<SqlParityResult> {
-  // Ensure the users.seats definition exists in the catalog table.
-  {
-    const { error } = await admin.from("commercial_entitlement_definitions" as Any).upsert({
-      key: SEAT_FEATURE_KEY,
-      name: "Seat limit",
-      description: "Seat limit",
-      value_type: "integer",
-      unit: "seats",
-      is_active: true,
-    } as Any, { onConflict: "key" } as Any);
-    if (error) throw new Error(`entitlement definition upsert: ${error.message}`);
-  }
+async function executeAllChecks(actorId: string): Promise<{
+  decisionResults: ScenarioResult[];
+  rejectionResults: ScenarioResult[];
+  structuralResults: StructuralResult[];
+}> {
+  const decisionResults: ScenarioResult[] = [];
+  const rejectionResults: ScenarioResult[] = [];
+  const structuralResults: StructuralResult[] = [];
 
-  // One synthetic super_admin actor shared across scenarios.
-  const actorId = await createAuthUser("super");
-  await grantSuperAdmin(actorId);
+  const injectAfterSetup = process.env.COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP === "1";
+  let injected = false;
 
+  // Decision parity.
   const scenarios = buildScenarios();
-  const results: ScenarioResult[] = [];
-  let passed = 0;
-  let failed = 0;
-
   for (const sc of scenarios) {
     const f = sc.build();
-    try {
-      await setupFixture(f);
-    } catch (e) {
-      failed++;
-      results.push({ name: sc.name, ok: false, reason: `setup: ${(e as Error).message}` });
-      continue;
+    await setupFixture(f);
+
+    if (injectAfterSetup && !injected) {
+      injected = true;
+      throw new Error("INJECTED_FAILURE_AFTER_SETUP: synthetic error to exercise fail-closed teardown");
     }
 
     let sqlDto: CommercialLimitDecision;
     try {
       sqlDto = await sqlOracle(actorId, f.tenantId, sc.origin ?? "impersonation", sc.increment ?? 1);
     } catch (e) {
-      failed++;
-      results.push({ name: sc.name, ok: false, reason: `SQL threw: ${(e as Error).message}` });
+      decisionResults.push({ name: sc.name, ok: false, reason: `SQL threw: ${(e as Error).message}` });
       continue;
     }
-    const tsDto = tsOracle(f, sc.increment ?? 1);
-    const expected = sc.expected(f);
+    let tsDto: CommercialLimitDecision;
+    let expected: CommercialLimitDecision;
+    try {
+      tsDto = tsOracle(f, sc.increment ?? 1);
+      expected = sc.expected(f);
+    } catch (e) {
+      decisionResults.push({ name: sc.name, ok: false, reason: `oracle/expected threw: ${(e as Error).message}` });
+      continue;
+    }
 
     const okSql = deepEqual(sqlDto, expected);
     const okTs = deepEqual(tsDto, expected);
     const okParity = deepEqual(sqlDto, tsDto);
 
     if (okSql && okTs && okParity) {
-      passed++;
-      results.push({ name: sc.name, ok: true });
+      decisionResults.push({ name: sc.name, ok: true });
     } else {
-      failed++;
-      results.push({
-        name: sc.name,
-        ok: false,
+      decisionResults.push({
+        name: sc.name, ok: false,
         reason: `sql=${okSql} ts=${okTs} parity=${okParity}`,
-        expected,
-        ts: tsDto,
-        sql: sqlDto,
+        expected, ts: tsDto, sql: sqlDto,
       });
     }
   }
 
-  const cleanupErrors = await runCleanup();
-  return { passed, failed, results, cleanupErrors };
+  // Rejection contract.
+  const rejections = buildRejectionCases();
+  for (const rc of rejections) {
+    try {
+      const { data, error } = await rc.run(actorId);
+      if (!error) {
+        rejectionResults.push({ name: rc.name, ok: false, reason: `expected error, got data=${JSON.stringify(data)}` });
+        continue;
+      }
+      if (!error.message.includes(rc.expectMessageIncludes)) {
+        rejectionResults.push({ name: rc.name, ok: false, reason: `message '${error.message}' does not include '${rc.expectMessageIncludes}'` });
+        continue;
+      }
+      if (rc.expectCode && error.code && error.code !== rc.expectCode) {
+        rejectionResults.push({ name: rc.name, ok: false, reason: `code '${error.code}' != expected '${rc.expectCode}'` });
+        continue;
+      }
+      rejectionResults.push({ name: rc.name, ok: true });
+    } catch (e) {
+      rejectionResults.push({ name: rc.name, ok: false, reason: `runner threw: ${(e as Error).message}` });
+    }
+  }
+
+  // Structural ordering assertion.
+  structuralResults.push(structuralOrderingAssertion());
+
+  return { decisionResults, rejectionResults, structuralResults };
+}
+
+function catalogEquals(a: CatalogSnapshot | null, b: CatalogSnapshot | null): boolean {
+  if (a == null || b == null) return a === b;
+  return a.key === b.key
+    && a.value_type === b.value_type
+    && a.is_active === b.is_active
+    && a.name === b.name
+    && a.unit === b.unit
+    && a.description === b.description;
+}
+
+export async function runCommercialSeatSqlParitySpecs(): Promise<SqlParityResult> {
+  let fatalError: string | null = null;
+  let cleanupErrors: string[] = [];
+  let decisionResults: ScenarioResult[] = [];
+  let rejectionResults: ScenarioResult[] = [];
+  let structuralResults: StructuralResult[] = [];
+  let catalogBefore: CatalogSnapshot | null = null;
+  let catalogAfter: CatalogSnapshot | null = null;
+
+  try {
+    catalogBefore = await validateCatalogPreconditions();
+    const actorId = await createAuthUser("super");
+    await grantSuperAdmin(actorId);
+    const groups = await executeAllChecks(actorId);
+    decisionResults = groups.decisionResults;
+    rejectionResults = groups.rejectionResults;
+    structuralResults = groups.structuralResults;
+  } catch (e) {
+    fatalError = (e as Error).message;
+  } finally {
+    try {
+      cleanupErrors = await runCleanupFailClosed();
+    } catch (e) {
+      cleanupErrors = [`cleanup threw: ${(e as Error).message}`];
+    }
+    try {
+      catalogAfter = await readCatalogSnapshot();
+    } catch (e) {
+      cleanupErrors.push(`catalog post-snapshot: ${(e as Error).message}`);
+    }
+  }
+
+  const decisionPassed = decisionResults.filter((r) => r.ok).length;
+  const decisionFailed = decisionResults.length - decisionPassed;
+  const rejectionPassed = rejectionResults.filter((r) => r.ok).length;
+  const rejectionFailed = rejectionResults.length - rejectionPassed;
+  const structuralPassed = structuralResults.filter((r) => r.ok).length;
+  const structuralFailed = structuralResults.length - structuralPassed;
+
+  return {
+    decisionPassed, decisionFailed, decisionResults,
+    rejectionPassed, rejectionFailed, rejectionResults,
+    structuralPassed, structuralFailed, structuralResults,
+    cleanupErrors,
+    fatalError,
+    catalogBefore,
+    catalogAfter,
+    catalogUnchanged: catalogEquals(catalogBefore, catalogAfter),
+  };
 }
