@@ -79,6 +79,41 @@ Regras normativas:
 - **Business → Database:** RLS é a última linha de defesa; nunca a
   primeira.
 
+### 3.1 Application trust boundary vs Managed operational trust boundary
+
+A ACL física do banco tem dois planos, e este documento é normativo
+apenas sobre o primeiro:
+
+- **Application trust boundary (in-scope):** todo principal alcançável
+  a partir do produto — `anon`, `authenticated`, `authenticator` (JWT
+  do PostgREST), `service_role` e qualquer role assumida por meio de
+  código de aplicação, secret do produto, JWT, frontend, server
+  runtime, cron externo ou webhook público. Autoridade aqui é
+  regulada por RLS, `GRANT`s, ACLs de função e este documento.
+- **Managed operational trust boundary (out-of-scope):** roles
+  operacionais provisionadas e mantidas pela plataforma gerenciada
+  (por exemplo, `sandbox_exec` no ambiente Supabase) que **não** são
+  assumíveis por nenhum principal de aplicação
+  (`pg_has_role(principal, role, 'MEMBER') = false` para todo
+  principal de aplicação), **não** aparecem em código, secrets ou
+  configuração do produto e cujo ciclo de vida é controlado pela
+  plataforma. Privilégios físicos concedidos a essas roles não
+  transferem autoridade a nenhum principal de aplicação e são
+  aceitos como dependência operacional da plataforma.
+
+Requisitos permanentes para tratar uma role como "managed operational":
+
+1. Não é `anon`, `authenticated`, `authenticator` nem `service_role`.
+2. `pg_has_role` = `false` para todo principal de aplicação.
+3. Zero uso em `src/`, secrets, `.env`, configuração de runtime,
+   pipeline de deploy do produto ou credenciais do produto.
+4. Origem e administração são exclusivas da plataforma gerenciada.
+5. Alteração dessa postura pela plataforma reabre a análise.
+
+Qualquer role que **falhe qualquer** um destes critérios é tratada
+como parte do trust boundary da aplicação e deve satisfazer o
+princípio de menor privilégio como se fosse `anon` / `authenticated`.
+
 ---
 
 ## 4. Authentication
