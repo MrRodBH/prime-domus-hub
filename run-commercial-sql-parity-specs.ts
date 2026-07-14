@@ -1,25 +1,28 @@
 // F4-CF-01 — CURRENT CANONICAL INTEGRATION GATE for the executable
 // SQL / TypeScript parity harness (`commercial-seat-sql-parity.spec.ts`).
 //
-// The harness runs against real PostgreSQL (Supabase managed) exclusively
-// through the service-role admin client. It:
-//   • provisions synthetic fixtures (auth users, tenant, plan,
-//     subscription, entitlement, memberships, provider mapping) per
-//     scenario under an isolated UUID namespace;
-//   • invokes `public.resolve_commercial_seat_decision` via
-//     `admin.rpc(...)`;
-//   • computes the canonical TypeScript oracle
-//     (`decideCommercialFeature` + `extractSeatLimit` +
-//     `decideCommercialSeatLimit`) from the same fixture;
-//   • asserts full-field deep equality between SQL DTO, TS DTO and the
-//     expected DTO;
-//   • tears down every row and every auth user fail-closed, surfacing
-//     any deletion or residual verification error.
+// Reports three distinct groups:
+//   • decision parity scenarios (SQL DTO × TS DTO × expected DTO,
+//     full-field deep equal);
+//   • rejection contract scenarios (real RPC errors with canonical
+//     code + message);
+//   • structural ordering assertion (canonical CREATE FUNCTION body
+//     read from versioned migrations — proves the id-ASC tie-break
+//     rule that the DTO cannot observe).
 //
-// This runner does NOT require `psql`, `PGHOST`, or the sandbox_exec
-// PostgreSQL role. It requires only:
+// Setup + scenarios are protected by a top-level try/finally; cleanup
+// is always executed and its residual verification is fail-closed
+// (any error, unexpected null response, or residual row aborts the
+// runner). The `users.seats` catalog row is validated read-only —
+// the harness never repairs production catalog state.
+//
+// Environment:
 //   • SUPABASE_URL
 //   • SUPABASE_SERVICE_ROLE_KEY
+//   • COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP=1 (test-only)
+//     Injects a synthetic error after the first setupFixture returns
+//     to demonstrate the fail-closed teardown. In this mode the
+//     runner MUST exit non-zero and cleanup MUST leave zero residues.
 //
 // Usage:
 //   bunx tsx --tsconfig tsconfig.json ./run-commercial-sql-parity-specs.ts
@@ -36,13 +39,19 @@ async function main() {
     process.exit(2);
   }
 
-  console.log("F4-CF-01 canonical SQL/TypeScript parity harness — running…");
-  const { passed, failed, results, cleanupErrors } = await runCommercialSeatSqlParitySpecs();
+  const injected = process.env.COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP === "1";
+  console.log(
+    injected
+      ? "F4-CF-01 harness — INJECTED-FAILURE mode (expects non-zero exit + zero residues)"
+      : "F4-CF-01 canonical SQL/TypeScript parity harness — running…",
+  );
 
-  for (const r of results) {
-    if (r.ok) {
-      console.log(`  ✓ ${r.name}`);
-    } else {
+  const result = await runCommercialSeatSqlParitySpecs();
+
+  console.log("\nDecision parity:");
+  for (const r of result.decisionResults) {
+    if (r.ok) console.log(`  ✓ ${r.name}`);
+    else {
       console.log(`  ✗ ${r.name} — ${r.reason ?? "mismatch"}`);
       if (r.expected !== undefined) {
         console.log(`    expected: ${JSON.stringify(r.expected)}`);
@@ -52,18 +61,50 @@ async function main() {
     }
   }
 
-  console.log(`\nSQL/TypeScript parity: ${passed} passed, ${failed} failed (of ${results.length} scenarios)`);
-
-  if (cleanupErrors.length > 0) {
-    console.error("CLEANUP FAILED (fail-closed):");
-    for (const e of cleanupErrors) console.error(`  - ${e}`);
-    process.exit(1);
+  console.log("\nRejection contract:");
+  for (const r of result.rejectionResults) {
+    console.log(r.ok ? `  ✓ ${r.name}` : `  ✗ ${r.name} — ${r.reason ?? "mismatch"}`);
   }
-  if (failed > 0) process.exit(1);
-  process.exit(0);
+
+  console.log("\nStructural assertions:");
+  for (const r of result.structuralResults) {
+    console.log(r.ok ? `  ✓ ${r.name}` : `  ✗ ${r.name} — ${r.reason ?? "mismatch"}`);
+  }
+
+  console.log(
+    `\nSummary — decision: ${result.decisionPassed} passed / ${result.decisionResults.length} total; ` +
+    `rejection: ${result.rejectionPassed} passed / ${result.rejectionResults.length} total; ` +
+    `structural: ${result.structuralPassed} passed / ${result.structuralResults.length} total; ` +
+    `cleanup errors: ${result.cleanupErrors.length}; ` +
+    `fatal: ${result.fatalError ? "yes" : "no"}; ` +
+    `catalog unchanged: ${result.catalogUnchanged ? "yes" : "no"}`,
+  );
+
+  console.log(`Catalog before: ${JSON.stringify(result.catalogBefore)}`);
+  console.log(`Catalog after : ${JSON.stringify(result.catalogAfter)}`);
+
+  if (result.fatalError) {
+    console.error(`\nFATAL: ${result.fatalError}`);
+  }
+  if (result.cleanupErrors.length > 0) {
+    console.error("\nCLEANUP FAILURES (fail-closed):");
+    for (const e of result.cleanupErrors) console.error(`  - ${e}`);
+  }
+
+  const anyFail =
+    result.decisionFailed > 0 ||
+    result.rejectionFailed > 0 ||
+    result.structuralFailed > 0 ||
+    result.cleanupErrors.length > 0 ||
+    result.fatalError !== null ||
+    !result.catalogUnchanged;
+
+  if (anyFail) process.exit(1);
 }
 
 void main().catch((e) => {
-  console.error(e);
+  // Sanitized error output — never echo service-role key or headers.
+  const msg = e instanceof Error ? e.message : String(e);
+  console.error(`runner threw: ${msg.slice(0, 500)}`);
   process.exit(2);
 });
