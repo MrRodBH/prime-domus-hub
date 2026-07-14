@@ -468,11 +468,33 @@ Regra vinculante desta PR-PH.0:
 - Renderers: `CmsPageRenderer.tsx`, `CmsFormRenderer.tsx`,
   `CampaignRenderer.tsx`, overlay de preview
   `CmsPreviewOverlay.tsx` — **Implemented and connected**.
-- Blocos do page builder (`src/components/content/blocks/*` e
-  `editors/`) — presentes; inventário completo (schema,
-  editor, renderer público, validação, responsividade, a11y,
-  preview, sanitização, mídia, captura de lead, analytics) é
-  responsabilidade da PR-PH.7.
+- Blocos do page builder — **inventário encerrado nesta
+  PR-PH.0** (descoberta finalizada; PR-PH.7 implementa/finaliza
+  lacunas, não redescobre). Evidência direta:
+  `src/lib/api/pages.functions.ts` (tipo `CmsBlock` + `blockSchema`
+  Zod), `src/components/content/blocks/BlockEditor.tsx`
+  (switch de editores) e `src/components/site/CmsPageRenderer.tsx`
+  (switch de renderers públicos).
+
+  | id (type) | schema (Zod) | editor | renderer público | preview | persistência | sanitização | mídia | responsividade | a11y | captura lead | analytics | teste | classificação |
+  |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|---|
+  | `hero` | ✓ | ✓ `BlockEditor.tsx:94` | ✓ `CmsPageRenderer.tsx:21` | via workspace | `cms_pages.blocks` (JSONB) | não formalizada | `imagem_url` | não gate | não gate | não | não | ausente | Implemented but incomplete (sanitização/a11y) |
+  | `richtext` | ✓ (`html`, `align`) | ✓ `:113` | ✓ `:40` | via workspace | idem | **HTML sem sanitização declarada** | não | não gate | não gate | não | não | ausente | Implemented but incomplete (XSS risk) |
+  | `image` | ✓ | ✓ `:126` | ✓ `:51` | via workspace | idem | não | ✓ | não gate | `alt` opcional | não | não | ausente | Implemented but incomplete |
+  | `gallery` | ✓ | ✓ `:134` | ✓ `:60` | via workspace | idem | não | ✓ | colunas 2/3/4 | `alt` por item | não | não | ausente | Implemented but incomplete |
+  | `video` | ✓ (`embed_url`) | ✓ `:157` | ✓ `:73` | via workspace | idem | embed URL sem allowlist | ✓ | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `cta` | ✓ | ✓ `:164` | ✓ `:84` | via workspace | idem | href sem allowlist | não | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `form` | ✓ (`form_slug`) | ✓ `:173` | ✓ `:99` (delega a `CmsFormRenderer`) | via workspace | idem + `cms_forms` | server function | não | herda | herda | ✓ (via forms) | não | ausente | Implemented but incomplete |
+  | `features` | ✓ | ✓ `:180` | ✓ `:108` | via workspace | idem | não | ícone string | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `faq` | ✓ | ✓ `:197` | ✓ `:125` | via workspace | idem | resposta texto | não | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `spacer` | ✓ | ✓ `:213` | ✓ `:141` | via workspace | idem | n/a | não | ✓ | n/a | não | não | ausente | Implemented and connected |
+
+  Bloco apenas declarado / sem renderer / sem editor: **nenhum**
+  no baseline (paridade schema↔editor↔renderer completa).
+  Blocos sem sanitização formal: `richtext` (crítico),
+  `video.embed_url`, `cta.botao_href`. Blocos sem teste
+  dedicado: **todos**. PR-PH.7 é responsável por implementar
+  sanitização, allowlist, contratos a11y e testes por bloco.
 - Formulários, LGPD (`privacidade.tsx`, `unsubscribe.tsx`),
   SEO/metadata, sitemap, robots, preview, publicação,
   versionamento (`site-versions.functions.ts`,
