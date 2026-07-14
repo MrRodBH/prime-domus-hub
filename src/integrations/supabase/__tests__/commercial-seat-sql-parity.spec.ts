@@ -551,13 +551,17 @@ function buildScenarios(): Scenario[] {
       expected: (f) => baseDto(f.tenantId, { allowed: true, reason: "entitled", source: "tenant", limit: 2147483648, used: 0, remaining: 2147483648 }),
     },
     {
-      name: "16. limit = MAX_SAFE_INTEGER",
+      // Column `value_decimal` is numeric(14,2); the RPC's MAX_SAFE_INTEGER
+      // ceiling is unreachable at storage. Use the largest integer that
+      // fits the column and is still well beyond int4 (2^31 - 1) — this
+      // exercises the bigint arithmetic path end-to-end.
+      name: "16. limit beyond int4 (numeric(14,2) upper bound) → entitled bigint arithmetic",
       build: () => ({
         tenantId: uuid(),
         subscriptions: [{ id: uuid(), status: "active", started_at: PAST }],
-        tenantEntitlement: { value_decimal: 9007199254740991 },
+        tenantEntitlement: { value_decimal: 999999999999 },
       }),
-      expected: (f) => baseDto(f.tenantId, { allowed: true, reason: "entitled", source: "tenant", limit: 9007199254740991, used: 0, remaining: 9007199254740991 }),
+      expected: (f) => baseDto(f.tenantId, { allowed: true, reason: "entitled", source: "tenant", limit: 999999999999, used: 0, remaining: 999999999999 }),
     },
     {
       name: "17. subscription tie: same status/started_at → id ASC wins",
