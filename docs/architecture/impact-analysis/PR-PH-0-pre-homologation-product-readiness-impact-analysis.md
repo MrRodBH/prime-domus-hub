@@ -1620,9 +1620,12 @@ aplicável” quando genuinamente ausentes.
     tablet, desktop wide).
 30. **Testes de segurança (aplicáveis):** sanitização de
     valores usados em CSS impede injeção; branding de tenant
-    A nunca aparece em tenant B; testes de acessibilidade
-    automatizados (axe/pa11y ou equivalente) sobre superfícies
-    admin.
+    A nunca aparece em tenant B; testes automatizados de
+    acessibilidade sobre superfícies admin — PR-PH.10 é a
+    etapa que **seleciona e fixa** a ferramenta (nome exato,
+    versão, configuração e script), atualizando lockfile e
+    package.json antes do aceite; PR-PH.12 apenas consome
+    comandos efetivamente versionados no ledger.
 31. **Fixtures e cleanup fail-closed:** obrigatório para
     testes de integração que criam settings temporários.
 32. **Hard gates:** contraste AA; foco visível; responsividade
