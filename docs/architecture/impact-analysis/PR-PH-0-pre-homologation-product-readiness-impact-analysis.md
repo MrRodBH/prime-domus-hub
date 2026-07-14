@@ -1852,23 +1852,33 @@ aplicável” quando genuinamente ausentes.
 ### 19.13 Inventário canônico de comandos de teste (baseline PR-PH.0)
 
 Confrontado com `package.json`, `run-*.ts`,
-`tests/_helpers/run_all.sh` e `tests/**/test_*.py`. Vitest
-**não** está fixado no `package.json`; nenhum script
-`test` existe. Não é permitido inventar comandos.
+`tests/_helpers/run_all.sh`, `tests/_helpers/session.py` e
+`tests/**/test_*.py`. Cada linha distingue **comando
+documentado** de **ferramenta fixada**.
 
-| Suíte | Runner | Comando exato atual | Dependências / variáveis | Estado |
-|---|---|---|---|---|
-| Typecheck | `tsconfig.json` | `bunx tsc --noEmit -p tsconfig.json` | bun, TypeScript (fixado) | Versionado |
-| Build | Vite | `bun run build` | script em `package.json` | Versionado |
-| Lint | ESLint | `bun run lint` | script em `package.json` | Versionado |
-| Specs determinísticas tenant/comerciais | `run-tenant-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` | bun, tsx; nenhum ambiente externo | Versionado |
-| Paridade mutation membership | `run-membership-mutation-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`; PostgreSQL real | Versionado — exige ambiente |
-| Paridade atomic enforcement seat | `run-commercial-seat-atomic-enforcement-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` | idem | Versionado — exige ambiente |
-| Paridade SQL comercial | `run-commercial-sql-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-sql-parity-specs.ts` | idem | Versionado — exige ambiente |
-| Smoke E2E consolidado | `tests/_helpers/run_all.sh` | `bash tests/_helpers/run_all.sh` | Python 3, Playwright, `BASE_URL`, opcional `PGHOST` para segurança | Versionado |
-| Isolamento tenant SQL | `tests/security/test_tenant_isolation.py` | via `run_all.sh` ou `python3 tests/security/test_tenant_isolation.py` | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `psql` | Versionado — skip sem `PGHOST` **não** conta como sucesso |
-| RLS/grants — inspeção SQL | consulta a `pg_policies`, `information_schema.table_privileges`, `pg_proc` | comando versionado por PR-PH.2/PR-PH.11 conforme necessário | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` | A ser fixado por PR-PH.2/PR-PH.11 (não presumir na PR-PH.0) |
-| Vitest / testes unitários genéricos | — | — | não fixado no `package.json`; **não** é comando canônico até que seja versionado | Missing (a decidir pela etapa que o introduzir) |
+| Suíte | Arquivo | Comando (documentado) | Tool executable | Versão | Origem da versão | Package/script/manifest | Variáveis | Serviços externos | Estado |
+|---|---|---|---|---|---|---|---|---|---|
+| Typecheck | `tsconfig.json` | `bunx tsc --noEmit -p tsconfig.json` | `tsc` via bun | conforme `typescript` em `package.json` | `package.json` `devDependencies.typescript` | `package.json` | — | — | Command documented; tool pinned |
+| Build | Vite | `bun run build` | `vite build` | conforme `package.json` | `package.json` `devDependencies.vite` | `package.json` scripts | — | — | Command documented; tool pinned |
+| Lint | ESLint | `bun run lint` | ESLint | conforme `package.json` | `package.json` `devDependencies.eslint` | `package.json` scripts | — | — | Command documented; tool pinned |
+| Specs tenant/comerciais | `run-tenant-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-tenant-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | — | — | Command documented; executor dependency unpinned; not yet reproducible |
+| Paridade mutation membership | `run-membership-mutation-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY` | PostgreSQL real | Command documented; executor dependency unpinned; environment dependent; not yet reproducible |
+| Paridade atomic enforcement seat | `run-commercial-seat-atomic-enforcement-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | idem | PostgreSQL real | Command documented; executor dependency unpinned; environment dependent; not yet reproducible |
+| Paridade SQL comercial | `run-commercial-sql-parity-specs.ts` | `bunx tsx --tsconfig tsconfig.json ./run-commercial-sql-parity-specs.ts` | `tsx` via bun | **não fixado** | ausente em `package.json` | — | idem | PostgreSQL real | Command documented; executor dependency unpinned; environment dependent; not yet reproducible |
+| Smoke E2E consolidado | `tests/_helpers/run_all.sh` | `bash tests/_helpers/run_all.sh` | bash | — | — | script versionado | `QA_BASE_URL` (opcional; default `http://localhost:8080` em `tests/_helpers/session.py:20`), `QA_ARTIFACTS` (opcional; default em `tests/_helpers/run_all.sh`) | app rodando; ambiente Python | Command documented; Python dependencies not pinned |
+| Playwright Python | `tests/_helpers/session.py` + suítes `tests/**/test_*.py` | invocado pelo `run_all.sh` | `playwright` (Python) | **não fixado** — não há `requirements*.txt`, `pyproject.toml` ou lockfile Python no repositório | ausente | — | `QA_BASE_URL`, `LOVABLE_BROWSER_AUTH_STATUS`, `LOVABLE_BROWSER_SUPABASE_STORAGE_KEY`, `LOVABLE_BROWSER_SUPABASE_SESSION_JSON`, `LOVABLE_BROWSER_SUPABASE_COOKIES_JSON` | navegador Chromium (Playwright) | Python Playwright dependency not pinned; test command not fully reproducible — responsabilidade de formalização antes da primeira etapa que exigir o harness |
+| Isolamento tenant SQL | `tests/security/test_tenant_isolation.py` | via `run_all.sh` ou `python3 tests/security/test_tenant_isolation.py` | `psql` + `python3` | ambiente | — | script versionado | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` | PostgreSQL real | Command documented; environment dependent; skip sem `PGHOST` **não** conta como sucesso |
+| RLS/grants — inspeção SQL | consulta ad-hoc | comando versionado por PR-PH.2/PR-PH.11 conforme necessário | `psql` | ambiente | — | — | `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` | PostgreSQL real | Missing (a fixar em PR-PH.2/PR-PH.11) |
+| Acessibilidade / snapshots | — | — | ferramenta a **selecionar e fixar** por PR-PH.10 (nome exato, versão, configuração e script) | — | — | — | — | — | Missing (a materializar em PR-PH.10; PR-PH.12 apenas consome) |
+| Vitest / testes unitários genéricos | — | — | Vitest | não fixado no `package.json` | — | — | — | — | Missing (a decidir pela etapa que o introduzir) |
+
+Regra vinculante para as próximas etapas: **antes** de qualquer
+aceite, cada etapa que depender de `tsx` deverá fixá-lo como
+`devDependency` (ou estratégia equivalente com versão exata e
+registrada), atualizar lockfile e criar/atualizar scripts
+canônicos em `package.json`. **Nesta PR-PH.0 documental**
+`package.json` e lockfile **não** são alterados.
+
 
 
 ---
