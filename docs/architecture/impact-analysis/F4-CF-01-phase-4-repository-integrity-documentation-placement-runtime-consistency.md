@@ -342,17 +342,24 @@ por reprovisionamento automático do ambiente gerenciado (§11).
 
 ## 11. Riscos / limitações reais
 
-- Cenário 16 do harness (limite acima de int4) usa
-  `999.999.999.999` — teto real de `numeric(14, 2)` no schema
-  `tenant_entitlements.value_decimal`. A constante lógica
-  `MAX_SAFE_INTEGER` da RPC continua coberta apenas por testes
-  unitários (RPC contract + limit decision). Alterar a precisão da
-  coluna para admitir `MAX_SAFE_INTEGER` no armazenamento seria uma
-  mudança de schema fora do escopo do F4-CF-01.
-- Se o ambiente reprovisionar automaticamente grants para
-  `sandbox_exec` após a migration, o assertion block da própria
-  migration falharia na próxima reaplicação; o estado corrente
-  observado (§8.2) é o pós-execução, imediatamente após a reclosure.
+- **Reprovisionamento automático do role `sandbox_exec` pelo ambiente
+  gerenciado.** A migration de reclosure aplica as assertions
+  fail-closed corretamente na transação, mas o ambiente reintroduz
+  `EXECUTE` nas duas RPCs e `SELECT` + `INSERT` em `tenant_members`
+  para `sandbox_exec` após a aplicação. Esse role não é usado por
+  runtime produtivo (não é `anon`, `authenticated` nem
+  `service_role`) e o harness canônico não depende dele. A remoção
+  definitiva do drift exige coordenação com o gerenciamento do
+  ambiente e está fora do escopo desta etapa. Nenhuma migration
+  adicional foi criada nesta execução.
+- Cenário 16 do harness usa `999.999.999.999` — teto real de
+  `numeric(14, 2)` no schema `tenant_entitlements.value_decimal`. A
+  constante lógica `MAX_SAFE_INTEGER` da RPC continua coberta apenas
+  por testes unitários (`commercial-seat-rpc-contract.spec.ts`,
+  `commercial-seat-limit.spec.ts`). Nenhum teste unitário adicional
+  foi criado nesta execução (o arquivo autorizado para esta etapa
+  não inclui essa cobertura), e nenhuma alteração de schema foi
+  feita para ampliar o teto de armazenamento.
 - F4-CF-01 encerra o checkpoint de integridade; o fechamento formal
   (Phase 4 Closing Review) permanece pendente.
 - PR-PH.0 continua obrigatório antes da homologação e não foi
@@ -360,20 +367,27 @@ por reprovisionamento automático do ambiente gerenciado (§11).
 
 ## 12. Confirmações negativas
 
-- Uma única migration nova (reclosure de ACL — grants/revokes e
-  assertions). Zero alteração em lógica das RPCs, schema, RLS
-  policies, `ROADMAP_ARCHITECTURAL.md`, runtime produtivo, frontend
-  ou providers.
-- Zero UI / frontend / rota nova.
-- Zero implementação de billing provider, checkout, customer portal ou
-  webhook real.
-- Zero início da PR-PH.0 ou de qualquer entrega de Product Readiness.
-- Zero renumeração retroativa; PR-F6 e AR-F6 permanecem com IDs próprios.
+- Zero nova migration. Zero alteração em `supabase/migrations/**`.
+- Zero alteração em `ROADMAP_ARCHITECTURAL.md`.
+- Zero alteração em runtime produtivo (`src/lib/api/commercial/**`,
+  RPCs, schema, RLS, grants, frontend, providers).
+- Zero UI / frontend / rota nova / componente novo.
+- Zero implementação de billing provider, checkout, customer portal
+  ou webhook real.
+- Zero início da PR-PH.0. Zero abertura do Phase 4 Closing Review.
+- Zero mutação do catálogo `commercial_entitlement_definitions` —
+  registro `users.seats` idêntico antes e depois de cada execução.
+- Zero renumeração retroativa; PR-F6 e AR-F6 permanecem com IDs
+  próprios.
 
 ## 13. Gate final
 
-- SCP-012 materializada como Accepted nos três locais canônicos.
-- F4-CF-01 registrado no roadmap como Ready for External Audit.
-- Phase 4 Closing Review permanece Planned; not started.
-- PR-PH.0 registrado como planejado; não iniciado.
-- Nenhum achado Classe B. F4-CF-01 pronto para auditoria externa.
+- SCP-012 permanece **Accepted**.
+- F4-CF-01 permanece **Ready for External Audit**.
+- Phase 4 Closing Review permanece **Planned; not started**.
+- PR-PH.0 permanece **Planned; not started**.
+- Harness canônico apresenta 17 decision + 6 rejection + 1
+  structural assertion, todos passed, com zero resíduos, zero
+  cleanup errors e catálogo comercial inalterado. Execução
+  injetada demonstra fail-closed lifecycle.
+
