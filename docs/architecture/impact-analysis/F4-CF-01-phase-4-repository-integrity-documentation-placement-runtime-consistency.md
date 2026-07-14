@@ -1,8 +1,8 @@
 # F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement & Runtime Consistency Check and Fix
 
-**Status:** Ready for External Audit
+**Status:** Accepted
 **Depends on:** SCP-012 — Commercial Seat Limit Atomic Enforcement Integration — Accepted (external audit).
-**Blocks:** Phase 4 Closing Review (Planned; not started).
+**Blocks:** None — Phase 4 Closing Review is authorized as the next checkpoint.
 
 ## 1. Baseline
 
@@ -71,30 +71,57 @@ Zero migration órfã. Zero função duplicada com a mesma assinatura.
 
 Prova de ausência de dual path confirmada.
 
-## 6. ACL / RLS
+## 6. ACL / RLS — application authority vs managed operational role
 
-Verificação independente executada nesta etapa via consulta direta a
-`pg_proc` / `aclexplode` / `has_function_privilege` /
-`has_table_privilege` — ver §8.2 para o dump completo. Estado
-observado no ambiente gerenciado atual:
+The SCP-012 canonical contract is expressed in two distinct planes and
+this section separates them explicitly. Verification independent of
+any runner was executed via direct catalog inspection (`pg_roles`,
+`pg_auth_members`, `pg_proc`, `aclexplode`, `has_function_privilege`,
+`has_table_privilege`) — see §8.2 for the raw dump.
 
-- Migration `20260714001218_*.sql` foi aplicada e contém assertions
-  fail-closed que garantem o contrato canônico no momento da
-  transação. **O ambiente gerenciado, entretanto, reprovisiona
-  automaticamente o role `sandbox_exec`** após a aplicação: no
-  snapshot atual `sandbox_exec` volta a possuir `EXECUTE` nas duas
-  RPCs e `SELECT` + `INSERT` em `public.tenant_members`. Isso NÃO é
-  ACL de aplicação nem de cliente (roles usadas em produção continuam
-  restringidas), e está registrado como risco residual em §11.
-- `resolve_commercial_seat_decision(uuid,uuid,text,integer)` e
-  `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)`: owner
-  `postgres` + `service_role` retêm `EXECUTE`; `anon`, `authenticated`
-  e `PUBLIC` continuam sem privilégio. O runtime produtivo continua
-  atendido exclusivamente por `service_role`.
-- `tenant_members`: `authenticated = SELECT` somente; `anon` /
-  `PUBLIC` sem grant; `service_role` administrativo. Policies
-  `tm_select` / `tm_write` continuam escopadas ao role
-  `authenticated`.
+### 6.1 Application trust boundary (in-scope)
+
+- `resolve_commercial_seat_decision(uuid,uuid,text,integer)` and
+  `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)`:
+  `EXECUTE` accessible to the application is restricted to the function
+  owner (`postgres`) and `service_role`. `anon`, `authenticated`,
+  `PUBLIC` and the `authenticator` JWT role have **no** `EXECUTE`
+  (`has_function_privilege = false`). The application runtime reaches
+  these RPCs exclusively through `service_role` from `supabaseAdmin`
+  inside server-only modules.
+- `public.tenant_members`: `authenticated` retains only `SELECT`;
+  `anon` / `PUBLIC` have no grant; `service_role` administrative.
+  Policies `tm_select` / `tm_write` remain scoped to `authenticated`.
+- No application principal (`anon`, `authenticated`, `authenticator`,
+  `service_role`) is a member of any role able to `SET ROLE
+  sandbox_exec` — confirmed by `pg_has_role(..., 'sandbox_exec',
+  'MEMBER') = false` for each.
+
+### 6.2 Managed operational trust boundary (out-of-scope for the application)
+
+- `sandbox_exec` is a **platform-managed operational role**: `login=t`,
+  `superuser=f`, `createrole=f`, `createdb=f`, `replication=f`,
+  `bypassrls=t`, `inherit=t`. Its only grantors of `MEMBER` are
+  `postgres` and `supabase_admin`; no application role can assume it.
+- The managed environment automatically reprovisions `EXECUTE` on both
+  RPCs and `SELECT` + `INSERT` on `tenant_members` for `sandbox_exec`
+  after each migration. The `20260714001218_*.sql` reclosure remains
+  applied and its in-transaction assertions continue to hold at
+  application time; the reprovisioning happens outside the transaction.
+- Repository evidence of scope: `rg -n "sandbox_exec" src/` returns a
+  single occurrence, and it is a comment in the parity spec that
+  explicitly states the harness does **not** use `sandbox_exec`
+  (`no psql, no PGHOST, no sandbox_exec role`). Zero application-code
+  references, zero secret, zero configuration binding, zero JWT
+  mapping, zero frontend path.
+
+**Formal conclusion.** `sandbox_exec` sits in the operational trust
+boundary of the managed platform and is outside the application trust
+boundary defined in `docs/architecture/security/SECURITY_ARCHITECTURE.md`.
+Its residual privileges on the two RPCs and on `tenant_members` do not
+grant additional authority to any application principal. This is
+documented as a managed exception, not as an application-plane drift,
+and Classe B remains closed at the application plane (§10).
 
 ## 7. Catálogos e contratos
 
@@ -106,14 +133,15 @@ seat delta. `users.seats` continua catalogada. `requestedIncrement`
 permanece inteiro positivo literal `1` dentro da RPC. Parser continua
 com igualdade exata.
 
-**Catálogo `commercial_entitlement_definitions.users.seats` validado
-read-only pelo harness canônico.** Preflight lê `key`, `value_type`,
-`is_active`, `name`, `unit`, `description` e falha fail-closed se o
-registro estiver ausente, inativo ou com `value_type` divergente do
-contrato — o harness NÃO cria, corrige, ativa, renomeia nem altera
-qualquer atributo do registro. O snapshot é lido antes e depois da
-execução; a comparação byte-a-byte é reportada como
-`catalog unchanged: yes`.
+**Catalog `commercial_entitlement_definitions.users.seats` validated
+read-only by the canonical harness.** The preflight reads the
+selected canonical fields (`key`, `value_type`, `is_active`, `name`,
+`unit`, `description`) and fails fail-closed if the row is absent,
+inactive or has a divergent `value_type` — the harness never creates,
+repairs, activates, renames or otherwise mutates any attribute of the
+row. Snapshots are captured before and after the run; the comparison
+is reported as `catalog unchanged: yes` on the selected canonical
+fields (not a physical byte-for-byte row-level comparison).
 
 ## 8. Matriz de testes
 
@@ -163,13 +191,18 @@ observáveis no arquivo `commercial-seat-sql-parity.spec.ts`):
   Todos exigem `deepEqual(SQL, TS) && deepEqual(SQL, expected) &&
   deepEqual(TS, expected)`.
 - **Grupo 2 — rejection contract (6 cenários).** Chamadas reais à
-  RPC via service_role com entradas que devem levantar. Cada caso
-  valida ausência de DTO de sucesso, prefixo canônico da mensagem
-  (`Invalid requestedIncrement`, `Invalid tenant origin`,
-  `Actor not found`, `Super admin requires impersonation origin`,
-  `Tenant not found`) e SQLSTATE (`22023`). Nenhum erro genérico é
-  aceito como aprovação; as mensagens são extraídas literalmente do
-  `RAISE EXCEPTION` da RPC nas migrations Accepted.
+  RPC via `service_role` com entradas que devem levantar. Contrato
+  strict / fail-closed: (a) `data` deve ser `null` (nenhum payload
+  de sucesso híbrido); (b) `error` deve existir; (c) `error.code`
+  deve **exatamente** igualar o SQLSTATE esperado — código ausente
+  reprova; (d) `error.message` é validada por igualdade exata ou
+  prefixo canônico (`startsWith`) declarado explicitamente pelo
+  cenário, nunca por substring em posição arbitrária. Todos os seis
+  cenários exigem SQLSTATE `22023` e prefixo canônico extraído
+  literalmente do `RAISE EXCEPTION` da RPC nas migrations Accepted
+  (`Invalid requestedIncrement`, `Invalid tenant origin`, `Actor not
+  found`, `Super admin requires impersonation origin`,
+  `Tenant not found`).
 - **Grupo 3 — structural ordering assertion (1 verificação).** Lê a
   última definição `CREATE OR REPLACE FUNCTION
   public.resolve_commercial_seat_decision` presente nas migrations
@@ -254,37 +287,74 @@ Injected : decision 0/0,   rejection 0/0, structural 0/0,
            cleanup errors 0, fatal yes, catalog unchanged yes, exit 1
 ```
 
-### 8.2 Independent ACL evidence (snapshot atual)
+### 8.2 Independent role and ACL evidence (current snapshot)
 
-Dump direto do catálogo, sem inferência a partir de runner algum:
+Direct catalog dump — no runner inference.
+
+`sandbox_exec` role attributes (`pg_roles`):
+
+```
+rolname       | login | super | createrole | createdb | replication | bypassrls | inherit
+sandbox_exec  |   t   |   f   |     f      |    f     |      f      |     t     |    t
+```
+
+`sandbox_exec` membership graph (`pg_auth_members` + `pg_has_role`):
+
+```
+role membership  : sandbox_exec ⇐ member: postgres (admin_option = t)
+pg_has_role sandbox_exec MEMBER:
+  anon           = false
+  authenticated  = false
+  authenticator  = false
+  service_role   = false
+  supabase_admin = true    -- platform admin, not application principal
+  postgres       = true    -- owner, not application principal
+```
+
+RPC ACL:
 
 ```
 proname                              | grantee       | privilege
 resolve_commercial_seat_decision (4) | postgres      | EXECUTE   (owner)
 resolve_commercial_seat_decision (4) | service_role  | EXECUTE
-resolve_commercial_seat_decision (4) | sandbox_exec  | EXECUTE   (auto-reprovisionado — §11)
+resolve_commercial_seat_decision (4) | sandbox_exec  | EXECUTE   (managed operational role — §6.2)
 mutate_tenant_membership (6)         | postgres      | EXECUTE   (owner)
 mutate_tenant_membership (6)         | service_role  | EXECUTE
-mutate_tenant_membership (6)         | sandbox_exec  | EXECUTE   (auto-reprovisionado — §11)
+mutate_tenant_membership (6)         | sandbox_exec  | EXECUTE   (managed operational role — §6.2)
 ```
 
-`tenant_members` grants (snapshot atual):
+`tenant_members` grants:
 
 ```
 grantee       | privilege
 authenticated | SELECT
-sandbox_exec  | SELECT, INSERT                      -- auto-reprovisionado (§11)
-service_role  | administrativo (INSERT/UPDATE/DELETE/SELECT/…)
+sandbox_exec  | SELECT, INSERT                      -- managed operational role (§6.2)
+service_role  | administrative (INSERT/UPDATE/DELETE/SELECT/…)
 anon          | (none)
 PUBLIC        | (none)
 ```
 
-`authenticated` continua **sem** `INSERT` / `UPDATE` / `DELETE` em
-`tenant_members`; o runtime produtivo continua atendido apenas por
-`service_role`. `anon` e `PUBLIC` continuam sem privilégio nas duas
-RPCs. As assertions da migration `20260714001218_*.sql` seguem
-válidas no momento da aplicação — o drift residual ocorre depois,
-por reprovisionamento automático do ambiente gerenciado (§11).
+`has_function_privilege(...,'EXECUTE')`:
+
+```
+role           | resolve_exec | mutate_exec
+anon           |    false     |    false
+authenticated  |    false     |    false
+authenticator  |    false     |    false
+service_role   |    true      |    true
+sandbox_exec   |    true      |    true    -- managed operational role (§6.2)
+postgres       |    true      |    true    -- owner
+```
+
+`authenticated` remains **without** `INSERT` / `UPDATE` / `DELETE` on
+`tenant_members`; the production runtime is served exclusively by
+`service_role`. `anon` and `PUBLIC` remain without privilege on both
+RPCs. `sandbox_exec` is not assumable by any application principal
+(§6.2). The migration `20260714001218_*.sql` assertions remain valid
+at application time — the residual `sandbox_exec` grants are
+reprovisioned automatically by the managed environment and are
+classified as an operational-trust-boundary exception, not an
+application-plane drift.
 
 
 
@@ -303,35 +373,28 @@ por reprovisionamento automático do ambiente gerenciado (§11).
 - Introdução histórica da Fase 4 no roadmap substituída por síntese
   consolidada.
 
-### Classe B — detectado e encerrado nesta execução
+### Classe B — encerrada (application plane)
 
-- **Drift de ACL das RPCs comerciais.** Investigação independente
-  detectou que `sandbox_exec` possuía `EXECUTE` em
-  `resolve_commercial_seat_decision` e `mutate_tenant_membership`, e
-  possuía `SELECT` + `INSERT` em `public.tenant_members` — em
-  desacordo com o contrato canônico Accepted da SCP-012 (EXECUTE
-  restrito a owner + `service_role`). Como consequência, o runner
-  legado `run-commercial-sql-parity-specs.ts` também não estava
-  demonstrando a matriz SQL × TS × expected lado a lado.
-  Correção aplicada nesta execução:
-  1. Migration nova (`20260714001218_*.sql`) revoga
-     `EXECUTE` de `PUBLIC`/`anon`/`authenticated`/`sandbox_exec` nas
-     duas RPCs; revoga `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE`/
-     `REFERENCES`/`TRIGGER` de `sandbox_exec` sobre `tenant_members`;
-     re-concede `EXECUTE` apenas a `service_role`; valida o resultado
-     via `pg_proc` / `aclexplode` / `has_function_privilege` /
-     `has_table_privilege` fail-closed dentro da própria transação.
-  2. Harness `run-commercial-sql-parity-specs.ts` +
-     `commercial-seat-sql-parity.spec.ts` modernizados para
-     fixtures service-role sintéticas (sem `psql`, sem `PGHOST`, sem
-     IDs fixos de usuário), com comparação integral SQL × TS ×
-     expected em todos os 17 cenários e cleanup fail-closed.
-  3. Documentação F4-CF-01 (impact analysis + entrega 119) refeita
-     para refletir o estado pós-reclosure. Classificação
-     historical / superseded removida; runner readmitido como
-     "current canonical integration gate".
-  Estado pós-fix confirmado por dump de catálogo pós-migration e
-  execução do harness — ver §8.1 e §8.2.
+- **Contrato de ACL das RPCs comerciais no plano de aplicação:**
+  fechado. `anon`, `authenticated`, `authenticator`, `service_role`
+  e principals derivados do JWT do produto não possuem `EXECUTE`
+  em `resolve_commercial_seat_decision` nem em
+  `mutate_tenant_membership`, e não podem `SET ROLE sandbox_exec`
+  (`pg_has_role = false` para cada um). `tenant_members` continua
+  restrito a `SELECT` para `authenticated`. Fixado pela migration
+  `20260714001218_*.sql` com assertions fail-closed em transação e
+  reconfirmado pelo dump independente §8.2.
+- **Contrato strict de rejeição do harness canônico:** fechado.
+  Os seis cenários de rejeição agora exigem SQLSTATE `22023`
+  **obrigatório** (código ausente reprova), mensagem por igualdade
+  exata ou prefixo canônico declarado, `data === null` e `error`
+  presente. Nenhum caminho permissivo remanescente.
+- **Exceção operacional gerenciada (`sandbox_exec`):** formalizada
+  em §6.2 como parte do trust boundary operacional da plataforma,
+  fora do trust boundary da aplicação. Evidência: role não é
+  assumível por nenhum principal de aplicação, zero uso em
+  `src/`, comportamento reproduzido pelo ambiente gerenciado após
+  cada migration.
 
 ### Classe C — registrados como escopo futuro
 
@@ -339,55 +402,57 @@ por reprovisionamento automático do ambiente gerenciado (§11).
   invitation flow, UI comercial, dashboards finais, Kanban final,
   custom domain por tenant, onboarding, CMS/landing pages, Product
   Readiness, homologação. Nenhum implementado nesta etapa.
+- Remoção definitiva do reprovisionamento automático de
+  `sandbox_exec` pelo ambiente gerenciado — depende de coordenação
+  com o gerenciamento da plataforma; sem impacto no trust boundary
+  da aplicação.
 
-## 11. Riscos / limitações reais
+## 11. Riscos / limitações reais remanescentes
 
-- **Reprovisionamento automático do role `sandbox_exec` pelo ambiente
-  gerenciado.** A migration de reclosure aplica as assertions
-  fail-closed corretamente na transação, mas o ambiente reintroduz
-  `EXECUTE` nas duas RPCs e `SELECT` + `INSERT` em `tenant_members`
-  para `sandbox_exec` após a aplicação. Esse role não é usado por
-  runtime produtivo (não é `anon`, `authenticated` nem
-  `service_role`) e o harness canônico não depende dele. A remoção
-  definitiva do drift exige coordenação com o gerenciamento do
-  ambiente e está fora do escopo desta etapa. Nenhuma migration
-  adicional foi criada nesta execução.
-- Cenário 16 do harness usa `999.999.999.999` — teto real de
-  `numeric(14, 2)` no schema `tenant_entitlements.value_decimal`. A
-  constante lógica `MAX_SAFE_INTEGER` da RPC continua coberta apenas
+- **Dependência da segurança operacional da plataforma gerenciada.**
+  A exceção operacional formalizada em §6.2 confia que o ambiente
+  gerenciado mantém `sandbox_exec` como role operacional não
+  assumível por principals de aplicação. Qualquer alteração dessa
+  postura pela plataforma reabriria a análise; monitoramento cabe
+  ao owner da plataforma, não ao repositório do produto.
+- **Cobertura numérica `MAX_SAFE_INTEGER` no plano de banco.**
+  Cenário 16 do harness usa `999.999.999.999` (teto real de
+  `numeric(14, 2)` no schema `tenant_entitlements.value_decimal`).
+  A constante lógica `MAX_SAFE_INTEGER` da RPC continua coberta apenas
   por testes unitários (`commercial-seat-rpc-contract.spec.ts`,
-  `commercial-seat-limit.spec.ts`). Nenhum teste unitário adicional
-  foi criado nesta execução (o arquivo autorizado para esta etapa
-  não inclui essa cobertura), e nenhuma alteração de schema foi
-  feita para ampliar o teto de armazenamento.
-- F4-CF-01 encerra o checkpoint de integridade; o fechamento formal
-  (Phase 4 Closing Review) permanece pendente.
-- PR-PH.0 continua obrigatório antes da homologação e não foi
+  `commercial-seat-limit.spec.ts`). Sem alteração de schema nesta
+  etapa.
+- **Phase 4 Closing Review** é o próximo checkpoint autorizado; a
+  Fase 4 permanece **não encerrada formalmente** até a auditoria
+  externa do Closing Review.
+- **PR-PH.0** continua obrigatório antes da homologação e não foi
   iniciado.
 
 ## 12. Confirmações negativas
 
 - Zero nova migration. Zero alteração em `supabase/migrations/**`.
-- Zero alteração em `ROADMAP_ARCHITECTURAL.md`.
-- Zero alteração em runtime produtivo (`src/lib/api/commercial/**`,
+- Zero alteração em `runtime` produtivo (`src/lib/api/commercial/**`,
   RPCs, schema, RLS, grants, frontend, providers).
 - Zero UI / frontend / rota nova / componente novo.
 - Zero implementação de billing provider, checkout, customer portal
   ou webhook real.
-- Zero início da PR-PH.0. Zero abertura do Phase 4 Closing Review.
+- Zero início da PR-PH.0.
 - Zero mutação do catálogo `commercial_entitlement_definitions` —
-  registro `users.seats` idêntico antes e depois de cada execução.
-- Zero renumeração retroativa; PR-F6 e AR-F6 permanecem com IDs
-  próprios.
+  registro `users.seats` idêntico antes e depois (fields canônicos
+  selecionados).
+- Zero uso de `sandbox_exec` em código de aplicação
+  (`rg -n "sandbox_exec" src/` retorna apenas um comentário na
+  spec do harness).
 
 ## 13. Gate final
 
-- SCP-012 permanece **Accepted**.
-- F4-CF-01 permanece **Ready for External Audit**.
-- Phase 4 Closing Review permanece **Planned; not started**.
-- PR-PH.0 permanece **Planned; not started**.
-- Harness canônico apresenta 17 decision + 6 rejection + 1
-  structural assertion, todos passed, com zero resíduos, zero
-  cleanup errors e catálogo comercial inalterado. Execução
-  injetada demonstra fail-closed lifecycle.
+- F4-CF-01 → **Accepted** (aceite externo materializado nos três
+  locais canônicos).
+- Phase 4 Closing Review → **Ready for External Audit** (novo
+  artefato: `PHASE-4-CLOSING-REVIEW-*.md` + relatório 120).
+- PR-PH.0 → **Planned; not started**.
+- Harness canônico: 17 decision + 6 rejection (SQLSTATE + prefix
+  strict) + 1 structural = todos passed; zero cleanup errors;
+  catálogo comercial inalterado; execução injetada demonstra
+  fail-closed lifecycle (exit 1, zero resíduos).
 

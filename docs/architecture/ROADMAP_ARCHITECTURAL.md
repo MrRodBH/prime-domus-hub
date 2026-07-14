@@ -123,9 +123,9 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 
 ### 🔵 Fase 4 — SaaS Commercial Platform
 
-- **Status:** Checkpoint final em curso — **F4-CF-01** é o próximo
-  checkpoint autorizado. A Fase 4 ainda **não** está formalmente
-  encerrada e o **Phase 4 Closing Review** ainda **não** foi iniciado.
+- **Status:** Phase 4 Closing Review em curso — **Ready for External
+  Audit**. A Fase 4 permanece **não encerrada formalmente** até o
+  aceite externo do Closing Review. **F4-CF-01** está **Accepted**.
 - **Aceites externos consolidados:** **IA-006**, **ADR-005**,
   **ADR-006** e **F4.0** (Role Reconciliation / Membership Role Audit)
   estão **Accepted**. **SCP-001 até SCP-012** estão **Accepted**,
@@ -197,9 +197,9 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 16.0.2.2 SCP-012.0.2.2 — Service-Role Parity Harness Completion, Isolated Fixture Lifecycle & Fail-Closed Privilege Verification — Accepted with documented non-blocking test coverage limitation.
 16.0.3 SCP-012.0.3 — Membership Mutation Boundary Planning & Materialization — Accepted.
 
-17. F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement & Runtime Consistency Check and Fix — Ready for External Audit.
+17. F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement & Runtime Consistency Check and Fix — Accepted.
 
-18. Phase 4 Closing Review — Planned; not started.
+18. Phase 4 Closing Review — SaaS Commercial Platform Formal Closure, Managed-Role Trust Boundary Reconciliation & Product Readiness Gate — Ready for External Audit.
 
 PR-PH.0 — Pre-Homologation Product Readiness Impact Analysis — Planned; not started.
 

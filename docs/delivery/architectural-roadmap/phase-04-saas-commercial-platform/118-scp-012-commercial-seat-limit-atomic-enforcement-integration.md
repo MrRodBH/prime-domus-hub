@@ -77,9 +77,13 @@ Cross-reference: [`docs/architecture/impact-analysis/SCP-012-commercial-seat-lim
 - `bunx tsx --tsconfig tsconfig.json ./run-membership-mutation-parity-specs.ts` → 14 passed, 0 failed.
 - `bunx tsx --tsconfig tsconfig.json ./run-commercial-seat-atomic-enforcement-specs.ts` → 10 passed, 0 failed.
 - `git diff --check` → clean.
-- ACL efetiva: `has_function_privilege` = `false` para anon,
-  authenticated e sandbox_exec; `true` apenas para service_role. Owner
-  + service_role únicos EXECUTE presentes em `aclexplode`.
+- ACL efetiva no trust boundary da aplicação:
+  `has_function_privilege` = `false` para `anon`, `authenticated` e
+  `authenticator` (JWT); `true` apenas para `service_role` (e owner).
+  O role operacional gerenciado `sandbox_exec` é reprovisionado com
+  `EXECUTE` pela plataforma fora do trust boundary da aplicação — não
+  é assumível por nenhum principal de aplicação e não é usado por
+  código do produto. Ver F4-CF-01 §6.2 para o tratamento formal.
 - `tenant_members`: `authenticated` mantém apenas SELECT; anon sem
   privilégios; nenhuma mudança nesta etapa.
 

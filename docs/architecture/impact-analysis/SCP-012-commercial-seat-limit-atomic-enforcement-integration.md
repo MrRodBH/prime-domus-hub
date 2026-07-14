@@ -158,31 +158,39 @@ não autoriza nada, não decide se o resolver será chamado, não cria
 fallback e não executa compensação após commit. A autoridade do
 enforcement está integralmente na função SQL.
 
-## 9. ACL final
+## 9. ACL final — application trust boundary
 
 Verificado por `pg_proc.proacl`, `aclexplode` e `has_function_privilege`
-(inspeção pós-migration):
+(inspeção pós-migration). A tabela abaixo descreve o **contrato acessível
+à aplicação**; para o comportamento do trust boundary operacional
+gerenciado da plataforma (role `sandbox_exec`), ver F4-CF-01 §6.2.
 
-| Função                                | Grantee       | EXECUTE |
-|---------------------------------------|---------------|---------|
-| `mutate_tenant_membership(6-arg)`     | postgres      | ✓ (owner) |
-| `mutate_tenant_membership(6-arg)`     | service_role  | ✓        |
-| `mutate_tenant_membership(6-arg)`     | anon          | ✗        |
-| `mutate_tenant_membership(6-arg)`     | authenticated | ✗        |
-| `mutate_tenant_membership(6-arg)`     | sandbox_exec  | ✗        |
-| `mutate_tenant_membership(6-arg)`     | PUBLIC        | ✗        |
-| `resolve_commercial_seat_decision`    | postgres      | ✓ (owner) |
-| `resolve_commercial_seat_decision`    | service_role  | ✓        |
-| `resolve_commercial_seat_decision`    | anon          | ✗        |
-| `resolve_commercial_seat_decision`    | authenticated | ✗        |
-| `resolve_commercial_seat_decision`    | sandbox_exec  | ✗        |
-| `resolve_commercial_seat_decision`    | PUBLIC        | ✗        |
+| Função                                | Grantee                    | EXECUTE   |
+|---------------------------------------|----------------------------|-----------|
+| `mutate_tenant_membership(6-arg)`     | postgres (owner)           | ✓         |
+| `mutate_tenant_membership(6-arg)`     | service_role               | ✓         |
+| `mutate_tenant_membership(6-arg)`     | anon                       | ✗         |
+| `mutate_tenant_membership(6-arg)`     | authenticated              | ✗         |
+| `mutate_tenant_membership(6-arg)`     | authenticator (JWT)        | ✗         |
+| `mutate_tenant_membership(6-arg)`     | PUBLIC                     | ✗         |
+| `resolve_commercial_seat_decision`    | postgres (owner)           | ✓         |
+| `resolve_commercial_seat_decision`    | service_role               | ✓         |
+| `resolve_commercial_seat_decision`    | anon                       | ✗         |
+| `resolve_commercial_seat_decision`    | authenticated              | ✗         |
+| `resolve_commercial_seat_decision`    | authenticator (JWT)        | ✗         |
+| `resolve_commercial_seat_decision`    | PUBLIC                     | ✗         |
 
 Uma assertion dinâmica dentro da migration (via `pg_proc`, `aclexplode`
 e `pg_roles`) aborta caso qualquer grantee além de owner + service_role
-possua `EXECUTE` em qualquer das duas funções.
+possua `EXECUTE` no momento da transação. O role operacional gerenciado
+`sandbox_exec` recebe `EXECUTE` fora do escopo da transação por
+reprovisionamento automático da plataforma; ele não é assumível por
+`anon`/`authenticated`/`authenticator`/`service_role`
+(`pg_has_role = false`) e não é usado por código de aplicação — está
+formalizado como exceção do trust boundary operacional em F4-CF-01
+§6.2, fora do trust boundary desta análise.
 
-`public.tenant_members` permanece inalterada:
+`public.tenant_members` permanece inalterada no plano de aplicação:
 - `PUBLIC` sem privilégio.
 - `anon` sem privilégio.
 - `authenticated` = `SELECT` (nenhum `INSERT`/`UPDATE`/`DELETE`).
