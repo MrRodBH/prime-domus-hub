@@ -18,30 +18,49 @@ endurecido e evidências de validação factualmente exatas.
 
 ## 1. Baseline e commit
 
-- Baseline auditado: `5c9ff73112797efd3bb59e4b157cb02f0b055905`
-  — “Reconciliou PR-PH.0 com evidência”.
-- HEAD observado no preflight desta execução: `38f13c5 Work in
-  progress` (branch de trabalho — a materialização do commit
-  final desta reconciliação é realizada pela plataforma; o
-  arquivo versionado não carrega auto-referência ao próprio
-  SHA).
-- `git status --short` limpo na entrada; `git diff --check`
-  clean.
+- **Baseline vinculante desta correção:**
+  `2fed1e8bfe8d262b31fb5c5e02fa8c3f28a958aa` — “Corrigiu
+  PR-PH.0 factualmente”.
+- **HEAD observado no preflight:** idêntico ao baseline
+  (`git log -1 --oneline` → `2fed1e8 Corrigiu PR-PH.0
+  factualmente`; `git status --short` vazio; nenhum commit
+  intermediário entre baseline e HEAD).
+- **HEAD final desta correção:** um único commit descendente
+  do baseline materializado pela plataforma (o arquivo
+  versionado não carrega auto-referência ao próprio SHA).
+- **Commits explicitamente proibidos como baseline
+  operacional desta nova execução:**
+  `5c9ff73112797efd3bb59e4b157cb02f0b055905`,
+  `7c75d27709a344c801ec79bda16e88599e81531a`, `38f13c5`.
+  Esses commits aparecem apenas como referência histórica;
+  o único baseline operacional é `2fed1e8...`.
+- `git diff --check` — clean após as edições.
 - 93 arquivos de migration versionados no repositório
-  auditado; estado remoto de aplicação **não verificável**
-  apenas pelo repositório (validação em PR-PH.11 / PR-PH.12).
-  Runtime, RLS, grants, providers, `package.json` e lockfile
+  auditado; estado remoto de aplicação **not verified** pelo
+  repositório (validação em PR-PH.11 / PR-PH.12). Runtime,
+  RLS, grants, providers, `package.json` e lockfile
   inalterados por esta execução.
 
 ## 2. Escopo autorizado e fora de escopo
 
-Alterados apenas os três arquivos documentais autorizados:
+Alterados nesta correção **apenas os arquivos cujo conteúdo
+final realmente difere do baseline**:
 
 - `docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
-  (modified).
-- `docs/architecture/ROADMAP_ARCHITECTURAL.md` (modified).
+  (modified — substituições integrais em §6 CRM, §12 Tenant
+  Domain Management/Public Tenant Resolution, §14.4 matriz de
+  autorização por operação, §14.5 tabelas, §19.5 renomeada
+  para Public Tenant Resolution + White-Label, §19.8 Custom
+  Domain Lifecycle, §19.10 boundary de `buildBrandingCss`,
+  §19.13 ledger determinístico, §24 validações).
 - `docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md`
   (modified — este arquivo).
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md` — **não
+  alterado nesta correção**; o conteúdo do baseline já
+  reflete PR-PH.0 como Ready for External Audit e a sequência
+  vinculante segue registrada no artefato canônico. O
+  arquivo não aparecerá em `git diff --name-status
+  2fed1e8...HEAD`.
 
 Fora de escopo: runtime; componentes React; rotas; server
 functions; adapters; hooks; migrations; schema; tabelas; RLS;
@@ -49,6 +68,7 @@ grants; seeds; fixtures; providers; storage; package.json;
 lockfile; bibliotecas; branding em produção; dashboard; CRM;
 Kanban; CMS; domínios; onboarding. Fase 4 permanece **Closed /
 Accepted**.
+
 
 ## 3. Inventários encerrados na PR-PH.0
 
