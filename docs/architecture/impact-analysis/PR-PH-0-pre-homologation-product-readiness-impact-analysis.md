@@ -23,8 +23,12 @@ reordena a sequência PR-PH.
 ## 1. Baseline vinculante
 
 - Repositório: `MrRodBH/prime-domus-hub` — branch `main`.
-- Commit de referência auditado e commit atual do `HEAD` no
-  preflight desta execução: `e126e11 Criou PR-PH.0 e fechou Fase 4`.
+- Baseline vinculante desta reconciliação:
+  `5c9ff73112797efd3bb59e4b157cb02f0b055905` — “Reconciliou
+  PR-PH.0 com evidência”. O SHA do commit que materializa a
+  presente execução não é auto-referenciado neste arquivo
+  versionado; o observador externo deverá conferir o diff
+  contra o baseline acima.
 - `git status --short`: working tree limpo na entrada.
 - `git diff --check`: clean.
 - 93 migrations aplicadas. Runtime, RLS, grants, providers,
