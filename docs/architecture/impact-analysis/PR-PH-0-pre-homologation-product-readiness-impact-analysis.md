@@ -1207,66 +1207,111 @@ aplicável” quando genuinamente ausentes.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.4 —
     Accepted; PR-PH.5 — Ready for Impact Analysis.
 
-### 19.5 PR-PH.5 — Workspace and Public-Site White-Label Consolidation
+### 19.5 PR-PH.5 — Public Tenant Resolution, Workspace and Public-Site White-Label Consolidation
 
-1. **Nome oficial:** Workspace and Public-Site White-Label
-   Consolidation.
-2. **Objetivo:** consolidar branding do workspace interno e do
-   site público sob autoridade coerente; formalizar limites
-   de contraste e fallback determinístico.
-3. **Baseline:** §9 desta análise.
-4. **Dependências:** PR-PH.4 Accepted (gate serial), portando PR-PH.1 … PR-PH.4 Accepted; adicionalmente autoridades de roles (PR-PH.2) e de site público (autoridade `site_settings` já existente).
-5. **Autoridades atuais:** `site_settings`,
-   `site_settings_versions`, `useSiteAdapter`,
-   `buildBrandingCss`.
-6. **Lacunas:** branding do workspace interno; catálogo de
-   campos configuráveis vs protegidos; hard gate de contraste.
-7. **Escopo autorizado:** evolução da autoridade existente
-   `site_settings`, ou criação de `workspace_branding` como
-   autoridade separada (decisão vinculante).
-8. **Fora de escopo:** onboarding; custom domain.
-9. **Arquivos e módulos previstos:** `src/lib/api/site.functions.ts`,
+1. **Nome oficial:** Public Tenant Resolution, Workspace and
+   Public-Site White-Label Consolidation.
+2. **Objetivo:** materializar a autoridade **host padrão/
+   subdomínio → tenantId → public read context** conectando
+   o resolver hoje desconectado (§12), e só então consolidar
+   branding tenant-safe (workspace interno + site público),
+   com contraste WCAG AA e fallback determinístico.
+3. **Baseline:** §9 e §12 desta análise.
+4. **Dependências:** PR-PH.4 Accepted (gate serial), portando
+   PR-PH.1 … PR-PH.4 Accepted; autoridade de roles (PR-PH.2)
+   Accepted; nenhuma dependência de PR-PH.8 (o inverso é
+   verdadeiro).
+5. **Autoridades atuais:** `src/lib/tenant.server.ts`
+   (`resolveTenantByHost`, `publicSupabaseForTenant` —
+   **implementado mas desconectado**); `public.site_settings`
+   com policy RESTRICTIVE `tenant_isolation` e PERMISSIVE
+   `"site_settings public read"`; `site_settings_versions`;
+   `useSiteAdapter`; `buildBrandingCss` **local a
+   `src/routes/__root.tsx`** (função não exportada).
+6. **Lacunas:** (a) leitor público não injeta host no fluxo
+   (`obterSiteSettings` usa `publicClient()` sem
+   `x-tenant-id`); (b) branding do workspace interno; (c)
+   catálogo de campos configuráveis vs protegidos; (d) hard
+   gate de contraste; (e) `buildBrandingCss` atualmente em
+   arquivo de rota (decisão em PR-PH.10 — extrair para módulo
+   puro testável, exportar helper, ou testar via boundary
+   público).
+7. **Escopo autorizado — parte pública:** conectar
+   `resolveTenantByHost` ao loader raiz (ou a um resolver
+   equivalente aprovado) e ao Supabase publishable server-side
+   via `publicSupabaseForTenant`, de forma que toda leitura
+   pública transporte `x-tenant-id`; validar policy real de
+   `site_settings` em requisição anônima com header; **não**
+   criar segunda autoridade.
+   **Escopo autorizado — parte white-label:** evolução da
+   autoridade `site_settings`, ou criação de
+   `workspace_branding` como autoridade separada (decisão
+   vinculante em PR-PH.5).
+8. **Fora de escopo:** onboarding; custom domain (esses são
+   PR-PH.9 e PR-PH.8 respectivamente).
+9. **Arquivos e módulos previstos:** `src/lib/tenant.server.ts`,
+   `src/lib/api/site.functions.ts`,
    `src/lib/api/site-versions.functions.ts`,
-   `src/components/workspace/*`, `src/routes/__root.tsx`.
+   `src/routes/__root.tsx`, `src/components/workspace/*`.
 10. **Rotas previstas:** possível `/admin/branding` ou
     `/admin/site/branding` — decisão em PR-PH.5.
-11. **Tabelas afetadas:** `site_settings`, possivelmente
-    `workspace_branding`.
-12. **Migrations possíveis:** adicionar tabela `workspace_branding`
-    apenas se aprovado.
-13. **Impacto em RLS:** política tenant-scoped.
-14. **Impacto em grants:** grants do novo objeto.
+11. **Tabelas afetadas:** `public.site_settings`,
+    `public.site_settings_versions`; possivelmente nova
+    `public.workspace_branding` [planned/new — subject to
+    Impact Analysis].
+12. **Migrations possíveis:** somente se aprovado, migration de
+    `workspace_branding` com GRANT + RLS + policy tenant-scoped.
+13. **Impacto em RLS:** confirmar comportamento efetivo da
+    combinação PERMISSIVE + RESTRICTIVE em requisição anônima
+    com `x-tenant-id`; qualquer novo objeto herda política
+    tenant-scoped.
+14. **Impacto em grants:** apenas se novo objeto for criado.
 15. **Server boundaries:** todas as leituras/escritas via
-    server function.
+    server function; nenhum publishable client sem
+    `x-tenant-id` no fluxo público.
 16. **Contratos de dados:** DTO de branding com validação de
-    contraste.
-17. **Autoridade de autorização:** admin/owner.
-18. **Membership authorization:** aplicada.
+    contraste; DTO da resolução `host → tenantId`.
+17. **Autoridade de autorização:** Autoridade final derivada
+    da matriz Accepted em PR-PH.2.
+18. **Membership authorization:** conforme matriz PR-PH.2.
 19. **Entitlement comercial:** Não aplicável.
-20. **Impersonação:** super sob impersonação escreve como o
-    tenant impersonado (auditado).
+20. **Impersonação:** Super sob impersonação escreve branding
+    como o tenant impersonado (auditado).
 21. **UX:** preview, draft, publish, restore.
 22. **Responsividade:** obrigatória.
 23. **Acessibilidade:** hard gate WCAG AA de contraste.
 24. **Analytics:** Não aplicável.
 25. **Observabilidade:** audit trail.
-26. **Testes unitários:** validação de contraste; fallback.
-27. **Testes de integração:** publish → renderer.
-28. **Testes E2E:** preview → publish → site público.
-29. **Testes visuais:** logo, cores, dark/light.
-30. **Testes de segurança:** sanitização de assets.
+26. **Testes unitários:** resolução `host → tenantId` com
+    fallback e host desconhecido; validação de contraste;
+    fallback determinístico; sanitização de valores usados em
+    CSS.
+27. **Testes de integração:** leitura pública tenant-safe
+    contra `site_settings` com header injetado; publish →
+    renderer.
+28. **Testes E2E:** hosts distintos → brandings distintos;
+    preview → publish → site público.
+29. **Testes visuais:** logo, cores, dark/light por tenant.
+30. **Testes de segurança:** sanitização de assets; ausência
+    de vazamento entre tenants; policy real inspecionada e
+    documentada.
 31. **Fixtures e cleanup fail-closed:** obrigatório.
-32. **Hard gates:** contraste inválido → fallback determinístico;
-    branding do tenant nunca substitui identificação da
-    plataforma quando contratualmente exigido.
-33. **Definition of Done:** branding do workspace e do site
-    público consolidados; testes verdes.
-34. **Complexidade relativa:** média-alta.
+32. **Hard gates:** resolver público **conectado**; contraste
+    inválido → fallback determinístico; branding do tenant
+    nunca substitui identificação da plataforma quando
+    contratualmente exigido.
+33. **Definition of Done:** resolver público conectado;
+    branding do workspace e do site público consolidados;
+    testes verdes.
+34. **Complexidade relativa:** alta.
 35. **Adequação a um único prompt macro:** sim.
 36. **Condições objetivas de replanejamento:** necessidade de
-    reescrever `site_settings` (deve permanecer autoridade).
+    reescrever `site_settings` (deve permanecer autoridade);
+    necessidade de trocar `x-tenant-id` como transporte
+    público (não permitido).
 37. **Estado esperado do roadmap após aprovação:** PR-PH.5 —
     Accepted; PR-PH.6 — Ready for Impact Analysis.
+
 
 ### 19.6 PR-PH.6 — Public Website Navigation, CMS Authority & Content Architecture
 
