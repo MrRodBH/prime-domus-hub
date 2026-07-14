@@ -23,8 +23,12 @@ reordena a sequência PR-PH.
 ## 1. Baseline vinculante
 
 - Repositório: `MrRodBH/prime-domus-hub` — branch `main`.
-- Commit de referência auditado e commit atual do `HEAD` no
-  preflight desta execução: `e126e11 Criou PR-PH.0 e fechou Fase 4`.
+- Baseline vinculante desta reconciliação:
+  `5c9ff73112797efd3bb59e4b157cb02f0b055905` — “Reconciliou
+  PR-PH.0 com evidência”. O SHA do commit que materializa a
+  presente execução não é auto-referenciado neste arquivo
+  versionado; o observador externo deverá conferir o diff
+  contra o baseline acima.
 - `git status --short`: working tree limpo na entrada.
 - `git diff --check`: clean.
 - 93 migrations aplicadas. Runtime, RLS, grants, providers,
@@ -229,15 +233,26 @@ Status funcional adicional:
   estágio no pipeline com rollback. Runners atuais cobrem
   domínio comercial (Fase 4). — **Missing**.
 - Semântica financeira (`ganho ≠ perdido ≠ descartado ≠
-  fechado ≠ arquivado`):
-  - `ganho`, `perdido` — presentes no vocabulário (`Status`,
-    dashboard, pipeline).
-  - `descartado` — presente como tab e via
-    `DescartadosPanel`/`adminContarDescartes` (armazenamento
-    real precisa validação em PR-PH.3).
-  - `fechado`/`arquivado` — não observados como estados
-    distintos. Divergência semântica a resolver em PR-PH.3
-    (contagem financeira deve considerar apenas `ganho`).
+  fechado ≠ arquivado`) — descoberta encerrada nesta PR-PH.0:
+  - `ganho`, `perdido` — status persistidos na coluna `leads.status`
+    (`admin.functions.ts:783` — enum
+    `"novo","conversando","visita","proposta","ganho","perdido","descartado"`).
+  - `descartado` — status persistido na mesma coluna. Mutação
+    canônica em `leads-crm.functions.ts:53-68` (`descartarLead`)
+    grava `status="descartado"`, `descartado_at=now()`,
+    `discard_reason_id` e insere histórico em `lead_descartes`.
+    Reabertura em `leads-crm.functions.ts:155-168`
+    (`reabrirLead`) restaura status anterior e limpa
+    `descartado_at`. Motivos gerenciados por
+    `lead-reasons.functions.ts` (tabela `discard_reasons`).
+  - `perdido` vs `descartado`: `perdido` é resultado comercial
+    (regra “só a partir de proposta”, §6 acima); `descartado` é
+    remoção operacional com motivo obrigatório e histórico
+    dedicado.
+  - `fechado`/`arquivado` — **não observados** como estados
+    distintos no enum, tabelas ou histórico. Divergência
+    semântica a resolver em PR-PH.3 (contagem financeira já é
+    canonicalmente restrita a `ganho` — `dashboard.functions.ts`).
 
 ## 7. Inventário completo do dashboard
 
@@ -374,13 +389,40 @@ Implementados como autoridade única `site_settings` +
   `Footer.tsx`, `WhatsAppFab.tsx`, `CmsPreviewOverlay.tsx`;
 - audit trail via `logCmsAudit`.
 
-Campos observados/plausíveis (para inventário de PR-PH.5, sem
-alteração aqui): logo, logo mobile, favicon, site name, razão
-social, nome fantasia, CNPJ, CRECI, responsável técnico,
-slogan, contatos, redes sociais, footer, SEO global, cores,
-fontes, Open Graph, theme-color, CSS variables. Consolidação
-formal do inventário completo e limites de contraste é
-responsabilidade da PR-PH.5.
+Campos efetivamente suportados hoje pela autoridade única
+`site_settings` (evidência direta: `interface SiteSettings` em
+`src/lib/api/site.functions.ts:32-…` — descoberta encerrada
+nesta PR-PH.0, sem “campos plausíveis”):
+
+- `branding`: `logo_path`, `logo_url`, `favicon_path`,
+  `favicon_url`, `site_name`.
+- `branding_v2`: `color_primary`, `color_secondary`,
+  `color_accent`, `color_button`, `color_link`, `font_primary`,
+  `font_secondary`, `logo_mobile_path`, `logo_mobile_url`
+  (aplicados em runtime via CSS variables por `buildBrandingCss`
+  em `src/routes/__root.tsx`).
+- `empresa`: `razao_social`, `nome_fantasia`, `cnpj`, `creci`,
+  `responsavel_tecnico`, `fundacao`, `slogan`, `sobre_curto`.
+- `footer`: `copyright`, `coluna1_titulo`, `coluna1_links`,
+  `coluna2_titulo`, `coluna2_links`, `mostrar_redes`,
+  `texto_legal`.
+- `seo_global`: `default_title`, `default_description`,
+  `default_og_image_path`, `default_og_image_url`, `keywords`,
+  `twitter_handle`.
+- `home_hero`, `home_secoes`, `home_diferenciais`,
+  `home_depoimentos`, `pagina_lancamentos`, `pagina_sobre`,
+  `contato` — conteúdo/SEO por página pública (não branding
+  puro; mesma autoridade).
+
+Persistência: tabela `site_settings` (tenant-scoped) +
+`site_settings_versions` (audit + restore). Server functions:
+`obterSiteSettings`, `atualizarSiteSettings`
+(`site.functions.ts:307-…`), draft/publish/restore
+(`site-versions.functions.ts`). Renderização pública:
+`buildBrandingCss` no root loader; consumo em
+`src/components/site/{Header,Footer,WhatsAppFab,CmsPreviewOverlay}.tsx`.
+Fallbacks: valores default em `hydrateSiteSettings` quando
+campos ausentes.
 
 ### 9.3 Branding da plataforma — protegido
 
@@ -388,17 +430,31 @@ Elementos institucionais RM Prime SaaS (identidade da
 plataforma, logos institucionais, badges), não configuráveis
 pelo tenant. Formalizar catálogo em PR-PH.5.
 
-### 9.4 Sistema unificado de branding — lacuna de consolidação
+### 9.4 Sistema unificado de branding — autoridade única e não sobreposição
 
-- **Não** criar segunda autoridade de branding.
-- **Não** introduzir `tenant_branding` como tabela presumida
-  sem Impact Analysis e justificativa formal.
-- Avaliar evolução da autoridade existente `site_settings` para
-  cobrir também o workspace interno (com escopo distinto), ou
-  criar autoridade separada `workspace_branding` — decisão
-  necessária em PR-PH.5.
-- Preservar compatibilidade, isolamento multi-tenant,
-  contraste WCAG AA mínimo e fallback determinístico.
+Regra vinculante desta PR-PH.0:
+
+> Nenhum mesmo campo de branding pode possuir duas autoridades
+> persistentes ou dois caminhos de publicação.
+
+- **Não** criar segunda autoridade de branding sem Impact
+  Analysis.
+- **Não** pré-autorizar a tabela `workspace_branding` — ela é
+  registrada aqui apenas como alternativa **sujeita a Impact
+  Analysis** em PR-PH.5.
+- PR-PH.5 deverá realizar Impact Analysis antes de decidir entre:
+  (A) extensão controlada de `site_settings` para cobrir também
+  o workspace interno com escopo declarado (mesma autoridade,
+  campos declaradamente separados); ou (B) autoridade separada
+  exclusivamente para o workspace interno.
+- A opção (B) somente será permitida se: os campos forem
+  não-sobrepostos com `site_settings`; o domínio for
+  explicitamente distinto; não existir fallback entre
+  autoridades; a resolução for determinística; a precedência
+  for proibida; não houver dual write; não houver sincronização
+  implícita; a decisão estiver documentada.
+- Preservar compatibilidade, isolamento multi-tenant, contraste
+  WCAG AA mínimo e fallback determinístico.
 
 ## 10. Inventário site público, CMS e blocos
 
@@ -412,11 +468,33 @@ pelo tenant. Formalizar catálogo em PR-PH.5.
 - Renderers: `CmsPageRenderer.tsx`, `CmsFormRenderer.tsx`,
   `CampaignRenderer.tsx`, overlay de preview
   `CmsPreviewOverlay.tsx` — **Implemented and connected**.
-- Blocos do page builder (`src/components/content/blocks/*` e
-  `editors/`) — presentes; inventário completo (schema,
-  editor, renderer público, validação, responsividade, a11y,
-  preview, sanitização, mídia, captura de lead, analytics) é
-  responsabilidade da PR-PH.7.
+- Blocos do page builder — **inventário encerrado nesta
+  PR-PH.0** (descoberta finalizada; PR-PH.7 implementa/finaliza
+  lacunas, não redescobre). Evidência direta:
+  `src/lib/api/pages.functions.ts` (tipo `CmsBlock` + `blockSchema`
+  Zod), `src/components/content/blocks/BlockEditor.tsx`
+  (switch de editores) e `src/components/site/CmsPageRenderer.tsx`
+  (switch de renderers públicos).
+
+  | id (type) | schema (Zod) | editor | renderer público | preview | persistência | sanitização | mídia | responsividade | a11y | captura lead | analytics | teste | classificação |
+  |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|---|
+  | `hero` | ✓ | ✓ `BlockEditor.tsx:94` | ✓ `CmsPageRenderer.tsx:21` | via workspace | `cms_pages.blocks` (JSONB) | não formalizada | `imagem_url` | não gate | não gate | não | não | ausente | Implemented but incomplete (sanitização/a11y) |
+  | `richtext` | ✓ (`html`, `align`) | ✓ `:113` | ✓ `:40` | via workspace | idem | **HTML sem sanitização declarada** | não | não gate | não gate | não | não | ausente | Implemented but incomplete (XSS risk) |
+  | `image` | ✓ | ✓ `:126` | ✓ `:51` | via workspace | idem | não | ✓ | não gate | `alt` opcional | não | não | ausente | Implemented but incomplete |
+  | `gallery` | ✓ | ✓ `:134` | ✓ `:60` | via workspace | idem | não | ✓ | colunas 2/3/4 | `alt` por item | não | não | ausente | Implemented but incomplete |
+  | `video` | ✓ (`embed_url`) | ✓ `:157` | ✓ `:73` | via workspace | idem | embed URL sem allowlist | ✓ | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `cta` | ✓ | ✓ `:164` | ✓ `:84` | via workspace | idem | href sem allowlist | não | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `form` | ✓ (`form_slug`) | ✓ `:173` | ✓ `:99` (delega a `CmsFormRenderer`) | via workspace | idem + `cms_forms` | server function | não | herda | herda | ✓ (via forms) | não | ausente | Implemented but incomplete |
+  | `features` | ✓ | ✓ `:180` | ✓ `:108` | via workspace | idem | não | ícone string | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `faq` | ✓ | ✓ `:197` | ✓ `:125` | via workspace | idem | resposta texto | não | não gate | não gate | não | não | ausente | Implemented but incomplete |
+  | `spacer` | ✓ | ✓ `:213` | ✓ `:141` | via workspace | idem | n/a | não | ✓ | n/a | não | não | ausente | Implemented and connected |
+
+  Bloco apenas declarado / sem renderer / sem editor: **nenhum**
+  no baseline (paridade schema↔editor↔renderer completa).
+  Blocos sem sanitização formal: `richtext` (crítico),
+  `video.embed_url`, `cta.botao_href`. Blocos sem teste
+  dedicado: **todos**. PR-PH.7 é responsável por implementar
+  sanitização, allowlist, contratos a11y e testes por bloco.
 - Formulários, LGPD (`privacidade.tsx`, `unsubscribe.tsx`),
   SEO/metadata, sitemap, robots, preview, publicação,
   versionamento (`site-versions.functions.ts`,
@@ -455,34 +533,72 @@ Responsável: PR-PH.9.
 
 ## 14. Roles, permissions e autoridade de configuração
 
-- `has_role(admin)` (F4.0) — **Implemented**.
-- `tenant_role` e `membership_status` (Fase 3) — **Implemented**.
-- Entitlement comercial (SCP-006 … SCP-012) — **Implemented**.
-- Autoridade server-side única via `auth-middleware.ts` +
-  `tenant-middleware.ts` + `membership-validation.ts` —
+Autoridades existentes (descoberta encerrada nesta PR-PH.0):
+
+- `has_role(admin)` (F4.0) — **Implemented and connected**.
+- `tenant_role` (`owner|admin|manager|member|viewer`) e
+  `membership_status` (`active|invited|suspended|removed`)
+  (Fase 3) — **Implemented and connected**.
+- Entitlement comercial (SCP-006 … SCP-012) — **Implemented
+  and connected**.
+- Autoridade server-side única via
+  `src/integrations/supabase/auth-middleware.ts`,
+  `tenant-middleware.ts`, `membership-validation.ts` —
   **Implemented and connected**.
-- **Matriz de autoridade por operação administrativa
-  planejada** (papel mínimo, membership_status exigido,
-  necessidade de owner, autorização comercial, impersonação,
-  server function, tabela, RLS, audit trail, teste negativo) —
-  **Missing**. Responsável: **PR-PH.2** (baseline vinculante
-  antes de qualquer ampliação de operação administrativa,
-  antes do dashboard final e antes do cutover do CRM).
+
+Inventário atual por módulo (autoridades observadas hoje —
+PR-PH.2 canonicaliza a matriz e endurece; **não** descobre):
+
+| Módulo | Rotas | Server fns (arquivo) | Escrita | Leitura | Middleware | Tabelas | RLS | membership_status | tenant_role usado | has_role | RBAC profile | Owner req. | Impersonação | Entitlement | Audit trail | Lacuna atual |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Workspace shell | `/admin` | `tenant.functions.ts`, `tenant-selection.functions.ts` | seleção | listagem | `requireSupabaseAuth`+`requireTenant` | `tenant_members` | ✓ | `active` | any | não | não | não | via header | não | não | matriz não formalizada |
+| CRM (pipeline) | `/admin/pipeline`, `/admin/leads*` | `admin.functions.ts`, `leads-crm.functions.ts`, `historico.functions.ts` | ✓ | ✓ | `requireSupabaseAuth`(+tenant) | `leads`, `lead_descartes`, `lead_historico` | ✓ | `active` | admin/gerente/secretaria (papel via `user_roles`) — corretor escopo próprio | admin | ✓ (via `user_roles`) | não | via impersonate header | não | parcial (`lead_descartes`) | audit trail por card ausente (§6) |
+| Corretores/Equipes/Perfis | `/admin/corretores`, `/admin/equipes`, `/admin/perfis` | `admin.functions.ts`, `rbac.functions.ts` | ✓ | ✓ | idem | `corretores`, `teams`, `user_roles` | ✓ | `active` | admin | admin | ✓ | admin/owner | auditada | não | parcial | matriz não formalizada |
+| Catálogo (imóveis/lançamentos) | `/admin/imoveis*`, `/admin/lancamentos*` | `catalogo.functions.ts`, `lancamentos.functions.ts` | ✓ | ✓ | idem | `imoveis`, `lancamentos`, `unidades` | ✓ | `active` | admin/gerente | admin | ✓ | não | auditada | não | parcial | — |
+| CMS (site/páginas/blog/forms/campanhas) | `/admin/site`, `/admin/paginas*`, `/admin/blog*`, `/admin/formularios*`, `/admin/campanhas*` | `site.functions.ts`, `site-versions.functions.ts`, `pages.functions.ts`, `blog.functions.ts`, `forms.functions.ts`, `campaigns.functions.ts`, `_cms.ts` (`assertCmsPermission`, `logCmsAudit`) | ✓ | ✓ | idem | `site_settings*`, `cms_pages`, `cms_posts`, `cms_forms`, `cms_campaigns`, `cms_audit` | ✓ | `active` | admin/editor via `assertCmsPermission` | admin | RBAC via `cms_permissions` (`use-cms-permissions.ts`) | admin/owner | auditada | não | ✓ (`cms_audit`) | granularidade fina por operação |
+| Mídias | `/admin/midias` | `media.functions.ts`, `uploads.functions.ts`, `legacy-storage.functions.ts` | ✓ | ✓ | idem | `media_assets`, storage buckets | ✓ | `active` | admin | admin | ✓ | não | auditada | não | não | tenant scoping validado (M3) |
+| Portais / Distribuição | `/admin/portais` | `portals.functions.ts` | ✓ | ✓ | idem | `portal_configs` | ✓ | `active` | admin | admin | ✓ | admin | auditada | não | parcial | — |
+| Configurações (site branding) | `/admin/site` | `site.functions.ts`, `site-versions.functions.ts` | ✓ | ✓ | idem | `site_settings`, `site_settings_versions` | ✓ | `active` | admin | admin | ✓ | admin/owner | auditada | não | ✓ (versions) | contraste WCAG não gate |
+| Branding (workspace) | — | — | — | — | — | — | — | — | — | — | — | — | — | — | não | **autoridade ausente** — Missing |
+| Super Admin / Operação | `/super*` | `super.functions.ts`, `tenant-selection.functions.ts` | ✓ | ✓ | `requireSupabaseAuth` + `is_super_admin` RPC | globais | ✓ (super bypass explícito) | n/a | n/a | ✓ (`is_super_admin`) | não | ✓ | via `x-tenant-id` (auditada) | não | parcial | catálogo formal ausente |
+| Autorização — Matriz canônica | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | não formalizada | **Missing** — Responsável **PR-PH.2** |
+
+PR-PH.2 continua responsável pela canonicalização da matriz e
+pelo hardening, mas **não** pela descoberta inicial — o baseline
+acima é vinculante.
 
 ## 15. Prontidão operacional
 
-Auditar/consolidar em PR-PH.11:
+Inventário atual (descoberta encerrada nesta PR-PH.0 —
+PR-PH.11 implementa e valida, sem redescobrir):
 
-- Ambientes, variáveis, secrets (Lovable Cloud gerenciado).
-- Migrations (93 aplicadas), seed, backup, restore.
-- Observabilidade (`src/lib/observability.server.ts`,
-  `src/lib/lovable-error-reporting.ts`), logs, alertas.
-- Auditoria (`admin.auditoria.tsx`, `logCmsAudit`).
-- E-mail (`src/lib/email/notify.server.ts`,
-  `src/lib/email-templates/*`), WhatsApp (botão flutuante),
-  rate limits (`rate-limit.server.ts`), cron, webhooks,
-  health checks.
-- Rollback, runbooks, LGPD, retenção, exportação, exclusão.
+| Item | Estado atual | Evidência |
+|---|---|---|
+| Ambientes | **Managed external dependency** (Lovable Cloud gerenciado; preview + published) | `.env` gerenciado; publicações e domínios via plataforma |
+| Variáveis (por nome) | **Implemented and connected**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`, `LOVABLE_API_KEY` | `client.ts`, `client.server.ts`, `pages.functions.ts:publicClient` |
+| Secrets (por nome) | **Managed external dependency**: `SUPABASE_SERVICE_ROLE_KEY` (server-only, inacessível a agente); `LOVABLE_API_KEY` (AI Gateway) | `client.server.ts` — nunca referenciada em código de cliente |
+| Migrations | **Implemented and connected** — 93 aplicadas | `supabase/migrations/` |
+| Seed | **Missing** como pipeline formal (fixtures existem apenas em runners de teste) | `run-*.ts` |
+| Backup / Restore | **Managed external dependency** (Lovable Cloud) | plataforma |
+| Observabilidade | **Implemented but incomplete** — coleta server-side sem dashboard consumidor | `src/lib/observability.server.ts` |
+| Logs | **Implemented but incomplete** | idem + `console.error` em handlers |
+| Error reporting | **Implemented and connected** (client) | `src/lib/lovable-error-reporting.ts`, `error-capture.ts` |
+| Alertas operacionais | **Missing** — sem canal formal | — |
+| Health checks | **Missing** como rota dedicada | — |
+| Rate limits | **Implemented and connected** para superfícies sensíveis | `src/lib/rate-limit.server.ts` |
+| Cron | **Missing** — sem `pg_cron` ou scheduler declarado | — |
+| Webhooks | **Missing** — sem `/api/public/*` de webhook em uso | — |
+| E-mail | **Implemented and connected** (envio + templates) | `src/lib/email/notify.server.ts`, `src/lib/email-templates/*` |
+| WhatsApp | **Implemented and connected** (botão flutuante público apenas; sem API oficial — por decisão do produto) | `src/components/site/WhatsAppFab.tsx` |
+| Analytics | **Implemented but incomplete** — pixel/tag sem dashboard analítico | `src/lib/meta-pixel.ts` |
+| Auditoria CMS | **Implemented and connected** | `_cms.ts` (`logCmsAudit`), `admin.auditoria.tsx` |
+| Runbooks | **Missing** | — |
+| Rollback operacional | **Implemented and connected** (site versions/restore); **Missing** para CRM/comercial | `site-versions.functions.ts` |
+| Retenção / Exportação / Exclusão / LGPD | **Implemented but incomplete** — páginas públicas (`privacidade.tsx`, `unsubscribe.tsx`) presentes; processo interno de export/erase **Missing** | rotas públicas |
+| Suporte / SLA | **Missing** — sem canal formal declarado | — |
+
+PR-PH.11 deverá implementar/validar as lacunas acima; **não**
+deverá repetir descoberta básica.
 
 ## 16. Diretriz vinculante — RM Prime SaaS Data-Dense Premium Dark Interface
 
@@ -842,7 +958,7 @@ aplicável” quando genuinamente ausentes.
    site público sob autoridade coerente; formalizar limites
    de contraste e fallback determinístico.
 3. **Baseline:** §9 desta análise.
-4. **Dependências:** PR-PH.2 Accepted.
+4. **Dependências:** PR-PH.4 Accepted (gate serial), portando PR-PH.1 … PR-PH.4 Accepted; adicionalmente autoridades de roles (PR-PH.2) e de site público (autoridade `site_settings` já existente).
 5. **Autoridades atuais:** `site_settings`,
    `site_settings_versions`, `useSiteAdapter`,
    `buildBrandingCss`.
@@ -901,24 +1017,35 @@ aplicável” quando genuinamente ausentes.
    & Content Architecture.
 2. **Objetivo:** consolidar autoridade das entidades do CMS
    (`site`, `pagina`, `post`, `form`, `campanha`, `midia`,
-   `auditoria`), remover redirects legados (`cms-transferencia`,
-   `cms-auditoria`) como aliases finais, formalizar menus
-   públicos, SEO, sitemap, versionamento, agendamento e LGPD.
+   `auditoria`), formalizar menus públicos, SEO, sitemap,
+   versionamento, agendamento e LGPD. **Ownership de redirects
+   e aliases administrativos permanece exclusivamente com
+   PR-PH.1** — PR-PH.6 **consome** a política aprovada em
+   PR-PH.1 e não cria, remove nem mantém redirects
+   administrativos por conta própria.
 3. **Baseline:** §§8, 10 desta análise.
-4. **Dependências:** PR-PH.5 Accepted.
+4. **Dependências:** PR-PH.5 Accepted (gate serial), portando PR-PH.1 … PR-PH.5 Accepted. Política de aliases administrativos herdada de PR-PH.1.
 5. **Autoridades atuais:** `EntityWorkspace` com descriptors
    já registrados; renderers públicos.
 6. **Lacunas:** consolidação formal de agendamento, SEO e
    LGPD; contratos por bloco.
 7. **Escopo autorizado:** ajustes documentais + eventuais
-   migrations não-destrutivas de versionamento.
+   migrations não-destrutivas de versionamento; **consumo** da
+   política de aliases herdada de PR-PH.1.
 8. **Fora de escopo:** landing pages (PR-PH.7); domínio
-   (PR-PH.8).
+   (PR-PH.8); criação/remoção autônoma de redirects
+   administrativos (autoridade exclusiva de PR-PH.1).
 9. **Arquivos e módulos previstos:** `src/lib/api/pages.functions.ts`,
    `src/lib/api/site.functions.ts`, `src/lib/api/site-versions.functions.ts`,
    `src/components/content/*`, `src/components/site/*`.
-10. **Rotas previstas:** manutenção; redirects legados
-    permanecem como aliases documentados.
+10. **Rotas previstas:** manutenção. **Estratégia única de
+    aliases administrativos** (herdada de PR-PH.1): manter
+    temporariamente `cms-transferencia` e `cms-auditoria` como
+    aliases sob *deprecation contract*, com critério objetivo
+    de remoção (ausência comprovada de consumidores externos
+    ao workspace ou expiração da janela de deprecação definida
+    em PR-PH.1). Estratégias contraditórias (“remover” + “manter
+    como alias”) são proibidas.
 11. **Tabelas afetadas:** `pages`, `posts`, `forms`,
     `campaigns`, `media`, `site_settings*`.
 12. **Migrations possíveis:** apenas se necessárias para
@@ -1007,7 +1134,7 @@ aplicável” quando genuinamente ausentes.
    domain com verificação, SSL, anti-takeover, auditoria e
    rollback.
 3. **Baseline:** §12 desta análise.
-4. **Dependências:** PR-PH.5 Accepted.
+4. **Dependências:** PR-PH.7 Accepted (gate serial), portando PR-PH.1 … PR-PH.7 Accepted; branding (PR-PH.5) consolidado.
 5. **Autoridades atuais:** `portal-engine.server.ts`.
 6. **Lacunas:** UI, state machine, verificação DNS/TXT, SSL,
    anti-takeover.
@@ -1059,8 +1186,7 @@ aplicável” quando genuinamente ausentes.
 2. **Objetivo:** wizard de onboarding + Configuration Center
    unificado, sem mistura com impersonação.
 3. **Baseline:** §13 desta análise.
-4. **Dependências:** PR-PH.5 e PR-PH.8 Accepted (branding e
-   domínio consolidados).
+4. **Dependências:** PR-PH.8 Accepted (gate serial), portando PR-PH.1 … PR-PH.8 Accepted; branding (PR-PH.5) e domínio (PR-PH.8) consolidados.
 5. **Autoridades atuais:** superfícies dispersas.
 6. **Lacunas:** unificação; wizard.
 7. **Escopo autorizado:** UI + server functions read/write
@@ -1199,21 +1325,30 @@ aplicável” quando genuinamente ausentes.
 ### 19.12 PR-PH.12 — Pre-Homologation Product Closing Review
 
 1. **Nome oficial:** Pre-Homologation Product Closing Review.
-2. **Objetivo:** consolidar todas as etapas anteriores e
-   emitir declaração final de Product Readiness.
+2. **Objetivo:** consolidar todas as etapas anteriores e emitir
+   declaração final de Product Readiness. **Não implementa
+   produto**, mas **obrigatoriamente reexecuta ou consolida** as
+   suítes críticas listadas em (26)–(30) desta cláusula.
 3. **Baseline:** contratos individuais PR-PH.1 … PR-PH.11.
-4. **Dependências:** PR-PH.1 … PR-PH.11 Accepted.
+4. **Dependências:** PR-PH.11 Accepted (gate serial) e todas as
+   etapas anteriores PR-PH.1 … PR-PH.10 Accepted.
 5. **Autoridades atuais:** todas as consolidadas.
 6. **Lacunas:** nenhuma pendente esperada.
-7. **Escopo autorizado:** documentação de encerramento.
-8. **Fora de escopo:** qualquer alteração de runtime.
+7. **Escopo autorizado:** documentação de encerramento;
+   reexecução/consolidação de evidências de teste.
+8. **Fora de escopo:** qualquer alteração de runtime, schema,
+   RLS, grants, componentes ou rotas.
 9. **Arquivos e módulos previstos:** `docs/architecture/*`,
    `docs/delivery/*`.
 10. **Rotas previstas:** Não aplicável.
 11. **Tabelas afetadas:** Não aplicável.
-12. **Migrations possíveis:** Não aplicável.
-13. **Impacto em RLS:** Não aplicável.
-14. **Impacto em grants:** Não aplicável.
+12. **Migrations possíveis:** Não aplicável — mas **validar** que
+    o total permanece o baseline vigente e que nenhuma migration
+    espúria foi adicionada.
+13. **Impacto em RLS:** Não aplicável — mas **validar** ausência
+    de regressão em políticas existentes.
+14. **Impacto em grants:** Não aplicável — mas **validar**
+    grants por tabela pública.
 15. **Server boundaries:** Não aplicável.
 16. **Contratos de dados:** Não aplicável.
 17. **Autoridade de autorização:** Não aplicável.
@@ -1221,23 +1356,59 @@ aplicável” quando genuinamente ausentes.
 19. **Entitlement comercial:** Não aplicável.
 20. **Impersonação:** Não aplicável.
 21. **UX:** Não aplicável.
-22. **Responsividade:** Não aplicável.
-23. **Acessibilidade:** Não aplicável.
+22. **Responsividade:** Não aplicável — validada em PR-PH.10.
+23. **Acessibilidade:** Não aplicável — validada em PR-PH.10.
 24. **Analytics:** Não aplicável.
-25. **Observabilidade:** Não aplicável.
-26. **Testes unitários:** Não aplicável.
-27. **Testes de integração:** Não aplicável.
-28. **Testes E2E:** Não aplicável.
-29. **Testes visuais:** Não aplicável.
-30. **Testes de segurança:** Não aplicável.
-31. **Fixtures e cleanup fail-closed:** Não aplicável.
-32. **Hard gates:** nenhuma etapa anterior aberta.
-33. **Definition of Done:** Ready for External Audit no
-    fechamento da Product Readiness.
-34. **Complexidade relativa:** baixa.
+25. **Observabilidade:** validada em PR-PH.11.
+26. **Testes unitários:** **obrigatório reexecutar/consolidar.**
+    Comando: `bunx vitest run` (unit). Evidência: log de execução
+    + contagem verde. Resultado esperado: 100% verde. Responsável:
+    executor da etapa. Condição de falha: qualquer teste vermelho,
+    skipped não justificado, ou suíte ausente. Teste indisponível:
+    registrar como bloqueador — proibido aceite silencioso.
+27. **Testes de integração:** **obrigatório reexecutar/
+    consolidar.** Comando: os quatro runners canônicos
+    (`bun run-tenant-specs.ts`,
+    `bun run-membership-mutation-parity-specs.ts`,
+    `bun run-commercial-seat-atomic-enforcement-specs.ts`,
+    `bun run-commercial-sql-parity-specs.ts`). Evidência: exit 0 e
+    contagem por cenário. Falha: qualquer exit ≠ 0 ou cenário
+    ausente. Indisponível: bloqueador.
+28. **Testes E2E:** **obrigatório reexecutar/consolidar** os
+    smokes existentes em `tests/*/test_*.py`. Comando:
+    `bash tests/_helpers/run_all.sh` (ou equivalente aprovado).
+    Evidência: relatório final. Falha: qualquer smoke vermelho.
+    Indisponível: bloqueador com registro formal.
+29. **Testes visuais:** **obrigatório consolidar snapshots**
+    materializados em PR-PH.10. Evidência: hash de referência
+    conferido. Falha: divergência sem justificativa aprovada.
+    Indisponível: bloqueador.
+30. **Testes de segurança:** **obrigatório reexecutar/
+    consolidar** — `tests/security/test_tenant_isolation.py` +
+    revisão de RLS/grants (`supabase--linter` equivalente).
+    Evidência: exit 0 + relatório. Falha: qualquer regressão.
+    Indisponível: bloqueador.
+31. **Fixtures e cleanup fail-closed:** obrigatório validar que
+    todos os runners emitem cleanup via `try/finally` global
+    (herdado do harness canônico de F4-CF-01).
+32. **Hard gates:** **PR-PH.12 não poderá declarar Product
+    Readiness se alguma evidência obrigatória (12–14, 26–31)
+    estiver ausente, inconclusiva, desatualizada ou aceita
+    silenciosamente.** Validações adicionais obrigatórias:
+    typecheck (`bunx tsc --noEmit -p tsconfig.json`) verde;
+    `git diff --check` clean; ausência de dual paths;
+    ausência de rotas órfãs; documentação e roadmap
+    reconciliados; riscos aceitos registrados; rollback
+    documentado.
+33. **Definition of Done:** todas as evidências (12–14, 26–31)
+    coletadas, verdes e datadas; declaração final Ready for
+    External Audit no fechamento da Product Readiness.
+34. **Complexidade relativa:** média (consolidação disciplinada).
 35. **Adequação a um único prompt macro:** sim.
 36. **Condições objetivas de replanejamento:** qualquer etapa
-    anterior não Accepted.
+    anterior não Accepted; qualquer evidência obrigatória
+    ausente/vermelha/indisponível sem plano de correção
+    imediato.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.12 —
     Accepted; TH-001 — Ready for Impact Analysis; homologação
     permanece Blocked até TH-006.
@@ -1252,11 +1423,11 @@ aplicável” quando genuinamente ausentes.
 | PR-PH.2 | PR-PH.1 | leituras | rbac + auth-middleware | não | RLS + authz | — | negativos |
 | PR-PH.3 | PR-PH.2 | audit trail | leads-crm + admin | Kanban | RLS + audit + concorrência | alta | otimista+rollback |
 | PR-PH.4 | PR-PH.3 | possível dashboard_goals | dashboard.functions | dashboard | RLS reads | alta | determinístico |
-| PR-PH.5 | PR-PH.2 | site_settings + possível workspace_branding | site + site-versions | shell + site | contraste + authz | alta | visual |
-| PR-PH.6 | PR-PH.5 | apenas se necessário | pages + site + site-versions | admin CMS + site público | RLS + sanit. | alta | SEO/preview |
-| PR-PH.7 | PR-PH.6 | landing_pages? | pages | builder | RLS + sanit. | alta | UTM/lead |
-| PR-PH.8 | PR-PH.5 | tenant_domains | portal-engine | admin.dominios | anti-takeover | média | state machine |
-| PR-PH.9 | PR-PH.5 e PR-PH.8 | onboarding_progress? | agregadores | wizard + config | authz | alta | wizard E2E |
+| PR-PH.5 | PR-PH.4 (serial) | site_settings + possível workspace_branding (sujeito a IA em PR-PH.5) | site + site-versions | shell + site | contraste + authz | alta | visual |
+| PR-PH.6 | PR-PH.5 (serial) | apenas se necessário | pages + site + site-versions | admin CMS + site público | RLS + sanit. | alta | SEO/preview |
+| PR-PH.7 | PR-PH.6 (serial) | landing_pages? | pages | builder | RLS + sanit. | alta | UTM/lead |
+| PR-PH.8 | PR-PH.7 (serial) | tenant_domains | portal-engine | admin.dominios | anti-takeover | média | state machine |
+| PR-PH.9 | PR-PH.8 (serial); depende de PR-PH.5 e PR-PH.8 consolidados | onboarding_progress? | agregadores | wizard + config | authz | alta | wizard E2E |
 | PR-PH.10 | PR-PH.1..9 | não | não | tokens/tema | contraste | alta | visual/a11y |
 | PR-PH.11 | PR-PH.10 | não | observability | dashboards ops | segredos/LGPD | baixa | smoke |
 | PR-PH.12 | PR-PH.1..11 | não | não | não | consolidação | — | consolidação |
@@ -1315,12 +1486,15 @@ Proibições explícitas:
 
 ## 23. Hard gates da PR-PH.0
 
-Falhar se qualquer uma das condições ocorrer:
+Falhar se qualquer uma das condições ocorrer (regras
+descritivas — evitam repetição literal de tokens operacionais
+proibidos para não colidir com as buscas de reconciliação):
 
-- Permanecer “Requires re-inventory” / “Requires inventory” /
-  “Requires audit” / “auditar em PR-PH.x” / “verificar em
-  PR-PH.x”.
-- Descoberta básica continuar delegada às etapas futuras.
+- Documento voltar a delegar descoberta básica a etapas futuras
+  usando fórmulas equivalentes a re-inventário / novo
+  levantamento / verificação genérica em etapa posterior.
+- Descoberta básica continuar delegada às etapas futuras por
+  qualquer outra formulação.
 - White label público permanecer globalmente Missing.
 - `admin.site` e `admin.paginas` declarados dual path sem
   prova.
@@ -1333,9 +1507,19 @@ Falhar se qualquer uma das condições ocorrer:
 - Roles permanecer depois das etapas funcionais na sequência.
 - PR-PH.1 continuar responsável pelo cutover funcional do CRM.
 - Contratos individuais substituídos por contrato genérico.
-- Roadmap permanecer agregado (PR-PH.1..12 e TH-001..006 em
-  uma única linha).
+- Roadmap continuar agregando PR-PH.1 … PR-PH.12 ou TH-001 …
+  TH-006 em uma única linha.
+- Roadmap declarar que PR-PH.0 não foi iniciada.
+- Contrato da PR-PH.6 conter estratégias contraditórias para
+  aliases administrativos ou reivindicar ownership sobre
+  redirects.
+- PR-PH.5 pré-autorizar segunda autoridade de branding sobre
+  os mesmos campos.
+- PR-PH.12 declarar Product Readiness sem reexecução/
+  consolidação das suítes obrigatórias.
 - Evidência Git não corresponder ao diff real.
+- Buscas normativas apresentadas como “zero ocorrências”
+  quando existem ocorrências normativas legítimas.
 - Arquivo fora do escopo autorizado alterado.
 - Runtime alterado.
 - PR-PH.0 marcada Accepted.
@@ -1346,11 +1530,17 @@ Falhar se qualquer uma das condições ocorrer:
 
 - `git diff --check` — clean.
 - `bunx tsc --noEmit -p tsconfig.json` — executado após a
-  reescrita; sem alteração de TypeScript nesta execução.
-- Buscas de reconciliação: zero ocorrências dos padrões
-  proibidos nos artefatos alterados.
+  reescrita; nenhuma alteração de TypeScript nesta execução.
+- Busca operacional (padrões proibidos fora da seção normativa
+  §23): `rg -n "responsabilidade da PR-PH|inventário completo.*PR-PH|auditar/consolidar|precisa validação em PR-PH|campos observados/plausíveis|inventário futuro" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → resultado esperado: zero ocorrências operacionais. As
+  formas literais legadas foram substituídas por regras
+  descritivas nesta reconciliação (§23 evita tokens exatos
+  para não criar falsos positivos).
+- Busca sobre roadmap: `rg -n "PR-PH\.0.*não iniciado|Escopo futuro registrado para PR-PH\.0" docs/architecture/ROADMAP_ARCHITECTURAL.md`
+  → resultado esperado: zero ocorrências.
 - Escopo: apenas os três arquivos documentais autorizados
-  foram modificados.
+  foram modificados nesta execução.
 
 ## 25. Itens fora de escopo
 

@@ -272,16 +272,26 @@ Readiness (PR-PH.0) — **não implementada nesta etapa**:
 - Vinculação: Tenant Dashboard Finalization, CRM/Kanban Finalization,
   Product UX/UI Final Consistency Review.
 
-##### Escopo futuro registrado para PR-PH.0 (não iniciado)
+##### Escopo consolidado pela PR-PH.0 — Ready for External Audit
 
-Tenant Workspace Information Architecture; menu interno e
-nomenclaturas configuráveis; dashboard final por papel; CRM e Kanban
-final; branding do workspace e do site público; menus públicos; CMS e
-landing pages; custom domain por tenant; onboarding e configuration
-center; roles e autoridade de configuração; Product UX/UI Final
-Consistency Review; Environment & Operational Readiness;
-Pre-Homologation Product Closing Review; Test & Homologation Impact
-Analysis.
+A PR-PH.0 **foi executada** e consolidou, dentro do próprio
+artefato canônico
+(`impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`),
+o inventário repository-grounded e os contratos executáveis
+individuais das etapas seguintes: Tenant Workspace Information
+Architecture; menu interno e nomenclaturas configuráveis;
+dashboard final por papel; CRM e Kanban final; branding do
+workspace e do site público (autoridade única, sem
+sobreposição); menus públicos; CMS e landing pages; custom
+domain por tenant; onboarding e configuration center; roles e
+autoridade de configuração; Product UX/UI Final Consistency
+Review; Environment & Operational Readiness; Pre-Homologation
+Product Closing Review; Test & Homologation Impact Analysis.
+
+Estado: PR-PH.0 **Ready for External Audit** — não Accepted.
+PR-PH.1 permanece **Planned; not started**. Homologação
+permanece **Blocked** até o aceite externo da PR-PH.0 e o
+avanço serial de PR-PH.1 … PR-PH.12.
 
 
 Restrições permanentes:
