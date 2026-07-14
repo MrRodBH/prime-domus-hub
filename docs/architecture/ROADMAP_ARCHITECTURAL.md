@@ -121,11 +121,19 @@ explícita de tenant server-authoritative, cardinalidade explícita,
 UX de Tenant Switcher e domínio tipado de `membership_status` /
 `tenant_role`.
 
-### 🔵 Fase 4 — SaaS Commercial Platform
+### 🔵 Fase 4 — SaaS Commercial Platform — **Closed / Accepted**
 
-- **Status:** Phase 4 Closing Review em curso — **Ready for External
-  Audit**. A Fase 4 permanece **não encerrada formalmente** até o
-  aceite externo do Closing Review. **F4-CF-01** está **Accepted**.
+- **Status:** **Architectural Roadmap · Fase 4 — SaaS Commercial
+  Platform — Closed / Accepted.** O Phase 4 Closing Review foi
+  materializado como **Accepted** (auditoria crítica externa). O
+  próximo gate vinculante antes da homologação é **PR-PH.0 —
+  Pre-Homologation Product Readiness Impact Analysis**, registrada
+  como **Ready for External Audit**. **F4-CF-01** permanece
+  **Accepted**. Risco operacional documentado da role gerenciada
+  `sandbox_exec` preservado em `SECURITY_ARCHITECTURE.md §3.1` e
+  F4-CF-01 §6.2 — application trust boundary permanece fechado
+  fail-closed; managed operational trust boundary é dependência
+  formal da plataforma.
 - **Aceites externos consolidados:** **IA-006**, **ADR-005**,
   **ADR-006** e **F4.0** (Role Reconciliation / Membership Role Audit)
   estão **Accepted**. **SCP-001 até SCP-012** estão **Accepted**,
