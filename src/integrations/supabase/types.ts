@@ -2244,6 +2244,60 @@ export type Database = {
           },
         ]
       }
+      lead_stage_history: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          lead_id: string
+          metadata: Json
+          reason_id: string | null
+          reason_type: string | null
+          tenant_id: string
+          to_status: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          lead_id: string
+          metadata?: Json
+          reason_id?: string | null
+          reason_type?: string | null
+          tenant_id: string
+          to_status: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          lead_id?: string
+          metadata?: Json
+          reason_id?: string | null
+          reason_type?: string | null
+          tenant_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_stage_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stage_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null
@@ -2278,6 +2332,7 @@ export type Database = {
           utm_source: string | null
           utm_term: string | null
           valor_estimado: number | null
+          version: number
         }
         Insert: {
           assigned_to?: string | null
@@ -2312,6 +2367,7 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           valor_estimado?: number | null
+          version?: number
         }
         Update: {
           assigned_to?: string | null
@@ -2346,6 +2402,7 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           valor_estimado?: number | null
+          version?: number
         }
         Relationships: [
           {
@@ -3582,6 +3639,17 @@ export type Database = {
         Returns: undefined
       }
       super_observabilidade: { Args: { _hours?: number }; Returns: Json }
+      transition_lead_status: {
+        Args: {
+          _expected_version: number
+          _lead_id: string
+          _metadata?: Json
+          _reason_id?: string
+          _reason_type?: string
+          _to_status: string
+        }
+        Returns: Json
+      }
       user_belongs_to_tenant: { Args: { _tenant: string }; Returns: boolean }
       user_has_active_membership: {
         Args: { _tenant_id: string; _user_id: string }
