@@ -93,25 +93,39 @@ executam cutover, endurecem ou testam.
    analytics; auditoria CMS; runbooks; rollback; LGPD/retenção/
    exportação/exclusão; suporte. PR-PH.11 implementa/valida
    lacunas; não redescobre.
-4. **Semântica CRM** (`§6`) — descoberta encerrada. `ganho`,
-   `perdido` e `descartado` são status persistidos no enum
-   `leads.status` (`admin.functions.ts:783`). `descartarLead`
-   (`leads-crm.functions.ts:53-68`) grava
-   `status="descartado"`, `descartado_at=now()`,
-   `discard_reason_id` e insere histórico em `lead_descartes`.
-   `reabrirLead` (`:155-168`) reverte. `fechado`/`arquivado`
-   **não observados** como estados distintos. PR-PH.3
-   canonicaliza a semântica descoberta.
-5. **Autorização atual** (`§14`) — inventário por módulo com
-   colunas: rotas, server functions, escrita/leitura,
-   middleware, tabelas, RLS, membership_status, tenant_role
-   usado, `has_role`, RBAC profile, owner requirement,
-   impersonação, entitlement comercial, audit trail e lacuna.
-   Cobre workspace shell, CRM, corretores/equipes/perfis,
-   catálogo, CMS (`_cms.ts` — `assertCmsPermission`,
-   `logCmsAudit`), mídias, portais, configurações (branding
-   público), branding do workspace (ausente), Super Admin e a
-   matriz canônica formal (Missing — PR-PH.2).
+4. **Semântica CRM** (`§6`) — descoberta encerrada com
+   evidência exata. `ganho`, `perdido`, `descartado` são
+   status do enum `leads.status`. `descartarLead`
+   (`src/lib/api/leads-crm.functions.ts:37`) valida motivo
+   em `lead_discard_reasons`, atualiza `leads.status='descartado'`
+   e `discard_reason_id`, e insere em `lead_descartes`; o
+   handler TypeScript **não** grava `descartado_at`
+   diretamente — o preenchimento observado ocorre no banco
+   via trigger `tg_leads_enforce_status_flow`
+   (`supabase/migrations/20260701234123_...sql:154`).
+   `reabrirLead` (`:156`) exige `ensureAdmin` e aplica
+   `status='novo'`, `discard_reason_id=NULL`,
+   `descartado_at=NULL` — **não** restaura status anterior.
+   `listarLeadsDescartados` (`:133`) possui **Existing
+   runtime fallback path** (segundo SELECT sem alias FK em
+   caso de erro) inventariado para correção em PR-PH.3.
+   Tabelas reais: `lead_discard_reasons`, `lead_descartes`,
+   `deal_lost_reasons`, `lead_perdas` — o nome
+   `discard_reasons` não existe no schema.
+5. **Autorização atual** (`§14`) — matriz **por operação**
+   (22 linhas), não por módulo. Cada linha registra rota,
+   server fn com arquivo:linha, middleware, RPC, tenant
+   resolution, `membership_status`, `tenant_role`,
+   `app_role`/`has_role`, RBAC, entitlement, client Supabase,
+   uso explícito de service role (linhas 4 `criarLeadManual`
+   e 20 membership mutation comercial), tabela real, policy
+   RLS, USING/WITH CHECK, migration de origem, audit event,
+   teste real, lacuna e evidência arquivo:linha. Policies não
+   diretamente localizadas são marcadas
+   `Not evidenced in repository inspection` — nenhum
+   substituto genérico é aceito. PR-PH.2 produz a matriz
+   Accepted.
+
 
 ## 4. Sequência vinculante e ownership
 
