@@ -715,8 +715,20 @@ function buildRejectionCases(): RejectionCase[] {
       expectCode: "22023",
     },
     {
+      // Requires a real tenant, otherwise "Tenant not found" fires first
+      // (existence checks precede the origin/role check in the RPC).
       name: "R5. super admin actor with origin=selection → Super admin requires impersonation origin (22023)",
-      run: (uid) => sqlOracleExpectError(uid, uuid(), "selection", 1),
+      run: async (uid) => {
+        const tid = uuid();
+        await insertOrThrow("tenants", {
+          id: tid,
+          slug: slug("r5", tid),
+          nome: `F4CF01 rej ${tid.slice(0, 8)}`,
+          status: "ativo",
+        }, `rejection tenant ${tid}`);
+        createdTenants.add(tid);
+        return sqlOracleExpectError(uid, tid, "selection", 1);
+      },
       expectMessageIncludes: "Super admin requires impersonation origin",
       expectCode: "22023",
     },
