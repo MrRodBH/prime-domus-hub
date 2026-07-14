@@ -207,9 +207,16 @@ UX de Tenant Switcher e domínio tipado de `membership_status` /
 
 17. F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement & Runtime Consistency Check and Fix — Accepted.
 
-18. Phase 4 Closing Review — SaaS Commercial Platform Formal Closure, Managed-Role Trust Boundary Reconciliation & Product Readiness Gate — Ready for External Audit.
+18. Phase 4 Closing Review — SaaS Commercial Platform Formal Closure, Managed-Role Trust Boundary Reconciliation & Product Readiness Gate — **Accepted**.
 
-PR-PH.0 — Pre-Homologation Product Readiness Impact Analysis — Planned; not started.
+**Architectural Roadmap · Fase 4 — SaaS Commercial Platform — Closed / Accepted.**
+
+PR-PH.0 — Pre-Homologation Product Readiness Impact Analysis — **Ready for External Audit**.
+
+PR-PH.1 até PR-PH.12 — Planned; not started.
+
+TH-001 até TH-006 — Planned; not started.
+Homologação — **Blocked** until completion and acceptance of Product Readiness.
 
 ##### Namespaces dos roadmaps (regra vinculante)
 
