@@ -1564,8 +1564,15 @@ aplicável” quando genuinamente ausentes.
    tenant-scoped (contraste WCAG).
 3. **Baseline:** §16 + inventário das etapas anteriores.
 4. **Dependências:** PR-PH.1 … PR-PH.9 Accepted (gate serial).
-5. **Autoridades atuais:** `src/styles.css`, tokens,
-   `buildBrandingCss` (`site.functions.ts`).
+5. **Autoridades atuais:** `src/styles.css`, tokens do design
+   system; `buildBrandingCss` **função local não exportada em
+   `src/routes/__root.tsx`** (baseline). PR-PH.10 detém a
+   **decisão explícita**: (a) extrair `buildBrandingCss` para
+   módulo puro testável, (b) exportar como helper de
+   branding, ou (c) testar por boundary público. Enquanto essa
+   decisão não for Accepted, `buildBrandingCss` **não** pode
+   ser referenciada como função em `site.functions.ts` ou em
+   qualquer outro módulo.
 6. **Lacunas:** consolidação, resolução formal de tokens/
    contraste, sanitização de valores usados em CSS,
    persistência de tema, testes visuais e de a11y.
@@ -1573,7 +1580,9 @@ aplicável” quando genuinamente ausentes.
    utilitário de branding, testes.
 8. **Fora de escopo:** lógica de negócio; schema; RLS.
 9. **Arquivos e módulos previstos:** `src/styles.css`,
-   componentes visuais, `buildBrandingCss`.
+   componentes visuais, boundary de `buildBrandingCss` (a
+   decidir em PR-PH.10 conforme item 5).
+
 10. **Rotas previstas:** Não aplicável.
 11. **Tabelas afetadas:** Não aplicável (leitura de
     `site_settings` já existente).
