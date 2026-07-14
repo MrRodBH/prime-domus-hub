@@ -1429,36 +1429,58 @@ aplicável” quando genuinamente ausentes.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.7 —
     Accepted; PR-PH.8 — Ready for Impact Analysis.
 
-### 19.8 PR-PH.8 — Tenant Domain Management & Host Resolution
+### 19.8 PR-PH.8 — Custom Domain Lifecycle
 
-1. **Nome oficial:** Tenant Domain Management & Host Resolution.
+1. **Nome oficial:** Custom Domain Lifecycle.
 2. **Objetivo:** implementar UI e state machine de custom
-   domain com verificação, SSL, anti-takeover, auditoria e
-   rollback.
+   domain com verificação DNS/TXT, SSL, anti-takeover,
+   canonical/redirect, auditoria e rollback. **Consome** o
+   resolver público Accepted em PR-PH.5; **não** cria segunda
+   autoridade de resolução.
 3. **Baseline:** §12 desta análise.
-4. **Dependências:** PR-PH.7 Accepted (gate serial), portando PR-PH.1 … PR-PH.7 Accepted; branding (PR-PH.5) consolidado.
-5. **Autoridades atuais:** `portal-engine.server.ts`.
+4. **Dependências:** PR-PH.7 Accepted (gate serial), portando
+   PR-PH.1 … PR-PH.7 Accepted; e explicitamente a autoridade
+   `host → tenantId` Accepted em PR-PH.5.
+5. **Autoridades atuais:** nenhuma UI de custom domain
+   observada. `src/lib/portal-engine.server.ts` é engine
+   outbound de portais imobiliários (Zap, Viva Real, etc.) e
+   **não** é autoridade de resolução host → tenant; a menção
+   histórica a esse arquivo como autoridade de domain
+   management é retirada.
 6. **Lacunas:** UI, state machine, verificação DNS/TXT, SSL,
-   anti-takeover.
-7. **Escopo autorizado:** nova tabela `tenant_domains`, server
-   functions, `admin.dominios.tsx`.
-8. **Fora de escopo:** onboarding (usa este contrato).
-9. **Arquivos e módulos previstos:** `src/lib/api/domains.functions.ts`
-   (novo), `src/routes/_authenticated.admin.dominios.tsx`
-   (novo), `src/lib/portal-engine.server.ts`.
+   anti-takeover, canonical/redirect.
+7. **Escopo autorizado:** nova tabela `public.tenant_domains`
+   [planned/new — subject to Impact Analysis], server
+   functions em `src/lib/api/domains.functions.ts` (novo),
+   rota `src/routes/_authenticated.admin.dominios.tsx` (novo).
+8. **Fora de escopo:** resolução host → tenant (PR-PH.5);
+   onboarding (PR-PH.9).
+9. **Arquivos e módulos previstos:**
+   `src/lib/api/domains.functions.ts` (novo);
+   `src/routes/_authenticated.admin.dominios.tsx` (novo);
+   consumidor de `src/lib/tenant.server.ts:resolveTenantByHost`
+   (autoridade PR-PH.5). **Nada** em
+   `src/lib/portal-engine.server.ts` é reutilizado como
+   resolver.
 10. **Rotas previstas:** `/admin/dominios`.
-11. **Tabelas afetadas:** `tenant_domains` (nova).
-12. **Migrations possíveis:** criação de `tenant_domains` + RLS
-    + grants.
+11. **Tabelas afetadas:** `public.tenant_domains`
+    [planned/new — subject to Impact Analysis].
+12. **Migrations possíveis:** criação de `tenant_domains` +
+    RLS + grants.
 13. **Impacto em RLS:** tenant-scoped estrito; anti-takeover
     via unique constraint + verificação server-side.
-14. **Impacto em grants:** grants padrões.
+14. **Impacto em grants:** grants padrão (authenticated +
+    service_role).
 15. **Server boundaries:** todas as escritas via server
     function.
-16. **Contratos de dados:** DTO da state machine.
-17. **Autoridade de autorização:** owner.
-18. **Membership authorization:** obrigatória.
-19. **Entitlement comercial:** possível gate.
+16. **Contratos de dados:** DTO da state machine
+    (`not_configured → pending_dns → verifying → verified →
+    provisioning_ssl → active | failed | suspended →
+    removing`).
+17. **Autoridade de autorização:** Autoridade final derivada
+    da matriz Accepted em PR-PH.2.
+18. **Membership authorization:** conforme matriz PR-PH.2.
+19. **Entitlement comercial:** possível gate futuro.
 20. **Impersonação:** auditada.
 21. **UX:** wizard passo a passo; instruções DNS.
 22. **Responsividade:** obrigatória.
@@ -1472,15 +1494,18 @@ aplicável” quando genuinamente ausentes.
 30. **Testes de segurança:** anti-takeover; unicidade global.
 31. **Fixtures e cleanup fail-closed:** obrigatório.
 32. **Hard gates:** takeover impossível; canonical/redirect
-    consistentes.
-33. **Definition of Done:** wizard vivo; state machine testada.
+    consistentes; **nenhuma segunda autoridade de resolução**.
+33. **Definition of Done:** wizard vivo; state machine
+    testada; integração com resolver público de PR-PH.5.
 34. **Complexidade relativa:** alta.
 35. **Adequação a um único prompt macro:** sim, se SSL for
     delegado à plataforma; caso contrário, replanejar.
 36. **Condições objetivas de replanejamento:** necessidade de
-    provisionar SSL por conta própria.
+    provisionar SSL por conta própria; ausência do resolver
+    Accepted em PR-PH.5.
 37. **Estado esperado do roadmap após aprovação:** PR-PH.8 —
     Accepted; PR-PH.9 — Ready for Impact Analysis.
+
 
 ### 19.9 PR-PH.9 — Tenant Onboarding & Configuration Center
 
