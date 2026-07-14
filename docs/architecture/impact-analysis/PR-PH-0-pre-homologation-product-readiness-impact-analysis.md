@@ -958,7 +958,7 @@ aplicável” quando genuinamente ausentes.
    site público sob autoridade coerente; formalizar limites
    de contraste e fallback determinístico.
 3. **Baseline:** §9 desta análise.
-4. **Dependências:** PR-PH.2 Accepted.
+4. **Dependências:** PR-PH.4 Accepted (gate serial), portando PR-PH.1 … PR-PH.4 Accepted; adicionalmente autoridades de roles (PR-PH.2) e de site público (autoridade `site_settings` já existente).
 5. **Autoridades atuais:** `site_settings`,
    `site_settings_versions`, `useSiteAdapter`,
    `buildBrandingCss`.
@@ -1123,7 +1123,7 @@ aplicável” quando genuinamente ausentes.
    domain com verificação, SSL, anti-takeover, auditoria e
    rollback.
 3. **Baseline:** §12 desta análise.
-4. **Dependências:** PR-PH.5 Accepted.
+4. **Dependências:** PR-PH.7 Accepted (gate serial), portando PR-PH.1 … PR-PH.7 Accepted; branding (PR-PH.5) consolidado.
 5. **Autoridades atuais:** `portal-engine.server.ts`.
 6. **Lacunas:** UI, state machine, verificação DNS/TXT, SSL,
    anti-takeover.
@@ -1175,8 +1175,7 @@ aplicável” quando genuinamente ausentes.
 2. **Objetivo:** wizard de onboarding + Configuration Center
    unificado, sem mistura com impersonação.
 3. **Baseline:** §13 desta análise.
-4. **Dependências:** PR-PH.5 e PR-PH.8 Accepted (branding e
-   domínio consolidados).
+4. **Dependências:** PR-PH.8 Accepted (gate serial), portando PR-PH.1 … PR-PH.8 Accepted; branding (PR-PH.5) e domínio (PR-PH.8) consolidados.
 5. **Autoridades atuais:** superfícies dispersas.
 6. **Lacunas:** unificação; wizard.
 7. **Escopo autorizado:** UI + server functions read/write
