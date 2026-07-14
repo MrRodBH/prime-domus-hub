@@ -27,8 +27,11 @@ endurecido e evidências de validação factualmente exatas.
   SHA).
 - `git status --short` limpo na entrada; `git diff --check`
   clean.
-- 93 migrations aplicadas. Runtime, RLS, grants, providers,
-  package.json e lockfile inalterados por esta execução.
+- 93 arquivos de migration versionados no repositório
+  auditado; estado remoto de aplicação **não verificável**
+  apenas pelo repositório (validação em PR-PH.11 / PR-PH.12).
+  Runtime, RLS, grants, providers, `package.json` e lockfile
+  inalterados por esta execução.
 
 ## 2. Escopo autorizado e fora de escopo
 
