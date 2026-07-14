@@ -233,15 +233,26 @@ Status funcional adicional:
   estágio no pipeline com rollback. Runners atuais cobrem
   domínio comercial (Fase 4). — **Missing**.
 - Semântica financeira (`ganho ≠ perdido ≠ descartado ≠
-  fechado ≠ arquivado`):
-  - `ganho`, `perdido` — presentes no vocabulário (`Status`,
-    dashboard, pipeline).
-  - `descartado` — presente como tab e via
-    `DescartadosPanel`/`adminContarDescartes` (armazenamento
-    real precisa validação em PR-PH.3).
-  - `fechado`/`arquivado` — não observados como estados
-    distintos. Divergência semântica a resolver em PR-PH.3
-    (contagem financeira deve considerar apenas `ganho`).
+  fechado ≠ arquivado`) — descoberta encerrada nesta PR-PH.0:
+  - `ganho`, `perdido` — status persistidos na coluna `leads.status`
+    (`admin.functions.ts:783` — enum
+    `"novo","conversando","visita","proposta","ganho","perdido","descartado"`).
+  - `descartado` — status persistido na mesma coluna. Mutação
+    canônica em `leads-crm.functions.ts:53-68` (`descartarLead`)
+    grava `status="descartado"`, `descartado_at=now()`,
+    `discard_reason_id` e insere histórico em `lead_descartes`.
+    Reabertura em `leads-crm.functions.ts:155-168`
+    (`reabrirLead`) restaura status anterior e limpa
+    `descartado_at`. Motivos gerenciados por
+    `lead-reasons.functions.ts` (tabela `discard_reasons`).
+  - `perdido` vs `descartado`: `perdido` é resultado comercial
+    (regra “só a partir de proposta”, §6 acima); `descartado` é
+    remoção operacional com motivo obrigatório e histórico
+    dedicado.
+  - `fechado`/`arquivado` — **não observados** como estados
+    distintos no enum, tabelas ou histórico. Divergência
+    semântica a resolver em PR-PH.3 (contagem financeira já é
+    canonicalmente restrita a `ganho` — `dashboard.functions.ts`).
 
 ## 7. Inventário completo do dashboard
 
