@@ -1,9 +1,9 @@
 # 119 — F4-CF-01 — Phase 4 Repository Integrity, Documentation Placement & Runtime Consistency Check and Fix
 
-**Status:** Ready for External Audit
+**Status:** Accepted
 **Phase:** 04 — SaaS Commercial Platform
 **Depends on:** SCP-012 — Accepted.
-**Blocks:** Phase 4 Closing Review — Planned; not started.
+**Blocks:** None — Phase 4 Closing Review is the next authorized checkpoint.
 
 Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository-integrity-documentation-placement-runtime-consistency.md`](../../../architecture/impact-analysis/F4-CF-01-phase-4-repository-integrity-documentation-placement-runtime-consistency.md).
 
@@ -53,12 +53,15 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
 - Consultas pós-run confirmam zero tenants de fixture, zero plans
   de fixture e zero linhas residuais nas tabelas escopadas pelo
   harness.
-- ACL das RPCs consultada diretamente via `pg_proc` / `aclexplode`:
-  owner (`postgres`) + `service_role` retêm `EXECUTE`; `anon`,
-  `authenticated` e `PUBLIC` continuam sem privilégio. `sandbox_exec`
-  volta a possuir `EXECUTE` após o reprovisionamento automático do
-  ambiente gerenciado — registrado como risco residual no §11 do
-  impact analysis. Nenhum runtime produtivo depende de `sandbox_exec`.
+- ACL das RPCs consultada diretamente via `pg_proc` / `aclexplode` /
+  `has_function_privilege`: owner (`postgres`) + `service_role`
+  retêm `EXECUTE`; `anon`, `authenticated`, `authenticator` e
+  `PUBLIC` continuam sem privilégio. `sandbox_exec` é role
+  operacional gerenciada pela plataforma e formalizada em §6.2 do
+  impact analysis como **fora do trust boundary da aplicação**
+  (não assumível por `anon`/`authenticated`/`authenticator`/
+  `service_role`; `pg_has_role` = false para todos; zero uso em
+  `src/`).
 
 ## Escopo materializado nesta execução
 
@@ -82,13 +85,19 @@ Alterações restritas aos quatro arquivos autorizados:
      (`status priority`, `started_at DESC NULLS LAST`, `id ASC`).
      Contabilizada separadamente dos cenários RPC.
   6. Grupo dedicado de **rejection contract** (6 casos) exercita
-     erros reais da RPC via `service_role`: `Invalid
-     requestedIncrement` (22023, incrementos 0 e 2), `Invalid tenant
-     origin` (22023), `Actor not found` (22023), `Super admin
-     requires impersonation origin` (22023, com tenant real
-     provisionado) e `Tenant not found` (22023).
-  7. Snapshot de `users.seats` capturado antes e depois; catálogo
-     validado byte-a-byte inalterado.
+     erros reais da RPC via `service_role` com validação
+     **strict/fail-closed**: `data === null`, `error` presente,
+     `error.code` exatamente `22023` (código ausente reprova) e
+     `error.message` validada por igualdade exata ou prefixo
+     canônico declarado (`startsWith`), nunca por substring em
+     posição arbitrária. Cobre: `Invalid requestedIncrement`
+     (incrementos 0 e 2), `Invalid tenant origin`, `Actor not
+     found`, `Super admin requires impersonation origin` (com
+     tenant real provisionado) e `Tenant not found`.
+  7. Snapshot dos fields canônicos selecionados de `users.seats`
+     capturado antes e depois; catálogo reportado como
+     `catalog unchanged: yes` sobre os fields selecionados
+     (não comparação byte-a-byte física da linha).
   8. Flag test-only
      `COMMERCIAL_PARITY_INJECT_FAILURE_AFTER_SETUP=1` demonstra o
      lifecycle fail-closed.
