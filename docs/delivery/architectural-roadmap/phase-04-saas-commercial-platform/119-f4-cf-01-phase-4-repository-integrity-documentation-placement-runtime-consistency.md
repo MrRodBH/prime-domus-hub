@@ -37,19 +37,20 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
 - `bunx tsx ./run-tenant-specs.ts` → 233 passed / 0 failed.
 - `bunx tsx ./run-membership-mutation-parity-specs.ts` → 14 passed / 0 failed.
 - `bunx tsx ./run-commercial-seat-atomic-enforcement-specs.ts` → 10 passed / 0 failed.
-- `run-commercial-sql-parity-specs.ts` — **historical / superseded**;
-  não é gate corrente. Aborta durante seeding de fixtures em
-  `public.tenant_members` (RLS restritiva; role efetiva
-  `sandbox_exec` sem policy compatível). A execução não concluiu a
-  matriz de paridade — falha registrada NÃO como prova de ACL nem de
-  paridade. Cobertura semântica preservada pelos runners substitutos
-  (ver §8.1 do impact analysis F4-CF-01):
-  `run-commercial-seat-atomic-enforcement-specs.ts`,
-  `run-membership-mutation-parity-specs.ts`,
-  `commercial-seat-rpc-contract.spec.ts`,
-  `commercial-seat-limit.spec.ts`,
-  `commercial-feature-gate.spec.ts`,
-  `commercial-feature-catalog.spec.ts`.
+- `bunx tsx ./run-commercial-sql-parity-specs.ts` → **17 passed / 0 failed**
+  (canonical integration gate — RLS-safe, service-role fixtures, SQL DTO
+  vs TypeScript oracle vs expected DTO deep-equal across the full field
+  set for every scenario). Zero cleanup errors; zero residuals.
+- Migration `20260714001218_*.sql` — ACL reclosure:
+  `resolve_commercial_seat_decision(uuid,uuid,text,integer)` and
+  `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)` now expose
+  EXECUTE only to owner (`postgres`) and `service_role`. `sandbox_exec`
+  loses EXECUTE on both RPCs and loses INSERT/UPDATE/DELETE on
+  `public.tenant_members` (retains SELECT). `authenticated` remains
+  SELECT-only on `tenant_members`; `anon`/`PUBLIC` remain empty. All
+  transitions verified inside the migration via `pg_proc` / `aclexplode`
+  / `has_function_privilege` / `has_table_privilege` fail-closed
+  assertions.
 - ACL das RPCs `resolve_commercial_seat_decision` e
   `mutate_tenant_membership` verificada de forma independente via
   `pg_proc` / `aclexplode` / `has_function_privilege` (ver §8.2 do
