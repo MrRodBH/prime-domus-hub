@@ -544,18 +544,84 @@ Responsável: PR-PH.7. `ENTITIES.pagina` cobre páginas do CMS;
 não há template dedicado a lançamento/campanha/captura como
 categoria separada.
 
-## 12. Tenant Domain Management
+## 12. Tenant Domain Management e Public Tenant Resolution
 
-- Subdomínio padrão via `portal-engine.server.ts`; resolução
-  por host — **Implemented and connected**.
-- UI de custom domain (`admin.dominios.tsx`) — **Missing**.
-- State machine (`not_configured → pending_dns → verifying →
-  verified → provisioning_ssl → active | failed | suspended →
-  removing`), verificação DNS/TXT, SSL, anti-takeover,
-  auditoria, rollback, canonical, apex/www, unicidade —
-  **Planned only**.
+**Reclassificação vinculante.** `src/lib/portal-engine.server.ts`
+é um engine outbound de conectores de portais imobiliários
+(Zap, Viva Real, Chaves na Mão, Imovelweb, OLX, Mercado Livre).
+**Não** é um host resolver; **não** implementa parsing de
+subdomínio; **não** implementa resolução host → tenant. Toda
+classificação anterior desse arquivo como autoridade de Tenant
+Domain Management é retirada.
 
-Responsável: PR-PH.8.
+**Autoridade real observada.** `src/lib/tenant.server.ts`
+exporta `resolveTenantByHost(host)` (normaliza host, consulta
+`public.tenants.dominio_principal`, aplica fallback pelo slug
+`rm-prime`) e `publicSupabaseForTenant(tenantId)` (cria client
+publishable com header `x-tenant-id`). Busca repositório-wide
+(`rg` em `request.headers|getRequest|host|hostname|subdomain|domain|tenant_domains|x-forwarded-host|resolve.*tenant|tenant.*resolve` em `src/` e `supabase/`)
+localiza `resolveTenantByHost`/`publicSupabaseForTenant`
+**apenas em `src/lib/tenant.server.ts`**; nenhum caller em
+`src/routes/`, `src/routes/__root.tsx` ou
+`src/lib/api/site.functions.ts` os invoca.
+
+**Call chain público real (observado):**
+
+1. Request HTTP chega ao SSR.
+2. `src/routes/__root.tsx` loader importa e chama
+   `obterSiteSettings()` (sem host, sem tenantId).
+3. `src/lib/api/site.functions.ts:307` — `obterSiteSettings`
+   usa `publicClient()` (client publishable **sem** header
+   `x-tenant-id`) e executa
+   `.from("site_settings").select("key, value")` — nenhum
+   filtro explícito por tenant.
+4. RLS: a policy permissiva `"site_settings public read"`
+   (migration `20260701214225`) permite SELECT quando `key`
+   está em uma whitelist; a policy RESTRICTIVE
+   `tenant_isolation` (migration `20260707134301`) exige
+   `tenant_id = get_current_tenant_id()` para roles
+   `anon, authenticated`. Para requisição anônima sem header,
+   `get_current_tenant_id()` retorna `NULL` (guard §F3.3.3),
+   e RESTRICTIVE + PERMISSIVE combinam com `AND`.
+5. `buildBrandingCss` — função **local não exportada** em
+   `src/routes/__root.tsx` (linhas ~178-197 do baseline);
+   aplica CSS global no `RootShell`.
+
+**Classificação por passo:**
+
+- Passo 1: presumido.
+- Passo 2 (host obtido do request): **Missing** — o loader não
+  lê `request.headers.host`.
+- Passo 3 (host → tenant): **Implemented but disconnected** —
+  `resolveTenantByHost` existe mas não é chamado.
+- Passo 4 (tenantId transportado ao PostgREST): **Missing** —
+  `publicClient()` não injeta `x-tenant-id`.
+- Passo 5 (leitura tenant-safe de `site_settings`): **Requires
+  architectural decision** — o comportamento efetivo depende
+  do resultado real da combinação RESTRICTIVE+PERMISSIVE em
+  requisição anônima; a PR-PH.0 não altera policy nem runtime.
+- Passo 6 (branding renderizado): a decisão de aplicar CSS
+  global vem de um settings potencialmente único e não
+  identificado por host.
+
+**Decisão vinculante — Caso B aplicado.** O resolver público
+existe mas está desconectado do fluxo de leitura pública. A
+sequência é atualizada:
+
+- **PR-PH.5** passa a se chamar **“Public Tenant Resolution,
+  Workspace and Public-Site White-Label Consolidation”** e é
+  responsável pela autoridade `host padrão/subdomínio →
+  tenantId → public read context` antes de qualquer trabalho
+  de white label multi-tenant.
+- **PR-PH.6** e **PR-PH.7** dependem dessa autoridade
+  Accepted.
+- **PR-PH.8** consome o resolver criado/confirmado em PR-PH.5
+  e detém apenas o lifecycle de custom domain (cadastro, DNS,
+  TXT, anti-takeover, SSL, canonical, redirect, remoção,
+  auditoria). PR-PH.8 **não** cria uma segunda autoridade de
+  resolução.
+
+Responsáveis: PR-PH.5 (autoridade) → PR-PH.8 (lifecycle).
 
 ## 13. Onboarding e Configuration Center
 
