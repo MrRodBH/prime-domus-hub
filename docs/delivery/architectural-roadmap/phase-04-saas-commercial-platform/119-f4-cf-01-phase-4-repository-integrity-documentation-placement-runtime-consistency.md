@@ -37,9 +37,26 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
 - `bunx tsx ./run-tenant-specs.ts` → 233 passed / 0 failed.
 - `bunx tsx ./run-membership-mutation-parity-specs.ts` → 14 passed / 0 failed.
 - `bunx tsx ./run-commercial-seat-atomic-enforcement-specs.ts` → 10 passed / 0 failed.
-- `run-commercial-sql-parity-specs.ts` — probe legado; falha esperada
-  no sandbox por causa da ACL fail-closed correta em `tenant_members`
-  (não bloqueia F4-CF-01, ver §11 do impact analysis).
+- `run-commercial-sql-parity-specs.ts` — **historical / superseded**;
+  não é gate corrente. Aborta durante seeding de fixtures em
+  `public.tenant_members` (RLS restritiva; role efetiva
+  `sandbox_exec` sem policy compatível). A execução não concluiu a
+  matriz de paridade — falha registrada NÃO como prova de ACL nem de
+  paridade. Cobertura semântica preservada pelos runners substitutos
+  (ver §8.1 do impact analysis F4-CF-01):
+  `run-commercial-seat-atomic-enforcement-specs.ts`,
+  `run-membership-mutation-parity-specs.ts`,
+  `commercial-seat-rpc-contract.spec.ts`,
+  `commercial-seat-limit.spec.ts`,
+  `commercial-feature-gate.spec.ts`,
+  `commercial-feature-catalog.spec.ts`.
+- ACL das RPCs `resolve_commercial_seat_decision` e
+  `mutate_tenant_membership` verificada de forma independente via
+  `pg_proc` / `aclexplode` / `has_function_privilege` (ver §8.2 do
+  impact analysis): `anon`, `authenticated`, `PUBLIC` sem EXECUTE;
+  EXECUTE apenas para owner (`postgres`), `service_role` e a role
+  gerenciada de sandbox `sandbox_exec` (role de exec, não é role de
+  cliente).
 - Grep de escritas diretas em `tenant_members` no runtime TypeScript:
   zero ocorrências. Grep de referências a
   `mutate_tenant_membership` / `resolve_commercial_seat_decision` fora
