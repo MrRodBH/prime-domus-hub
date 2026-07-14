@@ -752,7 +752,7 @@ function readCanonicalResolveFunctionBody(): { body: string; migration: string }
     let m: RegExpExecArray | null;
     rx.lastIndex = 0;
     while ((m = rx.exec(src)) !== null) {
-      picked = { body: m[1], migration: f };
+      picked = { body: m[2], migration: f };
     }
   }
   if (!picked) throw new Error("canonical CREATE FUNCTION resolve_commercial_seat_decision not found in migrations");
