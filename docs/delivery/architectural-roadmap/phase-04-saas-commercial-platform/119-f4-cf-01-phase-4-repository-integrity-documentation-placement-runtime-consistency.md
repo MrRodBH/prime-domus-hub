@@ -37,35 +37,38 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
 - `bunx tsx ./run-tenant-specs.ts` → 233 passed / 0 failed.
 - `bunx tsx ./run-membership-mutation-parity-specs.ts` → 14 passed / 0 failed.
 - `bunx tsx ./run-commercial-seat-atomic-enforcement-specs.ts` → 10 passed / 0 failed.
-- `run-commercial-sql-parity-specs.ts` — **historical / superseded**;
-  não é gate corrente. Aborta durante seeding de fixtures em
-  `public.tenant_members` (RLS restritiva; role efetiva
-  `sandbox_exec` sem policy compatível). A execução não concluiu a
-  matriz de paridade — falha registrada NÃO como prova de ACL nem de
-  paridade. Cobertura semântica preservada pelos runners substitutos
-  (ver §8.1 do impact analysis F4-CF-01):
-  `run-commercial-seat-atomic-enforcement-specs.ts`,
-  `run-membership-mutation-parity-specs.ts`,
-  `commercial-seat-rpc-contract.spec.ts`,
-  `commercial-seat-limit.spec.ts`,
-  `commercial-feature-gate.spec.ts`,
-  `commercial-feature-catalog.spec.ts`.
+- `bunx tsx ./run-commercial-sql-parity-specs.ts` → **17 passed / 0 failed**
+  (canonical integration gate — RLS-safe, service-role fixtures, SQL DTO
+  vs TypeScript oracle vs expected DTO deep-equal across the full field
+  set for every scenario). Zero cleanup errors; zero residuals.
+- Migration `20260714001218_*.sql` — ACL reclosure:
+  `resolve_commercial_seat_decision(uuid,uuid,text,integer)` and
+  `mutate_tenant_membership(uuid,uuid,text,text,uuid,text)` now expose
+  EXECUTE only to owner (`postgres`) and `service_role`. `sandbox_exec`
+  loses EXECUTE on both RPCs and loses INSERT/UPDATE/DELETE on
+  `public.tenant_members` (retains SELECT). `authenticated` remains
+  SELECT-only on `tenant_members`; `anon`/`PUBLIC` remain empty. All
+  transitions verified inside the migration via `pg_proc` / `aclexplode`
+  / `has_function_privilege` / `has_table_privilege` fail-closed
+  assertions.
 - ACL das RPCs `resolve_commercial_seat_decision` e
   `mutate_tenant_membership` verificada de forma independente via
   `pg_proc` / `aclexplode` / `has_function_privilege` (ver §8.2 do
-  impact analysis): `anon`, `authenticated`, `PUBLIC` sem EXECUTE;
-  EXECUTE apenas para owner (`postgres`), `service_role` e a role
-  gerenciada de sandbox `sandbox_exec` (role de exec, não é role de
-  cliente).
+  impact analysis): EXECUTE **apenas para owner (`postgres`) e
+  `service_role`**. `anon`, `authenticated`, `sandbox_exec` e `PUBLIC`
+  sem EXECUTE. `tenant_members`: `authenticated = SELECT` somente;
+  `sandbox_exec = SELECT` somente (INSERT/UPDATE/DELETE revogados);
+  `anon`/`PUBLIC` sem grant; `service_role` administrativo.
 - Grep de escritas diretas em `tenant_members` no runtime TypeScript:
   zero ocorrências. Grep de referências a
   `mutate_tenant_membership` / `resolve_commercial_seat_decision` fora
   do boundary/server/tests/types: zero ocorrências.
-- ACL e RLS previamente verificadas em SCP-012 permanecem inalteradas.
 
 ## Ausências declaradas
 
-- Zero migration, zero mudança de runtime, zero mudança de RLS/grants.
+- Uma única migration nova (reclosure de ACL — grants/revokes e
+  assertions). Zero alteração em runtime, schema, RLS policies ou
+  lógica das RPCs.
 - Zero UI, zero frontend, zero rota nova, zero componente novo.
 - Zero implementação de provider billing, checkout, customer portal,
   webhook público real, invitation flow, dashboard final, Kanban final,
@@ -73,6 +76,7 @@ Cross-reference: [`docs/architecture/impact-analysis/F4-CF-01-phase-4-repository
 - Zero início da PR-PH.0. Zero abertura do Phase 4 Closing Review.
 - Zero renumeração retroativa do Product Roadmap. Zero alteração no
   Architectural Roadmap · Fase 6 (Plugin Marketplace Evolution).
+- Zero alteração no `ROADMAP_ARCHITECTURAL.md` nesta execução.
 
 ## Bloco final do roadmap
 
