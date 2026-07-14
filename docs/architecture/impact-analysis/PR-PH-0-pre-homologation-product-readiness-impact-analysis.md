@@ -1798,7 +1798,9 @@ aplicável” quando genuinamente ausentes.
 28. **E2E / smoke:** **obrigatório reexecutar/consolidar** os
     smokes existentes em `tests/*/test_*.py` via
     `bash tests/_helpers/run_all.sh`. Requer Python 3,
-    Playwright configurado, `BASE_URL`; testes que exigem
+    Playwright configurado (harness Python versionado — ver
+    §19.13), `QA_BASE_URL` (default `http://localhost:8080` em
+    `tests/_helpers/session.py:20`); testes que exigem
     `PGHOST` (por ex. `tests/security/test_tenant_isolation.py`)
     só podem ser considerados aprovados quando `PGHOST` está
     disponível — **skip por ausência de `PGHOST` não conta
