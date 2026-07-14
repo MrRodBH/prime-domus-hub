@@ -1998,19 +1998,77 @@ proibidos para não colidir com as buscas de reconciliação):
 
 ## 24. Validações executadas
 
-- `git diff --check` — clean.
-- `bunx tsc --noEmit -p tsconfig.json` — executado após a
-  reescrita; nenhuma alteração de TypeScript nesta execução.
-- Busca operacional (padrões proibidos fora da seção normativa
-  §23): `rg -n "responsabilidade da PR-PH|inventário completo.*PR-PH|auditar/consolidar|precisa validação em PR-PH|campos observados/plausíveis|inventário futuro" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
-  → resultado esperado: zero ocorrências operacionais. As
-  formas literais legadas foram substituídas por regras
-  descritivas nesta reconciliação (§23 evita tokens exatos
-  para não criar falsos positivos).
-- Busca sobre roadmap: `rg -n "PR-PH\.0.*não iniciado|Escopo futuro registrado para PR-PH\.0" docs/architecture/ROADMAP_ARCHITECTURAL.md`
-  → resultado esperado: zero ocorrências.
-- Escopo: apenas os três arquivos documentais autorizados
-  foram modificados nesta execução.
+**Baseline / HEAD:**
+
+- Baseline vinculante: `2fed1e8bfe8d262b31fb5c5e02fa8c3f28a958aa`
+  (“Corrigiu PR-PH.0 factualmente”).
+- HEAD observado no início desta correção: idêntico ao
+  baseline (`git log -1 --oneline` → `2fed1e8 Corrigiu PR-PH.0
+  factualmente`; `git status --short` vazio; `git log
+  2fed1e8..HEAD` sem commits intermediários).
+- HEAD final desta correção: um único commit descendente
+  materializando exatamente as substituições integrais
+  descritas nesta análise.
+
+**Comandos executados nesta correção (não como “esperado”):**
+
+- `git status --short` — working tree limpo antes das
+  edições.
+- `git log -1 --oneline` — `2fed1e8 Corrigiu PR-PH.0
+  factualmente`.
+- `git diff --check` — clean após as edições.
+- `git diff --name-status 2fed1e8bfe8d262b31fb5c5e02fa8c3f28a958aa`
+  → arquivos realmente alterados nesta correção (o relatório
+  §14 do artefato 121 lista o resultado exato).
+- `bunx tsc --noEmit -p tsconfig.json` — sem erros; nenhuma
+  alteração de TypeScript nesta execução.
+- `rg -n "leads-crm\.functions\.ts:listarLeads|leads-crm\.functions\.ts:criarLead|descartado_at=now|restaura status anterior|tabela \`discard_reasons\`" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências factuais incorretas (a menção literal a
+  “restaura status anterior” aparece apenas na frase
+  normativa que **retifica** o termo; nenhuma afirmação
+  positiva de restauração remanesce).
+- `rg -n "\bidem\b|as functions|via operação alvo|conforme tabela alvo" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências **na matriz de autorização §14.4**;
+  outras ocorrências em tabelas de dashboard/CMS
+  correspondem a agrupamentos de células sob a mesma
+  autoridade e não à matriz de autorização.
+- `rg -n "portal-engine\.server\.ts.*host|portal-engine\.server\.ts.*subdom|portal-engine\.server\.ts.*domain resolution" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências que tratem o portal connector engine
+  como host resolver.
+- `rg -n "buildBrandingCss.*site\.functions" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências.
+- `rg -n "\bBASE_URL\b" docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+  → zero ocorrências como nome de variável de ambiente dos
+  testes (a variável canônica é `QA_BASE_URL`).
+
+**Confirmações estruturais:**
+
+- `membership_status` correto (`active`, `invited`,
+  `suspended`, `revoked`) — sem inclusão de valores
+  inexistentes.
+- `tenant_role` correto (`owner`, `admin`, `manager`,
+  `broker`, `captador`, `secretaria`, `viewer`) — sem uso
+  como autorização funcional ampla no baseline runtime.
+- `x-tenant-id` classificado exclusivamente como transporte;
+  nenhuma menção a Super Admin bypass tenant-scoped.
+- Nenhuma função CRM inexistente citada; nenhuma tabela
+  inexistente citada como objeto físico.
+- Nenhum comando apresentado como reproduzível sem
+  ferramenta fixada (o inventário §19.13 marca explicitamente
+  “executor dependency unpinned; not yet reproducible” quando
+  aplicável).
+- Nenhum resultado esperado apresentado como executado.
+
+**Escopo:** apenas
+`docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md`
+e `docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md`
+foram alterados nesta correção.
+`docs/architecture/ROADMAP_ARCHITECTURAL.md` **não** foi
+alterado — o baseline já reflete PR-PH.0 como Ready for
+External Audit e nenhum conteúdo real difere após esta
+correção; portanto não figura no diff.
+
+
 
 ## 25. Itens fora de escopo
 
