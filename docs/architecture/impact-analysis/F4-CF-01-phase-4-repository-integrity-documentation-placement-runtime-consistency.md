@@ -206,29 +206,64 @@ from the client remains blocked by both the missing GRANTs on
 `anon`/`authenticated` and the policy scope. This is proven directly
 against catalog state and does not depend on the legacy runner.
 
+## 9. Artefatos gerados
+
+- `src/routeTree.gen.ts` coerente com `src/routes/**`.
+- `src/integrations/supabase/types.ts` coerente com o schema real
+  (contém `mutate_tenant_membership` e `resolve_commercial_seat_decision`).
+- Nenhum probe temporário / fixture versionada / secret em disco.
+
+## 10. Achados
+
+### Classe A — corrigidos nesta etapa
+
+- SCP-012 exibia `Ready for External Audit` no impact analysis, no
+  relatório de entrega 118 e no roadmap → materializado como
+  `Accepted` nos três locais canônicos (etapa anterior).
+- Introdução histórica da Fase 4 no roadmap descrevia `BLOCKED`,
+  IA-006 aguardando aprovação e SCP-001..SCP-010 como PROPOSED — bloco
+  substituído integralmente por síntese consolidada (etapa anterior).
+- **Classificação incorreta do runner `run-commercial-sql-parity-specs.ts`**
+  como "expected failure = ACL proved" no F4-CF-01 anterior — corrigida
+  nesta etapa. A execução do runner aborta durante o seeding de fixtures
+  por RLS em `tenant_members`, ANTES da matriz de paridade rodar; essa
+  falha não prova ACL nem paridade e não pode ser registrada como gate
+  aprovado. Runner reclassificado como historical/superseded (§8.1),
+  ACL comprovada de forma independente (§8.2), matriz de testes do
+  F4-CF-01 corrigida.
+
 ### Classe B — nenhum
 
-Nenhum achado funcional/segurança detectado. Sem dual path, fallback,
-segunda RPC, escrita direta de `tenant_members`, over-allocation, ACL
-aberta, RLS permissiva, direct client read comercial, divergência
-SQL/TS ou secret versionado.
+Nenhum achado funcional/segurança detectado nesta etapa. Sem dual
+path, fallback, segunda RPC, escrita direta de `tenant_members`,
+over-allocation, ACL aberta a client roles, RLS permissiva,
+divergência SQL/TS ou secret versionado. Nenhum contrato do runner
+legado ficou sem cobertura substituta obrigatória.
 
 ### Classe C — registrados como escopo futuro
 
-Provider billing real, checkout, customer portal, webhooks reais,
-invitation flow, UI comercial, dashboards finais, Kanban final, custom
-domain por tenant, onboarding, CMS/landing pages, Product Readiness,
-homologação. Nenhum implementado nesta etapa.
+- Modernização do harness SQL/TS parity: reimplementação sobre fixture
+  service-role controlada (RLS-safe) para permitir comparação lado a
+  lado do DTO SQL contra o oracle TypeScript nos 13 cenários legados.
+  Não obrigatório para o gate atual dada a cobertura substituta (§8.1).
+- Provider billing real, checkout, customer portal, webhooks reais,
+  invitation flow, UI comercial, dashboards finais, Kanban final,
+  custom domain por tenant, onboarding, CMS/landing pages, Product
+  Readiness, homologação. Nenhum implementado nesta etapa.
 
 ## 11. Riscos / limitações reais
 
-- `run-commercial-sql-parity-specs.ts` é um probe legado que emite
-  `INSERT` direto em `public.tenant_members` via `psql` para seeding.
-  A ACL fail-closed correta (SCP-012.0.2 / 0.2.1 / 0.2.2 / SCP-012)
-  impede essa escrita quando a role do `psql` não é superuser. **A
-  falha do probe é evidência da ACL correta**, não uma regressão. O
-  runner permanece disponível para ambientes com acesso `postgres`
-  direto. Não é bloqueador de F4-CF-01.
+- `run-commercial-sql-parity-specs.ts` permanece no repositório em
+  estado historical/superseded. A execução não concluiu a matriz de
+  paridade devido à ausência de uma conexão PostgreSQL com privilégios
+  compatíveis com o contrato histórico do harness (o seed direto em
+  `public.tenant_members` requer role capaz de bypass da RLS, e nenhum
+  role acessível ao sandbox de exec possui essa autoridade). A RLS
+  fail-closed *explica* a impossibilidade do seeding por essa role,
+  mas a falha do seeding **não** valida a ACL das RPCs nem comprova
+  paridade SQL/TypeScript. Essas duas propriedades foram comprovadas
+  de forma independente em §8.2 (catálogo pg_proc) e §8.1 (matriz de
+  supersessão) respectivamente. Não bloqueia F4-CF-01.
 - F4-CF-01 encerra a fase de checkpoint documental/integridade; o
   fechamento formal (Phase 4 Closing Review) permanece pendente.
 - PR-PH.0 (Pre-Homologation Product Readiness Impact Analysis)
