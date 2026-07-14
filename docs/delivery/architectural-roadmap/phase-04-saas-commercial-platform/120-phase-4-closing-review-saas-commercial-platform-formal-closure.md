@@ -1,9 +1,9 @@
 # 120 — Phase 4 Closing Review — SaaS Commercial Platform Formal Closure, Managed-Role Trust Boundary Reconciliation & Product Readiness Gate
 
-**Status:** Ready for External Audit
-**Phase:** 04 — SaaS Commercial Platform
+**Status:** Accepted (external audit)
+**Phase:** 04 — SaaS Commercial Platform — **Closed / Accepted**
 **Depends on:** F4-CF-01 — Accepted; SCP-001 … SCP-012 — Accepted.
-**Blocks:** PR-PH.0 (Planned; not started) and homologation.
+**Blocks:** PR-PH.0 (Ready for External Audit) and homologation.
 
 Cross-reference:
 [`docs/architecture/impact-analysis/PHASE-4-CLOSING-REVIEW-saas-commercial-platform-formal-closure.md`](../../../architecture/impact-analysis/PHASE-4-CLOSING-REVIEW-saas-commercial-platform-formal-closure.md).
