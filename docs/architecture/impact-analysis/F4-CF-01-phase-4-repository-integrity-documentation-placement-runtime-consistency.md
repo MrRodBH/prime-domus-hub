@@ -226,37 +226,44 @@ transação de aplicação (fail-closed).
 
 ## 10. Achados
 
-### Classe A — corrigidos nesta etapa
+### Classe A — corrigidos em execuções anteriores desta etapa
 
-- SCP-012 exibia `Ready for External Audit` no impact analysis, no
-  relatório de entrega 118 e no roadmap → materializado como
-  `Accepted` nos três locais canônicos (etapa anterior).
-- Introdução histórica da Fase 4 no roadmap descrevia `BLOCKED`,
-  IA-006 aguardando aprovação e SCP-001..SCP-010 como PROPOSED — bloco
-  substituído integralmente por síntese consolidada (etapa anterior).
-- **Classificação incorreta do runner `run-commercial-sql-parity-specs.ts`**
-  como "expected failure = ACL proved" no F4-CF-01 anterior — corrigida
-  nesta etapa. A execução do runner aborta durante o seeding de fixtures
-  por RLS em `tenant_members`, ANTES da matriz de paridade rodar; essa
-  falha não prova ACL nem paridade e não pode ser registrada como gate
-  aprovado. Runner reclassificado como historical/superseded (§8.1),
-  ACL comprovada de forma independente (§8.2), matriz de testes do
-  F4-CF-01 corrigida.
+- SCP-012 materializada como `Accepted` nos três locais canônicos.
+- Introdução histórica da Fase 4 no roadmap substituída por síntese
+  consolidada.
 
-### Classe B — nenhum
+### Classe B — detectado e encerrado nesta execução
 
-Nenhum achado funcional/segurança detectado nesta etapa. Sem dual
-path, fallback, segunda RPC, escrita direta de `tenant_members`,
-over-allocation, ACL aberta a client roles, RLS permissiva,
-divergência SQL/TS ou secret versionado. Nenhum contrato do runner
-legado ficou sem cobertura substituta obrigatória.
+- **Drift de ACL das RPCs comerciais.** Investigação independente
+  detectou que `sandbox_exec` possuía `EXECUTE` em
+  `resolve_commercial_seat_decision` e `mutate_tenant_membership`, e
+  possuía `SELECT` + `INSERT` em `public.tenant_members` — em
+  desacordo com o contrato canônico Accepted da SCP-012 (EXECUTE
+  restrito a owner + `service_role`). Como consequência, o runner
+  legado `run-commercial-sql-parity-specs.ts` também não estava
+  demonstrando a matriz SQL × TS × expected lado a lado.
+  Correção aplicada nesta execução:
+  1. Migration nova (`20260714001218_*.sql`) revoga
+     `EXECUTE` de `PUBLIC`/`anon`/`authenticated`/`sandbox_exec` nas
+     duas RPCs; revoga `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE`/
+     `REFERENCES`/`TRIGGER` de `sandbox_exec` sobre `tenant_members`;
+     re-concede `EXECUTE` apenas a `service_role`; valida o resultado
+     via `pg_proc` / `aclexplode` / `has_function_privilege` /
+     `has_table_privilege` fail-closed dentro da própria transação.
+  2. Harness `run-commercial-sql-parity-specs.ts` +
+     `commercial-seat-sql-parity.spec.ts` modernizados para
+     fixtures service-role sintéticas (sem `psql`, sem `PGHOST`, sem
+     IDs fixos de usuário), com comparação integral SQL × TS ×
+     expected em todos os 17 cenários e cleanup fail-closed.
+  3. Documentação F4-CF-01 (impact analysis + entrega 119) refeita
+     para refletir o estado pós-reclosure. Classificação
+     historical / superseded removida; runner readmitido como
+     "current canonical integration gate".
+  Estado pós-fix confirmado por dump de catálogo pós-migration e
+  execução do harness — ver §8.1 e §8.2.
 
 ### Classe C — registrados como escopo futuro
 
-- Modernização do harness SQL/TS parity: reimplementação sobre fixture
-  service-role controlada (RLS-safe) para permitir comparação lado a
-  lado do DTO SQL contra o oracle TypeScript nos 13 cenários legados.
-  Não obrigatório para o gate atual dada a cobertura substituta (§8.1).
 - Provider billing real, checkout, customer portal, webhooks reais,
   invitation flow, UI comercial, dashboards finais, Kanban final,
   custom domain por tenant, onboarding, CMS/landing pages, Product
@@ -264,27 +271,29 @@ legado ficou sem cobertura substituta obrigatória.
 
 ## 11. Riscos / limitações reais
 
-- `run-commercial-sql-parity-specs.ts` permanece no repositório em
-  estado historical/superseded. A execução não concluiu a matriz de
-  paridade devido à ausência de uma conexão PostgreSQL com privilégios
-  compatíveis com o contrato histórico do harness (o seed direto em
-  `public.tenant_members` requer role capaz de bypass da RLS, e nenhum
-  role acessível ao sandbox de exec possui essa autoridade). A RLS
-  fail-closed *explica* a impossibilidade do seeding por essa role,
-  mas a falha do seeding **não** valida a ACL das RPCs nem comprova
-  paridade SQL/TypeScript. Essas duas propriedades foram comprovadas
-  de forma independente em §8.2 (catálogo pg_proc) e §8.1 (matriz de
-  supersessão) respectivamente. Não bloqueia F4-CF-01.
-- F4-CF-01 encerra a fase de checkpoint documental/integridade; o
-  fechamento formal (Phase 4 Closing Review) permanece pendente.
-- PR-PH.0 (Pre-Homologation Product Readiness Impact Analysis)
-  continua obrigatório antes da homologação e não foi iniciado.
+- Cenário 16 do harness (limite acima de int4) usa
+  `999.999.999.999` — teto real de `numeric(14, 2)` no schema
+  `tenant_entitlements.value_decimal`. A constante lógica
+  `MAX_SAFE_INTEGER` da RPC continua coberta apenas por testes
+  unitários (RPC contract + limit decision). Alterar a precisão da
+  coluna para admitir `MAX_SAFE_INTEGER` no armazenamento seria uma
+  mudança de schema fora do escopo do F4-CF-01.
+- Se o ambiente reprovisionar automaticamente grants para
+  `sandbox_exec` após a migration, o assertion block da própria
+  migration falharia na próxima reaplicação; o estado corrente
+  observado (§8.2) é o pós-execução, imediatamente após a reclosure.
+- F4-CF-01 encerra o checkpoint de integridade; o fechamento formal
+  (Phase 4 Closing Review) permanece pendente.
+- PR-PH.0 continua obrigatório antes da homologação e não foi
+  iniciado.
 
 ## 12. Confirmações negativas
 
+- Uma única migration nova (reclosure de ACL — grants/revokes e
+  assertions). Zero alteração em lógica das RPCs, schema, RLS
+  policies, `ROADMAP_ARCHITECTURAL.md`, runtime produtivo, frontend
+  ou providers.
 - Zero UI / frontend / rota nova.
-- Zero migration criada nesta etapa.
-- Zero mudança em runtime, RLS, grants ou providers.
 - Zero implementação de billing provider, checkout, customer portal ou
   webhook real.
 - Zero início da PR-PH.0 ou de qualquer entrega de Product Readiness.
