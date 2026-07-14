@@ -134,21 +134,14 @@ export const listarLeadsDescartados = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAdmin(context);
+    // PR-M1: fallback removido. Query única com relacionamento FK explícito.
+    // Falha do schema deve ser explícita — não é ocultada por um segundo SELECT.
     const { data, error } = await context.supabase
       .from("leads")
       .select("*, imovel:imoveis(titulo, slug), motivo:lead_discard_reasons!leads_discard_reason_id_fkey(nome)")
       .eq("status", "descartado")
       .order("descartado_at", { ascending: false, nullsFirst: false });
-    if (error) {
-      // fallback sem alias FK caso o nome não bata em algum ambiente
-      const alt = await context.supabase
-        .from("leads")
-        .select("*, imovel:imoveis(titulo, slug)")
-        .eq("status", "descartado")
-        .order("descartado_at", { ascending: false, nullsFirst: false });
-      if (alt.error) throw new Error(alt.error.message);
-      return alt.data ?? [];
-    }
+    if (error) throw new Error(error.message);
     return data ?? [];
   });
 

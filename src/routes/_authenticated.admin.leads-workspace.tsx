@@ -1,19 +1,11 @@
-// Route: /admin/leads-workspace — primeira rota operacional consumindo o
-// EntityWorkspace genérico via descriptor `lead` (Fase 6 · Bloco 4 · Etapa 4.1.c).
-// A rota existente `/admin/pipeline` permanece inalterada durante a coexistência.
-import { createFileRoute } from "@tanstack/react-router";
-import {
-  EntityWorkspace,
-  entitySearchSchema,
-  ENTITIES,
-} from "@/components/workspace/entities";
+// PR-M1 — Cutover: /admin/leads-workspace foi absorvido por /admin/pipeline
+// como autoridade única do CRM. Mantido apenas como redirect compatível.
+// Preserva search params relevantes (view, tab, corretor, origem, q, status, item).
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/admin/leads-workspace")({
-  validateSearch: (s) => entitySearchSchema.parse(s),
-  component: LeadsWorkspaceRoute,
+  beforeLoad: ({ search }) => {
+    throw redirect({ to: "/admin/pipeline", search: (search ?? {}) as never });
+  },
+  component: () => null,
 });
-
-function LeadsWorkspaceRoute() {
-  const search = Route.useSearch();
-  return <EntityWorkspace descriptor={ENTITIES.lead} search={search} />;
-}

@@ -196,7 +196,7 @@ Produção permanece bloqueada até TH-M2 Accepted.
 
 ## 5. PR-M1 — Workspace Authority & Revenue Operations Finalization
 
-**Status:** Planned — next executable gate.  
+**Status:** In Progress — cutover parcial aplicado; endurecimentos de boundary de transição, `lead_stage_history`, concorrência otimista e consolidação de fórmulas do dashboard pendentes dentro do mesmo macrogate. Ver `impact-analysis/PR-M1-workspace-authority-revenue-operations-finalization.md`.  
 **Absorve:** PR-PH.1, PR-PH.2, PR-PH.3, PR-PH.4.
 
 Escopo consolidado:
