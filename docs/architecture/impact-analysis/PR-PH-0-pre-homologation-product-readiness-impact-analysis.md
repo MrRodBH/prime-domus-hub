@@ -538,39 +538,146 @@ Responsável: PR-PH.9.
 
 ## 14. Roles, permissions e autoridade de configuração
 
-Autoridades existentes (descoberta encerrada nesta PR-PH.0):
+### 14.1 Domínios canônicos (fonte vinculante)
 
-- `has_role(admin)` (F4.0) — **Implemented and connected**.
-- `tenant_role` (`owner|admin|manager|member|viewer`) e
-  `membership_status` (`active|invited|suspended|removed`)
-  (Fase 3) — **Implemented and connected**.
-- Entitlement comercial (SCP-006 … SCP-012) — **Implemented
-  and connected**.
-- Autoridade server-side única via
-  `src/integrations/supabase/auth-middleware.ts`,
-  `tenant-middleware.ts`, `membership-validation.ts` —
-  **Implemented and connected**.
+Fonte: `src/integrations/supabase/membership-types.ts`,
+`src/integrations/supabase/types.ts` (generated) e migrations
+que criaram/alteraram os enums.
 
-Inventário atual por módulo (autoridades observadas hoje —
-PR-PH.2 canonicaliza a matriz e endurece; **não** descobre):
+- `membership_status` — enum PostgreSQL. Valores exatos:
+  `active`, `invited`, `suspended`, `revoked`. **Somente `active`
+  é operacional** (participa de resolução de tenant e de operação
+  tenant-scoped). Traduções informais (`removed`, `member`) **não
+  existem** no runtime e **não** podem ser usadas como valores
+  persistidos.
+- `tenant_role` — enum PostgreSQL. Valores exatos: `owner`,
+  `admin`, `manager`, `broker`, `captador`, `secretaria`,
+  `viewer`. Classifica a membership no tenant; **não** resolve
+  tenant, **não** concede autorização ampla implicitamente,
+  **não** substitui RBAC nem entitlement comercial.
 
-| Módulo | Rotas | Server fns (arquivo) | Escrita | Leitura | Middleware | Tabelas | RLS | membership_status | tenant_role usado | has_role | RBAC profile | Owner req. | Impersonação | Entitlement | Audit trail | Lacuna atual |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Workspace shell | `/admin` | `tenant.functions.ts`, `tenant-selection.functions.ts` | seleção | listagem | `requireSupabaseAuth`+`requireTenant` | `tenant_members` | ✓ | `active` | any | não | não | não | via header | não | não | matriz não formalizada |
-| CRM (pipeline) | `/admin/pipeline`, `/admin/leads*` | `admin.functions.ts`, `leads-crm.functions.ts`, `historico.functions.ts` | ✓ | ✓ | `requireSupabaseAuth`(+tenant) | `leads`, `lead_descartes`, `lead_historico` | ✓ | `active` | admin/gerente/secretaria (papel via `user_roles`) — corretor escopo próprio | admin | ✓ (via `user_roles`) | não | via impersonate header | não | parcial (`lead_descartes`) | audit trail por card ausente (§6) |
-| Corretores/Equipes/Perfis | `/admin/corretores`, `/admin/equipes`, `/admin/perfis` | `admin.functions.ts`, `rbac.functions.ts` | ✓ | ✓ | idem | `corretores`, `teams`, `user_roles` | ✓ | `active` | admin | admin | ✓ | admin/owner | auditada | não | parcial | matriz não formalizada |
-| Catálogo (imóveis/lançamentos) | `/admin/imoveis*`, `/admin/lancamentos*` | `catalogo.functions.ts`, `lancamentos.functions.ts` | ✓ | ✓ | idem | `imoveis`, `lancamentos`, `unidades` | ✓ | `active` | admin/gerente | admin | ✓ | não | auditada | não | parcial | — |
-| CMS (site/páginas/blog/forms/campanhas) | `/admin/site`, `/admin/paginas*`, `/admin/blog*`, `/admin/formularios*`, `/admin/campanhas*` | `site.functions.ts`, `site-versions.functions.ts`, `pages.functions.ts`, `blog.functions.ts`, `forms.functions.ts`, `campaigns.functions.ts`, `_cms.ts` (`assertCmsPermission`, `logCmsAudit`) | ✓ | ✓ | idem | `site_settings*`, `cms_pages`, `cms_posts`, `cms_forms`, `cms_campaigns`, `cms_audit` | ✓ | `active` | admin/editor via `assertCmsPermission` | admin | RBAC via `cms_permissions` (`use-cms-permissions.ts`) | admin/owner | auditada | não | ✓ (`cms_audit`) | granularidade fina por operação |
-| Mídias | `/admin/midias` | `media.functions.ts`, `uploads.functions.ts`, `legacy-storage.functions.ts` | ✓ | ✓ | idem | `media_assets`, storage buckets | ✓ | `active` | admin | admin | ✓ | não | auditada | não | não | tenant scoping validado (M3) |
-| Portais / Distribuição | `/admin/portais` | `portals.functions.ts` | ✓ | ✓ | idem | `portal_configs` | ✓ | `active` | admin | admin | ✓ | admin | auditada | não | parcial | — |
-| Configurações (site branding) | `/admin/site` | `site.functions.ts`, `site-versions.functions.ts` | ✓ | ✓ | idem | `site_settings`, `site_settings_versions` | ✓ | `active` | admin | admin | ✓ | admin/owner | auditada | não | ✓ (versions) | contraste WCAG não gate |
-| Branding (workspace) | — | — | — | — | — | — | — | — | — | — | — | — | — | — | não | **autoridade ausente** — Missing |
-| Super Admin / Operação | `/super*` | `super.functions.ts`, `tenant-selection.functions.ts` | ✓ | ✓ | `requireSupabaseAuth` + `is_super_admin` RPC | globais | ✓ (super bypass explícito) | n/a | n/a | ✓ (`is_super_admin`) | não | ✓ | via `x-tenant-id` (auditada) | não | parcial | catálogo formal ausente |
-| Autorização — Matriz canônica | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | não formalizada | **Missing** — Responsável **PR-PH.2** |
+### 14.2 Autoridades separadas (não misturar)
 
-PR-PH.2 continua responsável pela canonicalização da matriz e
-pelo hardening, mas **não** pela descoberta inicial — o baseline
-acima é vinculante.
+- **Membership status** — determina se a membership pode
+  participar de resolução e operação tenant-scoped. Autoridade:
+  `tenant-middleware.ts`, `tenant-repository.ts`,
+  `get_current_tenant_id()`.
+- **Tenant role** — classificação de papel no tenant.
+  Reconciliado em F4.0: `tenant_role = 'admin'` histórico **não**
+  concede autoridade comercial. Nenhum call site em `src/` ou
+  `supabase/` usa `tenant_role` como autorização funcional
+  (F4.0 §Code Usage Inventory).
+- **User roles / `has_role(_user_id, _role)`** — modelo global
+  de papéis (`public.user_roles`, enum `app_role`). Autoridade
+  real utilizada por server functions específicas (inventário
+  observado por `rg -l "has_role" src/lib/api/`): `admin.functions`,
+  `blog.functions`, `meta.functions`, `cms-transfer.functions`,
+  `dashboard.functions`, `lancamentos.functions`, `_cms.ts`,
+  `super.functions`, `cms-audit.functions`, `rbac.functions`,
+  `commercial/commercial.functions`, `portals.functions`,
+  `origens.functions`, `historico.functions`, `leads-crm.functions`,
+  `lead-reasons.functions`, `legacy-storage.functions`,
+  `ia.functions`, `instagram.functions`, `catalogo.functions`.
+  Valores de `app_role` **não** se confundem com `tenant_role`.
+- **RBAC** — perfis, módulos, ações, escopos. Tabelas:
+  `rbac_profiles`, `rbac_modules`, `rbac_permissions`,
+  `user_profiles`. Funções: `has_cms_permission`,
+  `has_permission`, `has_any_permission`. Consumers reais:
+  `_cms.ts` (`assertCmsPermission`), `rbac.functions.ts`,
+  `use-cms-permissions.ts`.
+- **Commercial entitlement** — SCP-006 … SCP-012. Controla
+  disponibilidade comercial de features. **Nunca** substitui
+  membership authorization; **nunca** concede acesso tenant-scoped
+  isoladamente.
+- **Super Admin** — `public.is_super_admin()` sobre `user_roles`.
+  Pode operar recursos globais autorizados. **Para recursos
+  tenant-scoped, exige impersonação explícita, validada e
+  derivada no servidor.** Sem impersonação,
+  `get_current_tenant_id` retorna `NULL` e a operação falha.
+
+### 14.3 Contrato de impersonação (não é bypass)
+
+Fonte: `src/integrations/supabase/tenant-middleware.ts`
+(`resolveTenantContext`) e `public.get_current_tenant_id()`.
+
+- `x-tenant-id` é **transporte**, não autoridade. O client nunca
+  decide.
+- O servidor identifica se o usuário é Super Admin (RPC
+  `is_super_admin`).
+- O servidor valida o tenant alvo (`tenants.id` existe para
+  Super Admin; membership `active` do usuário para regular).
+- O servidor deriva `origin = 'impersonation'` (Super Admin com
+  header válido), `origin = 'selection'` (regular com header
+  válido) ou `origin = 'single-membership'` (regular, um único
+  active).
+- **Super Admin sem header válido** → `Forbidden: no tenant
+  membership` (nenhum bypass).
+- **Regular com header** só acessa tenant para o qual possui
+  membership `active` validada server-side.
+
+**No Super Admin tenant-scoped RLS bypass evidenced.** Nenhuma
+policy `USING (public.is_super_admin())` foi identificada como
+regra global sobre tabelas tenant-scoped no baseline auditado.
+Se PR-PH.2 identificar exceção, deverá registrar: nome da
+policy, tabela, `USING`, `WITH CHECK`, migration de origem e
+justificativa arquitetural.
+
+### 14.4 Matriz de autorização por operação
+
+Matriz por **operação** (não apenas por módulo). Quando o
+repositório não comprova uma condição, usa `Not evidenced in
+repository`. Fontes: rotas em `src/routes/`, server functions
+em `src/lib/api/*.functions.ts`, middleware em
+`src/integrations/supabase/*`, schema em `types.ts` +
+migrations.
+
+| Operação | Rota / caller | Server fn | Middleware | Tenant resolution | membership_status exigido | tenant_role consultado | user_roles / has_role consultado | RBAC consultado | Owner req. | Entitlement | Impersonation behavior | Tabela | RLS policy relevante | Audit event | Teste existente | Lacuna | Evidência |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Selecionar tenant | `use-tenant-selection.ts` | `tenant-selection.functions.ts` | `requireSupabaseAuth` | `resolveTenantContext` cardinality sobre `active` | `active` | não | não | não | não | não | header validado server-side | `tenant_members` | tenant-scoped por `user_belongs_to_tenant` | não | `tenant-selection-cardinality.spec` | matriz canônica ausente | `tenant-middleware.ts` |
+| Listar leads | `/admin/pipeline`, `/admin/leads-workspace` | `leads-crm.functions.ts:listarLeads` | `requireSupabaseAuth` | `get_current_tenant_id` | `active` | não | Not evidenced in repository (filtragem via RLS) | não | não | não | via `x-tenant-id` (Super Admin) | `leads` | tenant-scoped | não | Not evidenced in repository | audit trail ausente | `leads-crm.functions.ts` |
+| Criar lead | idem | `leads-crm.functions.ts:criarLead` | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads` | tenant-scoped | não | Not evidenced in repository | audit trail ausente | idem |
+| Atualizar lead | idem | `admin.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` consultado | não | não | não | idem | `leads` | tenant-scoped | não | Not evidenced in repository | audit por card ausente | `admin.functions.ts` |
+| Mudança de estágio | idem | `leads-crm.functions.ts` (update status) | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads` + trigger `tg_leads_enforce_status_flow` | tenant-scoped | trigger valida transições | Not evidenced in repository | histórico de estágio Missing | trigger em DB |
+| Descartar lead | idem | `leads-crm.functions.ts:descartarLead` | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads`, `lead_descartes` | tenant-scoped | insert em `lead_descartes` | Not evidenced in repository | audit unificado ausente | `:53-68` |
+| Reabrir lead | idem | `leads-crm.functions.ts:reabrirLead` | `requireSupabaseAuth` | idem | `active` | não | Not evidenced in repository | não | não | não | idem | `leads` | tenant-scoped | não | Not evidenced in repository | audit unificado ausente | `:155-168` |
+| Gestão corretores | `/admin/corretores` | `admin.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role('admin')` | não | não | não | idem | `corretores` | tenant-scoped | não | Not evidenced in repository | matriz canônica ausente | `admin.functions.ts` |
+| Gestão equipes | `/admin/equipes` | `admin.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role('admin')` | não | não | não | idem | `teams`, `team_members` | tenant-scoped | não | Not evidenced in repository | matriz canônica ausente | idem |
+| Gestão perfis (RBAC) | `/admin/perfis` | `rbac.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role('admin')` | `rbac_profiles`, `rbac_permissions` | não | não | idem | `rbac_*`, `user_profiles` | tenant-scoped | não | Not evidenced in repository | matriz canônica ausente | `rbac.functions.ts` |
+| Catálogo (imóveis/lançamentos) | `/admin/imoveis*`, `/admin/lancamentos*` | `catalogo.functions.ts`, `lancamentos.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `imoveis`, `launch_projects`, `launch_units` | tenant-scoped | não | Not evidenced in repository | granularidade fina ausente | as functions |
+| CMS write | `/admin/site`, `/admin/paginas*`, `/admin/blog*`, `/admin/formularios*`, `/admin/campanhas*` | `site.functions.ts`, `pages.functions.ts`, `blog.functions.ts`, `forms.functions.ts`, `campaigns.functions.ts`, `_cms.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` (via `_cms.ts`) | `has_cms_permission` (`_cms.ts:assertCmsPermission`) | não | não | idem | `site_settings*`, `cms_pages`, `blog_posts`, `cms_forms`, `cms_campaigns` | tenant-scoped | `logCmsAudit` (`_cms.ts`) | Not evidenced in repository | granularidade fina por bloco ausente | `_cms.ts` |
+| Mídias | `/admin/midias` | `media.functions.ts`, `uploads.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `media_library`, `media_usage`, storage buckets `site`/`imoveis`/`lancamentos` | tenant-scoped | não | Not evidenced in repository | tenant scoping formal ausente | media/uploads functions |
+| Portais | `/admin/portais` | `portals.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `portal_connectors`, `imovel_portais`, `portal_sync_dlq`, `portal_sync_logs` | tenant-scoped | `system_events` | Not evidenced in repository | — | `portals.functions.ts` |
+| Site settings / branding público | `/admin/site` | `site.functions.ts`, `site-versions.functions.ts` | `requireSupabaseAuth` | idem | `active` | não | `has_role` | não | não | não | idem | `site_settings`, `site_settings_versions` | tenant-scoped | versões (`site_settings_versions`) | Not evidenced in repository | contraste WCAG não gate | `site.functions.ts` |
+| Assento comercial (mutation) | interno | `commercial/commercial.functions.ts` → RPC `mutate_tenant_membership` | `requireSupabaseAuth` | idem | mutation valida internamente | consultado por `mutate_tenant_membership` (owner-only) | Not evidenced in repository como authz externa | não | owner requerido (regular) | consultado por `resolve_commercial_seat_decision` | idem | `tenant_members`, `tenant_subscriptions`, `tenant_entitlements`, `commercial_plan_entitlements` | tenant-scoped | via mutation | `commercial-seat-*.spec` + runner de paridade | audit externo ausente | RPC `mutate_tenant_membership` |
+| Super Admin global | `/super*` | `super.functions.ts` | `requireSupabaseAuth` + `is_super_admin` | n/a (recursos globais) | n/a | não | `is_super_admin` obrigatório | não | não | não | não aplicável | `system_events` (via `super_observabilidade`) | ver guard `is_super_admin` | via `log_system_event` | Not evidenced in repository | catálogo formal de recursos globais ausente | `super.functions.ts` |
+| Super Admin sob impersonação (tenant-scoped) | `/super*` com `x-tenant-id` | `super.functions.ts` + server functions tenant-scoped | `requireSupabaseAuth` + `is_super_admin` + `requireTenant` | `origin=impersonation` derivado server-side | `tenants.id` existe (não exige membership) | não | `is_super_admin` obrigatório | não | não | não | header inválido/ausente → falha (nenhum bypass) | conforme operação alvo | conforme tabela alvo | via operação alvo | `tenant-middleware.spec`, `commercial-context-selection.spec` | audit unificado ausente | `tenant-middleware.ts`, `get_current_tenant_id()` |
+
+Não é permitido inferir autorização a partir de: menu visível,
+nome da rota, nome da função, documentação histórica,
+`tenant_role` sem consulta no runtime, `has_role` sem chamada
+efetiva, ou RLS habilitado sem leitura da policy.
+
+### 14.5 Verificação de nomes de tabelas
+
+Cada tabela citada acima existe no schema atual (confrontado
+com `src/integrations/supabase/types.ts` e migrations):
+`tenant_members`, `leads`, `lead_descartes`, `corretores`,
+`teams`, `team_members`, `user_roles`, `user_profiles`,
+`rbac_profiles`, `rbac_modules`, `rbac_permissions`, `imoveis`,
+`launch_projects`, `launch_units`, `site_settings`,
+`site_settings_versions`, `cms_pages`, `blog_posts`, `cms_forms`,
+`cms_campaigns`, `media_library`, `media_usage`,
+`portal_connectors`, `imovel_portais`, `portal_sync_dlq`,
+`portal_sync_logs`, `tenant_subscriptions`, `tenant_entitlements`,
+`commercial_plan_entitlements`, `system_events`, `tenants`.
+Nomes previamente citados que **não** existem no schema
+(`lead_historico`, `cms_posts`, `cms_audit`, `media_assets`,
+`portal_configs`, `lancamentos`, `unidades`, `cms_permissions`)
+foram substituídos pelos nomes reais acima.
+
+PR-PH.2 continua responsável pela canonicalização formal da
+matriz e pelo hardening, mas **não** pela descoberta inicial —
+o baseline acima é vinculante.
 
 ## 15. Prontidão operacional
 
