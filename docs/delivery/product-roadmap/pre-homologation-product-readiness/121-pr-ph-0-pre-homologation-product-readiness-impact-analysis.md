@@ -323,35 +323,49 @@ nenhum arquivo TypeScript alterado nesta execução.
 
 ## 8. Evidência Git
 
-Diff efetivo desta execução (todos `M` — modified; nenhum
-arquivo adicionado, removido ou renomeado):
+Diff real desta correção contra o baseline vinculante
+`2fed1e8bfe8d262b31fb5c5e02fa8c3f28a958aa`:
 
 | Tipo | Caminho |
 |---|---|
 | M | `docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md` |
-| M | `docs/architecture/ROADMAP_ARCHITECTURAL.md` |
 | M | `docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md` |
 
-Totais: 3 modified; 0 added; 0 deleted; 0 renamed. Nenhum
-arquivo fora do escopo autorizado foi tocado.
+Totais: 2 modified; 0 added; 0 deleted; 0 renamed.
+`docs/architecture/ROADMAP_ARCHITECTURAL.md` **não** figura no
+diff — o conteúdo do baseline já é o correto e nenhum blob
+final difere. Nenhum arquivo fora do escopo autorizado foi
+tocado.
 
 ## 9. Riscos remanescentes
 
 - Dependência operacional preservada da role gerenciada
   `sandbox_exec` (Phase 4 §12; F4-CF-01 §6.2).
-- Superfície concorrente `/admin/leads-workspace` × PipelinePage
-  precisa cutover em PR-PH.3 antes do dashboard final
-  (PR-PH.4).
-- Sanitização ausente em `richtext` do page builder — XSS risk
-  registrado; hardening em PR-PH.7.
+- Resolver público `resolveTenantByHost` implementado mas
+  **desconectado** do loader raiz e do
+  `obterSiteSettings`; PR-PH.5 é responsável por conectar.
+- Superfície concorrente `/admin/leads-workspace` ×
+  PipelinePage precisa cutover em PR-PH.3 antes do dashboard
+  final (PR-PH.4).
+- `Existing runtime fallback path` em `listarLeadsDescartados`
+  incompatível com política de ausência de fallback —
+  corrigir em PR-PH.3.
+- Sanitização ausente em `richtext` do page builder — XSS
+  risk registrado; hardening em PR-PH.7.
 - Divergência de constantes de alerta entre pipeline e
   dashboard — consolidar em PR-PH.3.
 - Custom domain sem state machine é risco de takeover — não
-  liberar homologação sem PR-PH.8.
+  liberar homologação sem PR-PH.8 Accepted (que consome o
+  resolver Accepted em PR-PH.5).
 - White label do site público sem hard gate de contraste —
   endurecer em PR-PH.5.
-- Autoridade de configuração espalhada — consolidar em PR-PH.9
-  com base na matriz de PR-PH.2.
+- Autoridade de configuração espalhada — consolidar em
+  PR-PH.9 com base na matriz de PR-PH.2.
+- `tsx`, Playwright Python, ferramenta de a11y e Vitest
+  ainda **não fixados** no repositório — cada etapa que
+  depender desses harnesses deverá fixá-los antes do aceite,
+  conforme regra vinculante em §19.13 do artefato canônico.
+
 
 ## 10. Status final
 
