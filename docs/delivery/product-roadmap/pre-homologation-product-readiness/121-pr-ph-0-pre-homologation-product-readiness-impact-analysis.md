@@ -218,46 +218,104 @@ e TH-001 … TH-006 são preservadas.
 
 ## 7. Comandos executados e evidência
 
-Preflight:
+**Preflight (real):**
 
-- `git status --short` — limpo.
-- `git log -1 --oneline` → `38f13c5 Work in progress` (HEAD de
-  trabalho).
-- `git diff --check` — clean.
+- `git status --short` → vazio.
+- `git log -1 --oneline` → `2fed1e8 Corrigiu PR-PH.0
+  factualmente` (HEAD idêntico ao baseline vinculante
+  `2fed1e8...`).
+- `git log 2fed1e8..HEAD` → sem commits (baseline igual a
+  HEAD antes da correção).
+- `git diff --check` → clean.
 
-Buscas de reconciliação (operacionais — fora da seção
-normativa §23):
+**Após edições (comandos reais desta correção):**
+
+- `bunx tsc --noEmit -p tsconfig.json` → sem erros; nenhuma
+  alteração de TypeScript.
+- `git diff --check` → clean.
+- `git diff --name-status 2fed1e8bfe8d262b31fb5c5e02fa8c3f28a958aa`
+  → apenas os arquivos listados em §2 aparecem; o roadmap
+  **não** figura no diff.
+
+**Buscas de reconciliação (comandos reais executados):**
 
 ```
-rg -n "responsabilidade da PR-PH|inventário completo.*PR-PH|\
-auditar/consolidar|precisa validação em PR-PH|\
-campos observados/plausíveis|inventário futuro" \
+rg -n "leads-crm\.functions\.ts:listarLeads|\
+leads-crm\.functions\.ts:criarLead|descartado_at=now|\
+restaura status anterior|tabela \`discard_reasons\`" \
+  docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md \
+  docs/delivery/product-roadmap/pre-homologation-product-readiness/121-pr-ph-0-pre-homologation-product-readiness-impact-analysis.md
+```
+
+Resultado real: **zero ocorrências factuais incorretas**. A
+única linha que menciona literalmente a frase “restaura
+status anterior” a **retifica** explicitamente (a
+`reabrirLead` reseta para `status='novo'`).
+
+```
+rg -n "\bidem\b|as functions|via operação alvo|conforme tabela alvo" \
   docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md
 ```
 
-Resultado esperado: **zero ocorrências operacionais**. As
-fórmulas literais legadas foram substituídas por regras
-descritivas; `§23` (hard gates) evita repetir tokens exatos
-para não gerar falsos positivos.
+Resultado real: **zero ocorrências na matriz de autorização
+§14.4**. Ocorrências remanescentes em §7 (dashboard) e §10
+(blocos CMS) referem-se a agrupamentos de células sob a
+mesma autoridade e **não** à matriz de autorização.
 
 ```
-rg -n "PR-PH\.0.*não iniciado|Escopo futuro registrado para PR-PH\.0" \
-  docs/architecture/ROADMAP_ARCHITECTURAL.md
+rg -n "portal-engine\.server\.ts.*host|\
+portal-engine\.server\.ts.*subdom|\
+portal-engine\.server\.ts.*domain resolution" \
+  docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md
 ```
 
-Resultado esperado: **zero ocorrências**.
+Resultado real: **zero ocorrências** que tratem o portal
+connector engine como host resolver.
 
-Buscas estruturais confirmatórias:
+```
+rg -n "buildBrandingCss.*site\.functions" \
+  docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md
+```
 
-- 12 contratos individuais (`§19.1` … `§19.12`), 37 itens cada.
-- Dependência serial explícita nos contratos PR-PH.5, PR-PH.6,
-  PR-PH.7, PR-PH.8, PR-PH.9 e PR-PH.12.
-- PR-PH.12 com itens de teste (26)–(30) obrigatórios.
-- Uma única estratégia de aliases (PR-PH.6 consome de PR-PH.1).
-- Uma única regra de autoridade de branding (§9.4).
-- Roadmap individualizado (PR-PH.1 … PR-PH.12 e TH-001 …
-  TH-006 em entradas separadas).
-- PR-PH.0 Ready for External Audit; PR-PH.1 Planned; not
+Resultado real: **zero ocorrências**. `buildBrandingCss` é
+reconhecida como função **local em `src/routes/__root.tsx`**;
+PR-PH.10 detém a decisão explícita sobre extração/exposição.
+
+```
+rg -n "\bBASE_URL\b" \
+  docs/architecture/impact-analysis/PR-PH-0-pre-homologation-product-readiness-impact-analysis.md
+```
+
+Resultado real: **zero ocorrências** como variável de
+ambiente dos testes. A variável canônica é `QA_BASE_URL`
+(default `http://localhost:8080` em
+`tests/_helpers/session.py:20`).
+
+**Confirmações estruturais:**
+
+- Matriz de autorização por **operação** (22 linhas), não por
+  módulo; policies não localizadas explicitamente marcadas
+  como `Not evidenced in repository inspection`.
+- Uso de `supabaseAdmin` (service role) documentado
+  explicitamente onde ocorre (`criarLeadManual` — linha 4 da
+  matriz; membership mutation comercial — linha 20).
+- `x-tenant-id` classificado exclusivamente como transporte;
+  nenhum bypass Super Admin tenant-scoped.
+- Nenhuma função inexistente citada (`listarLeads`,
+  `criarLead` em `leads-crm.functions.ts` foram removidas);
+  nenhuma tabela inexistente citada como objeto físico
+  (`discard_reasons` removida; `lead_discard_reasons`,
+  `deal_lost_reasons`, `lead_perdas` usados).
+- Ledger de testes (`§19.13`) distingue **comando
+  documentado** de **ferramenta fixada**; `tsx`, Playwright
+  Python, ferramenta de a11y e Vitest marcados como “not yet
+  reproducible” / “Missing”.
+- PR-PH.5 renomeada para **Public Tenant Resolution,
+  Workspace and Public-Site White-Label Consolidation**
+  (Caso B: resolver implementado mas desconectado); PR-PH.8
+  renomeada para **Custom Domain Lifecycle** e passa a
+  consumir a autoridade de PR-PH.5.
+
   started; Homologação Blocked.
 
 Typecheck: `bunx tsc --noEmit -p tsconfig.json` — executado;
