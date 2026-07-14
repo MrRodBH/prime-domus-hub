@@ -1423,11 +1423,11 @@ aplicável” quando genuinamente ausentes.
 | PR-PH.2 | PR-PH.1 | leituras | rbac + auth-middleware | não | RLS + authz | — | negativos |
 | PR-PH.3 | PR-PH.2 | audit trail | leads-crm + admin | Kanban | RLS + audit + concorrência | alta | otimista+rollback |
 | PR-PH.4 | PR-PH.3 | possível dashboard_goals | dashboard.functions | dashboard | RLS reads | alta | determinístico |
-| PR-PH.5 | PR-PH.2 | site_settings + possível workspace_branding | site + site-versions | shell + site | contraste + authz | alta | visual |
-| PR-PH.6 | PR-PH.5 | apenas se necessário | pages + site + site-versions | admin CMS + site público | RLS + sanit. | alta | SEO/preview |
-| PR-PH.7 | PR-PH.6 | landing_pages? | pages | builder | RLS + sanit. | alta | UTM/lead |
-| PR-PH.8 | PR-PH.5 | tenant_domains | portal-engine | admin.dominios | anti-takeover | média | state machine |
-| PR-PH.9 | PR-PH.5 e PR-PH.8 | onboarding_progress? | agregadores | wizard + config | authz | alta | wizard E2E |
+| PR-PH.5 | PR-PH.4 (serial) | site_settings + possível workspace_branding (sujeito a IA em PR-PH.5) | site + site-versions | shell + site | contraste + authz | alta | visual |
+| PR-PH.6 | PR-PH.5 (serial) | apenas se necessário | pages + site + site-versions | admin CMS + site público | RLS + sanit. | alta | SEO/preview |
+| PR-PH.7 | PR-PH.6 (serial) | landing_pages? | pages | builder | RLS + sanit. | alta | UTM/lead |
+| PR-PH.8 | PR-PH.7 (serial) | tenant_domains | portal-engine | admin.dominios | anti-takeover | média | state machine |
+| PR-PH.9 | PR-PH.8 (serial); depende de PR-PH.5 e PR-PH.8 consolidados | onboarding_progress? | agregadores | wizard + config | authz | alta | wizard E2E |
 | PR-PH.10 | PR-PH.1..9 | não | não | tokens/tema | contraste | alta | visual/a11y |
 | PR-PH.11 | PR-PH.10 | não | observability | dashboards ops | segredos/LGPD | baixa | smoke |
 | PR-PH.12 | PR-PH.1..11 | não | não | não | consolidação | — | consolidação |
