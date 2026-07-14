@@ -31,8 +31,13 @@ reordena a sequência PR-PH.
   contra o baseline acima.
 - `git status --short`: working tree limpo na entrada.
 - `git diff --check`: clean.
-- 93 migrations aplicadas. Runtime, RLS, grants, providers,
-  package.json e lockfile **não** são alterados por esta execução.
+- 93 arquivos de migration versionados no repositório auditado
+  (`ls supabase/migrations/*.sql | wc -l` = 93). **O estado remoto
+  de aplicação (ordem, checksums, drift) não é verificável apenas
+  pelo repositório** — a validação operacional é competência de
+  PR-PH.11 e da consolidação em PR-PH.12. Runtime, RLS, grants,
+  providers, `package.json` e lockfile **não** são alterados por
+  esta execução.
 - Nenhum arquivo fora dos três autorizados foi modificado.
 
 **Estado esperado após esta execução (idêntico ao anterior):**
