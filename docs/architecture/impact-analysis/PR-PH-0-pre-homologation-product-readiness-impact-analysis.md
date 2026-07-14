@@ -237,27 +237,57 @@ Status funcional adicional:
   `src/integrations/supabase/__tests__/` cobre transições de
   estágio no pipeline com rollback. Runners atuais cobrem
   domínio comercial (Fase 4). — **Missing**.
-- Semântica financeira (`ganho ≠ perdido ≠ descartado ≠
-  fechado ≠ arquivado`) — descoberta encerrada nesta PR-PH.0:
-  - `ganho`, `perdido` — status persistidos na coluna `leads.status`
-    (`admin.functions.ts:783` — enum
-    `"novo","conversando","visita","proposta","ganho","perdido","descartado"`).
-  - `descartado` — status persistido na mesma coluna. Mutação
-    canônica em `leads-crm.functions.ts:53-68` (`descartarLead`)
-    grava `status="descartado"`, `descartado_at=now()`,
-    `discard_reason_id` e insere histórico em `lead_descartes`.
-    Reabertura em `leads-crm.functions.ts:155-168`
-    (`reabrirLead`) restaura status anterior e limpa
-    `descartado_at`. Motivos gerenciados por
-    `lead-reasons.functions.ts` (tabela `discard_reasons`).
-  - `perdido` vs `descartado`: `perdido` é resultado comercial
-    (regra “só a partir de proposta”, §6 acima); `descartado` é
-    remoção operacional com motivo obrigatório e histórico
-    dedicado.
-  - `fechado`/`arquivado` — **não observados** como estados
-    distintos no enum, tabelas ou histórico. Divergência
-    semântica a resolver em PR-PH.3 (contagem financeira já é
-    canonicalmente restrita a `ganho` — `dashboard.functions.ts`).
+- Semântica financeira (`ganho ≠ perdido ≠ descartado`) —
+  descoberta encerrada nesta PR-PH.0, com evidência exata:
+  - Enum de status em `leads.status`:
+    `"novo","conversando","visita","proposta","ganho","perdido","descartado"`
+    (fonte: `src/lib/api/admin.functions.ts` e
+    `src/integrations/supabase/types.ts`).
+  - `descartarLead` — `src/lib/api/leads-crm.functions.ts:37`.
+    Handler observado:
+    (a) valida motivo consultando `lead_discard_reasons`
+    (`ativo=true`); (b) `UPDATE public.leads SET status='descartado', discard_reason_id=motivo_id`;
+    (c) `INSERT INTO public.lead_descartes` com autor e
+    detalhes. **O handler TypeScript não grava
+    `descartado_at`.** O preenchimento observado ocorre no
+    banco via trigger `tg_leads_enforce_status_flow`
+    (função `public.tg_leads_enforce_status_flow`,
+    migration `supabase/migrations/20260701234123_50cb80cb-6ed3-49c2-bbff-ee3535bdf19f.sql:154`),
+    regra `IF NEW.status='descartado' THEN NEW.descartado_at := now(); END IF;`.
+    Classificação: comportamento do banco, não do handler.
+  - `perderLead` — `src/lib/api/leads-crm.functions.ts:80`.
+    Aplica `status='perdido'` — a mesma trigger enforce
+    exige transição a partir de `proposta` (regra
+    `IF NEW.status='perdido' AND OLD.status<>'proposta' THEN RAISE`).
+  - `reabrirLead` — `src/lib/api/leads-crm.functions.ts:156`.
+    Handler observado exige `ensureAdmin`, aplica
+    `UPDATE leads SET status='novo', discard_reason_id=NULL, descartado_at=NULL`.
+    **Não restaura o status anterior**; não há coluna de
+    status prévio consultada; o efeito é reset explícito para
+    `novo`. Toda menção anterior a “restaura status anterior”
+    é retificada.
+  - `listarLeadsDescartados` — `src/lib/api/leads-crm.functions.ts:133`.
+    Consulta principal:
+    `.select("*, imovel:imoveis(...), motivo:lead_discard_reasons!leads_discard_reason_id_fkey(nome)")`
+    com ordenação por `descartado_at`. Em caso de erro
+    (`error` truthy) executa uma segunda consulta **sem** o
+    alias FK. Classificação: **Existing runtime fallback
+    path**, incompatível com a regra arquitetural permanente
+    de ausência de fallback; responsabilidade de correção em
+    PR-PH.3; **não** é alterado nesta PR-PH.0 documental.
+  - Motivos gerenciados por `src/lib/api/lead-reasons.functions.ts`.
+    Tabelas reais: `lead_discard_reasons` (para descarte) e
+    `deal_lost_reasons` (para perda). O nome `discard_reasons`
+    não existe no schema e não pode ser citado como tabela
+    persistida.
+  - `ganho` versus `perdido` versus `descartado`: `ganho` é
+    resultado comercial positivo; `perdido` só admite
+    transição a partir de `proposta` (trigger); `descartado`
+    é remoção operacional com motivo obrigatório e histórico
+    dedicado em `lead_descartes`. `fechado`/`arquivado` **não
+    são estados distintos** no enum, tabela ou histórico
+    observados; contagem financeira canônica em
+    `dashboard.functions.ts` já é restrita a `ganho`.
 
 ## 7. Inventário completo do dashboard
 
