@@ -1,27 +1,22 @@
 // PR-M1 — Boundary specs for transitionLead (framework-agnostic).
-// Deterministic; no live DB. Matches project unit-testing policy.
+// Deterministic; no live DB. No `as unknown as`, no `any`.
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
 import {
   transitionLead,
   mapRpcError,
   LeadTransitionError,
   LEAD_TRANSITION_ERROR_CODES,
   LeadTransitionInputSchema,
+  type LeadTransitionRpcClient,
+  type PostgrestLikeError,
 } from "@/lib/leads/lead-transition.server";
 
-type RpcResult = {
-  data: unknown;
-  error:
-    | { message: string; code?: string; details?: string; hint?: string }
-    | null;
-};
+type RpcResult = { data: unknown; error: PostgrestLikeError | null };
 
-function fakeSupabase(result: RpcResult): SupabaseClient<Database> {
+function fakeClient(result: RpcResult): LeadTransitionRpcClient {
   return {
-    rpc: async () => result,
-  } as unknown as SupabaseClient<Database>;
+    rpc: (_fn, _args) => Promise.resolve(result),
+  };
 }
 
 const validInput = {
@@ -31,60 +26,134 @@ const validInput = {
 };
 
 type Case = { name: string; run: () => Promise<void> };
-function expect(cond: boolean, msg: string): void {
-  if (!cond) throw new Error(msg);
-}
-
 const cases: Case[] = [];
 const add = (name: string, run: () => Promise<void>): void => {
   cases.push({ name, run });
 };
+
+function expect(cond: boolean, msg: string): void {
+  if (!cond) throw new Error(msg);
+}
+
+/**
+ * Determines whether `fn` throws. The sentinel error is NEVER caught here
+ * — it is thrown AFTER `fn` returns, so the surrounding `catch` cannot
+ * swallow it (fixes the previous false-positive pattern).
+ */
+function expectThrows(fn: () => unknown, message: string): void {
+  let threw = false;
+  try {
+    fn();
+  } catch {
+    threw = true;
+  }
+  if (!threw) throw new Error(message);
+}
+
+async function expectRejects(
+  fn: () => Promise<unknown>,
+  message: string,
+): Promise<void> {
+  let threw = false;
+  try {
+    await fn();
+  } catch {
+    threw = true;
+  }
+  if (!threw) throw new Error(message);
+}
 
 // --- Input schema ---
 add("schema: accepts valid payload", async () => {
   LeadTransitionInputSchema.parse(validInput);
 });
 add("schema: rejects invalid uuid", async () => {
-  try {
-    LeadTransitionInputSchema.parse({ ...validInput, leadId: "nope" });
-    throw new Error("should have thrown");
-  } catch {
-    /* ok */
-  }
+  expectThrows(
+    () => LeadTransitionInputSchema.parse({ ...validInput, leadId: "nope" }),
+    "invalid uuid not rejected",
+  );
 });
 add("schema: rejects invalid status", async () => {
-  try {
-    LeadTransitionInputSchema.parse({ ...validInput, toStatus: "bogus" });
-    throw new Error("should have thrown");
-  } catch {
-    /* ok */
-  }
+  expectThrows(
+    () => LeadTransitionInputSchema.parse({ ...validInput, toStatus: "bogus" }),
+    "invalid status not rejected",
+  );
 });
 add("schema: rejects negative version", async () => {
-  try {
-    LeadTransitionInputSchema.parse({ ...validInput, expectedVersion: -1 });
-    throw new Error("should have thrown");
-  } catch {
-    /* ok */
-  }
+  expectThrows(
+    () =>
+      LeadTransitionInputSchema.parse({ ...validInput, expectedVersion: -1 }),
+    "negative version not rejected",
+  );
+});
+add("schema: rejects invalid reasonId", async () => {
+  expectThrows(
+    () =>
+      LeadTransitionInputSchema.parse({ ...validInput, reasonId: "not-uuid" }),
+    "invalid reasonId not rejected",
+  );
+});
+add("schema: rejects metadata with disallowed key", async () => {
+  expectThrows(
+    () =>
+      LeadTransitionInputSchema.parse({
+        ...validInput,
+        metadata: { hacked: "yes" },
+      }),
+    "disallowed metadata key not rejected",
+  );
+});
+add("schema: rejects metadata note above length limit", async () => {
+  expectThrows(
+    () =>
+      LeadTransitionInputSchema.parse({
+        ...validInput,
+        metadata: { note: "x".repeat(2001) },
+      }),
+    "oversized note not rejected",
+  );
+});
+add("schema: rejects metadata source above length limit", async () => {
+  expectThrows(
+    () =>
+      LeadTransitionInputSchema.parse({
+        ...validInput,
+        metadata: { source: "x".repeat(201) },
+      }),
+    "oversized source not rejected",
+  );
 });
 
 // --- Error mapping ---
 for (const msg of LEAD_TRANSITION_ERROR_CODES) {
   if (msg === "rpc_contract_violation" || msg === "unknown_error") continue;
-  add(`map: '${msg}' -> ${msg}`, async () => {
+  add(`map: exact '${msg}' -> ${msg}`, async () => {
     const err = mapRpcError({ message: msg });
     expect(err.code === msg, `expected ${msg}, got ${err.code}`);
   });
 }
+add("map: 'version_conflict: stale version' -> version_conflict", async () => {
+  const err = mapRpcError({ message: "version_conflict: stale version" });
+  expect(err.code === "version_conflict", `got ${err.code}`);
+});
+add("map: 'invalid_transition: from novo to ganho' -> invalid_transition", async () => {
+  const err = mapRpcError({
+    message: "invalid_transition: from novo to ganho",
+  });
+  expect(err.code === "invalid_transition", `got ${err.code}`);
+});
 add("map: unknown pg message -> unknown_error", async () => {
   const err = mapRpcError({ message: "some random pg boom" });
+  expect(err.code === "unknown_error", `got ${err.code}`);
+});
+add("map: unrelated message with colon -> unknown_error", async () => {
+  const err = mapRpcError({ message: "duplicate key value: whatever" });
   expect(err.code === "unknown_error", `got ${err.code}`);
 });
 
 // --- Boundary happy path ---
 add("transitionLead: returns typed result", async () => {
-  const sb = fakeSupabase({
+  const client = fakeClient({
     data: {
       lead_id: validInput.leadId,
       from_status: "novo",
@@ -94,7 +163,7 @@ add("transitionLead: returns typed result", async () => {
     },
     error: null,
   });
-  const res = await transitionLead(sb, validInput);
+  const res = await transitionLead(client, validInput);
   expect(res.fromStatus === "novo", "fromStatus");
   expect(res.toStatus === "conversando", "toStatus");
   expect(res.reasonType === "advance", "reasonType");
@@ -103,14 +172,18 @@ add("transitionLead: returns typed result", async () => {
 
 // --- Boundary error paths ---
 add("transitionLead: contract violation on bad payload", async () => {
-  const sb = fakeSupabase({ data: { junk: true }, error: null });
+  const client = fakeClient({ data: { junk: true }, error: null });
+  let caught: unknown;
   try {
-    await transitionLead(sb, validInput);
-    throw new Error("should throw");
+    await transitionLead(client, validInput);
   } catch (e) {
-    const err = e as LeadTransitionError;
-    expect(err.code === "rpc_contract_violation", `got ${err.code}`);
+    caught = e;
   }
+  expect(
+    caught instanceof LeadTransitionError &&
+      caught.code === "rpc_contract_violation",
+    `expected rpc_contract_violation`,
+  );
 });
 
 const rpcErrCases: Array<[string, string]> = [
@@ -122,16 +195,40 @@ const rpcErrCases: Array<[string, string]> = [
 ];
 for (const [msg, code] of rpcErrCases) {
   add(`transitionLead: maps RPC '${msg}'`, async () => {
-    const sb = fakeSupabase({ data: null, error: { message: msg, code } });
+    const client = fakeClient({
+      data: null,
+      error: { message: msg, code },
+    });
+    let caught: unknown;
     try {
-      await transitionLead(sb, validInput);
-      throw new Error("should throw");
+      await transitionLead(client, validInput);
     } catch (e) {
-      const err = e as LeadTransitionError;
-      expect(err instanceof LeadTransitionError, "wrong type");
-      expect(err.code === msg, `expected ${msg}, got ${err.code}`);
-      expect(err.pgCode === code, `pgCode mismatch`);
+      caught = e;
     }
+    expect(
+      caught instanceof LeadTransitionError,
+      `not a LeadTransitionError`,
+    );
+    if (caught instanceof LeadTransitionError) {
+      expect(caught.code === msg, `expected ${msg}, got ${caught.code}`);
+      expect(caught.pgCode === code, `pgCode mismatch`);
+    }
+  });
+}
+
+// --- Async rejection helper self-check (used implicitly by the suite) ---
+add("expectRejects: catches thrown rejection", async () => {
+  await expectRejects(async () => {
+    throw new Error("boom");
+  }, "expectRejects failed to detect a rejection");
+});
+
+// --- Harness failure detection (self-test). Runs LAST, opt-in via env. ---
+// When LEAD_TRANSITION_HARNESS_SELFTEST=1, add one deliberately-failing case
+// so the caller can prove the runner reports failed>0 and a non-zero exit.
+if (process.env.LEAD_TRANSITION_HARNESS_SELFTEST === "1") {
+  add("HARNESS SELFTEST (must fail)", async () => {
+    expect(false, "deliberate failure to validate the runner");
   });
 }
 

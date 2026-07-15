@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.transition_lead_status(uuid, text, integer, uuid, jsonb) FROM PUBLIC, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.transition_lead_status(uuid, text, integer, uuid, jsonb) TO authenticated;
