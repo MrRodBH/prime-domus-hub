@@ -328,7 +328,7 @@ export const adminListarCorretores = createServerFn({ method: "GET" })
     // LSH-01 — projeção mínima; nunca `select('*')` em superfície tenant-wide.
     const { data, error } = await context.supabase
       .from("corretores")
-      .select("id, user_id, nome, sobrenome, ativo, team_id, cargo, email, telefone, foto_url")
+      .select("id, user_id, nome, sobrenome, ativo, team_id, cargo, email, telefone, whatsapp, foto_url, status, creci, cpf, slug, bio")
       .eq("tenant_id", tenantId)
       .eq("ativo", true)
       .order("nome", { ascending: true });
@@ -825,8 +825,9 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
     const { tenantId } = await ensureActiveTenantMembership(context);
     await ensureAdmin(context);
     // LSH-01 — payload tipado explicitamente (sem `as never`).
-    const payload: { observacoes?: string; valor_estimado?: number | null } = {};
-    if (data.observacoes !== undefined) payload.observacoes = data.observacoes;
+    // `observacoes` no formulário mapeia para a coluna `mensagem` do domínio.
+    const payload: { mensagem?: string; valor_estimado?: number | null } = {};
+    if (data.observacoes !== undefined) payload.mensagem = data.observacoes;
     if (data.valor_estimado !== undefined) payload.valor_estimado = data.valor_estimado;
     const { data: rows, error } = await context.supabase
       .from("leads")

@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:lsh-01:unit": "bunx tsx --tsconfig tsconfig.json ./run-lead-authorization-specs.ts",
+    "test:lsh-01:structural": "bunx tsx --tsconfig tsconfig.json ./run-lead-structural-specs.ts",
+    "test:lsh-01:transition-regression": "bunx tsx --tsconfig tsconfig.json ./run-lead-transition-specs.ts",
+    "test:lsh-01": "bun run test:lsh-01:unit && bun run test:lsh-01:structural && bun run test:lsh-01:transition-regression"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
