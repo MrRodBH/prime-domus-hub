@@ -5,14 +5,8 @@
 // response, and maps known Postgres errors into a stable, typed contract
 // so callers (Kanban / advance / lose / discard / reopen) can render
 // deterministic UI, rollback optimistic updates, and refetch.
-//
-// Rules:
-//   - Never accept tenant_id, actor_user_id, or reason_type from callers.
-//   - Never use `as unknown as` or `any` to sidestep the contract.
-//   - The RPC is the sole writer of lead_stage_history.
 
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 // --- Canonical domain ----------------------------------------------------
@@ -132,24 +126,47 @@ const KNOWN_MESSAGES: ReadonlySet<string> = new Set(
   ),
 );
 
-interface PostgrestLikeError {
+export interface PostgrestLikeError {
   message?: string | null;
   details?: string | null;
   code?: string | null;
   hint?: string | null;
 }
 
+/**
+ * Maps a Postgres/PostgREST-like error into a typed LeadTransitionError.
+ *
+ * Recognizes canonical identifiers either as an exact message or as the
+ * head of a `code: extra detail` shape (RAISE EXCEPTION USING DETAIL...).
+ * Never converts arbitrary Postgres text into an internal code.
+ */
 export function mapRpcError(err: PostgrestLikeError): LeadTransitionError {
   const raw = (err.message ?? "").trim();
   const detail = err.details ?? undefined;
   const pgCode = err.code ?? undefined;
 
+  // Exact match.
   if (KNOWN_MESSAGES.has(raw)) {
     return new LeadTransitionError(raw as LeadTransitionErrorCode, raw, {
       detail,
       pgCode,
     });
   }
+
+  // `code: rest` prefix — canonical identifier must be an isolated head
+  // token, delimited by `:`, before any free-text detail. Anything else
+  // falls into `unknown_error` deliberately.
+  const colonIdx = raw.indexOf(":");
+  if (colonIdx > 0) {
+    const head = raw.slice(0, colonIdx).trim();
+    if (KNOWN_MESSAGES.has(head)) {
+      return new LeadTransitionError(head as LeadTransitionErrorCode, raw, {
+        detail,
+        pgCode,
+      });
+    }
+  }
+
   return new LeadTransitionError("unknown_error", raw || "unknown_error", {
     detail,
     pgCode,
@@ -159,20 +176,36 @@ export function mapRpcError(err: PostgrestLikeError): LeadTransitionError {
 // --- Boundary ------------------------------------------------------------
 
 /**
- * Transitions a lead through the canonical RPC. `supabase` MUST be an
+ * Minimal structurally-typed RPC client for the transition boundary. The
+ * real Supabase client satisfies this interface without any cast; test
+ * doubles can implement it directly.
+ */
+export interface LeadTransitionRpcClient {
+  rpc(
+    fn: "transition_lead_status",
+    args: Database["public"]["Functions"]["transition_lead_status"]["Args"],
+  ): PromiseLike<{
+    data: unknown;
+    error: PostgrestLikeError | null;
+  }>;
+}
+
+/**
+ * Transitions a lead through the canonical RPC. `client` MUST be an
  * authenticated client (RLS as the caller). Never pass supabaseAdmin here.
  */
 export async function transitionLead(
-  supabase: SupabaseClient<Database>,
+  client: LeadTransitionRpcClient,
   rawInput: LeadTransitionInput,
 ): Promise<LeadTransitionResult> {
   const input = LeadTransitionInputSchema.parse(rawInput);
 
   const metadataJson: Record<string, string> = {};
   if (input.metadata?.note != null) metadataJson.note = input.metadata.note;
-  if (input.metadata?.source != null) metadataJson.source = input.metadata.source;
+  if (input.metadata?.source != null)
+    metadataJson.source = input.metadata.source;
 
-  const { data, error } = await supabase.rpc("transition_lead_status", {
+  const { data, error } = await client.rpc("transition_lead_status", {
     _lead_id: input.leadId,
     _to_status: input.toStatus,
     _expected_version: input.expectedVersion,
