@@ -1,16 +1,18 @@
-// Lead — Adapter (Fase 6 · Bloco 4 · Etapa 4.1.c).
-// Primeiro adapter operacional real. Cumpre integralmente o contrato
-// EntityAdapter/ContentEntityAdapter — nenhuma extensão de superfície foi
-// necessária (prova do critério §6 da Instrução Normativa: o registry
-// permanece puro e o descriptor comporta o domínio sem exceção).
+// Lead — Adapter (LSH-01 · Content Workspace mutation surface removed).
 //
-// REGRAS observadas:
-//   - Todo acesso server-side passa pelo adapter.
-//   - runAction é o único ponto de execução de ações declaradas em
-//     descriptor.actions (avancar/descartar/atribuir).
-//   - fetchFilterOptions serve os filtros com optionsFrom: "adapter"
+// A superfície de mutation deste adapter foi removida pela LSO-01 e
+// preservada pela LSH-01: nenhuma rota do produto monta
+// `<ContentWorkspace kind="lead">`. O CRM canônico é `/admin/pipeline`.
+//
+// REGRAS observadas (LSH-01):
+//   - Toda mutation de Lead ocorre no pipeline (server-side, boundary
+//     único), NÃO via adapter/workspace.
+//   - `runAction` falha explicitamente para qualquer actionId — não é
+//     autoridade de nada.
+//   - `fetchList`/`fetchDetail` permanecem apenas como leitores auxiliares
+//     usados por consumidores de conteúdo (não de operação).
+//   - `fetchFilterOptions` serve os filtros com optionsFrom: "adapter"
 //     (corretor). Nenhum outro caminho de resolução é permitido.
-//   - Nenhuma UI é importada; nenhum switch por kind existe aqui.
 import { useCallback, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";

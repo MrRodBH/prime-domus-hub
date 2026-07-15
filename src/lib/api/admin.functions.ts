@@ -325,10 +325,12 @@ export const adminListarCorretores = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { tenantId } = await ensureActiveTenantMembership(context);
     await ensureAdmin(context);
+    // LSH-01 — projeção mínima; nunca `select('*')` em superfície tenant-wide.
     const { data, error } = await context.supabase
       .from("corretores")
-      .select("*")
+      .select("id, user_id, nome, sobrenome, ativo, team_id, cargo, email, telefone, whatsapp, foto_url, status, creci, cpf, slug, bio")
       .eq("tenant_id", tenantId)
+      .eq("ativo", true)
       .order("nome", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -815,20 +817,28 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       id: z.string().uuid(),
-      observacoes: z.string().optional(),
+      observacoes: z.string().max(2000).optional(),
       valor_estimado: z.number().nullable().optional(),
     }),
   )
   .handler(async ({ data, context }) => {
     const { tenantId } = await ensureActiveTenantMembership(context);
     await ensureAdmin(context);
-    const { id, ...rest } = data;
-    const { error } = await context.supabase
+    // LSH-01 — payload tipado explicitamente (nenhum cast inseguro).
+    // `observacoes` no formulário mapeia para a coluna `mensagem` do domínio.
+    const payload: { mensagem?: string; valor_estimado?: number | null } = {};
+    if (data.observacoes !== undefined) payload.mensagem = data.observacoes;
+    if (data.valor_estimado !== undefined) payload.valor_estimado = data.valor_estimado;
+    const { data: rows, error } = await context.supabase
       .from("leads")
-      .update(rest as never)
-      .eq("id", id)
-      .eq("tenant_id", tenantId);
+      .update(payload)
+      .eq("id", data.id)
+      .eq("tenant_id", tenantId)
+      .select("id");
     if (error) throw new Error(error.message);
+    if (!rows || rows.length === 0) {
+      throw new Error("Lead não encontrado ou acesso negado.");
+    }
     return { ok: true };
   });
 
@@ -859,12 +869,12 @@ export const adminListarImoveisLite = createServerFn({ method: "GET" })
 const manualLeadReturnSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
-  status: z.string(),
-  version: z.number().int(),
+  status: z.literal("novo"),
+  version: z.number().int().positive(),
   assignedTo: z.string().uuid().nullable(),
   corretorId: z.string().uuid().nullable(),
   imovelId: z.string().uuid().nullable(),
-  createdAt: z.string(),
+  createdAt: z.string().datetime(),
 });
 export type ManualLeadResult = z.infer<typeof manualLeadReturnSchema>;
 
