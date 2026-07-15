@@ -8,7 +8,7 @@ export type Lead = {
   telefone: string | null;
   mensagem: string | null;
   origem: string | null;
-  status: string;
+  status: Status;
   version: number;
   created_at: string;
   assigned_to: string | null;
