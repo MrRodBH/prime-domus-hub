@@ -3645,7 +3645,6 @@ export type Database = {
           _lead_id: string
           _metadata?: Json
           _reason_id?: string
-          _reason_type?: string
           _to_status: string
         }
         Returns: Json
