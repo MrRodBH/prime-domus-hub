@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Lead, Status } from "@/adapters/pipeline-legacy";
 import { ValorEstimadoEditor, DescarteDialog, PerdaDialog, formatBRL } from "@/adapters/pipeline-legacy";
-import { adminAtualizarLead } from "@/lib/api/admin.functions";
-import { reabrirLead } from "@/lib/api/leads-crm.functions";
+import { reabrirLead, transicionarLead } from "@/lib/api/leads-crm.functions";
 import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 
 const STATUS_STYLES: Record<string, string> = {
