@@ -824,7 +824,7 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { tenantId } = await ensureActiveTenantMembership(context);
     await ensureAdmin(context);
-    // LSH-01 — payload tipado explicitamente (sem `as never`).
+    // LSH-01 — payload tipado explicitamente (nenhum cast inseguro).
     // `observacoes` no formulário mapeia para a coluna `mensagem` do domínio.
     const payload: { mensagem?: string; valor_estimado?: number | null } = {};
     if (data.observacoes !== undefined) payload.mensagem = data.observacoes;
