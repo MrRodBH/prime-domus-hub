@@ -174,12 +174,12 @@ export function LeadDetail({ lead, onClose }: { lead: Lead; onClose?: () => void
         onClose={() => setShowHistorico(false)}
       />
       <DescarteDialog
-        leadId={descarteOpen ? lead.id : null}
+        lead={descarteOpen ? lead : null}
         onClose={() => setDescarteOpen(false)}
         onDone={() => { setDescarteOpen(false); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); qc.invalidateQueries({ queryKey: ["admin", "descartados"] }); }}
       />
       <PerdaDialog
-        leadId={perdaOpen ? lead.id : null}
+        lead={perdaOpen ? lead : null}
         onClose={() => setPerdaOpen(false)}
         onDone={() => { setPerdaOpen(false); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); }}
       />
