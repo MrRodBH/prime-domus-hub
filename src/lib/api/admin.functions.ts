@@ -11,6 +11,28 @@ async function ensureAdmin(context: any) {
   if (error || !data) throw new Error("Acesso negado: requer permissão de administrador.");
 }
 
+// LSO-01 — Guarda comum de tenant + membership ATIVA.
+// Toda operação server-side de lead-scope (listagens, atualizações genéricas,
+// criação manual) deve derivar o tenant no servidor e exigir membership_status
+// = 'active' antes de qualquer leitura ou escrita.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ensureActiveTenantMembership(context: any): Promise<{ tenantId: string }> {
+  const { data: tenantRow, error: tErr } = await context.supabase.rpc("get_current_tenant_id");
+  if (tErr) throw new Error(tErr.message);
+  const tenantId = tenantRow as string | null;
+  if (!tenantId) throw new Error("Tenant não resolvido.");
+  const { data: memb, error: mErr } = await context.supabase
+    .from("tenant_members")
+    .select("user_id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", context.userId)
+    .eq("membership_status", "active")
+    .maybeSingle();
+  if (mErr) throw new Error(mErr.message);
+  if (!memb) throw new Error("Acesso negado: membership ativa requerida.");
+  return { tenantId };
+}
+
 // ===== Bootstrap: cria o primeiro admin se ainda não existir nenhum =====
 export const bootstrapAdmin = createServerFn({ method: "POST" })
   .inputValidator(
