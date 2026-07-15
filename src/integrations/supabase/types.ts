@@ -2054,7 +2054,7 @@ export type Database = {
           id?: string
           lead_id: string
           metadata?: Json
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           actor_user_id?: string
