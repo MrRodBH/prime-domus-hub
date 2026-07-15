@@ -881,11 +881,11 @@ export const criarLeadManual = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<ManualLeadResult> => {
     const { data: rpc, error } = await context.supabase.rpc("create_manual_lead", {
       p_nome: data.nome,
-      p_email: data.email ?? null,
-      p_telefone: data.telefone ?? null,
-      p_imovel_id: data.imovel_id ?? null,
-      p_observacoes: data.observacoes ?? null,
-      p_assigned_to: data.assigned_to ?? null,
+      p_email: data.email ?? undefined,
+      p_telefone: data.telefone ?? undefined,
+      p_imovel_id: data.imovel_id ?? undefined,
+      p_observacoes: data.observacoes ?? undefined,
+      p_assigned_to: data.assigned_to ?? undefined,
     });
     if (error) throw new Error(error.message);
     return manualLeadReturnSchema.parse(rpc);
