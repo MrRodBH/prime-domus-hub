@@ -43,7 +43,8 @@ const FUNIL_STAGES: { ids: Status[]; label: string; color: string }[] = [
 ];
 const RESULTADO_STAGES: { id: Status; label: string; color: string }[] = [
   { id: "ganho", label: "Ganho", color: "#10b981" },
-  { id: "perdido", label: "Perdido / Descartado", color: "#ef4444" },
+  { id: "perdido", label: "Perdido", color: "#ef4444" },
+  { id: "descartado", label: "Descartado", color: "#94a3b8" },
 ];
 
 export function formatBRL(v: number) {
