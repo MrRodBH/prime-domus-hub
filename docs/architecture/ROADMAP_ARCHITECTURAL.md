@@ -179,24 +179,45 @@ Decisões aceitas:
 - TH-001–TH-006 permanecem como workstreams históricos, não gates executáveis;
 - toda execução restante é consolidada nos cinco macrogates abaixo.
 
-### 4.2 Caminho crítico executável
+### 4.2 Caminho crítico executável — Cadeia de Etapas Executáveis
 
 ```text
-PR-M1
-  → PR-M2
-  → PR-M3
-  → TH-M1
-  → TH-M2
+PR-PH.0  Accepted
+PR-M1    Superseded
+LSO-01   Ready for External Audit
+RDA-01   Planned — blocked until LSO-01 Accepted
+RC-01    Planned — blocked until RDA-01 Accepted
+PR-M2    Planned — blocked until RC-01 Accepted
+PR-M3    Planned
+TH-M1    Planned
+TH-M2    Planned
+Homologação  Blocked
+Produção     Blocked
 ```
 
-Homologação permanece bloqueada até PR-M3 Accepted.  
+Regras permanentes (Cadeia de Etapas Executáveis):
+
+- cada etapa é um gate arquitetural autônomo de primeira classe;
+- não existe numeração decimal corretiva (`.1`, `.2`, ...);
+- cada etapa recebe exatamente um prompt, uma entrega, um relatório e uma auditoria externa;
+- é admitida no máximo uma correção consolidada por etapa; correção malsucedida encerra a etapa como `Rejected` e uma nova abordagem exige nova etapa de primeira classe;
+- requisitos obrigatórios de uma etapa não podem ser reclassificados como limitações conhecidas;
+- GitHub permanece a fonte primária da auditoria.
+
+Homologação permanece bloqueada até PR-M3 Accepted.
 Produção permanece bloqueada até TH-M2 Accepted.
 
 ---
 
 ## 5. PR-M1 — Workspace Authority & Revenue Operations Finalization
 
-**Status:** In Progress — cutover parcial aplicado; endurecimentos de boundary de transição, `lead_stage_history`, concorrência otimista e consolidação de fórmulas do dashboard pendentes dentro do mesmo macrogate. Ver `impact-analysis/PR-M1-workspace-authority-revenue-operations-finalization.md`.  
+**Status:** Superseded pela etapa LSO-01. Contratos válidos preservados
+(boundary de transição, RPC `transition_lead_status`, trigger de proteção
+de colunas, `lead_stage_history`, OCC de Pipeline, 35 specs do boundary).
+Obrigações remanescentes transferidas: segurança da criação manual,
+autorização lead-scoped, OCC do Content Workspace → LSO-01; autoridade das
+métricas do dashboard → RDA-01; regressão ampla → RC-01. Ver
+`docs/delivery/product-roadmap/pre-homologation-product-readiness/122-pr-m1-workspace-authority-revenue-operations-finalization.md`.
 **Absorve:** PR-PH.1, PR-PH.2, PR-PH.3, PR-PH.4.
 
 Escopo consolidado:

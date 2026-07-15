@@ -2037,6 +2037,44 @@ export type Database = {
           },
         ]
       }
+      lead_audit_events: {
+        Row: {
+          actor_user_id: string
+          created_at: string
+          event_type: string
+          id: string
+          lead_id: string
+          metadata: Json
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          lead_id: string
+          metadata?: Json
+          tenant_id?: string
+        }
+        Update: {
+          actor_user_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string
+          metadata?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_audit_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_descartes: {
         Row: {
           created_at: string
@@ -3511,6 +3549,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_manual_lead: {
+        Args: {
+          p_assigned_to?: string
+          p_email?: string
+          p_imovel_id?: string
+          p_nome: string
+          p_observacoes?: string
+          p_telefone?: string
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
