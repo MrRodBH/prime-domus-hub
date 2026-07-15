@@ -108,7 +108,7 @@ export function LeadHistoricoDialog({ leadId, leadNome, isAdmin, onClose }: Prop
   const [novaDesc, setNovaDesc] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [editDesc, setEditDesc] = useState("");
-  const [showDescarte, setShowDescarte] = useState(false);
+  // PR-M1: legacy discard button removed; no local discard-dialog state here.
 
   const { data, isLoading } = useQuery({
     queryKey: ["lead-historico", leadId],
