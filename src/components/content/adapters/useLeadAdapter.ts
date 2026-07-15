@@ -17,14 +17,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   adminListarLeads,
   adminListarCorretores,
-  adminAtualizarLead,
 } from "@/lib/api/admin.functions";
-import { transicionarLead } from "@/lib/api/leads-crm.functions";
 import type {
   ContentEntityAdapter,
   ContentEntityDetail,
   ContentEntityRecord,
-  ContentDraft,
   ListParams,
 } from "../types";
 
@@ -44,17 +41,8 @@ type LeadRow = {
   imovel: { titulo?: string; slug?: string } | null;
 };
 
-const NEXT_STATUS: Record<string, "conversando" | "visita" | "proposta" | "ganho"> = {
-  novo: "conversando",
-  conversando: "visita",
-  visita: "proposta",
-  proposta: "ganho",
-};
-
 export function useLeadAdapter(): ContentEntityAdapter {
   const listarFn = useServerFn(adminListarLeads);
-  const atualizarFn = useServerFn(adminAtualizarLead);
-  const transicionarFn = useServerFn(transicionarLead);
   const listarCorretoresFn = useServerFn(adminListarCorretores);
 
   // Cache de corretores — usado por fetchFilterOptions("corretor").
