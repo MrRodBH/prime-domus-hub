@@ -179,18 +179,49 @@ export const reabrirLead = createServerFn({ method: "POST" })
     }
   });
 
-/** Lista leads descartados. */
+/** Lista leads descartados. Contrato tipado — sem cast duplo no caller (PR-M1). */
+export type LeadDescartadoRow = {
+  id: string;
+  nome: string;
+  status: "descartado";
+  version: number;
+  descartado_at: string | null;
+  origem: string | null;
+  motivo: { nome: string } | null;
+  imovel: { titulo: string | null; slug: string | null } | null;
+};
+
 export const listarLeadsDescartados = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<LeadDescartadoRow[]> => {
     await ensureAdmin(context);
     const { data, error } = await context.supabase
       .from("leads")
-      .select("*, imovel:imoveis(titulo, slug), motivo:lead_discard_reasons!leads_discard_reason_id_fkey(nome)")
+      .select("id, nome, status, version, descartado_at, origem, imovel:imoveis(titulo, slug), motivo:lead_discard_reasons!leads_discard_reason_id_fkey(nome)")
       .eq("status", "descartado")
       .order("descartado_at", { ascending: false, nullsFirst: false });
     if (error) throw new Error(error.message);
-    return data ?? [];
+    // Supabase infers relation fields as arrays for FK aliases; normalize.
+    const rows = (data ?? []) as Array<{
+      id: string;
+      nome: string;
+      status: string;
+      version: number;
+      descartado_at: string | null;
+      origem: string | null;
+      imovel: { titulo: string | null; slug: string | null } | { titulo: string | null; slug: string | null }[] | null;
+      motivo: { nome: string } | { nome: string }[] | null;
+    }>;
+    return rows.map((r) => ({
+      id: r.id,
+      nome: r.nome,
+      status: "descartado" as const,
+      version: r.version,
+      descartado_at: r.descartado_at,
+      origem: r.origem,
+      motivo: Array.isArray(r.motivo) ? (r.motivo[0] ?? null) : r.motivo,
+      imovel: Array.isArray(r.imovel) ? (r.imovel[0] ?? null) : r.imovel,
+    }));
   });
 
 /** Métricas de performance comercial nos últimos N dias. */

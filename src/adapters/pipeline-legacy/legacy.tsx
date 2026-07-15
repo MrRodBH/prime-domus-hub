@@ -43,7 +43,8 @@ const FUNIL_STAGES: { ids: Status[]; label: string; color: string }[] = [
 ];
 const RESULTADO_STAGES: { id: Status; label: string; color: string }[] = [
   { id: "ganho", label: "Ganho", color: "#10b981" },
-  { id: "perdido", label: "Perdido / Descartado", color: "#ef4444" },
+  { id: "perdido", label: "Perdido", color: "#ef4444" },
+  { id: "descartado", label: "Descartado", color: "#94a3b8" },
 ];
 
 export function formatBRL(v: number) {
@@ -311,13 +312,15 @@ export function PerdaDialog({ lead, onClose, onDone }: { lead: Lead | null; onCl
   );
 }
 
-type DescartadoRow = Lead & { descartado_at?: string | null; motivo?: { nome: string } | null };
+// PR-M1: DescartadoRow legado removido — o contrato canônico é
+// LeadDescartadoRow em leads-crm.functions.ts.
 export function DescartadosPanel({ onOpen }: { onOpen: (id: string) => void }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["admin", "descartados"], queryFn: () => listarLeadsDescartados() });
-  const rows = (data ?? []) as unknown as DescartadoRow[];
+  // PR-M1: listarLeadsDescartados agora retorna contrato tipado (sem cast duplo).
+  const rows = data ?? [];
   const reabrir = useMutation({
-    mutationFn: (row: DescartadoRow) =>
+    mutationFn: (row: (typeof rows)[number]) =>
       reabrirLead({ data: { lead_id: row.id, expected_version: row.version } }),
     onSuccess: () => { toast.success("Lead reaberto (Novo)."); qc.invalidateQueries({ queryKey: ["admin", "descartados"] }); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); },
     onError: (e: Error) => toast.error(e.message),
