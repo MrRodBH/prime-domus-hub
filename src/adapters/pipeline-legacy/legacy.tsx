@@ -259,17 +259,17 @@ function ReasonSelect({ kind, value, onChange }: { kind: "discard" | "lost"; val
   );
 }
 
-export function DescarteDialog({ leadId, onClose, onDone }: { leadId: string | null; onClose: () => void; onDone: () => void }) {
+export function DescarteDialog({ lead, onClose, onDone }: { lead: Lead | null; onClose: () => void; onDone: () => void }) {
   const [motivoId, setMotivoId] = useState("");
   const [detalhes, setDetalhes] = useState("");
-  useEffect(() => { if (leadId) { setMotivoId(""); setDetalhes(""); } }, [leadId]);
+  useEffect(() => { if (lead) { setMotivoId(""); setDetalhes(""); } }, [lead]);
   const mut = useMutation({
-    mutationFn: () => descartarLead({ data: { lead_id: leadId!, motivo_id: motivoId, detalhes: detalhes || null } }),
+    mutationFn: () => descartarLead({ data: { lead_id: lead!.id, motivo_id: motivoId, detalhes: detalhes || null, expected_version: lead!.version } }),
     onSuccess: () => { toast.success("Lead descartado."); onDone(); },
     onError: (e: Error) => toast.error(e.message),
   });
   return (
-    <Dialog open={!!leadId} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>Descartar lead</DialogTitle><DialogDescription>Use para leads desqualificados <strong>antes</strong> da proposta.</DialogDescription></DialogHeader>
         <div className="space-y-3">
@@ -285,17 +285,17 @@ export function DescarteDialog({ leadId, onClose, onDone }: { leadId: string | n
   );
 }
 
-export function PerdaDialog({ leadId, onClose, onDone }: { leadId: string | null; onClose: () => void; onDone: () => void }) {
+export function PerdaDialog({ lead, onClose, onDone }: { lead: Lead | null; onClose: () => void; onDone: () => void }) {
   const [motivoId, setMotivoId] = useState("");
   const [detalhes, setDetalhes] = useState("");
-  useEffect(() => { if (leadId) { setMotivoId(""); setDetalhes(""); } }, [leadId]);
+  useEffect(() => { if (lead) { setMotivoId(""); setDetalhes(""); } }, [lead]);
   const mut = useMutation({
-    mutationFn: () => perderLead({ data: { lead_id: leadId!, motivo_id: motivoId, detalhes: detalhes || null } }),
+    mutationFn: () => perderLead({ data: { lead_id: lead!.id, motivo_id: motivoId, detalhes: detalhes || null, expected_version: lead!.version } }),
     onSuccess: () => { toast.success("Negócio marcado como perdido."); onDone(); },
     onError: (e: Error) => toast.error(e.message),
   });
   return (
-    <Dialog open={!!leadId} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog open={!!lead} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>Marcar como perdido</DialogTitle><DialogDescription>Somente leads em <strong>Proposta</strong>.</DialogDescription></DialogHeader>
         <div className="space-y-3">
