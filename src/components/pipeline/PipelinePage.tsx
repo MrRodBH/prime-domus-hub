@@ -75,8 +75,26 @@ export function PipelinePage({ search }: { search: PipelineSearch }) {
     if (!over) return;
     const lead = filtered.find((l) => l.id === id);
     if (!lead || lead.status === over) return;
-    if (over === "perdido" && lead.status !== "proposta") {
-      toast.error("Só é possível marcar Perdido a partir de Proposta. Use Descartar.");
+    // PR-M1: interface never issues a transition that the RPC will reject
+    // deterministically. `ganho` requires proposta; `perdido` requires a
+    // reason (dialog path only). Both routes below therefore stop here and
+    // route the user to the canonical action UI in LeadDetail.
+    if (over === "ganho" && lead.status !== "proposta") {
+      toast.error("Só é possível marcar Ganho a partir de Proposta.");
+      return;
+    }
+    if (over === "perdido") {
+      if (lead.status !== "proposta") {
+        toast.error("Só é possível marcar Perdido a partir de Proposta. Use Descartar.");
+        return;
+      }
+      toast.info("Marcar como Perdido exige motivo. Abra o lead para concluir.");
+      patchSearch({ item: id });
+      return;
+    }
+    if (over === "descartado") {
+      toast.info("Descartar exige motivo. Abra o lead para concluir.");
+      patchSearch({ item: id });
       return;
     }
     updateStatus.mutate({ id, status: over as Status, expectedVersion: lead.version });
