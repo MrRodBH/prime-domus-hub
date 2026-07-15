@@ -323,10 +323,12 @@ const corretorSchema = z.object({
 export const adminListarCorretores = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { tenantId } = await ensureActiveTenantMembership(context);
     await ensureAdmin(context);
     const { data, error } = await context.supabase
       .from("corretores")
       .select("*")
+      .eq("tenant_id", tenantId)
       .order("nome", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
