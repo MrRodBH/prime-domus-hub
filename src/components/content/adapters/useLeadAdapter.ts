@@ -19,6 +19,7 @@ import {
   adminListarCorretores,
   adminAtualizarLead,
 } from "@/lib/api/admin.functions";
+import { transicionarLead } from "@/lib/api/leads-crm.functions";
 import type {
   ContentEntityAdapter,
   ContentEntityDetail,
@@ -35,6 +36,7 @@ type LeadRow = {
   mensagem: string | null;
   origem: string | null;
   status: string;
+  version: number;
   created_at: string;
   updated_at?: string;
   assigned_to: string | null;
@@ -42,7 +44,7 @@ type LeadRow = {
   imovel: { titulo?: string; slug?: string } | null;
 };
 
-const NEXT_STATUS: Record<string, string> = {
+const NEXT_STATUS: Record<string, "conversando" | "visita" | "proposta" | "ganho"> = {
   novo: "conversando",
   conversando: "visita",
   visita: "proposta",
@@ -52,6 +54,7 @@ const NEXT_STATUS: Record<string, string> = {
 export function useLeadAdapter(): ContentEntityAdapter {
   const listarFn = useServerFn(adminListarLeads);
   const atualizarFn = useServerFn(adminAtualizarLead);
+  const transicionarFn = useServerFn(transicionarLead);
   const listarCorretoresFn = useServerFn(adminListarCorretores);
 
   // Cache de corretores — usado por fetchFilterOptions("corretor").
