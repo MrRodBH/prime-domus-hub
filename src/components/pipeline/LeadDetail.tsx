@@ -54,13 +54,21 @@ export function LeadDetail({ lead, onClose }: { lead: Lead; onClose?: () => void
   const isClosed = lead.status === "ganho" || lead.status === "perdido" || lead.status === "descartado";
 
   const advance = useMutation({
-    mutationFn: (next: Status) => adminAtualizarLead({ data: { id: lead.id, status: next } }),
+    mutationFn: (next: Status) =>
+      transicionarLead({
+        data: {
+          leadId: lead.id,
+          toStatus: next,
+          expectedVersion: lead.version,
+          metadata: { source: "pipeline_advance" },
+        },
+      }),
     onSuccess: () => { toast.success("Status atualizado."); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const reabrir = useMutation({
-    mutationFn: () => reabrirLead({ data: { lead_id: lead.id } }),
+    mutationFn: () => reabrirLead({ data: { lead_id: lead.id, expected_version: lead.version } }),
     onSuccess: () => {
       toast.success("Lead reaberto.");
       qc.invalidateQueries({ queryKey: ["admin", "leads"] });
