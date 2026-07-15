@@ -312,7 +312,8 @@ export function PerdaDialog({ lead, onClose, onDone }: { lead: Lead | null; onCl
   );
 }
 
-type DescartadoRow = Lead & { descartado_at?: string | null; motivo?: { nome: string } | null };
+// PR-M1: DescartadoRow legado removido — o contrato canônico é
+// LeadDescartadoRow em leads-crm.functions.ts.
 export function DescartadosPanel({ onOpen }: { onOpen: (id: string) => void }) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["admin", "descartados"], queryFn: () => listarLeadsDescartados() });
