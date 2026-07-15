@@ -1,8 +1,32 @@
 # 122 · PR-M1 — Workspace Authority & Revenue Operations Finalization
 
-**Status:** Ready for External Audit.
-**Baseline:** `ae85e9dc2c5a48ad327e9df821fe3db6b61381c6` → HEAD `1e914de323499db1fb0cca93b0c6fc8bd526c55e`.
+**Status:** Superseded (LSO-01 — Lead Security & Workspace OCC).
+**Baseline aceito:** `ae85e9dc2c5a48ad327e9df821fe3db6b61381c6` → `afdb898b725d734107f19d09af84558ab4b81290`.
 **Impact Analysis canônico:** [`docs/architecture/impact-analysis/PR-M1-workspace-authority-revenue-operations-finalization.md`](../../../architecture/impact-analysis/PR-M1-workspace-authority-revenue-operations-finalization.md).
+**Sucessora executável:** [`123-lso-01-lead-security-workspace-occ.md`](./123-lso-01-lead-security-workspace-occ.md).
+
+## Encerramento — Superseded
+
+Os contratos válidos materializados nesta PR permanecem em produção
+(boundary tipado da transição, RPC `transition_lead_status`, trigger de
+proteção de colunas, `lead_stage_history` canônico, OCC de Pipeline, 35
+testes determinísticos do boundary, remoção da ação de descarte
+inconsistente no histórico). A etapa é encerrada definitivamente; obrigações
+remanescentes foram transferidas para etapas de primeira classe:
+
+| Obrigação original | Estado | Destino |
+|---|---|---|
+| Boundary de transição e OCC do Pipeline | Implementado e preservado | PR-M1 |
+| Segurança da criação manual (`criarLeadManual`) | Transferido | LSO-01 |
+| Autorização lead-scoped tenant-aware | Transferido | LSO-01 |
+| OCC do Content Workspace (adapter Lead) | Transferido | LSO-01 |
+| Autoridade das métricas / fórmulas do dashboard | Transferido | RDA-01 |
+| Testes finais e regressões amplas | Transferido | RC-01 |
+
+Nenhum requisito remanescente permanece como backlog da PR-M1 nem foi
+reclassificado como limitação conhecida.
+
+
 
 ## Absorção
 
