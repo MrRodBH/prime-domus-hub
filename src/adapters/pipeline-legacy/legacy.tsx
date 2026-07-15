@@ -317,7 +317,8 @@ export function DescartadosPanel({ onOpen }: { onOpen: (id: string) => void }) {
   const { data, isLoading } = useQuery({ queryKey: ["admin", "descartados"], queryFn: () => listarLeadsDescartados() });
   const rows = (data ?? []) as unknown as DescartadoRow[];
   const reabrir = useMutation({
-    mutationFn: (lead_id: string) => reabrirLead({ data: { lead_id } }),
+    mutationFn: (row: DescartadoRow) =>
+      reabrirLead({ data: { lead_id: row.id, expected_version: row.version } }),
     onSuccess: () => { toast.success("Lead reaberto (Novo)."); qc.invalidateQueries({ queryKey: ["admin", "descartados"] }); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -336,7 +337,7 @@ export function DescartadosPanel({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="px-3 py-2"><button className="font-medium hover:underline" onClick={() => onOpen(r.id)}>{r.nome}</button>{r.origem && <div className="text-[10px] uppercase text-muted-foreground">{r.origem}</div>}</td>
               <td className="px-3 py-2">{r.motivo?.nome ?? "—"}</td>
               <td className="px-3 py-2 truncate max-w-[240px]">{r.imovel?.titulo ?? "—"}</td>
-              <td className="px-3 py-2 text-right"><Button size="sm" variant="outline" onClick={() => reabrir.mutate(r.id)} disabled={reabrir.isPending}><RotateCcw className="h-3.5 w-3.5" /> Reabrir</Button></td>
+              <td className="px-3 py-2 text-right"><Button size="sm" variant="outline" onClick={() => reabrir.mutate(r)} disabled={reabrir.isPending}><RotateCcw className="h-3.5 w-3.5" /> Reabrir</Button></td>
             </tr>
           ))}
         </tbody>
