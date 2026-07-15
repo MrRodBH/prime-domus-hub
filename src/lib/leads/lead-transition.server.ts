@@ -168,14 +168,16 @@ export async function transitionLead(
 ): Promise<LeadTransitionResult> {
   const input = LeadTransitionInputSchema.parse(rawInput);
 
+  const metadataJson: Record<string, string> = {};
+  if (input.metadata?.note != null) metadataJson.note = input.metadata.note;
+  if (input.metadata?.source != null) metadataJson.source = input.metadata.source;
+
   const { data, error } = await supabase.rpc("transition_lead_status", {
     _lead_id: input.leadId,
     _to_status: input.toStatus,
     _expected_version: input.expectedVersion,
     _reason_id: input.reasonId ?? undefined,
-    _metadata: (input.metadata ?? {}) as Database["public"]["Tables"] extends never
-      ? never
-      : Record<string, unknown>,
+    _metadata: metadataJson,
   });
 
   if (error) throw mapRpcError(error);
