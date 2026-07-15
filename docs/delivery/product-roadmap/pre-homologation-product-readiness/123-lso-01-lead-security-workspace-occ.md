@@ -1,9 +1,12 @@
 # 123 · LSO-01 — Lead Security & Workspace OCC
 
-**Status:** Ready for External Audit (aguarda auditoria crítica externa).
-**Baseline:** `afdb898b725d734107f19d09af84558ab4b81290` (main — "Finalizou cutover PR-M1").
+**Status:** Rejected (não será reaberta; obrigações transferidas para LSH-01 e LSV-01).
+**Baseline original:** `afdb898b725d734107f19d09af84558ab4b81290` (main — "Finalizou cutover PR-M1").
 **Sucede:** PR-M1 (Superseded).
-**Bloqueia:** RDA-01 até aceitação externa.
+**Sucedida por:** LSH-01 (Ready for External Audit) → LSV-01 (Planned).
+
+> Nota (LSH-01): esta etapa foi **rejeitada** por não satisfazer o Definition of Done integral em ciclo único (defeitos de autorização, grants da tabela de auditoria, ON DELETE CASCADE, default autoritativo de tenant, cast inseguro em `adminAtualizarLead`, `select('*')` em `adminListarCorretores`, Zod frouxo no retorno da RPC). As obrigações estruturais foram materializadas na LSH-01. As provas operacionais reais (múltiplos JWTs, RLS efetivo, grants no banco aplicado, impersonation runtime, rollback multi-sessão) foram atribuídas exclusivamente à LSV-01. O código válido produzido nesta etapa foi preservado como baseline sujeito ao endurecimento da LSH-01.
+
 
 ## Objetivo
 
