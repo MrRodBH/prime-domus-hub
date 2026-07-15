@@ -288,39 +288,25 @@ export function LeadHistoricoDialog({ leadId, leadNome, isAdmin, onClose }: Prop
               {ia.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
               Analisar com IA
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={!temAtividade || jaDescartado}
-              onClick={() => setShowDescarte(true)}
-              title={
-                jaDescartado
-                  ? "Lead já descartado"
-                  : !temAtividade
-                    ? "Registre ao menos uma atividade antes de descartar"
-                    : "Descartar Lead"
-              }
-            >
-              <Trash2 className="h-4 w-4 mr-1" /> Descartar Lead
-            </Button>
+            {/*
+              PR-M1: a ação "Descartar Lead" foi removida deste diálogo. O
+              descarte canônico é uma transição de status atômica
+              (transition_lead_status) exposta pelo botão Descartar do
+              LeadDetail; o histórico permanece dedicado exclusivamente ao
+              registro/consulta/edição de atividades e à análise de IA.
+              A referência a jaDescartado permanece apenas para bloquear a
+              criação de novas atividades em leads já descartados.
+            */}
+            {jaDescartado && (
+              <span className="text-xs text-muted-foreground self-center">
+                Lead descartado — abra o lead para reabrir.
+              </span>
+            )}
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4 mr-1" /> Fechar
           </Button>
         </DialogFooter>
-
-        {showDescarte && leadId && (
-          <DescarteDialog
-            leadId={leadId}
-            atividadesTipos={atividades.map((a) => a.tipo)}
-            onClose={() => setShowDescarte(false)}
-            onDone={() => {
-              setShowDescarte(false);
-              qc.invalidateQueries({ queryKey: ["lead-historico", leadId] });
-              qc.invalidateQueries({ queryKey: ["admin", "leads"] });
-            }}
-          />
-        )}
       </DialogContent>
     </Dialog>
   );
