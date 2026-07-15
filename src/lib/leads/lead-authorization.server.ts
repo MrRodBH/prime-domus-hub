@@ -86,12 +86,13 @@ export function createSupabaseLeadAuthorizationRepository(
     async listActiveMemberships(userId, tenantId) {
       const { data, error } = await supabase
         .from("tenant_members")
-        .select("id, membership_status")
+        .select("tenant_id, user_id, membership_status")
         .eq("user_id", userId)
         .eq("tenant_id", tenantId)
         .eq("membership_status", "active");
       if (error) throw new Error(error.message);
-      return (data ?? []) as Array<{ id: string; membership_status: string }>;
+      const rows = (data ?? []) as Array<{ tenant_id: string; user_id: string; membership_status: string }>;
+      return rows.map((r) => ({ id: `${r.tenant_id}:${r.user_id}`, membership_status: r.membership_status }));
     },
     async listAppRoles(userId) {
       const { data, error } = await supabase
