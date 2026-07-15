@@ -47,6 +47,18 @@ export function usePipelineData(search: PipelineSearch) {
 
   const filtered = useMemo(() => {
     let list = ((leads ?? []) as Lead[]);
+
+    // PR-M1: `tab` filters the active view.
+    //  - ativos      → all statuses except `descartado`
+    //  - descartados → only `descartado`
+    //  - analise     → same base as ativos (analytics render their own scopes)
+    const tab = search.tab ?? "ativos";
+    if (tab === "descartados") {
+      list = list.filter((l) => l.status === "descartado");
+    } else {
+      list = list.filter((l) => l.status !== "descartado");
+    }
+
     if (search.corretor === "__none__") list = list.filter((l) => !l.assigned_to);
     else if (search.corretor && search.corretor !== "__all__") list = list.filter((l) => l.assigned_to === search.corretor);
     if (search.status) {
@@ -77,11 +89,20 @@ export function usePipelineData(search: PipelineSearch) {
   }, [leads, search]);
 
   const byStatus = useMemo(() => {
-    const map: Record<Status, Lead[]> = { novo: [], conversando: [], visita: [], proposta: [], ganho: [], perdido: [], descartado: [] };
-    const known: Status[] = ["novo", "conversando", "visita", "proposta", "ganho", "perdido"];
+    // PR-M1: canonical 7-state domain. No fallback: an unexpected status is
+    // dropped with a diagnostic instead of being silently coerced into `novo`.
+    const map: Record<Status, Lead[]> = {
+      novo: [], conversando: [], visita: [], proposta: [],
+      ganho: [], perdido: [], descartado: [],
+    };
+    const known: readonly Status[] = ["novo", "conversando", "visita", "proposta", "ganho", "perdido", "descartado"] as const;
     for (const l of filtered) {
-      const s = (known.includes(l.status as Status) ? l.status : "novo") as Status;
-      map[s].push(l);
+      if (known.includes(l.status)) {
+        map[l.status].push(l);
+      } else if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.warn("[pipeline] dropping lead with unknown status", { id: l.id, status: l.status });
+      }
     }
     return map;
   }, [filtered]);
