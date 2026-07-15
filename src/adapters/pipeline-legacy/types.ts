@@ -9,6 +9,7 @@ export type Lead = {
   mensagem: string | null;
   origem: string | null;
   status: string;
+  version: number;
   created_at: string;
   assigned_to: string | null;
   valor_estimado: number | null;
