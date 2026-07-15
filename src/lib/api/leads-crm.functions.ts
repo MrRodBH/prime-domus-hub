@@ -1,6 +1,23 @@
+// PR-M1 — Transition Caller Cutover.
+// This module hosts the canonical server-side entry points for lead status
+// mutations. All transitions delegate to the typed boundary
+// `transitionLead` (src/lib/leads/lead-transition.server) which is the ONLY
+// server-side authority calling the RPC `transition_lead_status`.
+//
+// Rules enforced here:
+//   - No direct `leads.update({ status, ...*_reason_id, *_at })` writes.
+//   - No supabaseAdmin.
+//   - `expectedVersion` is a required client-supplied value (OCC).
+//   - Wrappers only validate input, forward to the boundary, and map result.
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  transitionLead,
+  LeadTransitionError,
+  type LeadTransitionResult,
+} from "@/lib/leads/lead-transition.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function ensureAdmin(ctx: any) {
@@ -8,125 +25,158 @@ async function ensureAdmin(ctx: any) {
   if (!data) throw new Error("Acesso negado.");
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function currentUserBrief(ctx: any): Promise<{ nome: string; perfil: string }> {
-  const { data: roles } = await ctx.supabase.from("user_roles").select("role").eq("user_id", ctx.userId);
-  const rolesList = (roles ?? []).map((r: { role: string }) => r.role);
-  const perfil = rolesList.includes("admin")
-    ? "admin"
-    : rolesList.includes("gerente")
-      ? "gerente"
-      : rolesList.includes("corretor")
-        ? "corretor"
-        : rolesList.includes("secretaria")
-          ? "secretaria"
-          : "usuario";
-  const { data: corretor } = await ctx.supabase
-    .from("corretores")
-    .select("nome, sobrenome, email")
-    .eq("user_id", ctx.userId)
-    .maybeSingle();
-  const c = corretor as { nome?: string; sobrenome?: string | null; email?: string } | null;
-  const nome = c?.nome
-    ? `${c.nome}${c.sobrenome ? " " + c.sobrenome : ""}`
-    : (c?.email ?? ctx.claims?.email ?? "Usuário");
-  return { nome, perfil };
+// Serializes a boundary result for the wire. Preserves typed error contract
+// by throwing a plain Error whose message is the canonical code (mappable
+// on the client via the LeadTransitionError code list).
+function serializeResult(r: LeadTransitionResult) {
+  return {
+    ok: true as const,
+    leadId: r.leadId,
+    fromStatus: r.fromStatus,
+    toStatus: r.toStatus,
+    reasonType: r.reasonType,
+    version: r.version,
+  };
 }
 
-/** Descarta um lead (motivo de desqualificação). */
+function rethrow(err: unknown): never {
+  if (err instanceof LeadTransitionError) {
+    // Preserve the canonical code as the message head so the client can
+    // remap it back to LeadTransitionError.code.
+    throw new Error(err.code);
+  }
+  throw err instanceof Error ? err : new Error("unknown_error");
+}
+
+/** Canonical transition entry: advance / ganho / perdido / descartado / reabrir. */
+export const transicionarLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        leadId: z.string().uuid(),
+        toStatus: z.enum([
+          "novo",
+          "conversando",
+          "visita",
+          "proposta",
+          "ganho",
+          "perdido",
+          "descartado",
+        ]),
+        expectedVersion: z.number().int().nonnegative(),
+        reasonId: z.string().uuid().nullish(),
+        metadata: z
+          .object({
+            note: z.string().max(2000).nullish(),
+            source: z.string().max(200).nullish(),
+          })
+          .partial()
+          .optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    try {
+      const r = await transitionLead(context.supabase, {
+        leadId: data.leadId,
+        toStatus: data.toStatus,
+        expectedVersion: data.expectedVersion,
+        reasonId: data.reasonId ?? null,
+        metadata: data.metadata,
+      });
+      return serializeResult(r);
+    } catch (e) {
+      rethrow(e);
+    }
+  });
+
+/** Descarta um lead (motivo obrigatório). */
 export const descartarLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z.object({
-      lead_id: z.string().uuid(),
-      motivo_id: z.string().uuid(),
-      detalhes: z.string().max(1000).optional().nullable(),
-    }).parse(i),
+    z
+      .object({
+        lead_id: z.string().uuid(),
+        motivo_id: z.string().uuid(),
+        detalhes: z.string().max(1000).optional().nullable(),
+        expected_version: z.number().int().nonnegative(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const { data: motivo, error: eM } = await context.supabase
-      .from("lead_discard_reasons")
-      .select("id, nome, ativo")
-      .eq("id", data.motivo_id)
-      .maybeSingle();
-    if (eM) throw new Error(eM.message);
-    if (!motivo || !motivo.ativo) throw new Error("Motivo de descarte inválido.");
-
-    const { error } = await context.supabase
-      .from("leads")
-      .update({
-        status: "descartado",
-        discard_reason_id: data.motivo_id,
-      } as never)
-      .eq("id", data.lead_id);
-    if (error) throw new Error(error.message);
-
-    // registra em lead_descartes (histórico existente) se a tabela existir
-    const me = await currentUserBrief(context);
-    await context.supabase.from("lead_descartes").insert({
-      lead_id: data.lead_id,
-      user_id: context.userId,
-      user_nome: me.nome,
-      user_perfil: me.perfil,
-      reason_id: data.motivo_id,
-      motivo_nome: motivo.nome,
-      detalhes: data.detalhes ?? "",
-    } as never);
-
-    return { ok: true };
+    try {
+      const r = await transitionLead(context.supabase, {
+        leadId: data.lead_id,
+        toStatus: "descartado",
+        expectedVersion: data.expected_version,
+        reasonId: data.motivo_id,
+        metadata: {
+          note: data.detalhes ?? undefined,
+          source: "pipeline_discard",
+        },
+      });
+      return serializeResult(r);
+    } catch (e) {
+      rethrow(e);
+    }
   });
 
-/** Marca lead como perdido (backend valida transição via trigger). */
+/** Marca lead como perdido (somente a partir de Proposta; motivo obrigatório). */
 export const perderLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z.object({
-      lead_id: z.string().uuid(),
-      motivo_id: z.string().uuid(),
-      detalhes: z.string().max(1000).optional().nullable(),
-      valor_estimado: z.number().nullable().optional(),
-    }).parse(i),
+    z
+      .object({
+        lead_id: z.string().uuid(),
+        motivo_id: z.string().uuid(),
+        detalhes: z.string().max(1000).optional().nullable(),
+        expected_version: z.number().int().nonnegative(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const { data: motivo, error: eM } = await context.supabase
-      .from("deal_lost_reasons")
-      .select("id, nome, ativo")
-      .eq("id", data.motivo_id)
-      .maybeSingle();
-    if (eM) throw new Error(eM.message);
-    if (!motivo || !motivo.ativo) throw new Error("Motivo de perda inválido.");
+    try {
+      const r = await transitionLead(context.supabase, {
+        leadId: data.lead_id,
+        toStatus: "perdido",
+        expectedVersion: data.expected_version,
+        reasonId: data.motivo_id,
+        metadata: {
+          note: data.detalhes ?? undefined,
+          source: "pipeline_lost",
+        },
+      });
+      return serializeResult(r);
+    } catch (e) {
+      rethrow(e);
+    }
+  });
 
-    const me = await currentUserBrief(context);
-
-    const { data: lead } = await context.supabase
-      .from("leads")
-      .select("imovel_id, valor_estimado")
-      .eq("id", data.lead_id)
-      .maybeSingle();
-
-    const { error } = await context.supabase
-      .from("leads")
-      .update({
-        status: "perdido",
-        lost_reason_id: data.motivo_id,
-      } as never)
-      .eq("id", data.lead_id);
-    if (error) throw new Error(error.message);
-
-    const { error: eL } = await context.supabase.from("lead_perdas").insert({
-      lead_id: data.lead_id,
-      user_id: context.userId,
-      user_nome: me.nome,
-      user_perfil: me.perfil,
-      reason_id: data.motivo_id,
-      motivo_nome: motivo.nome,
-      detalhes: data.detalhes ?? "",
-      valor_estimado: data.valor_estimado ?? lead?.valor_estimado ?? null,
-      imovel_id: lead?.imovel_id ?? null,
-    } as never);
-    if (eL) throw new Error(eL.message);
-
-    return { ok: true };
+/** Reabre um lead descartado / perdido, voltando para "novo". */
+export const reabrirLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        lead_id: z.string().uuid(),
+        expected_version: z.number().int().nonnegative(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    try {
+      const r = await transitionLead(context.supabase, {
+        leadId: data.lead_id,
+        toStatus: "novo",
+        expectedVersion: data.expected_version,
+        reasonId: null,
+        metadata: { source: "pipeline_reopen" },
+      });
+      return serializeResult(r);
+    } catch (e) {
+      rethrow(e);
+    }
   });
 
 /** Lista leads descartados. */
@@ -134,8 +184,6 @@ export const listarLeadsDescartados = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await ensureAdmin(context);
-    // PR-M1: fallback removido. Query única com relacionamento FK explícito.
-    // Falha do schema deve ser explícita — não é ocultada por um segundo SELECT.
     const { data, error } = await context.supabase
       .from("leads")
       .select("*, imovel:imoveis(titulo, slug), motivo:lead_discard_reasons!leads_discard_reason_id_fkey(nome)")
@@ -143,24 +191,6 @@ export const listarLeadsDescartados = createServerFn({ method: "GET" })
       .order("descartado_at", { ascending: false, nullsFirst: false });
     if (error) throw new Error(error.message);
     return data ?? [];
-  });
-
-/** Reabre um lead descartado. */
-export const reabrirLead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ lead_id: z.string().uuid() }).parse(i))
-  .handler(async ({ data, context }) => {
-    await ensureAdmin(context);
-    const { error } = await context.supabase
-      .from("leads")
-      .update({
-        status: "novo",
-        discard_reason_id: null,
-        descartado_at: null,
-      } as never)
-      .eq("id", data.lead_id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
   });
 
 /** Métricas de performance comercial nos últimos N dias. */
@@ -194,7 +224,6 @@ export const performanceComercial = createServerFn({ method: "GET" })
     const conversao = decididos > 0 ? ganhos.length / decididos : 0;
     const descarteRate = total > 0 ? descartados.length / total : 0;
 
-    // Mapeia nomes de motivos
     const dIds = [...new Set(descartados.map((r) => r.discard_reason_id).filter(Boolean))] as string[];
     const pIds = [...new Set(perdidos.map((r) => r.lost_reason_id).filter(Boolean))] as string[];
 
