@@ -79,7 +79,7 @@ export function PipelinePage({ search }: { search: PipelineSearch }) {
       toast.error("Só é possível marcar Perdido a partir de Proposta. Use Descartar.");
       return;
     }
-    updateStatus.mutate({ id, status: over as Status });
+    updateStatus.mutate({ id, status: over as Status, expectedVersion: lead.version });
   }
 
   return (

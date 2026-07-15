@@ -775,12 +775,17 @@ export const adminListarLeads = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+// PR-M1 — `adminAtualizarLead` is now a GENERIC updater. It MUST NOT accept
+// `status` (nor status-adjacent columns like discard_reason_id, lost_reason_id,
+// version, *_at stamps). All lead status transitions flow exclusively through
+// `transicionarLead` (which wraps the typed boundary `transitionLead` calling
+// the SECURITY DEFINER RPC `transition_lead_status`). This split guarantees
+// OCC (expectedVersion), atomic history, and a single authorization path.
 export const adminAtualizarLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       id: z.string().uuid(),
-      status: z.enum(["novo", "conversando", "visita", "proposta", "ganho", "perdido", "descartado"]).optional(),
       observacoes: z.string().optional(),
       valor_estimado: z.number().nullable().optional(),
     }),

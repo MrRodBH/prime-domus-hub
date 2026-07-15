@@ -258,9 +258,11 @@ export const descartarLead = createServerFn({ method: "POST" })
       metadata: { motivo: data.motivo },
     });
 
-    // Atualiza status do lead para "perdido"
-    await client.from("leads").update({ status: "perdido" }).eq("id", data.lead_id);
-
+    // PR-M1 — Direct `leads.status` writes are forbidden. Status transitions
+    // (including "descartado" originated from the history panel) MUST flow
+    // through `transicionarLead` in `@/lib/api/leads-crm.functions`, which
+    // wraps the typed boundary and the SECURITY DEFINER RPC. This legacy
+    // handler now only records the activity/descarte rows for audit trail.
     return { ok: true };
   });
 

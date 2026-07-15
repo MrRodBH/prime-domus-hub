@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Lead, Status } from "@/adapters/pipeline-legacy";
 import { ValorEstimadoEditor, DescarteDialog, PerdaDialog, formatBRL } from "@/adapters/pipeline-legacy";
-import { adminAtualizarLead } from "@/lib/api/admin.functions";
-import { reabrirLead } from "@/lib/api/leads-crm.functions";
+import { reabrirLead, transicionarLead } from "@/lib/api/leads-crm.functions";
 import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -55,13 +54,21 @@ export function LeadDetail({ lead, onClose }: { lead: Lead; onClose?: () => void
   const isClosed = lead.status === "ganho" || lead.status === "perdido" || lead.status === "descartado";
 
   const advance = useMutation({
-    mutationFn: (next: Status) => adminAtualizarLead({ data: { id: lead.id, status: next } }),
+    mutationFn: (next: Status) =>
+      transicionarLead({
+        data: {
+          leadId: lead.id,
+          toStatus: next,
+          expectedVersion: lead.version,
+          metadata: { source: "pipeline_advance" },
+        },
+      }),
     onSuccess: () => { toast.success("Status atualizado."); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const reabrir = useMutation({
-    mutationFn: () => reabrirLead({ data: { lead_id: lead.id } }),
+    mutationFn: () => reabrirLead({ data: { lead_id: lead.id, expected_version: lead.version } }),
     onSuccess: () => {
       toast.success("Lead reaberto.");
       qc.invalidateQueries({ queryKey: ["admin", "leads"] });
@@ -167,12 +174,12 @@ export function LeadDetail({ lead, onClose }: { lead: Lead; onClose?: () => void
         onClose={() => setShowHistorico(false)}
       />
       <DescarteDialog
-        leadId={descarteOpen ? lead.id : null}
+        lead={descarteOpen ? lead : null}
         onClose={() => setDescarteOpen(false)}
         onDone={() => { setDescarteOpen(false); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); qc.invalidateQueries({ queryKey: ["admin", "descartados"] }); }}
       />
       <PerdaDialog
-        leadId={perdaOpen ? lead.id : null}
+        lead={perdaOpen ? lead : null}
         onClose={() => setPerdaOpen(false)}
         onDone={() => { setPerdaOpen(false); qc.invalidateQueries({ queryKey: ["admin", "leads"] }); }}
       />

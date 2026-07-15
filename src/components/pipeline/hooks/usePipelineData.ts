@@ -1,12 +1,43 @@
 // Hook central de dados do Pipeline (Bloco 2).
+// PR-M1 — Kanban OCC: drag-and-drop com optimistic update, snapshot rollback,
+// refetch e propagação da nova versão devolvida pela RPC.
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminListarLeads, adminListarCorretores } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
-import { adminAtualizarLead } from "@/lib/api/admin.functions";
+import { transicionarLead } from "@/lib/api/leads-crm.functions";
 import type { Lead, Status, CorretorLite } from "@/adapters/pipeline-legacy";
 import type { PipelineSearch } from "../search-schema";
 import { toast } from "sonner";
+import { LEAD_TRANSITION_ERROR_CODES } from "@/lib/leads/lead-transition.server";
+
+const KNOWN_CODES = new Set<string>(LEAD_TRANSITION_ERROR_CODES);
+
+const ERROR_MESSAGES: Record<string, string> = {
+  version_conflict: "Este lead foi alterado por outra operação — dados atualizados.",
+  invalid_transition: "Transição inválida a partir do status atual.",
+  noop_transition: "O lead já está neste status.",
+  forbidden: "Você não tem permissão para essa transição.",
+  tenant_unresolved: "Contexto de workspace indisponível.",
+  tenant_boundary_violation: "Operação bloqueada por isolamento de workspace.",
+  no_active_membership: "Sua conta não possui participação ativa neste workspace.",
+  discard_reason_required: "Selecione um motivo de descarte.",
+  invalid_discard_reason: "Motivo de descarte inválido.",
+  lost_reason_required: "Selecione um motivo de perda.",
+  invalid_lost_reason: "Motivo de perda inválido.",
+  reason_id_not_allowed_for_transition: "Motivo não é aplicável a esta transição.",
+  lead_not_found: "Lead não encontrado.",
+  rpc_contract_violation: "Falha na resposta do servidor. Tente novamente.",
+  unauthenticated: "Sessão expirada. Faça login novamente.",
+  unknown_error: "Não foi possível concluir a transição.",
+};
+
+function mapTransitionErrorMessage(err: Error): string {
+  const raw = err.message ?? "";
+  const head = raw.split(":")[0]?.trim() ?? raw;
+  if (KNOWN_CODES.has(head)) return ERROR_MESSAGES[head] ?? head;
+  return ERROR_MESSAGES.unknown_error;
+}
 
 export function usePipelineData(search: PipelineSearch) {
   const qc = useQueryClient();
@@ -55,19 +86,43 @@ export function usePipelineData(search: PipelineSearch) {
     return map;
   }, [filtered]);
 
+  // PR-M1: OCC-aware mutation. `expectedVersion` is the version observed by
+  // the user BEFORE the mutation; on success the new version is written back
+  // into the cache; on error the snapshot is fully restored and a refetch is
+  // triggered so the user reconciles with the latest server state.
   const updateStatus = useMutation({
-    mutationFn: (p: { id: string; status: Status }) => adminAtualizarLead({ data: p }),
+    mutationFn: (p: { id: string; status: Status; expectedVersion: number }) =>
+      transicionarLead({
+        data: {
+          leadId: p.id,
+          toStatus: p.status,
+          expectedVersion: p.expectedVersion,
+          metadata: { source: "pipeline_advance" },
+        },
+      }),
     onMutate: async (p) => {
       await qc.cancelQueries({ queryKey: ["admin", "leads"] });
       const prev = qc.getQueryData<Lead[]>(["admin", "leads"]);
-      qc.setQueryData<Lead[]>(["admin", "leads"], (old) => old?.map((l) => (l.id === p.id ? { ...l, status: p.status } : l)) ?? []);
+      qc.setQueryData<Lead[]>(["admin", "leads"], (old) =>
+        old?.map((l) => (l.id === p.id ? { ...l, status: p.status } : l)) ?? [],
+      );
       return { prev };
     },
     onError: (e: Error, _p, ctx) => {
       if (ctx?.prev) qc.setQueryData(["admin", "leads"], ctx.prev);
-      toast.error(e.message);
+      qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+      toast.error(mapTransitionErrorMessage(e));
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "leads"] }),
+    onSuccess: (result, p) => {
+      // Grava localmente a nova versão retornada para viabilizar a próxima
+      // transição sem esperar refetch.
+      qc.setQueryData<Lead[]>(["admin", "leads"], (old) =>
+        old?.map((l) =>
+          l.id === p.id ? { ...l, status: result.toStatus, version: result.version } : l,
+        ) ?? [],
+      );
+      qc.invalidateQueries({ queryKey: ["admin", "leads"] });
+    },
   });
 
   return {

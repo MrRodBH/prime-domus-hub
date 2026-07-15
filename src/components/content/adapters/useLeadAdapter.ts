@@ -19,6 +19,7 @@ import {
   adminListarCorretores,
   adminAtualizarLead,
 } from "@/lib/api/admin.functions";
+import { transicionarLead } from "@/lib/api/leads-crm.functions";
 import type {
   ContentEntityAdapter,
   ContentEntityDetail,
@@ -35,6 +36,7 @@ type LeadRow = {
   mensagem: string | null;
   origem: string | null;
   status: string;
+  version: number;
   created_at: string;
   updated_at?: string;
   assigned_to: string | null;
@@ -42,7 +44,7 @@ type LeadRow = {
   imovel: { titulo?: string; slug?: string } | null;
 };
 
-const NEXT_STATUS: Record<string, string> = {
+const NEXT_STATUS: Record<string, "conversando" | "visita" | "proposta" | "ganho"> = {
   novo: "conversando",
   conversando: "visita",
   visita: "proposta",
@@ -52,6 +54,7 @@ const NEXT_STATUS: Record<string, string> = {
 export function useLeadAdapter(): ContentEntityAdapter {
   const listarFn = useServerFn(adminListarLeads);
   const atualizarFn = useServerFn(adminAtualizarLead);
+  const transicionarFn = useServerFn(transicionarLead);
   const listarCorretoresFn = useServerFn(adminListarCorretores);
 
   // Cache de corretores — usado por fetchFilterOptions("corretor").
@@ -156,26 +159,45 @@ export function useLeadAdapter(): ContentEntityAdapter {
   const runAction = useCallback(
     async (actionId: string, id: string | null, _payload?: unknown) => {
       if (!id) throw new Error("Ação exige lead selecionado.");
+      // PR-M1: toda transição de status passa pelo boundary tipado
+      // (transicionarLead). `adminAtualizarLead` deixa de aceitar `status`.
+      const rows = (await listarFn()) as LeadRow[];
+      const l = rows.find((r) => r.id === id);
+      if (!l) throw new Error("Lead não encontrado.");
       if (actionId === "avancar") {
-        const rows = (await listarFn()) as LeadRow[];
-        const l = rows.find((r) => r.id === id);
-        if (!l) throw new Error("Lead não encontrado.");
         const next = NEXT_STATUS[l.status];
         if (!next) throw new Error(`Sem transição válida a partir de "${l.status}".`);
-        await atualizarFn({ data: { id, status: next as "novo"|"conversando"|"visita"|"proposta"|"ganho"|"perdido"|"descartado" } });
+        await transicionarFn({
+          data: {
+            leadId: id,
+            toStatus: next,
+            expectedVersion: l.version,
+            metadata: { source: "workspace_advance" },
+          },
+        });
         return;
       }
       if (actionId === "descartar") {
-        await atualizarFn({ data: { id, status: "descartado" } });
-        return;
+        // Descarte exige motivo — não pode ser executado do workspace sem UI
+        // dedicada. Reencaminhar para o pipeline canônico (/admin/pipeline).
+        throw new Error(
+          "Descarte exige motivo. Use o pipeline (/admin/pipeline) para descartar leads.",
+        );
       }
       if (actionId === "restaurar") {
-        await atualizarFn({ data: { id, status: "novo" } });
+        await transicionarFn({
+          data: {
+            leadId: id,
+            toStatus: "novo",
+            expectedVersion: l.version,
+            metadata: { source: "workspace_reopen" },
+          },
+        });
         return;
       }
       throw new Error(`Ação não suportada: ${actionId}`);
     },
-    [listarFn, atualizarFn],
+    [listarFn, transicionarFn],
   );
 
   const fetchFilterOptions = useCallback(
