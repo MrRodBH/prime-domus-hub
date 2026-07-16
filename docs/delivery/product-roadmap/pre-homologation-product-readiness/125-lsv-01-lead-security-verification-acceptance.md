@@ -1,62 +1,105 @@
 # 125 — LSV-01: Lead Security Verification & Acceptance
 
-**Status:** In Progress
+## Estado atual
 
-- Lote A — Isolated Live Security Harness & Identity Matrix Foundation: **In Progress** — repository harness implementation **ready** (schema-typed factory, atomic fail-closed evidence, forged-header cross-tenant probe with mandatory login verification, aggregator persisting typecheck/build/harness/live/lsh exits); **live environment execution pending** (no authorized non-production target available in the current environment).
-- Lote B — Live Authorization, RLS, Grants & Impersonation Matrix: **Blocked** (awaiting Lote A live execution).
-- Lote C — Atomicity, Rollback, Concurrency & Final Closure: Pending.
+**LSV-01 — Corrective Pass Authorized**
+(equivalência legada: *In Progress — Final Corrective Pass Authorized*).
+
+**REMAINING_IMPLEMENTATION_BUDGET = 1.**
+
+Este orçamento corresponde a **uma única correção consolidada final**.
+Após a execução dessa correção e sua auditoria, a LSV-01 receberá
+obrigatoriamente um estado terminal (**Accepted**, **Superseded**,
+**Rejected** ou **Blocked External**). Nenhuma nova correção da LSV-01
+será autorizada após esse ponto.
+
+**Contratos de governança vinculantes:**
+`docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` ·
+`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`.
 
 **Predecessor:** LSH-01 (Accepted — External Audit Approval HEAD
 `c6769c227e6255a01e1e3a96cac9292e0a72278e`).
-**Successor:** RDA-01 (Planned · blocked until LSV-01 Accepted).
+**Sucessor imediato após terminal não-rejeitado:** LSV-02.
 
-## Estado corrente do Lote A
+---
 
-Materializado neste HEAD:
+## Escopo congelado da correção final
 
-- Environment guard endurecido com allowlist/denylist independente
-  (`tests/security/lsv-01/authorized-test-targets.ts`); refs opacos
-  desconhecidos são rejeitados mesmo quando `LSV_ALLOWED_PROJECT_REF`
-  coincide com a URL; o ref de produção da aplicação está em denylist
-  canônica.
-- Factory concreta (`createConcreteFactory`) tipada contra o schema
-  gerado (`Database["public"]["Enums"]`): `tenant_role`, `app_role`,
-  `membership_status`. `tenant_role` para corretores é agora **broker**
-  (o enum canônico); `corretor` permanece como `app_role` funcional
-  (concept distinto). Payloads de `imoveis`, `tenant_members` e
-  `user_roles` são tipados via `TablesInsert<"...">`, incluindo `slug`
-  em `imoveis` derivado do `runId`.
-- Cleanup concreto (`createConcreteCleanup`) implementado e mantido.
-- Runner live (`run-lsv-01-live-specs.ts`):
-  - valida o login do client `adminAForged` antes de acionar a RPC
-    (`forged_header_auth_verified`);
-  - aceita apenas `NULL` como resultado canônico do probe de header
-    forjado; qualquer tenant (incluindo tenant A) falha fechado;
-  - `writeEvidence` é atômico (temp file + `fsync` + `renameSync` +
-    JSON re-parse); falha de persistência sempre resulta em exit não
-    zero — nenhum caminho silencia a evidência.
-- Aggregator (`run-lsv-01-lot-a.ts`) captura e persiste os exits reais
-  de `typecheck_exit`, `build_exit`, `structural_harness_exit`,
-  `live_harness_exit`, `lsh_regression_exit`, `aggregate_exit` no
-  mesmo artefato de evidência.
-- Testes estruturais adicionais cobrem: origem tipada de `tenant_role`
-  / `app_role` / `membership_status`, ausência de `tenant_role="corretor"`,
-  presença de `slug` no payload de `imoveis`, validação do login no
-  probe de forged-header, atomicidade de `writeEvidence`, persistência
-  dos exits pelo aggregator, ausência de secrets/JWT no artefato,
-  e proibição de `head=unknown/unresolved` na evidência.
-- Regressão LSH-01 preservada (`bun run test:lsh-01` exit 0).
+**Canonical Tenant Context Alignment & Documentation Reconciliation.**
 
-Ainda pendente para declarar Lote A **Completed**:
+Inclui exclusivamente:
 
-- Provisionamento de projeto Supabase ephemeral/staging autorizado
-  (adicionar o project ref em `ALLOWLIST_PROJECT_REFS`).
-- Execução real de `bun run test:lsv-01:live` contra esse target,
-  produzindo evidência com `production_guard_passed=true`,
-  `real_sessions_acquired > 0`, `forged_header_denial_verified=true`,
-  `tenant_context_smoke_failed = 0`, `orphaned_fixtures = 0`,
-  `evidence_persisted = true`.
+- alinhar o forged-header probe ao contrato SQL canônico;
+- alinhar a evidência correspondente;
+- alinhar os testes estruturais correspondentes;
+- reconciliar a documentação e os scripts documentados;
+- preservar o comportamento fail-closed da evidência.
 
+Não inclui:
+
+- execução live completa;
+- matriz completa de autorização Lead;
+- matriz completa de RLS;
+- matriz completa de grants;
+- atomicidade `create_manual_lead`;
+- rollback sob erro intermediário;
+- concorrência;
+- encerramento global da segurança Lead;
+- criação ou alteração de migrations;
+- alterações no runtime aceito da LSH-01.
+
+---
+
+## Escopo transferido
+
+- execução live de identidade e Tenant Context → **LSV-02**;
+- autorização Lead, RLS, grants e impersonação → **LSV-03**;
+- atomicidade, rollback, concorrência e fechamento final → **LSV-04**.
+
+Cada etapa possui Execution Envelope inicial registrado em
+`FINITE_ROADMAP_EXECUTION_MAP.md`.
+
+---
+
+## Dependência externa
+
+Target Supabase **não produtivo** autorizado (anon key, service role,
+project ref adicionado à allowlist) — dependência da LSV-02, não da
+correção final da LSV-01.
+
+---
+
+## Regra terminal
+
+Após a auditoria da correção final consolidada, **nenhuma nova
+correção da LSV-01 será permitida**. O estado terminal atribuído
+decide o desbloqueio da LSV-02:
+
+- **Accepted / Superseded / Blocked External** → LSV-02 desbloqueada;
+- **Rejected** → sequência LSV-02 / LSV-03 / LSV-04 permanece bloqueada
+  até reconciliação arquitetural explícita.
+
+---
+
+## Histórico legado (rastreabilidade apenas)
+
+Preservado exclusivamente para auditoria histórica; **não é sequência
+executável**:
+
+- **Lote A — Isolated Live Security Harness & Identity Matrix
+  Foundation:** histórico de construção do harness estrutural,
+  environment guard endurecido, factory tipada, cleanup determinístico,
+  runner live, aggregator e testes estruturais. Trabalho materializado
+  no repositório sob HEADs da LSV-01 anteriores a esta reconciliação.
+- **Lote B — Live Authorization, RLS, Grants & Impersonation Matrix:**
+  não iniciado. Escopo transferido para **LSV-03**.
+- **Lote C — Atomicity, Rollback, Concurrency & Final Closure:** não
+  iniciado. Escopo transferido para **LSV-04**.
+
+Nenhum novo Lote, sublote, Lote A1/A2/D ou identificador decimal pode
+ser criado dentro da LSV-01.
+
+---
 
 ## Baselines vinculantes
 
@@ -64,140 +107,14 @@ Ainda pendente para declarar Lote A **Completed**:
   `c6769c227e6255a01e1e3a96cac9292e0a72278e`
 - **LSH-01 Implementation Evidence HEAD:**
   `20265f950b541e2d9f499e747b7577b28fc29a4a`
-- **LSH-01 Lote B baseline:**
-  `768f1f6789bf31421771b97722145a5cb5a1b5a4`
+- **FINITE_DELIVERY_GOVERNANCE materialization:**
+  `c1141448fd3c36ef7ae8ff60613c383673fde0d6`
 
-## Objetivo
-
-Verificar operacionalmente, em ambiente isolado autorizado, a
-autoridade Lead materializada pela LSH-01. A LSV-01 não redefine nem
-reabre os contratos herdados; comprova-os sob JWTs reais, memberships
-reais e RLS aplicada.
-
-## Ambiente de teste autorizado
-
-Targets permitidos: `local`, `ephemeral`, `staging`. Target proibido:
-`production`. Configuração obrigatória:
-
-```
-LSV_TEST_MODE=1
-LSV_TEST_TARGET=local|ephemeral|staging
-LSV_ALLOWED_PROJECT_REF=<ref autorizado>
-LSV_SUPABASE_URL=<target>
-LSV_SUPABASE_ANON_KEY=<target>
-LSV_SUPABASE_SERVICE_ROLE_KEY=<target>
-```
-
-O environment guard (`tests/security/lsv-01/environment-guard.ts`)
-falha fechado com `LSV_TEST_TARGET_NOT_AUTHORIZED` para qualquer
-divergência. Nenhuma fixture é criada antes da aprovação do guard.
-
-## Arquivos do harness (Lote A)
-
-- `tests/security/lsv-01/environment-guard.ts` — guarda de produção.
-- `tests/security/lsv-01/fixture-types.ts` — contratos tipados.
-- `tests/security/lsv-01/fixture-factory.ts` — API idempotente por
-  runId; factory concreta bindada só contra target autorizado.
-- `tests/security/lsv-01/fixture-cleanup.ts` — cleanup em finally,
-  respeita `ON DELETE RESTRICT` de `lead_audit_events`.
-- `tests/security/lsv-01/session-factory.ts` — `signInWithPassword`
-  real; `fingerprintToken` irreversível.
-- `tests/security/lsv-01/client-factory.ts` — cliente isolado por
-  identidade com `MemoryStorage` própria.
-- `tests/security/lsv-01/identity-matrix.ts` — matriz declarada de
-  identidades, tenants, roles, memberships e Super Admin.
-- `tests/security/lsv-01/harness-smoke.spec.ts` — smoke tests
-  estruturais do harness.
-- `run-lsv-01-harness-specs.ts` — runner com saída redigida.
-
-## Matriz de identidades
-
-| Alias | Tenant slot | Functional role | Membership | Super Admin | Auth |
-|-------|-------------|-----------------|------------|-------------|------|
-| tenant_a_admin | tenantA | admin | active | no | yes |
-| tenant_a_corretor_assigned | tenantA | corretor | active | no | yes |
-| tenant_a_corretor_unassigned | tenantA | corretor | active | no | yes |
-| tenant_a_unauthorized_role | tenantA | secretaria | active | no | yes |
-| tenant_b_admin | tenantB | admin | active | no | yes |
-| tenant_b_corretor | tenantB | corretor | active | no | yes |
-| suspended_member | tenantA | corretor | suspended | no | yes |
-| removed_or_no_membership_user | none | — | none | no | yes |
-| super_admin | none | — | none | yes | yes |
-| anonymous | none | — | none | no | no |
-
-## Fixtures previstas
-
-- tenantA: `propertyA`, `leadAAssigned`, `leadAUnassigned`;
-- tenantB: `propertyB`, `leadB`.
-
-## Scripts
-
-Adicionados a `package.json`:
-
-```
-test:lsv-01:harness  → tsx ./run-lsv-01-harness-specs.ts
-test:lsv-01:lot-a    → bun run test:lsv-01:harness && bun run test:lsh-01
-```
-
-A execução é sempre explícita; nenhum comando padrão de build ou
-desenvolvimento roda a suíte live.
-
-## Redaction e evidências
-
-O runner emite:
-
-```
-passed
-failed
-skipped
-fixtures_created
-fixtures_cleaned
-orphaned_fixtures
-environment_target
-project_ref_redacted
-```
-
-Nunca são emitidos JWTs, tokens, senhas, service role, anon key ou
-prefixos de token reutilizáveis. `redactProjectRef` produz
-`prefix***suffix` para reports.
-
-## Reservado aos Lotes B e C
-
-- matriz completa das 5 operações Lead sob JWTs reais;
-- matriz cross-tenant e header forjado;
-- matriz de RLS efetiva no banco aplicado;
-- matriz de grants efetiva no banco aplicado;
-- matriz canônica de impersonação (7 cenários);
-- atomicidade `create_manual_lead` lead + audit event;
-- rollback sob erro intermediário;
-- concorrência sob criação simultânea;
-- fechamento documental e submissão para auditoria externa.
-
-## Definition of Done (Lote A)
-
-- LSH-01 marcado `Accepted` na Impact Analysis, no Delivery e no
-  Roadmap;
-- Impact Analysis e Delivery da LSV-01 criados;
-- guard testado e presente;
-- runner com saída redigida;
-- clientes autenticados por identidade sem compartilhamento de
-  estado;
-- service role restrita a setup/teardown;
-- regressão LSH-01 sem falhas;
-- typecheck e build exit 0;
-- nenhum secret ou token no repositório.
+---
 
 ## Não escopo
 
-RDA-01, RC-01, PR-M2, dashboard, CMS, host resolution, domains,
-billing. Contratos estruturais da LSH-01 não são reabertos.
-
-## Estado final (Lote A)
-
-- LSH-01 — Accepted
-- LSV-01 — In Progress
-- Lote A — Completed (após execução com sucesso do runner e da
-  regressão LSH-01)
-- Lote B — Pending
-- Lote C — Pending
-- RDA-01 — Blocked
+RDA-01, RC-01, PR-M2, PR-M3, TH-M1, TH-M2, dashboard, CMS, host
+resolution, domains, billing. Contratos estruturais da LSH-01 não são
+reabertos. Nenhuma alteração de runtime, migration, RLS ou grants é
+autorizada dentro do escopo remanescente da LSV-01.
