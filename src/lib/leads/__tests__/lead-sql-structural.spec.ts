@@ -184,10 +184,13 @@ const cases: Case[] = [
     name: "corretor resolution has no MIN() heuristic",
     run: () => {
       const sql = loadLotBSql();
-      const region = sql
+      const raw = sql
         .split(/-- 7\.2 Corretor/)[1]
         ?.split(/-- 8\)/)[0] ?? "";
-      must(region.length > 0, "corretor region missing");
+      must(raw.length > 0, "corretor region missing");
+      // Strip line comments so descriptive text like "no MIN() heuristic" in
+      // the SQL commentary is not counted as a real MIN() call.
+      const region = raw.replace(/--[^\n]*/g, "");
       must(!/\bMIN\s*\(/i.test(region), "MIN() heuristic still present");
       must(
         /corretor_cardinality_conflict/.test(region),
