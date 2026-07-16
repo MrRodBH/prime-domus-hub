@@ -252,7 +252,9 @@ export async function authorizeLeadOperation(
     membershipKey: memberships[0].id,
     operation,
     scope,
-    impersonating: isSuperAdmin,
+    isSuperAdmin,
+    // Fail-closed: impersonation is proven only by the RPC (header transport).
+    impersonating: false,
     appRoles,
   };
 }
