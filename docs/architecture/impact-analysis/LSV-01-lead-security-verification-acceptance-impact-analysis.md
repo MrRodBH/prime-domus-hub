@@ -39,8 +39,9 @@ tipado, a matriz de operações, o contrato de impersonação (SQL + TS) e
 o audit trail append-only. A LSV-01 não reabre nenhum desses contratos:
 verifica-os operacionalmente sob JWTs reais.
 
-Sucessor imediato após terminal não-rejeitado: **LSV-02**
-(Planned — Blocked External). RDA-01 permanece **Planned — Blocked
+Sucessor imediato: **LSV-02** (Planned — Blocked External;
+LSV-02 permanece bloqueada até o provisionamento e autorização do
+target Supabase não produtivo). RDA-01 permanece **Planned — Blocked
 by LSV-04**, conforme `FINITE_ROADMAP_EXECUTION_MAP.md`.
 
 ## 3. Objetivo da verificação
