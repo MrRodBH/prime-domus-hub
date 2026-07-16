@@ -1,10 +1,17 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado  
-**Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
-**Última reconciliação estrutural:** LSH-01 — Recovery Mode / Lote C
+**Status:** Ratificado
+**Autoridade:** Single Source of Future Evolution do RM Prime SaaS
+**Última reconciliação estrutural:** FRR-01 — Finite Roadmap Reconciliation & LSV-01 Transition
+**Contratos de governança vinculantes:**
+`docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` ·
+`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
 
-> Este documento registra o estado arquitetural aceito, os próximos gates executáveis e os backlogs formais. Impact Analyses, ADRs, implementações e auditorias devem respeitar esta sequência.
+> Este documento registra o estado arquitetural aceito, o mapa finito
+> de execução restante e os backlogs formais. Nenhuma etapa restante
+> pode iniciar sem Execution Envelope congelado no
+> `FINITE_ROADMAP_EXECUTION_MAP.md`; nenhuma etapa pode exceder dois
+> prompts de implementação (principal + corretivo).
 
 ---
 
@@ -199,35 +206,51 @@ Decisões aceitas:
 ```text
 PR-PH.0  Accepted
 PR-M1    Superseded
-LSO-01   Rejected
-LSH-01   Accepted
-LSV-01   In Progress
-RDA-01   Planned — blocked until LSV-01 Accepted
-RC-01    Planned — blocked until RDA-01 Accepted
-PR-M2    Planned — blocked until RC-01 Accepted
-PR-M3    Planned
-TH-M1    Planned
-TH-M2    Planned
-Homologação  Blocked
-Produção     Blocked
+LSO-01   Rejected / Closed
+LSH-01   Accepted / Closed
+LSV-01   Corrective Pass Authorized (REMAINING_IMPLEMENTATION_BUDGET = 1)
+LSV-02   Planned — Blocked External / blocked until LSV-01 terminal (non-rejected)
+LSV-03   Planned — Blocked by LSV-02
+LSV-04   Planned — Blocked by LSV-03
+RDA-01   Planned — Blocked by LSV-04
+RC-01    Planned — Blocked by RDA-01
+PR-M2    Planned — Blocked by RC-01
+PR-M3    Planned — Blocked by PR-M2
+TH-M1    Planned — Blocked by PR-M3
+TH-M2    Planned — Blocked by TH-M1
+Homologação  Blocked by TH-M2
+Produção     Blocked until homologation acceptance
 ```
 
-Regras permanentes (Cadeia de Etapas Executáveis):
+Regras permanentes (Cadeia de Etapas Executáveis, reconciliadas por FRR-01):
 
+- toda etapa restante requer Execution Envelope congelado em
+  `FINITE_ROADMAP_EXECUTION_MAP.md` antes de qualquer prompt de
+  implementação;
+- nenhuma etapa restante pode exceder dois prompts de implementação
+  (principal + corretivo);
+- estados terminais permitidos: Accepted, Superseded, Rejected,
+  Blocked External — nenhum outro estado de fechamento é aceito;
+- LSV-01 encontra-se em Corrective Pass Authorized, com
+  `REMAINING_IMPLEMENTATION_BUDGET = 1`; após a auditoria da correção
+  final consolidada, LSV-01 receberá obrigatoriamente estado terminal;
+- os históricos Lote A, Lote B e Lote C da LSV-01 são apenas
+  rastreabilidade e não constituem próximos passos executáveis; escopo
+  live foi transferido para LSV-02, autorização/RLS/grants/impersonação
+  para LSV-03, atomicidade/rollback/concorrência para LSV-04;
 - cada etapa é um gate arquitetural autônomo de primeira classe;
 - não existe numeração decimal corretiva (`.1`, `.2`, ...) para etapas;
-- uma etapa pode ser executada em múltiplos lotes operacionais internos,
-  atravessando múltiplos prompts e múltiplas aprovações operacionais de
-  continuidade, sem que isso a caracterize como corrigida ou fracassada;
-- lotes operacionais são unidades internas de execução: não são etapas,
-  não recebem identificadores decimais e não têm aceite arquitetural
-  independente;
-- requisitos obrigatórios de uma etapa não podem ser reclassificados como
-  limitações conhecidas nem transferidos silenciosamente entre lotes;
-- cada lote deve produzir commits, testes e evidências verificáveis;
+- lotes operacionais permanecem apenas como rastreabilidade histórica
+  das etapas já executadas; não são unidades ativas de execução para
+  etapas restantes e não podem ser criados novos lotes, sublotes ou
+  identificadores decimais;
+- requisitos obrigatórios de uma etapa não podem ser reclassificados
+  como limitações conhecidas nem transferidos silenciosamente entre
+  prompts;
 - Rejected é reservado para arquitetura inválida, abandono formal ou
-  solução implementada e comprovadamente inadequada; incapacidade de
-  concluir a etapa em um único turno não constitui rejeição arquitetural;
+  solução implementada e comprovadamente inadequada; estouro de
+  PROMPT_BUDGET força estado terminal (Rejected, Superseded ou
+  Blocked External);
 - a auditoria externa final da etapa continua sendo obrigatória para
   Accepted;
 - GitHub permanece a fonte primária da auditoria.

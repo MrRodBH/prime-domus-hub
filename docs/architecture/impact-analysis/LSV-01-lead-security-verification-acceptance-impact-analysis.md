@@ -2,12 +2,26 @@
 
 ## 1. Status
 
-**Status:** In Progress.
-**Stage type:** independent first-class architectural gate.
-Lote A — **In Progress** (harness implementado; execução live pendente
-por indisponibilidade de target não-produtivo autorizado neste ambiente).
-Lote B — **Blocked** (aguarda execução live do Lote A).
-Lote C — Pending.
+**Status:** Corrective Pass Authorized
+(equivalência legada: *In Progress — Final Corrective Pass Authorized*).
+
+**REMAINING_IMPLEMENTATION_BUDGET = 1.**
+
+Governança vinculante:
+`docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` e
+`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
+(materialização `c1141448fd3c36ef7ae8ff60613c383673fde0d6`).
+
+Escopo remanescente autorizado: **Canonical Tenant Context Alignment
+& Documentation Reconciliation** (uma única correção consolidada).
+Após auditoria, LSV-01 recebe estado terminal (Accepted, Superseded,
+Rejected ou Blocked External); nenhuma nova correção é permitida.
+
+Escopo transferido: execução live e identidade → **LSV-02**;
+autorização/RLS/grants/impersonação → **LSV-03**;
+atomicidade/rollback/concorrência/fechamento → **LSV-04**. Lotes
+A/B/C tornam-se histórico apenas para rastreabilidade e não são
+sequência executável.
 
 
 ## 2. Predecessor e autoridade herdada
@@ -22,7 +36,9 @@ tipado, a matriz de operações, o contrato de impersonação (SQL + TS) e
 o audit trail append-only. A LSV-01 não reabre nenhum desses contratos:
 verifica-os operacionalmente sob JWTs reais.
 
-Sucessora: **RDA-01 (Planned · blocked until LSV-01 Accepted)**.
+Sucessor imediato após terminal não-rejeitado: **LSV-02**
+(Planned — Blocked External). RDA-01 permanece **Planned — Blocked
+by LSV-04**, conforme `FINITE_ROADMAP_EXECUTION_MAP.md`.
 
 ## 3. Objetivo da verificação
 
@@ -144,30 +160,29 @@ faz `public.is_super_admin() = true`. `admin` (app_role) ≠ Super Admin.
 - JWTs nunca são versionados, logados ou impressos — apenas
   `fingerprintToken` irreversível de 8 chars é permitido em reports.
 
-## 11. Matriz de operações (verificação)
+## 11. Matriz de operações (transferida)
 
-Reservada aos Lotes B e C. Cobrirá as 5 operações Lead:
+Transferida para **LSV-03**. Cobrirá as 5 operações Lead:
+`lead.list`, `lead.list_assignees`, `lead.list_properties`,
+`lead.create_manual`, `lead.update_fields` — e ausência de
+`lead.workspace_action`.
 
-- `lead.list`, `lead.list_assignees`, `lead.list_properties`,
-  `lead.create_manual`, `lead.update_fields` — e ausência de
-  `lead.workspace_action`.
+## 12. Matriz de RLS (transferida)
 
-## 12. Matriz de RLS
-
-Reservada ao Lote B. Alvos: `leads`, `lead_audit_events`,
+Transferida para **LSV-03**. Alvos: `leads`, `lead_audit_events`,
 `tenant_members`, `corretores`, `imoveis`, sob cada identidade da
 matriz.
 
-## 13. Matriz de grants
+## 13. Matriz de grants (transferida)
 
-Reservada ao Lote B. Verificação operacional dos `GRANT`s e `REVOKE`s
-consolidados pela LSH-01, com atenção especial a
+Transferida para **LSV-03**. Verificação operacional dos `GRANT`s e
+`REVOKE`s consolidados pela LSH-01, com atenção especial a
 `lead_audit_events` (zero DML direto para `authenticated`,
 `service_role`, `anon`).
 
-## 14. Matriz de impersonação
+## 14. Matriz de impersonação (transferida)
 
-Reservada ao Lote B. Cenários:
+Transferida para **LSV-03**. Cenários canônicos (7):
 
 - header ausente;
 - header válido do tenant autorizado (Super Admin);
@@ -177,12 +192,9 @@ Reservada ao Lote B. Cenários:
 - header forjado por usuário comum;
 - header válido em conjunto com `is_super_admin = false`.
 
-O Lote A somente comprova que o client factory consegue configurar
-cada cenário sem vazamento de estado.
+## 15. Matriz de atomicidade e rollback (transferida)
 
-## 15. Matriz de atomicidade e rollback
-
-Reservada ao Lote C. Cobrirá:
+Transferida para **LSV-04**. Cobrirá:
 
 - `create_manual_lead` como transação única lead + audit;
 - rollback sob erro em cada etapa;
@@ -226,36 +238,36 @@ reutilizáveis. É permitido apenas: alias, user UUID, tenant UUID,
 role, membership status, sucesso/falha, `fingerprintToken`
 irreversível de 8 chars.
 
-## 18. Lotes operacionais
+## 18. Lotes históricos (rastreabilidade apenas)
+
+Preservados exclusivamente como referência auditável; **não são
+sequência executável** após FRR-01:
 
 - **Lote A — Isolated Live Security Harness & Identity Matrix
-  Foundation** — em curso: environment guard, tipos, factories,
-  session/client factory, matriz de identidades, runner e smoke tests
-  do harness.
+  Foundation:** histórico de construção do harness estrutural
+  (environment guard, factories, session/client factory, matriz de
+  identidades, runner, aggregator, testes estruturais).
 - **Lote B — Live Authorization, RLS, Grants & Impersonation
-  Matrix** — pendente: matriz completa de operações Lead sob JWTs
-  reais, ataques cross-tenant, RLS e grants sob usuários reais,
-  matriz de impersonação canônica.
-- **Lote C — Atomicity, Rollback, Concurrency & Final Closure** —
-  pendente: atomicidade `create_manual_lead`, rollback, concorrência,
-  fechamento documental e submissão para auditoria externa.
+  Matrix:** não iniciado; escopo transferido para **LSV-03**.
+- **Lote C — Atomicity, Rollback, Concurrency & Final Closure:** não
+  iniciado; escopo transferido para **LSV-04**.
 
-Lotes são unidades internas da LSV-01, não etapas independentes, e
-não recebem aceite arquitetural próprio.
+Novos lotes, sublotes ou identificadores decimais são proibidos
+dentro da LSV-01.
 
-## 19. Definition of Done (Lote A)
+## 19. Definition of Done (correção final consolidada)
 
-- `lsh_status = Accepted`;
-- `lsv_status = In Progress`;
-- Impact Analysis e Delivery criados; roadmap reconciliado;
-- environment guard presente e testado;
-- matriz de identidades declarada e coberta por smoke tests;
-- runner produz saída estruturada e redigida;
-- clientes autenticados isolados por sessão;
-- service role usada apenas em setup/teardown;
-- typecheck e build exit 0; regressão LSH-01 sem falhas;
-- nenhum secret ou token versionado ou logado;
-- Lote A concluído; Lote B e Lote C pendentes.
+Escopo autorizado: **Canonical Tenant Context Alignment &
+Documentation Reconciliation**.
+
+- forged-header probe alinhado ao contrato SQL canônico;
+- evidência correspondente alinhada e persistida com fail-closed;
+- testes estruturais correspondentes alinhados;
+- documentação e scripts documentados reconciliados;
+- nenhum runtime, migration, RLS ou grant alterado;
+- REMAINING_IMPLEMENTATION_BUDGET consumido para 0 após a auditoria;
+- LSV-01 recebe estado terminal (Accepted, Superseded, Rejected ou
+  Blocked External).
 
 ## 20. Fora de escopo
 
