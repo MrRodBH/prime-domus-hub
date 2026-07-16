@@ -559,6 +559,164 @@ const cases: Case[] = [
       }
     },
   },
+
+  // ─── Schema compatibility (regression) ────────────────────────────
+  {
+    name: "schema: fixture-factory sources tenant_role from Database enum",
+    run: async () => {
+      // Structural guard: the module exports TenantRole/AppRole/MembershipStatus
+      // aliases sourced from the generated Database Enums. If someone
+      // removes them, the import fails at typecheck; here we simply
+      // assert the runtime shape of the enum values used.
+      const src = await import("node:fs").then((fs) =>
+        fs.readFileSync("tests/security/lsv-01/fixture-factory.ts", "utf8"),
+      );
+      assert(
+        /Database\["public"\]\["Enums"\]\["tenant_role"\]/.test(src),
+        "tenant_role must come from Database Enums",
+      );
+      assert(
+        /Database\["public"\]\["Enums"\]\["app_role"\]/.test(src),
+        "app_role must come from Database Enums",
+      );
+      assert(
+        /Database\["public"\]\["Enums"\]\["membership_status"\]/.test(src),
+        "membership_status must come from Database Enums",
+      );
+    },
+  },
+  {
+    name: "schema: no corretor tenant_role literal anywhere in LSV harness",
+    run: async () => {
+      const fs = await import("node:fs");
+      const files = [
+        "tests/security/lsv-01/fixture-factory.ts",
+        "tests/security/lsv-01/fixture-types.ts",
+        "tests/security/lsv-01/fixture-cleanup.ts",
+      ];
+      for (const f of files) {
+        const src = fs.readFileSync(f, "utf8");
+        // The enum literal used as a tenant_role value would appear as
+        //   tenant_role: "corretor"  or  role: "corretor" (in tenant_members context).
+        // The word "corretor" as an identity alias is fine; the illegal
+        // shape is a role-typed value equal to "corretor".
+        assert(
+          !/tenant_role\s*:\s*"corretor"/.test(src),
+          `${f} uses invalid tenant_role="corretor"`,
+        );
+        assert(
+          !/role:\s*"corretor"\s*,\s*status:/.test(src),
+          `${f} still sets membership role="corretor"`,
+        );
+      }
+    },
+  },
+  {
+    name: "schema: broker memberships expected; corretor is app_role only",
+    run: async () => {
+      const fs = await import("node:fs");
+      const src = fs.readFileSync(
+        "tests/security/lsv-01/fixture-factory.ts",
+        "utf8",
+      );
+      const brokerCount = (src.match(/role:\s*"broker"/g) ?? []).length;
+      // 4 broker memberships: tenantA assigned/unassigned, tenantB corretor,
+      // suspended_member. If the count drifts, the matrix drifted with it.
+      assert(brokerCount >= 4, `expected >=4 broker memberships, got ${brokerCount}`);
+    },
+  },
+  {
+    name: "schema: imoveis payload includes slug and is typed via TablesInsert",
+    run: async () => {
+      const fs = await import("node:fs");
+      const src = fs.readFileSync(
+        "tests/security/lsv-01/fixture-factory.ts",
+        "utf8",
+      );
+      assert(/TablesInsert<"imoveis">/.test(src), "typed TablesInsert<'imoveis'>");
+      assert(/slug:\s*name/.test(src), "slug is present in the imoveis payload");
+    },
+  },
+
+  // ─── Live runner integrity (regression) ───────────────────────────
+  {
+    name: "live: forged-header path validates the login before RPC probe",
+    run: async () => {
+      const fs = await import("node:fs");
+      const src = fs.readFileSync("run-lsv-01-live-specs.ts", "utf8");
+      // Structural: forged auth must be verified AND the RPC probe must
+      // only accept null (never `!== tenantB`).
+      assert(
+        /forged_header_auth_verified\s*=\s*true/.test(src),
+        "forged_header_auth_verified must be set true after login checks",
+      );
+      assert(
+        /forgedValue\s*!==\s*null/.test(src),
+        "forged probe must reject any non-null result",
+      );
+      assert(
+        !/result\s*!==\s*tenantB/.test(src),
+        "forged probe must NOT rely on `result !== tenantB`",
+      );
+    },
+  },
+  {
+    name: "live: writeEvidence is atomic and fail-closed",
+    run: async () => {
+      const fs = await import("node:fs");
+      const src = fs.readFileSync("run-lsv-01-live-specs.ts", "utf8");
+      assert(/renameSync\(tmp,\s*EVIDENCE_PATH\)/.test(src), "atomic rename");
+      assert(/fsyncSync/.test(src), "fsync before rename");
+      assert(/evidence_readback_mismatch|JSON\.parse\(readback\)/.test(src), "readback validation");
+      // A silent catch that returns undefined would violate the contract.
+      assert(!/could not write evidence/.test(src), "no silent evidence swallowing");
+    },
+  },
+  {
+    name: "aggregator: persists typecheck/build/live exits into evidence",
+    run: async () => {
+      const fs = await import("node:fs");
+      const src = fs.readFileSync("run-lsv-01-lot-a.ts", "utf8");
+      assert(/typecheck_exit\s*=\s*results\.typecheck/.test(src), "typecheck_exit persisted");
+      assert(/build_exit\s*=\s*results\.build/.test(src), "build_exit persisted");
+      assert(/live_harness_exit\s*=\s*results\.live/.test(src), "live_exit persisted");
+      assert(/lsh_regression_exit/.test(src), "lsh_regression_exit persisted");
+      assert(/aggregate_exit/.test(src), "aggregate_exit persisted");
+    },
+  },
+  {
+    name: "evidence: on-disk snapshot never contains password / JWT material",
+    run: async () => {
+      const fs = await import("node:fs");
+      const path =
+        "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-01-lot-a-live-execution.json";
+      if (!fs.existsSync(path)) return; // skip when evidence not yet materialized
+      const src = fs.readFileSync(path, "utf8");
+      assert(!/password/i.test(src), "evidence must not mention password");
+      assert(!/Lsv01!/.test(src), "evidence must not embed generated password");
+      assert(!/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.test(src), "no JWT");
+      assert(!/sb_secret_/.test(src), "no service role secret");
+      assert(!/refresh_token/i.test(src), "no refresh token");
+    },
+  },
+  {
+    name: "evidence: head must be resolved (never unknown/unresolved) when present",
+    run: async () => {
+      const fs = await import("node:fs");
+      const path =
+        "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-01-lot-a-live-execution.json";
+      if (!fs.existsSync(path)) return;
+      const j = JSON.parse(fs.readFileSync(path, "utf8")) as { head?: string; status?: string };
+      // The only case in which head is allowed to be "unresolved" is the
+      // explicit evidence_head_failed status.
+      if (j.status !== "evidence_head_failed") {
+        assert(
+          !!j.head && j.head !== "unknown" && j.head !== "unresolved",
+          `evidence.head must be a real sha (got ${j.head})`,
+        );
+      }
+    },
+  },
 ];
 
 export async function runLsvHarnessSpecs(): Promise<{
