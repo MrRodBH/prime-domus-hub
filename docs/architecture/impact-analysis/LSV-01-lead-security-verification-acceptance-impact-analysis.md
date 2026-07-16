@@ -2,12 +2,26 @@
 
 ## 1. Status
 
-**Status:** In Progress.
-**Stage type:** independent first-class architectural gate.
-Lote A — **In Progress** (harness implementado; execução live pendente
-por indisponibilidade de target não-produtivo autorizado neste ambiente).
-Lote B — **Blocked** (aguarda execução live do Lote A).
-Lote C — Pending.
+**Status:** Corrective Pass Authorized
+(equivalência legada: *In Progress — Final Corrective Pass Authorized*).
+
+**REMAINING_IMPLEMENTATION_BUDGET = 1.**
+
+Governança vinculante:
+`docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` e
+`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
+(materialização `c1141448fd3c36ef7ae8ff60613c383673fde0d6`).
+
+Escopo remanescente autorizado: **Canonical Tenant Context Alignment
+& Documentation Reconciliation** (uma única correção consolidada).
+Após auditoria, LSV-01 recebe estado terminal (Accepted, Superseded,
+Rejected ou Blocked External); nenhuma nova correção é permitida.
+
+Escopo transferido: execução live e identidade → **LSV-02**;
+autorização/RLS/grants/impersonação → **LSV-03**;
+atomicidade/rollback/concorrência/fechamento → **LSV-04**. Lotes
+A/B/C tornam-se histórico apenas para rastreabilidade e não são
+sequência executável.
 
 
 ## 2. Predecessor e autoridade herdada
