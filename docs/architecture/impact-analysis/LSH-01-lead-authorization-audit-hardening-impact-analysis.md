@@ -2,7 +2,9 @@
 
 ## 1. Status
 
-**Status:** Ready for External Audit.
+**Status:** Accepted.
+**External Audit Approval:** Approved.
+**External Audit Approval HEAD:** `c6769c227e6255a01e1e3a96cac9292e0a72278e`.
 **Stage type:** independent first-class architectural gate.
 Lote A — Completed. Lote B — Completed. Lote C — Completed.
 Nenhuma limitação conhecida dentro do escopo LSH-01.
@@ -290,11 +292,12 @@ Reservadas exclusivamente à LSV-01, jamais atribuídas à LSH-01:
 
 ## 21. Decisão de fechamento
 
-A LSH-01 está **Ready for External Audit**. A aprovação como Accepted
-depende exclusivamente da auditoria crítica externa. A LSV-01
-permanece Planned e bloqueada até o aceite externo da LSH-01. O
-Lote C não altera a arquitetura aprovada nos Lotes A e B, não cria
-nova migration, não altera RLS, grants, schema ou runtime funcional.
+A LSH-01 foi **Accepted** pela auditoria crítica externa
+(External Audit Approval HEAD `c6769c227e6255a01e1e3a96cac9292e0a72278e`).
+A LSV-01 passa a **In Progress**, tendo herdado a autoridade materializada
+pelos Lotes A, B e C. O Lote C da LSH-01 não alterou a arquitetura
+aprovada nos Lotes A e B, não criou migration nova, não modificou RLS,
+grants, schema ou runtime funcional.
 
 ## Fora de escopo
 
