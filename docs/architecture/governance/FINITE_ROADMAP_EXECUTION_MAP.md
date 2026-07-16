@@ -48,7 +48,7 @@ binding; details still undefined are recorded explicitly as
 
 - **OBJECTIVE:** execute the identity, real-session and Tenant Context
   harness in an authorized non-production environment.
-- **PREDECESSOR:** LSV-01 in terminal non-rejected state.
+- **PREDECESSOR:** LSV-01 — Superseded (terminal).
 - **DELIVERABLES:** isolated fixtures; real Supabase Auth users; real
   JWTs; independent clients (anonymous, common admin, Super Admin);
   explicit impersonation exercise; Tenant Context probe; forged-header
