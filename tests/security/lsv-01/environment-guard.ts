@@ -1,11 +1,12 @@
 // LSV-01 · Lote A — Environment guard.
 // Server-only. Fails closed unless the operator explicitly declares a
-// non-production target AND the resolved project ref is either a
-// loopback local URL or on the trusted allowlist. Never logs secrets,
-// JWTs, or service role keys.
+// non-production target AND the resolved project ref is either an
+// approved loopback host (local) or on the trusted allowlist (remote).
+// Never logs secrets, JWTs, or service role keys.
 
 import {
   classifyProjectRef,
+  extractSupabaseRemoteRef,
   isLocalSupabaseUrl,
 } from "./authorized-test-targets";
 
@@ -51,6 +52,11 @@ const PRODUCTION_HINT_PATTERNS: ReadonlyArray<RegExp> = [
 
 const CODE = "LSV_TEST_TARGET_NOT_AUTHORIZED";
 
+/**
+ * Legacy helper kept for backwards compat with the smoke tests. Parses
+ * the ref from a bare host — DOES NOT validate protocol / credentials /
+ * port. Use extractSupabaseRemoteRef() for gating decisions.
+ */
 export function extractProjectRef(url: string): string {
   try {
     const u = new URL(url);
@@ -103,52 +109,32 @@ export function assertLsvTestEnvironment(
   }
 
   for (const rx of PRODUCTION_HINT_PATTERNS) {
-    if (rx.test(target)) {
+    if (rx.test(target) || rx.test(allowedRef)) {
       throw new LsvEnvironmentGuardError(
         CODE,
-        "Target label contains a production hint.",
-      );
-    }
-    if (rx.test(allowedRef)) {
-      throw new LsvEnvironmentGuardError(
-        CODE,
-        "Allowed project ref contains a production hint.",
+        "Production hint present in target label or ref.",
       );
     }
   }
 
-  // --- local target: must be a loopback URL; ref check relaxed. ---
+  // ── local target: strictly enumerated loopback hosts. ──
   if (target === "local") {
     if (!isLocalSupabaseUrl(supabaseUrl)) {
       throw new LsvEnvironmentGuardError(
         CODE,
-        "LSV_TEST_TARGET=local requires a loopback SUPABASE_URL.",
+        "LSV_TEST_TARGET=local requires an approved loopback SUPABASE_URL (localhost, 127.0.0.1, ::1, host.docker.internal).",
       );
     }
-    const projectRef = extractProjectRef(supabaseUrl) || "local";
-    // Denylist still applies (defence in depth) even for local labels.
-    const classification = classifyProjectRef(projectRef);
-    if (classification.kind === "denied") {
-      throw new LsvEnvironmentGuardError(
-        CODE,
-        "Project ref is on the LSV-01 denylist.",
-      );
-    }
-    return {
-      target,
-      supabaseUrl,
-      anonKey,
-      serviceRoleKey,
-      projectRef,
-    };
+    const projectRef = "local";
+    return { target, supabaseUrl, anonKey, serviceRoleKey, projectRef };
   }
 
-  // --- ephemeral / staging targets require a real project ref match. ---
-  const projectRef = extractProjectRef(supabaseUrl);
+  // ── ephemeral / staging: strict https://<ref>.supabase.co host. ──
+  const projectRef = extractSupabaseRemoteRef(supabaseUrl);
   if (!projectRef) {
     throw new LsvEnvironmentGuardError(
       CODE,
-      "SUPABASE_URL does not resolve to a valid project ref.",
+      "SUPABASE_URL must be https://<ref>.supabase.co with no port/credentials.",
     );
   }
 
@@ -167,8 +153,6 @@ export function assertLsvTestEnvironment(
     );
   }
   if (classification.kind !== "allowed") {
-    // Unknown opaque ref — fail closed. A production ref cannot pass
-    // merely by being declared as staging with a matching LSV_ALLOWED_PROJECT_REF.
     throw new LsvEnvironmentGuardError(
       CODE,
       "Project ref is not on the trusted LSV-01 allowlist.",

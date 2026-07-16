@@ -344,6 +344,221 @@ const cases: Case[] = [
       assert(a !== b, "distinct");
     },
   },
+
+  // ─── New: strict remote domain validation ─────────────────────────
+  {
+    name: "guard: rejects http (non-https) remote target",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "abcdefghijkl",
+            SUPABASE_URL: "http://abcdefghijkl.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects remote host with credentials in URL",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "abcdefghijkl",
+            SUPABASE_URL: "https://user:pw@abcdefghijkl.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects nested/spoofed supabase.co host",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "abcdefghijkl",
+            SUPABASE_URL: "https://abcdefghijkl.supabase.co.evil.example",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects allowlisted ref on non-supabase host",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "abcdefghijkl",
+            SUPABASE_URL: "https://abcdefghijkl.example.com",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects unknown ref (fail-closed) on supabase.co",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "opaqueunknownref",
+            SUPABASE_URL: "https://opaqueunknownref.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects production ref via denylist",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "stmcnvzuzlyqammyycxj",
+            SUPABASE_URL: "https://stmcnvzuzlyqammyycxj.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects arbitrary *.local hostname for local target",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "local",
+            LSV_ALLOWED_PROJECT_REF: "local",
+            SUPABASE_URL: "http://someone.local:54321",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+
+  // ─── Factory bundle contract ──────────────────────────────────────
+  {
+    name: "bundle: refusing factory throws structured error",
+    run: async () => {
+      const { createRefusingFactory, LsvFixtureError } = await import(
+        "./fixture-factory"
+      );
+      const f = createRefusingFactory();
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await f.setup({} as any, "lsv01-xxx");
+        throw new Error("expected throw");
+      } catch (e) {
+        assert(
+          e instanceof LsvFixtureError && e.code === "LSV_FIXTURE_FACTORY_NOT_BOUND",
+          "refusing code",
+        );
+      }
+    },
+  },
+  {
+    name: "bundle: fixture context is serializable and password-free",
+    run: async () => {
+      const ctx = {
+        runId: "lsv01-x",
+        tenants: { tenantA: "a", tenantB: "b" },
+        users: { tenant_a_admin: { userId: "u", email: "e@lsv01.invalid" } },
+        resources: {
+          propertyA: "p1",
+          propertyB: "p2",
+          leadAAssigned: "l1",
+          leadAUnassigned: "l2",
+          leadB: "l3",
+        },
+      };
+      const s = JSON.stringify(ctx);
+      assert(!/password/i.test(s), "no password key");
+      assert(!/Lsv01!/.test(s), "no password material");
+    },
+  },
+  {
+    name: "identity: AUTH_IDENTITIES covers 9 identities and excludes anonymous",
+    run: async () => {
+      const { AUTH_IDENTITIES } = await import("./fixture-factory");
+      assert(AUTH_IDENTITIES.length === 9, `expected 9 auth identities, got ${AUTH_IDENTITIES.length}`);
+      assert(
+        !(AUTH_IDENTITIES as readonly string[]).includes("anonymous"),
+        "anonymous must be excluded",
+      );
+    },
+  },
+  {
+    name: "manifest: countManifestFixtures sums all resource classes",
+    run: async () => {
+      const { countManifestFixtures } = await import("./fixture-factory");
+      const n = countManifestFixtures({
+        tenantIds: ["t1", "t2"],
+        authUserIds: ["u1", "u2", "u3"],
+        membershipKeys: [{ tenantId: "t1", userId: "u1" }],
+        roleIds: ["u1", "u2"],
+        propertyIds: ["p1"],
+        leadIds: ["l1", "l2"],
+      });
+      assert(n === 2 + 3 + 1 + 2 + 1 + 2, `sum mismatch ${n}`);
+    },
+  },
+  {
+    name: "cleanup: refusing runner throws structured error",
+    run: async () => {
+      const { createRefusingCleanup, LsvCleanupError } = await import(
+        "./fixture-cleanup"
+      );
+      const r = createRefusingCleanup();
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await r.cleanup({} as any, {
+          tenantIds: [],
+          authUserIds: [],
+          membershipKeys: [],
+          roleIds: [],
+          propertyIds: [],
+          leadIds: [],
+        });
+        throw new Error("expected throw");
+      } catch (e) {
+        assert(
+          e instanceof LsvCleanupError &&
+            e.code === "LSV_CLEANUP_RUNNER_NOT_BOUND",
+          "cleanup code",
+        );
+      }
+    },
+  },
 ];
 
 export async function runLsvHarnessSpecs(): Promise<{
