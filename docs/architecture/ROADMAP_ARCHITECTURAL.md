@@ -1,10 +1,17 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado  
-**Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
-**Última reconciliação estrutural:** LSH-01 — Recovery Mode / Lote C
+**Status:** Ratificado
+**Autoridade:** Single Source of Future Evolution do RM Prime SaaS
+**Última reconciliação estrutural:** FRR-01 — Finite Roadmap Reconciliation & LSV-01 Transition
+**Contratos de governança vinculantes:**
+`docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` ·
+`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
 
-> Este documento registra o estado arquitetural aceito, os próximos gates executáveis e os backlogs formais. Impact Analyses, ADRs, implementações e auditorias devem respeitar esta sequência.
+> Este documento registra o estado arquitetural aceito, o mapa finito
+> de execução restante e os backlogs formais. Nenhuma etapa restante
+> pode iniciar sem Execution Envelope congelado no
+> `FINITE_ROADMAP_EXECUTION_MAP.md`; nenhuma etapa pode exceder dois
+> prompts de implementação (principal + corretivo).
 
 ---
 
