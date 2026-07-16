@@ -177,7 +177,7 @@ Decisões aceitas:
 - runtime público deve falhar fechado para host desconhecido;
 - PR-PH.1–PR-PH.12 permanecem como workstreams históricos, não gates executáveis;
 - TH-001–TH-006 permanecem como workstreams históricos, não gates executáveis;
-- toda execução restante é consolidada nos cinco macrogates abaixo.
+- toda execução restante segue a Cadeia de Etapas Executáveis abaixo.
 
 ### 4.2 Caminho crítico executável — Cadeia de Etapas Executáveis
 
@@ -185,8 +185,8 @@ Decisões aceitas:
 PR-PH.0  Accepted
 PR-M1    Superseded
 LSO-01   Rejected
-LSH-01   In Progress · Recovery Mode (Lotes A e B completed; Lote C pending)
-LSV-01   Planned — blocked until LSH-01 Accepted
+LSH-01   Ready for External Audit
+LSV-01   Planned — blocked until external acceptance of LSH-01
 RDA-01   Planned — blocked until LSV-01 Accepted
 RC-01    Planned — blocked until RDA-01 Accepted
 PR-M2    Planned — blocked until RC-01 Accepted
