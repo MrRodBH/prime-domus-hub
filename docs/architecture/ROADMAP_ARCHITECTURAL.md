@@ -231,9 +231,11 @@ Regras permanentes (Cadeia de Etapas Executáveis, reconciliadas por FRR-01):
   (principal + corretivo);
 - estados terminais permitidos: Accepted, Superseded, Rejected,
   Blocked External — nenhum outro estado de fechamento é aceito;
-- LSV-01 encontra-se em Corrective Pass Authorized, com
-  `REMAINING_IMPLEMENTATION_BUDGET = 1`; após a auditoria da correção
-  final consolidada, LSV-01 receberá obrigatoriamente estado terminal;
+- LSV-01 encontra-se em estado terminal **Superseded**
+  (`FINAL_CORRECTIVE_EXECUTED = true`,
+  `REMAINING_IMPLEMENTATION_BUDGET = 0`); nenhuma nova correção é
+  permitida. Os artefatos construídos e corrigidos permanecem como
+  baseline vinculante da LSV-02;
 - os históricos Lote A, Lote B e Lote C da LSV-01 são apenas
   rastreabilidade e não constituem próximos passos executáveis; escopo
   live foi transferido para LSV-02, autorização/RLS/grants/impersonação
