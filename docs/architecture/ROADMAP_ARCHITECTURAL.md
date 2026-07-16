@@ -208,8 +208,8 @@ PR-PH.0  Accepted
 PR-M1    Superseded
 LSO-01   Rejected / Closed
 LSH-01   Accepted / Closed
-LSV-01   Corrective Pass Authorized (REMAINING_IMPLEMENTATION_BUDGET = 1)
-LSV-02   Planned — Blocked External / blocked until LSV-01 terminal (non-rejected)
+LSV-01   Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0)
+LSV-02   Planned — Blocked External (authorized non-production Supabase target required)
 LSV-03   Planned — Blocked by LSV-02
 LSV-04   Planned — Blocked by LSV-03
 RDA-01   Planned — Blocked by LSV-04
