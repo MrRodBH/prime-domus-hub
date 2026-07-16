@@ -9,6 +9,7 @@
 // re-throws a structured error containing NO secrets.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, TablesInsert } from "@/integrations/supabase/types";
 import type {
   LsvAuthenticatedIdentity,
   LsvFixtureBundle,
@@ -18,6 +19,13 @@ import type {
   LsvRuntimeCredential,
   LsvUserRecord,
 } from "./fixture-types";
+
+// Schema-derived canonical role enums. Using generated types here ensures
+// typecheck fails if the factory ever attempts a value not present in the
+// database enum (e.g. the historical bug that tried tenant_role="corretor").
+export type TenantRole = Database["public"]["Enums"]["tenant_role"];
+export type AppRole = Database["public"]["Enums"]["app_role"];
+export type MembershipStatus = Database["public"]["Enums"]["membership_status"];
 
 export class LsvFixtureError extends Error {
   readonly code: string;
