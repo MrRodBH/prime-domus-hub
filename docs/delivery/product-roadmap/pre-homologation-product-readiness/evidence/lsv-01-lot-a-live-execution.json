@@ -1,7 +1,7 @@
 {
-  "head": "ec6883624483699f4e08df590d675b7069884914",
+  "head": "aa1999ac8a34e2477df39006bd1991d7773aadfb",
   "run_id": "",
-  "execution_timestamp": "2026-07-16T23:40:34.248Z",
+  "execution_timestamp": "2026-07-16T23:41:47.882Z",
   "environment_target": "<unset>",
   "project_ref_redacted": "<unset>",
   "production_guard_passed": false,
@@ -33,12 +33,12 @@
   "harness_passed": 0,
   "harness_failed": 0,
   "harness_skipped": 1,
-  "typecheck_exit": null,
-  "build_exit": null,
-  "structural_harness_exit": null,
-  "live_harness_exit": null,
-  "lsh_regression_exit": null,
-  "aggregate_exit": null,
+  "typecheck_exit": 0,
+  "build_exit": 0,
+  "structural_harness_exit": 0,
+  "live_harness_exit": 1,
+  "lsh_regression_exit": 0,
+  "aggregate_exit": 1,
   "evidence_persisted": true,
   "status": "skipped_no_authorized_target"
 }
