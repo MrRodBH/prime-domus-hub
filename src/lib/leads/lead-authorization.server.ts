@@ -1,14 +1,28 @@
 // LSH-01 — Lead Authorization Boundary (typed, server-only).
 //
+// Recovery Mode · Lote A — Runtime Authorization Integration.
+//
 // Autoridade única e tipada de autorização TypeScript para as operações
 // Lead cobertas pela LSH-01. Este módulo NÃO substitui a autoridade
 // transacional da RPC `create_manual_lead`, nem as policies RLS: ele é a
-// primeira camada — resolve tenant no servidor, valida membership ativa
-// com cardinalidade explícita e decide a operação com scope.
+// primeira camada — resolve tenant no servidor (via `get_current_tenant_id`),
+// valida membership ATIVA com cardinalidade explícita, deriva evidência
+// canônica de Super Admin (via `is_super_admin`) e decide a operação com
+// scope.
 //
 // A comprovação operacional contra Postgres real (múltiplos JWTs, RLS
 // efetivo, grants, impersonation runtime) é escopo exclusivo da LSV-01;
 // aqui os testes são unitários e determinísticos por injeção de dependência.
+//
+// IMPORTANTE:
+//  - O contexto público `LeadAuthorizationContext` NÃO aceita mais um
+//    booleano livre `impersonating`. A evidência é derivada no servidor.
+//  - Super Admin é detectado pela RPC canônica `is_super_admin`. Um usuário
+//    com role `admin` (app_role) NÃO é Super Admin.
+//  - Se o runtime atual não expuser evidência canônica adicional de
+//    impersonação (ex.: contexto de tenant-middleware fora deste boundary),
+//    o campo `impersonating` reflete apenas `isSuperAdmin`. Fail-closed
+//    reforçado a nível SQL fica reservado ao Lote B.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -23,12 +37,17 @@ export type LeadOperation =
 
 export type LeadAccessScope = "tenant_wide" | "own_assigned";
 
-export type LeadAppRole = "admin" | "corretor" | "secretaria" | "gerente" | "captador";
+export type LeadAppRole =
+  | "admin"
+  | "corretor"
+  | "secretaria"
+  | "gerente"
+  | "captador";
 
 export interface LeadAuthorizationDecision {
   actorUserId: string;
   tenantId: string;
-  membershipId: string;
+  membershipKey: string;
   operation: LeadOperation;
   scope: LeadAccessScope;
   impersonating: boolean;
@@ -37,20 +56,20 @@ export interface LeadAuthorizationDecision {
 
 export type TypedSupabase = SupabaseClient<Database>;
 
+/**
+ * Contexto público consumido por callers server-side. `impersonating` NÃO
+ * é aceito aqui — a evidência é derivada internamente via repo canônico.
+ */
 export interface LeadAuthorizationContext {
   supabase: TypedSupabase;
   userId: string;
-  /** Se impersonation está ativa (Super Admin) e um tenant foi selecionado. */
-  impersonating?: boolean;
 }
 
 export class LeadAuthorizationError extends Error {
   readonly code:
     | "unauthenticated"
     | "tenant_not_resolved"
-    | "tenant_ambiguous"
     | "membership_missing"
-    | "membership_inactive"
     | "membership_ambiguous"
     | "operation_forbidden"
     | "super_admin_requires_impersonation";
@@ -67,10 +86,12 @@ export class LeadAuthorizationError extends Error {
 
 export interface LeadAuthorizationRepository {
   resolveTenant(): Promise<string | null>;
-  listActiveMemberships(userId: string, tenantId: string): Promise<
-    Array<{ id: string; membership_status: string }>
-  >;
+  listActiveMemberships(
+    userId: string,
+    tenantId: string,
+  ): Promise<Array<{ id: string; membership_status: string }>>;
   listAppRoles(userId: string): Promise<ReadonlyArray<LeadAppRole>>;
+  /** Evidência canônica via RPC `is_super_admin`. Nunca via `has_role admin`. */
   isSuperAdmin(userId: string): Promise<boolean>;
 }
 
@@ -91,8 +112,16 @@ export function createSupabaseLeadAuthorizationRepository(
         .eq("tenant_id", tenantId)
         .eq("membership_status", "active");
       if (error) throw new Error(error.message);
-      const rows = (data ?? []) as Array<{ tenant_id: string; user_id: string; membership_status: string }>;
-      return rows.map((r) => ({ id: `${r.tenant_id}:${r.user_id}`, membership_status: r.membership_status }));
+      const rows =
+        (data ?? []) as Array<{
+          tenant_id: string;
+          user_id: string;
+          membership_status: string;
+        }>;
+      return rows.map((r) => ({
+        id: `${r.tenant_id}:${r.user_id}`,
+        membership_status: r.membership_status,
+      }));
     },
     async listAppRoles(userId) {
       const { data, error } = await supabase
@@ -102,24 +131,33 @@ export function createSupabaseLeadAuthorizationRepository(
       if (error) throw new Error(error.message);
       return ((data ?? []) as Array<{ role: LeadAppRole }>).map((r) => r.role);
     },
-    async isSuperAdmin(userId) {
-      const { data, error } = await supabase.rpc("has_role", {
-        _user_id: userId,
-        _role: "admin",
-      });
+    async isSuperAdmin(_userId) {
+      // RPC canônica sem argumentos (usa `auth.uid()` internamente).
+      const { data, error } = await supabase.rpc("is_super_admin");
       if (error) throw new Error(error.message);
-      return !!data;
+      return data === true;
     },
   };
 }
 
 // -----------------------------------------------------------------------
 // Matriz de autorização — pura, sem I/O.
+//
+// operação                       | autorizados                     | tenant_wide
+// -------------------------------+---------------------------------+---------------------
+// lead.list                      | admin, gerente, corretor        | admin, gerente
+// lead.list_assignees            | admin, gerente                  | admin, gerente
+// lead.list_properties           | admin, gerente, corretor        | admin, gerente
+// lead.create_manual             | admin, corretor                 | admin
+// lead.update_fields             | admin, gerente, corretor        | admin, gerente
+// lead.workspace_action          | (nenhum — sempre denied)        | —
+//
+// Papéis `secretaria` e `captador` não possuem evidência de autoridade
+// sobre o domínio Lead; preferimos negar (fail-closed).
 // -----------------------------------------------------------------------
 
 interface OperationRule {
   requiredAnyRole: ReadonlyArray<LeadAppRole>;
-  /** Papéis que promovem scope tenant_wide (senão, own_assigned). */
   tenantWideRoles: ReadonlyArray<LeadAppRole>;
 }
 
@@ -145,8 +183,6 @@ const OPERATION_MATRIX: Readonly<Record<LeadOperation, OperationRule>> = {
     tenantWideRoles: ["admin", "gerente"],
   },
   "lead.workspace_action": {
-    // Content Workspace Lead está desmontado (workspace_mutation_surface = absent).
-    // Regra preservada para completude do boundary; nenhum caller autorizado.
     requiredAnyRole: [],
     tenantWideRoles: [],
   },
@@ -169,7 +205,9 @@ export function decideOperationScope(
 export async function authorizeLeadOperation(
   ctx: LeadAuthorizationContext,
   operation: LeadOperation,
-  repo: LeadAuthorizationRepository = createSupabaseLeadAuthorizationRepository(ctx.supabase),
+  repo: LeadAuthorizationRepository = createSupabaseLeadAuthorizationRepository(
+    ctx.supabase,
+  ),
 ): Promise<LeadAuthorizationDecision> {
   if (!ctx.userId) {
     throw new LeadAuthorizationError("unauthenticated");
@@ -188,19 +226,46 @@ export async function authorizeLeadOperation(
     throw new LeadAuthorizationError("membership_ambiguous");
   }
 
-  const appRoles = await repo.listAppRoles(ctx.userId);
+  const [appRoles, isSuperAdmin] = await Promise.all([
+    repo.listAppRoles(ctx.userId),
+    repo.isSuperAdmin(ctx.userId),
+  ]);
+
   const { authorized, scope } = decideOperationScope(operation, appRoles);
   if (!authorized) {
-    throw new LeadAuthorizationError("operation_forbidden", `forbidden: ${operation}`);
+    throw new LeadAuthorizationError(
+      "operation_forbidden",
+      `forbidden: ${operation}`,
+    );
   }
 
   return {
     actorUserId: ctx.userId,
     tenantId,
-    membershipId: memberships[0].id,
+    membershipKey: memberships[0].id,
     operation,
     scope,
-    impersonating: !!ctx.impersonating,
+    impersonating: isSuperAdmin,
     appRoles,
+  };
+}
+
+// -----------------------------------------------------------------------
+// Adaptador server-only — converte o contexto do middleware
+// (`requireSupabaseAuth`) no contexto público do boundary. Server-side
+// apenas; nenhum campo derivado do client é aceito.
+// -----------------------------------------------------------------------
+
+export interface AuthenticatedRequestLike {
+  supabase: TypedSupabase;
+  userId: string;
+}
+
+export function buildLeadAuthorizationContext(
+  authenticated: AuthenticatedRequestLike,
+): LeadAuthorizationContext {
+  return {
+    supabase: authenticated.supabase,
+    userId: authenticated.userId,
   };
 }

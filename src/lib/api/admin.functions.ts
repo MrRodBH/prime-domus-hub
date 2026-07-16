@@ -789,29 +789,35 @@ export const adminExcluirBairro = createServerFn({ method: "POST" })
   });
 
 // ===== LEADS =====
-// LSO-01 — Todas as operações de leitura/escrita de lead devem exigir
-// tenant derivado no servidor e membership ATIVA. `ensureAdmin` continua
-// aplicável para operações tenant-wide administrativas.
+// LSH-01 · Lote A — Todas as operações Lead consomem o boundary tipado
+// `authorizeLeadOperation` via `lead-operations.server.ts`. Os wrappers
+// `createServerFn` são finos: middleware → inputValidator → função
+// operacional → resultado. Nenhum guard legado (ensureAdmin,
+// ensureActiveTenantMembership) permanece nesta região.
+import {
+  createRuntimeLeadOperationsDeps,
+  listLeadsAuthorized,
+  listLeadAssigneesAuthorized,
+  listLeadPropertiesAuthorized,
+  updateLeadFieldsAuthorized,
+  createManualLeadAuthorized,
+} from "@/lib/leads/lead-operations.server";
+
 export const adminListarLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { tenantId } = await ensureActiveTenantMembership(context);
-    await ensureAdmin(context);
-    const { data, error } = await context.supabase
-      .from("leads")
-      .select("*, imovel:imoveis(titulo, slug, preco, preco_sob_consulta)")
-      .eq("tenant_id", tenantId)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
+    const deps = createRuntimeLeadOperationsDeps({
+      supabase: context.supabase,
+      userId: context.userId,
+    });
+    return listLeadsAuthorized(deps);
   });
 
 // PR-M1 — `adminAtualizarLead` is a GENERIC updater. It MUST NOT accept
 // `status` (nor status-adjacent columns like discard_reason_id, lost_reason_id,
 // version, *_at stamps, tenant_id, assigned_to, corretor_id). All lead status
-// transitions flow exclusively through `transicionarLead` (which wraps the
-// typed boundary `transitionLead` calling the SECURITY DEFINER RPC
-// `transition_lead_status`). LSO-01 adds tenant + membership enforcement.
+// transitions flow exclusively through `transicionarLead`. LSH-01 · Lote A
+// consolida a autoridade em `updateLeadFieldsAuthorized`.
 export const adminAtualizarLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -822,50 +828,42 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }) => {
-    const { tenantId } = await ensureActiveTenantMembership(context);
-    await ensureAdmin(context);
-    // LSH-01 — payload tipado explicitamente (nenhum cast inseguro).
-    // `observacoes` no formulário mapeia para a coluna `mensagem` do domínio.
-    const payload: { mensagem?: string; valor_estimado?: number | null } = {};
-    if (data.observacoes !== undefined) payload.mensagem = data.observacoes;
-    if (data.valor_estimado !== undefined) payload.valor_estimado = data.valor_estimado;
-    const { data: rows, error } = await context.supabase
-      .from("leads")
-      .update(payload)
-      .eq("id", data.id)
-      .eq("tenant_id", tenantId)
-      .select("id");
-    if (error) throw new Error(error.message);
-    if (!rows || rows.length === 0) {
-      throw new Error("Lead não encontrado ou acesso negado.");
-    }
-    return { ok: true };
+    const deps = createRuntimeLeadOperationsDeps({
+      supabase: context.supabase,
+      userId: context.userId,
+    });
+    return updateLeadFieldsAuthorized(deps, data);
   });
 
-// ===== LEAD MANUAL (admin ou corretor) — LSO-01 =====
-// Listagem auxiliar de imóveis para o form manual: exige membership ativa e
-// projeta apenas colunas necessárias; filtra por tenant e status permitido.
-// A autorização final da criação/associação ocorre na RPC create_manual_lead.
+// ===== LEAD MANUAL (admin ou corretor) — LSH-01 · Lote A =====
+// Listagem auxiliar de imóveis para o form manual, agora sob o boundary.
 export const adminListarImoveisLite = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { tenantId } = await ensureActiveTenantMembership(context);
-    const { data, error } = await context.supabase
-      .from("imoveis")
-      .select("id, codigo, titulo, corretor_id")
-      .eq("tenant_id", tenantId)
-      .eq("status", "ativo")
-      .order("titulo", { ascending: true });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as Array<{ id: string; codigo: string; titulo: string; corretor_id: string | null }>;
+    const deps = createRuntimeLeadOperationsDeps({
+      supabase: context.supabase,
+      userId: context.userId,
+    });
+    return listLeadPropertiesAuthorized(deps);
+  });
+
+// Listagem de corretores (assignees) sob o boundary.
+// A definição anterior em `adminListarCorretores` (linhas ~323) permanece
+// para outros consumidores administrativos; o domínio Lead usa esta versão.
+export const adminListarLeadAssignees = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const deps = createRuntimeLeadOperationsDeps({
+      supabase: context.supabase,
+      userId: context.userId,
+    });
+    return listLeadAssigneesAuthorized(deps);
   });
 
 // LSO-01 — Criação manual passa a ser uma mutation atômica server-authoritative
-// através da RPC `create_manual_lead`. O handler TypeScript é apenas transporte:
-// não usa `supabaseAdmin`, não confia em tenant/status/version do client, não
-// resolve `corretor_id` no lado do cliente, não grava auditoria fora da mesma
-// transação. Toda a autorização, cardinalidade, validação cross-tenant, escopo
-// (tenant-wide vs own_assigned) e audit event ocorrem na RPC SECURITY DEFINER.
+// através da RPC `create_manual_lead`. LSH-01 · Lote A adiciona a autorização
+// via boundary antes da chamada RPC. Nada de tenantId/scope/appRoles/impersonation
+// é passado à RPC — ela permanece autoridade transacional final.
 const manualLeadReturnSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
@@ -891,17 +889,24 @@ export const criarLeadManual = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data, context }): Promise<ManualLeadResult> => {
-    const { data: rpc, error } = await context.supabase.rpc("create_manual_lead", {
-      p_nome: data.nome,
-      p_email: data.email ?? undefined,
-      p_telefone: data.telefone ?? undefined,
-      p_imovel_id: data.imovel_id ?? undefined,
-      p_observacoes: data.observacoes ?? undefined,
-      p_assigned_to: data.assigned_to ?? undefined,
+    const deps = createRuntimeLeadOperationsDeps({
+      supabase: context.supabase,
+      userId: context.userId,
     });
-    if (error) throw new Error(error.message);
-    return manualLeadReturnSchema.parse(rpc);
+    return createManualLeadAuthorized(
+      deps,
+      {
+        nome: data.nome,
+        email: data.email,
+        telefone: data.telefone,
+        imovel_id: data.imovel_id,
+        observacoes: data.observacoes,
+        assigned_to: data.assigned_to,
+      },
+      (raw) => manualLeadReturnSchema.parse(raw),
+    );
   });
+
 
 
 // ===== STORAGE =====
