@@ -299,9 +299,9 @@ Requisitos da correção final:
 - scripts documentados alinhados com `package.json`
   (`test:lsv-01:harness`, `test:lsv-01:live`, `test:lsv-01:lot-a`);
 - nenhum runtime, migration, RLS ou grant alterado;
-- REMAINING_IMPLEMENTATION_BUDGET consumido para 0 após a auditoria;
-- LSV-01 recebe estado terminal (Accepted, Superseded, Rejected ou
-  Blocked External) somente após auditoria externa final.
+- REMAINING_IMPLEMENTATION_BUDGET consumido para 0;
+- LSV-01 recebeu estado terminal **Superseded**; nenhuma nova
+  correção é permitida.
 
 ## 20. Fora de escopo
 
