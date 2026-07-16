@@ -4,7 +4,11 @@
 
 **Status:** In Progress.
 **Stage type:** independent first-class architectural gate.
-Lote A — In Progress. Lote B — Pending. Lote C — Pending.
+Lote A — **In Progress** (harness implementado; execução live pendente
+por indisponibilidade de target não-produtivo autorizado neste ambiente).
+Lote B — **Blocked** (aguarda execução live do Lote A).
+Lote C — Pending.
+
 
 ## 2. Predecessor e autoridade herdada
 
