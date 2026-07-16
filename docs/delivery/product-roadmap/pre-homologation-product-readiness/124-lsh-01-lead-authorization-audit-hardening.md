@@ -192,14 +192,15 @@ absent`. `useLeadAdapter.runAction` falha explicitamente para qualquer
 Todos os itens vinculantes atendidos:
 
 - `impact_analysis_single_canonical_narrative = true`
-- `delivery_status = Ready for External Audit`
-- `roadmap_status = Ready for External Audit`
+- `delivery_status = Accepted`
+- `roadmap_status = Accepted`
 - `lso_status = Rejected`, `pr_m1_status = Superseded`
 - `lot_a_status = lot_b_status = lot_c_status = Completed`
 - `stale_macro_gate_text = 0`, `stale_lso_status = 0`,
   `stale_lsh_status = 0`, `stale_impersonation_contract = 0`,
   `unassigned_lso_obligations = 0`
 - `implementation_evidence_head = documented`
+- `external_audit_approval_head = c6769c227e6255a01e1e3a96cac9292e0a72278e`
 - `unit/runtime/structural/sql-structural/transition_regression failed = 0`
 - `known_limitations_inside_lsh_scope = 0`
 - `live_security_items_are_assigned_only_to_lsv = true`
@@ -211,8 +212,9 @@ billing.
 
 ## Estado final
 
-- LSH-01 — Ready for External Audit
-- LSV-01 — Planned · blocked until external acceptance of LSH-01
+- LSH-01 — Accepted (External Audit Approval HEAD `c6769c227e6255a01e1e3a96cac9292e0a72278e`)
+- LSV-01 — In Progress
+
 
 Nenhuma declaração de `Accepted` para a LSH-01: a aprovação depende
 exclusivamente da auditoria crítica externa.
