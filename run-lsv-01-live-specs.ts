@@ -72,14 +72,8 @@ import type {
 const EVIDENCE_PATH =
   "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-01-lot-a-live-execution.json";
 
-/**
- * Canonical migration path for public.get_current_tenant_id().
- * The structural test in harness-smoke inspects THIS specific file, not
- * any historical occurrence, to prove the runner is aligned to the
- * currently binding SQL contract.
- */
-export const CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION =
-  "supabase/migrations/20260707143029_83dd8dc5-0313-45cd-a332-cc188a6f64c2.sql";
+import { CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION } from "./tests/security/lsv-01/canonical-migration";
+export { CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION } from "./tests/security/lsv-01/canonical-migration";
 
 interface Evidence {
   head: string;
