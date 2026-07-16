@@ -115,13 +115,11 @@ correção final da LSV-01.
 
 ## Regra terminal
 
-Após a auditoria da correção final consolidada, **nenhuma nova
-correção da LSV-01 será permitida**. O estado terminal atribuído
-decide o desbloqueio da LSV-02:
-
-- **Accepted / Superseded / Blocked External** → LSV-02 desbloqueada;
-- **Rejected** → sequência LSV-02 / LSV-03 / LSV-04 permanece bloqueada
-  até reconciliação arquitetural explícita.
+Estado terminal atribuído: **Superseded**. Nenhuma nova correção da
+LSV-01 é permitida. LSV-02 permanece **Planned / Blocked External**
+até o provisionamento e autorização do target Supabase não produtivo
+(anon key, service role, project ref na allowlist canônica,
+confirmação explícita de que o target não é produção).
 
 ---
 
