@@ -197,40 +197,59 @@ Nenhum destes handlers chama `ensureAdmin` ou `ensureActiveTenantMembership`.
 - Endurecimento SQL adicional de `lead_audit_events` (grants finais e RLS effetiva).
 - Prova de rollback multi-JWT no banco aplicado (LSV-01).
 
-## Recovery Mode — Lote B: SQL Authority Alignment
+## Recovery Mode — Lote B: SQL Authority Alignment (Canonical Impersonation Closure)
 
 **Baseline (Lote B):** `768f1f6` (após Lote A)
-**Migration:** `supabase/migrations/20260716155328_61a679da-33cc-430e-a8f0-40601e37f02b.sql`
+**Migrations do lote:**
+- `supabase/migrations/20260716155328_61a679da-33cc-430e-a8f0-40601e37f02b.sql`
+- `supabase/migrations/20260716161352_755f2a57-6bd3-45fd-ac2d-fb3dc6b7c9f4.sql` — closure aditiva
 
-### Contratos canônicos preservados/alinhados
+### Contratos canônicos (correção do bloqueio de auditoria)
 
-- **Tenant efetivo:** `public.get_current_tenant_id()` — autoridade única; a RPC não recebe `tenant_id` como argumento do client.
+- **Tenant efetivo:** `public.get_current_tenant_id()` — autoridade única. A RPC não recebe `tenant_id` como argumento do client.
 - **Super Admin:** `public.is_super_admin()` — nunca `has_role(actor,'admin')`. `admin` (app_role) ≠ Super Admin.
-- **Impersonação:** derivada independentemente da presença de `x-tenant-id` em `request.headers`, exatamente como `get_current_tenant_id` faz para o caminho Super Admin. `v_is_impersonating` NUNCA é definido a partir de `v_is_super_admin`.
-- **Fail-closed:** Super Admin sem impersonação válida → `super_admin_requires_impersonation`.
+- **Impersonação — contrato final:** presença de `x-tenant-id` **não é** autoridade. Impersonação exige, cumulativamente:
+  1. `is_super_admin` = true;
+  2. header `x-tenant-id` presente e conversível para UUID (parse fail-closed);
+  3. o UUID do header **igual** ao tenant retornado por `get_current_tenant_id()`.
+  Usuário comum com header forjado nunca é marcado como impersonação (`v_is_impersonating = false`).
+- **Fail-closed:** Super Admin sem impersonação canônica → `super_admin_requires_impersonation`.
 
-### Alterações SQL (create_manual_lead)
+A afirmação anterior de que "presença de `x-tenant-id` = impersonação" é revogada e substituída pelo contrato acima.
 
-- Cardinalidade explícita de membership do ator: `COUNT(*)` → `membership_required` (0) / `membership_cardinality_conflict` (N>1). Super Admin impersonando não exige membership comum.
-- Cardinalidade explícita do `assigned_to`: mesma dinâmica (`assigned_to_invalid_membership` / `assigned_to_membership_conflict`).
-- Cardinalidade explícita do registro `corretores` — heurística `MIN(id)` removida; N>1 falha com `corretor_cardinality_conflict`.
-- Metadata do audit event acrescenta `actor_is_super_admin` e `impersonation_active` (além de `assigned_to`, `corretor_id`, `imovel_id`, `scope`).
+### Alterações SQL (create_manual_lead — migration de closure)
+
+- Variável dedicada `v_header_tenant uuid`; parse via `btrim(v_header_raw)::uuid` dentro de bloco `EXCEPTION WHEN OTHERS THEN v_header_tenant := NULL`. Header vazio/whitespace produz `NULL`.
+- `v_is_impersonating := v_is_super_admin AND v_header_tenant IS NOT NULL AND v_header_tenant = v_tenant`.
+- Ordem canônica: (1) `is_super_admin()`, (2) parse do header, (3) `get_current_tenant_id()`, (4) cálculo de impersonação, (5) fail-closed Super Admin, (6) matriz de escopo.
+- Cardinalidades preservadas (membership do ator, assignee, corretores) e validação de imóvel.
+- Escrita atômica lead + `lead_audit_events`; `impersonation_active` reflete apenas impersonação validada.
 - Grants reafirmados: `authenticated` executa; `PUBLIC`/`anon`/`service_role` revogados.
 
-### Alinhamento TypeScript
+### Alinhamento TypeScript (paridade com SQL)
 
-- `LeadAuthorizationDecision` passa a distinguir `isSuperAdmin` (evidência RPC) de `impersonating`. No boundary, `impersonating` permanece `false` (fail-closed) — a RPC é a autoridade transacional final.
-- `useLeadAdapter.ts` e `usePipelineData.ts` deixam de consumir `adminListarCorretores` no domínio Lead e passam a usar `adminListarLeadAssignees`. `adminListarCorretores` permanece para os domínios administrativos não-Lead (imóveis, equipes, lançamentos, blog, corretores).
+- `LeadAuthorizationContext` deixa de aceitar `tenantId`, `tenantOrigin`, `isSuperAdmin` ou `impersonating` vindos do caller. O `tenant: LeadTenantContext` é derivado server-side de `requireTenant` via `deriveLeadTenantContext` / `mapTenantOrigin`.
+- `LeadTenantOrigin = 'membership' | 'impersonation'` colapsa `selection`/`single-membership` do middleware canônico.
+- Ordem de decisão do boundary: (1) validar ator; (2) validar tenant; (3) Super Admin → exige `origin = 'impersonation'`, senão `super_admin_requires_impersonation`; ignora membership + matriz; scope `tenant_wide`; `workspace_action` sempre negada; (4) usuário comum → `origin = 'impersonation'` implica `operation_forbidden`; caso contrário, cardinalidade de membership + matriz por papel.
+- `LeadAuthorizationDecision.impersonating = isSuperAdmin && origin === 'impersonation'` — nunca constante `false`, nunca alias de `isSuperAdmin` sozinho.
+- Wrappers Lead em `admin.functions.ts` compõem `requireTenant` (que já compõe `requireSupabaseAuth`) e propagam `context.tenant` para `createRuntimeLeadOperationsDeps`.
+- `useLeadAdapter.ts` e `usePipelineData.ts` continuam usando `adminListarLeadAssignees`. `adminListarCorretores` permanece exclusivo dos domínios administrativos não-Lead.
 
 ### Testes adicionados/atualizados
 
-- `src/lib/leads/__tests__/lead-sql-structural.spec.ts` — 10 casos determinísticos sobre a migration do Lote B.
-- `run-lead-sql-structural-specs.ts` — runner.
-- `package.json` — `test:lsh-01:sql-structural` e `test:lsh-01:lot-b`.
-- Estruturais e unit atualizados: `isSuperAdmin` × `impersonating` distintos; Lead-domain assignee via boundary; RPC pattern verificado.
+- `src/lib/leads/__tests__/lead-authorization.spec.ts` — casos determinísticos para Super Admin sem/ com impersonação, bypass de membership e matriz para Super Admin impersonando, `workspace_action` negada, usuário comum com origem `impersonation` negada, admin (app_role) ≠ Super Admin.
+- `src/lib/leads/__tests__/lead-runtime-operations.spec.ts` — inclui casos para `listLeadsAuthorized` e `createManualLeadAuthorized` com Super Admin impersonando (gateway acionado, tenant_wide) e Super Admin sem impersonação (gateway não acionado).
+- `src/lib/leads/__tests__/lead-sql-structural.spec.ts` — localiza a migration de closure pelo padrão de nome de arquivo + `v_header_tenant`, cobrindo: variável `v_header_tenant`, parse fail-closed, chamada de `get_current_tenant_id`, `v_is_impersonating` requer `v_is_super_admin`, UUID válido e igualdade com o tenant resolvido; `impersonation_active` derivado apenas de `v_is_impersonating`; regressões preservadas.
+- `src/lib/leads/__tests__/lead-structural.spec.ts` — asserta que os wrappers compõem `requireTenant`, forwardam `context.tenant`, e que o boundary consome o Tenant Context canônico (`mapTenantOrigin`, `deriveLeadTenantContext`, `LeadTenantContext`).
+
+### Bloqueios eliminados
+
+1. **Paridade TypeScript × SQL para Super Admin:** o boundary alcança a RPC via caminho canônico de impersonação (`origin = 'impersonation'`), sem exigir membership comum nem `app_role` tenant-scoped.
+2. **Evidência SQL de impersonação:** header presente sem UUID válido ou sem coincidência com o tenant resolvido não caracteriza impersonação; usuário comum com header forjado permanece `impersonation_active = false`.
 
 ### Itens reservados
 
 - **Lote C:** encerramento documental, limpeza histórica.
 - **LSV-01:** prova operacional multi-JWT/RLS/rollback sob sessões reais.
+
 
