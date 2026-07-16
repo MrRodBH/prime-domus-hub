@@ -2,10 +2,12 @@
 
 ## Estado atual
 
-**LSV-01 — Corrective Pass Authorized**
-(equivalência legada: *In Progress — Final Corrective Pass Authorized*).
+**LSV-01 — Ready for Final Audit**
+(equivalência legada: *Corrective Pass Executed — Awaiting External Audit*).
 
-**REMAINING_IMPLEMENTATION_BUDGET = 1.**
+**REMAINING_IMPLEMENTATION_BUDGET = 0.**
+
+**FINAL_CORRECTIVE_EXECUTED = true.**
 
 Este orçamento corresponde a **uma única correção consolidada final**.
 Após a execução dessa correção e sua auditoria, a LSV-01 receberá
