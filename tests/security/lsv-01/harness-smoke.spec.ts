@@ -147,18 +147,89 @@ const cases: Case[] = [
     },
   },
   {
-    name: "guard: accepts authorized ephemeral target",
+    name: "guard: rejects opaque unknown ref even with matching allowed ref",
+    run: async () => {
+      // The operator declares an ephemeral target and the URL/allowed
+      // ref agree — but the ref itself is not on the trusted allowlist.
+      // The guard MUST still refuse because an opaque production ref
+      // cannot be laundered through the guard merely by re-declaring it.
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "opaqueunknownref",
+            SUPABASE_URL: "https://opaqueunknownref.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects known production ref via denylist even when declared as staging",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "staging",
+            LSV_ALLOWED_PROJECT_REF: "stmcnvzuzlyqammyycxj",
+            SUPABASE_URL: "https://stmcnvzuzlyqammyycxj.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects ephemeral target with unknown ref (allowlist required)",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "ephemeral",
+            LSV_ALLOWED_PROJECT_REF: "testref",
+            SUPABASE_URL: "https://testref.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: rejects local target with non-loopback URL",
+    run: async () => {
+      await expectThrows(
+        () =>
+          assertLsvTestEnvironment({
+            LSV_TEST_MODE: "1",
+            LSV_TEST_TARGET: "local",
+            LSV_ALLOWED_PROJECT_REF: "anything",
+            SUPABASE_URL: "https://opaqueunknownref.supabase.co",
+            SUPABASE_ANON_KEY: "anon",
+            SUPABASE_SERVICE_ROLE_KEY: "srk",
+          }),
+        CODE,
+      );
+    },
+  },
+  {
+    name: "guard: accepts local target with loopback URL",
     run: async () => {
       const env = assertLsvTestEnvironment({
         LSV_TEST_MODE: "1",
-        LSV_TEST_TARGET: "ephemeral",
-        LSV_ALLOWED_PROJECT_REF: "testref",
-        SUPABASE_URL: "https://testref.supabase.co",
+        LSV_TEST_TARGET: "local",
+        LSV_ALLOWED_PROJECT_REF: "local",
+        SUPABASE_URL: "http://127.0.0.1:54321",
         SUPABASE_ANON_KEY: "anon",
         SUPABASE_SERVICE_ROLE_KEY: "srk",
       });
-      assert(env.target === "ephemeral", "target");
-      assert(env.projectRef === "testref", "projectRef");
+      assert(env.target === "local", "target=local");
     },
   },
   {
