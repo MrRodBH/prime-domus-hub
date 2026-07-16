@@ -2,13 +2,45 @@
 
 **Status:** In Progress
 
-- Lote A — Isolated Live Security Harness & Identity Matrix Foundation: In Progress
-- Lote B — Live Authorization, RLS, Grants & Impersonation Matrix: Pending
-- Lote C — Atomicity, Rollback, Concurrency & Final Closure: Pending
+- Lote A — Isolated Live Security Harness & Identity Matrix Foundation: **In Progress** — harness implementation completed; **live environment execution pending** (no authorized non-production target available in the current environment).
+- Lote B — Live Authorization, RLS, Grants & Impersonation Matrix: **Blocked** (awaiting Lote A live execution).
+- Lote C — Atomicity, Rollback, Concurrency & Final Closure: Pending.
 
 **Predecessor:** LSH-01 (Accepted — External Audit Approval HEAD
 `c6769c227e6255a01e1e3a96cac9292e0a72278e`).
 **Successor:** RDA-01 (Planned · blocked until LSV-01 Accepted).
+
+## Estado corrente do Lote A
+
+Materializado neste HEAD:
+
+- Environment guard endurecido com allowlist/denylist independente
+  (`tests/security/lsv-01/authorized-test-targets.ts`); refs opacos
+  desconhecidos são rejeitados mesmo quando `LSV_ALLOWED_PROJECT_REF`
+  coincide com a URL; o ref de produção da aplicação está em denylist
+  canônica.
+- Factory concreta (`createConcreteFactory`) e cleanup concreto
+  (`createConcreteCleanup`) implementados; ambos exigem client
+  administrativo emitido apenas após aprovação do guard.
+- Runner live (`run-lsv-01-live-specs.ts`) escreve evidência redigida
+  em `docs/delivery/product-roadmap/pre-homologation-product-readiness/
+  evidence/lsv-01-lot-a-live-execution.json` e **falha explicitamente
+  quando não há target autorizado ou quando qualquer etapa live é
+  pulada** — nunca declara sucesso sem execução real.
+- Testes negativos do guard incluem: ref opaco desconhecido, ref de
+  produção via denylist, target `local` com URL não-loopback, target
+  `ephemeral`/`staging` com ref fora da allowlist.
+- Regressão LSH-01 preservada (bun run test:lsh-01 exit 0).
+
+Ainda pendente para declarar Lote A **Completed**:
+
+- Provisionamento de projeto Supabase ephemeral/staging autorizado
+  (adicionar o project ref em `ALLOWLIST_PROJECT_REFS`).
+- Execução real de `bun run test:lsv-01:live` contra esse target,
+  produzindo evidência com `production_guard_passed=true`,
+  `real_sessions_acquired > 0`, `tenant_context_smoke_failed = 0`,
+  `orphaned_fixtures = 0`.
+
 
 ## Baselines vinculantes
 
