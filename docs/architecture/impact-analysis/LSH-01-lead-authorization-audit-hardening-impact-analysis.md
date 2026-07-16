@@ -196,3 +196,41 @@ Nenhum destes handlers chama `ensureAdmin` ou `ensureActiveTenantMembership`.
 - `CREATE OR REPLACE FUNCTION create_manual_lead` com cardinalidade explícita (COUNT) e revalidação canônica de impersonação em SQL.
 - Endurecimento SQL adicional de `lead_audit_events` (grants finais e RLS effetiva).
 - Prova de rollback multi-JWT no banco aplicado (LSV-01).
+
+## Recovery Mode — Lote B: SQL Authority Alignment
+
+**Baseline (Lote B):** `768f1f6` (após Lote A)
+**Migration:** `supabase/migrations/20260716155328_61a679da-33cc-430e-a8f0-40601e37f02b.sql`
+
+### Contratos canônicos preservados/alinhados
+
+- **Tenant efetivo:** `public.get_current_tenant_id()` — autoridade única; a RPC não recebe `tenant_id` como argumento do client.
+- **Super Admin:** `public.is_super_admin()` — nunca `has_role(actor,'admin')`. `admin` (app_role) ≠ Super Admin.
+- **Impersonação:** derivada independentemente da presença de `x-tenant-id` em `request.headers`, exatamente como `get_current_tenant_id` faz para o caminho Super Admin. `v_is_impersonating` NUNCA é definido a partir de `v_is_super_admin`.
+- **Fail-closed:** Super Admin sem impersonação válida → `super_admin_requires_impersonation`.
+
+### Alterações SQL (create_manual_lead)
+
+- Cardinalidade explícita de membership do ator: `COUNT(*)` → `membership_required` (0) / `membership_cardinality_conflict` (N>1). Super Admin impersonando não exige membership comum.
+- Cardinalidade explícita do `assigned_to`: mesma dinâmica (`assigned_to_invalid_membership` / `assigned_to_membership_conflict`).
+- Cardinalidade explícita do registro `corretores` — heurística `MIN(id)` removida; N>1 falha com `corretor_cardinality_conflict`.
+- Metadata do audit event acrescenta `actor_is_super_admin` e `impersonation_active` (além de `assigned_to`, `corretor_id`, `imovel_id`, `scope`).
+- Grants reafirmados: `authenticated` executa; `PUBLIC`/`anon`/`service_role` revogados.
+
+### Alinhamento TypeScript
+
+- `LeadAuthorizationDecision` passa a distinguir `isSuperAdmin` (evidência RPC) de `impersonating`. No boundary, `impersonating` permanece `false` (fail-closed) — a RPC é a autoridade transacional final.
+- `useLeadAdapter.ts` e `usePipelineData.ts` deixam de consumir `adminListarCorretores` no domínio Lead e passam a usar `adminListarLeadAssignees`. `adminListarCorretores` permanece para os domínios administrativos não-Lead (imóveis, equipes, lançamentos, blog, corretores).
+
+### Testes adicionados/atualizados
+
+- `src/lib/leads/__tests__/lead-sql-structural.spec.ts` — 10 casos determinísticos sobre a migration do Lote B.
+- `run-lead-sql-structural-specs.ts` — runner.
+- `package.json` — `test:lsh-01:sql-structural` e `test:lsh-01:lot-b`.
+- Estruturais e unit atualizados: `isSuperAdmin` × `impersonating` distintos; Lead-domain assignee via boundary; RPC pattern verificado.
+
+### Itens reservados
+
+- **Lote C:** encerramento documental, limpeza histórica.
+- **LSV-01:** prova operacional multi-JWT/RLS/rollback sob sessões reais.
+
