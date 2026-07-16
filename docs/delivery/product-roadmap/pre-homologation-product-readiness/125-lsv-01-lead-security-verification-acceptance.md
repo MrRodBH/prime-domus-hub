@@ -13,6 +13,18 @@ obrigatoriamente um estado terminal (**Accepted**, **Superseded**,
 **Rejected** ou **Blocked External**). Nenhuma nova correção da LSV-01
 será autorizada após esse ponto.
 
+Após a materialização desta correção consolidada final (Canonical
+Tenant Context Alignment & Documentation Reconciliation), o estado
+documental da etapa passa a ser:
+
+- **LSV_01_STATUS:** *Ready for Final Audit*
+  (equivalência legada: *Corrective Pass Executed — Awaiting External Audit*).
+- **REMAINING_IMPLEMENTATION_BUDGET:** `0`.
+- **FINAL_CORRECTIVE_EXECUTED:** `true`.
+
+O estado terminal (Accepted / Superseded / Rejected / Blocked External)
+só pode ser atribuído após auditoria externa final.
+
 **Contratos de governança vinculantes:**
 `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` ·
 `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`.
