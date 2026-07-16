@@ -248,11 +248,11 @@ Hard gates:
 - KPIs determinísticos e testados;
 - ferramentas de teste fixadas no repositório.
 
-Estado esperado após aceite:
+Estado histórico após supersessão:
 
 ```text
-PR-M1 Accepted
-PR-M2 Planned / released
+PR-M1 Superseded
+PR-M2 Planned — blocked until RC-01 Accepted
 ```
 
 ---
