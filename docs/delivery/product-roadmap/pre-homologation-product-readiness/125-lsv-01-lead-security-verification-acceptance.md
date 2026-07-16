@@ -2,30 +2,20 @@
 
 ## Estado atual
 
-**LSV-01 — Ready for Final Audit**
-(equivalência legada: *Corrective Pass Executed — Awaiting External Audit*).
+**LSV-01 — Superseded (terminal).**
 
 **REMAINING_IMPLEMENTATION_BUDGET = 0.**
-
 **FINAL_CORRECTIVE_EXECUTED = true.**
+**ADDITIONAL_CORRECTION_ALLOWED = false.**
 
-Este orçamento corresponde a **uma única correção consolidada final**.
-Após a execução dessa correção e sua auditoria, a LSV-01 receberá
-obrigatoriamente um estado terminal (**Accepted**, **Superseded**,
-**Rejected** ou **Blocked External**). Nenhuma nova correção da LSV-01
-será autorizada após esse ponto.
+Terminal HEAD: `1db73e5f1df4021a384333f02de256b3fdab0cba`.
 
-Após a materialização desta correção consolidada final (Canonical
-Tenant Context Alignment & Documentation Reconciliation), o estado
-documental da etapa passa a ser:
-
-- **LSV_01_STATUS:** *Ready for Final Audit*
-  (equivalência legada: *Corrective Pass Executed — Awaiting External Audit*).
-- **REMAINING_IMPLEMENTATION_BUDGET:** `0`.
-- **FINAL_CORRECTIVE_EXECUTED:** `true`.
-
-O estado terminal (Accepted / Superseded / Rejected / Blocked External)
-só pode ser atribuído após auditoria externa final.
+A correção consolidada final (**Canonical Tenant Context Alignment
+& Documentation Reconciliation**) foi executada e auditada. O
+escopo operacional histórico remanescente da LSV-01 foi previamente
+decomposto entre **LSV-02**, **LSV-03** e **LSV-04**; os artefatos
+construídos e corrigidos permanecem como baseline vinculante dos
+sucessores. Nenhuma nova correção da LSV-01 é permitida.
 
 **Contratos de governança vinculantes:**
 `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` ·
@@ -33,7 +23,7 @@ só pode ser atribuído após auditoria externa final.
 
 **Predecessor:** LSH-01 (Accepted — External Audit Approval HEAD
 `c6769c227e6255a01e1e3a96cac9292e0a72278e`).
-**Sucessor imediato após terminal não-rejeitado:** LSV-02.
+**Sucessor imediato:** LSV-02 (Planned / Blocked External).
 
 ---
 
