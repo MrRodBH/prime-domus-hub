@@ -375,10 +375,10 @@ async function createMembership(
   admin: SupabaseClient,
   tenantId: string,
   userId: string,
-  role: string,
-  status: "active" | "suspended",
+  role: TenantRole,
+  status: Extract<MembershipStatus, "active" | "suspended">,
 ): Promise<void> {
-  const { error } = await admin.from("tenant_members").insert({
+  const row: TablesInsert<"tenant_members"> = {
     tenant_id: tenantId,
     user_id: userId,
     tenant_role: role,
@@ -387,7 +387,8 @@ async function createMembership(
     is_default: false,
     joined_at: new Date().toISOString(),
     accepted_at: new Date().toISOString(),
-  });
+  };
+  const { error } = await admin.from("tenant_members").insert(row);
   if (error) {
     throw new LsvFixtureError("LSV_FIXTURE_MEMBERSHIP_INSERT_FAILED", error.message);
   }
@@ -396,11 +397,10 @@ async function createMembership(
 async function grantAppRole(
   admin: SupabaseClient,
   userId: string,
-  role: string,
+  role: AppRole,
 ): Promise<void> {
-  const { error } = await admin
-    .from("user_roles")
-    .insert({ user_id: userId, role });
+  const row: TablesInsert<"user_roles"> = { user_id: userId, role };
+  const { error } = await admin.from("user_roles").insert(row);
   if (error) {
     throw new LsvFixtureError("LSV_FIXTURE_APP_ROLE_INSERT_FAILED", error.message);
   }
@@ -409,16 +409,22 @@ async function grantAppRole(
 async function insertProperty(
   admin: SupabaseClient,
   tenantId: string,
-  name: string,
+  runId: string,
+  slot: "a" | "b",
 ): Promise<string> {
+  // Payload is typed against TablesInsert<"imoveis"> so a future required
+  // column addition (or the historical missing slug) is a compile error.
+  const name = `lsv01-${runId}-property-${slot}`;
+  const row: TablesInsert<"imoveis"> = {
+    tenant_id: tenantId,
+    titulo: name,
+    slug: name,
+    tipo: "apartamento",
+    finalidade: "venda",
+  };
   const { data, error } = await admin
     .from("imoveis")
-    .insert({
-      tenant_id: tenantId,
-      titulo: name,
-      tipo: "apartamento",
-      finalidade: "venda",
-    })
+    .insert(row)
     .select("id")
     .single();
   if (error || !data?.id) {
