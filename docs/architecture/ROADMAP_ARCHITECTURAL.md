@@ -259,7 +259,7 @@ PR-M2 Planned — blocked until RC-01 Accepted
 
 ## 6. PR-M2 — Public Tenant Authority, White Label, CMS, Domains & Onboarding Finalization
 
-**Status:** Planned — blocked by PR-M1.  
+**Status:** Planned — blocked until RC-01 Accepted.  
 **Absorve:** PR-PH.5, PR-PH.6, PR-PH.7, PR-PH.8, PR-PH.9.
 
 Escopo consolidado:
