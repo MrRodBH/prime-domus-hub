@@ -21,10 +21,13 @@ import {
 
 // ---------- Data-access abstraction (injetável). ----------
 
-export interface LeadListRow {
-  id: string;
-  [key: string]: unknown;
-}
+// Rows retornadas ao caller mantêm o formato do Supabase (JSON-serializável
+// para o transporte RPC do TanStack Start). Usamos `any` no valor do índice
+// deliberadamente: as colunas Lead são conteúdo dinâmico do domínio e os
+// consumidores UI já operam sobre esse formato desde PR-M1.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type LeadListRow = { id: string } & Record<string, any>;
+
 
 export interface CorretorLiteRow {
   id: string;

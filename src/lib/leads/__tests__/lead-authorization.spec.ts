@@ -264,8 +264,9 @@ const cases: Case[] = [
       };
       const ctx = buildLeadAuthorizationContext(authenticated);
       if (ctx.userId !== "u1") throw new Error("userId lost");
-      if ("impersonating" in (ctx as Record<string, unknown>))
+      if ("impersonating" in (ctx as unknown as Record<string, unknown>))
         throw new Error("impersonating leaked into context");
+
     },
   },
   {
