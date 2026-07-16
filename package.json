@@ -10,10 +10,13 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:lsh-01:unit": "bunx tsx --tsconfig tsconfig.json ./run-lead-authorization-specs.ts",
-    "test:lsh-01:structural": "bunx tsx --tsconfig tsconfig.json ./run-lead-structural-specs.ts",
-    "test:lsh-01:transition-regression": "bunx tsx --tsconfig tsconfig.json ./run-lead-transition-specs.ts",
-    "test:lsh-01": "bun run test:lsh-01:unit && bun run test:lsh-01:structural && bun run test:lsh-01:transition-regression"
+    "test:lsh-01:unit": "tsx --tsconfig tsconfig.json ./run-lead-authorization-specs.ts",
+    "test:lsh-01:runtime": "tsx --tsconfig tsconfig.json ./run-lead-runtime-operations-specs.ts",
+    "test:lsh-01:structural": "tsx --tsconfig tsconfig.json ./run-lead-structural-specs.ts",
+    "test:lsh-01:transition-regression": "tsx --tsconfig tsconfig.json ./run-lead-transition-specs.ts",
+    "test:lsh-01:lot-a": "bun run test:lsh-01:unit && bun run test:lsh-01:runtime && bun run test:lsh-01:structural && bun run test:lsh-01:transition-regression",
+    "test:lsh-01": "bun run test:lsh-01:lot-a"
+
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

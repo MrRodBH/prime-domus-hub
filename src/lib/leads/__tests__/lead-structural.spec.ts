@@ -147,7 +147,91 @@ const cases: Case[] = [
       must(/createdAt:\s*z\.string\(\)\.datetime\(\)/.test(src), "createdAt .datetime() missing");
     },
   },
+  // LSH-01 · Lote A — Runtime Authorization Integration structural proofs.
+  {
+    name: "admin.functions.ts consumes the operations module",
+    run: () => {
+      const src = read("src/lib/api/admin.functions.ts");
+      must(/from ["']@\/lib\/leads\/lead-operations\.server["']/.test(src), "operations import missing");
+      must(/createRuntimeLeadOperationsDeps/.test(src), "runtime deps builder not used");
+    },
+  },
+  {
+    name: "five Lead server functions call the boundary via operations module",
+    run: () => {
+      const src = read("src/lib/api/admin.functions.ts");
+      const ops = [
+        { fn: "adminListarLeads", call: "listLeadsAuthorized" },
+        { fn: "adminListarImoveisLite", call: "listLeadPropertiesAuthorized" },
+        { fn: "adminListarLeadAssignees", call: "listLeadAssigneesAuthorized" },
+        { fn: "adminAtualizarLead", call: "updateLeadFieldsAuthorized" },
+        { fn: "criarLeadManual", call: "createManualLeadAuthorized" },
+      ];
+      for (const { fn, call } of ops) {
+        const idx = src.indexOf(`export const ${fn}`);
+        must(idx > 0, `${fn} not found`);
+        const region = src.slice(idx, idx + 1600);
+        must(region.includes(call), `${fn} does not call ${call}`);
+      }
+    },
+  },
+  {
+    name: "legacy guards absent from Lead runtime operations regions",
+    run: () => {
+      const src = read("src/lib/api/admin.functions.ts");
+      const regions = ["adminListarLeads", "adminAtualizarLead", "adminListarImoveisLite", "adminListarLeadAssignees", "criarLeadManual"];
+      for (const fn of regions) {
+        const idx = src.indexOf(`export const ${fn}`);
+        const end = src.indexOf("export const ", idx + 20);
+        const region = src.slice(idx, end > 0 ? end : idx + 1600);
+        must(!/ensureAdmin\s*\(/.test(region), `ensureAdmin leak in ${fn}`);
+        must(!/ensureActiveTenantMembership\s*\(/.test(region), `ensureActiveTenantMembership leak in ${fn}`);
+      }
+    },
+  },
+  {
+    name: "operations module applies own_assigned filters (tenant + actor) in update and list",
+    run: () => {
+      const src = read("src/lib/leads/lead-operations.server.ts");
+      must(/updateLeadOwnAssigned\([^)]*tenantId[^)]*actorUserId/.test(src), "update own_assigned path missing actor");
+      must(/listLeadsOwnAssigned\([^)]*tenantId[^)]*actorUserId/.test(src), "list own_assigned path missing actor");
+      must(/\.eq\(["']assigned_to["'],\s*actorUserId\)/.test(src), "assigned_to filter not applied server-side");
+    },
+  },
+  {
+    name: "criarLeadManual authorizes before RPC (authorize call precedes gateway.createManualLead)",
+    run: () => {
+      const src = read("src/lib/leads/lead-operations.server.ts");
+      const idx = src.indexOf("export async function createManualLeadAuthorized");
+      must(idx > 0, "createManualLeadAuthorized missing");
+      const region = src.slice(idx, idx + 800);
+      const authIdx = region.indexOf("authorizeLeadOperation");
+      const rpcIdx = region.indexOf("gateway.createManualLead");
+      must(authIdx > 0 && rpcIdx > authIdx, "authorization must precede RPC");
+    },
+  },
+  {
+    name: "boundary does not accept caller-supplied impersonation input",
+    run: () => {
+      const src = read("src/lib/leads/lead-authorization.server.ts");
+      must(!/impersonating\?\s*:\s*boolean/.test(src), "caller-supplied impersonation field present");
+      must(/is_super_admin/.test(src), "canonical Super Admin RPC not referenced");
+      // Rejects the anti-pattern `has_role(..., "admin")` as Super Admin.
+      must(!/has_role[\s\S]{0,80}_role:\s*["']admin["']/.test(src), "has_role admin used as Super Admin");
+    },
+  },
+  {
+    name: "workspace mutation surface remains absent (no ContentWorkspace lead route)",
+    run: () => {
+      const routes = readdirSync(join(ROOT, "src/routes")).filter((f) => f.endsWith(".tsx"));
+      for (const r of routes) {
+        const src = read(`src/routes/${r}`);
+        must(!/ContentWorkspace[^>]*kind\s*=\s*["']lead["']/.test(src), `route ${r} mounts lead workspace`);
+      }
+    },
+  },
 ];
+
 
 export async function runLeadStructuralSpecs(): Promise<{ passed: number; failed: number }> {
   let passed = 0;
