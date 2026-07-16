@@ -246,6 +246,7 @@ const cases: Case[] = [
       must(/adminListarLeadAssignees/.test(pipe), "pipeline hook must call adminListarLeadAssignees");
       must(!/adminListarCorretores/.test(pipe), "pipeline hook must not call adminListarCorretores");
     },
+  },
   {
     name: "workspace mutation surface remains absent (no ContentWorkspace lead route)",
     run: () => {
