@@ -2,7 +2,9 @@
 
 ## 1. Status
 
-**Status:** Ready for External Audit.
+**Status:** Accepted.
+**External Audit Approval:** Approved.
+**External Audit Approval HEAD:** `c6769c227e6255a01e1e3a96cac9292e0a72278e`.
 **Stage type:** independent first-class architectural gate.
 Lote A — Completed. Lote B — Completed. Lote C — Completed.
 Nenhuma limitação conhecida dentro do escopo LSH-01.
