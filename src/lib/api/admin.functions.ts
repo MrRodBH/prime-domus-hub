@@ -789,11 +789,13 @@ export const adminExcluirBairro = createServerFn({ method: "POST" })
   });
 
 // ===== LEADS =====
-// LSH-01 · Lote A — Todas as operações Lead consomem o boundary tipado
+// LSH-01 · Lote B — Todas as operações Lead consomem o boundary tipado
 // `authorizeLeadOperation` via `lead-operations.server.ts`. Os wrappers
-// `createServerFn` são finos: middleware → inputValidator → função
-// operacional → resultado. Nenhum guard legado (ensureAdmin,
+// `createServerFn` compõem `requireTenant` para propagar o Tenant Context
+// canônico (tenantId + origin + isSuperAdmin) — a única fonte autorizada
+// dessas evidências no server-side. Nenhum guard legado (ensureAdmin,
 // ensureActiveTenantMembership) permanece nesta região.
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
   createRuntimeLeadOperationsDeps,
   listLeadsAuthorized,
@@ -804,11 +806,12 @@ import {
 } from "@/lib/leads/lead-operations.server";
 
 export const adminListarLeads = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .handler(async ({ context }) => {
     const deps = createRuntimeLeadOperationsDeps({
       supabase: context.supabase,
       userId: context.userId,
+      tenant: context.tenant,
     });
     return listLeadsAuthorized(deps);
   });
@@ -816,10 +819,10 @@ export const adminListarLeads = createServerFn({ method: "GET" })
 // PR-M1 — `adminAtualizarLead` is a GENERIC updater. It MUST NOT accept
 // `status` (nor status-adjacent columns like discard_reason_id, lost_reason_id,
 // version, *_at stamps, tenant_id, assigned_to, corretor_id). All lead status
-// transitions flow exclusively through `transicionarLead`. LSH-01 · Lote A
+// transitions flow exclusively through `transicionarLead`. LSH-01 · Lote B
 // consolida a autoridade em `updateLeadFieldsAuthorized`.
 export const adminAtualizarLead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator(
     z.object({
       id: z.string().uuid(),
@@ -831,18 +834,20 @@ export const adminAtualizarLead = createServerFn({ method: "POST" })
     const deps = createRuntimeLeadOperationsDeps({
       supabase: context.supabase,
       userId: context.userId,
+      tenant: context.tenant,
     });
     return updateLeadFieldsAuthorized(deps, data);
   });
 
-// ===== LEAD MANUAL (admin ou corretor) — LSH-01 · Lote A =====
-// Listagem auxiliar de imóveis para o form manual, agora sob o boundary.
+// ===== LEAD MANUAL (admin ou corretor) — LSH-01 · Lote B =====
+// Listagem auxiliar de imóveis para o form manual, sob o boundary.
 export const adminListarImoveisLite = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .handler(async ({ context }) => {
     const deps = createRuntimeLeadOperationsDeps({
       supabase: context.supabase,
       userId: context.userId,
+      tenant: context.tenant,
     });
     return listLeadPropertiesAuthorized(deps);
   });
@@ -851,17 +856,18 @@ export const adminListarImoveisLite = createServerFn({ method: "GET" })
 // A definição anterior em `adminListarCorretores` (linhas ~323) permanece
 // para outros consumidores administrativos; o domínio Lead usa esta versão.
 export const adminListarLeadAssignees = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .handler(async ({ context }) => {
     const deps = createRuntimeLeadOperationsDeps({
       supabase: context.supabase,
       userId: context.userId,
+      tenant: context.tenant,
     });
     return listLeadAssigneesAuthorized(deps);
   });
 
 // LSO-01 — Criação manual passa a ser uma mutation atômica server-authoritative
-// através da RPC `create_manual_lead`. LSH-01 · Lote A adiciona a autorização
+// através da RPC `create_manual_lead`. LSH-01 · Lote B adiciona a autorização
 // via boundary antes da chamada RPC. Nada de tenantId/scope/appRoles/impersonation
 // é passado à RPC — ela permanece autoridade transacional final.
 const manualLeadReturnSchema = z.object({
@@ -877,7 +883,7 @@ const manualLeadReturnSchema = z.object({
 export type ManualLeadResult = z.infer<typeof manualLeadReturnSchema>;
 
 export const criarLeadManual = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator(
     z.object({
       nome: z.string().min(2),
@@ -892,6 +898,7 @@ export const criarLeadManual = createServerFn({ method: "POST" })
     const deps = createRuntimeLeadOperationsDeps({
       supabase: context.supabase,
       userId: context.userId,
+      tenant: context.tenant,
     });
     return createManualLeadAuthorized(
       deps,
