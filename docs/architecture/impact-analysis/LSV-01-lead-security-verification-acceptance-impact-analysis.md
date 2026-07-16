@@ -2,25 +2,28 @@
 
 ## 1. Status
 
-**Status:** Corrective Pass Authorized
-(equivalência legada: *In Progress — Final Corrective Pass Authorized*).
+**Status:** Superseded (terminal).
 
-**REMAINING_IMPLEMENTATION_BUDGET = 1.**
+**REMAINING_IMPLEMENTATION_BUDGET = 0.**
+**FINAL_CORRECTIVE_EXECUTED = true.**
+**ADDITIONAL_CORRECTION_ALLOWED = false.**
+
+Terminal HEAD: `1db73e5f1df4021a384333f02de256b3fdab0cba`.
 
 Governança vinculante:
 `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` e
 `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
 (materialização `c1141448fd3c36ef7ae8ff60613c383673fde0d6`).
 
-Escopo remanescente autorizado: **Canonical Tenant Context Alignment
-& Documentation Reconciliation** (uma única correção consolidada).
-Após auditoria, LSV-01 recebe estado terminal (Accepted, Superseded,
-Rejected ou Blocked External); nenhuma nova correção é permitida.
+A correção consolidada final (**Canonical Tenant Context Alignment
+& Documentation Reconciliation**) foi executada e auditada. Nenhuma
+nova correção da LSV-01 é permitida. Os artefatos construídos e
+corrigidos permanecem como baseline vinculante da LSV-02.
 
-Escopo transferido: execução live e identidade → **LSV-02**;
-autorização/RLS/grants/impersonação → **LSV-03**;
-atomicidade/rollback/concorrência/fechamento → **LSV-04**. Lotes
-A/B/C tornam-se histórico apenas para rastreabilidade e não são
+Escopo transferido: execução live e identidade → **LSV-02**
+(Planned / Blocked External); autorização/RLS/grants/impersonação →
+**LSV-03**; atomicidade/rollback/concorrência/fechamento → **LSV-04**.
+Lotes A/B/C são histórico apenas para rastreabilidade e não são
 sequência executável.
 
 
@@ -36,8 +39,9 @@ tipado, a matriz de operações, o contrato de impersonação (SQL + TS) e
 o audit trail append-only. A LSV-01 não reabre nenhum desses contratos:
 verifica-os operacionalmente sob JWTs reais.
 
-Sucessor imediato após terminal não-rejeitado: **LSV-02**
-(Planned — Blocked External). RDA-01 permanece **Planned — Blocked
+Sucessor imediato: **LSV-02** (Planned — Blocked External;
+LSV-02 permanece bloqueada até o provisionamento e autorização do
+target Supabase não produtivo). RDA-01 permanece **Planned — Blocked
 by LSV-04**, conforme `FINITE_ROADMAP_EXECUTION_MAP.md`.
 
 ## 3. Objetivo da verificação
@@ -295,9 +299,9 @@ Requisitos da correção final:
 - scripts documentados alinhados com `package.json`
   (`test:lsv-01:harness`, `test:lsv-01:live`, `test:lsv-01:lot-a`);
 - nenhum runtime, migration, RLS ou grant alterado;
-- REMAINING_IMPLEMENTATION_BUDGET consumido para 0 após a auditoria;
-- LSV-01 recebe estado terminal (Accepted, Superseded, Rejected ou
-  Blocked External) somente após auditoria externa final.
+- REMAINING_IMPLEMENTATION_BUDGET consumido para 0;
+- LSV-01 recebeu estado terminal **Superseded**; nenhuma nova
+  correção é permitida.
 
 ## 20. Fora de escopo
 

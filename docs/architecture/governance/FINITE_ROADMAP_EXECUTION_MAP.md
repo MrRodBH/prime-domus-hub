@@ -19,8 +19,8 @@ may exceed two implementation prompts (principal + corrective).
 | 2 | PR-M1 | Superseded |
 | 3 | LSO-01 | Rejected / Closed |
 | 4 | LSH-01 | Accepted / Closed |
-| 5 | LSV-01 | Corrective Pass Authorized (REMAINING_IMPLEMENTATION_BUDGET = 1) |
-| 6 | LSV-02 | Planned — Blocked External / Blocked by LSV-01 terminal (non-rejected) |
+| 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
+| 6 | LSV-02 | Planned — Blocked External (authorized non-production Supabase target required) |
 | 7 | LSV-03 | Planned — Blocked by LSV-02 |
 | 8 | LSV-04 | Planned — Blocked by LSV-03 |
 | 9 | RDA-01 | Planned — Blocked by LSV-04 |
@@ -48,7 +48,7 @@ binding; details still undefined are recorded explicitly as
 
 - **OBJECTIVE:** execute the identity, real-session and Tenant Context
   harness in an authorized non-production environment.
-- **PREDECESSOR:** LSV-01 in terminal non-rejected state.
+- **PREDECESSOR:** LSV-01 — Superseded (terminal).
 - **DELIVERABLES:** isolated fixtures; real Supabase Auth users; real
   JWTs; independent clients (anonymous, common admin, Super Admin);
   explicit impersonation exercise; Tenant Context probe; forged-header
