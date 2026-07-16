@@ -1,11 +1,26 @@
 # 123 · LSO-01 — Lead Security & Workspace OCC
 
-**Status:** Rejected (não será reaberta; obrigações transferidas para LSH-01 e LSV-01).
+**Status:** Rejected — não será reaberta; não haverá novo ciclo corretivo.
 **Baseline original:** `afdb898b725d734107f19d09af84558ab4b81290` (main — "Finalizou cutover PR-M1").
 **Sucede:** PR-M1 (Superseded).
-**Sucedida por:** LSH-01 (Ready for External Audit) → LSV-01 (Planned).
+**Sucedida por:** LSH-01 (Ready for External Audit) → LSV-01 (Planned · blocked until external acceptance of LSH-01).
 
-> Nota (LSH-01): esta etapa foi **rejeitada** por não satisfazer o Definition of Done integral em ciclo único (defeitos de autorização, grants da tabela de auditoria, ON DELETE CASCADE, default autoritativo de tenant, cast inseguro em `adminAtualizarLead`, `select('*')` em `adminListarCorretores`, Zod frouxo no retorno da RPC). As obrigações estruturais foram materializadas na LSH-01. As provas operacionais reais (múltiplos JWTs, RLS efetivo, grants no banco aplicado, impersonation runtime, rollback multi-sessão) foram atribuídas exclusivamente à LSV-01. O código válido produzido nesta etapa foi preservado como baseline sujeito ao endurecimento da LSH-01.
+> Nota (LSH-01): a LSO-01 foi rejeitada por não satisfazer o Definition of Done integral em ciclo único. As obrigações estruturais (boundary tipado, hardening de `lead_audit_events`, hardening de `create_manual_lead`, correção das server functions, testes determinísticos) foram integralmente materializadas na LSH-01 e nenhuma foi reclassificada como known limitation. As provas operacionais reais (múltiplos JWTs, RLS efetivo, grants no banco aplicado, impersonation runtime, rollback multi-sessão) foram atribuídas exclusivamente à LSV-01. Nenhuma obrigação da LSO-01 permanece sem destino. Este documento é histórico: não há Ready for External Audit, não há reabertura e não há novo ciclo corretivo.
+
+### Matriz final de transferência
+
+| Obrigação | Destino | Estado |
+|-----------|---------|--------|
+| Boundary TypeScript | LSH-01 | Materialized |
+| Server function integration | LSH-01 | Materialized |
+| `create_manual_lead` hardening | LSH-01 | Materialized |
+| Audit table hardening | LSH-01 | Materialized |
+| Deterministic tests | LSH-01 | Materialized |
+| Live grants and RLS proof | LSV-01 | Planned |
+| Multi-JWT attack matrix | LSV-01 | Planned |
+| Live rollback proof | LSV-01 | Planned |
+
+
 
 
 ## Objetivo
