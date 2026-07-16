@@ -226,15 +226,19 @@ const cases: Case[] = [
     },
   },
   {
-    name: "Super Admin evidence flows into decision.impersonating (canonical RPC)",
+    name: "Super Admin evidence is isolated (isSuperAdmin=true) but impersonating stays false at boundary",
     run: async () => {
       const d = await authorizeLeadOperation(
         { supabase: dummySupabase, userId: "u1" },
         "lead.list",
         makeRepo({ isSuperAdmin: async () => true }),
       );
-      if (!d.impersonating)
-        throw new Error("super admin evidence should set impersonating");
+      if (!d.isSuperAdmin)
+        throw new Error("super admin evidence should set isSuperAdmin=true");
+      if (d.impersonating)
+        throw new Error(
+          "impersonating must remain false at boundary — RPC is the authority",
+        );
     },
   },
   {

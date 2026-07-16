@@ -50,6 +50,13 @@ export interface LeadAuthorizationDecision {
   membershipKey: string;
   operation: LeadOperation;
   scope: LeadAccessScope;
+  /** Evidence from `public.is_super_admin` RPC only. */
+  isSuperAdmin: boolean;
+  /**
+   * Impersonation evidence is authoritative only inside the SQL RPC (via the
+   * `x-tenant-id` transport header, mirrored by `get_current_tenant_id`). The
+   * boundary keeps this fail-closed: never derived from `isSuperAdmin`.
+   */
   impersonating: boolean;
   appRoles: ReadonlyArray<LeadAppRole>;
 }
@@ -245,7 +252,9 @@ export async function authorizeLeadOperation(
     membershipKey: memberships[0].id,
     operation,
     scope,
-    impersonating: isSuperAdmin,
+    isSuperAdmin,
+    // Fail-closed: impersonation is proven only by the RPC (header transport).
+    impersonating: false,
     appRoles,
   };
 }

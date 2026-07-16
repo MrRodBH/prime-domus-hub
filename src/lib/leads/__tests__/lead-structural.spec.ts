@@ -221,6 +221,33 @@ const cases: Case[] = [
     },
   },
   {
+    name: "boundary keeps isSuperAdmin and impersonating semantically distinct (Lote B alignment)",
+    run: () => {
+      const src = read("src/lib/leads/lead-authorization.server.ts");
+      must(/isSuperAdmin:\s*boolean/.test(src), "isSuperAdmin missing from decision");
+      must(/impersonating:\s*boolean/.test(src), "impersonating missing from decision");
+      must(
+        !/impersonating:\s*isSuperAdmin/.test(src),
+        "impersonating must not alias isSuperAdmin",
+      );
+      must(
+        /impersonating:\s*false/.test(src),
+        "boundary must keep impersonating=false (RPC is the authority)",
+      );
+    },
+  },
+  {
+    name: "Lead-domain adapter routes assignee reads via boundary (adminListarLeadAssignees)",
+    run: () => {
+      const adapter = read("src/components/content/adapters/useLeadAdapter.ts");
+      must(/adminListarLeadAssignees/.test(adapter), "adapter must call adminListarLeadAssignees");
+      must(!/adminListarCorretores/.test(adapter), "adapter must not import adminListarCorretores");
+      const pipe = read("src/components/pipeline/hooks/usePipelineData.ts");
+      must(/adminListarLeadAssignees/.test(pipe), "pipeline hook must call adminListarLeadAssignees");
+      must(!/adminListarCorretores/.test(pipe), "pipeline hook must not call adminListarCorretores");
+    },
+  },
+  {
     name: "workspace mutation surface remains absent (no ContentWorkspace lead route)",
     run: () => {
       const routes = readdirSync(join(ROOT, "src/routes")).filter((f) => f.endsWith(".tsx"));

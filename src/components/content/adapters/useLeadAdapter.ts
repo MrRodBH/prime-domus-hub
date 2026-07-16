@@ -18,7 +18,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import {
   adminListarLeads,
-  adminListarCorretores,
+  adminListarLeadAssignees,
 } from "@/lib/api/admin.functions";
 import type {
   ContentEntityAdapter,
@@ -45,11 +45,12 @@ type LeadRow = {
 
 export function useLeadAdapter(): ContentEntityAdapter {
   const listarFn = useServerFn(adminListarLeads);
-  const listarCorretoresFn = useServerFn(adminListarCorretores);
+  // LSH-01 · Lote B — Lead-domain assignee reads route through the boundary.
+  const listarCorretoresFn = useServerFn(adminListarLeadAssignees);
 
   // Cache de corretores — usado por fetchFilterOptions("corretor").
   const { data: corretores } = useQuery({
-    queryKey: ["admin", "corretores", "lite"],
+    queryKey: ["admin", "lead-assignees", "lite"],
     queryFn: () => listarCorretoresFn(),
     staleTime: 60_000,
   });

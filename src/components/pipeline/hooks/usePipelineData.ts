@@ -3,7 +3,7 @@
 // refetch e propagação da nova versão devolvida pela RPC.
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminListarLeads, adminListarCorretores } from "@/lib/api/admin.functions";
+import { adminListarLeads, adminListarLeadAssignees } from "@/lib/api/admin.functions";
 import { adminContarDescartes } from "@/lib/api/historico.functions";
 import { transicionarLead } from "@/lib/api/leads-crm.functions";
 import type { Lead, Status, CorretorLite } from "@/adapters/pipeline-legacy";
@@ -42,7 +42,7 @@ function mapTransitionErrorMessage(err: Error): string {
 export function usePipelineData(search: PipelineSearch) {
   const qc = useQueryClient();
   const { data: leads } = useQuery({ queryKey: ["admin", "leads"], queryFn: () => adminListarLeads() });
-  const { data: corretores } = useQuery({ queryKey: ["admin", "corretores", "lite"], queryFn: () => adminListarCorretores(), staleTime: 60_000 });
+  const { data: corretores } = useQuery({ queryKey: ["admin", "lead-assignees", "lite"], queryFn: () => adminListarLeadAssignees(), staleTime: 60_000 });
   const { data: descartes } = useQuery({ queryKey: ["admin", "descartes-count"], queryFn: () => adminContarDescartes(), staleTime: 30_000 });
 
   const filtered = useMemo(() => {
