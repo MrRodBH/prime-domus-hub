@@ -200,8 +200,8 @@ Decisões aceitas:
 PR-PH.0  Accepted
 PR-M1    Superseded
 LSO-01   Rejected
-LSH-01   Ready for External Audit
-LSV-01   Planned — blocked until external acceptance of LSH-01
+LSH-01   Accepted
+LSV-01   In Progress
 RDA-01   Planned — blocked until LSV-01 Accepted
 RC-01    Planned — blocked until RDA-01 Accepted
 PR-M2    Planned — blocked until RC-01 Accepted
