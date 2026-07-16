@@ -1,81 +1,25 @@
-// LSV-01 · Lote A — Harness runner.
+// LSV-01 · Lote A — Harness runner (structural + guard negatives).
 //
-// Emits a structured, secret-free report. Live fixture assertions are
-// gated on the environment guard authorizing a non-production target;
-// when the guard rejects, live tests are reported as skipped and the
-// harness returns exit 1 only if guard-scope smoke tests fail.
+// This runner ONLY exercises the pure-structural harness spec:
+//   * environment guard negatives (including opaque-unknown-ref);
+//   * identity matrix invariants;
+//   * client factory session isolation;
+//   * fingerprint + runId shape.
+//
+// The live execution path (real Auth users, real JWTs, Tenant Context
+// smoke tests, cleanup, orphan check) lives in run-lsv-01-live-specs.ts
+// and is invoked separately via `test:lsv-01:live`. The Lote A aggregate
+// (`test:lsv-01:lot-a`) chains harness → live → LSH-01 regression, so it
+// fails when no authorized non-production target is configured.
 
 import { runLsvHarnessSpecs } from "./tests/security/lsv-01/harness-smoke.spec";
-import {
-  assertLsvTestEnvironment,
-  LsvEnvironmentGuardError,
-  redactProjectRef,
-} from "./tests/security/lsv-01/environment-guard";
-
-interface Report {
-  passed: number;
-  failed: number;
-  skipped: number;
-  fixtures_created: number;
-  fixtures_cleaned: number;
-  orphaned_fixtures: number;
-  environment_target: string;
-  project_ref_redacted: string;
-}
 
 async function main() {
-  const report: Report = {
-    passed: 0,
-    failed: 0,
-    skipped: 0,
-    fixtures_created: 0,
-    fixtures_cleaned: 0,
-    orphaned_fixtures: 0,
-    environment_target: "<unset>",
-    project_ref_redacted: "<unset>",
-  };
-
-  // Guard-scope structural smoke tests always run.
-  const smoke = await runLsvHarnessSpecs();
-  report.passed += smoke.passed;
-  report.failed += smoke.failed;
-
-  // Live fixture tests are gated. Never touch production.
-  try {
-    const env = assertLsvTestEnvironment({
-      LSV_TEST_MODE: process.env.LSV_TEST_MODE,
-      LSV_TEST_TARGET: process.env.LSV_TEST_TARGET,
-      LSV_ALLOWED_PROJECT_REF: process.env.LSV_ALLOWED_PROJECT_REF,
-      SUPABASE_URL: process.env.LSV_SUPABASE_URL,
-      SUPABASE_ANON_KEY: process.env.LSV_SUPABASE_ANON_KEY,
-      SUPABASE_SERVICE_ROLE_KEY: process.env.LSV_SUPABASE_SERVICE_ROLE_KEY,
-    });
-    report.environment_target = env.target;
-    report.project_ref_redacted = redactProjectRef(env.projectRef);
-    // Concrete fixture + live-JWT execution is bound by Lote B; the
-    // Lote A harness intentionally stops here after proving the guard
-    // authorizes the target end-to-end.
-    report.skipped += 1;
-    console.log(
-      "lsv-01-harness: authorized target detected; live-JWT execution deferred to Lote B",
-    );
-  } catch (e) {
-    if (e instanceof LsvEnvironmentGuardError) {
-      report.skipped += 1;
-      console.log(
-        `lsv-01-harness: live tests SKIPPED (${e.code}) — no authorized target configured`,
-      );
-    } else {
-      report.failed += 1;
-      console.log(`lsv-01-harness: unexpected guard failure`);
-    }
-  }
-
+  const { passed, failed } = await runLsvHarnessSpecs();
   console.log(
-    `lsv-01-harness: passed=${report.passed} failed=${report.failed} skipped=${report.skipped} fixtures_created=${report.fixtures_created} fixtures_cleaned=${report.fixtures_cleaned} orphaned_fixtures=${report.orphaned_fixtures} environment_target=${report.environment_target} project_ref_redacted=${report.project_ref_redacted}`,
+    `lsv-01-harness: passed=${passed} failed=${failed}`,
   );
-
-  if (report.failed > 0) process.exit(1);
+  if (failed > 0) process.exit(1);
 }
 
 void main();
