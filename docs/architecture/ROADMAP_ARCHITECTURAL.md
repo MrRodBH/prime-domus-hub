@@ -185,7 +185,7 @@ Decisões aceitas:
 PR-PH.0  Accepted
 PR-M1    Superseded
 LSO-01   Rejected
-LSH-01   Ready for External Audit
+LSH-01   In Progress · Recovery Mode (Lote A completed; Lote B pending)
 LSV-01   Planned — blocked until LSH-01 Accepted
 RDA-01   Planned — blocked until LSV-01 Accepted
 RC-01    Planned — blocked until RDA-01 Accepted

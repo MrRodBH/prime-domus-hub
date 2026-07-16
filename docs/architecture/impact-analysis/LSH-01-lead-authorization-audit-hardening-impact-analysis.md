@@ -134,3 +134,65 @@ exclusivamente à LSV-01.
 
 LSV-01, RDA-01, RC-01, PR-M2, dashboard, CMS, host resolution, domains,
 billing.
+
+---
+
+## Recovery Mode — Lote A: Runtime Authorization Integration
+
+**Baseline (Lote A):** `9c54c6ca9d8c38cc2be1b0139bb36d6efd627737`
+
+### Contratos canônicos identificados no runtime atual
+
+- **Auth context:** `requireSupabaseAuth` (`src/integrations/supabase/auth-middleware.ts`) expõe `{ supabase, userId, claims }`; não carrega tenant nem impersonation.
+- **Tenant efetivo:** RPC `get_current_tenant_id()` (autoritativa server-side).
+- **Membership:** `tenant_members(user_id, tenant_id, membership_status='active')` com cardinalidade explícita.
+- **Super Admin:** RPC `is_super_admin()` (não `has_role admin`).
+- **Impersonação:** middleware canônico `requireTenant` deriva `origin='impersonation'` server-side; o `authenticated context` do Lote A não a expõe. Fail-closed: `decision.impersonating` reflete apenas `isSuperAdmin`. Evidência SQL adicional é reservada ao Lote B.
+- **App roles reais:** `admin | corretor | secretaria | gerente | captador` (roleEnum em `admin.functions.ts`).
+
+### Matriz TypeScript utilizada (Lote A)
+
+| operação             | autorizados                | tenant_wide          |
+|----------------------|----------------------------|----------------------|
+| lead.list            | admin, gerente, corretor   | admin, gerente       |
+| lead.list_assignees  | admin, gerente             | admin, gerente       |
+| lead.list_properties | admin, gerente, corretor   | admin, gerente       |
+| lead.create_manual   | admin, corretor            | admin                |
+| lead.update_fields   | admin, gerente, corretor   | admin, gerente       |
+| lead.workspace_action| (nenhum — sempre denied)   | —                    |
+
+`secretaria` e `captador` são negados em todas as operações (fail-closed).
+
+### Consumidores do boundary (5/5)
+
+- `adminListarLeads` → `listLeadsAuthorized` (`lead.list`)
+- `adminListarLeadAssignees` → `listLeadAssigneesAuthorized` (`lead.list_assignees`)
+- `adminListarImoveisLite` → `listLeadPropertiesAuthorized` (`lead.list_properties`)
+- `adminAtualizarLead` → `updateLeadFieldsAuthorized` (`lead.update_fields`)
+- `criarLeadManual` → `createManualLeadAuthorized` (`lead.create_manual`)
+
+Nenhum destes handlers chama `ensureAdmin` ou `ensureActiveTenantMembership`.
+
+### Arquivos alterados (Lote A)
+
+- `src/lib/leads/lead-authorization.server.ts` — removido input livre `impersonating`; adicionado `buildLeadAuthorizationContext`; `isSuperAdmin` derivado via RPC canônica.
+- `src/lib/leads/lead-operations.server.ts` — novo módulo: gateway injetável + funções operacionais tipadas.
+- `src/lib/api/admin.functions.ts` — wrappers finos das 5 operações; guards legados removidos das regiões Lead.
+- `src/lib/leads/__tests__/lead-authorization.spec.ts` — teste `impersonation flag is preserved` removido; adicionados testes para `is_super_admin` canônico e input livre bloqueado por tipo.
+- `src/lib/leads/__tests__/lead-runtime-operations.spec.ts` — nova suíte determinística das 5 operações.
+- `src/lib/leads/__tests__/lead-structural.spec.ts` — provas estruturais adicionais.
+- `run-lead-runtime-operations-specs.ts` — novo runner.
+- `package.json` — `tsx` fixado em devDependencies; scripts `test:lsh-01:*` usam binário local.
+
+### Testes
+
+- `test:lsh-01:unit` — 18/18
+- `test:lsh-01:runtime` — 11/11
+- `test:lsh-01:structural` — 23/23
+- `test:lsh-01:transition-regression` — 35/35
+
+### Itens reservados ao Lote B (SQL Authority Alignment)
+
+- `CREATE OR REPLACE FUNCTION create_manual_lead` com cardinalidade explícita (COUNT) e revalidação canônica de impersonação em SQL.
+- Endurecimento SQL adicional de `lead_audit_events` (grants finais e RLS effetiva).
+- Prova de rollback multi-JWT no banco aplicado (LSV-01).

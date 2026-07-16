@@ -1,8 +1,14 @@
 # 124 — LSH-01: Lead Authorization & Audit Hardening
 
-**Status:** Ready for External Audit
+**Status:** In Progress · Recovery Mode
+- Lote A — Runtime Authorization Integration: Completed
+- Lote B — SQL Authority Alignment: Pending
+- Lote C — Documentation Reconciliation: Pending
+
 **Predecessor:** LSO-01 (Rejected — obrigações transferidas)
 **Successor:** LSV-01 (Planned, blocked until LSH-01 Accepted)
+**Baseline HEAD (Lote A):** `9c54c6ca9d8c38cc2be1b0139bb36d6efd627737`
+
 **Baseline HEAD:** `704ae40a18e19a14332256e25964cf2fbb51cc9f`
 
 ## Objetivo
