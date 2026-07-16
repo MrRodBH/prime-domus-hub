@@ -2,7 +2,7 @@
 
 **Status:** Ratificado  
 **Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
-**Última reconciliação estrutural:** PR-PH.0 — Macro Execution Consolidation
+**Última reconciliação estrutural:** LSH-01 — Recovery Mode / Lote C
 
 > Este documento registra o estado arquitetural aceito, os próximos gates executáveis e os backlogs formais. Impact Analyses, ADRs, implementações e auditorias devem respeitar esta sequência.
 
@@ -22,23 +22,38 @@
 Fluxo obrigatório:
 
 ```text
-Roadmap
-  → Impact Analysis / macro contract
-  → ADR, quando necessário
-  → implementação
-  → relatório mínimo
-  → auditoria crítica externa
-  → Accepted ou uma única correção consolidada
+Etapa arquitetural
+  → lote operacional
+  → relatório factual
+  → auditoria de continuidade
+  → lote seguinte, quando necessário
+  → reconciliação final
+  → auditoria externa da etapa
+  → Accepted ou Rejected
 ```
 
-### 1.1 Regra de execução macro
+### 1.1 Regra de execução
 
-- Um estágio de roadmap corresponde a um prompt macro de execução.
-- Workstreams internos não são etapas e não recebem aprovação independente.
-- É proibido criar cadeias `.1`, `.2`, `.3` para correções ordinárias, status, relatório ou roadmap.
-- Cada gate admite no máximo uma correção consolidada após auditoria.
-- O GitHub é a fonte primária da auditoria.
-- O relatório em chat deve ser uma cápsula mínima de evidências.
+- Uma etapa arquitetural pode atravessar múltiplos prompts, múltiplos
+  lotes operacionais e múltiplas aprovações operacionais de continuidade.
+- Lotes são unidades internas de execução da etapa; não são etapas do
+  roadmap e não recebem identificadores decimais.
+- Lotes não possuem aceite arquitetural independente. Somente a etapa
+  arquitetural é auditada externamente e recebe Accepted ou Rejected.
+- Requisitos obrigatórios de uma etapa não podem ser transferidos
+  silenciosamente entre lotes nem reclassificados como limitações
+  conhecidas.
+- Cada lote deve produzir commits, testes e evidências verificáveis no
+  repositório.
+- Correções internas podem ocorrer antes do avanço ao lote seguinte;
+  incapacidade de concluir uma etapa em um único turno ou em um único
+  prompt não constitui rejeição arquitetural.
+- Rejected é reservado para arquitetura inválida, abandono formal ou
+  solução implementada e comprovadamente inadequada.
+- A auditoria externa final da etapa continua sendo obrigatória para
+  Accepted.
+- O GitHub permanece a fonte primária da auditoria.
+- O relatório em chat deve ser uma cápsula factual mínima de evidências.
 
 ---
 
@@ -200,10 +215,21 @@ Produção     Blocked
 Regras permanentes (Cadeia de Etapas Executáveis):
 
 - cada etapa é um gate arquitetural autônomo de primeira classe;
-- não existe numeração decimal corretiva (`.1`, `.2`, ...);
-- cada etapa recebe exatamente um prompt, uma entrega, um relatório e uma auditoria externa;
-- é admitida no máximo uma correção consolidada por etapa; correção malsucedida encerra a etapa como `Rejected` e uma nova abordagem exige nova etapa de primeira classe;
-- requisitos obrigatórios de uma etapa não podem ser reclassificados como limitações conhecidas;
+- não existe numeração decimal corretiva (`.1`, `.2`, ...) para etapas;
+- uma etapa pode ser executada em múltiplos lotes operacionais internos,
+  atravessando múltiplos prompts e múltiplas aprovações operacionais de
+  continuidade, sem que isso a caracterize como corrigida ou fracassada;
+- lotes operacionais são unidades internas de execução: não são etapas,
+  não recebem identificadores decimais e não têm aceite arquitetural
+  independente;
+- requisitos obrigatórios de uma etapa não podem ser reclassificados como
+  limitações conhecidas nem transferidos silenciosamente entre lotes;
+- cada lote deve produzir commits, testes e evidências verificáveis;
+- Rejected é reservado para arquitetura inválida, abandono formal ou
+  solução implementada e comprovadamente inadequada; incapacidade de
+  concluir a etapa em um único turno não constitui rejeição arquitetural;
+- a auditoria externa final da etapa continua sendo obrigatória para
+  Accepted;
 - GitHub permanece a fonte primária da auditoria.
 
 Homologação permanece bloqueada até PR-M3 Accepted.

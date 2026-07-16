@@ -14,7 +14,7 @@ LSH-01; obrigações operacionais para LSV-01).
 
 - **Baseline inicial LSH-01:** `704ae40a18e19a14332256e25964cf2fbb51cc9f`
 - **Baseline Lote A:** `9c54c6ca9d8c38cc2be1b0139bb36d6efd627737`
-- **Baseline Lote B:** `768f1f6…` (após Lote A; ver Impact Analysis)
+- **Baseline Lote B:** `768f1f6789bf31421771b97722145a5cb5a1b5a4` (após Lote A; ver Impact Analysis)
 - **Implementation Evidence HEAD:** `20265f950b541e2d9f499e747b7577b28fc29a4a`
   (commit "Hardened lead auth & audit"). O Closure HEAD produzido pelo
   Lote C é registrado no relatório final da execução — não neste
