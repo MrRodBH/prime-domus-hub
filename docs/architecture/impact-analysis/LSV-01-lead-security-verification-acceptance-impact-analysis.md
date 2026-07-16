@@ -260,14 +260,44 @@ dentro da LSV-01.
 Escopo autorizado: **Canonical Tenant Context Alignment &
 Documentation Reconciliation**.
 
-- forged-header probe alinhado ao contrato SQL canônico;
-- evidência correspondente alinhada e persistida com fail-closed;
-- testes estruturais correspondentes alinhados;
-- documentação e scripts documentados reconciliados;
+Contrato canônico de `public.get_current_tenant_id()` (fonte de verdade:
+`supabase/migrations/20260707143029_83dd8dc5-0313-45cd-a332-cc188a6f64c2.sql`,
+M2b.1 — strict cardinality):
+
+- usuário comum: o header `x-tenant-id` é **ignorado**;
+- zero memberships ativas → `NULL`;
+- exatamente uma membership ativa → tenant dessa membership;
+- múltiplas memberships ativas → `NULL`;
+- Super Admin: header respeitado (impersonação) ou `NULL`;
+- anônimo: header respeitado (endpoints públicos) ou `NULL`.
+
+Cenário do forged-header probe (single-membership):
+
+- ator autenticado: `tenant_a_admin` (uma membership ativa em `tenantA`);
+- header enviado: `x-tenant-id: <tenantB>`;
+- resultado canônico obrigatório: **`tenantA`**;
+- `tenantB`, `NULL`, qualquer outro tenant ou tipo incompatível ⇒ falha
+  fechada (contract drift).
+
+Requisitos da correção final:
+
+- forged-header probe alinhado ao contrato canônico acima
+  (`forgedValue === tenantA`, com rejeição estrita de `NULL`, `tenantB`,
+  outros tenants e tipos incompatíveis);
+- evidência persistida com campos `forged_header_requested_tenant`,
+  `forged_header_effective_tenant`, `forged_header_cross_tenant_gain`,
+  `forged_header_canonical_contract_verified`,
+  `forged_header_denial_verified` e `canonical_migration_path`;
+- persistência de evidência fail-closed: sucesso exige
+  `evidence.evidence_persisted === true` na snapshot final em disco;
+- testes estruturais correspondentes reconciliados;
+- documentação da LSV-01 reconciliada;
+- scripts documentados alinhados com `package.json`
+  (`test:lsv-01:harness`, `test:lsv-01:live`, `test:lsv-01:lot-a`);
 - nenhum runtime, migration, RLS ou grant alterado;
 - REMAINING_IMPLEMENTATION_BUDGET consumido para 0 após a auditoria;
 - LSV-01 recebe estado terminal (Accepted, Superseded, Rejected ou
-  Blocked External).
+  Blocked External) somente após auditoria externa final.
 
 ## 20. Fora de escopo
 
@@ -275,3 +305,4 @@ RDA-01, RC-01, PR-M2, dashboard, CMS, host resolution, domains,
 billing. Escopo estrutural da LSH-01 (contratos de autorização,
 migrations, boundary tipado, matriz de operações) — a LSV-01 apenas
 verifica; não redefine.
+

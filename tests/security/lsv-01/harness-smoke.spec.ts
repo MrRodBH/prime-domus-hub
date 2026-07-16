@@ -638,25 +638,131 @@ const cases: Case[] = [
     },
   },
 
+  // ─── Canonical SQL migration (structural) ─────────────────────────
+  {
+    name: "sql: canonical get_current_tenant_id migration is identified and reachable",
+    run: async () => {
+      const fs = await import("node:fs");
+      const { CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION } = await import(
+        "./canonical-migration"
+      );
+      assert(
+        typeof CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION === "string" &&
+          CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION.startsWith(
+            "supabase/migrations/",
+          ),
+        "canonical migration path must be exported",
+      );
+      assert(
+        fs.existsSync(CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION),
+        `canonical migration file must exist at ${CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION}`,
+      );
+    },
+  },
+  {
+    name: "sql: canonical migration encodes M2b.1 strict-cardinality contract",
+    run: async () => {
+      const fs = await import("node:fs");
+      const { CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION } = await import(
+        "./canonical-migration"
+      );
+      const src = fs.readFileSync(
+        CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION,
+        "utf8",
+      );
+      // Defines the canonical function.
+      assert(
+        /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.get_current_tenant_id\s*\(\s*\)/i.test(
+          src,
+        ),
+        "must define public.get_current_tenant_id()",
+      );
+      // Regular-user branch uses explicit cardinality via COUNT(*),
+      // never LIMIT 1 / ORDER BY as tenant-selection authority.
+      assert(/COUNT\s*\(\s*\*\s*\)/i.test(src), "explicit COUNT(*) cardinality");
+      // Strict cardinality outcomes are documented as literal SQL guards.
+      assert(/v_count\s*=\s*1/i.test(src), "single membership → tenant");
+      // The regular-user branch must not consult request.headers to pick
+      // a tenant. Structural check: any occurrence of x-tenant-id lives
+      // only in the anonymous/super-admin branches, and no LIMIT 1 or
+      // ORDER BY is used to choose a tenant.
+      assert(
+        !/ORDER\s+BY\s+is_default/i.test(src),
+        "must not ORDER BY is_default",
+      );
+      assert(
+        !/ORDER\s+BY\s+is_owner/i.test(src),
+        "must not ORDER BY is_owner",
+      );
+      assert(
+        !/ORDER\s+BY\s+joined_at/i.test(src),
+        "must not ORDER BY joined_at",
+      );
+      // No LIMIT 1 used as authority. The migration is allowed to
+      // mention LIMIT 1 only inside comments; assert no executable
+      // occurrence outside comment lines.
+      const executableLines = src
+        .split("\n")
+        .filter((l) => !l.trim().startsWith("--"))
+        .join("\n");
+      assert(
+        !/\bLIMIT\s+1\b/i.test(executableLines),
+        "no executable LIMIT 1 as tenant-selection authority",
+      );
+    },
+  },
+
   // ─── Live runner integrity (regression) ───────────────────────────
   {
-    name: "live: forged-header path validates the login before RPC probe",
+    name: "live: forged-header probe requires strict equality to tenantA",
     run: async () => {
       const fs = await import("node:fs");
       const src = fs.readFileSync("run-lsv-01-live-specs.ts", "utf8");
-      // Structural: forged auth must be verified AND the RPC probe must
-      // only accept null (never `!== tenantB`).
+      // Auth pre-conditions must be recorded before the RPC probe.
       assert(
         /forged_header_auth_verified\s*=\s*true/.test(src),
-        "forged_header_auth_verified must be set true after login checks",
+        "forged_header_auth_verified must be set true after login",
       );
       assert(
-        /forgedValue\s*!==\s*null/.test(src),
-        "forged probe must reject any non-null result",
+        /forged_header_user_verified\s*=\s*true/.test(src),
+        "forged_header_user_verified must be set true after user check",
       );
       assert(
-        !/result\s*!==\s*tenantB/.test(src),
+        /forged_header_jwt_verified\s*=\s*true/.test(src),
+        "forged_header_jwt_verified must be set true after JWT check",
+      );
+      // Canonical strict-equality expectation.
+      assert(
+        /forgedValue\s*!==\s*tenantA/.test(src),
+        "forged probe must reject any value !== tenantA (strict)",
+      );
+      // Reject weaker predicates.
+      assert(
+        !/forgedValue\s*!==\s*null\b/.test(src),
+        "forged probe must NOT rely on `forgedValue !== null` as the sole guard",
+      );
+      assert(
+        !/\bresult\s*!==\s*tenantB\b/.test(src),
         "forged probe must NOT rely on `result !== tenantB`",
+      );
+      // Requested/effective/cross-gain fields recorded.
+      assert(
+        /forged_header_requested_tenant\s*=\s*"tenantB"/.test(src),
+        "requested_tenant must be recorded as 'tenantB'",
+      );
+      assert(
+        /forged_header_effective_tenant\s*=\s*"tenantA"/.test(src),
+        "effective_tenant must be recorded as 'tenantA' on the accept branch",
+      );
+      assert(
+        /forged_header_cross_tenant_gain\s*=\s*forgedValue\s*===\s*tenantB/.test(
+          src,
+        ),
+        "cross_tenant_gain must reflect strict tenantB equality",
+      );
+      assert(
+        /forged_header_canonical_contract_verified\s*=\s*true/.test(src),
+        "canonical_contract_verified must be set true on accept branch",
       );
     },
   },
@@ -667,8 +773,16 @@ const cases: Case[] = [
       const src = fs.readFileSync("run-lsv-01-live-specs.ts", "utf8");
       assert(/renameSync\(tmp,\s*EVIDENCE_PATH\)/.test(src), "atomic rename");
       assert(/fsyncSync/.test(src), "fsync before rename");
-      assert(/evidence_readback_mismatch|JSON\.parse\(readback\)/.test(src), "readback validation");
-      // A silent catch that returns undefined would violate the contract.
+      assert(
+        /evidence_readback_mismatch|JSON\.parse\(readback\)/.test(src),
+        "readback validation",
+      );
+      // Success MUST require evidence_persisted === true on the final
+      // on-disk snapshot (never a stale in-memory flag).
+      assert(
+        /evidence\.evidence_persisted\s*===\s*true/.test(src),
+        "success gate must require evidence_persisted === true",
+      );
       assert(!/could not write evidence/.test(src), "no silent evidence swallowing");
     },
   },
@@ -690,7 +804,7 @@ const cases: Case[] = [
       const fs = await import("node:fs");
       const path =
         "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-01-lot-a-live-execution.json";
-      if (!fs.existsSync(path)) return; // skip when evidence not yet materialized
+      if (!fs.existsSync(path)) return;
       const src = fs.readFileSync(path, "utf8");
       assert(!/password/i.test(src), "evidence must not mention password");
       assert(!/Lsv01!/.test(src), "evidence must not embed generated password");
@@ -707,13 +821,34 @@ const cases: Case[] = [
         "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-01-lot-a-live-execution.json";
       if (!fs.existsSync(path)) return;
       const j = JSON.parse(fs.readFileSync(path, "utf8")) as { head?: string; status?: string };
-      // The only case in which head is allowed to be "unresolved" is the
-      // explicit evidence_head_failed status.
       if (j.status !== "evidence_head_failed") {
         assert(
           !!j.head && j.head !== "unknown" && j.head !== "unresolved",
           `evidence.head must be a real sha (got ${j.head})`,
         );
+      }
+    },
+  },
+  {
+    name: "evidence: forged-header canonical fields are present in the schema",
+    run: async () => {
+      const fs = await import("node:fs");
+      const path =
+        "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-01-lot-a-live-execution.json";
+      if (!fs.existsSync(path)) return;
+      const j = JSON.parse(fs.readFileSync(path, "utf8")) as Record<
+        string,
+        unknown
+      >;
+      for (const k of [
+        "forged_header_requested_tenant",
+        "forged_header_effective_tenant",
+        "forged_header_cross_tenant_gain",
+        "forged_header_canonical_contract_verified",
+        "forged_header_denial_verified",
+        "canonical_migration_path",
+      ]) {
+        assert(k in j, `evidence must include ${k}`);
       }
     },
   },
