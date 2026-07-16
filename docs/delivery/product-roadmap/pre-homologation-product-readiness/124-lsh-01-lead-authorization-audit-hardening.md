@@ -1,6 +1,8 @@
 # 124 — LSH-01: Lead Authorization & Audit Hardening
 
-**Status:** Ready for External Audit
+**Status:** Accepted
+**External Audit Approval:** Approved
+**External Audit Evidence HEAD:** `c6769c227e6255a01e1e3a96cac9292e0a72278e`
 
 - Lote A — Runtime Authorization Integration: Completed
 - Lote B — SQL Authority Alignment: Completed
@@ -8,7 +10,7 @@
 
 **Predecessor:** LSO-01 (Rejected — obrigações estruturais transferidas para
 LSH-01; obrigações operacionais para LSV-01).
-**Successor:** LSV-01 (Planned · blocked until external acceptance of LSH-01).
+**Successor:** LSV-01 (In Progress).
 
 ## Baselines vinculantes
 
