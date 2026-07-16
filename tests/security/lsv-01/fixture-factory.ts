@@ -161,27 +161,30 @@ export function createConcreteFactory(opts: FactoryOptions = {}): LsvFixtureFact
         }
 
         // 3) Memberships (7).
+        // 3) Memberships (7). tenant_role uses the SCHEMA enum
+        //    (broker for corretor identities); functional/app_role is a
+        //    separate concept applied in step (4).
         const memberships: Array<{
           tenantId: string;
           userId: string;
-          role: string;
-          status: "active" | "suspended";
+          role: TenantRole;
+          status: Extract<MembershipStatus, "active" | "suspended">;
         }> = [
           { tenantId: tenantA, userId: users.tenant_a_admin!.userId, role: "admin", status: "active" },
-          { tenantId: tenantA, userId: users.tenant_a_corretor_assigned!.userId, role: "corretor", status: "active" },
-          { tenantId: tenantA, userId: users.tenant_a_corretor_unassigned!.userId, role: "corretor", status: "active" },
+          { tenantId: tenantA, userId: users.tenant_a_corretor_assigned!.userId, role: "broker", status: "active" },
+          { tenantId: tenantA, userId: users.tenant_a_corretor_unassigned!.userId, role: "broker", status: "active" },
           { tenantId: tenantA, userId: users.tenant_a_unauthorized_role!.userId, role: "secretaria", status: "active" },
           { tenantId: tenantB, userId: users.tenant_b_admin!.userId, role: "admin", status: "active" },
-          { tenantId: tenantB, userId: users.tenant_b_corretor!.userId, role: "corretor", status: "active" },
-          { tenantId: tenantA, userId: users.suspended_member!.userId, role: "corretor", status: "suspended" },
+          { tenantId: tenantB, userId: users.tenant_b_corretor!.userId, role: "broker", status: "active" },
+          { tenantId: tenantA, userId: users.suspended_member!.userId, role: "broker", status: "suspended" },
         ];
         for (const m of memberships) {
           await createMembership(admin, m.tenantId, m.userId, m.role, m.status);
           partial.membershipKeys.push({ tenantId: m.tenantId, userId: m.userId });
         }
 
-        // 4) app_role grants (secretaria included; super_admin canonical).
-        const roleGrants: Array<{ userId: string; role: string }> = [
+        // 4) app_role grants (functional role — distinct from tenant_role).
+        const roleGrants: Array<{ userId: string; role: AppRole }> = [
           { userId: users.tenant_a_admin!.userId, role: "admin" },
           { userId: users.tenant_a_corretor_assigned!.userId, role: "corretor" },
           { userId: users.tenant_a_corretor_unassigned!.userId, role: "corretor" },
@@ -196,10 +199,12 @@ export function createConcreteFactory(opts: FactoryOptions = {}): LsvFixtureFact
           partial.roleIds.push(g.userId);
         }
 
-        // 5) Properties.
-        const propertyA = await insertProperty(admin, tenantA, `lsv01-${runId}-property-a`);
+        // 5) Properties — slug derived from runId, unique per tenant,
+        //    payload typed against TablesInsert<"imoveis"> so any future
+        //    required column addition is caught at typecheck time.
+        const propertyA = await insertProperty(admin, tenantA, runId, "a");
         partial.propertyIds.push(propertyA);
-        const propertyB = await insertProperty(admin, tenantB, `lsv01-${runId}-property-b`);
+        const propertyB = await insertProperty(admin, tenantB, runId, "b");
         partial.propertyIds.push(propertyB);
 
         // 6) Leads.
