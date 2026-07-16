@@ -215,25 +215,47 @@ const cases: Case[] = [
     run: () => {
       const src = read("src/lib/leads/lead-authorization.server.ts");
       must(!/impersonating\?\s*:\s*boolean/.test(src), "caller-supplied impersonation field present");
-      must(/is_super_admin/.test(src), "canonical Super Admin RPC not referenced");
       // Rejects the anti-pattern `has_role(..., "admin")` as Super Admin.
       must(!/has_role[\s\S]{0,80}_role:\s*["']admin["']/.test(src), "has_role admin used as Super Admin");
     },
   },
   {
-    name: "boundary keeps isSuperAdmin and impersonating semantically distinct (Lote B alignment)",
+    name: "boundary consumes canonical Tenant Context (requireTenant contract)",
+    run: () => {
+      const src = read("src/lib/leads/lead-authorization.server.ts");
+      must(/from ["']@\/integrations\/supabase\/tenant-middleware["']/.test(src), "tenant-middleware not imported");
+      must(/mapTenantOrigin\s*\(/.test(src), "mapTenantOrigin helper missing");
+      must(/deriveLeadTenantContext\s*\(/.test(src), "deriveLeadTenantContext helper missing");
+      must(/tenant:\s*LeadTenantContext/.test(src), "LeadTenantContext not required in context");
+    },
+  },
+  {
+    name: "boundary derives impersonating from Super Admin AND impersonation origin (no constant false)",
     run: () => {
       const src = read("src/lib/leads/lead-authorization.server.ts");
       must(/isSuperAdmin:\s*boolean/.test(src), "isSuperAdmin missing from decision");
       must(/impersonating:\s*boolean/.test(src), "impersonating missing from decision");
-      must(
-        !/impersonating:\s*isSuperAdmin/.test(src),
-        "impersonating must not alias isSuperAdmin",
-      );
-      must(
-        /impersonating:\s*false/.test(src),
-        "boundary must keep impersonating=false (RPC is the authority)",
-      );
+      // The boundary must NOT keep `impersonating: false` as a constant literal
+      // for authorized decisions; Super Admin impersonating returns true.
+      must(!/impersonating:\s*false\s*,\s*\/\/ Fail-closed/.test(src), "legacy fail-closed constant still present");
+      must(/impersonating:\s*true/.test(src), "impersonating=true path missing");
+      // Super Admin path must be reachable and denied without impersonation.
+      must(/super_admin_requires_impersonation/.test(src), "super_admin_requires_impersonation not used");
+    },
+  },
+  {
+    name: "wrappers compose requireTenant middleware (not requireSupabaseAuth alone) for Lead operations",
+    run: () => {
+      const src = read("src/lib/api/admin.functions.ts");
+      const ops = ["adminListarLeads", "adminAtualizarLead", "adminListarImoveisLite", "adminListarLeadAssignees", "criarLeadManual"];
+      for (const fn of ops) {
+        const idx = src.indexOf(`export const ${fn}`);
+        must(idx > 0, `${fn} not found`);
+        const end = src.indexOf("export const ", idx + 20);
+        const region = src.slice(idx, end > 0 ? end : idx + 2000);
+        must(/\.middleware\(\[requireTenant\]\)/.test(region), `${fn} does not compose requireTenant`);
+        must(/context\.tenant/.test(region), `${fn} does not forward context.tenant`);
+      }
     },
   },
   {

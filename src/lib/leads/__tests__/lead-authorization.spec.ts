@@ -1,4 +1,4 @@
-// LSH-01 · Lote A — Unit tests for the typed lead authorization boundary.
+// LSH-01 · Lote B — Unit tests for the typed lead authorization boundary.
 // Deterministic doubles only. No DB, no JWT, no fixtures.
 // The operational multi-tenant/RLS proof belongs to LSV-01.
 
@@ -6,28 +6,47 @@ import {
   authorizeLeadOperation,
   buildLeadAuthorizationContext,
   decideOperationScope,
+  deriveLeadTenantContext,
+  mapTenantOrigin,
   LeadAuthorizationError,
   type LeadAppRole,
+  type LeadAuthorizationContext,
   type LeadAuthorizationRepository,
   type LeadOperation,
+  type LeadTenantContext,
   type TypedSupabase,
 } from "@/lib/leads/lead-authorization.server";
+import type { TenantContext } from "@/integrations/supabase/tenant-middleware";
+
+const TENANT = "11111111-1111-1111-1111-111111111111";
 
 function makeRepo(
   overrides: Partial<LeadAuthorizationRepository> = {},
 ): LeadAuthorizationRepository {
   return {
-    resolveTenant: async () => "11111111-1111-1111-1111-111111111111",
     listActiveMemberships: async () => [
       { id: "t:u", membership_status: "active" },
     ],
     listAppRoles: async (): Promise<ReadonlyArray<LeadAppRole>> => ["admin"],
-    isSuperAdmin: async () => false,
     ...overrides,
   };
 }
 
 const dummySupabase = {} as TypedSupabase;
+
+function memberTenant(): LeadTenantContext {
+  return { tenantId: TENANT, origin: "membership", isSuperAdmin: false };
+}
+function impersonationTenant(): LeadTenantContext {
+  return { tenantId: TENANT, origin: "impersonation", isSuperAdmin: true };
+}
+
+function makeCtx(
+  tenant: LeadTenantContext = memberTenant(),
+  userId = "u1",
+): LeadAuthorizationContext {
+  return { supabase: dummySupabase, userId, tenant };
+}
 
 type Case = { name: string; run: () => Promise<void> };
 
@@ -58,7 +77,7 @@ const cases: Case[] = [
       await shouldReject(
         () =>
           authorizeLeadOperation(
-            { supabase: dummySupabase, userId: "" },
+            makeCtx(memberTenant(), ""),
             "lead.list",
             makeRepo(),
           ),
@@ -69,13 +88,14 @@ const cases: Case[] = [
   {
     name: "tenant not resolved → tenant_not_resolved",
     run: async () => {
+      const ctx: LeadAuthorizationContext = {
+        supabase: dummySupabase,
+        userId: "u1",
+        // Empty tenantId simulates an unresolved tenant surface.
+        tenant: { tenantId: "", origin: "membership", isSuperAdmin: false },
+      };
       await shouldReject(
-        () =>
-          authorizeLeadOperation(
-            { supabase: dummySupabase, userId: "u1" },
-            "lead.list",
-            makeRepo({ resolveTenant: async () => null }),
-          ),
+        () => authorizeLeadOperation(ctx, "lead.list", makeRepo()),
         "tenant_not_resolved",
       );
     },
@@ -86,7 +106,7 @@ const cases: Case[] = [
       await shouldReject(
         () =>
           authorizeLeadOperation(
-            { supabase: dummySupabase, userId: "u1" },
+            makeCtx(),
             "lead.list",
             makeRepo({ listActiveMemberships: async () => [] }),
           ),
@@ -100,7 +120,7 @@ const cases: Case[] = [
       await shouldReject(
         () =>
           authorizeLeadOperation(
-            { supabase: dummySupabase, userId: "u1" },
+            makeCtx(),
             "lead.list",
             makeRepo({
               listActiveMemberships: async () => [
@@ -114,12 +134,79 @@ const cases: Case[] = [
     },
   },
   {
+    name: "Super Admin without impersonation → super_admin_requires_impersonation",
+    run: async () => {
+      const t: LeadTenantContext = {
+        tenantId: TENANT,
+        origin: "membership",
+        isSuperAdmin: true,
+      };
+      await shouldReject(
+        () => authorizeLeadOperation(makeCtx(t), "lead.list", makeRepo()),
+        "super_admin_requires_impersonation",
+      );
+    },
+  },
+  {
+    name: "Super Admin with impersonation → tenant_wide, no membership/role required",
+    run: async () => {
+      // Repo would fail if consulted (asserts membership is not required).
+      const repo: LeadAuthorizationRepository = {
+        listActiveMemberships: async () => {
+          throw new Error("membership repo must not be consulted");
+        },
+        listAppRoles: async () => {
+          throw new Error("role repo must not be consulted");
+        },
+      };
+      const d = await authorizeLeadOperation(
+        makeCtx(impersonationTenant()),
+        "lead.list",
+        repo,
+      );
+      if (d.scope !== "tenant_wide") throw new Error(d.scope);
+      if (!d.isSuperAdmin) throw new Error("isSuperAdmin must be true");
+      if (!d.impersonating) throw new Error("impersonating must be true");
+      if (d.membershipKey !== null)
+        throw new Error("membershipKey must be null");
+      if (d.appRoles.length !== 0) throw new Error("appRoles must be empty");
+    },
+  },
+  {
+    name: "Super Admin impersonating cannot execute workspace_action",
+    run: async () => {
+      await shouldReject(
+        () =>
+          authorizeLeadOperation(
+            makeCtx(impersonationTenant()),
+            "lead.workspace_action",
+            makeRepo(),
+          ),
+        "operation_forbidden",
+      );
+    },
+  },
+  {
+    name: "regular user with impersonation origin → operation_forbidden",
+    run: async () => {
+      const t: LeadTenantContext = {
+        tenantId: TENANT,
+        origin: "impersonation",
+        isSuperAdmin: false,
+      };
+      await shouldReject(
+        () => authorizeLeadOperation(makeCtx(t), "lead.list", makeRepo()),
+        "operation_forbidden",
+      );
+    },
+  },
+  {
     name: "role denied → operation_forbidden (secretaria on create_manual)",
     run: async () => {
       await shouldReject(
         () =>
           authorizeLeadOperation(
-            { supabase: dummySupabase, userId: "u1" },
+            makeCtx(),
             "lead.create_manual",
             makeRepo({ listAppRoles: async () => ["secretaria"] }),
           ),
@@ -133,7 +220,7 @@ const cases: Case[] = [
       await shouldReject(
         () =>
           authorizeLeadOperation(
-            { supabase: dummySupabase, userId: "u1" },
+            makeCtx(),
             "lead.list",
             makeRepo({ listAppRoles: async () => ["captador"] }),
           ),
@@ -142,21 +229,26 @@ const cases: Case[] = [
     },
   },
   {
+    name: "admin (app_role) with membership origin is NOT Super Admin",
+    run: async () => {
+      const d = await authorizeLeadOperation(makeCtx(), "lead.list", makeRepo());
+      if (d.isSuperAdmin)
+        throw new Error("admin app_role must not imply super admin");
+      if (d.impersonating) throw new Error("impersonating must remain false");
+    },
+  },
+  {
     name: "admin → tenant_wide on lead.list",
     run: async () => {
-      const d = await authorizeLeadOperation(
-        { supabase: dummySupabase, userId: "u1" },
-        "lead.list",
-        makeRepo(),
-      );
+      const d = await authorizeLeadOperation(makeCtx(), "lead.list", makeRepo());
       if (d.scope !== "tenant_wide") throw new Error(d.scope);
     },
   },
   {
-    name: "gerente → tenant_wide on lead.list (per matrix evidence)",
+    name: "gerente → tenant_wide on lead.list",
     run: async () => {
       const d = await authorizeLeadOperation(
-        { supabase: dummySupabase, userId: "u1" },
+        makeCtx(),
         "lead.list",
         makeRepo({ listAppRoles: async () => ["gerente"] }),
       );
@@ -167,7 +259,7 @@ const cases: Case[] = [
     name: "corretor → own_assigned on lead.list",
     run: async () => {
       const d = await authorizeLeadOperation(
-        { supabase: dummySupabase, userId: "u1" },
+        makeCtx(),
         "lead.list",
         makeRepo({ listAppRoles: async () => ["corretor"] }),
       );
@@ -180,7 +272,7 @@ const cases: Case[] = [
       await shouldReject(
         () =>
           authorizeLeadOperation(
-            { supabase: dummySupabase, userId: "u1" },
+            makeCtx(),
             "lead.list_assignees",
             makeRepo({ listAppRoles: async () => ["corretor"] }),
           ),
@@ -189,7 +281,7 @@ const cases: Case[] = [
     },
   },
   {
-    name: "workspace_action is unreachable for any role",
+    name: "workspace_action is unreachable for any tenant-scoped role",
     run: async () => {
       for (const role of [
         "admin",
@@ -201,7 +293,7 @@ const cases: Case[] = [
         await shouldReject(
           () =>
             authorizeLeadOperation(
-              { supabase: dummySupabase, userId: "u1" },
+              makeCtx(),
               "lead.workspace_action",
               makeRepo({ listAppRoles: async () => [role] }),
             ),
@@ -211,66 +303,53 @@ const cases: Case[] = [
     },
   },
   {
-    name: "admin (app_role) is NOT Super Admin — impersonating derived only from is_super_admin RPC",
+    name: "mapTenantOrigin collapses selection/single-membership to membership",
     run: async () => {
-      // Repo enforces: admin app_role but isSuperAdmin=false → impersonating=false.
-      const d = await authorizeLeadOperation(
-        { supabase: dummySupabase, userId: "u1" },
-        "lead.list",
-        makeRepo({
-          listAppRoles: async () => ["admin"],
-          isSuperAdmin: async () => false,
-        }),
-      );
-      if (d.impersonating) throw new Error("admin app_role must not imply super admin");
+      if (mapTenantOrigin("selection") !== "membership")
+        throw new Error("selection mapping");
+      if (mapTenantOrigin("single-membership") !== "membership")
+        throw new Error("single-membership mapping");
+      if (mapTenantOrigin("impersonation") !== "impersonation")
+        throw new Error("impersonation mapping");
     },
   },
   {
-    name: "Super Admin evidence is isolated (isSuperAdmin=true) but impersonating stays false at boundary",
+    name: "deriveLeadTenantContext preserves tenantId and Super Admin evidence",
     run: async () => {
-      const d = await authorizeLeadOperation(
-        { supabase: dummySupabase, userId: "u1" },
-        "lead.list",
-        makeRepo({ isSuperAdmin: async () => true }),
-      );
-      if (!d.isSuperAdmin)
-        throw new Error("super admin evidence should set isSuperAdmin=true");
-      if (d.impersonating)
-        throw new Error(
-          "impersonating must remain false at boundary — RPC is the authority",
-        );
-    },
-  },
-  {
-    name: "caller cannot supply impersonation as free boolean (type-level guard)",
-    run: async () => {
-      // TypeScript refuses `impersonating` on LeadAuthorizationContext.
-      // At runtime, casting through unknown does not affect the decision.
-      const ctx = { supabase: dummySupabase, userId: "u1" } as {
-        supabase: TypedSupabase;
-        userId: string;
+      const middleware: TenantContext = {
+        tenantId: TENANT,
+        userId: "u1",
+        isSuperAdmin: true,
+        impersonation: true,
+        origin: "impersonation",
       };
-      const d = await authorizeLeadOperation(
-        ctx,
-        "lead.list",
-        makeRepo({ isSuperAdmin: async () => false }),
-      );
-      if (d.impersonating)
-        throw new Error("caller supplied impersonation must be ignored");
+      const t = deriveLeadTenantContext(middleware);
+      if (t.tenantId !== TENANT) throw new Error("tenantId");
+      if (t.origin !== "impersonation") throw new Error("origin");
+      if (!t.isSuperAdmin) throw new Error("isSuperAdmin");
     },
   },
   {
     name: "buildLeadAuthorizationContext ignores extraneous caller fields",
     run: async () => {
-      const authenticated = {
+      const middleware: TenantContext = {
+        tenantId: TENANT,
+        userId: "u1",
+        isSuperAdmin: false,
+        impersonation: false,
+        origin: "single-membership",
+      };
+      const ctx = buildLeadAuthorizationContext({
         supabase: dummySupabase,
         userId: "u1",
-      };
-      const ctx = buildLeadAuthorizationContext(authenticated);
+        tenant: middleware,
+      });
       if (ctx.userId !== "u1") throw new Error("userId lost");
+      if (ctx.tenant.origin !== "membership")
+        throw new Error("origin not collapsed");
+      if (ctx.tenant.isSuperAdmin) throw new Error("isSuperAdmin leaked");
       if ("impersonating" in (ctx as unknown as Record<string, unknown>))
         throw new Error("impersonating leaked into context");
-
     },
   },
   {
@@ -300,11 +379,7 @@ const cases: Case[] = [
         "lead.update_fields",
       ];
       for (const op of ops) {
-        const d = await authorizeLeadOperation(
-          { supabase: dummySupabase, userId: "u1" },
-          op,
-          makeRepo(),
-        );
+        const d = await authorizeLeadOperation(makeCtx(), op, makeRepo());
         if (d.operation !== op) throw new Error(`op mismatch: ${op}`);
       }
     },

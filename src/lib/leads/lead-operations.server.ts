@@ -1,4 +1,4 @@
-// LSH-01 — Lote A · Lead runtime operations (server-only, testable).
+// LSH-01 · Lote B — Lead runtime operations (server-only, testable).
 //
 // Extrai a lógica das cinco server functions Lead em funções tipadas com
 // dependências injetáveis, permitindo testes determinísticos e mantendo o
@@ -7,17 +7,21 @@
 // ensureActiveTenantMembership) é chamado aqui.
 //
 // O runtime real usa exatamente estas funções — os wrappers em
-// `admin.functions.ts` apenas resolvem o repositório canônico e as chamam.
+// `admin.functions.ts` apenas resolvem o Tenant Context canônico
+// (via `requireTenant`) e as chamam.
 
 import type {
   LeadAuthorizationContext,
   LeadAuthorizationRepository,
+  LeadTenantContext,
   TypedSupabase,
 } from "@/lib/leads/lead-authorization.server";
 import {
   authorizeLeadOperation,
   createSupabaseLeadAuthorizationRepository,
+  deriveLeadTenantContext,
 } from "@/lib/leads/lead-authorization.server";
+import type { TenantContext } from "@/integrations/supabase/tenant-middleware";
 
 // ---------- Data-access abstraction (injetável). ----------
 
@@ -209,13 +213,24 @@ export interface LeadOperationsDeps {
   gateway: LeadOperationsGateway;
 }
 
-/** Constrói deps a partir de um contexto autenticado real. */
+/**
+ * Constrói deps a partir de um contexto autenticado real + Tenant
+ * Context canônico do middleware `requireTenant`.
+ */
 export function createRuntimeLeadOperationsDeps(authenticated: {
   supabase: TypedSupabase;
   userId: string;
+  tenant: TenantContext;
 }): LeadOperationsDeps {
+  const leadTenant: LeadTenantContext = deriveLeadTenantContext(
+    authenticated.tenant,
+  );
   return {
-    authCtx: { supabase: authenticated.supabase, userId: authenticated.userId },
+    authCtx: {
+      supabase: authenticated.supabase,
+      userId: authenticated.userId,
+      tenant: leadTenant,
+    },
     authRepo: createSupabaseLeadAuthorizationRepository(authenticated.supabase),
     gateway: createSupabaseLeadOperationsGateway(authenticated.supabase),
   };

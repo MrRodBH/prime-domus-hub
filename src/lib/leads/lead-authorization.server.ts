@@ -1,31 +1,34 @@
 // LSH-01 — Lead Authorization Boundary (typed, server-only).
 //
-// Recovery Mode · Lote A — Runtime Authorization Integration.
+// Recovery Mode · Lote B — Canonical Impersonation Closure.
 //
 // Autoridade única e tipada de autorização TypeScript para as operações
 // Lead cobertas pela LSH-01. Este módulo NÃO substitui a autoridade
-// transacional da RPC `create_manual_lead`, nem as policies RLS: ele é a
-// primeira camada — resolve tenant no servidor (via `get_current_tenant_id`),
-// valida membership ATIVA com cardinalidade explícita, deriva evidência
-// canônica de Super Admin (via `is_super_admin`) e decide a operação com
-// scope.
-//
-// A comprovação operacional contra Postgres real (múltiplos JWTs, RLS
-// efetivo, grants, impersonation runtime) é escopo exclusivo da LSV-01;
-// aqui os testes são unitários e determinísticos por injeção de dependência.
+// transacional da RPC `create_manual_lead`, nem as policies RLS: é a
+// primeira camada. O tenant é derivado server-side através do contrato
+// canônico (mesmo resolver consumido por `requireTenant`), NUNCA a partir
+// do client. `impersonating` é evidência derivada: Super Admin com
+// `origin = "impersonation"`.
 //
 // IMPORTANTE:
-//  - O contexto público `LeadAuthorizationContext` NÃO aceita mais um
-//    booleano livre `impersonating`. A evidência é derivada no servidor.
-//  - Super Admin é detectado pela RPC canônica `is_super_admin`. Um usuário
-//    com role `admin` (app_role) NÃO é Super Admin.
-//  - Se o runtime atual não expuser evidência canônica adicional de
-//    impersonação (ex.: contexto de tenant-middleware fora deste boundary),
-//    o campo `impersonating` reflete apenas `isSuperAdmin`. Fail-closed
-//    reforçado a nível SQL fica reservado ao Lote B.
+//  - O contexto público NÃO aceita `impersonating`, `isSuperAdmin`,
+//    `tenantId` ou `tenantOrigin` vindos do client. Todos derivam do
+//    Tenant Context canônico (middleware `requireTenant`).
+//  - Super Admin é detectado exclusivamente via evidência canônica
+//    (RPC `is_super_admin`, replicada por `requireTenant`).
+//  - Super Admin sem impersonação canônica NUNCA alcança operações Lead
+//    (`super_admin_requires_impersonation`).
+//  - Super Admin com impersonação canônica IGNORA membership comum e
+//    matriz por papel: scope = `tenant_wide` (exceto `workspace_action`).
+//  - Usuário comum com `origin === "impersonation"` é rejeitado
+//    (`operation_forbidden`).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import type {
+  TenantContext,
+  TenantContextOrigin,
+} from "@/integrations/supabase/tenant-middleware";
 
 export type LeadOperation =
   | "lead.list"
@@ -44,32 +47,57 @@ export type LeadAppRole =
   | "gerente"
   | "captador";
 
+/**
+ * Origem canônica do tenant conforme o contrato do middleware
+ * `requireTenant`. `selection` e `single-membership` colapsam para
+ * `membership` no domínio Lead, pois ambos representam autoridade
+ * derivada de membership ativa.
+ */
+export type LeadTenantOrigin = "membership" | "impersonation";
+
+export interface LeadTenantContext {
+  tenantId: string;
+  origin: LeadTenantOrigin;
+  isSuperAdmin: boolean;
+}
+
 export interface LeadAuthorizationDecision {
   actorUserId: string;
   tenantId: string;
-  membershipKey: string;
+  /**
+   * Chave de identificação da membership resolvida quando existe. Para
+   * o caminho Super Admin com impersonação canônica, permanece `null`
+   * (não há — e não pode haver — membership comum).
+   */
+  membershipKey: string | null;
   operation: LeadOperation;
   scope: LeadAccessScope;
-  /** Evidence from `public.is_super_admin` RPC only. */
+  /** Evidence from canonical Super Admin detection. */
   isSuperAdmin: boolean;
   /**
-   * Impersonation evidence is authoritative only inside the SQL RPC (via the
-   * `x-tenant-id` transport header, mirrored by `get_current_tenant_id`). The
-   * boundary keeps this fail-closed: never derived from `isSuperAdmin`.
+   * Impersonação canônica: `isSuperAdmin === true` E
+   * `tenant.origin === "impersonation"`. Nunca derivada de booleano
+   * livre do caller nem apenas da presença do header `x-tenant-id`.
    */
   impersonating: boolean;
+  /**
+   * Papéis funcionais do ator. Para Super Admin impersonando, retorna
+   * lista vazia — o caminho ignora a matriz por papel.
+   */
   appRoles: ReadonlyArray<LeadAppRole>;
 }
 
 export type TypedSupabase = SupabaseClient<Database>;
 
 /**
- * Contexto público consumido por callers server-side. `impersonating` NÃO
- * é aceito aqui — a evidência é derivada internamente via repo canônico.
+ * Contexto público consumido por callers server-side. Todos os campos
+ * derivam do runtime autenticado + `requireTenant`; nenhum campo é
+ * aceito diretamente do client.
  */
 export interface LeadAuthorizationContext {
   supabase: TypedSupabase;
   userId: string;
+  tenant: LeadTenantContext;
 }
 
 export class LeadAuthorizationError extends Error {
@@ -88,29 +116,46 @@ export class LeadAuthorizationError extends Error {
 }
 
 // -----------------------------------------------------------------------
-// Repository — abstração testável sobre Supabase.
+// Mapeamento canônico do TenantContext (middleware) → LeadTenantContext.
+// -----------------------------------------------------------------------
+
+/** Colapso das origens do middleware para o domínio Lead. */
+export function mapTenantOrigin(origin: TenantContextOrigin): LeadTenantOrigin {
+  return origin === "impersonation" ? "impersonation" : "membership";
+}
+
+/**
+ * Deriva o Tenant Context canônico consumido pelo boundary a partir do
+ * `TenantContext` produzido por `requireTenant`. Este é o único
+ * caminho autorizado para produzir `LeadTenantContext` no runtime.
+ */
+export function deriveLeadTenantContext(
+  middlewareTenant: TenantContext,
+): LeadTenantContext {
+  return {
+    tenantId: middlewareTenant.tenantId,
+    origin: mapTenantOrigin(middlewareTenant.origin),
+    isSuperAdmin: middlewareTenant.isSuperAdmin,
+  };
+}
+
+// -----------------------------------------------------------------------
+// Repository — abstração testável sobre Supabase (memberships + roles).
+// Tenant/Super Admin ficam a cargo do TenantContext canônico.
 // -----------------------------------------------------------------------
 
 export interface LeadAuthorizationRepository {
-  resolveTenant(): Promise<string | null>;
   listActiveMemberships(
     userId: string,
     tenantId: string,
   ): Promise<Array<{ id: string; membership_status: string }>>;
   listAppRoles(userId: string): Promise<ReadonlyArray<LeadAppRole>>;
-  /** Evidência canônica via RPC `is_super_admin`. Nunca via `has_role admin`. */
-  isSuperAdmin(userId: string): Promise<boolean>;
 }
 
 export function createSupabaseLeadAuthorizationRepository(
   supabase: TypedSupabase,
 ): LeadAuthorizationRepository {
   return {
-    async resolveTenant() {
-      const { data, error } = await supabase.rpc("get_current_tenant_id");
-      if (error) throw new Error(error.message);
-      return (data as string | null) ?? null;
-    },
     async listActiveMemberships(userId, tenantId) {
       const { data, error } = await supabase
         .from("tenant_members")
@@ -138,12 +183,6 @@ export function createSupabaseLeadAuthorizationRepository(
       if (error) throw new Error(error.message);
       return ((data ?? []) as Array<{ role: LeadAppRole }>).map((r) => r.role);
     },
-    async isSuperAdmin(_userId) {
-      // RPC canônica sem argumentos (usa `auth.uid()` internamente).
-      const { data, error } = await supabase.rpc("is_super_admin");
-      if (error) throw new Error(error.message);
-      return data === true;
-    },
   };
 }
 
@@ -159,8 +198,8 @@ export function createSupabaseLeadAuthorizationRepository(
 // lead.update_fields             | admin, gerente, corretor        | admin, gerente
 // lead.workspace_action          | (nenhum — sempre denied)        | —
 //
-// Papéis `secretaria` e `captador` não possuem evidência de autoridade
-// sobre o domínio Lead; preferimos negar (fail-closed).
+// Super Admin impersonando ignora a matriz e recebe `tenant_wide`,
+// exceto para `lead.workspace_action` que permanece sempre negada.
 // -----------------------------------------------------------------------
 
 interface OperationRule {
@@ -206,7 +245,7 @@ export function decideOperationScope(
 }
 
 // -----------------------------------------------------------------------
-// Autorização — algoritmo puro sobre o repositório.
+// Autorização — algoritmo puro sobre o Tenant Context canônico + repo.
 // -----------------------------------------------------------------------
 
 export async function authorizeLeadOperation(
@@ -219,10 +258,47 @@ export async function authorizeLeadOperation(
   if (!ctx.userId) {
     throw new LeadAuthorizationError("unauthenticated");
   }
-
-  const tenantId = await repo.resolveTenant();
-  if (!tenantId) {
+  if (!ctx.tenant || !ctx.tenant.tenantId) {
     throw new LeadAuthorizationError("tenant_not_resolved");
+  }
+
+  const { tenantId, origin, isSuperAdmin } = ctx.tenant;
+
+  // ------------------------------------------------------------------
+  // Caminho Super Admin.
+  // ------------------------------------------------------------------
+  if (isSuperAdmin) {
+    if (origin !== "impersonation") {
+      throw new LeadAuthorizationError("super_admin_requires_impersonation");
+    }
+    if (operation === "lead.workspace_action") {
+      throw new LeadAuthorizationError(
+        "operation_forbidden",
+        `forbidden: ${operation}`,
+      );
+    }
+    return {
+      actorUserId: ctx.userId,
+      tenantId,
+      membershipKey: null,
+      operation,
+      scope: "tenant_wide",
+      isSuperAdmin: true,
+      impersonating: true,
+      appRoles: [],
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // Caminho de usuário comum.
+  // ------------------------------------------------------------------
+  if (origin === "impersonation") {
+    // Regular users never legitimately reach the boundary with an
+    // impersonation origin — that state is reserved to Super Admin.
+    throw new LeadAuthorizationError(
+      "operation_forbidden",
+      `forbidden: ${operation}`,
+    );
   }
 
   const memberships = await repo.listActiveMemberships(ctx.userId, tenantId);
@@ -233,11 +309,7 @@ export async function authorizeLeadOperation(
     throw new LeadAuthorizationError("membership_ambiguous");
   }
 
-  const [appRoles, isSuperAdmin] = await Promise.all([
-    repo.listAppRoles(ctx.userId),
-    repo.isSuperAdmin(ctx.userId),
-  ]);
-
+  const appRoles = await repo.listAppRoles(ctx.userId);
   const { authorized, scope } = decideOperationScope(operation, appRoles);
   if (!authorized) {
     throw new LeadAuthorizationError(
@@ -252,29 +324,29 @@ export async function authorizeLeadOperation(
     membershipKey: memberships[0].id,
     operation,
     scope,
-    isSuperAdmin,
-    // Fail-closed: impersonation is proven only by the RPC (header transport).
+    isSuperAdmin: false,
     impersonating: false,
     appRoles,
   };
 }
 
 // -----------------------------------------------------------------------
-// Adaptador server-only — converte o contexto do middleware
-// (`requireSupabaseAuth`) no contexto público do boundary. Server-side
-// apenas; nenhum campo derivado do client é aceito.
+// Adaptador server-only — converte o contexto autenticado + tenant
+// canônico no contexto público do boundary.
 // -----------------------------------------------------------------------
 
-export interface AuthenticatedRequestLike {
+export interface AuthenticatedTenantAwareRequest {
   supabase: TypedSupabase;
   userId: string;
+  tenant: TenantContext;
 }
 
 export function buildLeadAuthorizationContext(
-  authenticated: AuthenticatedRequestLike,
+  authenticated: AuthenticatedTenantAwareRequest,
 ): LeadAuthorizationContext {
   return {
     supabase: authenticated.supabase,
     userId: authenticated.userId,
+    tenant: deriveLeadTenantContext(authenticated.tenant),
   };
 }
