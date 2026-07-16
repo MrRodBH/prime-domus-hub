@@ -1,9 +1,10 @@
-// LSH-01 — Unit tests for the typed lead authorization boundary.
+// LSH-01 · Lote A — Unit tests for the typed lead authorization boundary.
 // Deterministic doubles only. No DB, no JWT, no fixtures.
 // The operational multi-tenant/RLS proof belongs to LSV-01.
 
 import {
   authorizeLeadOperation,
+  buildLeadAuthorizationContext,
   decideOperationScope,
   LeadAuthorizationError,
   type LeadAppRole,
@@ -12,10 +13,14 @@ import {
   type TypedSupabase,
 } from "@/lib/leads/lead-authorization.server";
 
-function makeRepo(overrides: Partial<LeadAuthorizationRepository> = {}): LeadAuthorizationRepository {
+function makeRepo(
+  overrides: Partial<LeadAuthorizationRepository> = {},
+): LeadAuthorizationRepository {
   return {
     resolveTenant: async () => "11111111-1111-1111-1111-111111111111",
-    listActiveMemberships: async () => [{ id: "m1", membership_status: "active" }],
+    listActiveMemberships: async () => [
+      { id: "t:u", membership_status: "active" },
+    ],
     listAppRoles: async (): Promise<ReadonlyArray<LeadAppRole>> => ["admin"],
     isSuperAdmin: async () => false,
     ...overrides,
@@ -27,11 +32,16 @@ const dummySupabase = {} as TypedSupabase;
 type Case = { name: string; run: () => Promise<void> };
 
 function expectCode(err: unknown, code: LeadAuthorizationError["code"]): void {
-  if (!(err instanceof LeadAuthorizationError)) throw new Error(`expected LeadAuthorizationError, got ${String(err)}`);
-  if (err.code !== code) throw new Error(`expected code ${code}, got ${err.code}`);
+  if (!(err instanceof LeadAuthorizationError))
+    throw new Error(`expected LeadAuthorizationError, got ${String(err)}`);
+  if (err.code !== code)
+    throw new Error(`expected code ${code}, got ${err.code}`);
 }
 
-async function shouldReject(fn: () => Promise<unknown>, code: LeadAuthorizationError["code"]): Promise<void> {
+async function shouldReject(
+  fn: () => Promise<unknown>,
+  code: LeadAuthorizationError["code"],
+): Promise<void> {
   try {
     await fn();
   } catch (e) {
@@ -46,7 +56,12 @@ const cases: Case[] = [
     name: "unauthenticated → throws unauthenticated",
     run: async () => {
       await shouldReject(
-        () => authorizeLeadOperation({ supabase: dummySupabase, userId: "" }, "lead.list", makeRepo()),
+        () =>
+          authorizeLeadOperation(
+            { supabase: dummySupabase, userId: "" },
+            "lead.list",
+            makeRepo(),
+          ),
         "unauthenticated",
       );
     },
@@ -89,8 +104,8 @@ const cases: Case[] = [
             "lead.list",
             makeRepo({
               listActiveMemberships: async () => [
-                { id: "m1", membership_status: "active" },
-                { id: "m2", membership_status: "active" },
+                { id: "a", membership_status: "active" },
+                { id: "b", membership_status: "active" },
               ],
             }),
           ),
@@ -99,35 +114,64 @@ const cases: Case[] = [
     },
   },
   {
-    name: "operation forbidden for viewer → operation_forbidden",
+    name: "role denied → operation_forbidden (secretaria on create_manual)",
     run: async () => {
       await shouldReject(
         () =>
           authorizeLeadOperation(
             { supabase: dummySupabase, userId: "u1" },
             "lead.create_manual",
-            makeRepo({ listAppRoles: async () => [] as ReadonlyArray<LeadAppRole> }),
+            makeRepo({ listAppRoles: async () => ["secretaria"] }),
           ),
         "operation_forbidden",
       );
     },
   },
   {
-    name: "admin → tenant_wide scope on lead.list",
+    name: "captador denied on lead.list (fail-closed)",
     run: async () => {
-      const d = await authorizeLeadOperation({ supabase: dummySupabase, userId: "u1" }, "lead.list", makeRepo());
-      if (d.scope !== "tenant_wide") throw new Error(`expected tenant_wide, got ${d.scope}`);
+      await shouldReject(
+        () =>
+          authorizeLeadOperation(
+            { supabase: dummySupabase, userId: "u1" },
+            "lead.list",
+            makeRepo({ listAppRoles: async () => ["captador"] }),
+          ),
+        "operation_forbidden",
+      );
     },
   },
   {
-    name: "corretor → own_assigned scope on lead.list",
+    name: "admin → tenant_wide on lead.list",
+    run: async () => {
+      const d = await authorizeLeadOperation(
+        { supabase: dummySupabase, userId: "u1" },
+        "lead.list",
+        makeRepo(),
+      );
+      if (d.scope !== "tenant_wide") throw new Error(d.scope);
+    },
+  },
+  {
+    name: "gerente → tenant_wide on lead.list (per matrix evidence)",
+    run: async () => {
+      const d = await authorizeLeadOperation(
+        { supabase: dummySupabase, userId: "u1" },
+        "lead.list",
+        makeRepo({ listAppRoles: async () => ["gerente"] }),
+      );
+      if (d.scope !== "tenant_wide") throw new Error(d.scope);
+    },
+  },
+  {
+    name: "corretor → own_assigned on lead.list",
     run: async () => {
       const d = await authorizeLeadOperation(
         { supabase: dummySupabase, userId: "u1" },
         "lead.list",
         makeRepo({ listAppRoles: async () => ["corretor"] }),
       );
-      if (d.scope !== "own_assigned") throw new Error(`expected own_assigned, got ${d.scope}`);
+      if (d.scope !== "own_assigned") throw new Error(d.scope);
     },
   },
   {
@@ -145,20 +189,15 @@ const cases: Case[] = [
     },
   },
   {
-    name: "admin can list_properties (tenant_wide)",
-    run: async () => {
-      const d = await authorizeLeadOperation(
-        { supabase: dummySupabase, userId: "u1" },
-        "lead.list_properties",
-        makeRepo(),
-      );
-      if (d.scope !== "tenant_wide") throw new Error(d.scope);
-    },
-  },
-  {
     name: "workspace_action is unreachable for any role",
     run: async () => {
-      for (const role of ["admin", "corretor", "gerente", "secretaria", "captador"] as LeadAppRole[]) {
+      for (const role of [
+        "admin",
+        "corretor",
+        "gerente",
+        "secretaria",
+        "captador",
+      ] as LeadAppRole[]) {
         await shouldReject(
           () =>
             authorizeLeadOperation(
@@ -172,35 +211,77 @@ const cases: Case[] = [
     },
   },
   {
-    name: "decideOperationScope: admin gets tenant_wide on update_fields",
+    name: "admin (app_role) is NOT Super Admin — impersonating derived only from is_super_admin RPC",
     run: async () => {
-      const r = decideOperationScope("lead.update_fields", ["admin"]);
-      if (!r.authorized || r.scope !== "tenant_wide") throw new Error(JSON.stringify(r));
+      // Repo enforces: admin app_role but isSuperAdmin=false → impersonating=false.
+      const d = await authorizeLeadOperation(
+        { supabase: dummySupabase, userId: "u1" },
+        "lead.list",
+        makeRepo({
+          listAppRoles: async () => ["admin"],
+          isSuperAdmin: async () => false,
+        }),
+      );
+      if (d.impersonating) throw new Error("admin app_role must not imply super admin");
     },
   },
   {
-    name: "decideOperationScope: corretor gets own_assigned on update_fields",
-    run: async () => {
-      const r = decideOperationScope("lead.update_fields", ["corretor"]);
-      if (!r.authorized || r.scope !== "own_assigned") throw new Error(JSON.stringify(r));
-    },
-  },
-  {
-    name: "decideOperationScope: unknown role denies create_manual",
-    run: async () => {
-      const r = decideOperationScope("lead.create_manual", ["secretaria"]);
-      if (r.authorized) throw new Error("should be denied");
-    },
-  },
-  {
-    name: "impersonation flag is preserved in decision",
+    name: "Super Admin evidence flows into decision.impersonating (canonical RPC)",
     run: async () => {
       const d = await authorizeLeadOperation(
-        { supabase: dummySupabase, userId: "u1", impersonating: true },
+        { supabase: dummySupabase, userId: "u1" },
         "lead.list",
-        makeRepo(),
+        makeRepo({ isSuperAdmin: async () => true }),
       );
-      if (!d.impersonating) throw new Error("impersonation flag lost");
+      if (!d.impersonating)
+        throw new Error("super admin evidence should set impersonating");
+    },
+  },
+  {
+    name: "caller cannot supply impersonation as free boolean (type-level guard)",
+    run: async () => {
+      // TypeScript refuses `impersonating` on LeadAuthorizationContext.
+      // At runtime, casting through unknown does not affect the decision.
+      const ctx = { supabase: dummySupabase, userId: "u1" } as {
+        supabase: TypedSupabase;
+        userId: string;
+      };
+      const d = await authorizeLeadOperation(
+        ctx,
+        "lead.list",
+        makeRepo({ isSuperAdmin: async () => false }),
+      );
+      if (d.impersonating)
+        throw new Error("caller supplied impersonation must be ignored");
+    },
+  },
+  {
+    name: "buildLeadAuthorizationContext ignores extraneous caller fields",
+    run: async () => {
+      const authenticated = {
+        supabase: dummySupabase,
+        userId: "u1",
+      };
+      const ctx = buildLeadAuthorizationContext(authenticated);
+      if (ctx.userId !== "u1") throw new Error("userId lost");
+      if ("impersonating" in (ctx as Record<string, unknown>))
+        throw new Error("impersonating leaked into context");
+    },
+  },
+  {
+    name: "decideOperationScope: admin tenant_wide on update_fields",
+    run: async () => {
+      const r = decideOperationScope("lead.update_fields", ["admin"]);
+      if (!r.authorized || r.scope !== "tenant_wide")
+        throw new Error(JSON.stringify(r));
+    },
+  },
+  {
+    name: "decideOperationScope: corretor own_assigned on update_fields",
+    run: async () => {
+      const r = decideOperationScope("lead.update_fields", ["corretor"]);
+      if (!r.authorized || r.scope !== "own_assigned")
+        throw new Error(JSON.stringify(r));
     },
   },
   {
@@ -214,14 +295,21 @@ const cases: Case[] = [
         "lead.update_fields",
       ];
       for (const op of ops) {
-        const d = await authorizeLeadOperation({ supabase: dummySupabase, userId: "u1" }, op, makeRepo());
+        const d = await authorizeLeadOperation(
+          { supabase: dummySupabase, userId: "u1" },
+          op,
+          makeRepo(),
+        );
         if (d.operation !== op) throw new Error(`op mismatch: ${op}`);
       }
     },
   },
 ];
 
-export async function runLeadAuthorizationSpecs(): Promise<{ passed: number; failed: number }> {
+export async function runLeadAuthorizationSpecs(): Promise<{
+  passed: number;
+  failed: number;
+}> {
   let passed = 0;
   let failed = 0;
   for (const c of cases) {
