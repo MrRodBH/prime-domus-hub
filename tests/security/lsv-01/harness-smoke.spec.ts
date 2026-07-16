@@ -644,7 +644,7 @@ const cases: Case[] = [
     run: async () => {
       const fs = await import("node:fs");
       const { CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION } = await import(
-        "../../../run-lsv-01-live-specs"
+        "./canonical-migration"
       );
       assert(
         typeof CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION === "string" &&
@@ -664,7 +664,7 @@ const cases: Case[] = [
     run: async () => {
       const fs = await import("node:fs");
       const { CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION } = await import(
-        "../../../run-lsv-01-live-specs"
+        "./canonical-migration"
       );
       const src = fs.readFileSync(
         CANONICAL_GET_CURRENT_TENANT_ID_MIGRATION,
