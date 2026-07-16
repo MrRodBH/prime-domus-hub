@@ -2,7 +2,7 @@
 
 **Status:** In Progress
 
-- Lote A — Isolated Live Security Harness & Identity Matrix Foundation: **In Progress** — repository harness implementation ready; **live environment execution pending** (no authorized non-production target available in the current environment).
+- Lote A — Isolated Live Security Harness & Identity Matrix Foundation: **In Progress** — repository harness implementation **ready** (schema-typed factory, atomic fail-closed evidence, forged-header cross-tenant probe with mandatory login verification, aggregator persisting typecheck/build/harness/live/lsh exits); **live environment execution pending** (no authorized non-production target available in the current environment).
 - Lote B — Live Authorization, RLS, Grants & Impersonation Matrix: **Blocked** (awaiting Lote A live execution).
 - Lote C — Atomicity, Rollback, Concurrency & Final Closure: Pending.
 
@@ -19,18 +19,33 @@ Materializado neste HEAD:
   desconhecidos são rejeitados mesmo quando `LSV_ALLOWED_PROJECT_REF`
   coincide com a URL; o ref de produção da aplicação está em denylist
   canônica.
-- Factory concreta (`createConcreteFactory`) e cleanup concreto
-  (`createConcreteCleanup`) implementados; ambos exigem client
-  administrativo emitido apenas após aprovação do guard.
-- Runner live (`run-lsv-01-live-specs.ts`) escreve evidência redigida
-  em `docs/delivery/product-roadmap/pre-homologation-product-readiness/
-  evidence/lsv-01-lot-a-live-execution.json` e **falha explicitamente
-  quando não há target autorizado ou quando qualquer etapa live é
-  pulada** — nunca declara sucesso sem execução real.
-- Testes negativos do guard incluem: ref opaco desconhecido, ref de
-  produção via denylist, target `local` com URL não-loopback, target
-  `ephemeral`/`staging` com ref fora da allowlist.
-- Regressão LSH-01 preservada (bun run test:lsh-01 exit 0).
+- Factory concreta (`createConcreteFactory`) tipada contra o schema
+  gerado (`Database["public"]["Enums"]`): `tenant_role`, `app_role`,
+  `membership_status`. `tenant_role` para corretores é agora **broker**
+  (o enum canônico); `corretor` permanece como `app_role` funcional
+  (concept distinto). Payloads de `imoveis`, `tenant_members` e
+  `user_roles` são tipados via `TablesInsert<"...">`, incluindo `slug`
+  em `imoveis` derivado do `runId`.
+- Cleanup concreto (`createConcreteCleanup`) implementado e mantido.
+- Runner live (`run-lsv-01-live-specs.ts`):
+  - valida o login do client `adminAForged` antes de acionar a RPC
+    (`forged_header_auth_verified`);
+  - aceita apenas `NULL` como resultado canônico do probe de header
+    forjado; qualquer tenant (incluindo tenant A) falha fechado;
+  - `writeEvidence` é atômico (temp file + `fsync` + `renameSync` +
+    JSON re-parse); falha de persistência sempre resulta em exit não
+    zero — nenhum caminho silencia a evidência.
+- Aggregator (`run-lsv-01-lot-a.ts`) captura e persiste os exits reais
+  de `typecheck_exit`, `build_exit`, `structural_harness_exit`,
+  `live_harness_exit`, `lsh_regression_exit`, `aggregate_exit` no
+  mesmo artefato de evidência.
+- Testes estruturais adicionais cobrem: origem tipada de `tenant_role`
+  / `app_role` / `membership_status`, ausência de `tenant_role="corretor"`,
+  presença de `slug` no payload de `imoveis`, validação do login no
+  probe de forged-header, atomicidade de `writeEvidence`, persistência
+  dos exits pelo aggregator, ausência de secrets/JWT no artefato,
+  e proibição de `head=unknown/unresolved` na evidência.
+- Regressão LSH-01 preservada (`bun run test:lsh-01` exit 0).
 
 Ainda pendente para declarar Lote A **Completed**:
 
@@ -38,8 +53,9 @@ Ainda pendente para declarar Lote A **Completed**:
   (adicionar o project ref em `ALLOWLIST_PROJECT_REFS`).
 - Execução real de `bun run test:lsv-01:live` contra esse target,
   produzindo evidência com `production_guard_passed=true`,
-  `real_sessions_acquired > 0`, `tenant_context_smoke_failed = 0`,
-  `orphaned_fixtures = 0`.
+  `real_sessions_acquired > 0`, `forged_header_denial_verified=true`,
+  `tenant_context_smoke_failed = 0`, `orphaned_fixtures = 0`,
+  `evidence_persisted = true`.
 
 
 ## Baselines vinculantes
