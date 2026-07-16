@@ -240,18 +240,17 @@ Regras permanentes (Cadeia de Etapas Executáveis, reconciliadas por FRR-01):
   para LSV-03, atomicidade/rollback/concorrência para LSV-04;
 - cada etapa é um gate arquitetural autônomo de primeira classe;
 - não existe numeração decimal corretiva (`.1`, `.2`, ...) para etapas;
-- uma etapa pode ser executada em múltiplos lotes operacionais internos,
-  atravessando múltiplos prompts e múltiplas aprovações operacionais de
-  continuidade, sem que isso a caracterize como corrigida ou fracassada;
-- lotes operacionais são unidades internas de execução: não são etapas,
-  não recebem identificadores decimais e não têm aceite arquitetural
-  independente;
-- requisitos obrigatórios de uma etapa não podem ser reclassificados como
-  limitações conhecidas nem transferidos silenciosamente entre lotes;
-- cada lote deve produzir commits, testes e evidências verificáveis;
+- lotes operacionais permanecem apenas como rastreabilidade histórica
+  das etapas já executadas; não são unidades ativas de execução para
+  etapas restantes e não podem ser criados novos lotes, sublotes ou
+  identificadores decimais;
+- requisitos obrigatórios de uma etapa não podem ser reclassificados
+  como limitações conhecidas nem transferidos silenciosamente entre
+  prompts;
 - Rejected é reservado para arquitetura inválida, abandono formal ou
-  solução implementada e comprovadamente inadequada; incapacidade de
-  concluir a etapa em um único turno não constitui rejeição arquitetural;
+  solução implementada e comprovadamente inadequada; estouro de
+  PROMPT_BUDGET força estado terminal (Rejected, Superseded ou
+  Blocked External);
 - a auditoria externa final da etapa continua sendo obrigatória para
   Accepted;
 - GitHub permanece a fonte primária da auditoria.
