@@ -1,6 +1,13 @@
 // LSV-01 · Lote A — Environment guard.
 // Server-only. Fails closed unless the operator explicitly declares a
-// non-production target. Never logs secrets, JWTs, or service role keys.
+// non-production target AND the resolved project ref is either a
+// loopback local URL or on the trusted allowlist. Never logs secrets,
+// JWTs, or service role keys.
+
+import {
+  classifyProjectRef,
+  isLocalSupabaseUrl,
+} from "./authorized-test-targets";
 
 export type LsvAuthorizedTarget = "local" | "ephemeral" | "staging";
 
@@ -42,11 +49,8 @@ const PRODUCTION_HINT_PATTERNS: ReadonlyArray<RegExp> = [
   /live/i,
 ];
 
-/**
- * Extract the Supabase project ref from an URL like
- * `https://<ref>.supabase.co`. Returns empty string when it can't be parsed.
- * Never returns secrets or logs anything.
- */
+const CODE = "LSV_TEST_TARGET_NOT_AUTHORIZED";
+
 export function extractProjectRef(url: string): string {
   try {
     const u = new URL(url);
@@ -61,29 +65,19 @@ export function extractProjectRef(url: string): string {
   }
 }
 
-/**
- * Fingerprints a project ref for structured output. Never call this on
- * secrets: it's designed for opaque, non-sensitive identifiers only.
- */
 export function redactProjectRef(ref: string): string {
   if (!ref) return "<empty>";
   if (ref.length <= 6) return `${ref[0] ?? ""}***`;
   return `${ref.slice(0, 3)}***${ref.slice(-2)}`;
 }
 
-/**
- * Runs the environment guard. Throws LsvEnvironmentGuardError with code
- * `LSV_TEST_TARGET_NOT_AUTHORIZED` for any failure. On success returns
- * the resolved environment. Handlers must never render the returned
- * secret material in logs, reports, or errors.
- */
 export function assertLsvTestEnvironment(
   input: LsvGuardInput,
 ): LsvAuthorizedEnvironment {
   const mode = input.LSV_TEST_MODE?.trim();
   if (mode !== "1") {
     throw new LsvEnvironmentGuardError(
-      "LSV_TEST_TARGET_NOT_AUTHORIZED",
+      CODE,
       "LSV_TEST_MODE must be set to '1' to run the live security harness.",
     );
   }
@@ -91,7 +85,7 @@ export function assertLsvTestEnvironment(
   const target = (input.LSV_TEST_TARGET ?? "").trim().toLowerCase();
   if (!AUTHORIZED_TARGETS.has(target as LsvAuthorizedTarget)) {
     throw new LsvEnvironmentGuardError(
-      "LSV_TEST_TARGET_NOT_AUTHORIZED",
+      CODE,
       `Unknown or missing LSV_TEST_TARGET. Allowed: local | ephemeral | staging.`,
     );
   }
@@ -103,39 +97,82 @@ export function assertLsvTestEnvironment(
 
   if (!supabaseUrl || !anonKey || !serviceRoleKey || !allowedRef) {
     throw new LsvEnvironmentGuardError(
-      "LSV_TEST_TARGET_NOT_AUTHORIZED",
+      CODE,
       "Missing required test-target configuration.",
-    );
-  }
-
-  const projectRef = extractProjectRef(supabaseUrl);
-  if (!projectRef) {
-    throw new LsvEnvironmentGuardError(
-      "LSV_TEST_TARGET_NOT_AUTHORIZED",
-      "SUPABASE_URL does not resolve to a valid project ref.",
-    );
-  }
-
-  if (projectRef !== allowedRef) {
-    throw new LsvEnvironmentGuardError(
-      "LSV_TEST_TARGET_NOT_AUTHORIZED",
-      "Project ref of SUPABASE_URL does not match LSV_ALLOWED_PROJECT_REF.",
     );
   }
 
   for (const rx of PRODUCTION_HINT_PATTERNS) {
     if (rx.test(target)) {
       throw new LsvEnvironmentGuardError(
-        "LSV_TEST_TARGET_NOT_AUTHORIZED",
+        CODE,
         "Target label contains a production hint.",
       );
     }
     if (rx.test(allowedRef)) {
       throw new LsvEnvironmentGuardError(
-        "LSV_TEST_TARGET_NOT_AUTHORIZED",
+        CODE,
         "Allowed project ref contains a production hint.",
       );
     }
+  }
+
+  // --- local target: must be a loopback URL; ref check relaxed. ---
+  if (target === "local") {
+    if (!isLocalSupabaseUrl(supabaseUrl)) {
+      throw new LsvEnvironmentGuardError(
+        CODE,
+        "LSV_TEST_TARGET=local requires a loopback SUPABASE_URL.",
+      );
+    }
+    const projectRef = extractProjectRef(supabaseUrl) || "local";
+    // Denylist still applies (defence in depth) even for local labels.
+    const classification = classifyProjectRef(projectRef);
+    if (classification.kind === "denied") {
+      throw new LsvEnvironmentGuardError(
+        CODE,
+        "Project ref is on the LSV-01 denylist.",
+      );
+    }
+    return {
+      target,
+      supabaseUrl,
+      anonKey,
+      serviceRoleKey,
+      projectRef,
+    };
+  }
+
+  // --- ephemeral / staging targets require a real project ref match. ---
+  const projectRef = extractProjectRef(supabaseUrl);
+  if (!projectRef) {
+    throw new LsvEnvironmentGuardError(
+      CODE,
+      "SUPABASE_URL does not resolve to a valid project ref.",
+    );
+  }
+
+  if (projectRef !== allowedRef) {
+    throw new LsvEnvironmentGuardError(
+      CODE,
+      "Project ref of SUPABASE_URL does not match LSV_ALLOWED_PROJECT_REF.",
+    );
+  }
+
+  const classification = classifyProjectRef(projectRef);
+  if (classification.kind === "denied") {
+    throw new LsvEnvironmentGuardError(
+      CODE,
+      "Project ref is on the LSV-01 denylist (known production ref).",
+    );
+  }
+  if (classification.kind !== "allowed") {
+    // Unknown opaque ref — fail closed. A production ref cannot pass
+    // merely by being declared as staging with a matching LSV_ALLOWED_PROJECT_REF.
+    throw new LsvEnvironmentGuardError(
+      CODE,
+      "Project ref is not on the trusted LSV-01 allowlist.",
+    );
   }
 
   return {
