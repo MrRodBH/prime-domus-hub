@@ -1,36 +1,36 @@
 // LSV-01 · Lote A — Fixture factory.
 //
-// Two implementations live here:
-//   * createRefusingFactory() — used when the environment guard has not
-//     authorized a target. Every call throws.
-//   * createConcreteFactory() — used ONLY after the guard authorizes a
-//     non-production target. Performs real service-role writes against
-//     the isolated project to materialize the LSV-01 identity matrix.
-//
-// The concrete implementation intentionally never resolves fixtures via
-// LIMIT 1 or "first tenant" selection: every returned UUID comes from
-// the row the service-role client just inserted. Cardinality deviations
-// raise `LsvFixtureError`.
+// Materializes the full LSV-01 identity/tenant/lead graph against an
+// authorized non-production Supabase project via the service-role
+// client. Returns a LsvFixtureBundle whose credentials live ONLY in
+// memory. Every ID comes from the INSERT that produced it — never from
+// LIMIT 1 or "first row" selection. On partial failure, the factory
+// runs an in-memory compensation using the partial manifest and
+// re-throws a structured error containing NO secrets.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  LsvAuthenticatedIdentity,
+  LsvFixtureBundle,
   LsvFixtureContext,
+  LsvFixtureManifest,
   LsvIdentity,
+  LsvRuntimeCredential,
   LsvUserRecord,
 } from "./fixture-types";
 
 export class LsvFixtureError extends Error {
   readonly code: string;
-  constructor(code: string, message: string) {
+  readonly compensationCode?: string;
+  constructor(code: string, message: string, compensationCode?: string) {
     super(message);
     this.code = code;
+    this.compensationCode = compensationCode;
     this.name = "LsvFixtureError";
   }
 }
 
 export function makeRunId(): string {
-  // Non-sensitive, opaque, sortable by wallclock. Never derived from
-  // secrets, never contains PII.
   const rand = Math.random().toString(36).slice(2, 10);
   return `lsv01-${Date.now().toString(36)}-${rand}`;
 }
@@ -48,14 +48,20 @@ export const IDENTITIES: ReadonlyArray<LsvIdentity> = [
   "anonymous",
 ] as const;
 
+export const AUTH_IDENTITIES: ReadonlyArray<LsvAuthenticatedIdentity> = [
+  "tenant_a_admin",
+  "tenant_a_corretor_assigned",
+  "tenant_a_corretor_unassigned",
+  "tenant_a_unauthorized_role",
+  "tenant_b_admin",
+  "tenant_b_corretor",
+  "suspended_member",
+  "removed_or_no_membership_user",
+  "super_admin",
+] as const;
+
 export interface LsvFixtureFactory {
-  /**
-   * Creates the full LSV-01 fixture graph for `runId` using the provided
-   * service-role admin client. Returns an immutable fixture context.
-   * The factory rejects reuse of the same `runId` within a single
-   * process invocation.
-   */
-  setup(admin: SupabaseClient, runId: string): Promise<LsvFixtureContext>;
+  setup(admin: SupabaseClient, runId: string): Promise<LsvFixtureBundle>;
 }
 
 export function createRefusingFactory(): LsvFixtureFactory {
@@ -70,21 +76,34 @@ export function createRefusingFactory(): LsvFixtureFactory {
 }
 
 interface FactoryOptions {
-  /** In-process seen runIds to prevent duplicate execution. */
   readonly seen?: Set<string>;
 }
 
-/**
- * The concrete factory. Only wire this into the runner AFTER the guard
- * has authorized a non-production target. All mutations use the
- * service-role admin client. Every returned ID is read from the RETURN
- * clause of the INSERT that produced it — never selected via LIMIT 1.
- */
+interface PartialManifest {
+  tenantIds: string[];
+  authUserIds: string[];
+  membershipKeys: { tenantId: string; userId: string }[];
+  roleIds: string[];
+  propertyIds: string[];
+  leadIds: string[];
+}
+
+function emptyPartial(): PartialManifest {
+  return {
+    tenantIds: [],
+    authUserIds: [],
+    membershipKeys: [],
+    roleIds: [],
+    propertyIds: [],
+    leadIds: [],
+  };
+}
+
 export function createConcreteFactory(opts: FactoryOptions = {}): LsvFixtureFactory {
   const seen = opts.seen ?? new Set<string>();
 
   return {
-    async setup(admin: SupabaseClient, runId: string): Promise<LsvFixtureContext> {
+    async setup(admin: SupabaseClient, runId: string): Promise<LsvFixtureBundle> {
       if (!runId || !runId.startsWith("lsv01-")) {
         throw new LsvFixtureError("LSV_FIXTURE_INVALID_RUN_ID", "Invalid runId.");
       }
@@ -96,23 +115,8 @@ export function createConcreteFactory(opts: FactoryOptions = {}): LsvFixtureFact
       }
       seen.add(runId);
 
-      // Step 1 — tenants.
-      const tenantA = await insertTenant(admin, runId, "a");
-      const tenantB = await insertTenant(admin, runId, "b");
-
-      // Step 2 — Auth users. Passwords stay only in memory.
-      const authIdentities: readonly LsvIdentity[] = [
-        "tenant_a_admin",
-        "tenant_a_corretor_assigned",
-        "tenant_a_corretor_unassigned",
-        "tenant_a_unauthorized_role",
-        "tenant_b_admin",
-        "tenant_b_corretor",
-        "suspended_member",
-        "removed_or_no_membership_user",
-        "super_admin",
-      ];
-
+      const partial = emptyPartial();
+      const credentials = new Map<LsvAuthenticatedIdentity, LsvRuntimeCredential>();
       const users: Record<LsvIdentity, LsvUserRecord | null> = {
         tenant_a_admin: null,
         tenant_a_corretor_assigned: null,
@@ -126,96 +130,199 @@ export function createConcreteFactory(opts: FactoryOptions = {}): LsvFixtureFact
         anonymous: null,
       };
 
-      const passwords = new Map<LsvIdentity, string>();
+      try {
+        // 1) Tenants.
+        const tenantA = await insertTenant(admin, runId, "a");
+        partial.tenantIds.push(tenantA);
+        const tenantB = await insertTenant(admin, runId, "b");
+        partial.tenantIds.push(tenantB);
 
-      for (const alias of authIdentities) {
-        const password = generateEphemeralPassword();
-        const email = deriveEmail(runId, alias);
-        const rec = await createAuthUser(admin, email, password);
-        users[alias] = rec;
-        passwords.set(alias, password);
+        // 2) Auth users + credentials.
+        for (const alias of AUTH_IDENTITIES) {
+          const password = generateEphemeralPassword();
+          const email = deriveEmail(runId, alias);
+          const rec = await createAuthUser(admin, email, password);
+          users[alias] = rec;
+          partial.authUserIds.push(rec.userId);
+          credentials.set(alias, {
+            identity: alias,
+            email,
+            password,
+            expectedUserId: rec.userId,
+          });
+        }
+
+        // 3) Memberships (7).
+        const memberships: Array<{
+          tenantId: string;
+          userId: string;
+          role: string;
+          status: "active" | "suspended";
+        }> = [
+          { tenantId: tenantA, userId: users.tenant_a_admin!.userId, role: "admin", status: "active" },
+          { tenantId: tenantA, userId: users.tenant_a_corretor_assigned!.userId, role: "corretor", status: "active" },
+          { tenantId: tenantA, userId: users.tenant_a_corretor_unassigned!.userId, role: "corretor", status: "active" },
+          { tenantId: tenantA, userId: users.tenant_a_unauthorized_role!.userId, role: "secretaria", status: "active" },
+          { tenantId: tenantB, userId: users.tenant_b_admin!.userId, role: "admin", status: "active" },
+          { tenantId: tenantB, userId: users.tenant_b_corretor!.userId, role: "corretor", status: "active" },
+          { tenantId: tenantA, userId: users.suspended_member!.userId, role: "corretor", status: "suspended" },
+        ];
+        for (const m of memberships) {
+          await createMembership(admin, m.tenantId, m.userId, m.role, m.status);
+          partial.membershipKeys.push({ tenantId: m.tenantId, userId: m.userId });
+        }
+
+        // 4) app_role grants (secretaria included; super_admin canonical).
+        const roleGrants: Array<{ userId: string; role: string }> = [
+          { userId: users.tenant_a_admin!.userId, role: "admin" },
+          { userId: users.tenant_a_corretor_assigned!.userId, role: "corretor" },
+          { userId: users.tenant_a_corretor_unassigned!.userId, role: "corretor" },
+          { userId: users.tenant_a_unauthorized_role!.userId, role: "secretaria" },
+          { userId: users.tenant_b_admin!.userId, role: "admin" },
+          { userId: users.tenant_b_corretor!.userId, role: "corretor" },
+          { userId: users.suspended_member!.userId, role: "corretor" },
+          { userId: users.super_admin!.userId, role: "super_admin" },
+        ];
+        for (const g of roleGrants) {
+          await grantAppRole(admin, g.userId, g.role);
+          partial.roleIds.push(g.userId);
+        }
+
+        // 5) Properties.
+        const propertyA = await insertProperty(admin, tenantA, `lsv01-${runId}-property-a`);
+        partial.propertyIds.push(propertyA);
+        const propertyB = await insertProperty(admin, tenantB, `lsv01-${runId}-property-b`);
+        partial.propertyIds.push(propertyB);
+
+        // 6) Leads.
+        const leadAAssigned = await insertLead(admin, {
+          tenant: tenantA,
+          property: propertyA,
+          assignedTo: users.tenant_a_corretor_assigned!.userId,
+          name: `lsv01-${runId}-lead-a-assigned`,
+        });
+        partial.leadIds.push(leadAAssigned);
+        const leadAUnassigned = await insertLead(admin, {
+          tenant: tenantA,
+          property: propertyA,
+          assignedTo: null,
+          name: `lsv01-${runId}-lead-a-unassigned`,
+        });
+        partial.leadIds.push(leadAUnassigned);
+        const leadB = await insertLead(admin, {
+          tenant: tenantB,
+          property: propertyB,
+          assignedTo: users.tenant_b_corretor!.userId,
+          name: `lsv01-${runId}-lead-b`,
+        });
+        partial.leadIds.push(leadB);
+
+        assertDistinct(partial.tenantIds, "tenants");
+        assertDistinct(partial.authUserIds, "auth users");
+        assertDistinct(
+          [...partial.propertyIds, ...partial.leadIds],
+          "resources",
+        );
+
+        const context: LsvFixtureContext = Object.freeze({
+          runId,
+          tenants: Object.freeze({ tenantA, tenantB }),
+          users: Object.freeze(users),
+          resources: Object.freeze({
+            propertyA,
+            propertyB,
+            leadAAssigned,
+            leadAUnassigned,
+            leadB,
+          }),
+        });
+
+        const manifest: LsvFixtureManifest = Object.freeze({
+          tenantIds: Object.freeze([...partial.tenantIds]) as readonly string[],
+          authUserIds: Object.freeze([...partial.authUserIds]) as readonly string[],
+          membershipKeys: Object.freeze(
+            partial.membershipKeys.map((m) => Object.freeze({ ...m })),
+          ) as readonly { tenantId: string; userId: string }[],
+          roleIds: Object.freeze([...partial.roleIds]) as readonly string[],
+          propertyIds: Object.freeze([...partial.propertyIds]) as readonly string[],
+          leadIds: Object.freeze([...partial.leadIds]) as readonly string[],
+        });
+
+        return { context, credentials, manifest };
+      } catch (setupErr) {
+        // Compensation: attempt to remove whatever was created.
+        const code =
+          setupErr instanceof LsvFixtureError
+            ? setupErr.code
+            : "LSV_FIXTURE_SETUP_FAILED";
+        let compensationCode: string | undefined;
+        try {
+          await compensatePartial(admin, partial);
+        } catch (compErr) {
+          compensationCode =
+            compErr instanceof LsvFixtureError
+              ? compErr.code
+              : "LSV_FIXTURE_COMPENSATION_FAILED";
+        }
+        const redacted =
+          `setup=${code}` +
+          (compensationCode ? ` compensation=${compensationCode}` : "") +
+          ` orphaned_counts=` +
+          JSON.stringify({
+            tenants: partial.tenantIds.length,
+            auth_users: partial.authUserIds.length,
+            memberships: partial.membershipKeys.length,
+            roles: partial.roleIds.length,
+            properties: partial.propertyIds.length,
+            leads: partial.leadIds.length,
+          });
+        throw new LsvFixtureError(code, redacted, compensationCode);
       }
-
-      // Step 3 — memberships + roles.
-      await createMembership(admin, tenantA, users.tenant_a_admin!.userId, "admin", "active");
-      await createMembership(admin, tenantA, users.tenant_a_corretor_assigned!.userId, "corretor", "active");
-      await createMembership(admin, tenantA, users.tenant_a_corretor_unassigned!.userId, "corretor", "active");
-      await createMembership(admin, tenantA, users.tenant_a_unauthorized_role!.userId, "secretaria", "active");
-      await createMembership(admin, tenantB, users.tenant_b_admin!.userId, "admin", "active");
-      await createMembership(admin, tenantB, users.tenant_b_corretor!.userId, "corretor", "active");
-      await createMembership(admin, tenantA, users.suspended_member!.userId, "corretor", "suspended");
-
-      // Functional roles via public.user_roles.
-      await grantAppRole(admin, users.tenant_a_admin!.userId, "admin");
-      await grantAppRole(admin, users.tenant_a_corretor_assigned!.userId, "corretor");
-      await grantAppRole(admin, users.tenant_a_corretor_unassigned!.userId, "corretor");
-      await grantAppRole(admin, users.tenant_b_admin!.userId, "admin");
-      await grantAppRole(admin, users.tenant_b_corretor!.userId, "corretor");
-      await grantAppRole(admin, users.suspended_member!.userId, "corretor");
-
-      // Super admin — canonical path recognised by public.is_super_admin().
-      await grantAppRole(admin, users.super_admin!.userId, "super_admin");
-
-      // Step 4 — properties.
-      const propertyA = await insertProperty(admin, tenantA, `lsv01-${runId}-property-a`);
-      const propertyB = await insertProperty(admin, tenantB, `lsv01-${runId}-property-b`);
-
-      // Step 5 — leads.
-      const leadAAssigned = await insertLead(admin, {
-        tenant: tenantA,
-        property: propertyA,
-        assignedTo: users.tenant_a_corretor_assigned!.userId,
-        name: `lsv01-${runId}-lead-a-assigned`,
-      });
-      const leadAUnassigned = await insertLead(admin, {
-        tenant: tenantA,
-        property: propertyA,
-        assignedTo: null,
-        name: `lsv01-${runId}-lead-a-unassigned`,
-      });
-      const leadB = await insertLead(admin, {
-        tenant: tenantB,
-        property: propertyB,
-        assignedTo: users.tenant_b_corretor!.userId,
-        name: `lsv01-${runId}-lead-b`,
-      });
-
-      assertDistinct(
-        [tenantA, tenantB],
-        "tenants",
-      );
-      assertDistinct(
-        collectUserIds(users),
-        "auth users",
-      );
-      assertDistinct(
-        [propertyA, propertyB, leadAAssigned, leadAUnassigned, leadB],
-        "resources",
-      );
-
-      return Object.freeze({
-        runId,
-        tenants: Object.freeze({ tenantA, tenantB }),
-        users: Object.freeze(users),
-        resources: Object.freeze({
-          propertyA,
-          propertyB,
-          leadAAssigned,
-          leadAUnassigned,
-          leadB,
-        }),
-      });
     },
   };
 }
 
-// ────────────────────────────────────────────────────────────────
-// Helpers below. All DB writes go through the service-role client
-// passed in by the runner — never through a hardcoded connection.
-// Every function reads the ID from its own insert; nothing selects
-// "first row". Failures raise LsvFixtureError with an explicit code.
+async function compensatePartial(
+  admin: SupabaseClient,
+  partial: PartialManifest,
+): Promise<void> {
+  const errors: string[] = [];
+  const del = async (table: string, col: string, ids: string[]) => {
+    if (ids.length === 0) return;
+    const { error } = await admin.from(table).delete().in(col, ids);
+    if (error) errors.push(`${table}:${error.code ?? "unknown"}`);
+  };
+  await del("lead_audit_events", "lead_id", partial.leadIds);
+  await del("lead_stage_history", "lead_id", partial.leadIds);
+  await del("leads", "id", partial.leadIds);
+  await del("imoveis", "id", partial.propertyIds);
+  await del(
+    "tenant_members",
+    "user_id",
+    partial.membershipKeys.map((m) => m.userId),
+  );
+  await del("user_roles", "user_id", partial.roleIds);
+  await del("tenants", "id", partial.tenantIds);
+  for (const uid of partial.authUserIds) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (admin as any).auth.admin.deleteUser(uid);
+    if (error) errors.push(`auth:${error.status ?? "unknown"}`);
+  }
+  if (errors.length > 0) {
+    throw new LsvFixtureError(
+      "LSV_FIXTURE_COMPENSATION_FAILED",
+      `codes=${errors.slice(0, 8).join(",")}`,
+    );
+  }
+}
 
-async function insertTenant(admin: SupabaseClient, runId: string, slot: "a" | "b"): Promise<string> {
+// ──────────────────────────────────────────────────────────────
+
+async function insertTenant(
+  admin: SupabaseClient,
+  runId: string,
+  slot: "a" | "b",
+): Promise<string> {
   const name = `lsv01-${runId}-tenant-${slot}`;
   const { data, error } = await admin
     .from("tenants")
@@ -223,7 +330,10 @@ async function insertTenant(admin: SupabaseClient, runId: string, slot: "a" | "b
     .select("id")
     .single();
   if (error || !data?.id) {
-    throw new LsvFixtureError("LSV_FIXTURE_TENANT_INSERT_FAILED", error?.message ?? "no id");
+    throw new LsvFixtureError(
+      "LSV_FIXTURE_TENANT_INSERT_FAILED",
+      error?.message ?? "no id",
+    );
   }
   return data.id as string;
 }
@@ -233,7 +343,6 @@ async function createAuthUser(
   email: string,
   password: string,
 ): Promise<LsvUserRecord> {
-  // supabase-js admin client. Never log password.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const res: any = await (admin as any).auth.admin.createUser({
     email,
@@ -271,7 +380,11 @@ async function createMembership(
   }
 }
 
-async function grantAppRole(admin: SupabaseClient, userId: string, role: string): Promise<void> {
+async function grantAppRole(
+  admin: SupabaseClient,
+  userId: string,
+  role: string,
+): Promise<void> {
   const { error } = await admin
     .from("user_roles")
     .insert({ user_id: userId, role });
@@ -280,14 +393,26 @@ async function grantAppRole(admin: SupabaseClient, userId: string, role: string)
   }
 }
 
-async function insertProperty(admin: SupabaseClient, tenantId: string, name: string): Promise<string> {
+async function insertProperty(
+  admin: SupabaseClient,
+  tenantId: string,
+  name: string,
+): Promise<string> {
   const { data, error } = await admin
     .from("imoveis")
-    .insert({ tenant_id: tenantId, titulo: name, tipo: "apartamento", finalidade: "venda" })
+    .insert({
+      tenant_id: tenantId,
+      titulo: name,
+      tipo: "apartamento",
+      finalidade: "venda",
+    })
     .select("id")
     .single();
   if (error || !data?.id) {
-    throw new LsvFixtureError("LSV_FIXTURE_PROPERTY_INSERT_FAILED", error?.message ?? "no id");
+    throw new LsvFixtureError(
+      "LSV_FIXTURE_PROPERTY_INSERT_FAILED",
+      error?.message ?? "no id",
+    );
   }
   return data.id as string;
 }
@@ -299,7 +424,10 @@ interface InsertLeadArgs {
   readonly name: string;
 }
 
-async function insertLead(admin: SupabaseClient, args: InsertLeadArgs): Promise<string> {
+async function insertLead(
+  admin: SupabaseClient,
+  args: InsertLeadArgs,
+): Promise<string> {
   const row: Record<string, unknown> = {
     tenant_id: args.tenant,
     imovel_id: args.property,
@@ -314,20 +442,28 @@ async function insertLead(admin: SupabaseClient, args: InsertLeadArgs): Promise<
     .select("id")
     .single();
   if (error || !data?.id) {
-    throw new LsvFixtureError("LSV_FIXTURE_LEAD_INSERT_FAILED", error?.message ?? "no id");
+    throw new LsvFixtureError(
+      "LSV_FIXTURE_LEAD_INSERT_FAILED",
+      error?.message ?? "no id",
+    );
   }
   return data.id as string;
 }
 
 function deriveEmail(runId: string, alias: LsvIdentity): string {
-  // Non-routable @lsv01.invalid namespace. Never uses real user data.
   return `${runId}-${alias}@lsv01.invalid`;
 }
 
 function generateEphemeralPassword(): string {
-  // 32 bytes of entropy, base36, in-memory only. Never persisted, never logged.
   const bytes = new Uint8Array(32);
-  (globalThis.crypto ?? (require("crypto") as { webcrypto: Crypto }).webcrypto).getRandomValues(bytes);
+  const g = (globalThis as unknown as { crypto?: Crypto }).crypto;
+  if (!g?.getRandomValues) {
+    throw new LsvFixtureError(
+      "LSV_FIXTURE_CRYPTO_UNAVAILABLE",
+      "crypto.getRandomValues is unavailable",
+    );
+  }
+  g.getRandomValues(bytes);
   let out = "";
   for (const b of bytes) out += b.toString(36);
   return `Lsv01!${out.slice(0, 40)}`;
@@ -352,4 +488,16 @@ export function collectUserIds(
     if (rec) ids.push(rec.userId);
   }
   return ids;
+}
+
+/** Manifest-derived fixture count (single source of truth). */
+export function countManifestFixtures(m: LsvFixtureManifest): number {
+  return (
+    m.tenantIds.length +
+    m.authUserIds.length +
+    m.membershipKeys.length +
+    m.roleIds.length +
+    m.propertyIds.length +
+    m.leadIds.length
+  );
 }

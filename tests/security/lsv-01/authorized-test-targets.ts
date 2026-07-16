@@ -5,38 +5,14 @@
 // The environment guard consults this file in addition to the caller-
 // supplied LSV_ALLOWED_PROJECT_REF so that a production ref cannot be
 // laundered through the guard merely by re-declaring it as "staging".
-//
-// Rules:
-//   * Only ephemeral / staging refs explicitly reviewed as non-prod
-//     appear in ALLOWLIST_PROJECT_REFS.
-//   * Any ref known to be production for this or a sibling app appears
-//     in DENYLIST_PROJECT_REFS. Denylist wins over allowlist.
-//   * `local` targets skip the ref allowlist but MUST resolve to a
-//     loopback URL — enforced by the guard, not by this file.
-//   * Unknown opaque refs (not on either list) fail closed, so a fresh
-//     production project cannot pass by default.
-//
-// This file MUST NOT contain secrets: only opaque, non-sensitive refs.
 
-/**
- * Known non-production project refs authorized for LSV-01 live runs.
- * Empty by default; operators add refs here as they provision isolated
- * ephemeral/staging Supabase projects reviewed for use with LSV-01.
- */
 export const ALLOWLIST_PROJECT_REFS: ReadonlySet<string> = new Set<string>([
   // e.g. "abcdefghijklmnopqrst" — an ephemeral project explicitly
   // provisioned for LSV-01 verification.
 ]);
 
-/**
- * Refs known to be production for this application or sibling apps.
- * The guard refuses these even when the operator declares them as
- * ephemeral or staging.
- */
 export const DENYLIST_PROJECT_REFS: ReadonlySet<string> = new Set<string>([
   // Prime Domus Hub production ref — the app's own Supabase project.
-  // Kept here so the LSV-01 harness cannot ever be pointed at it, even
-  // by mistake or misdeclaration.
   "stmcnvzuzlyqammyycxj",
 ]);
 
@@ -52,21 +28,48 @@ export function classifyProjectRef(ref: string): LsvRefDecision {
 }
 
 /**
- * Loopback / local URL check for the `local` target. We accept
- * 127.0.0.1, localhost, and the standard Supabase CLI dev host.
+ * Loopback / local hosts. `*.local` mDNS namespace is intentionally
+ * NOT accepted — hosts must be one of the explicitly enumerated values.
  */
+const LOCAL_HOSTS: ReadonlySet<string> = new Set<string>([
+  "localhost",
+  "127.0.0.1",
+  "::1",
+  "host.docker.internal",
+]);
+
 export function isLocalSupabaseUrl(url: string): boolean {
   try {
     const u = new URL(url);
+    if (u.username !== "" || u.password !== "") return false;
     const h = u.hostname.toLowerCase();
-    return (
-      h === "localhost" ||
-      h === "127.0.0.1" ||
-      h === "::1" ||
-      h === "host.docker.internal" ||
-      h.endsWith(".local")
-    );
+    return LOCAL_HOSTS.has(h);
   } catch {
     return false;
+  }
+}
+
+/**
+ * Strict remote-target host validation. Accepts ONLY:
+ *   protocol = https:
+ *   hostname = <ref>.supabase.co
+ *   port     = "" or "443"
+ *   username = ""
+ *   password = ""
+ * Returns the extracted ref on success, or "" on failure.
+ */
+export function extractSupabaseRemoteRef(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return "";
+    if (u.username !== "" || u.password !== "") return "";
+    if (u.port !== "" && u.port !== "443") return "";
+    const host = u.hostname.toLowerCase();
+    // Exact "<ref>.supabase.co" — no subdomain nesting, no suffix.
+    const m = /^([a-z0-9-]{6,})\.supabase\.co$/.exec(host);
+    if (!m) return "";
+    return m[1];
+  } catch {
+    return "";
   }
 }

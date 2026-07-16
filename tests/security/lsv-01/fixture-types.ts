@@ -12,6 +12,9 @@ export type LsvIdentity =
   | "super_admin"
   | "anonymous";
 
+/** Identities that are expected to authenticate (all except anonymous). */
+export type LsvAuthenticatedIdentity = Exclude<LsvIdentity, "anonymous">;
+
 export interface LsvUserRecord {
   readonly userId: string;
   readonly email: string;
@@ -31,6 +34,29 @@ export interface LsvFixtureContext {
     readonly leadAUnassigned: string;
     readonly leadB: string;
   };
+}
+
+/** Ephemeral credential — kept in memory only, never persisted. */
+export interface LsvRuntimeCredential {
+  readonly identity: LsvAuthenticatedIdentity;
+  readonly email: string;
+  readonly password: string;
+  readonly expectedUserId: string;
+}
+
+export interface LsvFixtureManifest {
+  readonly tenantIds: readonly string[];
+  readonly authUserIds: readonly string[];
+  readonly membershipKeys: readonly { tenantId: string; userId: string }[];
+  readonly roleIds: readonly string[]; // user_ids that received an app_role
+  readonly propertyIds: readonly string[];
+  readonly leadIds: readonly string[];
+}
+
+export interface LsvFixtureBundle {
+  readonly context: LsvFixtureContext;
+  readonly credentials: ReadonlyMap<LsvAuthenticatedIdentity, LsvRuntimeCredential>;
+  readonly manifest: LsvFixtureManifest;
 }
 
 export interface LsvCleanupOutcome {
