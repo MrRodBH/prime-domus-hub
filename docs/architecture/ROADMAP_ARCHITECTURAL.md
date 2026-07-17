@@ -295,8 +295,7 @@ Regras permanentes (Cadeia de Etapas Executáveis, reconciliadas por FRR-01):
   implementação;
 - nenhuma etapa restante pode exceder dois prompts de implementação
   (principal + corretivo);
-- estados terminais permitidos: Accepted, Superseded, Rejected,
-  Blocked External — nenhum outro estado de fechamento é aceito;
+- estados terminais permitidos: `Accepted`, `Accepted with Non-Blocking Backlog`, `Blocked External`, `Rejected` e `Superseded` — nenhum outro estado de fechamento é aceito;
 - LSV-01 encontra-se em estado terminal **Superseded**
   (`FINAL_CORRECTIVE_EXECUTED = true`,
   `REMAINING_IMPLEMENTATION_BUDGET = 0`); nenhuma nova correção é
