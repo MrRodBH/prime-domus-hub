@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Ready for External Audit
 
 **Type:** Execution Envelope revision — documentation and governance only.
 **Scope:** LSV-02 — Live Identity & Tenant Context Verification.
