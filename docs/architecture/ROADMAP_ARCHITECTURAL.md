@@ -28,41 +28,105 @@
 | `ROADMAP_ARCHITECTURAL.md` | ordem e escopo da evolução futura |
 | `docs/delivery/` | evidência de execução, validação e auditoria |
 
-Fluxo obrigatório:
+Fluxo obrigatório (canônico, alinhado à Governança Finita de Entrega):
 
 ```text
-Etapa arquitetural
-  → lote operacional
+Etapa planejada
+  → Execution Envelope e Definition of Done congelados
+  → prompt principal de implementação
   → relatório factual
-  → auditoria de continuidade
-  → lote seguinte, quando necessário
-  → reconciliação final
-  → auditoria externa da etapa
-  → Accepted ou Rejected
+  → primeira auditoria
+  → correção consolidada única, somente quando autorizada
+  → auditoria final
+  → estado terminal
+  → sucessor explicitamente autorizado
 ```
+
+Notas do fluxo:
+
+- runbooks operacionais não são prompts de implementação e não consomem
+  o prompt budget da etapa;
+- complementações factuais de relatório não são prompts de implementação
+  e não consomem o prompt budget;
+- dependências externas não resolvidas produzem estado terminal
+  `Blocked External`;
+- não existe novo ciclo corretivo depois da auditoria final.
 
 ### 1.1 Regra de execução
 
-- Uma etapa arquitetural pode atravessar múltiplos prompts, múltiplos
-  lotes operacionais e múltiplas aprovações operacionais de continuidade.
-- Lotes são unidades internas de execução da etapa; não são etapas do
-  roadmap e não recebem identificadores decimais.
-- Lotes não possuem aceite arquitetural independente. Somente a etapa
-  arquitetural é auditada externamente e recebe Accepted ou Rejected.
-- Requisitos obrigatórios de uma etapa não podem ser transferidos
-  silenciosamente entre lotes nem reclassificados como limitações
-  conhecidas.
-- Cada lote deve produzir commits, testes e evidências verificáveis no
-  repositório.
-- Correções internas podem ocorrer antes do avanço ao lote seguinte;
-  incapacidade de concluir uma etapa em um único turno ou em um único
-  prompt não constitui rejeição arquitetural.
-- Rejected é reservado para arquitetura inválida, abandono formal ou
-  solução implementada e comprovadamente inadequada.
-- A auditoria externa final da etapa continua sendo obrigatória para
-  Accepted.
-- O GitHub permanece a fonte primária da auditoria.
-- O relatório em chat deve ser uma cápsula factual mínima de evidências.
+**4.1 Unidade finita.** Cada etapa do roadmap é uma unidade finita e
+possui: objetivo único, predecessor, escopo congelado, entregáveis,
+evidência mínima, Definition of Done, dependências externas, prompt
+budget, estados terminais permitidos e sucessor.
+
+**4.2 Orçamento de prompts.** Cada etapa possui, no máximo, um prompt
+principal de implementação e um prompt corretivo consolidado — total de
+dois prompts de implementação. Nenhum terceiro prompt de implementação é
+permitido em nenhuma hipótese.
+
+**4.3 Sem lotes ativos.** Para etapas futuras e ainda não executadas:
+não criar lotes, sublotes, checkpoints de implementação, identificadores
+decimais (`.1`, `.2`, ...) nem decompor a etapa durante a execução.
+Referências a lotes anteriores permanecem exclusivamente como histórico
+das etapas já encerradas e não constituem unidades ativas de execução.
+
+**4.4 Planejamento antes da execução.** Etapa grande ou com múltiplos
+resultados independentes deve ser decomposta no roadmap antes do prompt
+principal. Se o dimensionamento inadequado for descoberto após o prompt
+principal, a etapa é classificada conforme a governança, inclusive
+`Superseded` quando aplicável — nunca por criação silenciosa de novos
+lotes ou prompts adicionais.
+
+**4.5 Escopo congelado.** Depois do prompt principal, não é permitido
+ampliar retroativamente objetivo, entregáveis, testes, evidências,
+Definition of Done ou escopo técnico. Novos requisitos observados devem
+ser classificados como: defeito bloqueante dentro do escopo, falha de
+relatório, dependência externa, backlog não bloqueante, escopo futuro
+ou problema de dimensionamento.
+
+**4.6 Correção única.** A correção consolidada:
+
+- somente pode ser autorizada para defeitos bloqueantes dentro do
+  escopo congelado;
+- deve reunir todos os defeitos bloqueantes conhecidos em um único
+  prompt corretivo;
+- não pode absorver melhorias, escopo futuro ou backlog não bloqueante;
+- encerra definitivamente o orçamento corretivo da etapa.
+
+Após a auditoria da correção consolidada, não existe nova correção.
+
+**4.7 Estados terminais.** Os únicos estados terminais permitidos são:
+
+- `Accepted`;
+- `Accepted with Non-Blocking Backlog`;
+- `Blocked External`;
+- `Rejected`;
+- `Superseded`.
+
+Nenhum outro estado de fechamento é aceito. Estouro de prompt budget
+força estado terminal (`Rejected`, `Superseded` ou `Blocked External`).
+
+**4.8 Fonte de auditoria.**
+
+- Fonte padrão: o relatório factual final do Lovable.
+- GitHub é acessado apenas em caráter excepcional, quando houver
+  inconsistência objetiva que impeça decisão segura de auditoria; a
+  inspeção do GitHub, nesse caso, é limitada estritamente ao ponto
+  inconsistente.
+- Lovable não possui autoridade para declarar aceite arquitetural;
+  o aceite ocorre exclusivamente por auditoria externa.
+
+**4.9 Continuidade.** O sucessor de uma etapa só pode ser autorizado
+quando:
+
+- o predecessor possuir estado terminal compatível;
+- não houver gate bloqueante remanescente;
+- o roadmap estiver atualizado;
+- o sucessor possuir Execution Envelope congelado no
+  `FINITE_ROADMAP_EXECUTION_MAP.md`;
+- o prompt budget do sucessor estiver registrado.
+
+O relatório em chat deve ser uma cápsula factual mínima de evidências.
 
 ---
 
