@@ -3,6 +3,8 @@
 **Status:** Ratificado
 **Autoridade:** Single Source of Future Evolution do RM Prime SaaS
 **Última reconciliação estrutural:** FRR-01 — Finite Roadmap Reconciliation & LSV-01 Transition
+**Última atualização de Execution Envelope:** LSV-02 — Same-Backend Homologation Cell
+**Última reconciliação de governança de execução:** Finite Governance Reconciliation
 **Contratos de governança vinculantes:**
 `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` ·
 `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
