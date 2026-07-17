@@ -321,7 +321,9 @@ Regras permanentes (Cadeia de Etapas Executáveis, reconciliadas por FRR-01):
   Blocked External);
 - a auditoria externa final da etapa continua sendo obrigatória para
   Accepted;
-- GitHub permanece a fonte primária da auditoria.
+- o relatório factual final do Lovable é a fonte padrão da auditoria;
+  o GitHub somente é acessado quando houver inconsistência objetiva que
+  impeça decisão segura, com inspeção limitada ao ponto inconsistente.
 
 Homologação permanece bloqueada até PR-M3 Accepted.
 Produção permanece bloqueada até TH-M2 Accepted.
