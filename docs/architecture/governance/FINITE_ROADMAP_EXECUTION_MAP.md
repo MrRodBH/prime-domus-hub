@@ -20,7 +20,7 @@ may exceed two implementation prompts (principal + corrective).
 | 3 | LSO-01 | Rejected / Closed |
 | 4 | LSH-01 | Accepted / Closed |
 | 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
-| 6 | LSV-02 | Planned — Blocked External (authorized non-production Supabase target required) |
+| 6 | LSV-02 | Planned — Homologation Cell Eligibility Preflight Required |
 | 7 | LSV-03 | Planned — Blocked by LSV-02 |
 | 8 | LSV-04 | Planned — Blocked by LSV-03 |
 | 9 | RDA-01 | Planned — Blocked by LSV-04 |
@@ -44,29 +44,106 @@ implementation prompt is issued. Envelopes below are initial and
 binding; details still undefined are recorded explicitly as
 "Execution Envelope required before implementation."
 
-### 2.1 LSV-02 — Live Identity & Tenant Context Verification
+### 2.1 LSV-02 — Live Identity & Tenant Context Verification (Same-Backend Homologation Cell)
 
-- **OBJECTIVE:** execute the identity, real-session and Tenant Context
-  harness in an authorized non-production environment.
+- **OBJECTIVE:** execute live identity, real-session, Tenant Context,
+  impersonation and forged-header probes inside an isolated
+  Homologation Cell running on the current pre-homologation primary
+  backend. Full contract lives in
+  `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`.
 - **PREDECESSOR:** LSV-01 — Superseded (terminal).
-- **DELIVERABLES:** isolated fixtures; real Supabase Auth users; real
-  JWTs; independent clients (anonymous, common admin, Super Admin);
-  explicit impersonation exercise; Tenant Context probe; forged-header
-  probe; deterministic cleanup; live evidence artifact.
-- **MINIMUM_EVIDENCE:** live run artifact with
-  `production_guard_passed=true`, `real_sessions_acquired > 0`,
+- **ENTRY_GATE:** Homologation Cell Eligibility Preflight approved
+  (pre-homologation status, zero real clients/tenants/subscriptions/
+  leads/media/users/personal data, controlled write window, explicit
+  operator authorization, recovery/backup mechanism in place). If any
+  criterion fails, LSV-02 fails closed and reverts to Blocked External;
+  the external non-production Supabase project remains as optional
+  fallback.
+- **DELIVERABLES:** hard guards (HG-01..HG-14); protected baseline
+  registry (RM Prime tenant + preexisting protected entities pinned by
+  canonical ID); minimum two synthetic tenants (RM Prime HML A and RM
+  Prime HML B, authority in generated IDs); synthetic Auth users,
+  memberships, roles, imóveis, leads, events and Storage objects; per-
+  run fixture manifest; live probes; deterministic manifest-based
+  teardown; residue scan; persisted evidence artifact.
+- **MINIMUM_EVIDENCE:** `eligibility_preflight_passed=true`,
+  `protected_baseline_registered=true`,
+  `synthetic_tenants_created >= 2`, `real_sessions_acquired > 0`,
   `forged_header_denial_verified=true`,
-  `tenant_context_smoke_failed = 0`, `orphaned_fixtures = 0`,
-  `evidence_persisted = true`.
-- **EXTERNAL_DEPENDENCIES:** authorized non-production Supabase
-  project (anon key, service role, project ref added to allowlist).
+  `tenant_context_smoke_failed = 0`,
+  `rm_prime_tenant_preserved=true`,
+  `protected_baseline_changed=false`, `orphaned_fixtures = 0`,
+  `residue_scan_passed=true`, `evidence_persisted=true`.
+- **EXTERNAL_DEPENDENCIES:** none mandatory — a second Supabase project
+  is no longer required. External non-production project
+  `rm-prime-lsv-nonprod` remains preserved as optional fallback.
+  Operational dependencies: recovery/backup mechanism and controlled
+  maintenance window.
+- **HARD_GUARDS (frozen):** HG-01 explicit same-backend homologation
+  mode; HG-02 exact project-ref lock; HG-03 pre-homologation
+  eligibility preflight; HG-04 protected tenant registry by ID; HG-05
+  synthetic-only fixtures bound to `run_id`; HG-06 two-tenant minimum;
+  HG-07 no preexisting object mutation; HG-08 no destructive global
+  operation (DROP DATABASE/SCHEMA/TABLE, TRUNCATE, unscoped deletes,
+  open cascade, prefix-only cleanup, DB reset, prod copy/restore all
+  forbidden); HG-09 maintenance window; HG-10 cleanup always in
+  finally; HG-11 residue zero; HG-12 protected baseline unchanged;
+  HG-13 fail-closed on any ambiguity; HG-14 permanent disablement
+  after real-operation start.
+- **FIXTURE_MANIFEST:** single per-run manifest containing `run_id`,
+  start timestamp, baseline HEAD, redacted project ref, protected RM
+  Prime tenant ID and other protected entity IDs, synthetic tenant IDs,
+  synthetic Auth user IDs, membership and role identifiers, imóvel and
+  lead IDs, auxiliary record IDs, exact Storage bucket and paths,
+  expected object counts per category, creation state, cleanup state,
+  removed and residual counts per category, final teardown outcome.
+  Manifest is created before the first fixture, updated
+  deterministically, persisted atomically, is the sole teardown
+  authority, and contains no passwords, JWTs, keys, tokens or full
+  emails. Objects absent from the manifest cannot be deleted by
+  teardown.
+- **DETERMINISTIC_TEARDOWN:** manifest-based; validates `run_id`,
+  project ref and manifest; confirms every ID to remove belongs to the
+  run and none belongs to the protected registry; stops test clients
+  and sessions; removes exact Storage objects, child records, leads,
+  imóveis, events, auxiliary objects, memberships, synthetic roles,
+  synthetic Auth users and finally synthetic tenants; persists cleanup
+  outcome; runs residue scan; fails on any residue. Ordering respects
+  real domain dependencies; generic cascade is not assumed safe;
+  compensating cleanup and explicit evidence are required when
+  operations cannot share a transaction. The RM Prime tenant is never
+  part of the deletion set.
+- **RESIDUE_SCAN:** proves zero remaining synthetic tenants, Auth
+  users, memberships, roles, imóveis, leads, events, Storage objects,
+  auxiliary records tied to `run_id`, orphan references and manifest-
+  registered rows; protected counts match baseline; RM Prime tenant
+  present and unchanged; preexisting memberships and data preserved.
+  Required output includes `fixtures_created`, `fixtures_cleaned`,
+  `orphaned_fixtures`, `protected_baseline_changed`,
+  `rm_prime_tenant_preserved`, `residue_scan_passed`, with acceptance
+  criteria `fixtures_cleaned == fixtures_created`,
+  `orphaned_fixtures == 0`, `protected_baseline_changed == false`,
+  `rm_prime_tenant_preserved == true`, `residue_scan_passed == true`.
+- **ENVIRONMENT_GUARD_STRATEGY:** principal prompt must preserve the
+  existing generic protection over the primary backend; must not turn
+  the primary backend into a generic remote target; may introduce a
+  specific and restricted Same-Backend Homologation Cell mode gated by
+  simultaneous satisfaction of all hard guards; must reject execution
+  triggered by mere environment-variable changes; must not allow the
+  operator to self-declare production as staging; must not rely solely
+  on project ref or target name; must also validate factual database
+  eligibility and the protected-entity registry. Exact guard
+  implementation is deferred to the principal prompt; these
+  requirements are frozen here.
 - **OUT_OF_SCOPE:** full authorization matrix; full RLS matrix; full
-  grants matrix; atomicity; rollback; concurrency; migrations; RLS or
-  grant changes; LSH-01 runtime edits.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
+  grants matrix; atomicity; rollback of Lead operations; concurrency;
+  migration changes; RLS changes; grant changes; LSH-01 accepted
+  runtime edits; use of real data; post-real-operation execution.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0. This documentation revision does not consume budget.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
-- **SUCCESSOR:** LSV-03.
+- **SUCCESSOR:** LSV-03 (remains blocked by LSV-02).
 
 ### 2.2 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
 
