@@ -209,7 +209,7 @@ PR-M1    Superseded
 LSO-01   Rejected / Closed
 LSH-01   Accepted / Closed
 LSV-01   Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0)
-LSV-02   Planned — Blocked External (authorized non-production Supabase target required)
+LSV-02   Planned — Homologation Cell Eligibility Preflight Required (Same-Backend Homologation Cell; second Supabase project no longer mandatory, optional fallback)
 LSV-03   Planned — Blocked by LSV-02
 LSV-04   Planned — Blocked by LSV-03
 RDA-01   Planned — Blocked by LSV-04
