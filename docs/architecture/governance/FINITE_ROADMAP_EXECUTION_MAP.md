@@ -255,7 +255,6 @@ binding; details still undefined are recorded explicitly as
 - No stage may exceed the declared PROMPT_BUDGET (max 2).
 - Legacy LSV-01 Lotes A / B / C are historical only and cannot be
   used as active execution units.
-- Terminal states are exhaustive: Accepted, Superseded, Rejected,
-  Blocked External. No other closing state is permitted.
+- Terminal states are exhaustive: Accepted, Accepted with Non-Blocking Backlog, Blocked External, Rejected, Superseded. No other closing state is permitted.
 - Historical accepted states (Fase 2, Fase 3, Fase 4, PR-PH.0,
   LSH-01) are not reopened by this map.
