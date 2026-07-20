@@ -20,17 +20,18 @@ may exceed two implementation prompts (principal + corrective).
 | 3 | LSO-01 | Rejected / Closed |
 | 4 | LSH-01 | Accepted / Closed |
 | 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
-| 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
-| 7 | LSV-03 | Planned — Blocked by superseded LSV-02; live identity, real-session, Tenant Context and forged-header proofs (previously in LSV-02 scope) transferred to LSV-03's Execution Envelope, to be executed against an authorized non-production target |
-| 8 | LSV-04 | Planned — Blocked by LSV-03 |
-| 9 | RDA-01 | Planned — Blocked by LSV-04 |
-| 10 | RC-01 | Planned — Blocked by RDA-01 |
-| 11 | PR-M2 | Planned — Blocked by RC-01 |
-| 12 | PR-M3 | Planned — Blocked by PR-M2 |
-| 13 | TH-M1 | Planned — Blocked by PR-M3 |
-| 14 | TH-M2 | Planned — Blocked by TH-M1 |
-| 15 | Homologação | Blocked by TH-M2 |
-| 16 | Produção | Blocked until homologation acceptance |
+| 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · findings preserved as mandatory inputs for future formal replanning only — NOT transferred to any successor · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
+| 7 | LSR-01 | Planned — Execution Envelope Ready for External Audit · LSR-01 implementation not started · principal prompt not consumed · corrective prompt not consumed · REMAINING_IMPLEMENTATION_BUDGET = 2/2 · envelope: `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md` |
+| 8 | LSV-03 | Planned — Blocked by LSR-01 and by future formally approved replacement path · Execution Envelope required before implementation · no deliverables auto-transferred from LSV-02 · no external Supabase target required or recommended · Same-Backend strategy NOT permanently unavailable (HG-14 not triggered) |
+| 9 | LSV-04 | Planned — Blocked by LSV-03 |
+| 10 | RDA-01 | Planned — Blocked by LSV-04 |
+| 11 | RC-01 | Planned — Blocked by RDA-01 |
+| 12 | PR-M2 | Planned — Blocked by RC-01 |
+| 13 | PR-M3 | Planned — Blocked by PR-M2 |
+| 14 | TH-M1 | Planned — Blocked by PR-M3 |
+| 15 | TH-M2 | Planned — Blocked by TH-M1 |
+| 16 | Homologação | Blocked by TH-M2 |
+| 17 | Produção | Blocked until homologation acceptance |
 
 Historical stages 1–4 preserved without reopening. LSV-01 legacy Lotes
 A / B / C are historical only; not executable next steps.
