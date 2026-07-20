@@ -683,9 +683,80 @@ auto-transferred.
 ## PLANNING STATE
 
 - `LSR-02 status`: Ready for External Audit
-- `LSR-02 started`: false
-- `Principal prompt consumed`: false
+- `LSR-02 started`: true
+- `Principal prompt consumed`: true
 - `Corrective prompt consumed`: false
-- `Remaining implementation budget`: 2/2
+- `Remaining implementation budget`: 1/2
 
-This represents the state of the planning, not of any implementation.
+This represents the state after principal-prompt implementation.
+
+## FACTUAL EXECUTION OUTCOME (principal prompt)
+
+```text
+STRATEGY_SELECTED = B
+STRATEGY_C_USED = false
+CAUSAL_VERSION_INCOMPATIBILITY_PROVEN = false
+PACKAGE_JSON_CHANGED = false
+BUN_LOCK_CHANGED = false
+ROUTE_TREE_GEN_MANUALLY_EDITED = false
+
+REGISTER_SOURCE = dedicated_declaration_file (src/tanstack-start-register.d.ts)
+GENERATED_FOOTER_COUNT_AFTER_EACH_COMMAND = 0
+DEDICATED_DECLARATION_COUNT_AFTER_EACH_COMMAND = 1
+TOTAL_REGISTER_SOURCE_COUNT_AFTER_EACH_COMMAND = 1
+DUPLICATE_MODULE_AUGMENTATION = false
+
+ROUTE_TREE_SHA256_STABLE = c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f
+REGISTER_SOURCE_SHA256_STABLE = 856c0bd54b16876b3124a6d00d94d3048468f5ce3c3d0845ef2a57cc7b5e69bd
+VITE_CONFIG_SHA256_STABLE = a7e6138fbc6a88e548e60649daa9a01fe7a2d89342a5a066891df638faefe6ff
+
+CYCLE_A_SUCCESS = true
+CYCLE_B_SUCCESS = true
+CYCLE_A_FINAL_STATE_DIGEST = b9896a4a7a9a9f18abaec8896d208f173da2e074074a8642e4948be835a3d66d
+CYCLE_B_FINAL_STATE_DIGEST = b9896a4a7a9a9f18abaec8896d208f173da2e074074a8642e4948be835a3d66d
+FULL_SEQUENCE_DIFF = 0
+
+DECLARATION_INCLUDED_BY_TYPECHECK = true
+TYPE_REGISTRATION_STATIC_ASSERTION_PASSED = true
+TYPE_REGISTRATION_STABLE = true
+
+TYPECHECK_PASSED = true
+BUILD_DEV_PASSED = true
+BUILD_PASSED = true
+FUNCTIONAL_ROUTE_DIFF = 0
+
+VITE_CONFIG_CHANGE_SCOPE = tanstack_start_registration_only
+FILES_OUTSIDE_ALLOWED = 0
+EVIDENCE_ARTIFACT_VALID = true
+READY_FOR_EXTERNAL_AUDIT = true
+LSV_03_STATE = Planned — Blocked
+```
+
+### Root cause and resolution
+
+- `@tanstack/start-plugin-core` always appends the `declare module
+  '@tanstack/react-start'` footer during the server-tree generation used by
+  `vite build`; the client-tree generator used by `vite dev` and by
+  `build:dev` rewrites the file WITHOUT the footer. There is no supported
+  config toggle to disable the built-in footer — only to append additional
+  user footer entries.
+- Strategy B was selected: `src/tanstack-start-register.d.ts` is the single
+  canonical source of the module augmentation, and a scoped Vite plugin
+  (`lsr02:strip-tanstack-start-register-footer`) in `vite.config.ts`
+  removes the auto-generated footer from `src/routeTree.gen.ts` on
+  `buildStart`, `writeBundle`, `closeBundle`, and `configureServer`. Scope
+  is strictly `tanstack_start_registration_only` — no routes, URLs,
+  loaders, middleware, SSR, aliases, Tailwind, or unrelated plugins are
+  touched.
+
+### Process inventory recorded during execution
+
+- PID 448 (`node /dev-server/node_modules/.bin/vite dev --port 8080`) —
+  platform-managed dev server, watches `src/`; NOT created or terminated
+  by the harness.
+- PID 458 (`esbuild --service=... --ping`) — esbuild worker owned by
+  PID 448.
+
+Detailed evidence, per-command hashes, and cycle records are persisted in
+`docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json`.
+
