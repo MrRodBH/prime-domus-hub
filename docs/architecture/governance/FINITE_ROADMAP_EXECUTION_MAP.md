@@ -20,7 +20,7 @@ may exceed two implementation prompts (principal + corrective).
 | 3 | LSO-01 | Rejected / Closed |
 | 4 | LSH-01 | Accepted / Closed |
 | 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
-| 6 | LSV-02 | Planned — Homologation Cell Eligibility Preflight Required |
+| 6 | LSV-02 | Blocked External (principal prompt consumed · fail-closed abort before fixtures · corrective budget 1/2 preserved · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`) |
 | 7 | LSV-03 | Planned — Blocked by LSV-02 |
 | 8 | LSV-04 | Planned — Blocked by LSV-03 |
 | 9 | RDA-01 | Planned — Blocked by LSV-04 |
