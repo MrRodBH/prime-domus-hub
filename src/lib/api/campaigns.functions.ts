@@ -6,7 +6,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 
+/**
+ * PTW-01 owns this writer transport. PTR-01 must not change its authority model.
+ */
 function publicClient(tenantHeader?: string | null) {
   const opts: {
     auth: { storage: undefined; persistSession: false; autoRefreshToken: false };
@@ -177,20 +181,21 @@ export const metricasCampanha = createServerFn({ method: "GET" })
 // ============================================================================
 
 export const listarCampanhasAtivas = createServerFn({ method: "GET" })
-  .inputValidator((d: { tenantId?: string | null } | undefined) =>
-    z.object({ tenantId: z.string().uuid().nullable().optional() }).parse(d ?? {}),
-  )
-  .handler(async ({ data }) => {
-    const sb = publicClient(data?.tenantId ?? null);
-    const { data: rows, error } = await sb
+  .inputValidator((d: Record<string, never> | undefined) => z.object({}).parse(d ?? {}))
+  .handler(async () => {
+    const tenant = await requirePublicTenantFromRequest();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
       .from("cms_campaigns")
       .select("id, nome, tipo, prioridade, conteudo, segmentacao, frequencia, start_at, end_at")
+      .eq("tenant_id", tenant.id)
       .eq("status", "active")
       .order("prioridade", { ascending: false });
-    if (error) return [];
+    if (error) throw new Error(error.message);
     return (rows ?? []) as unknown as Campaign[];
   });
 
+// PTW-01 owns this public mutation. PTR-01 intentionally preserves it unchanged.
 export const registrarEventoCampanha = createServerFn({ method: "POST" })
   .inputValidator((d: {
     campaign_id: string;
