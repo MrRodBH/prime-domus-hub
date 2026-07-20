@@ -249,6 +249,17 @@ Acceptance criteria for the future LSR-01 implementation:
 - HG-14 recorded as `not triggered`.
 - Same-Backend decision NOT reopened.
 - Evidence artifact persisted and readable.
+- `EXECUTION_ENVELOPE_RECONCILED = true`
+- `LSR01_STARTED = true`
+- `LSR01_PRINCIPAL_CONSUMED = true`
+- `LSR01_CORRECTIVE_CONSUMED = false`
+- `LSR01_REMAINING_BUDGET = 1/2`
+- `LSR01_READY_FOR_EXTERNAL_AUDIT = true`
+
+The eight terminal-state criteria above will be evaluated only at the
+future LSR-01 principal implementation. This planning reconciliation
+preserves `LSR01_STARTED = false`, `LSR01_PRINCIPAL_CONSUMED = false`,
+`LSR01_CORRECTIVE_CONSUMED = false`, `LSR01_REMAINING_BUDGET = 2/2`.
 
 If the canonical generator installed at implementation time does not
 support the expected register block, the future implementation must:
