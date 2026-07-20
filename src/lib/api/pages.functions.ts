@@ -124,7 +124,7 @@ export const excluirPagina = createServerFn({ method: "POST" })
 // ============================================================================
 
 export const obterPaginaPublica = createServerFn({ method: "GET" })
-  .inputValidator((d) => z.object({ slug: z.string().min(1) }).parse(d))
+  .inputValidator((d) => z.object({ slug: z.string().min(1) }).strict().parse(d))
   .handler(async ({ data }) => {
     const tenant = await requirePublicTenantFromRequest();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
