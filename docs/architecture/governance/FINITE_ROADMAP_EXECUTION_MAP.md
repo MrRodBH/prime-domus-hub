@@ -20,8 +20,8 @@ may exceed two implementation prompts (principal + corrective).
 | 3 | LSO-01 | Rejected / Closed |
 | 4 | LSH-01 | Accepted / Closed |
 | 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
-| 6 | LSV-02 | Blocked External (principal prompt consumed · fail-closed abort before fixtures · corrective budget 1/2 preserved · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`) |
-| 7 | LSV-03 | Planned — Blocked by LSV-02 |
+| 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
+| 7 | LSV-03 | Planned — Blocked by superseded LSV-02; live identity, real-session, Tenant Context and forged-header proofs (previously in LSV-02 scope) transferred to LSV-03's Execution Envelope, to be executed against an authorized non-production target |
 | 8 | LSV-04 | Planned — Blocked by LSV-03 |
 | 9 | RDA-01 | Planned — Blocked by LSV-04 |
 | 10 | RC-01 | Planned — Blocked by RDA-01 |
