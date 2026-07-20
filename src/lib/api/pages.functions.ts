@@ -3,17 +3,17 @@
  * Admin: CRUD completo. Público: obter por slug (somente published).
  */
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-function publicClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import {
+  publicSupabaseForTenant,
+  resolvePublicTenantFromRequest,
+} from "@/lib/tenant.server";
+import {
+  requireResolvedPublicTenant,
+  selectExactlyOneTenantScopedRow,
+  withoutTenantId,
+} from "@/lib/public-tenant-read.server";
 
 export type CmsBlock =
   | { id: string; type: "hero"; data: { eyebrow?: string; titulo: string; subtitulo?: string; imagem_url?: string; cta_label?: string; cta_href?: string; altura?: "sm" | "md" | "lg" } }
@@ -128,16 +128,37 @@ export const excluirPagina = createServerFn({ method: "POST" })
   });
 
 // ============================================================================
-// PÚBLICO — leitura por slug (respeita RLS anon: apenas published)
+// PÚBLICO — leitura por slug vinculada ao tenant resolvido do Host
 // ============================================================================
 
+type PublicPageRow = {
+  tenant_id: string;
+  id: string;
+  slug: string;
+  titulo: string;
+  descricao: string | null;
+  seo: unknown;
+  blocks: unknown;
+  published_at: string | null;
+};
+
 export const obterPaginaPublica = createServerFn({ method: "GET" })
-  .inputValidator((d) => z.object({ slug: z.string().min(1), tenant_id: z.string().uuid().optional() }).parse(d))
+  .inputValidator((d) => z.object({ slug: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
-    const supa = publicClient();
-    let q = supa.from("cms_pages").select("id, slug, titulo, descricao, seo, blocks, published_at, tenant_id").eq("slug", data.slug).eq("status", "published");
-    if (data.tenant_id) q = q.eq("tenant_id", data.tenant_id);
-    const { data: row, error } = await q.maybeSingle();
+    const tenant = requireResolvedPublicTenant(await resolvePublicTenantFromRequest());
+    const supabase = publicSupabaseForTenant(tenant.id);
+    const { data: rows, error } = await supabase
+      .from("cms_pages")
+      .select("tenant_id, id, slug, titulo, descricao, seo, blocks, published_at")
+      .eq("tenant_id", tenant.id)
+      .eq("slug", data.slug)
+      .eq("status", "published")
+      .limit(2);
     if (error) throw new Error(error.message);
-    return row;
+
+    const row = selectExactlyOneTenantScopedRow(
+      tenant.id,
+      rows as unknown as PublicPageRow[] | null,
+    );
+    return row ? withoutTenantId(row) : null;
   });
