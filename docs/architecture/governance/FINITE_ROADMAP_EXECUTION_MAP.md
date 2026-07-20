@@ -132,7 +132,9 @@ binding; details still undefined are recorded explicitly as
   package.
 - **MINIMUM_EVIDENCE:** Execution Envelope required before
   implementation.
-- **EXTERNAL_DEPENDENCIES:** same authorized non-production target.
+- **EXTERNAL_DEPENDENCIES:** unresolved by the current planning. No
+  external Supabase project is required, recommended or designated as
+  canonical fallback.
 - **OUT_OF_SCOPE:** migrations; RLS or grant changes; LSH-01 runtime
   edits; new stages beyond LSV closure.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
