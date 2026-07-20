@@ -311,30 +311,49 @@ sem alterar Auth/Storage/cron/RLS/grants. Como o budget máximo
 evidências operacionais previsto no Execution Envelope, a etapa é
 encerrada como **Superseded** conforme os terminal states declarados.
 
-### 14.3 Transferência de escopo para LSV-03
+### 14.3 Não transferência automática de escopo (reconciliada por LSR-01)
 
 Os deliverables operacionais originalmente atribuídos à LSV-02
 — identidade viva, sessões reais, Tenant Context, impersonation e
-forged-header sob JWTs reais — passam a ser responsabilidade da
-LSV-03, cujo Execution Envelope no mapa finito
-(`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`,
-§2.2) foi atualizado para incorporar esses proofs contra um alvo
-não-produção autorizado. O projeto externo `rm-prime-lsv-nonprod`
-(`adxqbrfcqhnoierwhymj`) permanece preservado como fallback canônico.
+forged-header sob JWTs reais — **NÃO** são transferidos
+automaticamente para a LSV-03. A LSR-01 removeu qualquer autoridade
+vigente de auto-transferência: os achados da LSV-02 são preservados
+exclusivamente como insumo obrigatório para futuro replanejamento
+formal, e não como escopo herdado por sucessor. A LSV-03 permanece
+`Planned — Blocked` sem escopo herdado da LSV-02 e sem novo Execution
+Envelope neste momento.
+
+Qualquer referência histórica ao projeto externo
+`rm-prime-lsv-nonprod` (project ref `adxqbrfcqhnoierwhymj`) é
+**HISTORICAL — NOT CURRENT AUTHORITY**: não é obrigatório,
+não é recomendado, não é fallback canônico e não é próximo passo
+para nenhuma etapa.
+
+Flags factuais reconciliadas:
+
+- `HG14_TRIGGERED = false`
+- `EXTERNAL_SUPABASE_REQUIRED = false`
+- `EXTERNAL_SUPABASE_RECOMMENDED = false`
+- `EXTERNAL_SUPABASE_CANONICAL_FALLBACK = false`
+- `LSV02_DELIVERABLES_AUTO_TRANSFERRED = false`
+- `SAME_BACKEND_DECISION_REOPENED = false`
 
 ### 14.4 Achados preservados
 
 Os achados factuais registrados na §13.4 do relatório de abort são
-insumo obrigatório para o planejamento de LSV-03 e para qualquer
-correção futura do defeito `CLIENT_TENANT_AUTHORITY` em
+insumo obrigatório apenas para futuro replanejamento formal e para
+qualquer correção futura do defeito `CLIENT_TENANT_AUTHORITY` em
 `public.leads`, `public.form_submissions` e
 `public.cms_campaign_events`. Nenhum desses achados é resolvido por
-esta seção.
+esta seção nem transferido para sucessor automaticamente.
 
 ### 14.5 Prossecução
 
-Esta seção não reabre a LSV-02, não autoriza nova execução Same-
-Backend, não modifica as Hard Guards HG-01..HG-14 e não altera a
-proibição pós-operação real (HG-14). Qualquer trabalho subsequente
-segue exclusivamente pela LSV-03 e pelas etapas seguintes do mapa
-finito.
+Esta seção não reabre a LSV-02, não autoriza nova execução
+Same-Backend, não modifica as Hard Guards HG-01..HG-14 e não altera
+a interpretação da HG-14, que permanece **não acionada** (a
+proibição pós-operação real só se aplica após o início efetivo de
+operação real). A continuidade do roadmap se dá exclusivamente pelas
+etapas subsequentes formalmente planejadas no mapa finito, sem
+transferência automática de escopo da LSV-02 e sem exigência ou
+recomendação de projeto Supabase externo.

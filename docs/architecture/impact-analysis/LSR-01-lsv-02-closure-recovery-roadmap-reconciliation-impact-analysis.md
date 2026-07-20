@@ -2,10 +2,10 @@
 
 **Type:** Execution Envelope Planning
 **Status:** Ready for External Audit
-**LSR-01 started:** false
-**Principal prompt consumed:** false
+**LSR-01 started:** true
+**Principal prompt consumed:** true
 **Corrective prompt consumed:** false
-**Remaining implementation budget:** 2/2
+**Remaining implementation budget:** 1/2
 
 **Authority:** derived from `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
 and the Finite Roadmap Execution Map
@@ -335,3 +335,27 @@ planned only after: hardening of public tenant authority; maintenance
 boundary; governed control of cron, queues and outbound calls; a new
 Execution Envelope; and new express authorization. None of these items
 are planned or implemented in LSR-01.
+
+---
+
+## Final factual execution section (LSR-01 principal)
+
+- `PRINCIPAL_EXECUTION_HEAD`: `4bc768104ba70103d0d851eb97e9cec9a28ffdde`
+- `FILES_CHANGED`:
+  - `src/routeTree.gen.ts` (regenerated canonically; byte-identical to prior HEAD)
+  - `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
+  - `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md`
+  - `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`
+  - `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`
+  - `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`
+- `TEST_RESULTS`:
+  - `FIRST_GENERATION_SUCCESS = true`
+  - `SECOND_GENERATION_SUCCESS = true`
+  - `SECOND_GENERATION_DIFF = 0`
+  - `TYPECHECK_PASSED = true`
+  - `BUILD_PASSED = true`
+  - `UNRELATED_ROUTE_DIFF = 0`
+  - `DUPLICATE_ENTRIES = 0`
+  - `CONFLICTING_CURRENT_STATES = 0`
+- `EVIDENCE_ARTIFACT`: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`
+- `READY_FOR_EXTERNAL_AUDIT`: `true`

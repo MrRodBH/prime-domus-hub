@@ -212,14 +212,27 @@ removed". A auditoria externa demonstrou que, na execução do prompt
 principal, o rodapé gerado do `src/routeTree.gen.ts` (bloco
 `import type { getRouter } … declare module '@tanstack/react-start' { … }`)
 foi perdido em uma reescrita do arquivo, deixando o registro de tipos
-do TanStack Start ausente. Nesta correção documental, o arquivo foi
-regenerado pelo processo canônico do gerador (`vite build --mode
-development`) até que dois builds consecutivos produzissem output
-byte-a-byte idêntico. O rodapé de registro foi restaurado
-integralmente e a etapa não introduziu configuração customizada de
-`routeTreeFileFooter` — o próprio plugin oficial do TanStack Start já
-produz o bloco necessário quando a geração é executada de forma
-canônica.
+do TanStack Start ausente.
+
+A reconciliação factual final desta pendência é responsabilidade da
+etapa LSR-01 (não desta LSV-02). Sob o prompt principal da LSR-01,
+o arquivo foi restaurado exclusivamente pelo processo canônico
+(sem edição manual do arquivo gerado e sem alteração de configuração
+do gerador). Duas gerações canônicas consecutivas foram executadas e
+comparadas byte a byte; o rodapé de registro TanStack Start foi
+produzido nativamente pelo gerador oficial. Resultado factual
+registrado pela LSR-01:
+
+- `ROUTE_TREE_REGISTER_RESTORED = true`
+- `RESTORATION_METHOD = canonical generator`
+- `FIRST_GENERATION_SUCCESS = true`
+- `SECOND_GENERATION_SUCCESS = true`
+- `SECOND_GENERATION_DIFF = 0`
+- `CANONICAL_GENERATOR_CONFIGURATION_RESOLVED = true`
+- `UNRELATED_ROUTE_DIFF = 0`
+
+Evidência primária consolidada em
+`docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`.
 
 ### 13.3 Ponto de recuperação e escopo de dano
 
