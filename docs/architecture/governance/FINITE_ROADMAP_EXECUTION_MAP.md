@@ -102,45 +102,84 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.2 LSR-02 — TanStack Start Registration Stability & LSR-01 Terminal Reconciliation
 
-- **STATE:** Planned / Ready for External Audit. Execution Envelope
-  planning materialized. LSR-02 not started.
-- **OBJECTIVE:** establish a single, deterministic and persistent source
-  for the TanStack Start module augmentation, stable across all real
-  development and build sequences, without modifying functional routes.
+- **STATE:** Rejected — terminal. Final external audit decision.
+  `LSR_02_STATE = Rejected`. `LSR_02_FINAL_STATE = Rejected`.
+  `LSR_02_TERMINAL = true`. `PRINCIPAL_EXTERNAL_AUDIT_ACCEPTED = false`.
+  `FINAL_EXTERNAL_AUDIT_ACCEPTED = false`.
+  `READY_FOR_FINAL_EXTERNAL_AUDIT = false`.
+  `NEW_IMPLEMENTATION_PROMPT_AUTHORIZED = false`.
+  `BUDGET_REOPENING_AUTHORIZED = false`.
+  Strategy B implementation (dedicated declaration
+  `src/tanstack-start-register.d.ts` + scoped
+  `lsr02:strip-tanstack-start-register-footer` Vite plugin +
+  bidirectional static assertions in `vite.config.ts`) is retained
+  in the repository as rejected technical history only; it is NOT
+  an accepted deliverable and does NOT satisfy the LSR-02
+  Definition of Done. Any real-execution outcome fields previously
+  recorded (Cycle A / Cycle B digests, TOTAL_REGISTER_SOURCE_COUNT,
+  route-tree SHA-256, FUNCTIONAL_ROUTE_DIFF) are historical
+  observations, not audit-accepted results.
+- **BLOCKING FINDINGS (preserved, non-authoritative for any
+  successor):**
+  1. `CONTROLLED_DEV_REQUIRED_NOT_EXECUTED` — Cycle B relied on
+     canonical `build:dev` + `build` sequences driven from the
+     current harness process instead of a separately controlled
+     `vite dev` instance under harness authority, so stability
+     under an authorized, harness-owned development process was
+     not proven.
+  2. `COMPILER_FILE_LIST_NOT_PROVEN` — inclusion of
+     `src/tanstack-start-register.d.ts` in the compiler file list
+     was asserted but not evidenced by a persisted, verifiable
+     compiler file-list artifact.
+  3. `CYCLE_COMPOSITE_DIGEST_NOT_PROVEN` — the required
+     deterministic ordered-manifest digest covering
+     `src/routeTree.gen.ts`, the selected canonical source,
+     `vite.config.ts`, `package.json`, and `bun.lock` was not
+     independently computed and evidenced.
+  4. `PARTIAL_FOOTER_FAIL_CLOSED_NOT_FULLY_IMPLEMENTED` — the
+     stripper handles known and loose footer shapes but does not
+     fully cover every partial-footer permutation with a
+     fail-closed proof.
+  5. `CONFLICTING_CURRENT_STATES_PRESENT` — prior planning and
+     execution documents recorded coexisting "not started",
+     "started", and "ready for final audit" states, resolved by
+     this reconciliation into the single terminal state
+     `Rejected`.
 - **PREDECESSOR:** LSR-01 — Superseded (terminal · principal consumed ·
   corrective consumed · remaining budget 0/2 · corrective failed
   closed · register stability not resolved).
-- **DELIVERABLES:** frozen Execution Envelope
-  (`docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md`);
-  future selection of exactly one of Strategy A (canonical stable
-  footer), Strategy B (dedicated stable declaration file), optionally
-  combined with Strategy C (minimum proven dependency alignment);
-  concurrency diagnostic table; two full independent test cycles;
-  evidence artifact.
+- **DELIVERABLES:** none accepted. Strategy B code artifacts remain
+  present as rejected technical history.
 - **FILES_ALLOWED:** frozen to nine paths (see impact analysis).
-  `FUTURE_ADDENDUM_ALLOWED = false`.
-- **MINIMUM_EVIDENCE:** `tanstack_start_register_source_count = 1`,
-  `duplicate_module_augmentation = false`,
-  `type_registration_stable = true`, `cycle_a_success = true`,
-  `cycle_b_success = true`, `full_sequence_diff = 0`,
-  `typecheck_passed = true`, `build_dev_passed = true`,
-  `build_passed = true`, `functional_route_diff = 0`,
-  `files_outside_allowed = 0`, `evidence_artifact_valid = true`.
+  `FUTURE_ADDENDUM_ALLOWED = false`. This reconciliation writes
+  only to authorized documentary and evidence paths within that
+  set.
+- **MINIMUM_EVIDENCE:** not satisfied. `tanstack_start_register_source_count = 1`
+  and `duplicate_module_augmentation = false` were observed, but
+  `controlled_dev`, `compiler_file_list_proof`, and
+  `cycle_composite_digest` were not proven; therefore the
+  Definition of Done is NOT met.
 - **EXTERNAL_DEPENDENCIES:** none.
 - **HARD_GUARDS:** no manual edits to `src/routeTree.gen.ts`; no
   functional route changes; no runtime behavior change; no
   migrations / RLS / grants / policies / Auth / Storage / cron / DB
-  changes.
+  changes. This document-only reconciliation preserves all
+  guards.
 - **OUT_OF_SCOPE:** LSV-03; LSV-04; `CLIENT_TENANT_AUTHORITY`;
   maintenance mode; tenant fixtures; Auth harness; Storage; DB;
   migrations; RLS; grants; policies; cron; queues; `net.http_post`;
-  external Supabase; functional route changes; reopening of LSR-01.
+  external Supabase; functional route changes; reopening of
+  LSR-01; any new implementation prompt for LSR-02.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0. `REMAINING_IMPLEMENTATION_BUDGET = 2/2`.
+  consumed 2. `REMAINING_IMPLEMENTATION_BUDGET = 0/2`. Budget
+  reopening is not authorized.
 - **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Blocked External · Rejected · Superseded.
-- **SUCCESSOR:** formal replacement-path planning gate. LSR-02
-  conclusion does NOT auto-start LSV-03.
+  Blocked External · Rejected · Superseded. Final state = `Rejected`.
+- **SUCCESSOR:** Formal replacement-path planning gate — not
+  started. Rejection of LSR-02 does NOT auto-start LSV-03 and does
+  NOT auto-transfer any deliverable from LSR-01, LSV-02, or the
+  rejected LSR-02 implementation.
+
 
 ### 2.3 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
 
