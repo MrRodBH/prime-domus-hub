@@ -76,6 +76,7 @@ be identified during implementation and no addendum is authorized.
 
 - `src/routeTree.gen.ts`
 - `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
+- `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md`
 - `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`
 - `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`
 - `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`
