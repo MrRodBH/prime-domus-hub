@@ -80,7 +80,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async () => {
     const { preflightPublicTenant } = await import("../lib/api/public-tenant.functions");
-    await preflightPublicTenant();
+    const tenantPreflight = await preflightPublicTenant();
 
     let faviconUrl: string | null = null;
     let metaPixelId: string | null = null;
@@ -89,23 +89,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let seoGlobal: any = {};
     let siteName = "RM Prime Imóveis";
-    try {
-      const { obterSiteSettings } = await import("../lib/api/site.functions");
-      const settings = await obterSiteSettings();
-      faviconUrl = settings.branding.favicon_url ?? null;
-      brandingV2 = settings.branding_v2 ?? {};
-      seoGlobal = settings.seo_global ?? {};
-      siteName = settings.branding.site_name || siteName;
-    } catch {
-      // ignore
+
+    if (tenantPreflight.required) {
+      try {
+        const { obterSiteSettings } = await import("../lib/api/site.functions");
+        const settings = await obterSiteSettings();
+        faviconUrl = settings.branding.favicon_url ?? null;
+        brandingV2 = settings.branding_v2 ?? {};
+        seoGlobal = settings.seo_global ?? {};
+        siteName = settings.branding.site_name || siteName;
+      } catch {
+        // ignore
+      }
+      try {
+        const { obterMetaPixelId } = await import("../lib/api/meta.functions");
+        const r = await obterMetaPixelId();
+        metaPixelId = r.pixel_id;
+      } catch {
+        // ignore
+      }
     }
-    try {
-      const { obterMetaPixelId } = await import("../lib/api/meta.functions");
-      const r = await obterMetaPixelId();
-      metaPixelId = r.pixel_id;
-    } catch {
-      // ignore
-    }
+
     return { faviconUrl, metaPixelId, brandingV2, seoGlobal, siteName };
   },
   head: ({ loaderData }) => {
@@ -229,7 +233,6 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
-
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
