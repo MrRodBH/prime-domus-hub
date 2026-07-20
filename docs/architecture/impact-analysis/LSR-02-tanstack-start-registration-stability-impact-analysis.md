@@ -1,11 +1,12 @@
 # LSR-02 — TanStack Start Registration Stability & LSR-01 Terminal Reconciliation
 
-**Type:** Execution Envelope Planning + Principal Implementation Executed
-**Status:** Ready for External Audit (Strategy B selected and implemented)
+**Type:** Execution Envelope Planning + Principal Implementation + Final Corrective Executed
+**Status:** Ready for Final External Audit (Strategy B — hardened)
 **LSR-02 started:** true
 **Principal prompt consumed:** true
-**Corrective prompt consumed:** false
-**Remaining implementation budget:** 1/2
+**Corrective prompt consumed:** true
+**Remaining implementation budget:** 0/2
+**Principal external audit accepted:** false
 
 **Authority:** derived from
 `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` and the
@@ -14,7 +15,28 @@ Finite Roadmap Execution Map
 
 **Baseline HEAD (planning):** `6bbef37d55378edaa37b4e1c1ed973a81334157c`
 **Reconciliation Baseline HEAD:** `e0251331bb701206fcf4ee11f29e3d93e442ac38`
+**Corrective Baseline HEAD:** `c1cb38655d075e2e3fe390a61ce4db6097bef1f3`
 **Branch:** `main`
+
+---
+
+## FINAL CORRECTIVE SUMMARY (LSR-02 §5–§13)
+
+- **STRATEGY_SELECTED:** B (dedicated_declaration_file); STRATEGY_C_USED = false.
+- **Static assertions:** relocated from `src/tanstack-start-register.d.ts` (where `tsgo` does not enforce type-alias constraint violations in `.d.ts` files) into `vite.config.ts` as type-only `_Lsr02Assert<_Lsr02Equal<...>>` triples. Negative mutation of `Register["ssr"]` or `Register["router"]` produces real `TS2344` errors; positive typecheck passes clean.
+- **Footer stripper hardening:** `KNOWN_FOOTER_RE` anchored to EOF and requires `declare module '@tanstack/react-start'`; suffix must not contain route content (`createFileRoute` / `_addFileChildren` / `_addFileTypes` / `RouteImport` / `rootRouteChildren`). Unknown/partial footers fail closed in `buildStart` / `writeBundle` / `closeBundle` and fail-soft (logged, untouched) in dev.
+- **Stripper safety tests (all pass):** no-footer no-op, known footer strip, similar-import safety, partial footer fail-closed, trailing-content fail-closed.
+- **Cycles A + B:** `build:dev`, `tsgo --noEmit`, `build` all green; `src/routeTree.gen.ts` SHA-256 stable at `c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f` across every command; `GENERATED_FOOTER_COUNT=0`, `DEDICATED_DECLARATION_COUNT=1`, `TOTAL_REGISTER_SOURCE_COUNT=1`, `DUPLICATE_MODULE_AUGMENTATION=false`.
+- **Functional route diff vs baseline `516d5af2…`:** 0.
+- **`package.json` / `bun.lock` / `tsconfig.json`:** unchanged.
+
+Files changed (within `FILES_ALLOWED`): `vite.config.ts`, `src/tanstack-start-register.d.ts`, this impact analysis, `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`, and the evidence artifact
+`docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json`.
+
+LSV-03 remains `Planned — Blocked`.
+
+---
+
 
 This document freezes the Execution Envelope for the future LSR-02
 implementation. It does NOT start LSR-02, does NOT consume any LSR-02

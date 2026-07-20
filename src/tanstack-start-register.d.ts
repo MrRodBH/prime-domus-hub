@@ -17,28 +17,32 @@ declare module "@tanstack/react-start" {
   }
 }
 
-// Type-only static assertions. These produce no JavaScript and fail the
-// typecheck if the module augmentation drifts from the expected shape.
-type _AssertRouter = import("@tanstack/react-start").Register extends {
-  router: Awaited<ReturnType<typeof getRouter>>;
-}
-  ? true
-  : never;
+// LSR-02 (final corrective) — bidirectional Equal<A, B> type contract.
+// The (<T>() => T extends X ? 1 : 2) trick treats types as equal only when
+// they are mutually assignable AND identical in variance, so a router/config
+// type mismatch — or any augmentation drift — resolves to `false` and
+// `Assert<false>` fails the typecheck with a real constraint error.
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2)
+    ? (<T>() => T extends B ? 1 : 2) extends (<T>() => T extends A ? 1 : 2)
+      ? true
+      : false
+    : false;
 
-type _AssertConfig = import("@tanstack/react-start").Register extends {
-  config: Awaited<ReturnType<typeof startInstance.getOptions>>;
-}
-  ? true
-  : never;
+type Assert<T extends true> = T;
 
-type _AssertSsr = import("@tanstack/react-start").Register extends {
-  ssr: true;
-}
-  ? true
-  : never;
+type RegisterType = import("@tanstack/react-start").Register;
 
-// Referencing the aliases prevents "unused type" warnings in strict configs
-// while remaining fully type-erased at compile output.
+type _AssertRouter = Assert<
+  Equal<RegisterType["router"], Awaited<ReturnType<typeof getRouter>>>
+>;
+
+type _AssertConfig = Assert<
+  Equal<RegisterType["config"], Awaited<ReturnType<typeof startInstance.getOptions>>>
+>;
+
+type _AssertSsr = Assert<Equal<RegisterType["ssr"], true>>;
+
 export type _Lsr02RegisterAssertions = [
   _AssertRouter,
   _AssertConfig,
