@@ -5,7 +5,7 @@
 **Accepted — binding map for the post-FRP delivery recovery path**
 
 **Authority:** explicit product-owner delivery reset + DRA-01 direct GitHub audit  
-**Current audited runtime HEAD:** `c021db3cf3b693887e2832d4d6736a04b0d749fc`
+**Current audited runtime HEAD:** `a462c7f4632d917dd76e2ab3e071fd8d11399a4e`
 
 ---
 
@@ -34,8 +34,8 @@ It does not reopen, rename, retry or inherit implementation authority from:
 | 1 | DRA-01 — Delivery Recovery & Release Criticality Audit | Accepted | Direct GitHub audit | completed; zero Lovable interactions |
 | 2 | GNR-01 — GitHub-Native Release Gate | Accepted | GitHub-native | principal PR consumed; corrective PR not consumed |
 | 3 | PTH-01 — Public Tenant Authority Hardening | Rejected — terminal | GitHub-native broad codemod path | principal consumed; corrective consumed; remaining 0/2 |
-| 4 | PTC-01 — Public Tenant Context Foundation | Authorized next | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
-| 5 | PTR-01 — Public Tenant Read Binding | Planned — Blocked by PTC-01 | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
+| 4 | PTC-01 — Public Tenant Context Foundation | Accepted | GitHub-native direct file edits | principal PR consumed; corrective PR not consumed |
+| 5 | PTR-01 — Public Tenant Read Binding | Authorized next | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
 | 6 | PTW-01 — Public Tenant Writer Authority | Planned — Blocked by PTR-01 | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
 | 7 | PSG-01 — Public Surface Security Gate | Planned — Blocked by PTW-01 | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
 | 8 | HVP-01 — Homologation Validation Preflight | Planned — Blocked by PSG-01 | GitHub-native runbook + authorized operator | evidence gate; no feature implementation |
@@ -102,17 +102,23 @@ Factual result:
 - `main` received no PTH-01 runtime, schema, migration, RLS, grant, Auth or Storage change;
 - rejected branch artifacts are historical only and are not transferred.
 
-The material requirement remains release-blocking, but the failed broad codemod mechanism is prohibited. Continuation is allowed only because the scope is formally reduced into independent outcomes and the implementation mechanism changes to direct, reviewable file edits.
+The material requirement remained release-blocking, so it was reduced into independent outcomes with a different implementation mechanism.
 
----
+### PTC-01
 
-## 4. Reduced public-tenant recovery sequence
+Final state: `Accepted`.
 
-### PTC-01 — Public Tenant Context Foundation
+Accepted implementation:
 
-**Objective:** establish one server-owned request-host-to-tenant context foundation.
-
-Required acceptance evidence:
+- PR `#18` merged as `a462c7f4632d917dd76e2ab3e071fd8d11399a4e`;
+- implicit tenant fallback removed;
+- server request Host is the only public host input to the resolver;
+- host normalization is deterministic and does not strip `www` heuristically;
+- absent, malformed, unmapped development and ambiguous host resolution fails closed;
+- localhost/Lovable preview resolution requires explicit validated mapping;
+- production resolution uses exact `dominio_principal` equality;
+- cardinality accepts exactly one row after reading at most two;
+- PTC-01 specifications are enforced by the Release Gate.
 
 ```text
 FALLBACK_TENANT_AUTHORITY = false
@@ -125,18 +131,16 @@ DEVELOPMENT_HOST_MAPPING_EXPLICIT_ONLY = true
 CLIENT_TENANT_AUTHORITY = false
 HEADER_TENANT_AUTHORITY = false
 TYPECHECK_BUILD_RELEASE_GATE_GREEN = true
+PTC01_PRINCIPAL_PR_CONSUMED = true
+PTC01_CORRECTIVE_PR_CONSUMED = false
+PTC01_REMAINING_CORRECTIVE_BUDGET = 1
 ```
 
-Scope limit: foundation only. Do not migrate all public reads or writers in this stage.
+Evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptc-01-public-tenant-context-acceptance.md`.
 
-Implementation mechanism:
+---
 
-- direct edits to explicitly listed files;
-- no repository-wide codemod;
-- no workflow that mutates and commits application code;
-- no migration/RLS/grant changes unless a new Impact Analysis explicitly proves they are required for this foundation.
-
-Successor: PTR-01 only after PTC-01 acceptance.
+## 4. Reduced public-tenant recovery sequence
 
 ### PTR-01 — Public Tenant Read Binding
 
@@ -153,6 +157,15 @@ GLOBAL_SLUG_AMBIGUITY_FAILS_CLOSED = true
 UNKNOWN_HOST_PUBLIC_READ_DENIAL = true
 CROSS_TENANT_PUBLIC_READ_TESTS_PASSED = true
 ```
+
+Implementation limits:
+
+- consume the accepted PTC-01 resolver;
+- direct edits only;
+- no form, campaign-event or portal writer changes;
+- no broad codemod;
+- no migration/RLS/grant change unless a new Impact Analysis proves it necessary;
+- no fallback empty-data success for unresolved tenant authority.
 
 Successor: PTW-01 only after PTR-01 acceptance.
 
@@ -186,6 +199,9 @@ PUBLIC_SERVICE_ROLE_ENTRYPOINTS_FAIL_CLOSED = true
 CMS_RICHTEXT_SANITIZED = true
 CMS_EMBED_ALLOWLIST = true
 CMS_LINK_PROTOCOL_ALLOWLIST = true
+SERVER_FUNCTION_CSRF_MIDDLEWARE_PRESENT = true
+CROSS_SITE_SERVER_FUNCTION_REQUEST_DENIED = true
+PUBLIC_SERVER_ROUTES_NOT_ACCIDENTALLY_BLOCKED = true
 NEGATIVE_SECURITY_TESTS_PASSED = true
 ```
 
@@ -231,7 +247,7 @@ Optional visual Lovable executions = maximum 2 total
 ## 6. Binding next action
 
 ```text
-NEXT_STAGE_AUTHORIZED = PTC-01
+NEXT_STAGE_AUTHORIZED = PTR-01
 AUTHORIZED_EXECUTOR = GitHub-native direct file edits
 BROAD_CODEMOD_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
