@@ -1,15 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-function publicClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 
 // 1 ano em segundos (URLs assinadas longas para conteúdo público estático)
 const SIGN_TTL = 60 * 60 * 24 * 365;
@@ -28,7 +20,6 @@ export async function signedUrl(
   return data.signedUrl;
 }
 
-
 export interface SiteSettings {
   branding: {
     logo_path?: string | null;
@@ -39,13 +30,13 @@ export interface SiteSettings {
   };
   /** Novo: branding dinâmico (cores/fontes) aplicado em runtime via CSS vars. */
   branding_v2: {
-    color_primary?: string;      // hex/oklch
+    color_primary?: string;
     color_secondary?: string;
     color_accent?: string;
     color_button?: string;
     color_link?: string;
-    font_primary?: string;       // ex: "Inter"
-    font_secondary?: string;     // ex: "Cormorant Garamond"
+    font_primary?: string;
+    font_secondary?: string;
     logo_mobile_path?: string | null;
     logo_mobile_url?: string | null;
   };
@@ -79,7 +70,16 @@ export interface SiteSettings {
     keywords?: string;
     twitter_handle?: string;
   };
-  home_hero: { eyebrow?: string; title_lines?: string[]; subtitle?: string; cta_primary?: string; cta_secondary?: string; image_path?: string | null; image_url?: string | null; search_tipos?: string[] };
+  home_hero: {
+    eyebrow?: string;
+    title_lines?: string[];
+    subtitle?: string;
+    cta_primary?: string;
+    cta_secondary?: string;
+    image_path?: string | null;
+    image_url?: string | null;
+    search_tipos?: string[];
+  };
   home_secoes: {
     destaques_eyebrow?: string;
     destaques_titulo?: string;
@@ -89,7 +89,17 @@ export interface SiteSettings {
     bairros_descricao?: string;
     bairros_qtd?: number;
   };
-  contato: { telefone?: string; whatsapp?: string; email?: string; endereco?: string; instagram?: string; facebook?: string; linkedin?: string; creci?: string; localizacao?: string };
+  contato: {
+    telefone?: string;
+    whatsapp?: string;
+    email?: string;
+    endereco?: string;
+    instagram?: string;
+    facebook?: string;
+    linkedin?: string;
+    creci?: string;
+    localizacao?: string;
+  };
   pagina_lancamentos: {
     eyebrow?: string;
     title_lines?: string[];
@@ -130,7 +140,7 @@ export interface SiteSettings {
     meta_title?: string;
     meta_description?: string;
   };
-  /** Página Contato — apenas textos institucionais (contatos vêm de `empresa`/`contato`). */
+  /** Página Contato — apenas textos institucionais. */
   pagina_contato: {
     hero_eyebrow?: string;
     hero_titulo?: string;
@@ -160,7 +170,6 @@ export interface SiteSettings {
     meta_description?: string;
   };
 }
-
 
 const DEFAULT_SECOES: SiteSettings["home_secoes"] = {
   destaques_eyebrow: "Seleção Exclusiva",
@@ -281,7 +290,7 @@ export async function hydrateSiteSettings(
     pagina_anuncie: DEFAULT_ANUNCIE as Record<string, unknown>,
   };
   const simpleKeys = new Set([
-    "branding","branding_v2","empresa","footer","seo_global","home_hero","contato",
+    "branding", "branding_v2", "empresa", "footer", "seo_global", "home_hero", "contato",
   ]);
   for (const row of rows) {
     if (simpleKeys.has(row.key)) {
@@ -305,12 +314,15 @@ export async function hydrateSiteSettings(
 }
 
 export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
-  const supabase = publicClient();
-  const { data, error } = await supabase.from("site_settings").select("key, value");
+  const tenant = await requirePublicTenantFromRequest();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("site_settings")
+    .select("key, value")
+    .eq("tenant_id", tenant.id);
   if (error) throw new Error(error.message);
   return hydrateSiteSettings(data ?? []);
 });
-
 
 export const atualizarSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -332,7 +344,6 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
         "pagina_contato",
         "pagina_anuncie",
       ]),
-
       value: z.record(z.string(), z.unknown()),
     }),
   )
@@ -348,7 +359,6 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
       .upsert({ key: data.key, value: data.value as never, updated_by: userId });
     if (error) throw new Error(error.message);
     await logCmsAudit(context, "site_settings", `cms.settings.publicar:${data.key}`, data.key, before?.value ?? null, data.value);
-    // snapshot histórico (published) — best-effort, não bloqueia a operação
     try {
       await supabase.from("site_settings_versions").insert({
         key: data.key,

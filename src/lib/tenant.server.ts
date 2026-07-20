@@ -173,7 +173,16 @@ export async function resolvePublicTenantFromRequest(): Promise<PublicTenantIden
   return resolveTenantByHost(getRequestHeader("host"));
 }
 
+/** Public read surfaces must fail closed rather than return cross-tenant or empty fallback data. */
+export async function requirePublicTenantFromRequest(): Promise<PublicTenantIdentity> {
+  const tenant = await resolvePublicTenantFromRequest();
+  if (!tenant) throw new Error("Public tenant authority could not be resolved.");
+  return tenant;
+}
+
 export function publicSupabaseForTenant(tenantId: string) {
+  if (!tenantId) throw new Error("Validated public tenant id is required.");
+
   const url = process.env.SUPABASE_URL!;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
   return createClient<Database>(url, key, {
