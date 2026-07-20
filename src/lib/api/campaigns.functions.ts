@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
 
 /**
  * PTW-01 owns this writer transport. PTR-01 must not change its authority model.
@@ -180,6 +181,19 @@ export const metricasCampanha = createServerFn({ method: "GET" })
 // PÚBLICO
 // ============================================================================
 
+type PublicCampaignRow = {
+  tenant_id: string;
+  id: string;
+  nome: string;
+  tipo: Campaign["tipo"];
+  prioridade: number;
+  conteudo: CampaignConteudo;
+  segmentacao: CampaignSegmentacao;
+  frequencia: CampaignFrequencia;
+  start_at: string | null;
+  end_at: string | null;
+};
+
 export const listarCampanhasAtivas = createServerFn({ method: "GET" })
   .inputValidator((d: Record<string, never> | undefined) => z.object({}).strict().parse(d ?? {}))
   .handler(async () => {
@@ -187,12 +201,15 @@ export const listarCampanhasAtivas = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("cms_campaigns")
-      .select("id, nome, tipo, prioridade, conteudo, segmentacao, frequencia, start_at, end_at")
+      .select("tenant_id, id, nome, tipo, prioridade, conteudo, segmentacao, frequencia, start_at, end_at")
       .eq("tenant_id", tenant.id)
       .eq("status", "active")
       .order("prioridade", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as unknown as Campaign[];
+    return assertTenantScopedRows(
+      tenant.id,
+      rows as unknown as PublicCampaignRow[] | null,
+    ).map((row) => withoutTenantId(row) as unknown as Campaign);
   });
 
 // PTW-01 owns this public mutation. PTR-01 intentionally preserves it unchanged.
