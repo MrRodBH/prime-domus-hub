@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { assertTenantScopedRows } from "@/lib/public-tenant-read-guards";
 
 // 1 ano em segundos (URLs assinadas longas para conteúdo público estático)
 const SIGN_TTL = 60 * 60 * 24 * 365;
@@ -313,15 +314,25 @@ export async function hydrateSiteSettings(
   return result;
 }
 
+type PublicSiteSettingRow = {
+  tenant_id: string;
+  key: string;
+  value: unknown;
+};
+
 export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
   const tenant = await requirePublicTenantFromRequest();
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
     .from("site_settings")
-    .select("key, value")
+    .select("tenant_id, key, value")
     .eq("tenant_id", tenant.id);
   if (error) throw new Error(error.message);
-  return hydrateSiteSettings(data ?? []);
+  const rows = assertTenantScopedRows(
+    tenant.id,
+    data as unknown as PublicSiteSettingRow[] | null,
+  );
+  return hydrateSiteSettings(rows.map(({ key, value }) => ({ key, value })));
 });
 
 export const atualizarSiteSettings = createServerFn({ method: "POST" })
