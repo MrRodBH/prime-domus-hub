@@ -20,8 +20,8 @@ may exceed two implementation prompts (principal + corrective).
 | 3 | LSO-01 | Rejected / Closed |
 | 4 | LSH-01 | Accepted / Closed |
 | 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
-| 6 | LSV-02 | Blocked External (principal prompt consumed · fail-closed abort before fixtures · corrective budget 1/2 preserved · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`) |
-| 7 | LSV-03 | Planned — Blocked by LSV-02 |
+| 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
+| 7 | LSV-03 | Planned — Blocked by superseded LSV-02; live identity, real-session, Tenant Context and forged-header proofs (previously in LSV-02 scope) transferred to LSV-03's Execution Envelope, to be executed against an authorized non-production target |
 | 8 | LSV-04 | Planned — Blocked by LSV-03 |
 | 9 | RDA-01 | Planned — Blocked by LSV-04 |
 | 10 | RC-01 | Planned — Blocked by RDA-01 |
@@ -140,23 +140,36 @@ binding; details still undefined are recorded explicitly as
   migration changes; RLS changes; grant changes; LSH-01 accepted
   runtime edits; use of real data; post-real-operation execution.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0. This documentation revision does not consume budget.
+  consumed 2 (principal: fail-closed abort before fixtures; final
+  corrective: factual reconciliation and terminalization — no runtime
+  mutations). REMAINING_IMPLEMENTATION_BUDGET = 0.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
-- **SUCCESSOR:** LSV-03 (remains blocked by LSV-02).
+- **FINAL_STATE:** Superseded (terminal). Live identity and Tenant
+  Context proofs transferred to LSV-03's Execution Envelope, to be
+  executed against an authorized non-production target once the
+  Same-Backend Homologation Cell strategy is no longer eligible.
+- **SUCCESSOR:** LSV-03 (remains blocked by the terminalization of
+  LSV-02 and by the availability of an authorized non-production
+  target).
 
 ### 2.2 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
 
 - **OBJECTIVE:** operationally prove Lead authorization, RLS, grants,
   cross-tenant isolation and impersonation matrices under real JWTs.
-- **PREDECESSOR:** LSV-02 — Accepted.
+- **PREDECESSOR:** LSV-02 — Superseded (terminal).
 - **DELIVERABLES:** full Lead operation matrix under real sessions;
   RLS matrix per identity; grants matrix; cross-tenant probes;
-  canonical 7-scenario impersonation matrix; live evidence artifact.
+  canonical 7-scenario impersonation matrix; live evidence artifact;
+  live identity, real-session, Tenant Context, impersonation and
+  forged-header proofs transferred from the superseded LSV-02
+  Execution Envelope.
 - **MINIMUM_EVIDENCE:** Execution Envelope required before
   implementation.
-- **EXTERNAL_DEPENDENCIES:** same authorized non-production target as
-  LSV-02.
+- **EXTERNAL_DEPENDENCIES:** authorized non-production Supabase
+  target (the external non-production project `rm-prime-lsv-nonprod`
+  remains preserved as the canonical fallback; Same-Backend
+  Homologation Cell strategy is permanently unavailable per HG-14).
 - **OUT_OF_SCOPE:** atomicity; rollback; concurrency; migrations; RLS
   or grant changes; LSH-01 runtime edits.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.

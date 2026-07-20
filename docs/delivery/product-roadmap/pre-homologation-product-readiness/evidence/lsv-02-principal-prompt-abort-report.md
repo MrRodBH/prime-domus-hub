@@ -159,3 +159,119 @@ no jobs, no secrets, no Storage objects were created, modified, or removed.
 
 LSV-03 remains blocked by LSV-02. No roadmap transition to Accepted was
 performed. Corrective prompt budget (1/2) is preserved.
+
+---
+
+## 13. Reconciliação factual externa — Final Corrective (documental)
+
+Esta seção é a única correção consolidada da LSV-02 e é adicionada
+sem executar qualquer mutação em banco de dados, Auth, Storage, cron
+ou fixtures. Ela existe para reconciliar afirmações da §3 e da §9 com
+os fatos observados durante a auditoria externa, e para materializar
+a terminalização documental da etapa.
+
+### 13.1 Correções factuais sobre as Hard Guards
+
+- **HG-03 pre-homologation eligibility** — reclassificada como
+  **SATISFEITA de fato**: a auditoria externa confirmou que o backend
+  atual não hospeda clientes externos ativos, tenants comerciais
+  reais, assinaturas reais, pagamentos reais, leads comerciais reais,
+  imóveis com dados reais, usuários externos operando o sistema, nem
+  dados pessoais reais que possam ser afetados. A presença de domínios
+  personalizados publicados **não é, por si só**, critério de
+  desqualificação previsto no Execution Envelope frozen; a §4
+  original havia inferido isso incorretamente.
+- **HG-14 post-real-operation prohibition** — reclassificada como
+  **NÃO ACIONADA**: o produto ainda não entrou em operação real com
+  clientes ou dados de produção; portanto a proibição permanente do
+  HG-14 não foi disparada. A §4 original tratou "domínios publicados"
+  como equivalente a "operação real", o que não é o texto congelado
+  do Execution Envelope.
+- **HG-01 explicit same-backend mode** — permanece **NÃO SATISFEITA**:
+  não existe no código um switch factual `LSV_HOMOLOGATION_CELL_MODE`
+  hoje. Introduzi-lo estaria fora do escopo desta correção documental.
+- **HG-09 maintenance window** — permanece **NÃO SATISFEITA em modo
+  self-serve**: Lovable Cloud não expõe mecanismo próprio para
+  suspender escritas em domínios publicados, e o executor não tem
+  autoridade para pausar `cron.job`/`net.http_post` nem inibir
+  consumidores `pgmq`. Uma janela viável exige ação explícita do
+  operador (suspensão dos domínios, pausa dos jobs de cron/queue e
+  fechamento das políticas anon dos writers públicos durante a
+  janela) — ação essa que não foi solicitada nem executada nesta
+  etapa.
+
+Consequência agregada: mesmo com HG-03 e HG-14 corrigidas, o
+conjunto simultâneo (HG-01, HG-09, HG-11 dependente de acesso a
+`auth`/`cron`) continua insatisfeito. O aborto fail-closed original
+permanece correto; apenas sua justificativa é refinada.
+
+### 13.2 Correção factual sobre `src/routeTree.gen.ts`
+
+A §9 original declarou "No `src/*` files were created, modified, or
+removed". A auditoria externa demonstrou que, na execução do prompt
+principal, o rodapé gerado do `src/routeTree.gen.ts` (bloco
+`import type { getRouter } … declare module '@tanstack/react-start' { … }`)
+foi perdido em uma reescrita do arquivo, deixando o registro de tipos
+do TanStack Start ausente. Nesta correção documental, o arquivo foi
+regenerado pelo processo canônico do gerador (`vite build --mode
+development`) até que dois builds consecutivos produzissem output
+byte-a-byte idêntico. O rodapé de registro foi restaurado
+integralmente e a etapa não introduziu configuração customizada de
+`routeTreeFileFooter` — o próprio plugin oficial do TanStack Start já
+produz o bloco necessário quando a geração é executada de forma
+canônica.
+
+### 13.3 Ponto de recuperação e escopo de dano
+
+Ponto de recuperação observado na plataforma antes do prompt
+principal: `2026-07-20T11:04:25Z`. Como o prompt principal abortou
+fail-closed antes de qualquer criação de fixture, e como esta
+correção final não executa mutações de runtime, não há dano
+factual em banco de dados, Auth, Storage, cron nem policies a
+reverter. O ponto de recuperação continua disponível como salvaguarda
+operacional preservada, mas não é acionado.
+
+### 13.4 Achados preservados para planejamento futuro
+
+Os achados bloqueantes registrados na §11 permanecem válidos e são
+preservados como entrada obrigatória para o próximo Execution
+Envelope autorizado a manipular Tenant Context em ambiente vivo
+(hoje endereçado por LSV-03 contra um backend não-produção
+autorizado):
+
+1. Superfície pública ainda opera policies anon em
+   `public.leads`, `public.form_submissions` e
+   `public.cms_campaign_events` sem autoridade server-side de tenant
+   (defeito `CLIENT_TENANT_AUTHORITY`). Correção deve ser conduzida
+   sob sua própria unidade governada.
+2. Não existe controle self-serve de janela de manutenção para
+   domínios publicados em Lovable Cloud; qualquer estratégia
+   same-backend futura precisa de mecanismo operador-controlado.
+3. Os schemas `auth` e `cron` não são legíveis pela role de execução
+   do agente; uma função de fronteira protegida (SECURITY DEFINER
+   estrita) precisa ser autorizada em um envelope próprio antes de
+   qualquer prova operacional dependente desses schemas.
+4. O resíduo interno preexistente `scp0121_*` (73 tenants, 65
+   assinaturas, 438 conectores) continua classificado como
+   `PREEXISTING_INTERNAL_TEST_RESIDUE` e permanece intocado por
+   esta etapa.
+
+### 13.5 Consumo de budget e estado terminal
+
+- `LSV_02_STARTED = true`
+- `LSV_02_PRINCIPAL_PROMPT_CONSUMED = true` (execução com fail-closed
+  abort registrada nas seções 1–12)
+- `LSV_02_FINAL_CORRECTIVE_PROMPT_CONSUMED = true` (esta seção 13,
+  puramente documental, sem mutações de runtime)
+- `LSV_02_REMAINING_IMPLEMENTATION_BUDGET = 0`
+- Estado terminal proposto e materializado: **Superseded**.
+- Sucessora LSV-03 herda os deliverables operacionais de identidade
+  viva, sessão real, Tenant Context e forged-header, a serem
+  executados contra um alvo não-produção autorizado.
+
+Esta correção não cria fixtures, não executa provas ao vivo, não
+altera secrets, não deploya edge functions, não muda RLS/grants e não
+edita arquivos gerados por integrações protegidas além do
+`src/routeTree.gen.ts` restaurado via processo canônico. É
+exclusivamente reconciliação factual e materialização documental do
+encerramento terminal da LSV-02.

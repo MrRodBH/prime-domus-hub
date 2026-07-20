@@ -278,3 +278,63 @@ database, Auth, Storage, migrations, RLS or grants. No live harness
 run. No teardown or residue scan executed. No secrets used. The
 external Supabase project is not removed. LSV-02 is not started and no
 prompt budget is consumed.
+
+---
+
+## 14. Encerramento histórico — Final Corrective
+
+Esta seção é apêndice histórico e documental. Não altera nenhuma
+cláusula das seções 1–13 (que permanecem congeladas como contrato de
+referência do que teria sido a estratégia Same-Backend Homologation
+Cell), não introduz nova política, não autoriza nova execução e não
+consome budget adicional além do prompt corretivo final da LSV-02
+já contabilizado no mapa finito.
+
+### 14.1 Estado terminal
+
+- `LSV_02_TERMINAL_STATE = Superseded`
+- `LSV_02_PRINCIPAL_PROMPT_CONSUMED = true`
+- `LSV_02_FINAL_CORRECTIVE_PROMPT_CONSUMED = true`
+- `LSV_02_REMAINING_IMPLEMENTATION_BUDGET = 0`
+- Evidência primária de execução:
+  `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`
+  (seções 1–13, incluindo a Reconciliação factual externa).
+
+### 14.2 Motivo do encerramento
+
+O prompt principal abortou fail-closed antes de qualquer criação de
+fixture. O prompt corretivo final foi consumido exclusivamente para
+reconciliação factual e materialização documental, sem executar
+provas ao vivo, sem criar tenants sintéticos, sem tocar em RM Prime,
+sem alterar Auth/Storage/cron/RLS/grants. Como o budget máximo
+(principal + corretivo) foi esgotado sem produzir o pacote de
+evidências operacionais previsto no Execution Envelope, a etapa é
+encerrada como **Superseded** conforme os terminal states declarados.
+
+### 14.3 Transferência de escopo para LSV-03
+
+Os deliverables operacionais originalmente atribuídos à LSV-02
+— identidade viva, sessões reais, Tenant Context, impersonation e
+forged-header sob JWTs reais — passam a ser responsabilidade da
+LSV-03, cujo Execution Envelope no mapa finito
+(`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`,
+§2.2) foi atualizado para incorporar esses proofs contra um alvo
+não-produção autorizado. O projeto externo `rm-prime-lsv-nonprod`
+(`adxqbrfcqhnoierwhymj`) permanece preservado como fallback canônico.
+
+### 14.4 Achados preservados
+
+Os achados factuais registrados na §13.4 do relatório de abort são
+insumo obrigatório para o planejamento de LSV-03 e para qualquer
+correção futura do defeito `CLIENT_TENANT_AUTHORITY` em
+`public.leads`, `public.form_submissions` e
+`public.cms_campaign_events`. Nenhum desses achados é resolvido por
+esta seção.
+
+### 14.5 Prossecução
+
+Esta seção não reabre a LSV-02, não autoriza nova execução Same-
+Backend, não modifica as Hard Guards HG-01..HG-14 e não altera a
+proibição pós-operação real (HG-14). Qualquer trabalho subsequente
+segue exclusivamente pela LSV-03 e pelas etapas seguintes do mapa
+finito.
