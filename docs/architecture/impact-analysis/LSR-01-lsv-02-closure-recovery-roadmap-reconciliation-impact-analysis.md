@@ -191,6 +191,38 @@ containing at minimum:
 - `lsv_03_state = "Planned — Blocked"`
 - `principal_prompt_consumed`, `corrective_prompt_consumed`,
   `remaining_implementation_budget`
+- `execution_envelope_reconciled = true`
+- `lsr_01_started = true`
+- `principal_prompt_consumed = true`
+- `corrective_prompt_consumed = false`
+- `remaining_implementation_budget = "1/2"`
+- `ready_for_external_audit = true`
+
+The values in the six fields above represent the expected state AFTER the
+future principal execution of LSR-01; they are NOT the state of this
+planning reconciliation, which preserves `LSR01_STARTED = false`,
+`LSR01_PRINCIPAL_CONSUMED = false`, `LSR01_CORRECTIVE_CONSUMED = false`,
+`LSR01_REMAINING_BUDGET = 2/2`.
+
+## SELF_UPDATE_AUTHORIZATION
+
+The future LSR-01 principal implementation may modify this Execution
+Envelope EXCLUSIVELY to record the factual outcome of its own execution.
+The only authorized modifications are:
+
+- change `Status` to `Ready for External Audit`;
+- change `LSR-01 started` to `true`;
+- change `Principal prompt consumed` to `true`;
+- keep `Corrective prompt consumed` as `false`;
+- change `Remaining implementation budget` to `1/2`;
+- append a single final factual section containing exactly:
+  `PRINCIPAL_EXECUTION_HEAD`, `FILES_CHANGED`, `TEST_RESULTS`,
+  `EVIDENCE_ARTIFACT`, `READY_FOR_EXTERNAL_AUDIT`.
+
+This authorization MUST NOT be used to: expand scope, add files to
+FILES_ALLOWED, alter the objective, alter deliverables, alter tests,
+alter Definition of Done, create a new successor, declare Accepted, or
+initiate the replacement-path planning gate.
 
 ## DEFINITION_OF_DONE
 
