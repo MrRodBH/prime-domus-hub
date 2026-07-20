@@ -5,7 +5,7 @@
 **Accepted — binding map for the post-FRP delivery recovery path**
 
 **Authority:** explicit product-owner delivery reset + DRA-01 direct GitHub audit  
-**Effective after merge to:** `main`
+**Current audited implementation HEAD:** `9a9c97c549e0f6a575546abc5a9ffa0a3904078d`
 
 ---
 
@@ -31,8 +31,8 @@ It does not reopen, rename, retry or inherit implementation authority from:
 | Order | Stage | State | Executor | Budget |
 |---:|---|---|---|---|
 | 1 | DRA-01 — Delivery Recovery & Release Criticality Audit | Accepted | Direct GitHub audit | completed; zero Lovable interactions |
-| 2 | GNR-01 — GitHub-Native Release Gate | Authorized next | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
-| 3 | PTH-01 — Public Tenant Authority Hardening | Planned — Blocked by GNR-01 | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
+| 2 | GNR-01 — GitHub-Native Release Gate | Accepted | GitHub-native | principal PR consumed; corrective PR not consumed |
+| 3 | PTH-01 — Public Tenant Authority Hardening | Authorized next | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
 | 4 | PSG-01 — Public Surface Security Gate | Planned — Blocked by PTH-01 | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
 | 5 | HVP-01 — Homologation Validation Preflight | Planned — Blocked by PSG-01 | GitHub-native runbook + authorized operator | evidence gate; no feature implementation |
 | 6 | VSP-01 — Optional Visual Stabilization Package | Optional — Not authorized | Lovable only when HVP-01 records blocking visual defects | global max 1 principal + 1 corrective |
@@ -56,10 +56,20 @@ Accepted outputs:
 
 ### GNR-01
 
-Entry: DRA-01 Accepted.  
-Exit: `Accepted`, `Accepted with Non-Blocking Backlog`, `Rejected`, `Superseded` or `Blocked External`.
+Final state: `Accepted`.
 
-Required acceptance evidence:
+Accepted implementation:
+
+- PR `#7` merged as `9a9c97c549e0f6a575546abc5a9ffa0a3904078d`;
+- rejected authored declaration `src/tanstack-start-register.d.ts` removed;
+- rejected route-tree rewriting plugin and duplicate assertions removed from `vite.config.ts`;
+- generated route tree restored as the single TanStack Start Register authority;
+- Bun pinned to `1.3.14`;
+- canonical `typecheck`, `verify:release` and `ci` commands materialized;
+- GitHub Actions release gate added for pull requests and `main`;
+- pinned workflow execution completed successfully after dependency installation, deterministic build cycles, typecheck and structural/unit specifications.
+
+Acceptance evidence:
 
 ```text
 TYPECHECK_EXIT_CODE = 0
@@ -68,9 +78,18 @@ BUILD_DEV_EXIT_CODE = 0
 TANSTACK_REGISTER_AUTHORITY_COUNT = 1
 GENERATED_ROUTE_TREE_MANUAL_EDIT = false
 CI_REQUIRED_CHECKS_GREEN = true
+REJECTED_STRATEGY_B_PRESENT = false
 ```
 
-Successor authorization: PTH-01 only after GNR-01 acceptance.
+Prompt/PR budget:
+
+```text
+GNR01_PRINCIPAL_PR_CONSUMED = true
+GNR01_CORRECTIVE_PR_CONSUMED = false
+GNR01_REMAINING_CORRECTIVE_BUDGET = 1
+```
+
+Successor authorization: PTH-01.
 
 ### PTH-01
 
@@ -155,7 +174,7 @@ The optional limit is global across the entire pre-homologation visual package.
 ## 5. Binding next action
 
 ```text
-NEXT_STAGE_AUTHORIZED = GNR-01
+NEXT_STAGE_AUTHORIZED = PTH-01
 AUTHORIZED_EXECUTOR = GitHub-native
 LOVABLE_AUTHORIZED = false
 ```
