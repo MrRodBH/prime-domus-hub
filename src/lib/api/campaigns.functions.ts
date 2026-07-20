@@ -6,7 +6,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  publicSupabaseForTenant,
+  resolvePublicTenantFromRequest,
+} from "@/lib/tenant.server";
+import {
+  assertTenantScopedRows,
+  requireResolvedPublicTenant,
+  withoutTenantId,
+} from "@/lib/public-tenant-read.server";
 
+// Retained only for the public campaign-event writer until PTW-01.
 function publicClient(tenantHeader?: string | null) {
   const opts: {
     auth: { storage: undefined; persistSession: false; autoRefreshToken: false };
@@ -133,13 +143,12 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       await logCmsAudit(context, "cms_campaigns", isActivating ? "cms.campanha.publicar" : "cms.campanha.editar", data.id, before, row);
       return { id: row.id };
-    } else {
-      const { data: row, error } = await context.supabase
-        .from("cms_campaigns").insert({ ...payload, created_by: context.userId }).select("*").single();
-      if (error) throw new Error(error.message);
-      await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
-      return { id: row.id };
     }
+    const { data: row, error } = await context.supabase
+      .from("cms_campaigns").insert({ ...payload, created_by: context.userId }).select("*").single();
+    if (error) throw new Error(error.message);
+    await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
+    return { id: row.id };
   });
 
 export const excluirCampanha = createServerFn({ method: "POST" })
@@ -176,19 +185,36 @@ export const metricasCampanha = createServerFn({ method: "GET" })
 // PÚBLICO
 // ============================================================================
 
+type PublicCampaignRow = {
+  tenant_id: string;
+  id: string;
+  nome: string;
+  tipo: Campaign["tipo"];
+  prioridade: number;
+  conteudo: CampaignConteudo;
+  segmentacao: CampaignSegmentacao;
+  frequencia: CampaignFrequencia;
+  start_at: string | null;
+  end_at: string | null;
+};
+
 export const listarCampanhasAtivas = createServerFn({ method: "GET" })
-  .inputValidator((d: { tenantId?: string | null } | undefined) =>
-    z.object({ tenantId: z.string().uuid().nullable().optional() }).parse(d ?? {}),
-  )
-  .handler(async ({ data }) => {
-    const sb = publicClient(data?.tenantId ?? null);
-    const { data: rows, error } = await sb
+  .inputValidator((d: Record<string, never> | undefined) => z.object({}).strict().parse(d ?? {}))
+  .handler(async () => {
+    const tenant = requireResolvedPublicTenant(await resolvePublicTenantFromRequest());
+    const supabase = publicSupabaseForTenant(tenant.id);
+    const { data: rows, error } = await supabase
       .from("cms_campaigns")
-      .select("id, nome, tipo, prioridade, conteudo, segmentacao, frequencia, start_at, end_at")
+      .select("tenant_id, id, nome, tipo, prioridade, conteudo, segmentacao, frequencia, start_at, end_at")
+      .eq("tenant_id", tenant.id)
       .eq("status", "active")
       .order("prioridade", { ascending: false });
-    if (error) return [];
-    return (rows ?? []) as unknown as Campaign[];
+    if (error) throw new Error(error.message);
+
+    return assertTenantScopedRows(
+      tenant.id,
+      rows as unknown as PublicCampaignRow[] | null,
+    ).map((row) => withoutTenantId(row) as unknown as Campaign);
   });
 
 export const registrarEventoCampanha = createServerFn({ method: "POST" })
