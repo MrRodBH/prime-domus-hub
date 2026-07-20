@@ -76,6 +76,7 @@ be identified during implementation and no addendum is authorized.
 
 - `src/routeTree.gen.ts`
 - `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
+- `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md`
 - `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`
 - `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`
 - `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`
@@ -108,6 +109,14 @@ grants, policies, tenant resolution, impersonation, public writers.
 
 `false`
 
+## RLS_CHANGES_ALLOWED
+
+`false`
+
+## GRANTS_CHANGES_ALLOWED
+
+`false`
+
 Normative interpretation:
 
 - no runtime behavior change is authorized;
@@ -116,6 +125,8 @@ Normative interpretation:
 - only metadata or type-registration output produced natively by the
   generator is admissible;
 - no functional route may be added, removed or modified;
+- no RLS policy, grant, migration, or database object may be added,
+  altered, or removed;
 - any functional or structural route change causes fail-closed.
 
 ## TESTS_REQUIRED
@@ -180,6 +191,38 @@ containing at minimum:
 - `lsv_03_state = "Planned — Blocked"`
 - `principal_prompt_consumed`, `corrective_prompt_consumed`,
   `remaining_implementation_budget`
+- `execution_envelope_reconciled = true`
+- `lsr_01_started = true`
+- `principal_prompt_consumed = true`
+- `corrective_prompt_consumed = false`
+- `remaining_implementation_budget = "1/2"`
+- `ready_for_external_audit = true`
+
+The values in the six fields above represent the expected state AFTER the
+future principal execution of LSR-01; they are NOT the state of this
+planning reconciliation, which preserves `LSR01_STARTED = false`,
+`LSR01_PRINCIPAL_CONSUMED = false`, `LSR01_CORRECTIVE_CONSUMED = false`,
+`LSR01_REMAINING_BUDGET = 2/2`.
+
+## SELF_UPDATE_AUTHORIZATION
+
+The future LSR-01 principal implementation may modify this Execution
+Envelope EXCLUSIVELY to record the factual outcome of its own execution.
+The only authorized modifications are:
+
+- change `Status` to `Ready for External Audit`;
+- change `LSR-01 started` to `true`;
+- change `Principal prompt consumed` to `true`;
+- keep `Corrective prompt consumed` as `false`;
+- change `Remaining implementation budget` to `1/2`;
+- append a single final factual section containing exactly:
+  `PRINCIPAL_EXECUTION_HEAD`, `FILES_CHANGED`, `TEST_RESULTS`,
+  `EVIDENCE_ARTIFACT`, `READY_FOR_EXTERNAL_AUDIT`.
+
+This authorization MUST NOT be used to: expand scope, add files to
+FILES_ALLOWED, alter the objective, alter deliverables, alter tests,
+alter Definition of Done, create a new successor, declare Accepted, or
+initiate the replacement-path planning gate.
 
 ## DEFINITION_OF_DONE
 
@@ -206,6 +249,17 @@ Acceptance criteria for the future LSR-01 implementation:
 - HG-14 recorded as `not triggered`.
 - Same-Backend decision NOT reopened.
 - Evidence artifact persisted and readable.
+- `EXECUTION_ENVELOPE_RECONCILED = true`
+- `LSR01_STARTED = true`
+- `LSR01_PRINCIPAL_CONSUMED = true`
+- `LSR01_CORRECTIVE_CONSUMED = false`
+- `LSR01_REMAINING_BUDGET = 1/2`
+- `LSR01_READY_FOR_EXTERNAL_AUDIT = true`
+
+The eight terminal-state criteria above will be evaluated only at the
+future LSR-01 principal implementation. This planning reconciliation
+preserves `LSR01_STARTED = false`, `LSR01_PRINCIPAL_CONSUMED = false`,
+`LSR01_CORRECTIVE_CONSUMED = false`, `LSR01_REMAINING_BUDGET = 2/2`.
 
 If the canonical generator installed at implementation time does not
 support the expected register block, the future implementation must:
