@@ -57,13 +57,15 @@ binding; details still undefined are recorded explicitly as
   (pre-homologation status, zero real clients/tenants/subscriptions/
   leads/media/users/personal data, controlled write window, explicit
   operator authorization, recovery/backup mechanism in place). If any
-  criterion fails, LSV-02 fails closed and reverts to Blocked External;
-  the external non-production Supabase project remains as optional
-  fallback.
+  criterion fails, LSV-02 fails closed and reverts to Blocked External.
+  (HISTORICAL — NOT CURRENT AUTHORITY: the historical external
+  non-production project `rm-prime-lsv-nonprod` / project ref
+  `adxqbrfcqhnoierwhymj` is preserved only as historical registry; it is
+  NOT a current fallback, NOT recommended, NOT required, and NOT a next
+  step for any stage.)
 - **DELIVERABLES:** hard guards (HG-01..HG-14); protected baseline
   registry (RM Prime tenant + preexisting protected entities pinned by
-  canonical ID); minimum two synthetic tenants (RM Prime HML A and RM
-  Prime HML B, authority in generated IDs); synthetic Auth users,
+  canonical ID); minimum two synthetic tenants; synthetic Auth users,
   memberships, roles, imóveis, leads, events and Storage objects; per-
   run fixture manifest; live probes; deterministic manifest-based
   teardown; residue scan; persisted evidence artifact.
@@ -75,108 +77,49 @@ binding; details still undefined are recorded explicitly as
   `rm_prime_tenant_preserved=true`,
   `protected_baseline_changed=false`, `orphaned_fixtures = 0`,
   `residue_scan_passed=true`, `evidence_persisted=true`.
-- **EXTERNAL_DEPENDENCIES:** none mandatory — a second Supabase project
-  is no longer required. External non-production project
-  `rm-prime-lsv-nonprod` remains preserved as optional fallback.
-  Operational dependencies: recovery/backup mechanism and controlled
-  maintenance window.
-- **HARD_GUARDS (frozen):** HG-01 explicit same-backend homologation
-  mode; HG-02 exact project-ref lock; HG-03 pre-homologation
-  eligibility preflight; HG-04 protected tenant registry by ID; HG-05
-  synthetic-only fixtures bound to `run_id`; HG-06 two-tenant minimum;
-  HG-07 no preexisting object mutation; HG-08 no destructive global
-  operation (DROP DATABASE/SCHEMA/TABLE, TRUNCATE, unscoped deletes,
-  open cascade, prefix-only cleanup, DB reset, prod copy/restore all
-  forbidden); HG-09 maintenance window; HG-10 cleanup always in
-  finally; HG-11 residue zero; HG-12 protected baseline unchanged;
-  HG-13 fail-closed on any ambiguity; HG-14 permanent disablement
-  after real-operation start.
-- **FIXTURE_MANIFEST:** single per-run manifest containing `run_id`,
-  start timestamp, baseline HEAD, redacted project ref, protected RM
-  Prime tenant ID and other protected entity IDs, synthetic tenant IDs,
-  synthetic Auth user IDs, membership and role identifiers, imóvel and
-  lead IDs, auxiliary record IDs, exact Storage bucket and paths,
-  expected object counts per category, creation state, cleanup state,
-  removed and residual counts per category, final teardown outcome.
-  Manifest is created before the first fixture, updated
-  deterministically, persisted atomically, is the sole teardown
-  authority, and contains no passwords, JWTs, keys, tokens or full
-  emails. Objects absent from the manifest cannot be deleted by
-  teardown.
-- **DETERMINISTIC_TEARDOWN:** manifest-based; validates `run_id`,
-  project ref and manifest; confirms every ID to remove belongs to the
-  run and none belongs to the protected registry; stops test clients
-  and sessions; removes exact Storage objects, child records, leads,
-  imóveis, events, auxiliary objects, memberships, synthetic roles,
-  synthetic Auth users and finally synthetic tenants; persists cleanup
-  outcome; runs residue scan; fails on any residue. Ordering respects
-  real domain dependencies; generic cascade is not assumed safe;
-  compensating cleanup and explicit evidence are required when
-  operations cannot share a transaction. The RM Prime tenant is never
-  part of the deletion set.
-- **RESIDUE_SCAN:** proves zero remaining synthetic tenants, Auth
-  users, memberships, roles, imóveis, leads, events, Storage objects,
-  auxiliary records tied to `run_id`, orphan references and manifest-
-  registered rows; protected counts match baseline; RM Prime tenant
-  present and unchanged; preexisting memberships and data preserved.
-  Required output includes `fixtures_created`, `fixtures_cleaned`,
-  `orphaned_fixtures`, `protected_baseline_changed`,
-  `rm_prime_tenant_preserved`, `residue_scan_passed`, with acceptance
-  criteria `fixtures_cleaned == fixtures_created`,
-  `orphaned_fixtures == 0`, `protected_baseline_changed == false`,
-  `rm_prime_tenant_preserved == true`, `residue_scan_passed == true`.
-- **ENVIRONMENT_GUARD_STRATEGY:** principal prompt must preserve the
-  existing generic protection over the primary backend; must not turn
-  the primary backend into a generic remote target; may introduce a
-  specific and restricted Same-Backend Homologation Cell mode gated by
-  simultaneous satisfaction of all hard guards; must reject execution
-  triggered by mere environment-variable changes; must not allow the
-  operator to self-declare production as staging; must not rely solely
-  on project ref or target name; must also validate factual database
-  eligibility and the protected-entity registry. Exact guard
-  implementation is deferred to the principal prompt; these
-  requirements are frozen here.
+- **EXTERNAL_DEPENDENCIES:** none mandatory. Operational dependencies:
+  recovery/backup mechanism and controlled maintenance window.
+  (HISTORICAL — NOT CURRENT AUTHORITY: prior references to any external
+  Supabase project as fallback are preserved as historical registry
+  only and carry no operational authority.)
+- **HARD_GUARDS (frozen):** HG-01..HG-14 as defined in the LSV-02
+  Impact Analysis. HG-14 permanent disablement applies only after real-
+  operation start; HG-14 was NOT triggered by the LSV-02 abort.
 - **OUT_OF_SCOPE:** full authorization matrix; full RLS matrix; full
   grants matrix; atomicity; rollback of Lead operations; concurrency;
   migration changes; RLS changes; grant changes; LSH-01 accepted
   runtime edits; use of real data; post-real-operation execution.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 2 (principal: fail-closed abort before fixtures; final
-  corrective: factual reconciliation and terminalization — no runtime
-  mutations). REMAINING_IMPLEMENTATION_BUDGET = 0.
+  consumed 2. REMAINING_IMPLEMENTATION_BUDGET = 0.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
-- **FINAL_STATE:** Superseded (terminal). Live identity and Tenant
-  Context proofs transferred to LSV-03's Execution Envelope, to be
-  executed against an authorized non-production target once the
-  Same-Backend Homologation Cell strategy is no longer eligible.
-- **SUCCESSOR:** LSV-03 (remains blocked by the terminalization of
-  LSV-02 and by the availability of an authorized non-production
-  target).
+- **FINAL_STATE:** Superseded (terminal). Findings preserved as
+  mandatory inputs for future formal replanning only. No deliverables
+  auto-transferred to any successor.
+- **SUCCESSOR:** LSR-01 (documentary and generator-configuration
+  closure recovery).
 
 ### 2.2 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
 
-- **OBJECTIVE:** operationally prove Lead authorization, RLS, grants,
-  cross-tenant isolation and impersonation matrices under real JWTs.
-- **PREDECESSOR:** LSV-02 — Superseded (terminal).
-- **DELIVERABLES:** full Lead operation matrix under real sessions;
-  RLS matrix per identity; grants matrix; cross-tenant probes;
-  canonical 7-scenario impersonation matrix; live evidence artifact;
-  live identity, real-session, Tenant Context, impersonation and
-  forged-header proofs transferred from the superseded LSV-02
-  Execution Envelope.
+- **STATE:** Planned — Blocked by LSR-01 and by a future formally
+  approved replacement path.
+- **OBJECTIVE:** preserve the historical objective of LSV-03 without
+  automatically absorbing the scope of LSV-02.
+- **PREDECESSOR:** a replacement path formally planned and accepted
+  after LSR-01.
 - **MINIMUM_EVIDENCE:** Execution Envelope required before
   implementation.
-- **EXTERNAL_DEPENDENCIES:** authorized non-production Supabase
-  target (the external non-production project `rm-prime-lsv-nonprod`
-  remains preserved as the canonical fallback; Same-Backend
-  Homologation Cell strategy is permanently unavailable per HG-14).
-- **OUT_OF_SCOPE:** atomicity; rollback; concurrency; migrations; RLS
-  or grant changes; LSH-01 runtime edits.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
+- **EXTERNAL_DEPENDENCIES:** unresolved by the current planning. No
+  external Supabase project is required, recommended or designated as
+  canonical fallback.
+- **OUT_OF_SCOPE:** automatic transfer of LSV-02 deliverables;
+  implementation; live tests; migrations; RLS changes; grant changes;
+  new Execution Envelope during LSR-01 planning.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
-- **SUCCESSOR:** LSV-04.
+- **SUCCESSOR:** LSV-04, remaining blocked.
 
 ### 2.3 LSV-04 — Lead Transaction Integrity & Final Acceptance
 
