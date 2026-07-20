@@ -22,17 +22,22 @@ may exceed two implementation prompts (principal + corrective).
 | 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
 | 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · findings preserved as mandatory inputs for future formal replanning only — NOT transferred to any successor · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
 | 7 | LSR-01 | Superseded (terminal · principal prompt consumed · corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · principal result: failed persistence verification · corrective result: failed closed · reason: stage could not stabilize TanStack Start registration within its frozen scope · successor: LSR-02 · envelope: `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`) |
-| 8 | LSR-02 | Rejected — terminal · principal prompt consumed · final corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · final external audit accepted = false · Strategy B implementation retained as rejected technical history · no additional implementation prompt authorized · blocking findings preserved (controlled_dev_required_not_executed, compiler_file_list_not_proven, cycle_composite_digest_not_proven, partial_footer_fail_closed_not_fully_implemented, conflicting_current_states_present_before_reconciliation) · successor: Formal replacement-path planning gate — not started · envelope: `docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json` |
-| 9 | LSV-03 | Planned — Blocked by LSR-02 and by future formally approved replacement path · Execution Envelope required before implementation · no deliverables auto-transferred from LSV-02 or LSR-01 · no external Supabase target required or recommended · Same-Backend strategy NOT permanently unavailable (HG-14 not triggered) |
-| 10 | LSV-04 | Planned — Blocked by LSV-03 |
-| 11 | RDA-01 | Planned — Blocked by LSV-04 |
-| 12 | RC-01 | Planned — Blocked by RDA-01 |
-| 13 | PR-M2 | Planned — Blocked by RC-01 |
-| 14 | PR-M3 | Planned — Blocked by PR-M2 |
-| 15 | TH-M1 | Planned — Blocked by PR-M3 |
-| 16 | TH-M2 | Planned — Blocked by TH-M1 |
-| 17 | Homologação | Blocked by TH-M2 |
-| 18 | Produção | Blocked until homologation acceptance |
+| 8 | LSR-02 | Rejected — terminal · principal prompt consumed · final corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · final external audit accepted = false · Strategy B implementation retained as rejected technical history · no additional implementation prompt authorized · blocking findings preserved (controlled_dev_required_not_executed, compiler_file_list_not_proven, cycle_composite_digest_not_proven, partial_footer_fail_closed_not_fully_implemented, conflicting_current_states_present_before_reconciliation) · successor: FRP-01 · envelope: `docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json` |
+| 9 | FRP-01 | Ready for External Audit · principal prompt consumed · corrective prompt NOT consumed · REMAINING_IMPLEMENTATION_BUDGET = 1/2 · planning-only · zero code / migrations / RLS / grants / policies / Auth / Storage / cron changes · `FRP01_IMPLEMENTATION_CHANGES = false` · envelope: `docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md` |
+| 10 | RRS-01 | Planned — Blocked by FRP-01 · Execution Envelope required before implementation · `RRS01_STARTED = false` |
+| 11 | PTA-01 | Planned — Blocked by RRS-01 · Execution Envelope required before implementation · `PTA01_STARTED = false` |
+| 12 | MOC-01 | Planned — Blocked by PTA-01 · Execution Envelope required before implementation · `MOC01_STARTED = false` |
+| 13 | RHV-01 | Planned — Blocked by MOC-01 · Execution Envelope required before implementation · `RHV01_STARTED = false` |
+| 14 | LSV-03 | Planned — Blocked by RHV-01 and by formal end-to-end acceptance of the replacement path (RRS-01 → PTA-01 → MOC-01 → RHV-01) · Execution Envelope required before implementation · no deliverables auto-transferred from LSV-02, LSR-01 or LSR-02 · no external Supabase target required or recommended · Same-Backend strategy NOT permanently unavailable (HG-14 not triggered) · `LSV03_STARTED = false` |
+| 15 | LSV-04 | Planned — Blocked by LSV-03 |
+| 16 | RDA-01 | Planned — Blocked by LSV-04 |
+| 17 | RC-01 | Planned — Blocked by RDA-01 |
+| 18 | PR-M2 | Planned — Blocked by RC-01 |
+| 19 | PR-M3 | Planned — Blocked by PR-M2 |
+| 20 | TH-M1 | Planned — Blocked by PR-M3 |
+| 21 | TH-M2 | Planned — Blocked by TH-M1 |
+| 22 | Homologação | Blocked by TH-M2 |
+| 23 | Produção | Blocked until homologation acceptance |
 
 Historical stages 1–4 preserved without reopening. LSV-01 legacy Lotes
 A / B / C are historical only; not executable next steps.
