@@ -79,6 +79,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async () => {
+    const { preflightPublicTenant } = await import("../lib/api/public-tenant.functions");
+    await preflightPublicTenant();
+
     let faviconUrl: string | null = null;
     let metaPixelId: string | null = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
