@@ -1,29 +1,13 @@
 import type { PublicTenantIdentity } from "@/lib/tenant.server";
+import { PublicTenantResolutionError } from "@/lib/public-tenant-resolution-error";
 
-export class PublicTenantResolutionError extends Error {
-  readonly code = "PUBLIC_TENANT_NOT_RESOLVED";
-
-  constructor() {
-    super("Public tenant authority could not be resolved");
-    this.name = "PublicTenantResolutionError";
-  }
-}
+export { PublicTenantResolutionError, isPublicTenantResolutionError } from "@/lib/public-tenant-resolution-error";
 
 export function requireResolvedPublicTenant(
   tenant: PublicTenantIdentity | null,
 ): PublicTenantIdentity {
   if (!tenant) throw new PublicTenantResolutionError();
   return tenant;
-}
-
-export function isPublicTenantResolutionError(error: unknown): boolean {
-  return (
-    error instanceof PublicTenantResolutionError ||
-    (typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      (error as { code?: unknown }).code === "PUBLIC_TENANT_NOT_RESOLVED")
-  );
 }
 
 export function assertTenantScopedRows<T extends { tenant_id: string }>(
