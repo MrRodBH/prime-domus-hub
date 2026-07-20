@@ -1,0 +1,21 @@
+import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { requiresPublicTenantPreflight } from "@/lib/public-tenant";
+import { requirePublicTenantContext } from "@/lib/public-tenant.server";
+
+export const preflightPublicTenant = createServerFn({ method: "GET" }).handler(async () => {
+  const request = getRequest();
+  const pathname = new URL(request.url).pathname;
+
+  if (!requiresPublicTenantPreflight(pathname)) {
+    return { required: false as const };
+  }
+
+  const context = await requirePublicTenantContext();
+  return {
+    required: true as const,
+    tenant_id: context.tenant.id,
+    tenant_slug: context.tenant.slug,
+    authority: context.authority,
+  };
+});
