@@ -1,11 +1,11 @@
 # LSR-01 — LSV-02 Closure Recovery & Roadmap Reconciliation
 
 **Type:** Execution Envelope Planning
-**Status:** Ready for External Audit
+**Status:** Corrective Failed Closed
 **LSR-01 started:** true
 **Principal prompt consumed:** true
-**Corrective prompt consumed:** false
-**Remaining implementation budget:** 1/2
+**Corrective prompt consumed:** true
+**Remaining implementation budget:** 0/2
 
 **Authority:** derived from `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
 and the Finite Roadmap Execution Map
@@ -358,4 +358,46 @@ are planned or implemented in LSR-01.
   - `DUPLICATE_ENTRIES = 0`
   - `CONFLICTING_CURRENT_STATES = 0`
 - `EVIDENCE_ARTIFACT`: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`
-- `READY_FOR_EXTERNAL_AUDIT`: `true`
+- `PRINCIPAL_ROUTE_TREE_PERSISTENCE_PASSED`: `false`
+- `PRINCIPAL_READY_FOR_EXTERNAL_AUDIT`: `false`
+
+The principal attempt temporarily generated the register in commit
+`dfff135e301130c0ff4280bae861236e40e33229`, but commit
+`56431622ec925136e61b0cd1ad9d8ecaf81e58ef` removed it again. The final
+principal HEAD therefore did not contain the register, and the isolated
+second-generation comparison did not prove persistence through the complete
+generation → typecheck → build sequence.
+
+---
+
+## Final factual execution section (LSR-01 final corrective)
+
+- `CORRECTIVE_START_HEAD`: `09a9487f91f051733dd6be7121f1b6d16da78a18`
+- `ROUTE_TREE_COMMIT_SHA`: not produced
+- `ROOT_CAUSE`: the canonical `build:dev` generation produced exactly one
+  TanStack Start register with SHA-256
+  `cce40b0d1a66716df8768468b86233e12ca896dcfb2c3e1954f912e45a1a828c`;
+  the subsequent `bunx tsgo --noEmit` step triggered a rewrite by the already
+  running Vite development generator, whose client-tree generation path uses
+  an empty `routeTreeFileFooter`, removing the register and producing SHA-256
+  `c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f`.
+  No generator configuration was changed.
+- `CYCLE_A_RESULT`: failed closed after typecheck; generation succeeded,
+  register count after generation was 1, typecheck exited 0, register count
+  after typecheck was 0; mandatory build step not run after the failed
+  persistence check.
+- `CYCLE_B_RESULT`: not started because Cycle A reached the mandatory
+  fail-closed condition.
+- `FULL_SEQUENCE_DIFF`: not established (`null`).
+- `TYPECHECK_RESULT`: command passed, persistence check failed.
+- `BUILD_RESULT`: not run as the post-typecheck register check failed.
+- `ROUTE_TREE_REGISTER_PRESENT_IN_CURRENT_HEAD`: false at corrective evidence
+  write time.
+- `EVIDENCE_ARTIFACT`:
+  `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`
+- `CORRECTIVE_ROUTE_TREE_PERSISTENCE_PASSED`: false
+- `READY_FOR_FINAL_EXTERNAL_AUDIT`: false
+
+The corrective prompt is consumed. No register was inserted manually, no
+generator configuration was altered, no persistence commit was claimed, and
+no successor stage was started.
