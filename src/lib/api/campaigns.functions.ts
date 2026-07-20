@@ -143,12 +143,13 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       await logCmsAudit(context, "cms_campaigns", isActivating ? "cms.campanha.publicar" : "cms.campanha.editar", data.id, before, row);
       return { id: row.id };
+    } else {
+      const { data: row, error } = await context.supabase
+        .from("cms_campaigns").insert({ ...payload, created_by: context.userId }).select("*").single();
+      if (error) throw new Error(error.message);
+      await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
+      return { id: row.id };
     }
-    const { data: row, error } = await context.supabase
-      .from("cms_campaigns").insert({ ...payload, created_by: context.userId }).select("*").single();
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
-    return { id: row.id };
   });
 
 export const excluirCampanha = createServerFn({ method: "POST" })
