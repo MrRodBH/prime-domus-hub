@@ -2,7 +2,7 @@
 
 ## Status
 
-**Ready for External Audit — planning only**
+**Accepted — planning-only direct GitHub audit**
 
 ```text
 STAGE_ID = PSC-01
@@ -11,6 +11,11 @@ PREDECESSOR = PTR-01 Rejected — terminal
 EXECUTOR = GitHub-native direct file edits
 LOVABLE_AUTHORIZED = false
 RUNTIME_CHANGES_IN_THIS_ANALYSIS = false
+PLANNING_EXTERNAL_AUDIT_ACCEPTED = true
+PLANNING_RELEASE_GATE_RUN = 29787748231
+PLANNING_RELEASE_GATE_JOB = 88502851844
+PLANNING_RELEASE_GATE_CONCLUSION = success
+PSC01_IMPLEMENTATION_STARTED = false
 ```
 
 ---
