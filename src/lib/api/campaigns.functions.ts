@@ -181,7 +181,7 @@ export const metricasCampanha = createServerFn({ method: "GET" })
 // ============================================================================
 
 export const listarCampanhasAtivas = createServerFn({ method: "GET" })
-  .inputValidator((d: Record<string, never> | undefined) => z.object({}).parse(d ?? {}))
+  .inputValidator((d: Record<string, never> | undefined) => z.object({}).strict().parse(d ?? {}))
   .handler(async () => {
     const tenant = await requirePublicTenantFromRequest();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
