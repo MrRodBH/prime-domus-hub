@@ -89,6 +89,13 @@ if (cycleC !== cycleA) {
 
 run("Lead authorization unit specifications", "bun", ["run", "test:lsh-01:unit"]);
 run("Lead structural specifications", "bun", ["run", "test:lsh-01:structural"]);
+run("Public tenant context specifications", "bun", [
+  "x",
+  "tsx",
+  "--tsconfig",
+  "tsconfig.json",
+  "./run-public-tenant-context-specs.ts",
+]);
 
 console.log(
   JSON.stringify(
@@ -100,6 +107,7 @@ console.log(
       tanstackRegisterAuthorityCount: 1,
       generatedRouteTreeManualEdit: false,
       cycleCompositeDigestStable: true,
+      publicTenantContextSpecsPassed: true,
       routeTreeSha256: cycleA,
     },
     null,
