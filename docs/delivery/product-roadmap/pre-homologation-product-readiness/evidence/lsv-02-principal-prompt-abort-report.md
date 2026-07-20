@@ -1,0 +1,161 @@
+# LSV-02 — Principal Prompt Factual Report (FAIL-CLOSED ABORT before fixtures)
+
+Status: **Aborted fail-closed at Phase A/D — no fixtures created, no mutations
+performed.** This report is the factual deliverable of the LSV-02 principal
+prompt execution. It does not declare Accepted.
+
+---
+
+## 1. Identification
+
+| Field | Value |
+| --- | --- |
+| `run_id` | not generated — aborted before manifest creation (Section 20 gate) |
+| Start (UTC) | 2026-07-20T14:37:44Z |
+| End (UTC) | 2026-07-20T14:38:30Z |
+| Repository | MrRodBH/prime-domus-hub |
+| Branch | `edit/edt-c938149a-d212-4771-ae68-63aeff9721b2` (materializes into `main`) |
+| `BASELINE_HEAD` (ancestral) | `8394f95644e51f1a0c0f9e01e46d9ea29e1f3e49` (confirmed ancestral of HEAD) |
+| `EXECUTION_HEAD` | `35ab3c09f36d022ed7b680bb6afe9f01abc5b7a6` (matches prompt) |
+| Backend project ref | `stmcnvzuzlyqammyycxj` (MATCH — HG-02 satisfied at ref level) |
+| Restore point observed | 2026-07-20T11:04:25Z (visual evidence; restore **not** executed) |
+| Operator | rodolfovaz882@gmail.com (Super Admin) |
+
+## 2. Prompt budget
+
+| Field | Value |
+| --- | --- |
+| LSV-02 iniciada | **true** |
+| Prompt principal consumido | **1** |
+| Prompt corretivo consumido | 0 |
+| Budget restante | **1/2** (corretivo consolidado apenas) |
+
+## 3. Hard guards evaluated before fixtures
+
+| Guard | Evidence | Result |
+| --- | --- | --- |
+| HG-01 explicit same-backend mode | No `LSV_HOMOLOGATION_CELL_MODE` runtime switch exists in the codebase; prompt is documentary. | **NOT SATISFIED** |
+| HG-02 exact project lock | Backend ref `stmcnvzuzlyqammyycxj` matches. | SATISFIED |
+| HG-03 pre-homologation eligibility | Custom domains `realone.com.br`, `www.realone.com.br`, `rmprimeimoveis.com.br`, `www.rmprimeimoveis.com.br` currently serve real published traffic (see `<project_urls>` in system context). Product cannot be classified as "still formally in pre-homologation" while its published surface is externally reachable and its writer policies accept anonymous traffic. | **NOT SATISFIED** |
+| HG-04 protected registry | RM Prime (`9664d189-4a12-4caa-8243-dc73383447e6`) and 73 `scp0121_*` residues identified by ID; checksum `3ece053ddbdfce5161380ec38824ea91` **matches** the frozen baseline. | SATISFIED (registry captured; no mutation) |
+| HG-05 synthetic-only fixtures | Not reached (no fixture created). | N/A |
+| HG-06 two-tenant minimum | Not reached. | N/A |
+| HG-07 no preexisting object mutation | No writes issued during this run. | SATISFIED |
+| HG-08 no destructive global operation | No destructive statements issued. | SATISFIED |
+| HG-09 maintenance window | Lovable Cloud exposes no self-serve mechanism to suspend published custom-domain writes; agent cannot pause `cron.job` (schema not readable to executing role) nor guarantee `net.http_post` inhibition. No server-side maintenance control exists in the repository today. | **NOT SATISFIED** |
+| HG-10 cleanup always | Not reached. | N/A |
+| HG-11 residue zero | Not reached. | N/A |
+| HG-12 protected baseline unchanged | Confirmed by post-check snapshot equality (§4 vs §7). | SATISFIED |
+| HG-13 fail-closed | This report is the fail-closed outcome. | SATISFIED |
+| HG-14 post-real-operation prohibition | Custom domains are live and public writers are open — the strategy's own text prohibits execution "once the product enters real operation". The current surface meets that condition materially even if not commercially. | **NOT SATISFIED** |
+
+Aggregate: **HG-01, HG-03, HG-09, HG-14 not satisfied** → Section 20 mandates
+ABORT before first fixture.
+
+## 4. Protected baseline snapshot (start)
+
+Captured read-only via project's exec-based Postgres access.
+
+| Metric | Value |
+| --- | --- |
+| RM Prime tenant present | 1 |
+| RM Prime memberships | 4 |
+| RM Prime leads | 0 |
+| RM Prime imóveis | 0 |
+| RM Prime form_submissions | 0 |
+| RM Prime subscriptions | 0 |
+| RM Prime storage objects (prefix scan) | 22 |
+| `storage.objects` total | 22 |
+| Tenants total | 74 |
+| `scp0121_*` tenants | 73 |
+| `scp0121_*` subscriptions | 65 |
+| `scp0121_*` portal connectors | 438 |
+| `scp0121_*` id checksum (md5, ordered) | `3ece053ddbdfce5161380ec38824ea91` |
+| `public.leads` policies granting `anon` | 2 |
+| `public.form_submissions` policies granting `anon` | 5 |
+
+## 5. Administrative inventory attempt
+
+- `auth.users`, `auth.identities`: schema **not readable** by the exec role;
+  no protected boundary function has been created (creating one would itself
+  be a schema mutation and is not authorized under the aborted principal
+  prompt).
+- `cron.job`: schema **not readable** by the exec role; `process-email-queue`
+  and related jobs cannot be enumerated nor paused from this session.
+- `pgmq` consumers and `net.http_post` triggers: same limitation.
+
+Consequence: even if Phase F were attempted, **synthetic auth users could not
+be inventoried before and after the run**, so HG-11 (residue-zero) could not
+be proven. This is an independent abort condition (Section 20 — "Auth
+sintético não removível" and "cron não controlável quando existir side effect
+relevante").
+
+## 6. Maintenance window — not activated
+
+No maintenance control exists in the codebase. Public writers `public.leads`
+(2 anon policies) and `public.form_submissions` (5 anon policies) remain
+reachable through the live custom domains. Building a fail-closed maintenance
+control now would be an in-run schema and code mutation on a live surface,
+which is exactly what HG-14 prohibits. Not activated.
+
+## 7. Protected baseline snapshot (end)
+
+Rechecked immediately before writing this report. All counts and the
+`scp0121_*` checksum are **identical** to §4. `Protected Baseline RM Prime
+changed = false`. `Preexisting internal residue changed = false`. `Storage
+changed = false`. `Unexpected external write detected = false`. `Synthetic
+residue count = 0` (no synthetic entities were created).
+
+## 8. Fixture manifest, live matrix, teardown, residue scan
+
+Not executed. Section 20 aborts before Phase E/F/G/H.
+
+## 9. Files touched by this run
+
+Created (documentation only, no runtime impact):
+
+- `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` (this file)
+
+Updated (documentation only):
+
+- `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md` — LSV-02
+  state transitioned to `Blocked External` with principal-prompt consumption
+  recorded.
+
+No `src/`, no migrations, no policies, no grants, no routes, no functions,
+no jobs, no secrets, no Storage objects were created, modified, or removed.
+
+## 10. Security posture
+
+| Assertion | Value |
+| --- | --- |
+| `SECRETS_EXPOSED` | false |
+| `PII_EXPOSED` | false |
+| `CLIENT_TENANT_AUTHORITY` | **defect still present** in `public.leads` and `public.form_submissions` writer surface; not corrected because the correction itself falls under HG-14 with real traffic present. Recorded as blocking finding for the next authorized envelope. |
+| `DIRECT_ANON_TENANT_SPOOFING` | not tested (Phase G not reached) — assumed still possible pending §11 correction |
+| `SUPER_ADMIN_IMPLICIT_TENANT_ACCESS` | not tested |
+| `STORAGE_MUTATED` | false |
+
+## 11. Blocking findings for the operator / external audit
+
+1. **Real published surface incompatible with same-backend homologation.** Custom domains serve live public traffic; HG-14 (post-real-operation prohibition) triggers permanently unless those domains are demonstrably unpublished, or LSV-02 is executed against a separate backend as originally envisaged.
+2. **No self-serve maintenance window.** Lovable Cloud does not expose a switch to suspend published-site writes for this project; the runbook's HG-09 cannot be satisfied without operator/support action.
+3. **`auth` and `cron` schemas not accessible from the agent execution role.** Protected boundary functions would need to be authored and reviewed under a fresh envelope; they cannot be produced during a fail-closed abort.
+4. **`public.leads` and `public.form_submissions` still expose anon writer policies without server-side tenant authority.** This is the CLIENT_TENANT_AUTHORITY defect. It must be corrected under its own governed unit, not silently under LSV-02.
+
+## 12. Result — factual only
+
+- `fixtures_created = 0`
+- `tests_passed = 0`
+- `tests_failed = 0`
+- `teardown_completed = not_applicable`
+- `residue_count = 0`
+- `protected_baseline_changed = false`
+- `preexisting_internal_residue_changed = false`
+- `storage_mutated = false`
+- `maintenance_restored = not_applicable` (never activated)
+- `execution_ready_for_external_audit = false`
+- `terminal_state_proposed = Blocked External` (not Accepted; Lovable has no authority to declare Accepted)
+
+LSV-03 remains blocked by LSV-02. No roadmap transition to Accepted was
+performed. Corrective prompt budget (1/2) is preserved.
