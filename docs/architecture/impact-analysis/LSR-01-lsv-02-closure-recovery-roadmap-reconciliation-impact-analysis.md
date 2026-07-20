@@ -256,9 +256,13 @@ canonical fallback, and not a next step for any stage.
 
 ## SUCCESSOR
 
-LSV-03 (remains Planned — Blocked by LSR-01 and by a future formally
-approved replacement path; Execution Envelope required before
-implementation; no deliverables auto-transferred from LSV-02).
+Formal replacement-path planning gate.
+
+LSR-01 does not authorize LSV-03 implementation. LSV-03 remains
+`Planned — Blocked`. Future conclusion of LSR-01 only restores the
+technical and documentary consistency of the repository. No new stage
+ID, Execution Envelope, replacement path, or LSV-03 prompt is created
+here.
 
 ---
 
