@@ -1,22 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 
-
-/** Pixel ID — lido no servidor via service role (não há mais leitura pública na tabela). */
+/** Pixel ID — lido no servidor via service role, sempre vinculado ao tenant público resolvido. */
 export const obterMetaPixelId = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ pixel_id: string | null }> => {
+    const tenant = await requirePublicTenantFromRequest();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("site_settings")
       .select("value")
+      .eq("tenant_id", tenant.id)
       .eq("key", "meta_integracao")
       .maybeSingle();
     const v = (data?.value as { pixel_id?: string } | null) ?? null;
     return { pixel_id: v?.pixel_id ? String(v.pixel_id) : null };
   },
 );
-
 
 /** Admin: lê config completa (pixel + indica se token está configurado). Nunca expõe o token. */
 export const obterMetaConfigAdmin = createServerFn({ method: "GET" })
@@ -49,7 +50,7 @@ export const atualizarMetaConfigAdmin = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       pixel_id: z.string().trim().max(64),
-      conversions_api_token: z.string().optional(), // se vazio/undefined, não altera
+      conversions_api_token: z.string().optional(),
     }),
   )
   .handler(async ({ data, context }) => {
@@ -143,7 +144,6 @@ export const enviarEventoMetaCAPI = createServerFn({ method: "POST" })
       if (!pixel_id) return { ok: false, reason: "no-pixel-id" };
 
       const { data: credRow } = await supabaseAdmin
-
         .from("site_settings")
         .select("value")
         .eq("key", "meta_credenciais")
