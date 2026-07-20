@@ -544,3 +544,16 @@ binding; details still undefined are recorded explicitly as
 - Terminal states are exhaustive: Accepted, Accepted with Non-Blocking Backlog, Blocked External, Rejected, Superseded. No other closing state is permitted.
 - Historical accepted states (Fase 2, Fase 3, Fase 4, PR-PH.0,
   LSH-01) are not reopened by this map.
+- FRP-01 is planning-only. Explicit flags:
+  `FRP01_IMPLEMENTATION_CHANGES = false`;
+  `RRS01_STARTED = false`;
+  `PTA01_STARTED = false`;
+  `MOC01_STARTED = false`;
+  `RHV01_STARTED = false`;
+  `LSV03_STARTED = false`.
+- `SAME_BACKEND_HOMOLOGATION_CELL = required` and
+  `EXTERNAL_SUPABASE_CANONICAL_FALLBACK = prohibited` remain
+  binding across the whole replacement path.
+- 73 `scp0121_*` tenants remain
+  `PREEXISTING_INTERNAL_TEST_RESIDUE`; not scheduled for cleanup
+  by any stage introduced under FRP-01.
