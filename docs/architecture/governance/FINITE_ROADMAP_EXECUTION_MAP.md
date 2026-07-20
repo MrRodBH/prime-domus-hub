@@ -186,29 +186,268 @@ binding; details still undefined are recorded explicitly as
   rejected LSR-02 implementation.
 
 
-### 2.3 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
+### 2.3 FRP-01 — Formal Replacement-Path Planning Gate
 
-- **STATE:** Planned — Blocked by LSR-02 and by a future formally
-  approved replacement path.
-- **OBJECTIVE:** preserve the historical objective of LSV-03 without
-  automatically absorbing the scope of LSV-02 or LSR-01.
-- **PREDECESSOR:** a replacement path formally planned and accepted
-  after LSR-02.
+- **STATE:** Ready for External Audit — planning-only.
+  `FRP01_STARTED = true`;
+  `FRP01_PRINCIPAL_PROMPT_CONSUMED = true`;
+  `FRP01_CORRECTIVE_PROMPT_CONSUMED = false`;
+  `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 1/2`;
+  `FRP01_IMPLEMENTATION_CHANGES = false`.
+- **OBJECTIVE:** materialize a finite, auditable and architecturally
+  governed sequence to replace the failed path composed by LSV-02,
+  LSR-01 and LSR-02, without implementing anything in this stage.
+- **PREDECESSOR:** LSR-02 — Rejected (terminal).
+- **DELIVERABLES:** this Execution Envelope and its Impact Analysis
+  (`docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md`);
+  finite replacement path RRS-01 → PTA-01 → MOC-01 → RHV-01;
+  preliminary boundaries for each successor stage.
+- **MINIMUM_EVIDENCE:** the Impact Analysis document and the
+  updated finite roadmap. No JSON evidence artifact is produced
+  by this planning stage.
+- **EXTERNAL_DEPENDENCIES:** none.
+- **HARD_GUARDS (preserved and re-affirmed):**
+  `SERVER_IS_SOLE_TENANT_AUTHORITY = true`;
+  `CLIENT_TENANT_AUTHORITY = false`;
+  `HEADER_TENANT_AUTHORITY = false`;
+  `PATH_TENANT_AUTHORITY = false`;
+  `SAME_BACKEND_HOMOLOGATION_CELL = required`;
+  `EXTERNAL_SUPABASE_CANONICAL_FALLBACK = prohibited`;
+  `HG_14_TRIGGERED = false`;
+  RM Prime tenant preserved as Protected Baseline;
+  73 `scp0121_*` tenants preserved as
+  `PREEXISTING_INTERNAL_TEST_RESIDUE` (no cleanup planned).
+- **OUT_OF_SCOPE:** implementation of any successor stage;
+  correction / removal / rollback of Strategy B artifacts; any
+  code, migration, RLS, grants, policies, Auth, Storage, cron
+  or runtime change; new Vite dev server; harness live execution;
+  tenant / user creation; auto-transfer of LSV-02 / LSR-01 /
+  LSR-02 deliverables; introduction of external Supabase as
+  canonical fallback.
+- **FILES_ALLOWED:** exactly two paths — this map and the FRP-01
+  Impact Analysis. `FUTURE_ADDENDUM_ALLOWED = false`.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 1 (principal). `FRP01_REMAINING_BUDGET = 1/2`.
+- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
+  Superseded · Rejected · Blocked External.
+- **SUCCESSOR:** RRS-01 (`Planned — Blocked by FRP-01`). Not
+  started by this stage.
+
+### 2.4 RRS-01 — Registration Runtime Stabilization Replacement
+
+- **STATE:** Planned — Blocked by FRP-01. `RRS01_STARTED = false`.
+- **OBJECTIVE:** finite, deterministic replacement for the rejected
+  Strategy B; single canonical source for the TanStack Start
+  `Register` module augmentation.
+- **PREDECESSOR:** FRP-01 accepted.
+- **DELIVERABLES (preliminary):** single canonical source of
+  augmentation; explicit treatment of rejected Strategy B
+  artifacts (retention, controlled replacement or rollback);
+  compiler file-list proof; composite deterministic digest of
+  `src/routeTree.gen.ts` + canonical source + `vite.config.ts` +
+  `package.json` + `bun.lock`; cycles A/B under build, build:dev
+  and a harness-owned `vite dev` instance; fail-closed footer
+  permutation proof.
+- **AREAS AFFECTED (preliminary):** `src/routeTree.gen.ts`
+  generator path; `vite.config.ts`; canonical augmentation source
+  (currently `src/tanstack-start-register.d.ts` as rejected
+  history); `tsconfig.json`; `package.json`; `bun.lock`.
+- **EXPRESSLY FORBIDDEN:** DB / Auth / Storage / cron / RLS /
+  grants / policies / triggers changes; migrations; runtime
+  feature changes; automatic reuse of LSR-02 claims; skipping
+  compiler file-list proof; skipping composite digest.
+- **MIGRATIONS POTENTIALLY NEEDED:** none.
+- **RLS / GRANTS / POLICIES IMPACT:** none.
+- **TESTS REQUIRED (preliminary):** compiler file-list proof;
+  composite digest; cycles A/B across three generator drivers;
+  partial-footer fail-closed proof.
+- **EVIDENCE:** persisted evidence JSON under
+  `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/`.
+- **EXTERNAL DEPENDENCIES:** none.
+- **DEFINITION OF DONE (preliminary):**
+  `tanstack_start_register_source_count = 1`;
+  `duplicate_module_augmentation = false`;
+  `controlled_dev_proof = true`;
+  `compiler_file_list_proof = true`;
+  `cycle_composite_digest_proof = true`;
+  `partial_footer_fail_closed_proof = true`.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0.
+- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
+  Superseded · Rejected · Blocked External.
+- **SUCCESSOR:** PTA-01.
+
+### 2.5 PTA-01 — Public Tenant Authority Hardening
+
+- **STATE:** Planned — Blocked by RRS-01. `PTA01_STARTED = false`.
+- **OBJECTIVE:** enforce server-authoritative tenant resolution
+  across every public writer/reader for `public.leads`,
+  `public.form_submissions` and `public.cms_campaign_public_events`
+  (canonical name).
+- **PREDECESSOR:** RRS-01 accepted.
+- **DELIVERABLES (preliminary):** canonical server-side tenant
+  origin per public writer; RLS/grants/policies review and
+  required migrations; fail-closed handling of missing/ambiguous
+  tenant; cross-tenant negative tests; forged-header /
+  forged-payload probes.
+- **AREAS AFFECTED (preliminary):**
+  `src/routes/api/public/portal-leads.ts`,
+  `src/routes/api/public/feeds.$portal.$token.ts`,
+  `src/routes/api/public/bootstrap-admin.ts`,
+  `src/routes/api/public/hooks/`,
+  `src/lib/api/forms.functions.ts`,
+  `src/lib/api/campaigns.functions.ts`,
+  `src/lib/api/leads-crm.functions.ts`,
+  `src/lib/api/portals.functions.ts`,
+  RLS/grants/policies for the three public tables,
+  `src/lib/tenant.server.ts`.
+- **EXPRESSLY FORBIDDEN:** client / header / path tenant authority;
+  default tenant; ORDER BY / LIMIT 1 / heuristic tenant
+  selection; Storage authority delegated to client; cron / queue
+  changes.
+- **MIGRATIONS POTENTIALLY NEEDED:** RLS policies, grants,
+  server-side helper functions for the three public tables.
+- **RLS / GRANTS / POLICIES IMPACT:** likely revision required;
+  exact scope frozen in the PTA-01 Execution Envelope.
+- **TESTS REQUIRED (preliminary):** cross-tenant negative probes;
+  forged-header / forged-payload probes; anonymous writer probes;
+  server-authority parity tests.
+- **EVIDENCE:** persisted evidence JSON with per-writer
+  attribution proofs.
+- **EXTERNAL DEPENDENCIES:** none.
+- **DEFINITION OF DONE (preliminary):**
+  `SERVER_IS_SOLE_TENANT_AUTHORITY = true` proven per writer;
+  `HEADER_TENANT_AUTHORITY = false`;
+  `PATH_TENANT_AUTHORITY = false`;
+  `CLIENT_TENANT_AUTHORITY = false`;
+  anonymous writer defects on `public.leads` (and the other two
+  tables) resolved or explicitly re-classified with authorized
+  evidence.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0.
+- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
+  Superseded · Rejected · Blocked External.
+- **SUCCESSOR:** MOC-01.
+
+### 2.6 MOC-01 — Maintenance & Operational Control Boundary
+
+- **STATE:** Planned — Blocked by PTA-01. `MOC01_STARTED = false`.
+- **OBJECTIVE:** deliver a coordinated maintenance and operational
+  control boundary across frontend, public pages, server
+  functions, Edge Functions, cron, queues, webhooks, triggers,
+  outbound integrations and `net.http_post` callers.
+- **PREDECESSOR:** PTA-01 accepted.
+- **DELIVERABLES (preliminary):** complete inventory of existing
+  jobs/integrations (anchored by
+  `supabase/migrations/20260616204333_email_infra.sql` and
+  `supabase/migrations/20260616204617_email_infra.sql`);
+  controlled activation / deactivation mechanism;
+  observability; fail-closed behavior for public writer paths
+  during maintenance; operator runbook.
+- **AREAS AFFECTED (preliminary):** frontend maintenance surface;
+  public route guards; server functions; Edge Functions; cron;
+  queues; webhooks; triggers; outbound HTTP.
+- **EXPRESSLY FORBIDDEN:** unbounded runtime feature changes;
+  changes to LSH-01 accepted runtime edits; DB / Auth / Storage
+  changes outside the maintenance surface; introduction of
+  external Supabase.
+- **MIGRATIONS POTENTIALLY NEEDED:** limited to the maintenance
+  boundary primitives.
+- **RLS / GRANTS / POLICIES IMPACT:** limited to enforcing
+  fail-closed writes during maintenance windows.
+- **TESTS REQUIRED (preliminary):** activation / deactivation
+  probes; write-denial probes during maintenance; observability
+  probes; inventory coverage proof.
+- **EVIDENCE:** inventory manifest + persisted evidence JSON.
+- **EXTERNAL DEPENDENCIES:** none.
+- **DEFINITION OF DONE (preliminary):** complete inventory
+  persisted; activation / deactivation proven; fail-closed public
+  writers proven during maintenance; observability proven.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0.
+- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
+  Superseded · Rejected · Blocked External.
+- **SUCCESSOR:** RHV-01.
+
+### 2.7 RHV-01 — Replacement Homologation Verification
+
+- **STATE:** Planned — Blocked by MOC-01. `RHV01_STARTED = false`.
+- **OBJECTIVE:** execute live identity, real-session, tenant
+  context, impersonation and forged-header probes under the
+  Same-Backend Homologation Cell, replacing the failed LSV-02
+  outcome.
+- **PREDECESSOR:** MOC-01 accepted.
+- **DELIVERABLES (preliminary):** eligibility preflight
+  confirmation; Protected Baseline registry (RM Prime tenant +
+  preexisting protected entities); synthetic fixtures; real
+  sessions; tenant context probes; forged-header probes;
+  impersonation probes; deterministic teardown; residue scan;
+  Auth aggregate evidence; cron / queue inventory confirmation;
+  latest restore point confirmed; separate Storage physical
+  backup where applicable; persisted evidence JSON.
+- **AREAS AFFECTED (preliminary):** live backend under controlled
+  maintenance window; Auth; Storage; cron; server functions;
+  harness code.
+- **EXPRESSLY FORBIDDEN:** use of real data; removal of RM Prime
+  tenant; removal of the 73 `scp0121_*` residue tenants;
+  external Supabase as canonical fallback; permanent HG-14
+  disablement outside real operation.
+- **MIGRATIONS POTENTIALLY NEEDED:** none (may become required
+  only if PTA-01 / RRS-01 aftermath demands it — to be
+  re-planned in that case).
+- **RLS / GRANTS / POLICIES IMPACT:** none new; verifies the
+  state established by PTA-01.
+- **TESTS REQUIRED (preliminary):** live probes per the LSV-02
+  hard-guard matrix (HG-01..HG-14 preserved); Auth aggregate
+  evidence; residue scan.
+- **EVIDENCE:** persisted evidence JSON with per-probe attribution.
+- **EXTERNAL DEPENDENCIES:** operator authorization; controlled
+  maintenance window; recovery / backup mechanism verified.
+- **DEFINITION OF DONE (preliminary):**
+  `eligibility_preflight_passed = true`;
+  `protected_baseline_registered = true`;
+  `synthetic_tenants_created >= 2`;
+  `real_sessions_acquired > 0`;
+  `forged_header_denial_verified = true`;
+  `tenant_context_smoke_failed = 0`;
+  `rm_prime_tenant_preserved = true`;
+  `protected_baseline_changed = false`;
+  `orphaned_fixtures = 0`;
+  `residue_scan_passed = true`;
+  `evidence_persisted = true`.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0.
+- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
+  Superseded · Rejected · Blocked External.
+- **SUCCESSOR:** LSV-03 (unblocking condition: RHV-01 accepted
+  AND formal end-to-end acceptance of RRS-01 → PTA-01 → MOC-01
+  → RHV-01).
+
+### 2.8 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
+
+- **STATE:** Planned — Blocked by RHV-01 and by formal end-to-end
+  acceptance of the replacement path (RRS-01 → PTA-01 → MOC-01 →
+  RHV-01). `LSV03_STARTED = false`.
+- **OBJECTIVE:** preserve the historical objective of LSV-03
+  without automatically absorbing the scope of LSV-02, LSR-01 or
+  LSR-02.
+- **PREDECESSOR:** RHV-01 accepted plus formal acceptance of the
+  full replacement path.
 - **MINIMUM_EVIDENCE:** Execution Envelope required before
   implementation.
-- **EXTERNAL_DEPENDENCIES:** unresolved by the current planning. No
-  external Supabase project is required, recommended or designated as
-  canonical fallback.
-- **OUT_OF_SCOPE:** automatic transfer of LSV-02 deliverables;
-  implementation; live tests; migrations; RLS changes; grant changes;
-  new Execution Envelope during LSR-01 planning.
+- **EXTERNAL_DEPENDENCIES:** unresolved by the current planning.
+  No external Supabase project is required, recommended or
+  designated as canonical fallback.
+- **OUT_OF_SCOPE:** automatic transfer of LSV-02 / LSR-01 /
+  LSR-02 deliverables; implementation; live tests; migrations;
+  RLS changes; grant changes.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
   consumed 0.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
 - **SUCCESSOR:** LSV-04, remaining blocked.
 
-### 2.3 LSV-04 — Lead Transaction Integrity & Final Acceptance
+### 2.9 LSV-04 — Lead Transaction Integrity & Final Acceptance
 
 - **OBJECTIVE:** prove atomicity of `create_manual_lead`, rollback
   under intermediate failures, concurrency behavior, absence of
@@ -229,7 +468,7 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** RDA-01.
 
-### 2.4 RDA-01 — Role-Aware Dashboard & Decision Intelligence
+### 2.10 RDA-01 — Role-Aware Dashboard & Decision Intelligence
 
 - **STATE:** Planned — Blocked by LSV-04.
 - **OBJECTIVE / DELIVERABLES / MINIMUM_EVIDENCE / EXTERNAL_DEPENDENCIES /
@@ -239,7 +478,7 @@ binding; details still undefined are recorded explicitly as
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
 
-### 2.5 RC-01 — Regression & Consolidation
+### 2.11 RC-01 — Regression & Consolidation
 
 - **STATE:** Planned — Blocked by RDA-01.
 - Execution Envelope required before implementation.
@@ -248,7 +487,7 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** PR-M2.
 
-### 2.6 PR-M2 — Public Tenant Authority, White Label, CMS, Domains & Onboarding
+### 2.12 PR-M2 — Public Tenant Authority, White Label, CMS, Domains & Onboarding
 
 - **STATE:** Planned — Blocked by RC-01.
 - Execution Envelope required before implementation.
@@ -257,7 +496,7 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** PR-M3.
 
-### 2.7 PR-M3 — Product Quality, Operational Readiness & Closing Review
+### 2.13 PR-M3 — Product Quality, Operational Readiness & Closing Review
 
 - **STATE:** Planned — Blocked by PR-M2.
 - Execution Envelope required before implementation.
@@ -266,7 +505,7 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** TH-M1.
 
-### 2.8 TH-M1 — Homologation Provisioning & Full Validation
+### 2.14 TH-M1 — Homologation Provisioning & Full Validation
 
 - **STATE:** Planned — Blocked by PR-M3.
 - Execution Envelope required before implementation.
@@ -275,7 +514,7 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** TH-M2.
 
-### 2.9 TH-M2 — Defect Resolution, Regression & Production Gate
+### 2.15 TH-M2 — Defect Resolution, Regression & Production Gate
 
 - **STATE:** Planned — Blocked by TH-M1.
 - Execution Envelope required before implementation.
@@ -284,13 +523,14 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** Homologação.
 
-### 2.10 Homologação
+### 2.16 Homologação
 
 - **STATE:** Blocked by TH-M2.
 
-### 2.11 Produção
+### 2.17 Produção
 
 - **STATE:** Blocked until homologation acceptance.
+
 
 ---
 
