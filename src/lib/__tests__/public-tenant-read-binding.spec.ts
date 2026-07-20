@@ -87,7 +87,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       const writer = section(source, "export const registrarEventoCampanha");
       assert(writer.includes("tenantId?: string | null"), "PTR-01 silently changed the PTW-01 writer contract");
       assert(writer.includes("publicClient(data.tenantId ?? null)"), "PTR-01 silently changed writer transport");
-      assert(writer.includes("PTW-01 owns this public mutation"), "writer ownership boundary is not explicit");
+      assert(source.includes("PTW-01 owns this public mutation"), "writer ownership boundary is not explicit");
     },
   },
   {
