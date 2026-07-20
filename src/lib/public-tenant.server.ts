@@ -22,7 +22,8 @@ async function lookupTenantBy(
   const { data, error } = await supabaseAdmin
     .from("tenants")
     .select("id, nome, slug, dominio_principal, status")
-    .eq(field, value);
+    .eq(field, value)
+    .eq("status", "active");
 
   if (error) {
     throw new PublicTenantResolutionError(
