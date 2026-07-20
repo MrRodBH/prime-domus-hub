@@ -1,10 +1,11 @@
 name: PTH-01 One-Shot Tenant Codemod
 
 on:
-  push:
-    branches: [agent/pth-01-public-tenant]
+  pull_request:
+    branches: [main]
     paths:
       - scripts/pth-apply.mjs
+      - .github/workflows/pth-codemod.yml
 
 permissions:
   contents: write
