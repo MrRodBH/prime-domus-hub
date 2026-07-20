@@ -2,20 +2,27 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { assertOptionalTenantScopedRow } from "@/lib/public-tenant-read-guards";
 
 /** Pixel ID — lido no servidor via service role, sempre vinculado ao tenant público resolvido. */
 export const obterMetaPixelId = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ pixel_id: string | null }> => {
     const tenant = await requirePublicTenantFromRequest();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("site_settings")
-      .select("value")
+      .select("tenant_id, value")
       .eq("tenant_id", tenant.id)
       .eq("key", "meta_integracao")
       .maybeSingle();
-    const v = (data?.value as { pixel_id?: string } | null) ?? null;
-    return { pixel_id: v?.pixel_id ? String(v.pixel_id) : null };
+    if (error) throw new Error(error.message);
+
+    const row = assertOptionalTenantScopedRow(
+      tenant.id,
+      data as unknown as { tenant_id: string; value: unknown } | null,
+    );
+    const value = (row?.value as { pixel_id?: string } | null) ?? null;
+    return { pixel_id: value?.pixel_id ? String(value.pixel_id) : null };
   },
 );
 
