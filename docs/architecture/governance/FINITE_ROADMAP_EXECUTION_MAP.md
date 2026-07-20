@@ -100,14 +100,56 @@ binding; details still undefined are recorded explicitly as
 - **SUCCESSOR:** LSR-01 (documentary and generator-configuration
   closure recovery).
 
-### 2.2 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
+### 2.2 LSR-02 — TanStack Start Registration Stability & LSR-01 Terminal Reconciliation
 
-- **STATE:** Planned — Blocked by LSR-01 and by a future formally
+- **STATE:** Planned / Ready for External Audit. Execution Envelope
+  planning materialized. LSR-02 not started.
+- **OBJECTIVE:** establish a single, deterministic and persistent source
+  for the TanStack Start module augmentation, stable across all real
+  development and build sequences, without modifying functional routes.
+- **PREDECESSOR:** LSR-01 — Superseded (terminal · principal consumed ·
+  corrective consumed · remaining budget 0/2 · corrective failed
+  closed · register stability not resolved).
+- **DELIVERABLES:** frozen Execution Envelope
+  (`docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md`);
+  future selection of exactly one of Strategy A (canonical stable
+  footer), Strategy B (dedicated stable declaration file), optionally
+  combined with Strategy C (minimum proven dependency alignment);
+  concurrency diagnostic table; two full independent test cycles;
+  evidence artifact.
+- **FILES_ALLOWED:** frozen to nine paths (see impact analysis).
+  `FUTURE_ADDENDUM_ALLOWED = false`.
+- **MINIMUM_EVIDENCE:** `tanstack_start_register_source_count = 1`,
+  `duplicate_module_augmentation = false`,
+  `type_registration_stable = true`, `cycle_a_success = true`,
+  `cycle_b_success = true`, `full_sequence_diff = 0`,
+  `typecheck_passed = true`, `build_dev_passed = true`,
+  `build_passed = true`, `functional_route_diff = 0`,
+  `files_outside_allowed = 0`, `evidence_artifact_valid = true`.
+- **EXTERNAL_DEPENDENCIES:** none.
+- **HARD_GUARDS:** no manual edits to `src/routeTree.gen.ts`; no
+  functional route changes; no runtime behavior change; no
+  migrations / RLS / grants / policies / Auth / Storage / cron / DB
+  changes.
+- **OUT_OF_SCOPE:** LSV-03; LSV-04; `CLIENT_TENANT_AUTHORITY`;
+  maintenance mode; tenant fixtures; Auth harness; Storage; DB;
+  migrations; RLS; grants; policies; cron; queues; `net.http_post`;
+  external Supabase; functional route changes; reopening of LSR-01.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0. `REMAINING_IMPLEMENTATION_BUDGET = 2/2`.
+- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
+  Blocked External · Rejected · Superseded.
+- **SUCCESSOR:** formal replacement-path planning gate. LSR-02
+  conclusion does NOT auto-start LSV-03.
+
+### 2.3 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
+
+- **STATE:** Planned — Blocked by LSR-02 and by a future formally
   approved replacement path.
 - **OBJECTIVE:** preserve the historical objective of LSV-03 without
-  automatically absorbing the scope of LSV-02.
+  automatically absorbing the scope of LSV-02 or LSR-01.
 - **PREDECESSOR:** a replacement path formally planned and accepted
-  after LSR-01.
+  after LSR-02.
 - **MINIMUM_EVIDENCE:** Execution Envelope required before
   implementation.
 - **EXTERNAL_DEPENDENCIES:** unresolved by the current planning. No
