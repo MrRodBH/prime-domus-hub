@@ -111,9 +111,11 @@ assert(!preflight.includes("authority:"), "preflight discloses internal authorit
 
 const rootRoute = read("src/routes/__root.tsx");
 const preflightIndex = rootRoute.indexOf("await preflightPublicTenant()");
+const guardIndex = rootRoute.indexOf("if (tenantPreflight.required)");
 const settingsIndex = rootRoute.indexOf("obterSiteSettings");
 assert(preflightIndex >= 0, "root loader does not execute tenant preflight");
-assert(settingsIndex > preflightIndex, "public data is loaded before tenant preflight");
+assert(guardIndex > preflightIndex, "root loader does not guard public data by route classification");
+assert(settingsIndex > guardIndex, "public settings are loaded outside the public-route guard");
 
 console.log(
   JSON.stringify(
@@ -123,6 +125,7 @@ console.log(
       requestHostDerivedServerSide: true,
       hostNormalizationDeterministic: true,
       routeClassificationBoundarySafe: true,
+      nonPublicRoutesSkipPublicData: true,
       unknownHostFailsClosed: true,
       absentHostFailsClosed: true,
       ambiguousHostFailsClosed: true,
