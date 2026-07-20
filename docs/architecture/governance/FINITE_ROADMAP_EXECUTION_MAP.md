@@ -21,17 +21,18 @@ may exceed two implementation prompts (principal + corrective).
 | 4 | LSH-01 | Accepted / Closed |
 | 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
 | 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · findings preserved as mandatory inputs for future formal replanning only — NOT transferred to any successor · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
-| 7 | LSR-01 | Corrective Failed Closed — LSR-01 implementation started · principal prompt consumed · corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · canonical generation produced the register, but typecheck caused a subsequent rewrite without it; Cycle A failed and Cycle B was not started · NOT ready for final external audit · envelope: `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json` |
-| 8 | LSV-03 | Planned — Blocked by LSR-01 and by future formally approved replacement path · Execution Envelope required before implementation · no deliverables auto-transferred from LSV-02 · no external Supabase target required or recommended · Same-Backend strategy NOT permanently unavailable (HG-14 not triggered) |
-| 9 | LSV-04 | Planned — Blocked by LSV-03 |
-| 10 | RDA-01 | Planned — Blocked by LSV-04 |
-| 11 | RC-01 | Planned — Blocked by RDA-01 |
-| 12 | PR-M2 | Planned — Blocked by RC-01 |
-| 13 | PR-M3 | Planned — Blocked by PR-M2 |
-| 14 | TH-M1 | Planned — Blocked by PR-M3 |
-| 15 | TH-M2 | Planned — Blocked by TH-M1 |
-| 16 | Homologação | Blocked by TH-M2 |
-| 17 | Produção | Blocked until homologation acceptance |
+| 7 | LSR-01 | Superseded (terminal · principal prompt consumed · corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · principal result: failed persistence verification · corrective result: failed closed · reason: stage could not stabilize TanStack Start registration within its frozen scope · successor: LSR-02 · envelope: `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`) |
+| 8 | LSR-02 | Planned / Ready for External Audit — Execution Envelope planning materialized · LSR-02 started: false · principal prompt consumed: false · corrective prompt consumed: false · REMAINING_IMPLEMENTATION_BUDGET = 2/2 · FILES_ALLOWED fully frozen (9 paths) · FUTURE_ADDENDUM_ALLOWED = false · envelope: `docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md` |
+| 9 | LSV-03 | Planned — Blocked by LSR-02 and by future formally approved replacement path · Execution Envelope required before implementation · no deliverables auto-transferred from LSV-02 or LSR-01 · no external Supabase target required or recommended · Same-Backend strategy NOT permanently unavailable (HG-14 not triggered) |
+| 10 | LSV-04 | Planned — Blocked by LSV-03 |
+| 11 | RDA-01 | Planned — Blocked by LSV-04 |
+| 12 | RC-01 | Planned — Blocked by RDA-01 |
+| 13 | PR-M2 | Planned — Blocked by RC-01 |
+| 14 | PR-M3 | Planned — Blocked by PR-M2 |
+| 15 | TH-M1 | Planned — Blocked by PR-M3 |
+| 16 | TH-M2 | Planned — Blocked by TH-M1 |
+| 17 | Homologação | Blocked by TH-M2 |
+| 18 | Produção | Blocked until homologation acceptance |
 
 Historical stages 1–4 preserved without reopening. LSV-01 legacy Lotes
 A / B / C are historical only; not executable next steps.
@@ -99,14 +100,56 @@ binding; details still undefined are recorded explicitly as
 - **SUCCESSOR:** LSR-01 (documentary and generator-configuration
   closure recovery).
 
-### 2.2 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
+### 2.2 LSR-02 — TanStack Start Registration Stability & LSR-01 Terminal Reconciliation
 
-- **STATE:** Planned — Blocked by LSR-01 and by a future formally
+- **STATE:** Planned / Ready for External Audit. Execution Envelope
+  planning materialized. LSR-02 not started.
+- **OBJECTIVE:** establish a single, deterministic and persistent source
+  for the TanStack Start module augmentation, stable across all real
+  development and build sequences, without modifying functional routes.
+- **PREDECESSOR:** LSR-01 — Superseded (terminal · principal consumed ·
+  corrective consumed · remaining budget 0/2 · corrective failed
+  closed · register stability not resolved).
+- **DELIVERABLES:** frozen Execution Envelope
+  (`docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md`);
+  future selection of exactly one of Strategy A (canonical stable
+  footer), Strategy B (dedicated stable declaration file), optionally
+  combined with Strategy C (minimum proven dependency alignment);
+  concurrency diagnostic table; two full independent test cycles;
+  evidence artifact.
+- **FILES_ALLOWED:** frozen to nine paths (see impact analysis).
+  `FUTURE_ADDENDUM_ALLOWED = false`.
+- **MINIMUM_EVIDENCE:** `tanstack_start_register_source_count = 1`,
+  `duplicate_module_augmentation = false`,
+  `type_registration_stable = true`, `cycle_a_success = true`,
+  `cycle_b_success = true`, `full_sequence_diff = 0`,
+  `typecheck_passed = true`, `build_dev_passed = true`,
+  `build_passed = true`, `functional_route_diff = 0`,
+  `files_outside_allowed = 0`, `evidence_artifact_valid = true`.
+- **EXTERNAL_DEPENDENCIES:** none.
+- **HARD_GUARDS:** no manual edits to `src/routeTree.gen.ts`; no
+  functional route changes; no runtime behavior change; no
+  migrations / RLS / grants / policies / Auth / Storage / cron / DB
+  changes.
+- **OUT_OF_SCOPE:** LSV-03; LSV-04; `CLIENT_TENANT_AUTHORITY`;
+  maintenance mode; tenant fixtures; Auth harness; Storage; DB;
+  migrations; RLS; grants; policies; cron; queues; `net.http_post`;
+  external Supabase; functional route changes; reopening of LSR-01.
+- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
+  consumed 0. `REMAINING_IMPLEMENTATION_BUDGET = 2/2`.
+- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
+  Blocked External · Rejected · Superseded.
+- **SUCCESSOR:** formal replacement-path planning gate. LSR-02
+  conclusion does NOT auto-start LSV-03.
+
+### 2.3 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
+
+- **STATE:** Planned — Blocked by LSR-02 and by a future formally
   approved replacement path.
 - **OBJECTIVE:** preserve the historical objective of LSV-03 without
-  automatically absorbing the scope of LSV-02.
+  automatically absorbing the scope of LSV-02 or LSR-01.
 - **PREDECESSOR:** a replacement path formally planned and accepted
-  after LSR-01.
+  after LSR-02.
 - **MINIMUM_EVIDENCE:** Execution Envelope required before
   implementation.
 - **EXTERNAL_DEPENDENCIES:** unresolved by the current planning. No

@@ -1,11 +1,13 @@
 # LSR-01 — LSV-02 Closure Recovery & Roadmap Reconciliation
 
 **Type:** Execution Envelope Planning
-**Status:** Corrective Failed Closed
+**Status:** Superseded (terminal · replaced by LSR-02)
 **LSR-01 started:** true
 **Principal prompt consumed:** true
 **Corrective prompt consumed:** true
 **Remaining implementation budget:** 0/2
+**Final external audit decision:** Superseded
+**Replacement stage:** LSR-02
 
 **Authority:** derived from `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
 and the Finite Roadmap Execution Map
@@ -401,3 +403,41 @@ generation → typecheck → build sequence.
 The corrective prompt is consumed. No register was inserted manually, no
 generator configuration was altered, no persistence commit was claimed, and
 no successor stage was started.
+
+---
+
+## Final external audit decision (terminal reconciliation)
+
+- `FINAL_EXTERNAL_AUDIT_DECISION = Superseded`
+- `CORRECTIVE_FAILED_CLOSED = true`
+- `REGISTER_STABILITY_RESOLVED = false`
+- `REPLACEMENT_STAGE = LSR-02`
+- `LSR-01_TERMINAL_STATE = Superseded`
+- `LSR-01_PRINCIPAL_CONSUMED = true`
+- `LSR-01_CORRECTIVE_CONSUMED = true`
+- `LSR-01_REMAINING_IMPLEMENTATION_BUDGET = 0/2`
+- `LSR-01_ACCEPTED = false`
+
+The `Corrective Failed Closed` label above and throughout the historical
+sections of this document is preserved solely as the factual result of
+the corrective execution attempt. It is NOT the current terminal state
+of this stage. The current terminal state is `Superseded`, decided by
+external audit, on the following grounds:
+
+- the TanStack Start module augmentation was produced temporarily but
+  did not persist in the main HEAD;
+- the corrective pass also failed closed;
+- `src/routeTree.gen.ts` continues without the register block;
+- the register-stability objective could not be completed inside the
+  frozen scope and budget;
+- the stage must be replaced by a new finite unit (LSR-02) with a
+  scope adequate to resolve register stability.
+
+All prior sections of this document — objective, deliverables,
+FILES_ALLOWED, tests, evidence, principal execution outcome, corrective
+execution outcome, coleta of SHA-256 hashes, and the record that no
+manual edit was made to `src/routeTree.gen.ts` and no generator
+configuration was altered — are preserved integrally as historical
+audit material. This terminal reconciliation does NOT reopen LSR-01,
+does NOT rewrite its history, does NOT reclassify it as Accepted,
+Blocked External, or Rejected, and does NOT consume additional budget.
