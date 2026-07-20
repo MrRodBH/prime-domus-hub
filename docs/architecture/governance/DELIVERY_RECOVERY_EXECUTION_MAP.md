@@ -4,8 +4,8 @@
 
 **Accepted — binding map for the post-FRP delivery recovery path**
 
-**Authority:** explicit product-owner delivery reset + DRA-01 direct GitHub audit  
-**Current audited implementation HEAD:** `9a9c97c549e0f6a575546abc5a9ffa0a3904078d`
+**Authority:** explicit product-owner delivery reset + DRA-01/PTD-01 direct GitHub audits  
+**Current audited implementation HEAD:** `c021db3cf3b693887e2832d4d6736a04b0d749fc`
 
 ---
 
@@ -20,9 +20,10 @@ It does not reopen, rename, retry or inherit implementation authority from:
 - LSR-01;
 - LSR-02;
 - FRP-01;
-- rejected FRP-01 successor boundaries.
+- PTH-01;
+- rejected successor boundaries or branch artifacts.
 
-`FINITE_ROADMAP_EXECUTION_MAP.md` remains the historical authority for those terminal stages. For the recovery path beginning at DRA-01, this document is the binding execution map and supersedes any stale remaining-stage sequence in `ROADMAP_ARCHITECTURAL.md` or the former finite map.
+`FINITE_ROADMAP_EXECUTION_MAP.md` remains the historical authority for earlier terminal stages. For the recovery path beginning at DRA-01, this document is the binding execution map and supersedes stale remaining-stage sequences elsewhere.
 
 ---
 
@@ -32,11 +33,15 @@ It does not reopen, rename, retry or inherit implementation authority from:
 |---:|---|---|---|---|
 | 1 | DRA-01 — Delivery Recovery & Release Criticality Audit | Accepted | Direct GitHub audit | completed; zero Lovable interactions |
 | 2 | GNR-01 — GitHub-Native Release Gate | Accepted | GitHub-native | principal PR consumed; corrective PR not consumed |
-| 3 | PTH-01 — Public Tenant Authority Hardening | Authorized next | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
-| 4 | PSG-01 — Public Surface Security Gate | Planned — Blocked by PTH-01 | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
-| 5 | HVP-01 — Homologation Validation Preflight | Planned — Blocked by PSG-01 | GitHub-native runbook + authorized operator | evidence gate; no feature implementation |
-| 6 | VSP-01 — Optional Visual Stabilization Package | Optional — Not authorized | Lovable only when HVP-01 records blocking visual defects | global max 1 principal + 1 corrective |
-| 7 | Controlled Homologation | Blocked by HVP-01 and, only when triggered, VSP-01 | operator/product team | not an implementation prompt |
+| 3 | PTH-01 — Public Tenant Authority Hardening | Rejected — terminal | GitHub Actions codemod | principal + corrective consumed; 0/2 remaining; no code merged |
+| 4 | PTD-01 — Public Tenant Delivery Decomposition | Accepted | Direct GitHub audit | planning-only |
+| 5 | PTC-01 — Public Tenant Context Foundation | Authorized next | Direct GitHub file changes | 1 principal PR + max 1 corrective PR |
+| 6 | PTQ-01 — Public Tenant Query Binding | Planned — Blocked by PTC-01 | Direct GitHub file changes | 1 principal PR + max 1 corrective PR |
+| 7 | PTM-01 — Public Tenant Mutation Binding | Planned — Blocked by PTQ-01 | Direct GitHub file changes | 1 principal PR + max 1 corrective PR |
+| 8 | PSG-01 — Public Surface Security Gate | Planned — Blocked by PTM-01 | GitHub-native | 1 principal PR + max 1 corrective PR |
+| 9 | HVP-01 — Homologation Validation Preflight | Planned — Blocked by PSG-01 | GitHub-native runbook + authorized operator | evidence gate; no feature implementation |
+| 10 | VSP-01 — Optional Visual Stabilization Package | Optional — Not authorized | Lovable only when HVP-01 records blocking visual defects | global max 1 principal + 1 corrective |
+| 11 | Controlled Homologation | Blocked by HVP-01 and, only when triggered, VSP-01 | operator/product team | not an implementation prompt |
 
 ---
 
@@ -61,13 +66,12 @@ Final state: `Accepted`.
 Accepted implementation:
 
 - PR `#7` merged as `9a9c97c549e0f6a575546abc5a9ffa0a3904078d`;
-- rejected authored declaration `src/tanstack-start-register.d.ts` removed;
-- rejected route-tree rewriting plugin and duplicate assertions removed from `vite.config.ts`;
-- generated route tree restored as the single TanStack Start Register authority;
+- rejected authored TanStack Start declaration removed;
+- rejected route-tree rewriting plugin removed;
+- generated route tree restored as the single Register authority;
 - Bun pinned to `1.3.14`;
-- canonical `typecheck`, `verify:release` and `ci` commands materialized;
-- GitHub Actions release gate added for pull requests and `main`;
-- pinned workflow execution completed successfully after dependency installation, deterministic build cycles, typecheck and structural/unit specifications.
+- canonical typecheck/release verification and GitHub Actions materialized;
+- deterministic build, typecheck and structural/unit evidence passed.
 
 Acceptance evidence:
 
@@ -81,41 +85,100 @@ CI_REQUIRED_CHECKS_GREEN = true
 REJECTED_STRATEGY_B_PRESENT = false
 ```
 
-Prompt/PR budget:
-
-```text
-GNR01_PRINCIPAL_PR_CONSUMED = true
-GNR01_CORRECTIVE_PR_CONSUMED = false
-GNR01_REMAINING_CORRECTIVE_BUDGET = 1
-```
-
-Successor authorization: PTH-01.
-
 ### PTH-01
 
-Entry: GNR-01 Accepted.  
-Exit: finite terminal state.
+Final state: `Rejected — terminal`.
+
+```text
+PTH01_PRINCIPAL_CONSUMED = true
+PTH01_CORRECTIVE_CONSUMED = true
+PTH01_REMAINING_BUDGET = 0/2
+PTH01_CODE_MERGED = false
+PTH01_MAIN_CHANGED = false
+PTH01_BUDGET_REOPENING_AUTHORIZED = false
+```
+
+Evidence:
+
+- PR `#9` closed unmerged;
+- principal run `29783823263`, job `88490857332`, failed closed before commit;
+- corrective run `29784077156`, job `88491663735`, failed before codemod execution;
+- no rejected branch artifact is accepted or automatically transferred.
+
+### PTD-01
+
+Final state: `Accepted`.
+
+Decision:
+
+- replace the broad PTH-01 codemod with three independent official stages;
+- change the executor mechanism to direct GitHub file changes;
+- preserve zero Lovable interactions for release-critical work.
+
+### PTC-01
+
+Entry: PTD-01 Accepted.  
+Objective: establish the request-host tenant context foundation only.
 
 Required acceptance evidence:
 
 ```text
 FALLBACK_TENANT_AUTHORITY = false
 UNKNOWN_HOST_FAILS_CLOSED = true
+AMBIGUOUS_HOST_FAILS_CLOSED = true
+LOCAL_MAPPING_EXPLICIT = true
 CLIENT_TENANT_AUTHORITY = false
 HEADER_TENANT_AUTHORITY = false
-PUBLIC_SETTINGS_TENANT_BOUND = true
-PUBLIC_PAGE_TENANT_BOUND = true
-PUBLIC_FORM_TENANT_BOUND = true
-PUBLIC_CAMPAIGN_TENANT_BOUND = true
-CROSS_TENANT_NEGATIVE_TESTS_PASSED = true
+ROOT_PUBLIC_TENANT_PREFLIGHT = true
+RELEASE_GATE_GREEN = true
 ```
 
-Successor authorization: PSG-01 only after PTH-01 acceptance.
+Successor authorization: PTQ-01 only after PTC-01 acceptance.
+
+### PTQ-01
+
+Entry: PTC-01 Accepted.  
+Objective: bind all public reads to the accepted server context.
+
+Required acceptance evidence:
+
+```text
+PUBLIC_SETTINGS_TENANT_BOUND = true
+PUBLIC_META_TENANT_BOUND = true
+PUBLIC_PAGE_TENANT_BOUND = true
+PUBLIC_FORM_DEFINITION_TENANT_BOUND = true
+PUBLIC_CAMPAIGN_READ_TENANT_BOUND = true
+PUBLIC_CATALOG_TENANT_BOUND = true
+PUBLIC_BLOG_TENANT_BOUND = true
+PUBLIC_LAUNCH_TENANT_BOUND = true
+CLIENT_TENANT_READ_INPUT = false
+RELEASE_GATE_GREEN = true
+```
+
+Successor authorization: PTM-01 only after PTQ-01 acceptance.
+
+### PTM-01
+
+Entry: PTQ-01 Accepted.  
+Objective: bind all public mutations and prove cross-tenant denial.
+
+Required acceptance evidence:
+
+```text
+PUBLIC_LEAD_TENANT_BOUND = true
+PUBLIC_FORM_SUBMISSION_TENANT_BOUND = true
+PUBLIC_CAMPAIGN_EVENT_TENANT_BOUND = true
+PORTAL_PROPERTY_TENANT_BOUND = true
+FORGED_TENANT_PAYLOAD_DENIED = true
+CROSS_TENANT_RESOURCE_ID_DENIED = true
+RELEASE_GATE_GREEN = true
+```
+
+Successor authorization: PSG-01 only after PTM-01 acceptance.
 
 ### PSG-01
 
-Entry: PTH-01 Accepted.  
-Exit: finite terminal state.
+Entry: PTM-01 Accepted.
 
 Required acceptance evidence:
 
@@ -136,21 +199,20 @@ Successor authorization: HVP-01 only after PSG-01 acceptance.
 Entry: PSG-01 Accepted and green audited `main`.  
 Mode: runbook/evidence gate.
 
-Missing backup, operator authorization, recovery capability or safe data conditions results in `Blocked External`. It does not authorize new implementation loops.
+Missing backup, operator authorization, recovery capability or safe-data conditions results in `Blocked External`; it does not authorize implementation loops.
 
 Successor authorization:
 
 - Controlled Homologation when no blocking visual defect exists;
-- VSP-01 only when the persisted HVP evidence identifies blocking visual/product defects.
+- VSP-01 only when persisted HVP evidence identifies blocking visual/product defects.
 
 ### VSP-01
 
-Lovable is permitted only here and only for visual/product defects explicitly evidenced by HVP-01.
+Lovable is permitted only for visual/product defects explicitly evidenced by HVP-01.
 
 Prohibited domains:
 
-- tenant authority;
-- security;
+- tenant authority and security;
 - migrations/RLS/grants;
 - Auth/Storage;
 - cron/queues/webhooks;
@@ -167,14 +229,13 @@ Governance/documentary Lovable executions = 0
 Optional visual Lovable executions = maximum 2 total
 ```
 
-The optional limit is global across the entire pre-homologation visual package.
-
 ---
 
 ## 5. Binding next action
 
 ```text
-NEXT_STAGE_AUTHORIZED = PTH-01
-AUTHORIZED_EXECUTOR = GitHub-native
+NEXT_STAGE_AUTHORIZED = PTC-01
+AUTHORIZED_EXECUTOR = Direct GitHub file changes
+GITHUB_ACTIONS_CODEMOD_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
