@@ -1,0 +1,256 @@
+# LSR-01 — LSV-02 Closure Recovery & Roadmap Reconciliation
+
+**Type:** Execution Envelope Planning
+**Status:** Ready for External Audit
+**LSR-01 started:** false
+**Principal prompt consumed:** false
+**Corrective prompt consumed:** false
+**Remaining implementation budget:** 2/2
+
+**Authority:** derived from `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
+and the Finite Roadmap Execution Map
+(`docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`).
+
+**Baseline HEAD (planning):** `4c3b8c17c19ea0d8b6e1931b7dffc6d0b0f08ff5`
+**Branch:** `main` (planning performed on descendant working branch).
+
+This document freezes the Execution Envelope for the future LSR-01
+implementation. It does NOT reopen LSV-02, does NOT consume any LSV-02
+budget, does NOT start or consume any LSR-01 prompt, does NOT modify code,
+does NOT run generators, and does NOT initiate LSV-03.
+
+---
+
+## STAGE_ID
+
+`LSR-01 — LSV-02 Closure Recovery & Roadmap Reconciliation`
+
+## OBJECTIVE
+
+Restore technical and documentary consistency of the repository after the
+unsuccessful final corrective delivery of LSV-02, without reopening LSV-02
+and without executing any subsequent hardening or live verification work.
+
+The future LSR-01 implementation must produce exactly:
+
+1. Deterministic resolution of the `src/routeTree.gen.ts` state.
+2. Correction of incorrect claims about its restoration.
+3. Reconciliation of the finite roadmap map.
+4. Removal of the improper deliverable transfer from LSV-02 to LSV-03.
+5. Removal of any mandatory dependency on or recommendation of an external
+   Supabase project.
+6. Preservation of LSV-02 as `Superseded`, budget `0`.
+7. Preservation of LSV-03 as `Planned — Blocked`.
+8. Factual package for external audit.
+
+## PREDECESSOR
+
+LSV-02 — Superseded (terminal · principal consumed · corrective consumed ·
+remaining budget 0).
+
+## DELIVERABLES
+
+- Deterministic, canonical restoration (or explicit fail-closed
+  incompatibility record) of the TanStack Start register block in
+  `src/routeTree.gen.ts` via the canonical generator, never via manual
+  edits to a generated file.
+- Correction, in the LSV-02 abort report, of the claim that
+  `routeTree.gen.ts` was restored, until proven true on disk.
+- Reconciliation of the LSV-02 Impact Analysis appendix: remove direct
+  deliverable transfer to LSV-03, remove canonical-fallback framing of the
+  external Supabase project, remove the claim that all continuity must
+  occur exclusively via LSV-03, remove any HG-14-based permanent
+  unavailability assertion about Same-Backend.
+- Reconciliation of the finite roadmap map: single entry per stage,
+  LSV-02 preserved as terminal Superseded with budget 0, LSV-03 restored
+  to its prior scope with no auto-transferred deliverables and no
+  mandatory external Supabase target.
+- Final evidence artifact for LSR-01 recording acceptance criteria
+  outcomes and a factual audit package.
+
+## FILES_ALLOWED
+
+The future LSR-01 implementation is restricted to the following files:
+
+- `src/routeTree.gen.ts`
+- Canonical TanStack route-tree generator configuration file(s), only if
+  technically indispensable and only when identified by exact path in an
+  addendum to this Execution Envelope and justified as directly required
+  to stabilize generation.
+- `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
+- `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`
+- `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md`
+- LSR-01 final evidence document (new file under
+  `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/`).
+
+Any additional generator configuration file must be identified by exact
+path in this envelope before being edited.
+
+**Not authorized to change:** functional routes, middleware, server
+functions, database schema, Auth, Storage, cron, migrations, RLS, grants,
+policies, tenant resolution, impersonation, public writers.
+
+## MIGRATIONS_ALLOWED
+
+`false`
+
+## RUNTIME_CHANGES_ALLOWED
+
+`false`
+
+## RLS_CHANGES_ALLOWED
+
+`false`
+
+## GRANTS_CHANGES_ALLOWED
+
+`false`
+
+## TESTS_REQUIRED
+
+Because LSR-01 is documentary and generator-configuration only, the future
+implementation must run:
+
+- Link verification across the four documentary files listed in
+  FILES_ALLOWED.
+- Duplicate-entry search across the finite roadmap map (one row per stage).
+- Conflicting current-state search across all four files.
+- Grep for the strings `rm-prime-lsv-nonprod`, `adxqbrfcqhnoierwhymj`,
+  `canonical fallback`, `permanently unavailable per HG-14`, and any
+  wording describing LSV-02 → LSV-03 deliverable transfer.
+- Confirmation that any historical remaining occurrences of the above are
+  clearly marked as `HISTORICAL — NOT CURRENT AUTHORITY`.
+- Two consecutive canonical generations of `src/routeTree.gen.ts` with
+  byte-equal diff between them.
+- Typecheck to confirm absence of incidental regressions.
+- Final `git diff` scoped to FILES_ALLOWED with an unrelated-route diff of
+  zero.
+
+No route-tree generator execution occurs in this planning stage; it is
+required only in the future LSR-01 implementation.
+
+## EVIDENCE_REQUIRED
+
+Persisted evidence artifact (atomic write: temp file → fsync → rename) at
+`docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`
+containing at minimum:
+
+- `stage_id = "LSR-01"`
+- `baseline_head`, `final_head`
+- `route_tree_register_present`
+- `canonical_generator_configuration_resolved`
+- `first_generation_success`, `second_generation_success`,
+  `second_generation_diff` (must be `0`)
+- `typecheck_passed`, `build_passed`
+- `unrelated_route_diff` (must be `0`)
+- `abort_report_corrected`
+- `impact_analysis_reconciled`
+- `finite_map_reconciled`
+- `duplicate_entries = 0`
+- `conflicting_current_states = 0`
+- `external_supabase_required = false`
+- `external_supabase_recommended = false`
+- `external_supabase_canonical_fallback = false`
+- `hg14_triggered = false`
+- `same_backend_decision_reopened = false`
+- `lsv_02_state = "Superseded"`, `lsv_02_remaining_budget = 0`
+- `lsv_03_state = "Planned — Blocked"`
+- `principal_prompt_consumed`, `corrective_prompt_consumed`,
+  `remaining_implementation_budget`
+
+## DEFINITION_OF_DONE
+
+Acceptance criteria for the future LSR-01 implementation:
+
+- `ROUTE_TREE_REGISTER_PRESENT = true`
+- `CANONICAL_GENERATOR_CONFIGURATION_RESOLVED = true`
+- `FIRST_GENERATION_SUCCESS = true`
+- `SECOND_GENERATION_SUCCESS = true`
+- `SECOND_GENERATION_DIFF = 0`
+- `TYPECHECK_PASSED = true`
+- `BUILD_PASSED = true`
+- `UNRELATED_ROUTE_DIFF = 0`
+- Abort report reflects `ROUTE_TREE_REGISTER_RESTORED = true` only after
+  on-disk proof; otherwise it reflects `false` and LSR-01 fails closed on
+  the register-restoration deliverable.
+- LSV-02 Impact Analysis appendix reconciled per §7 of the source
+  instruction.
+- Finite roadmap map contains one entry per stage, LSV-02 terminal
+  Superseded, LSV-03 restored to prior scope.
+- No mention of external Supabase project as required, recommended, or
+  canonical fallback survives outside clearly marked historical registry
+  wording.
+- HG-14 recorded as `not triggered`.
+- Same-Backend decision NOT reopened.
+- Evidence artifact persisted and readable.
+
+If the canonical generator installed at implementation time does not
+support the expected register block, the future implementation must:
+fail closed, refrain from adding an unstable manual footer, record the
+factual incompatibility, and NOT declare restoration completed.
+
+## OUT_OF_SCOPE
+
+Expressly out of scope for future LSR-01 implementation:
+
+- Correction of `CLIENT_TENANT_AUTHORITY`.
+- Changes to `public.leads`, `public.form_submissions`, or public campaign
+  event tables.
+- Maintenance mode.
+- RLS, grants, policies, migrations.
+- Auth harness, cron, `pgmq`, `net.http_post`.
+- Fixtures, HML tenants, live tests.
+- LSV-03, LSV-04.
+- External Supabase project.
+- Reopening of LSV-02.
+- New Execution Envelope for LSV-03 or any successor.
+
+## EXTERNAL_DEPENDENCIES
+
+None. LSR-01 is a documentary and generator-configuration reconciliation
+performed exclusively against the current repository.
+
+The historical external project `rm-prime-lsv-nonprod` (project ref
+`adxqbrfcqhnoierwhymj`) is preserved as historical registry only, with no
+operational authority: it is not required, not recommended, not a
+canonical fallback, and not a next step for any stage.
+
+## PROMPT_BUDGET
+
+- Principal: 1
+- Corrective: 1
+- Absolute maximum: 2
+- Consumed: 0
+- Remaining: 2/2
+
+## TERMINAL_STATES
+
+- Accepted
+- Accepted with Non-Blocking Backlog
+- Blocked External
+- Rejected
+- Superseded
+
+## SUCCESSOR
+
+LSV-03 (remains Planned — Blocked by LSR-01 and by a future formally
+approved replacement path; Execution Envelope required before
+implementation; no deliverables auto-transferred from LSV-02).
+
+---
+
+## Preserved architectural decisions
+
+- `Same-Backend decision reopened: false`
+- `External Supabase recommended: false`
+- `External Supabase required: false`
+- `External Supabase canonical fallback: false`
+- `HG-14 triggered: false`
+
+LSV-02 was infeasible because its frozen scope did not permit implementing
+the necessary controls in advance, not because future use of the current
+backend has been permanently forbidden. Any new live strategy must be
+planned only after: hardening of public tenant authority; maintenance
+boundary; governed control of cron, queues and outbound calls; a new
+Execution Envelope; and new express authorization. None of these items
+are planned or implemented in LSR-01.
