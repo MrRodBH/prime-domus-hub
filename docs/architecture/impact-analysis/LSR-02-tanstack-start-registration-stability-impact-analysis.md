@@ -1,11 +1,11 @@
 # LSR-02 — TanStack Start Registration Stability & LSR-01 Terminal Reconciliation
 
-**Type:** Execution Envelope Planning
-**Status:** Ready for External Audit (planning materialized; implementation not started)
-**LSR-02 started:** false
-**Principal prompt consumed:** false
+**Type:** Execution Envelope Planning + Principal Implementation Executed
+**Status:** Ready for External Audit (Strategy B selected and implemented)
+**LSR-02 started:** true
+**Principal prompt consumed:** true
 **Corrective prompt consumed:** false
-**Remaining implementation budget:** 2/2
+**Remaining implementation budget:** 1/2
 
 **Authority:** derived from
 `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` and the
