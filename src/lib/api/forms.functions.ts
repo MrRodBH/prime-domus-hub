@@ -1,279 +1,229 @@
+/**
+ * CMS Forms — CRUD admin + API pública de submissão.
+ * Bloco universal `form` usa slug para renderizar.
+ */
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-function publicClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 
 function adminClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+  });
 }
 
 // ============================================================================
-// ADMIN — CRUD de formulários
+// ADMIN
 // ============================================================================
 
-export const listarFormulariosAdmin = createServerFn({ method: "GET" })
+export const listarForms = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("cms_forms")
-      .select("id, nome, slug, status, descricao, config, created_at, updated_at")
-      .order("created_at", { ascending: false });
+      .select("id,nome,slug,status,descricao,config,created_at,updated_at")
+      .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
 
-export const obterFormularioAdmin = createServerFn({ method: "POST" })
+export const obterForm = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ data, context }) => {
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
     const { data: form, error } = await context.supabase
       .from("cms_forms")
       .select("*")
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    const { data: fields } = await context.supabase
+    if (!form) throw new Error("Formulário não encontrado");
+    const { data: fields, error: e2 } = await context.supabase
       .from("cms_form_fields")
       .select("*")
       .eq("form_id", data.id)
       .order("ordem", { ascending: true });
+    if (e2) throw new Error(e2.message);
     return { form, fields: fields ?? [] };
   });
 
-const formPayloadSchema = z.object({
+const fieldSchema = z.object({
   id: z.string().uuid().optional(),
-  nome: z.string().min(1).max(200),
-  slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/, "Slug deve conter apenas letras minúsculas, números e hífens"),
-  status: z.enum(["draft", "published", "archived"]),
-  descricao: z.string().nullable().optional(),
-  config: z
-    .object({
-      success_message: z.string().optional(),
-      redirect_url: z.string().optional(),
-      submit_button_label: z.string().optional(),
-      notify_emails: z.array(z.string().email()).optional(),
-      criar_lead: z.boolean().optional(),
-      lead_origem_slug: z.string().optional(),
-      webhook_url: z.string().url().optional().or(z.literal("")),
-      map_nome: z.string().optional(),      // nome do campo do form -> nome do lead
-      map_email: z.string().optional(),
-      map_telefone: z.string().optional(),
-      map_mensagem: z.string().optional(),
-    })
-    .default({}),
+  ordem: z.number().int().min(0),
+  tipo: z.enum(["text", "email", "tel", "textarea", "select", "radio", "checkbox", "date", "number", "hidden"]),
+  nome: z.string().min(1).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, "Nome técnico inválido"),
+  label: z.string().min(1),
+  placeholder: z.string().nullable().optional(),
+  ajuda: z.string().nullable().optional(),
+  obrigatorio: z.boolean().default(false),
+  opcoes: z.array(z.string()).nullable().optional(),
+  validacao: z.record(z.string(), z.unknown()).default({}),
+  valor_padrao: z.string().nullable().optional(),
+  largura: z.enum(["full", "half", "third"]).default("full"),
 });
 
-export const salvarFormulario = createServerFn({ method: "POST" })
+const formSchema = z.object({
+  id: z.string().uuid().optional(),
+  nome: z.string().min(1),
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen"),
+  descricao: z.string().nullable().optional(),
+  status: z.enum(["draft", "published", "archived"]).default("draft"),
+  config: z.record(z.string(), z.unknown()).default({}),
+  fields: z.array(fieldSchema).default([]),
+});
+
+export const salvarForm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw) => formPayloadSchema.parse(raw))
-  .handler(async ({ data, context }) => {
+  .inputValidator((d) => formSchema.parse(d))
+  .handler(async ({ context, data }) => {
     const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    const { supabase, userId } = context;
-    const wantsPublish = data.status === "published";
     await assertCmsPermission(context, "cms.formularios", data.id ? "editar" : "criar");
-    if (wantsPublish) await assertCmsPermission(context, "cms.formularios", "publicar");
-    if (data.id) {
-      const { data: before } = await supabase.from("cms_forms").select("*").eq("id", data.id).maybeSingle();
-      const { data: row, error } = await supabase
-        .from("cms_forms")
-        .update({
-          nome: data.nome,
-          slug: data.slug,
-          status: data.status,
-          descricao: data.descricao ?? null,
-          config: data.config,
-        })
-        .eq("id", data.id)
-        .select("*")
-        .single();
+    if (data.status === "published") await assertCmsPermission(context, "cms.formularios", "publicar");
+    const { supabase, userId } = context;
+    let formId = data.id;
+    let before: unknown = null;
+    if (formId) {
+      const { data: b } = await supabase.from("cms_forms").select("*").eq("id", formId).maybeSingle();
+      before = b;
+      const { error } = await supabase.from("cms_forms").update({
+        nome: data.nome, slug: data.slug, descricao: data.descricao ?? null,
+        status: data.status, config: data.config, updated_by: userId,
+        published_at: data.status === "published" ? new Date().toISOString() : null,
+      }).eq("id", formId);
       if (error) throw new Error(error.message);
-      await logCmsAudit(context, "cms_forms", wantsPublish ? "cms.formulario.publicar" : "cms.formulario.editar", data.id, before, row);
-      return { id: data.id };
+    } else {
+      const { data: row, error } = await supabase.from("cms_forms").insert({
+        nome: data.nome, slug: data.slug, descricao: data.descricao ?? null,
+        status: data.status, config: data.config, created_by: userId, updated_by: userId,
+        published_at: data.status === "published" ? new Date().toISOString() : null,
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      formId = row.id;
     }
-    const { data: row, error } = await supabase
-      .from("cms_forms")
-      .insert({
-        nome: data.nome,
-        slug: data.slug,
-        status: data.status,
-        descricao: data.descricao ?? null,
-        config: data.config,
-        created_by: userId,
-      })
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "cms_forms", "cms.formulario.criar", row.id as string, null, row);
-    return { id: row.id as string };
+
+    const { data: existing } = await supabase
+      .from("cms_form_fields").select("id").eq("form_id", formId);
+    const keepIds = data.fields.filter((f) => f.id).map((f) => f.id!);
+    const removeIds = (existing ?? []).map((e) => e.id).filter((id) => !keepIds.includes(id));
+    if (removeIds.length) {
+      const { error } = await supabase.from("cms_form_fields").delete().in("id", removeIds);
+      if (error) throw new Error(error.message);
+    }
+    for (const f of data.fields) {
+      const payload = {
+        form_id: formId, ordem: f.ordem, tipo: f.tipo, nome: f.nome, label: f.label,
+        placeholder: f.placeholder ?? null, ajuda: f.ajuda ?? null, obrigatorio: f.obrigatorio,
+        opcoes: f.opcoes ?? null, validacao: f.validacao, valor_padrao: f.valor_padrao ?? null,
+        largura: f.largura,
+      };
+      if (f.id) {
+        const { error } = await supabase.from("cms_form_fields").update(payload).eq("id", f.id);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase.from("cms_form_fields").insert(payload);
+        if (error) throw new Error(error.message);
+      }
+    }
+
+    await logCmsAudit(context, "cms_forms", data.status === "published" ? "cms.form.publicar" : (data.id ? "cms.form.editar" : "cms.form.criar"), formId, before, { nome: data.nome, slug: data.slug, status: data.status, config: data.config, fields_count: data.fields.length });
+    return { id: formId };
   });
 
-export const excluirFormulario = createServerFn({ method: "POST" })
+export const excluirForm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ data, context }) => {
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
     const { assertCmsPermission, logCmsAudit } = await import("./_cms");
     await assertCmsPermission(context, "cms.formularios", "excluir");
     const { data: before } = await context.supabase.from("cms_forms").select("*").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("cms_forms").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
-    await logCmsAudit(context, "cms_forms", "cms.formulario.excluir", data.id, before, null);
+    await logCmsAudit(context, "cms_forms", "cms.form.excluir", data.id, before, null);
     return { ok: true };
   });
 
-const fieldsPayloadSchema = z.object({
-  form_id: z.string().uuid(),
-  fields: z.array(
-    z.object({
-      id: z.string().uuid().optional(),
-      ordem: z.number().int().min(0),
-      tipo: z.enum(["text", "textarea", "email", "phone", "number", "date", "select", "radio", "checkbox", "file", "hidden"]),
-      nome: z.string().min(1).max(80).regex(/^[a-z0-9_]+$/, "Use apenas letras minúsculas, números e underscore"),
-      label: z.string().min(1).max(200),
-      placeholder: z.string().max(200).optional().nullable(),
-      ajuda: z.string().max(500).optional().nullable(),
-      obrigatorio: z.boolean(),
-      opcoes: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
-      validacao: z
-        .object({
-          min: z.number().optional(),
-          max: z.number().optional(),
-          minLength: z.number().optional(),
-          maxLength: z.number().optional(),
-          regex: z.string().optional(),
-          mascara: z.string().optional(),
-        })
-        .default({}),
-      valor_padrao: z.string().nullable().optional(),
-      largura: z.enum(["full", "half", "third"]).default("full"),
-    }),
-  ),
-});
-
-export const salvarCampos = createServerFn({ method: "POST" })
+export const listarSubmissoes = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw) => fieldsPayloadSchema.parse(raw))
-  .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.formularios", "editar");
-    const { supabase } = context;
-    const { data: before } = await supabase.from("cms_form_fields").select("*").eq("form_id", data.form_id);
-    const { error: e1 } = await supabase.from("cms_form_fields").delete().eq("form_id", data.form_id);
-    if (e1) throw new Error(e1.message);
-    if (data.fields.length) {
-      const rows = data.fields.map((f) => ({
-        form_id: data.form_id,
-        ordem: f.ordem,
-        tipo: f.tipo,
-        nome: f.nome,
-        label: f.label,
-        placeholder: f.placeholder ?? null,
-        ajuda: f.ajuda ?? null,
-        obrigatorio: f.obrigatorio,
-        opcoes: f.opcoes,
-        validacao: f.validacao,
-        valor_padrao: f.valor_padrao ?? null,
-        largura: f.largura,
-      }));
-      const { error: e2 } = await supabase.from("cms_form_fields").insert(rows);
-      if (e2) throw new Error(e2.message);
-    }
-    await logCmsAudit(context, "cms_form_fields", "cms.formulario.campos.editar", data.form_id, before, data.fields);
-    return { ok: true };
-  });
-
-// ============================================================================
-// ADMIN — submissões
-// ============================================================================
-
-export const listarSubmissoes = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((raw) =>
-    z.object({ form_id: z.string().uuid().optional(), page: z.number().int().min(0).default(0), pageSize: z.number().int().min(1).max(100).default(50) }).parse(raw ?? {}),
-  )
-  .handler(async ({ data, context }) => {
-    const from = data.page * data.pageSize;
-    const to = from + data.pageSize - 1;
-    let q = context.supabase.from("form_submissions").select("*", { count: "exact" }).order("created_at", { ascending: false });
+  .inputValidator((d) => z.object({ form_id: z.string().uuid().optional(), limite: z.number().int().min(1).max(500).default(100) }).parse(d ?? {}))
+  .handler(async ({ context, data }) => {
+    let q = context.supabase
+      .from("form_submissions")
+      .select("id,form_id,form_slug,dados,created_at,utm_source,utm_medium,utm_campaign,utm_content,utm_term,gclid,fbclid,referrer,page_url,lead_id")
+      .order("created_at", { ascending: false })
+      .limit(data.limite);
     if (data.form_id) q = q.eq("form_id", data.form_id);
-    const { data: rows, count, error } = await q.range(from, to);
+    const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return { items: rows ?? [], total: count ?? 0 };
+    return rows ?? [];
   });
 
 // ============================================================================
-// PUBLIC — leitura de form publicado + submissão anônima
+// PÚBLICO — leitura do formulário e submissão no tenant resolvido por Host.
 // ============================================================================
 
 export const obterFormPublicoPorSlug = createServerFn({ method: "POST" })
-  .inputValidator((raw) => z.object({ slug: z.string().min(1) }).parse(raw))
+  .inputValidator((raw) => z.object({ slug: z.string().min(1) }).strict().parse(raw))
   .handler(async ({ data }) => {
-    const sb = publicClient();
-    const { data: form, error } = await sb
+    const tenant = await requirePublicTenantFromRequest();
+    const admin = adminClient();
+    const { data: form, error } = await admin
       .from("cms_forms")
       .select("id, tenant_id, nome, slug, descricao, config")
+      .eq("tenant_id", tenant.id)
       .eq("slug", data.slug)
       .eq("status", "published")
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!form) return null;
-    const { data: fields } = await sb
+    const { data: fields, error: e2 } = await admin
       .from("cms_form_fields")
       .select("id, ordem, tipo, nome, label, placeholder, ajuda, obrigatorio, opcoes, validacao, valor_padrao, largura")
+      .eq("tenant_id", tenant.id)
       .eq("form_id", form.id)
       .order("ordem", { ascending: true });
+    if (e2) throw new Error(e2.message);
     return { form, fields: fields ?? [] };
   });
 
 const submitSchema = z.object({
   form_slug: z.string().min(1),
-  dados: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()])),
-  consent_lgpd: z.literal(true, { errorMap: () => ({ message: "Aceite a Política de Privacidade." }) }),
-  // atribuição
-  utm_source: z.string().max(200).optional(),
-  utm_medium: z.string().max(200).optional(),
-  utm_campaign: z.string().max(200).optional(),
-  utm_term: z.string().max(200).optional(),
-  utm_content: z.string().max(200).optional(),
-  gclid: z.string().max(400).optional(),
-  fbclid: z.string().max(400).optional(),
-  referrer: z.string().max(500).optional(),
-  landing_url: z.string().max(500).optional(),
-  page_url: z.string().max(500).optional(),
-});
+  dados: z.record(z.string(), z.unknown()),
+  utm_source: z.string().optional(),
+  utm_medium: z.string().optional(),
+  utm_campaign: z.string().optional(),
+  utm_content: z.string().optional(),
+  utm_term: z.string().optional(),
+  gclid: z.string().optional(),
+  fbclid: z.string().optional(),
+  referrer: z.string().optional(),
+  page_url: z.string().optional(),
+}).strict();
 
-export const submeterFormulario = createServerFn({ method: "POST" })
+export const submeterFormPublico = createServerFn({ method: "POST" })
   .inputValidator((raw) => submitSchema.parse(raw))
   .handler(async ({ data }) => {
+    const tenant = await requirePublicTenantFromRequest();
     const admin = adminClient();
 
-    // 1) carrega form + campos (usa admin para validar mesmo se anônimo)
     const { data: form, error: eForm } = await admin
       .from("cms_forms")
       .select("id, tenant_id, nome, slug, status, config")
+      .eq("tenant_id", tenant.id)
       .eq("slug", data.form_slug)
       .eq("status", "published")
       .maybeSingle();
     if (eForm) throw new Error(eForm.message);
     if (!form) throw new Error("Formulário não encontrado ou não publicado.");
 
-    const { data: fields } = await admin
+    const { data: fields, error: fieldsError } = await admin
       .from("cms_form_fields")
       .select("nome, tipo, obrigatorio, validacao")
+      .eq("tenant_id", tenant.id)
       .eq("form_id", (form as { id: string }).id);
+    if (fieldsError) throw new Error(fieldsError.message);
 
-    // 2) valida obrigatoriedade e validações básicas
     for (const f of (fields ?? []) as Array<{ nome: string; tipo: string; obrigatorio: boolean; validacao: Record<string, unknown> }>) {
       const v = data.dados[f.nome];
       const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
@@ -291,7 +241,7 @@ export const submeterFormulario = createServerFn({ method: "POST" })
       }
     }
 
-    const tenant_id = (form as { tenant_id: string }).tenant_id;
+    const tenant_id = tenant.id;
     const form_id = (form as { id: string }).id;
     const config = ((form as { config: Record<string, unknown> }).config ?? {}) as {
       criar_lead?: boolean;
@@ -305,7 +255,6 @@ export const submeterFormulario = createServerFn({ method: "POST" })
       success_message?: string;
     };
 
-    // 3) opcionalmente cria Lead no CRM (usando mapeamento de campos)
     let lead_id: string | null = null;
     if (config.criar_lead) {
       const nome = (config.map_nome && (data.dados[config.map_nome] as string)) || (data.dados.nome as string) || "Sem nome";
@@ -339,7 +288,6 @@ export const submeterFormulario = createServerFn({ method: "POST" })
       if (!eLead) lead_id = newLeadId;
     }
 
-    // 4) grava submissão sempre (fonte da verdade dos dados brutos)
     const { error: eSub } = await admin.from("form_submissions").insert({
       tenant_id,
       form_id,
@@ -358,7 +306,6 @@ export const submeterFormulario = createServerFn({ method: "POST" })
     });
     if (eSub) throw new Error(eSub.message);
 
-    // 5) e-mails de notificação (não bloqueia)
     if (config.notify_emails && config.notify_emails.length) {
       try {
         const { enqueueTransactional } = await import("@/lib/email/notify.server");
@@ -385,7 +332,6 @@ export const submeterFormulario = createServerFn({ method: "POST" })
       }
     }
 
-    // 6) webhook externo (fire-and-forget)
     if (config.webhook_url) {
       try {
         void fetch(config.webhook_url, {
