@@ -55,24 +55,26 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
-    name: "public CMS page lookup uses Host tenant plus slug",
+    name: "public CMS page lookup uses Host tenant plus strict slug input",
     run: async () => {
       const source = read("src/lib/api/pages.functions.ts");
       const block = section(source, "export const obterPaginaPublica");
       assertTenantBoundQuery(block, "public CMS page");
       assert(!block.includes("tenant_id: z.string"), "public page accepts client tenant input");
+      assert(block.includes(".strict().parse(d)"), "public page does not reject unknown tenant fields");
       assert(!block.includes("publicClient"), "public page still uses a global anonymous client");
       assert(block.indexOf('.eq("tenant_id", tenant.id)') < block.indexOf('.eq("slug", data.slug)'), "tenant equality must precede slug lookup");
       assert(block.includes('.eq("status", "published")'), "public page does not enforce published status");
     },
   },
   {
-    name: "active public campaign listing is tenant-bound without client tenant input",
+    name: "active public campaign listing is tenant-bound with strict empty input",
     run: async () => {
       const source = read("src/lib/api/campaigns.functions.ts");
       const block = section(source, "export const listarCampanhasAtivas", "export const registrarEventoCampanha");
       assertTenantBoundQuery(block, "public campaign listing");
       assert(!block.includes("tenantId"), "campaign listing still accepts client tenant input");
+      assert(block.includes("z.object({}).strict()"), "campaign listing does not reject unknown tenant fields");
       assert(!block.includes("publicClient"), "campaign listing still derives transport from client input");
       assert(!block.includes("return []"), "campaign listing converts authority/query failure into empty success");
       assert(block.includes("throw new Error(error.message)"), "campaign listing does not fail closed on query error");
