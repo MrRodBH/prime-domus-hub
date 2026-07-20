@@ -25,14 +25,14 @@ may exceed two implementation prompts (principal + corrective).
 | 8 | LSR-02 | Planned / Ready for External Audit — Execution Envelope planning materialized · LSR-02 started: false · principal prompt consumed: false · corrective prompt consumed: false · REMAINING_IMPLEMENTATION_BUDGET = 2/2 · FILES_ALLOWED fully frozen (9 paths) · FUTURE_ADDENDUM_ALLOWED = false · envelope: `docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md` |
 | 9 | LSV-03 | Planned — Blocked by LSR-02 and by future formally approved replacement path · Execution Envelope required before implementation · no deliverables auto-transferred from LSV-02 or LSR-01 · no external Supabase target required or recommended · Same-Backend strategy NOT permanently unavailable (HG-14 not triggered) |
 | 10 | LSV-04 | Planned — Blocked by LSV-03 |
-| 10 | RDA-01 | Planned — Blocked by LSV-04 |
-| 11 | RC-01 | Planned — Blocked by RDA-01 |
-| 12 | PR-M2 | Planned — Blocked by RC-01 |
-| 13 | PR-M3 | Planned — Blocked by PR-M2 |
-| 14 | TH-M1 | Planned — Blocked by PR-M3 |
-| 15 | TH-M2 | Planned — Blocked by TH-M1 |
-| 16 | Homologação | Blocked by TH-M2 |
-| 17 | Produção | Blocked until homologation acceptance |
+| 11 | RDA-01 | Planned — Blocked by LSV-04 |
+| 12 | RC-01 | Planned — Blocked by RDA-01 |
+| 13 | PR-M2 | Planned — Blocked by RC-01 |
+| 14 | PR-M3 | Planned — Blocked by PR-M2 |
+| 15 | TH-M1 | Planned — Blocked by PR-M3 |
+| 16 | TH-M2 | Planned — Blocked by TH-M1 |
+| 17 | Homologação | Blocked by TH-M2 |
+| 18 | Produção | Blocked until homologation acceptance |
 
 Historical stages 1–4 preserved without reopening. LSV-01 legacy Lotes
 A / B / C are historical only; not executable next steps.
