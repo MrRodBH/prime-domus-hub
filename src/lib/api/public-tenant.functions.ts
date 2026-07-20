@@ -11,11 +11,6 @@ export const preflightPublicTenant = createServerFn({ method: "GET" }).handler(a
     return { required: false as const };
   }
 
-  const context = await requirePublicTenantContext();
-  return {
-    required: true as const,
-    tenant_id: context.tenant.id,
-    tenant_slug: context.tenant.slug,
-    authority: context.authority,
-  };
+  await requirePublicTenantContext();
+  return { required: true as const };
 });
