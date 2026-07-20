@@ -109,6 +109,14 @@ grants, policies, tenant resolution, impersonation, public writers.
 
 `false`
 
+## RLS_CHANGES_ALLOWED
+
+`false`
+
+## GRANTS_CHANGES_ALLOWED
+
+`false`
+
 Normative interpretation:
 
 - no runtime behavior change is authorized;
@@ -117,6 +125,8 @@ Normative interpretation:
 - only metadata or type-registration output produced natively by the
   generator is admissible;
 - no functional route may be added, removed or modified;
+- no RLS policy, grant, migration, or database object may be added,
+  altered, or removed;
 - any functional or structural route change causes fail-closed.
 
 ## TESTS_REQUIRED
