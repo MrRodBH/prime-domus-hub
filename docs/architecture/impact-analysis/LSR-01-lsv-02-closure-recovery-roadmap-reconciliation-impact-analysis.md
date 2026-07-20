@@ -123,20 +123,31 @@ Normative interpretation:
 Because LSR-01 is documentary and generator-configuration only, the future
 implementation must run:
 
-- Link verification across the four documentary files listed in
-  FILES_ALLOWED.
-- Duplicate-entry search across the finite roadmap map (one row per stage).
-- Conflicting current-state search across all four files.
-- Grep for the strings `rm-prime-lsv-nonprod`, `adxqbrfcqhnoierwhymj`,
-  `canonical fallback`, `permanently unavailable per HG-14`, and any
-  wording describing LSV-02 → LSV-03 deliverable transfer.
-- Confirmation that any historical remaining occurrences of the above are
-  clearly marked as `HISTORICAL — NOT CURRENT AUTHORITY`.
-- Two consecutive canonical generations of `src/routeTree.gen.ts` with
-  byte-equal diff between them.
-- Typecheck to confirm absence of incidental regressions.
-- Final `git diff` scoped to FILES_ALLOWED with an unrelated-route diff of
-  zero.
+- First canonical generation of `src/routeTree.gen.ts`
+  (`FIRST_GENERATION_SUCCESS = true`).
+- Second consecutive canonical generation of `src/routeTree.gen.ts`
+  (`SECOND_GENERATION_SUCCESS = true`).
+- Byte-by-byte comparison between the first and the second generation
+  with `SECOND_GENERATION_DIFF = 0`.
+- Typecheck (`TYPECHECK_PASSED = true`).
+- Build (`BUILD_PASSED = true`).
+- Documentary link verification across the four documentary files
+  listed in FILES_ALLOWED.
+- Duplicate-entry search across the finite roadmap map (one row per
+  stage; `DUPLICATE_ENTRIES = 0`).
+- Conflicting current-state search across all four documentary files
+  (`CONFLICTING_CURRENT_STATES = 0`).
+- Search for non-current references to the external Supabase project,
+  covering at minimum: `rm-prime-lsv-nonprod`, `adxqbrfcqhnoierwhymj`,
+  `canonical fallback`, `authorized non-production target`,
+  `permanently unavailable`, `permanently unavailable per HG-14`,
+  `transferred from LSV-02`, `deliverables transferred`,
+  `live identity`, `real-session`, `forged-header`, `addendum`,
+  `configuration file(s)`, `to be identified later`. Any surviving
+  occurrence must be clearly marked `HISTORICAL — NOT CURRENT
+  AUTHORITY`.
+- Final `git diff` scoped to FILES_ALLOWED with
+  `UNRELATED_ROUTE_DIFF = 0` (zero functional route changes).
 
 No route-tree generator execution occurs in this planning stage; it is
 required only in the future LSR-01 implementation.
