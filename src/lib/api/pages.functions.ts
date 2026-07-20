@@ -3,17 +3,9 @@
  * Admin: CRUD completo. Público: obter por slug (somente published).
  */
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-function publicClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 
 export type CmsBlock =
   | { id: string; type: "hero"; data: { eyebrow?: string; titulo: string; subtitulo?: string; imagem_url?: string; cta_label?: string; cta_href?: string; altura?: "sm" | "md" | "lg" } }
@@ -128,16 +120,21 @@ export const excluirPagina = createServerFn({ method: "POST" })
   });
 
 // ============================================================================
-// PÚBLICO — leitura por slug (respeita RLS anon: apenas published)
+// PÚBLICO — tenant resolvido por Host no servidor; slug é apenas identificador.
 // ============================================================================
 
 export const obterPaginaPublica = createServerFn({ method: "GET" })
-  .inputValidator((d) => z.object({ slug: z.string().min(1), tenant_id: z.string().uuid().optional() }).parse(d))
+  .inputValidator((d) => z.object({ slug: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
-    const supa = publicClient();
-    let q = supa.from("cms_pages").select("id, slug, titulo, descricao, seo, blocks, published_at, tenant_id").eq("slug", data.slug).eq("status", "published");
-    if (data.tenant_id) q = q.eq("tenant_id", data.tenant_id);
-    const { data: row, error } = await q.maybeSingle();
+    const tenant = await requirePublicTenantFromRequest();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("cms_pages")
+      .select("id, slug, titulo, descricao, seo, blocks, published_at, tenant_id")
+      .eq("tenant_id", tenant.id)
+      .eq("slug", data.slug)
+      .eq("status", "published")
+      .maybeSingle();
     if (error) throw new Error(error.message);
     return row;
   });
