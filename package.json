@@ -24,7 +24,8 @@
     "test:lsh-01": "bun run test:lsh-01:lot-a && bun run test:lsh-01:lot-b",
     "test:lsv-01:harness": "tsx --tsconfig tsconfig.json ./run-lsv-01-harness-specs.ts",
     "test:lsv-01:live": "tsx --tsconfig tsconfig.json ./run-lsv-01-live-specs.ts",
-    "test:lsv-01:lot-a": "tsx --tsconfig tsconfig.json ./run-lsv-01-lot-a.ts"
+    "test:lsv-01:lot-a": "tsx --tsconfig tsconfig.json ./run-lsv-01-lot-a.ts",
+    "test:ptc-01": "tsx --tsconfig tsconfig.json ./run-public-tenant-context-specs.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -100,7 +101,7 @@
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
-    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
