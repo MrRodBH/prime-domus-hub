@@ -241,7 +241,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.4 RRS-01 — Registration Runtime Stabilization Replacement
 
-- **STATE:** Planned — Blocked by FRP-01. `RRS01_STARTED = false`.
+- **STATE:** Planned — Blocked. `RRS01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** finite, deterministic replacement for the rejected
   Strategy B; single canonical source for the TanStack Start
   `Register` module augmentation.
@@ -285,7 +285,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.5 PTA-01 — Public Tenant Authority Hardening
 
-- **STATE:** Planned — Blocked by RRS-01. `PTA01_STARTED = false`.
+- **STATE:** Planned — Blocked. `PTA01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** enforce server-authoritative tenant resolution
   across every public writer/reader for `public.leads`,
   `public.form_submissions` and `public.cms_campaign_events`
@@ -343,7 +343,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.6 MOC-01 — Maintenance & Operational Control Boundary
 
-- **STATE:** Planned — Blocked by PTA-01. `MOC01_STARTED = false`.
+- **STATE:** Planned — Blocked. `MOC01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** deliver a coordinated maintenance and operational
   control boundary across frontend, public pages, server
   functions, Edge Functions, cron, queues, webhooks, triggers,
@@ -383,7 +383,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.7 RHV-01 — Replacement Homologation Verification
 
-- **STATE:** Planned — Blocked by MOC-01. `RHV01_STARTED = false`.
+- **STATE:** Planned — Blocked. `RHV01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** execute live identity, real-session, tenant
   context, impersonation and forged-header probes under the
   Same-Backend Homologation Cell, replacing the failed LSV-02
@@ -437,9 +437,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.8 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
 
-- **STATE:** Planned — Blocked by RHV-01 and by formal end-to-end
-  acceptance of the replacement path (RRS-01 → PTA-01 → MOC-01 →
-  RHV-01). `LSV03_STARTED = false`.
+- **STATE:** Planned — Blocked. `LSV03_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** preserve the historical objective of LSV-03
   without automatically absorbing the scope of LSV-02, LSR-01 or
   LSR-02.
