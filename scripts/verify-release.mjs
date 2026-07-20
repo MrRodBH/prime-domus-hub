@@ -89,6 +89,7 @@ if (cycleC !== cycleA) {
 
 run("Lead authorization unit specifications", "bun", ["run", "test:lsh-01:unit"]);
 run("Lead structural specifications", "bun", ["run", "test:lsh-01:structural"]);
+run("PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
 
 console.log(
   JSON.stringify(
@@ -100,6 +101,7 @@ console.log(
       tanstackRegisterAuthorityCount: 1,
       generatedRouteTreeManualEdit: false,
       cycleCompositeDigestStable: true,
+      publicTenantContextSpecsPassed: true,
       routeTreeSha256: cycleA,
     },
     null,
