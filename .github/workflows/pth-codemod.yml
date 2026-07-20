@@ -1,0 +1,38 @@
+name: PTH-01 One-Shot Tenant Codemod
+
+on:
+  push:
+    branches: [agent/pth-01-public-tenant]
+    paths:
+      - scripts/pth-apply.mjs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pth-01-codemod
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PTH branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/pth-01-public-tenant
+          fetch-depth: 0
+
+      - name: Apply deterministic fail-closed codemod
+        run: node scripts/pth-apply.mjs
+
+      - name: Commit generated implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --exit-code && { echo "Codemod produced no changes"; exit 1; } || true
+          git commit -m "PTH-01 apply public tenant authority boundary"
+          git push origin HEAD:agent/pth-01-public-tenant
