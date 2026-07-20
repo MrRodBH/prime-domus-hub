@@ -1,0 +1,215 @@
+{
+  "stage_id": "LSR-02",
+  "prompt_type": "principal",
+  "baseline_head": "516d5af2fee597f733ae480e2a9a77d32c1feac1",
+  "branch": "main",
+
+  "strategy_selected": "B",
+  "strategy_c_used": false,
+  "causal_version_incompatibility_proven": false,
+
+  "diagnostic_results": {
+    "actual_writers_of_route_tree_gen_ts": [
+      "vite build (server-tree generator, adds `declare module` footer)",
+      "vite dev (client-tree generator, strips footer on subsequent reprocessing)",
+      "vite build --mode development (does not add footer)"
+    ],
+    "root_cause": "The @tanstack/start-plugin-core route-tree-footer generator always appends the `declare module '@tanstack/react-start'` block during full server-tree generation, while the client-tree generator used by `vite dev` and `build:dev` rewrites the file without it. This produces oscillation between GENERATED_FOOTER_COUNT=0 and =1 depending on which process wrote last.",
+    "footer_toggle_available_via_config": false,
+    "resolution": "Strategy B — dedicated declaration file (src/tanstack-start-register.d.ts) as single canonical source. vite.config.ts adds a scoped `lsr02:strip-tanstack-start-register-footer` plugin (scope: tanstack_start_registration_only) that removes the auto-generated footer from src/routeTree.gen.ts on buildStart, writeBundle, closeBundle, and configureServer, ensuring GENERATED_FOOTER_COUNT=0 across every generation path."
+  },
+
+  "process_inventory": [
+    {
+      "pid": 448,
+      "ppid": 443,
+      "process_owner": "root",
+      "command_line": "node /dev-server/node_modules/.bin/vite dev --port 8080",
+      "created_by_current_harness": false,
+      "platform_managed": true,
+      "role": "preexisting Lovable sandbox dev server; watches src/ and triggers client-tree regeneration on route file changes"
+    },
+    {
+      "pid": 458,
+      "ppid": 448,
+      "process_owner": "root",
+      "command_line": "esbuild --service=0.27.7 --ping",
+      "created_by_current_harness": false,
+      "platform_managed": true,
+      "role": "esbuild worker owned by PID 448"
+    }
+  ],
+
+  "package_versions_declared": {
+    "@tanstack/react-start": "1.168.26",
+    "@tanstack/router-plugin": "^1.168.18",
+    "@lovable.dev/vite-tanstack-config": "2.7.6",
+    "vite": "^7.3.1",
+    "typescript": "^5.8.3"
+  },
+  "package_versions_resolved": {
+    "@tanstack/react-start": "1.168.26",
+    "@tanstack/router-plugin": "^1.168.18 (resolved via bun.lock)",
+    "@lovable.dev/vite-tanstack-config": "2.7.6",
+    "vite": "^7.3.1",
+    "typescript": "^5.8.3"
+  },
+  "package_json_unchanged": true,
+  "bun_lock_unchanged": true,
+
+  "register_source": {
+    "type": "dedicated_declaration_file",
+    "path": "src/tanstack-start-register.d.ts",
+    "included_by_tsconfig_glob": "src/**/*.ts (matches .d.ts)"
+  },
+
+  "diagnostic_table": [
+    {
+      "command_or_process": "initial state (pre-execution baseline)",
+      "generator_path": "n/a",
+      "register_present_before": false,
+      "register_present_after": false,
+      "file_sha256_before": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+      "file_sha256_after": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+      "process_owner": "n/a",
+      "expected_behavior": "no footer",
+      "observed_behavior": "no footer",
+      "actual_writer_process": "n/a"
+    },
+    {
+      "command_or_process": "bun run build (pre-plugin)",
+      "generator_path": "server-tree",
+      "register_present_before": false,
+      "register_present_after": true,
+      "file_sha256_before": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+      "file_sha256_after": "cce40b0d1a66716df8768468b86233e12ca896dcfb2c3e1954f912e45a1a828c",
+      "process_owner": "current-harness",
+      "expected_behavior": "no footer",
+      "observed_behavior": "footer added by @tanstack/start-plugin-core route-tree-footer",
+      "actual_writer_process": "bun run build (server-tree generator)"
+    },
+    {
+      "command_or_process": "bun run build (post-plugin, all cycles)",
+      "generator_path": "server-tree + LSR-02 strip plugin",
+      "register_present_before": false,
+      "register_present_after": false,
+      "file_sha256_before": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+      "file_sha256_after": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+      "process_owner": "current-harness",
+      "expected_behavior": "no footer",
+      "observed_behavior": "no footer (stripped by lsr02:strip-tanstack-start-register-footer)",
+      "actual_writer_process": "vite build → footer stripper plugin"
+    }
+  ],
+
+  "generated_footer_count_after_each_command": {
+    "initial": 0,
+    "A_initial": 0, "A_post_generation": 0, "A_post_typecheck": 0, "A_post_build_dev": 0, "A_post_build": 0, "A_post_dev_reprocess": 0,
+    "B_initial": 0, "B_post_generation": 0, "B_post_typecheck": 0, "B_post_build_dev": 0, "B_post_build": 0, "B_post_dev_reprocess": 0
+  },
+  "dedicated_declaration_count_after_each_command": {
+    "initial": 1,
+    "A_initial": 1, "A_post_generation": 1, "A_post_typecheck": 1, "A_post_build_dev": 1, "A_post_build": 1, "A_post_dev_reprocess": 1,
+    "B_initial": 1, "B_post_generation": 1, "B_post_typecheck": 1, "B_post_build_dev": 1, "B_post_build": 1, "B_post_dev_reprocess": 1
+  },
+  "total_register_source_count_after_each_command": {
+    "initial": 1,
+    "A_initial": 1, "A_post_generation": 1, "A_post_typecheck": 1, "A_post_build_dev": 1, "A_post_build": 1, "A_post_dev_reprocess": 1,
+    "B_initial": 1, "B_post_generation": 1, "B_post_typecheck": 1, "B_post_build_dev": 1, "B_post_build": 1, "B_post_dev_reprocess": 1
+  },
+  "duplicate_module_augmentation_after_each_command": {
+    "initial": false,
+    "A_initial": false, "A_post_generation": false, "A_post_typecheck": false, "A_post_build_dev": false, "A_post_build": false, "A_post_dev_reprocess": false,
+    "B_initial": false, "B_post_generation": false, "B_post_typecheck": false, "B_post_build_dev": false, "B_post_build": false, "B_post_dev_reprocess": false
+  },
+
+  "route_tree_sha256_after_each_command": {
+    "A_initial": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "A_post_generation": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "A_post_typecheck": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "A_post_build_dev": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "A_post_build": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "A_post_dev_reprocess": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "B_initial": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "B_post_generation": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "B_post_typecheck": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "B_post_build_dev": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "B_post_build": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f",
+    "B_post_dev_reprocess": "c34cde3ab338c54121fadcb9bf38682f464f07446680eb3e380f204b8f4a6e1f"
+  },
+  "register_source_sha256_after_each_command": {
+    "definition": "Strategy B: SHA-256 of full bytes of src/tanstack-start-register.d.ts",
+    "value_stable_across_all_commands": "856c0bd54b16876b3124a6d00d94d3048468f5ce3c3d0845ef2a57cc7b5e69bd"
+  },
+  "vite_config_sha256_after_each_command": {
+    "value_stable_across_all_commands": "a7e6138fbc6a88e548e60649daa9a01fe7a2d89342a5a066891df638faefe6ff",
+    "baseline_pre_change": "bbaf99aca461074821d30d8fb96cc3ed36066caa534f66134a0f8220c37b5a62"
+  },
+  "package_json_sha256_after_each_command": {
+    "value_stable_across_all_commands": "5cf10abf439586d3374a7a8debe59c8b872621dc697093e2b52dc7f2ce375b6a"
+  },
+  "bun_lock_sha256_after_each_command": {
+    "value_stable_across_all_commands": "2545737c1cb2a83021fdb34b9dafa592e866fff82ed5e56ecd5231967f12d068"
+  },
+
+  "cycle_a_results": {
+    "success": true,
+    "commands_executed": ["initial", "canonical generation (build:dev)", "typecheck (tsgo --noEmit)", "build:dev", "build", "controlled reprocess via preexisting vite dev PID 448 (touch src/routes/index.tsx)"],
+    "total_register_source_count_after_each_command": 1,
+    "duplicate_module_augmentation_after_each_command": false,
+    "final_state_digest": "b9896a4a7a9a9f18abaec8896d208f173da2e074074a8642e4948be835a3d66d"
+  },
+  "cycle_b_results": {
+    "success": true,
+    "commands_executed": ["initial", "canonical generation (build:dev)", "typecheck (tsgo --noEmit)", "build:dev", "build", "controlled reprocess via preexisting vite dev PID 448 (touch src/routes/index.tsx)"],
+    "total_register_source_count_after_each_command": 1,
+    "duplicate_module_augmentation_after_each_command": false,
+    "final_state_digest": "b9896a4a7a9a9f18abaec8896d208f173da2e074074a8642e4948be835a3d66d"
+  },
+  "cycle_a_final_state_digest": "b9896a4a7a9a9f18abaec8896d208f173da2e074074a8642e4948be835a3d66d",
+  "cycle_b_final_state_digest": "b9896a4a7a9a9f18abaec8896d208f173da2e074074a8642e4948be835a3d66d",
+  "full_sequence_diff": 0,
+
+  "declaration_included_by_typecheck": true,
+  "typecheck_inclusion_proof": "tsconfig.json include glob 'src/**/*.ts' matches src/tanstack-start-register.d.ts (the *.ts pattern subsumes *.d.ts). tsgo --noEmit exits 0 with the declaration present; type-only static assertions (_AssertRouter, _AssertConfig, _AssertSsr) would fail the typecheck if the augmentation shape drifted.",
+  "type_registration_static_assertion_passed": true,
+  "type_registration_stable": true,
+
+  "typecheck_passed": true,
+  "build_dev_passed": true,
+  "build_passed": true,
+  "functional_route_diff": 0,
+  "functional_route_diff_baseline": "516d5af2fee597f733ae480e2a9a77d32c1feac1",
+  "functional_route_diff_evidence": "git diff --name-only 516d5af2... -- src/routes/ returned zero entries. No route added, removed, renamed; no loader/component/middleware/URL change.",
+
+  "deterministic_state_obtained": true,
+
+  "files_changed": [
+    "vite.config.ts",
+    "src/tanstack-start-register.d.ts (new)",
+    "docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md",
+    "docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md",
+    "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json (new)"
+  ],
+  "files_outside_allowed": 0,
+  "package_json_changed": false,
+  "bun_lock_changed": false,
+  "route_tree_gen_manually_edited": false,
+
+  "vite_config_change_scope": "tanstack_start_registration_only",
+  "vite_config_change_description": "Added a scoped `lsr02:strip-tanstack-start-register-footer` Vite plugin that removes the auto-appended `declare module '@tanstack/react-start'` footer from src/routeTree.gen.ts on buildStart, writeBundle, closeBundle, and configureServer. Does not alter routes, URLs, loaders, middleware, SSR, server entry, deploy target, aliases, Tailwind, or unrelated plugins.",
+
+  "lsr_01_state": "Superseded",
+  "lsr_01_remaining_budget": "0/2",
+  "lsr_02_started": true,
+  "principal_prompt_consumed": true,
+  "corrective_prompt_consumed": false,
+  "remaining_implementation_budget": "1/2",
+  "lsv_03_state": "Planned — Blocked",
+
+  "duplicate_stage_entries": 0,
+  "conflicting_current_states": 0,
+  "evidence_artifact_valid": true,
+
+  "ready_for_external_audit": true
+}
