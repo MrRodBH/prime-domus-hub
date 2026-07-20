@@ -309,6 +309,49 @@
     "route_tree_gen_manually_edited": false
   },
 
-  "ready_for_final_external_audit": true
+  "ready_for_final_external_audit": false,
+
+  "final_external_audit": {
+    "decision": "Rejected",
+    "terminal": true,
+    "final_external_audit_accepted": false,
+    "principal_external_audit_accepted": false,
+    "new_implementation_prompt_authorized": false,
+    "budget_reopening_authorized": false,
+    "remaining_implementation_budget": "0/2",
+    "lsr_02_state": "Rejected",
+    "lsr_02_final_state": "Rejected",
+    "lsv_03_state": "Planned — Blocked",
+    "successor": "Formal replacement-path planning gate — not started",
+    "reconciliation_baseline_head": "900c57ec00af25ff84bba72a7c77faa2794b9e62",
+    "reconciliation_nature": "document_only",
+    "code_changes_in_this_reconciliation": false,
+    "build_or_tests_in_this_reconciliation": false,
+    "route_regeneration_in_this_reconciliation": false,
+    "blocking_findings": [
+      {
+        "id": "CONTROLLED_DEV_REQUIRED_NOT_EXECUTED",
+        "description": "Cycle B relied on canonical build:dev + build sequences driven from the current harness process instead of a separately controlled vite dev instance under harness authority; stability under an authorized harness-owned development process was not proven."
+      },
+      {
+        "id": "COMPILER_FILE_LIST_NOT_PROVEN",
+        "description": "Inclusion of src/tanstack-start-register.d.ts in the effective compiler file list was asserted but not evidenced by a persisted, independently verifiable compiler file-list artifact."
+      },
+      {
+        "id": "CYCLE_COMPOSITE_DIGEST_NOT_PROVEN",
+        "description": "The required deterministic ordered-manifest digest covering src/routeTree.gen.ts, the selected canonical source, vite.config.ts, package.json, and bun.lock was not independently computed and evidenced as the normative CYCLE_FINAL_STATE_DIGEST."
+      },
+      {
+        "id": "PARTIAL_FOOTER_FAIL_CLOSED_NOT_FULLY_IMPLEMENTED",
+        "description": "The stripper handles the known EOF-anchored footer and a loose augmentation-shaped tail, but does not fully cover every partial-footer permutation with a fail-closed proof."
+      },
+      {
+        "id": "CONFLICTING_CURRENT_STATES_PRESENT",
+        "description": "Prior planning and execution documents recorded coexisting 'not started', 'started', and 'ready for final audit' states; resolved by this reconciliation into the single terminal state Rejected."
+      }
+    ],
+    "historical_fields_note": "All execution outcome fields above this block (cycle_a_results, cycle_b_results, corrective_section, route_tree_sha256_after_each_command, stripper_safety_tests, etc.) are preserved as HISTORICAL and NON-AUTHORITATIVE observations of the rejected Strategy B implementation. They do not satisfy the LSR-02 Definition of Done and do not authorize any successor."
+  }
 }
+
 
