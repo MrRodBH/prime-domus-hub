@@ -1,15 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-function publicClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import {
+  publicSupabaseForTenant,
+  resolvePublicTenantFromRequest,
+} from "@/lib/tenant.server";
+import {
+  assertTenantScopedRows,
+  requireResolvedPublicTenant,
+} from "@/lib/public-tenant-read.server";
 
 // 1 ano em segundos (URLs assinadas longas para conteúdo público estático)
 const SIGN_TTL = 60 * 60 * 24 * 365;
@@ -28,7 +27,6 @@ export async function signedUrl(
   return data.signedUrl;
 }
 
-
 export interface SiteSettings {
   branding: {
     logo_path?: string | null;
@@ -39,13 +37,13 @@ export interface SiteSettings {
   };
   /** Novo: branding dinâmico (cores/fontes) aplicado em runtime via CSS vars. */
   branding_v2: {
-    color_primary?: string;      // hex/oklch
+    color_primary?: string;
     color_secondary?: string;
     color_accent?: string;
     color_button?: string;
     color_link?: string;
-    font_primary?: string;       // ex: "Inter"
-    font_secondary?: string;     // ex: "Cormorant Garamond"
+    font_primary?: string;
+    font_secondary?: string;
     logo_mobile_path?: string | null;
     logo_mobile_url?: string | null;
   };
@@ -160,7 +158,6 @@ export interface SiteSettings {
     meta_description?: string;
   };
 }
-
 
 const DEFAULT_SECOES: SiteSettings["home_secoes"] = {
   destaques_eyebrow: "Seleção Exclusiva",
@@ -304,13 +301,27 @@ export async function hydrateSiteSettings(
   return result;
 }
 
-export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
-  const supabase = publicClient();
-  const { data, error } = await supabase.from("site_settings").select("key, value");
-  if (error) throw new Error(error.message);
-  return hydrateSiteSettings(data ?? []);
-});
+type PublicSiteSettingRow = {
+  tenant_id: string;
+  key: string;
+  value: unknown;
+};
 
+export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async (): Promise<SiteSettings> => {
+  const tenant = requireResolvedPublicTenant(await resolvePublicTenantFromRequest());
+  const supabase = publicSupabaseForTenant(tenant.id);
+  const { data: rows, error } = await supabase
+    .from("site_settings")
+    .select("tenant_id, key, value")
+    .eq("tenant_id", tenant.id);
+  if (error) throw new Error(error.message);
+
+  const scopedRows = assertTenantScopedRows(
+    tenant.id,
+    rows as unknown as PublicSiteSettingRow[] | null,
+  );
+  return hydrateSiteSettings(scopedRows.map(({ key, value }) => ({ key, value })));
+});
 
 export const atualizarSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -332,7 +343,6 @@ export const atualizarSiteSettings = createServerFn({ method: "POST" })
         "pagina_contato",
         "pagina_anuncie",
       ]),
-
       value: z.record(z.string(), z.unknown()),
     }),
   )
