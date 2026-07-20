@@ -215,21 +215,28 @@ foi perdido em uma reescrita do arquivo, deixando o registro de tipos
 do TanStack Start ausente.
 
 A reconciliação factual final desta pendência é responsabilidade da
-etapa LSR-01 (não desta LSV-02). Sob o prompt principal da LSR-01,
-o arquivo foi restaurado exclusivamente pelo processo canônico
-(sem edição manual do arquivo gerado e sem alteração de configuração
-do gerador). Duas gerações canônicas consecutivas foram executadas e
-comparadas byte a byte; o rodapé de registro TanStack Start foi
-produzido nativamente pelo gerador oficial. Resultado factual
-registrado pela LSR-01:
+etapa LSR-01 (não desta LSV-02). O resultado efetivamente comprovado foi:
 
-- `ROUTE_TREE_REGISTER_RESTORED = true`
-- `RESTORATION_METHOD = canonical generator`
-- `FIRST_GENERATION_SUCCESS = true`
-- `SECOND_GENERATION_SUCCESS = true`
-- `SECOND_GENERATION_DIFF = 0`
-- `CANONICAL_GENERATOR_CONFIGURATION_RESOLVED = true`
-- `UNRELATED_ROUTE_DIFF = 0`
+LSR-01 principal attempt:
+
+- `register temporarily generated: true`
+- `register persisted in final principal HEAD: false`
+- `principal evidence claim corrected: true`
+
+LSR-01 final corrective:
+
+- `ROUTE_TREE_REGISTER_RESTORED = false`
+- `ROUTE_TREE_COMMIT_SHA = not produced`
+- `ROUTE_TREE_REGISTER_PRESENT_IN_CURRENT_HEAD = false` (na última
+  verificação anterior à escrita desta evidência)
+- `FULL_SEQUENCE_DIFF = not established`
+- `CORRECTIVE_ROUTE_TREE_PERSISTENCE_PASSED = false`
+
+Na correção final, a geração canônica produziu o registro, mas a etapa
+seguinte de typecheck foi acompanhada por nova reescrita do arquivo pelo
+gerador do servidor Vite já ativo, removendo o rodapé. A execução falhou
+fechado nesse ponto: não houve inserção manual, mudança de configuração,
+execução do Ciclo B nem declaração de restauração persistente.
 
 Evidência primária consolidada em
 `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`.
