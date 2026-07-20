@@ -1,11 +1,13 @@
 # LSR-01 — LSV-02 Closure Recovery & Roadmap Reconciliation
 
 **Type:** Execution Envelope Planning
-**Status:** Corrective Failed Closed
+**Status:** Superseded (terminal · replaced by LSR-02)
 **LSR-01 started:** true
 **Principal prompt consumed:** true
 **Corrective prompt consumed:** true
 **Remaining implementation budget:** 0/2
+**Final external audit decision:** Superseded
+**Replacement stage:** LSR-02
 
 **Authority:** derived from `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
 and the Finite Roadmap Execution Map
