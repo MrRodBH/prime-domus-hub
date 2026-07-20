@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { isPublicTenantResolutionError } from "../lib/public-tenant-read.server";
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
 import { CmsPreviewOverlay } from "../components/site/CmsPreviewOverlay";
 import { CampaignRenderer } from "../components/site/CampaignRenderer";
@@ -93,15 +94,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       brandingV2 = settings.branding_v2 ?? {};
       seoGlobal = settings.seo_global ?? {};
       siteName = settings.branding.site_name || siteName;
-    } catch {
-      // ignore
+    } catch (error) {
+      if (isPublicTenantResolutionError(error)) throw error;
     }
     try {
       const { obterMetaPixelId } = await import("../lib/api/meta.functions");
       const r = await obterMetaPixelId();
       metaPixelId = r.pixel_id;
     } catch {
-      // ignore
+      // ignore non-tenant metadata failures
     }
     return { faviconUrl, metaPixelId, brandingV2, seoGlobal, siteName };
   },
@@ -226,7 +227,6 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
-
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
