@@ -157,14 +157,19 @@ binding; details still undefined are recorded explicitly as
 
 - **OBJECTIVE:** operationally prove Lead authorization, RLS, grants,
   cross-tenant isolation and impersonation matrices under real JWTs.
-- **PREDECESSOR:** LSV-02 — Accepted.
+- **PREDECESSOR:** LSV-02 — Superseded (terminal).
 - **DELIVERABLES:** full Lead operation matrix under real sessions;
   RLS matrix per identity; grants matrix; cross-tenant probes;
-  canonical 7-scenario impersonation matrix; live evidence artifact.
+  canonical 7-scenario impersonation matrix; live evidence artifact;
+  live identity, real-session, Tenant Context, impersonation and
+  forged-header proofs transferred from the superseded LSV-02
+  Execution Envelope.
 - **MINIMUM_EVIDENCE:** Execution Envelope required before
   implementation.
-- **EXTERNAL_DEPENDENCIES:** same authorized non-production target as
-  LSV-02.
+- **EXTERNAL_DEPENDENCIES:** authorized non-production Supabase
+  target (the external non-production project `rm-prime-lsv-nonprod`
+  remains preserved as the canonical fallback; Same-Backend
+  Homologation Cell strategy is permanently unavailable per HG-14).
 - **OUT_OF_SCOPE:** atomicity; rollback; concurrency; migrations; RLS
   or grant changes; LSH-01 runtime edits.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
