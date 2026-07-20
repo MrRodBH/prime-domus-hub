@@ -32,7 +32,7 @@ may exceed two implementation prompts (principal + corrective).
 | 15 | LSV-04 | Planned — Blocked by LSV-03 |
 | 16 | RDA-01 | Planned — Blocked by LSV-04 |
 | 17 | RC-01 | Planned — Blocked by RDA-01 |
-| 18 | PR-M2 | Planned — Blocked by RC-01 |
+| 18 | PR-M2 | Planned — Blocked by RC-01 · scope reconciled to `White Label, CMS, Domains & Onboarding` (Public Tenant Authority owned exclusively by PTA-01) |
 | 19 | PR-M3 | Planned — Blocked by PR-M2 |
 | 20 | TH-M1 | Planned — Blocked by PR-M3 |
 | 21 | TH-M2 | Planned — Blocked by TH-M1 |
@@ -282,8 +282,10 @@ binding; details still undefined are recorded explicitly as
 - **STATE:** Planned — Blocked by RRS-01. `PTA01_STARTED = false`.
 - **OBJECTIVE:** enforce server-authoritative tenant resolution
   across every public writer/reader for `public.leads`,
-  `public.form_submissions` and `public.cms_campaign_public_events`
-  (canonical name).
+  `public.form_submissions` and `public.cms_campaign_events`
+  (factual canonical object per FRP-01 final corrective —
+  `public.cms_campaign_public_events` is
+  `UNVERIFIED_OR_STALE_REFERENCE`).
 - **PREDECESSOR:** RRS-01 accepted.
 - **DELIVERABLES (preliminary):** canonical server-side tenant
   origin per public writer; RLS/grants/policies review and
@@ -293,18 +295,22 @@ binding; details still undefined are recorded explicitly as
 - **AREAS AFFECTED (preliminary):**
   `src/routes/api/public/portal-leads.ts`,
   `src/routes/api/public/feeds.$portal.$token.ts`,
-  `src/routes/api/public/bootstrap-admin.ts`,
-  `src/routes/api/public/hooks/`,
   `src/lib/api/forms.functions.ts`,
   `src/lib/api/campaigns.functions.ts`,
   `src/lib/api/leads-crm.functions.ts`,
   `src/lib/api/portals.functions.ts`,
   RLS/grants/policies for the three public tables,
   `src/lib/tenant.server.ts`.
+  `src/routes/api/public/bootstrap-admin.ts` and
+  `src/routes/api/public/hooks/**` are explicitly OUT of PTA-01
+  implementation scope (bootstrap-admin classified as
+  `PUBLIC_PRIVILEGED_AUTH_BOOTSTRAP_SURFACE`; hooks classified as
+  operational webhooks maintenance-gated by MOC-01).
 - **EXPRESSLY FORBIDDEN:** client / header / path tenant authority;
   default tenant; ORDER BY / LIMIT 1 / heuristic tenant
   selection; Storage authority delegated to client; cron / queue
-  changes.
+  changes; silent absorption of `bootstrap-admin.ts`.
+
 - **MIGRATIONS POTENTIALLY NEEDED:** RLS policies, grants,
   server-side helper functions for the three public tables.
 - **RLS / GRANTS / POLICIES IMPACT:** likely revision required;
@@ -487,10 +493,17 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** PR-M2.
 
-### 2.12 PR-M2 — Public Tenant Authority, White Label, CMS, Domains & Onboarding
+### 2.12 PR-M2 — White Label, CMS, Domains & Onboarding
 
 - **STATE:** Planned — Blocked by RC-01.
 - Execution Envelope required before implementation.
+- **AUTHORITY:** White Label, CMS, Domains & Onboarding.
+  `PUBLIC_TENANT_AUTHORITY_SCOPE = completed_exclusively_by_PTA_01`.
+  `PR_M2_MUST_NOT_REOPEN_PTA_01 = true`. PR-M2 may validate
+  functional integration with the accepted PTA-01 boundary but
+  MUST NOT redefine tenant authority, reopen RLS/grants/policies
+  established by PTA-01, reimplement public writers, or introduce
+  alternative paths, fallbacks or heuristics.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
