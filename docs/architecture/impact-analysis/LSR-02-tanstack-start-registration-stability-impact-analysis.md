@@ -1,12 +1,17 @@
 # LSR-02 — TanStack Start Registration Stability & LSR-01 Terminal Reconciliation
 
-**Type:** Execution Envelope Planning + Principal Implementation + Final Corrective Executed
-**Status:** Ready for Final External Audit (Strategy B — hardened)
+**Type:** Execution Envelope Planning + Principal Implementation + Final Corrective Executed + Terminal Rejection Factual Reconciliation
+**Status:** Rejected — Terminal (final external audit decision)
 **LSR-02 started:** true
 **Principal prompt consumed:** true
 **Corrective prompt consumed:** true
 **Remaining implementation budget:** 0/2
 **Principal external audit accepted:** false
+**Final external audit accepted:** false
+**Ready for final external audit:** false
+**New implementation prompt authorized:** false
+**Budget reopening authorized:** false
+**Nature of this reconciliation:** documentary — no code, no build, no tests, no route regeneration, no runtime change.
 
 **Authority:** derived from
 `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md` and the
@@ -16,11 +21,83 @@ Finite Roadmap Execution Map
 **Baseline HEAD (planning):** `6bbef37d55378edaa37b4e1c1ed973a81334157c`
 **Reconciliation Baseline HEAD:** `e0251331bb701206fcf4ee11f29e3d93e442ac38`
 **Corrective Baseline HEAD:** `c1cb38655d075e2e3fe390a61ce4db6097bef1f3`
+**Terminal Reconciliation Baseline HEAD:** `900c57ec00af25ff84bba72a7c77faa2794b9e62`
 **Branch:** `main`
 
 ---
 
-## FINAL CORRECTIVE SUMMARY (LSR-02 §5–§13)
+## FINAL EXTERNAL AUDIT DECISION — TERMINAL REJECTION
+
+The final external audit rejected LSR-02. This section is authoritative
+and supersedes any earlier claim in this document of "Ready for Final
+External Audit", "audit-accepted", or equivalent phrasing. All earlier
+sections below are preserved unchanged as historical technical record
+of the rejected implementation; they must be read as HISTORICAL and
+NON-AUTHORITATIVE.
+
+- `LSR_02_STATE = Rejected`
+- `LSR_02_FINAL_STATE = Rejected`
+- `LSR_02_TERMINAL = true`
+- `FINAL_EXTERNAL_AUDIT_ACCEPTED = false`
+- `PRINCIPAL_EXTERNAL_AUDIT_ACCEPTED = false`
+- `READY_FOR_FINAL_EXTERNAL_AUDIT = false`
+- `NEW_IMPLEMENTATION_PROMPT_AUTHORIZED = false`
+- `BUDGET_REOPENING_AUTHORIZED = false`
+- `REMAINING_IMPLEMENTATION_BUDGET = 0/2`
+- `LSV_03_STATE = Planned — Blocked` (unchanged)
+
+### Blocking findings (preserved, non-authoritative for any successor)
+
+1. **`CONTROLLED_DEV_REQUIRED_NOT_EXECUTED`** — Cycle B relied on
+   canonical `build:dev` + `build` sequences driven from the current
+   harness process instead of a separately controlled `vite dev`
+   instance under harness authority. Stability under an authorized,
+   harness-owned development process was therefore not proven.
+2. **`COMPILER_FILE_LIST_NOT_PROVEN`** — inclusion of
+   `src/tanstack-start-register.d.ts` in the effective compiler file
+   list was asserted but not evidenced by a persisted, independently
+   verifiable compiler file-list artifact.
+3. **`CYCLE_COMPOSITE_DIGEST_NOT_PROVEN`** — the required
+   deterministic ordered-manifest digest covering
+   `src/routeTree.gen.ts`, the selected canonical source,
+   `vite.config.ts`, `package.json`, and `bun.lock` was not
+   independently computed and evidenced as the normative
+   `CYCLE_FINAL_STATE_DIGEST`.
+4. **`PARTIAL_FOOTER_FAIL_CLOSED_NOT_FULLY_IMPLEMENTED`** — the
+   stripper handles the known EOF-anchored footer and a loose
+   augmentation-shaped tail, but does not fully cover every
+   partial-footer permutation with a fail-closed proof.
+5. **`CONFLICTING_CURRENT_STATES_PRESENT`** — prior planning and
+   execution documents recorded coexisting "not started", "started",
+   and "ready for final audit" states. This reconciliation resolves
+   the conflict into the single terminal state `Rejected`.
+
+### Treatment of the rejected Strategy B artifacts
+
+The Strategy B implementation — `src/tanstack-start-register.d.ts`,
+the `lsr02:strip-tanstack-start-register-footer` Vite plugin in
+`vite.config.ts`, and the bidirectional `_Lsr02Equal` / `_Lsr02Assert`
+type-only static assertions — is retained in the repository as
+rejected technical history. It is NOT an accepted deliverable, does
+NOT satisfy the LSR-02 Definition of Done, and does NOT authorize any
+downstream stage. Any real-execution outcome fields recorded elsewhere
+in this document (Cycle A / Cycle B digests, TOTAL_REGISTER_SOURCE_COUNT,
+route-tree SHA-256, FUNCTIONAL_ROUTE_DIFF, stripper safety tests) are
+historical observations, not audit-accepted results.
+
+### Successor
+
+Formal replacement-path planning gate — **not started**. LSR-02
+rejection does NOT auto-start LSV-03 and does NOT auto-transfer any
+deliverable from LSR-01, LSV-02, or the rejected LSR-02
+implementation. LSV-03 remains `Planned — Blocked`.
+
+---
+
+## FINAL CORRECTIVE SUMMARY (LSR-02 §5–§13) — HISTORICAL, NON-AUTHORITATIVE
+
+The section below is preserved for audit traceability. It describes
+the rejected implementation and does NOT reflect the terminal state.
 
 - **STRATEGY_SELECTED:** B (dedicated_declaration_file); STRATEGY_C_USED = false.
 - **Static assertions:** relocated from `src/tanstack-start-register.d.ts` (where `tsgo` does not enforce type-alias constraint violations in `.d.ts` files) into `vite.config.ts` as type-only `_Lsr02Assert<_Lsr02Equal<...>>` triples. Negative mutation of `Register["ssr"]` or `Register["router"]` produces real `TS2344` errors; positive typecheck passes clean.
@@ -36,6 +113,7 @@ Files changed (within `FILES_ALLOWED`): `vite.config.ts`, `src/tanstack-start-re
 LSV-03 remains `Planned — Blocked`.
 
 ---
+
 
 
 This document freezes the Execution Envelope for the future LSR-02
