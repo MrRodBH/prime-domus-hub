@@ -23,7 +23,7 @@ may exceed two implementation prompts (principal + corrective).
 | 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · findings preserved as mandatory inputs for future formal replanning only — NOT transferred to any successor · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
 | 7 | LSR-01 | Superseded (terminal · principal prompt consumed · corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · principal result: failed persistence verification · corrective result: failed closed · reason: stage could not stabilize TanStack Start registration within its frozen scope · successor: LSR-02 · envelope: `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`) |
 | 8 | LSR-02 | Rejected — terminal · principal prompt consumed · final corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · final external audit accepted = false · Strategy B implementation retained as rejected technical history · no additional implementation prompt authorized · blocking findings preserved (controlled_dev_required_not_executed, compiler_file_list_not_proven, cycle_composite_digest_not_proven, partial_footer_fail_closed_not_fully_implemented, conflicting_current_states_present_before_reconciliation) · successor: FRP-01 · envelope: `docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json` |
-| 9 | FRP-01 | Ready for External Audit · principal prompt consumed · corrective prompt NOT consumed · REMAINING_IMPLEMENTATION_BUDGET = 1/2 · planning-only · zero code / migrations / RLS / grants / policies / Auth / Storage / cron changes · `FRP01_IMPLEMENTATION_CHANGES = false` · envelope: `docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md` |
+| 9 | FRP-01 | Ready for Final External Audit · principal prompt consumed · final corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · planning-only · zero code / migrations / RLS / grants / policies / Auth / Storage / cron changes · `FRP01_IMPLEMENTATION_CHANGES = false` · final corrective reconciles campaign-events schema identity (`public.cms_campaign_events` factual; `public.cms_campaign_public_events` UNVERIFIED_OR_STALE_REFERENCE), public-surface authority matrix (bootstrap-admin classified `PUBLIC_PRIVILEGED_AUTH_BOOTSTRAP_SURFACE` outside PTA-01 implementation scope), PTA-01 × PR-M2 scope separation, and operational inventory (extensions, queues, RPC wrappers, cron `process-email-queue`, `net.http_post`, duplicate `email_infra` migration finding) · envelope: `docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md` |
 | 10 | RRS-01 | Planned — Blocked by FRP-01 · Execution Envelope required before implementation · `RRS01_STARTED = false` |
 | 11 | PTA-01 | Planned — Blocked by RRS-01 · Execution Envelope required before implementation · `PTA01_STARTED = false` |
 | 12 | MOC-01 | Planned — Blocked by PTA-01 · Execution Envelope required before implementation · `MOC01_STARTED = false` |
@@ -32,7 +32,7 @@ may exceed two implementation prompts (principal + corrective).
 | 15 | LSV-04 | Planned — Blocked by LSV-03 |
 | 16 | RDA-01 | Planned — Blocked by LSV-04 |
 | 17 | RC-01 | Planned — Blocked by RDA-01 |
-| 18 | PR-M2 | Planned — Blocked by RC-01 |
+| 18 | PR-M2 | Planned — Blocked by RC-01 · scope reconciled to `White Label, CMS, Domains & Onboarding` (Public Tenant Authority owned exclusively by PTA-01) |
 | 19 | PR-M3 | Planned — Blocked by PR-M2 |
 | 20 | TH-M1 | Planned — Blocked by PR-M3 |
 | 21 | TH-M2 | Planned — Blocked by TH-M1 |
@@ -282,8 +282,10 @@ binding; details still undefined are recorded explicitly as
 - **STATE:** Planned — Blocked by RRS-01. `PTA01_STARTED = false`.
 - **OBJECTIVE:** enforce server-authoritative tenant resolution
   across every public writer/reader for `public.leads`,
-  `public.form_submissions` and `public.cms_campaign_public_events`
-  (canonical name).
+  `public.form_submissions` and `public.cms_campaign_events`
+  (factual canonical object per FRP-01 final corrective —
+  `public.cms_campaign_public_events` is
+  `UNVERIFIED_OR_STALE_REFERENCE`).
 - **PREDECESSOR:** RRS-01 accepted.
 - **DELIVERABLES (preliminary):** canonical server-side tenant
   origin per public writer; RLS/grants/policies review and
@@ -293,18 +295,22 @@ binding; details still undefined are recorded explicitly as
 - **AREAS AFFECTED (preliminary):**
   `src/routes/api/public/portal-leads.ts`,
   `src/routes/api/public/feeds.$portal.$token.ts`,
-  `src/routes/api/public/bootstrap-admin.ts`,
-  `src/routes/api/public/hooks/`,
   `src/lib/api/forms.functions.ts`,
   `src/lib/api/campaigns.functions.ts`,
   `src/lib/api/leads-crm.functions.ts`,
   `src/lib/api/portals.functions.ts`,
   RLS/grants/policies for the three public tables,
   `src/lib/tenant.server.ts`.
+  `src/routes/api/public/bootstrap-admin.ts` and
+  `src/routes/api/public/hooks/**` are explicitly OUT of PTA-01
+  implementation scope (bootstrap-admin classified as
+  `PUBLIC_PRIVILEGED_AUTH_BOOTSTRAP_SURFACE`; hooks classified as
+  operational webhooks maintenance-gated by MOC-01).
 - **EXPRESSLY FORBIDDEN:** client / header / path tenant authority;
   default tenant; ORDER BY / LIMIT 1 / heuristic tenant
   selection; Storage authority delegated to client; cron / queue
-  changes.
+  changes; silent absorption of `bootstrap-admin.ts`.
+
 - **MIGRATIONS POTENTIALLY NEEDED:** RLS policies, grants,
   server-side helper functions for the three public tables.
 - **RLS / GRANTS / POLICIES IMPACT:** likely revision required;
@@ -487,10 +493,17 @@ binding; details still undefined are recorded explicitly as
   Blocked External.
 - **SUCCESSOR:** PR-M2.
 
-### 2.12 PR-M2 — Public Tenant Authority, White Label, CMS, Domains & Onboarding
+### 2.12 PR-M2 — White Label, CMS, Domains & Onboarding
 
 - **STATE:** Planned — Blocked by RC-01.
 - Execution Envelope required before implementation.
+- **AUTHORITY:** White Label, CMS, Domains & Onboarding.
+  `PUBLIC_TENANT_AUTHORITY_SCOPE = completed_exclusively_by_PTA_01`.
+  `PR_M2_MUST_NOT_REOPEN_PTA_01 = true`. PR-M2 may validate
+  functional integration with the accepted PTA-01 boundary but
+  MUST NOT redefine tenant authority, reopen RLS/grants/policies
+  established by PTA-01, reimplement public writers, or introduce
+  alternative paths, fallbacks or heuristics.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
