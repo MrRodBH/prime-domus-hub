@@ -43,7 +43,10 @@ export function normalizePublicHostname(value: string | null | undefined): strin
     throw new PublicTenantResolutionError("invalid_host", "Public request host is invalid.");
   }
 
-  const normalized = hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  const normalized = hostname
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "")
+    .replace(/^www\./, "");
   if (!normalized || normalized.includes("/") || normalized.includes("\\")) {
     throw new PublicTenantResolutionError("invalid_host", "Public request host is invalid.");
   }
@@ -54,21 +57,21 @@ export function isLocalDevelopmentHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
-const NON_PUBLIC_SITE_PREFIXES = [
+const NON_PUBLIC_SITE_ROOTS = [
   "/admin",
   "/super",
   "/auth",
   "/reset-password",
   "/unsubscribe",
-  "/email/",
-  "/lovable/",
-  "/api/",
+  "/email",
+  "/lovable",
+  "/api",
 ];
 
 export function requiresPublicTenantPreflight(pathname: string): boolean {
   const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  return !NON_PUBLIC_SITE_PREFIXES.some(
-    (prefix) => normalized === prefix || normalized.startsWith(prefix),
+  return !NON_PUBLIC_SITE_ROOTS.some(
+    (root) => normalized === root || normalized.startsWith(`${root}/`),
   );
 }
 
