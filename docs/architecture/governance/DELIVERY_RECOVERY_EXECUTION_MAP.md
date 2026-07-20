@@ -5,7 +5,7 @@
 **Accepted — binding map for the post-FRP delivery recovery path**
 
 **Authority:** explicit product-owner delivery reset + DRA-01 direct GitHub audit  
-**Current audited runtime HEAD:** `a462c7f4632d917dd76e2ab3e071fd8d11399a4e`
+**Current audited runtime HEAD:** `9c93b9c8b7b095e2a07e424ed895f529d5e4b4fc`
 
 ---
 
@@ -21,7 +21,8 @@ It does not reopen, rename, retry or inherit implementation authority from:
 - LSR-02;
 - FRP-01;
 - rejected FRP-01 successor boundaries;
-- PTH-01 after its terminal rejection.
+- PTH-01 after its terminal rejection;
+- PTR-01 after its terminal rejection.
 
 `FINITE_ROADMAP_EXECUTION_MAP.md` remains the historical authority for prior terminal stages. For the recovery path beginning at DRA-01, this document is the binding execution map and supersedes stale remaining-stage sequences elsewhere.
 
@@ -35,12 +36,14 @@ It does not reopen, rename, retry or inherit implementation authority from:
 | 2 | GNR-01 — GitHub-Native Release Gate | Accepted | GitHub-native | principal PR consumed; corrective PR not consumed |
 | 3 | PTH-01 — Public Tenant Authority Hardening | Rejected — terminal | GitHub-native broad codemod path | principal consumed; corrective consumed; remaining 0/2 |
 | 4 | PTC-01 — Public Tenant Context Foundation | Accepted | GitHub-native direct file edits | principal PR consumed; corrective PR not consumed |
-| 5 | PTR-01 — Public Tenant Read Binding | Authorized next | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
-| 6 | PTW-01 — Public Tenant Writer Authority | Planned — Blocked by PTR-01 | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
-| 7 | PSG-01 — Public Surface Security Gate | Planned — Blocked by PTW-01 | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
-| 8 | HVP-01 — Homologation Validation Preflight | Planned — Blocked by PSG-01 | GitHub-native runbook + authorized operator | evidence gate; no feature implementation |
-| 9 | VSP-01 — Optional Visual Stabilization Package | Optional — Not authorized | Lovable only when HVP-01 records blocking visual defects | global max 1 principal + 1 corrective |
-| 10 | Controlled Homologation | Blocked by HVP-01 and, only when triggered, VSP-01 | operator/product team | not an implementation prompt |
+| 5 | PTR-01 — Public Tenant Read Binding | Rejected — terminal | GitHub-native direct file edits | principal consumed; corrective consumed; remaining 0/2 |
+| 6 | PSC-01 — Public Settings & Campaign Read Binding | Authorized next | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
+| 7 | PPR-01 — Public Page Serializable Read Binding | Planned — Blocked by PSC-01 | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
+| 8 | PTW-01 — Public Tenant Writer Authority | Planned — Blocked by PPR-01 | GitHub-native direct file edits | 1 principal PR + max 1 consolidated corrective PR |
+| 9 | PSG-01 — Public Surface Security Gate | Planned — Blocked by PTW-01 | GitHub-native | 1 principal PR + max 1 consolidated corrective PR |
+| 10 | HVP-01 — Homologation Validation Preflight | Planned — Blocked by PSG-01 | GitHub-native runbook + authorized operator | evidence gate; no feature implementation |
+| 11 | VSP-01 — Optional Visual Stabilization Package | Optional — Not authorized | Lovable only when HVP-01 records blocking visual defects | global max 1 principal + 1 corrective |
+| 12 | Controlled Homologation | Blocked by HVP-01 and, only when triggered, VSP-01 | operator/product team | not an implementation prompt |
 
 ---
 
@@ -138,36 +141,95 @@ PTC01_REMAINING_CORRECTIVE_BUDGET = 1
 
 Evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptc-01-public-tenant-context-acceptance.md`.
 
+### PTR-01
+
+Final state: `Rejected — terminal`.
+
+```text
+PTR01_PRINCIPAL_CONSUMED = true
+PTR01_CORRECTIVE_CONSUMED = true
+PTR01_REMAINING_IMPLEMENTATION_BUDGET = 0/2
+PTR01_ADDITIONAL_ATTEMPT_AUTHORIZED = false
+PTR01_CODE_MERGED_TO_MAIN = false
+PTR01_FINAL_EXTERNAL_AUDIT_ACCEPTED = false
+```
+
+Factual result:
+
+- principal PR `#21` tested head `6f57c87a14ce3b35cac8713b46f281f8a736aef5` and failed Release Gate run `29786244606`, job `88498300379`;
+- final corrective head `2d66ffb731ca7a6faa57d9ccca3abb25b9130cc2` persisted complete logs and failed Release Gate run `29786580653`, job `88499305470`;
+- artifact `8478684816`, digest `sha256:fba80df57e7a5e2e650b41390a40e235b689e8bc975a949115b23d2924be75f0`, preserved the complete corrective output;
+- development build succeeded and TanStack Register authority count remained one;
+- typecheck failed because the public page DTO used `blocks: unknown`, which violated the TanStack server-function serializability contract;
+- route `p.$slug.tsx` consequently inferred an empty object and could not access `blocks`;
+- PR `#21` was closed unmerged;
+- `main` received no PTR-01 application, workflow, dependency, schema, migration, RLS, grant, Auth or Storage change.
+
+The all-readers scope mixed collection readers with a page DTO serialization contract. Continuation is permitted only through explicit decomposition into independent outcomes. No PTR-01 artifact is automatically transferred or accepted.
+
+Evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptr-01-terminal-rejection.md`.
+
 ---
 
-## 4. Reduced public-tenant recovery sequence
+## 4. Reduced public-read recovery sequence
 
-### PTR-01 — Public Tenant Read Binding
+### PSC-01 — Public Settings & Campaign Read Binding
 
-**Objective:** bind public read surfaces to the accepted server-derived tenant context.
+**Objective:** bind public `site_settings` and active-campaign collection reads to the accepted server-derived tenant context, without changing pages or writers.
 
 Required acceptance evidence:
 
 ```text
 PUBLIC_SETTINGS_TENANT_BOUND = true
-PUBLIC_PAGE_TENANT_BOUND = true
 PUBLIC_CAMPAIGN_READ_TENANT_BOUND = true
-OPTIONAL_CLIENT_TENANT_INPUT_ON_PUBLIC_READS = false
-GLOBAL_SLUG_AMBIGUITY_FAILS_CLOSED = true
-UNKNOWN_HOST_PUBLIC_READ_DENIAL = true
-CROSS_TENANT_PUBLIC_READ_TESTS_PASSED = true
+OPTIONAL_CLIENT_TENANT_INPUT_ON_CAMPAIGN_READ = false
+UNKNOWN_HOST_ROOT_DENIAL = true
+CROSS_TENANT_COLLECTION_ROW_DENIAL = true
+COLLECTION_RETURN_CONTRACTS_SERIALIZABLE = true
+PTC01_SPECS_REMAIN_GREEN = true
+TYPECHECK_BUILD_RELEASE_GATE_GREEN = true
 ```
 
 Implementation limits:
 
 - consume the accepted PTC-01 resolver;
 - direct edits only;
+- no public page changes;
 - no form, campaign-event or portal writer changes;
 - no broad codemod;
 - no migration/RLS/grant change unless a new Impact Analysis proves it necessary;
-- no fallback empty-data success for unresolved tenant authority.
+- no fallback empty-data success for unresolved tenant authority;
+- persist complete Release Gate evidence on failure and success.
 
-Successor: PTW-01 only after PTR-01 acceptance.
+Successor: PPR-01 only after PSC-01 acceptance.
+
+### PPR-01 — Public Page Serializable Read Binding
+
+**Objective:** bind public page lookup to server-derived tenant authority with an explicit serializable DTO contract.
+
+Required acceptance evidence:
+
+```text
+PUBLIC_PAGE_TENANT_BOUND = true
+PUBLIC_PAGE_CLIENT_TENANT_INPUT = false
+GLOBAL_PAGE_SLUG_AMBIGUITY_FAILS_CLOSED = true
+PUBLIC_PAGE_DTO_SERIALIZABLE = true
+PUBLIC_PAGE_BLOCKS_TYPED = true
+PUBLIC_PAGE_ROUTE_TYPECHECK_PASSED = true
+UNKNOWN_HOST_PUBLIC_PAGE_DENIAL = true
+CROSS_TENANT_PUBLIC_PAGE_TESTS_PASSED = true
+TYPECHECK_BUILD_RELEASE_GATE_GREEN = true
+```
+
+Implementation limits:
+
+- use `Database["public"]["Tables"]["cms_pages"]["Row"]` or an explicitly serializable mapped DTO; `unknown` is prohibited in the server-function return contract;
+- direct edits only;
+- no settings, campaign, form, event or portal changes;
+- no broad codemod;
+- no migration/RLS/grant change unless proven necessary.
+
+Successor: PTW-01 only after PPR-01 acceptance.
 
 ### PTW-01 — Public Tenant Writer Authority
 
@@ -179,6 +241,7 @@ Required acceptance evidence:
 PUBLIC_FORM_TENANT_BOUND = true
 PUBLIC_CAMPAIGN_EVENT_TENANT_BOUND = true
 PUBLIC_PORTAL_TOKEN_CARDINALITY_DETERMINISTIC = true
+PUBLIC_PORTAL_PROPERTY_TENANT_BOUND = true
 FORGED_TENANT_PAYLOAD_DENIED = true
 FORGED_TENANT_HEADER_DENIED = true
 CROSS_TENANT_PUBLIC_WRITE_TESTS_PASSED = true
@@ -247,7 +310,7 @@ Optional visual Lovable executions = maximum 2 total
 ## 6. Binding next action
 
 ```text
-NEXT_STAGE_AUTHORIZED = PTR-01
+NEXT_STAGE_AUTHORIZED = PSC-01
 AUTHORIZED_EXECUTOR = GitHub-native direct file edits
 BROAD_CODEMOD_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
