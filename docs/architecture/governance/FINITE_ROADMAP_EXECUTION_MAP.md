@@ -140,10 +140,18 @@ binding; details still undefined are recorded explicitly as
   migration changes; RLS changes; grant changes; LSH-01 accepted
   runtime edits; use of real data; post-real-operation execution.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0. This documentation revision does not consume budget.
+  consumed 2 (principal: fail-closed abort before fixtures; final
+  corrective: factual reconciliation and terminalization — no runtime
+  mutations). REMAINING_IMPLEMENTATION_BUDGET = 0.
 - **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
   Blocked External.
-- **SUCCESSOR:** LSV-03 (remains blocked by LSV-02).
+- **FINAL_STATE:** Superseded (terminal). Live identity and Tenant
+  Context proofs transferred to LSV-03's Execution Envelope, to be
+  executed against an authorized non-production target once the
+  Same-Backend Homologation Cell strategy is no longer eligible.
+- **SUCCESSOR:** LSV-03 (remains blocked by the terminalization of
+  LSV-02 and by the availability of an authorized non-production
+  target).
 
 ### 2.2 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
 
