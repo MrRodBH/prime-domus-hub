@@ -23,12 +23,12 @@ may exceed two implementation prompts (principal + corrective).
 | 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · findings preserved as mandatory inputs for future formal replanning only — NOT transferred to any successor · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
 | 7 | LSR-01 | Superseded (terminal · principal prompt consumed · corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · principal result: failed persistence verification · corrective result: failed closed · reason: stage could not stabilize TanStack Start registration within its frozen scope · successor: LSR-02 · envelope: `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`) |
 | 8 | LSR-02 | Rejected — terminal · principal prompt consumed · final corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · final external audit accepted = false · Strategy B implementation retained as rejected technical history · no additional implementation prompt authorized · blocking findings preserved (controlled_dev_required_not_executed, compiler_file_list_not_proven, cycle_composite_digest_not_proven, partial_footer_fail_closed_not_fully_implemented, conflicting_current_states_present_before_reconciliation) · successor: FRP-01 · envelope: `docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json` |
-| 9 | FRP-01 | Ready for Final External Audit · principal prompt consumed · final corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · planning-only · zero code / migrations / RLS / grants / policies / Auth / Storage / cron changes · `FRP01_IMPLEMENTATION_CHANGES = false` · final corrective reconciles campaign-events schema identity (`public.cms_campaign_events` factual; `public.cms_campaign_public_events` UNVERIFIED_OR_STALE_REFERENCE), public-surface authority matrix (bootstrap-admin classified `PUBLIC_PRIVILEGED_AUTH_BOOTSTRAP_SURFACE` outside PTA-01 implementation scope), PTA-01 × PR-M2 scope separation, and operational inventory (extensions, queues, RPC wrappers, cron `process-email-queue`, `net.http_post`, duplicate `email_infra` migration finding) · envelope: `docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md` |
-| 10 | RRS-01 | Planned — Blocked by FRP-01 · Execution Envelope required before implementation · `RRS01_STARTED = false` |
-| 11 | PTA-01 | Planned — Blocked by RRS-01 · Execution Envelope required before implementation · `PTA01_STARTED = false` |
-| 12 | MOC-01 | Planned — Blocked by PTA-01 · Execution Envelope required before implementation · `MOC01_STARTED = false` |
-| 13 | RHV-01 | Planned — Blocked by MOC-01 · Execution Envelope required before implementation · `RHV01_STARTED = false` |
-| 14 | LSV-03 | Planned — Blocked by RHV-01 and by formal end-to-end acceptance of the replacement path (RRS-01 → PTA-01 → MOC-01 → RHV-01) · Execution Envelope required before implementation · no deliverables auto-transferred from LSV-02, LSR-01 or LSR-02 · no external Supabase target required or recommended · Same-Backend strategy NOT permanently unavailable (HG-14 not triggered) · `LSV03_STARTED = false` |
+| 9 | FRP-01 | Rejected — terminal · principal prompt consumed · final corrective prompt consumed · `REMAINING_IMPLEMENTATION_BUDGET = 0/2` · final external audit accepted = false · planning artifacts retained as rejected technical history · no additional implementation prompt authorized · no successor authorized · blocking findings preserved (ROADMAP_FRP01_STATE_CONFLICT, ROADMAP_FRP01_BUDGET_CONFLICT, ROADMAP_LSR02_SUCCESSOR_STATE_STALE, BOOTSTRAP_ADMIN_ELIGIBILITY_DESCRIPTION_INACCURATE, PORTAL_DLQ_RETRY_SIGNED_WEBHOOK_CLASSIFICATION_INACCURATE) · envelope: `docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md` |
+| 10 | RRS-01 | Planned — Blocked · `RRS01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
+| 11 | PTA-01 | Planned — Blocked · `PTA01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
+| 12 | MOC-01 | Planned — Blocked · `MOC01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
+| 13 | RHV-01 | Planned — Blocked · `RHV01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
+| 14 | LSV-03 | Planned — Blocked · `LSV03_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization · no deliverables auto-transferred from LSV-02, LSR-01 or LSR-02 · no external Supabase target required or recommended |
 | 15 | LSV-04 | Planned — Blocked by LSV-03 |
 | 16 | RDA-01 | Planned — Blocked by LSV-04 |
 | 17 | RC-01 | Planned — Blocked by RDA-01 |
@@ -180,34 +180,39 @@ binding; details still undefined are recorded explicitly as
   reopening is not authorized.
 - **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
   Blocked External · Rejected · Superseded. Final state = `Rejected`.
-- **SUCCESSOR:** Formal replacement-path planning gate — not
-  started. Rejection of LSR-02 does NOT auto-start LSV-03 and does
-  NOT auto-transfer any deliverable from LSR-01, LSV-02, or the
-  rejected LSR-02 implementation.
+- **SUCCESSOR:** Successor attempt: FRP-01 — executed and Rejected
+  (terminal). No successor currently authorized. Rejection of LSR-02
+  does NOT auto-start LSV-03 and does NOT auto-transfer any
+  deliverable from LSR-01, LSV-02, or the rejected LSR-02
+  implementation.
 
 
 ### 2.3 FRP-01 — Formal Replacement-Path Planning Gate
 
-- **STATE:** Ready for External Audit — planning-only.
-  `FRP01_STARTED = true`;
+- **STATE:** Rejected — terminal. Final external audit decision.
+  `FRP_01_STATE = Rejected`; `FRP_01_TERMINAL = true`;
   `FRP01_PRINCIPAL_PROMPT_CONSUMED = true`;
-  `FRP01_CORRECTIVE_PROMPT_CONSUMED = false`;
-  `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 1/2`;
+  `FRP01_CORRECTIVE_PROMPT_CONSUMED = true`;
+  `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 0/2`;
+  `FRP01_FINAL_EXTERNAL_AUDIT_ACCEPTED = false`;
+  `FRP01_ADDITIONAL_PROMPT_AUTHORIZED = false`;
+  `FRP01_BUDGET_REOPENING_AUTHORIZED = false`;
+  `READY_FOR_FINAL_EXTERNAL_AUDIT = false`;
+  `NEXT_STAGE_AUTHORIZED = none`;
   `FRP01_IMPLEMENTATION_CHANGES = false`.
-- **OBJECTIVE:** materialize a finite, auditable and architecturally
-  governed sequence to replace the failed path composed by LSV-02,
-  LSR-01 and LSR-02, without implementing anything in this stage.
+- **BLOCKING FINDINGS (preserved, not backlog):**
+  `ROADMAP_FRP01_STATE_CONFLICT = true`;
+  `ROADMAP_FRP01_BUDGET_CONFLICT = true`;
+  `ROADMAP_LSR02_SUCCESSOR_STATE_STALE = true`;
+  `BOOTSTRAP_ADMIN_ELIGIBILITY_DESCRIPTION_INACCURATE = true`;
+  `PORTAL_DLQ_RETRY_SIGNED_WEBHOOK_CLASSIFICATION_INACCURATE = true`;
+  `FRP01_DEFINITION_OF_DONE_MET = false`.
+- **DELIVERABLES:** rejected historical planning · not accepted ·
+  not executable · not transferable. The Impact Analysis
+  (`docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md`)
+  is retained solely as rejected technical history.
 - **PREDECESSOR:** LSR-02 — Rejected (terminal).
-- **DELIVERABLES:** this Execution Envelope and its Impact Analysis
-  (`docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md`);
-  finite replacement path RRS-01 → PTA-01 → MOC-01 → RHV-01;
-  preliminary boundaries for each successor stage.
-- **MINIMUM_EVIDENCE:** the Impact Analysis document and the
-  updated finite roadmap. No JSON evidence artifact is produced
-  by this planning stage.
-- **EXTERNAL_DEPENDENCIES:** none.
-- **HARD_GUARDS (preserved and re-affirmed):**
-  `SERVER_IS_SOLE_TENANT_AUTHORITY = true`;
+- **HARD_GUARDS (preserved):** `SERVER_IS_SOLE_TENANT_AUTHORITY = true`;
   `CLIENT_TENANT_AUTHORITY = false`;
   `HEADER_TENANT_AUTHORITY = false`;
   `PATH_TENANT_AUTHORITY = false`;
@@ -220,22 +225,23 @@ binding; details still undefined are recorded explicitly as
 - **OUT_OF_SCOPE:** implementation of any successor stage;
   correction / removal / rollback of Strategy B artifacts; any
   code, migration, RLS, grants, policies, Auth, Storage, cron
-  or runtime change; new Vite dev server; harness live execution;
-  tenant / user creation; auto-transfer of LSV-02 / LSR-01 /
-  LSR-02 deliverables; introduction of external Supabase as
-  canonical fallback.
+  or runtime change.
 - **FILES_ALLOWED:** exactly two paths — this map and the FRP-01
   Impact Analysis. `FUTURE_ADDENDUM_ALLOWED = false`.
 - **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 1 (principal). `FRP01_REMAINING_BUDGET = 1/2`.
+  consumed 2. `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 0/2`. Budget
+  reopening is not authorized. No third implementation prompt is
+  authorized.
 - **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Superseded · Rejected · Blocked External.
-- **SUCCESSOR:** RRS-01 (`Planned — Blocked by FRP-01`). Not
-  started by this stage.
+  Superseded · Rejected · Blocked External. Final state = `Rejected`.
+- **SUCCESSOR:** none authorized. RRS-01 remains
+  `Planned — Blocked`; it is NOT authorized by this rejected
+  planning and requires a future explicit governance decision
+  before any new Execution Envelope or implementation authorization.
 
 ### 2.4 RRS-01 — Registration Runtime Stabilization Replacement
 
-- **STATE:** Planned — Blocked by FRP-01. `RRS01_STARTED = false`.
+- **STATE:** Planned — Blocked. `RRS01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** finite, deterministic replacement for the rejected
   Strategy B; single canonical source for the TanStack Start
   `Register` module augmentation.
@@ -279,7 +285,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.5 PTA-01 — Public Tenant Authority Hardening
 
-- **STATE:** Planned — Blocked by RRS-01. `PTA01_STARTED = false`.
+- **STATE:** Planned — Blocked. `PTA01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** enforce server-authoritative tenant resolution
   across every public writer/reader for `public.leads`,
   `public.form_submissions` and `public.cms_campaign_events`
@@ -337,7 +343,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.6 MOC-01 — Maintenance & Operational Control Boundary
 
-- **STATE:** Planned — Blocked by PTA-01. `MOC01_STARTED = false`.
+- **STATE:** Planned — Blocked. `MOC01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** deliver a coordinated maintenance and operational
   control boundary across frontend, public pages, server
   functions, Edge Functions, cron, queues, webhooks, triggers,
@@ -377,7 +383,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.7 RHV-01 — Replacement Homologation Verification
 
-- **STATE:** Planned — Blocked by MOC-01. `RHV01_STARTED = false`.
+- **STATE:** Planned — Blocked. `RHV01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** execute live identity, real-session, tenant
   context, impersonation and forged-header probes under the
   Same-Backend Homologation Cell, replacing the failed LSV-02
@@ -431,9 +437,7 @@ binding; details still undefined are recorded explicitly as
 
 ### 2.8 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
 
-- **STATE:** Planned — Blocked by RHV-01 and by formal end-to-end
-  acceptance of the replacement path (RRS-01 → PTA-01 → MOC-01 →
-  RHV-01). `LSV03_STARTED = false`.
+- **STATE:** Planned — Blocked. `LSV03_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
 - **OBJECTIVE:** preserve the historical objective of LSV-03
   without automatically absorbing the scope of LSV-02, LSR-01 or
   LSR-02.

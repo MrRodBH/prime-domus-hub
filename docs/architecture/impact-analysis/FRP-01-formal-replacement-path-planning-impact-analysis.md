@@ -4,17 +4,78 @@
 FRP-01
 
 ## TYPE
-Planning / Impact Analysis / Finite Roadmap Materialization
-(final corrective planning — documentary reconciliation only)
+Planning / Impact Analysis / Principal Planning / Final Corrective Planning / Final External Audit
 
 ## STATUS
-Ready for Final External Audit
+Rejected — Terminal
 
 - `FRP01_STARTED = true`
 - `FRP01_PRINCIPAL_PROMPT_CONSUMED = true`
 - `FRP01_CORRECTIVE_PROMPT_CONSUMED = true`
 - `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 0/2`
+- `FRP01_FINAL_EXTERNAL_AUDIT_ACCEPTED = false`
+- `FRP01_ADDITIONAL_IMPLEMENTATION_PROMPT_AUTHORIZED = false`
+- `FRP01_BUDGET_REOPENING_AUTHORIZED = false`
 - Not declared: `Accepted`, `Implementation Complete`, `Ready for Implementation`, `Successor Authorized`.
+
+## FINAL EXTERNAL AUDIT DECISION — TERMINAL REJECTION
+
+- **Audited HEAD:** `c5b67ba80131a8ba9d64fbe6f4ff36e248996ca3`.
+- **Decision:** `FRP_01_STATE = Rejected`; `FRP_01_TERMINAL = true`;
+  `FINAL_EXTERNAL_AUDIT_ACCEPTED = false`;
+  `READY_FOR_FINAL_EXTERNAL_AUDIT = false`;
+  `NEXT_STAGE_AUTHORIZED = none`.
+- **Budget exhaustion:** principal prompt consumed; final corrective
+  prompt consumed; `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 0/2`;
+  no third implementation prompt authorized; budget reopening not
+  authorized.
+- **Blocking findings preserved (not backlog):**
+  1. `ROADMAP_FRP01_STATE_CONFLICT = true` — the finite roadmap
+     simultaneously recorded FRP-01 as "Ready for Final External
+     Audit / corrective consumed / 0/2" and as "Ready for External
+     Audit / corrective not consumed / 1/2 / consumed 1".
+  2. `ROADMAP_FRP01_BUDGET_CONFLICT = true` — coexisting budget
+     values `0/2` and `1/2` for the same stage.
+  3. `ROADMAP_LSR02_SUCCESSOR_STATE_STALE = true` — the LSR-02
+     Execution Envelope still asserted "Formal replacement-path
+     planning gate — not started" after FRP-01 was executed and
+     rejected.
+  4. `BOOTSTRAP_ADMIN_ELIGIBILITY_DESCRIPTION_INACCURATE = true` —
+     the surface matrix described bootstrap eligibility as read from
+     "env / admin flags"; the actual runtime derives eligibility
+     from a count query on `public.user_roles` where `role = 'admin'`.
+  5. `PORTAL_DLQ_RETRY_SIGNED_WEBHOOK_CLASSIFICATION_INACCURATE = true` —
+     the surface matrix labelled `portal-dlq-retry` as
+     "SIGNED/SCHEDULED INVOCATION"; the actual runtime accepts
+     `apikey == SUPABASE_PUBLISHABLE_KEY` or
+     `x-cron-secret == CRON_SECRET`, with no cryptographic webhook
+     signature verification present.
+- **Successor authorization:** none. `RRS01_STARTED = false`;
+  `PTA01_STARTED = false`; `MOC01_STARTED = false`;
+  `RHV01_STARTED = false`; `LSV03_STARTED = false`. No boundary
+  defined in the historical planning below is accepted by this stage.
+- **Definition-of-done outcome:** `FRP01_DEFINITION_OF_DONE_MET = false`.
+- **Artifact status:** all planning content below is retained solely
+  as rejected technical history; it is not accepted, not executable,
+  and not transferable to any successor stage. It creates no
+  authority and no obligation.
+- **Terminal-stage preservation:** `LSR_01_STATE = Superseded`;
+  `LSR_02_STATE = Rejected`. No terminal stage is reopened by this
+  reconciliation.
+
+## HISTORICAL REJECTED PLANNING — NON-AUTHORITATIVE
+
+All sections that follow (AUTHORITY, BASELINE_HEAD, OBJECTIVE,
+PREDECESSOR, CURRENT_STATE_FINDINGS, REJECTED_PATH_ANALYSIS,
+REPLACEMENT_PATH_DECISIONS, FINITE_STAGE_SEQUENCE,
+FINAL CORRECTIVE RECONCILIATION and its subsections including
+CAMPAIGN_EVENT_OBJECT_IDENTITY, PUBLIC_SURFACE_AUTHORITY_MATRIX,
+PTA01_PRM2_SCOPE_RECONCILIATION, CURRENT_OPERATIONAL_SURFACE_INVENTORY,
+FINAL_STAGE_BOUNDARIES, STAGE_BOUNDARIES and every stage-level
+subsection thereafter) are classified as
+`HISTORICAL REJECTED PLANNING · NON-AUTHORITATIVE`. They are preserved
+only to trace the rejected reasoning and remain non-binding for every
+current and future stage.
 
 ## AUTHORITY
 Derived from `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
@@ -181,8 +242,8 @@ hardening.
 | Portal feed | `src/routes/api/public/feeds.$portal.$token.ts` GET | anonymous | tenant-scoped read of `public.imoveis`, `public.imovel_imagens`, `public.imovel_portais` | updates `public.portal_connectors` (last_sync); writes `public.imovel_portais` sync state; inserts `public.portal_sync_logs` | `public.imoveis` (read), `public.imovel_imagens` (read), `public.imovel_portais` (read+write), `public.portal_connectors` (write), `public.portal_sync_logs` (write) | server-derived from connector matched by `(portal, token)` | portal path segment; token | none required for tenant resolution | `PUBLIC_READ_SURFACE_AND_OPERATIONAL_WRITER — TOKEN-DERIVED SERVER AUTHORITY` (NOT a pure reader) | PTA-01 | `src/routes/api/public/feeds.$portal.$token.ts` |
 | Form submissions | `src/lib/api/forms.functions.ts` (public submit path) | anonymous (server function reachable without auth) | resolves form by `form_slug`; reads `tenant_id` from form row | inserts `public.form_submissions`; may create `public.leads` | `public.cms_forms` (read), `public.form_submissions` (write), `public.leads` (write) | derived server-side from form record found by `form_slug`; risk of global slug + cardinality + cross-tenant ambiguity | `form_slug`; submission payload | none | `PUBLIC_TENANT_WRITER — SLUG-DERIVED SERVER AUTHORITY (requires uniqueness+scope hardening)` | PTA-01 | `src/lib/api/forms.functions.ts` |
 | Campaign events | `src/lib/api/campaigns.functions.ts::registrarEventoCampanha` | anonymous (no auth middleware) | none | insert into `public.cms_campaign_events` | `public.cms_campaign_events` | `tenantId` received from public input and forwarded to `publicClient(tenantId)`, which sets the `x-tenant-id` header consumed by RLS/`get_current_tenant_id()` | `campaign_id`, `tipo`, `rota`, `session_id`, `tenantId` | `x-tenant-id` set from client input (transport-level, not server authority) | `PUBLIC_TENANT_WRITER — CLIENT-DERIVED HEADER AUTHORITY (INVARIANT VIOLATION CANDIDATE)`; PTA-01 must replace with server-authoritative resolution and/or `campaign_id → tenant_id` join | PTA-01 | `src/lib/api/campaigns.functions.ts` (lines 179–221) |
-| Portal DLQ retry | `src/routes/api/public/hooks/portal-dlq-retry.ts` | public webhook / cron caller | dequeues portal sync DLQ records | writes to `public.portal_sync_dlq`, `public.portal_sync_logs` | `public.portal_sync_dlq`, `public.portal_sync_logs`, `public.portal_connectors` | server-derived from DLQ record (connector reference) | webhook trigger payload / cron scheduler | none required for tenant resolution | `PUBLIC_OPERATIONAL_WEBHOOK — SIGNED/SCHEDULED INVOCATION` (maintenance-gated by MOC-01) | MOC-01 (maintenance gating); PTA-01 does not adopt | `src/routes/api/public/hooks/portal-dlq-retry.ts` |
-| Bootstrap admin | `src/routes/api/public/bootstrap-admin.ts` | anonymous | reads bootstrap eligibility (env / admin flags) | creates auth user via `supabaseAdmin.auth.admin.createUser`; grants administrative role | `auth.users` (via admin API); `public.user_roles` / role table | not a per-tenant writer for `leads`/`form_submissions`/`cms_campaign_events` | bootstrap payload | none | `PUBLIC_PRIVILEGED_AUTH_BOOTSTRAP_SURFACE` — NOT a tenant writer for the three PTA-01 tables; must NOT be silently absorbed by PTA-01; may be maintenance-gated by MOC-01; functional security correction requires a future authorized stage | Out of PTA-01 implementation scope; maintenance-gated by MOC-01 | `src/routes/api/public/bootstrap-admin.ts` |
+| Portal DLQ retry | `src/routes/api/public/hooks/portal-dlq-retry.ts` | public webhook / cron caller | dequeues portal sync DLQ records | writes to `public.portal_sync_dlq`, `public.portal_sync_logs` | `public.portal_sync_dlq`, `public.portal_sync_logs`, `public.portal_connectors` | server-derived from DLQ record (connector reference) | webhook trigger payload / cron scheduler | none required for tenant resolution | `PUBLIC_OPERATIONAL_WEBHOOK — SHARED-SECRET INVOCATION` — the handler authorizes callers by matching `apikey == SUPABASE_PUBLISHABLE_KEY` or `x-cron-secret == CRON_SECRET`; no cryptographic webhook signature is verified. Prior "SIGNED/SCHEDULED INVOCATION" wording was inaccurate and is preserved only as rejected historical planning. Maintenance-gated by MOC-01. | MOC-01 (maintenance gating); PTA-01 does not adopt | `src/routes/api/public/hooks/portal-dlq-retry.ts` |
+| Bootstrap admin | `src/routes/api/public/bootstrap-admin.ts` | anonymous | reads bootstrap eligibility from a count of `public.user_roles` rows with `role = 'admin'` (idempotent: no-op once at least one admin exists); prior "env / admin flags" wording was inaccurate and is preserved only as rejected historical planning | creates auth user via `supabaseAdmin.auth.admin.createUser`; grants administrative role | `auth.users` (via admin API); `public.user_roles` | not a per-tenant writer for `leads`/`form_submissions`/`cms_campaign_events` | bootstrap payload (`email`, `password`) | none | `PUBLIC_PRIVILEGED_AUTH_BOOTSTRAP_SURFACE` — NOT a tenant writer for the three PTA-01 tables; must NOT be silently absorbed by PTA-01; may be maintenance-gated by MOC-01; functional security correction requires a future authorized stage | Out of PTA-01 implementation scope; maintenance-gated by MOC-01 | `src/routes/api/public/bootstrap-admin.ts` |
 | Leads CRM helpers | `src/lib/api/leads-crm.functions.ts` | authenticated | tenant-scoped lead reads | tenant-scoped lead writes | `public.leads` and related tables | server-authoritative (authenticated middleware + `get_current_tenant_id()`) | filter payloads | `x-tenant-id` treated as transport only, revalidated server-side | `AUTHENTICATED WRITER — SERVER AUTHORITY` (PTA-01 confirms invariants; no public-writer hardening required here) | PTA-01 (invariant confirmation) | `src/lib/api/leads-crm.functions.ts` |
 | Portals admin helpers | `src/lib/api/portals.functions.ts` | authenticated | connector CRUD reads | connector CRUD writes | `public.portal_connectors` | server-authoritative (authenticated middleware) | connector payloads | `x-tenant-id` transport only | `AUTHENTICATED WRITER — SERVER AUTHORITY` | PTA-01 (invariant confirmation) | `src/lib/api/portals.functions.ts` |
 
