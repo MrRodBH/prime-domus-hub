@@ -2,10 +2,10 @@
 
 **Type:** Execution Envelope Planning
 **Status:** Ready for External Audit
-**LSR-01 started:** false
-**Principal prompt consumed:** false
+**LSR-01 started:** true
+**Principal prompt consumed:** true
 **Corrective prompt consumed:** false
-**Remaining implementation budget:** 2/2
+**Remaining implementation budget:** 1/2
 
 **Authority:** derived from `docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
 and the Finite Roadmap Execution Map
