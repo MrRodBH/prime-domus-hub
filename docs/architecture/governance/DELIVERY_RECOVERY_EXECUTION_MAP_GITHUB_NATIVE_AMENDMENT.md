@@ -4,9 +4,15 @@
 
 **Accepted and binding**
 
-**Accepted implementation merge head:** `0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2`  
-**Authority:** explicit product-owner clarification that prompt budgets apply only to Lovable  
-**Related governance:** `GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md`
+```text
+CURRENT_RUNTIME_MAIN = 82b1ead61e8edde6b70454b758c4b51ccded9a4f
+CURRENT_ACCEPTED_STAGE = PTW-01
+NEXT_STAGE_AUTHORIZED = PSG-01 planning only
+LOVABLE_AUTHORIZED = false
+```
+
+**Authority:** explicit product-owner clarification that prompt budgets apply only to Lovable.  
+**Related governance:** `GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md`.
 
 ---
 
@@ -14,7 +20,7 @@
 
 This document governs the post-FRP delivery recovery path after the PPR-01 principal and corrective GitHub-native attempts were incorrectly terminalized through a Lovable-specific prompt-budget rule.
 
-It preserves PR #33 as closed diagnostic history, records the accepted PPR-GN-01 replacement path and defines the next authorized gate.
+It preserves PR #33 as closed diagnostic history, records the accepted PPR-GN-01 replacement path, records the accepted PTW-01 planning and implementation path and defines the next authorized gate.
 
 ---
 
@@ -48,11 +54,17 @@ The supersession changes the process classification only. It does not retroactiv
 PSC01_STATE = Accepted
 PSC01_RUNTIME_HEAD = e5032890c7cc44dd03990d4e462ec3b3bb723be0
 PSC01_ACCEPTANCE_HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
+
 PPR_GN_01_STATE = Accepted
+PPR_GN_01_IMPLEMENTATION_HEAD = ca48472bb6b7676e4c61639a1528c66083ab1c36
 PPR_GN_01_IMPLEMENTATION_MERGE_HEAD = 0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2
+
+PTW01_STATE = Accepted
+PTW01_IMPLEMENTATION_HEAD = 312bcc329deaf6f10447aa821833d62dba2e854a
+PTW01_IMPLEMENTATION_MERGE_HEAD = 82b1ead61e8edde6b70454b758c4b51ccded9a4f
 ```
 
-The accepted implementation merge head remains the runtime authority; later documentation-only reconciliation does not alter runtime.
+Accepted implementation merge heads remain runtime authority for their respective stages. Later documentation-only reconciliation does not alter runtime.
 
 ---
 
@@ -66,8 +78,8 @@ The accepted implementation merge head remains the runtime authority; later docu
 | 4 | PSC-01 | Accepted | GitHub-native | Release Gate |
 | 5 | PPR-01 | Superseded | historical GitHub-native PR #33 | closed unmerged; diagnostic only |
 | 6 | PPR-GN-01 — Public Page GitHub-Native Completion | Accepted | GitHub-native | PR #38; direct final audit; Release Gate |
-| 7 | PTW-01 — Public Tenant-Bound Writers | Planning Accepted — Implementation Authorized | GitHub-native | Architecture First; one active implementation PR |
-| 8 | PSG-01 | Planned — Blocked by PTW-01 | GitHub-native | no planning or implementation authorization |
+| 7 | PTW-01 — Public Tenant-Bound Writers | Accepted | GitHub-native | PR #41 planning; PR #42 implementation; direct final audit; Release Gate |
+| 8 | PSG-01 | Planning Authorized | GitHub-native | Architecture First; one active planning PR; no implementation authorization |
 | 9 | HVP-01 | Planned — Blocked by PSG-01 | runbook/operator | evidence gate |
 | 10 | VSP-01 | Optional — Not authorized | Lovable only when triggered by HVP-01 | Lovable-specific budget |
 | 11 | Controlled Homologation | Blocked | operator/product team | acceptance gate |
@@ -89,15 +101,9 @@ FINAL_EXTERNAL_AUDIT = Accepted
 STATE = Accepted
 ```
 
-PPR-GN-01 is not a reopening of PR #33 and is not a renamed Lovable retry.
+PPR-GN-01 is not a reopening of PR #33 and is not a renamed Lovable retry. It is the accepted GitHub-native replacement envelope created after the executor-governance clarification.
 
-It is the accepted GitHub-native replacement envelope created after the executor-governance clarification.
-
----
-
-## 6. Accepted PPR-GN-01 implementation evidence
-
-PR #38 was merged only after direct final audit acceptance with expected-head protection.
+Accepted PPR-GN-01 Release Gate:
 
 ```text
 RELEASE_GATE_RUN = 29848399476
@@ -110,7 +116,6 @@ PTC01 = 10 passed, 0 failed
 PTR01 = 7 passed, 0 failed
 PSC01 = 11 passed, 0 failed
 PPR_GN_01 = 13 passed, 0 failed
-
 TYPECHECK = success
 BUILD = success
 BUILD_DEV = success
@@ -119,41 +124,11 @@ TANSTACK_REGISTER_AUTHORITY_COUNT = 1
 GENERATED_ROUTE_TREE_MANUAL_EDIT = false
 ```
 
-Accepted implementation properties:
-
-- tenant authority remains server-owned;
-- input accepts only strict `{ slug }`;
-- tenant equality precedes slug equality;
-- public query reads at most two rows;
-- cardinality is explicit as 0/1/N;
-- returned rows are revalidated against the accepted tenant;
-- malformed or foreign rows fail closed;
-- blocks and SEO are validated before serialization;
-- `tenant_id` is excluded from the public DTO;
-- route-level unsafe casts were removed;
-- hardcoded RM Prime canonical fallback was removed.
+Accepted implementation properties include server-owned tenant authority, strict slug input, explicit 0/1/N cardinality, tenant post-validation, validated SEO and blocks, tenant-free DTO serialization, removal of route casts and removal of the hardcoded canonical fallback.
 
 ---
 
-## 7. PPR-GN-01 scope integrity
-
-The accepted PR changed exactly:
-
-```text
-package.json
-run-public-page-runtime-verification-specs.ts
-scripts/verify-release.mjs
-src/lib/__tests__/public-page-runtime-verification.spec.ts
-src/lib/api/pages.functions.ts
-src/lib/public-page-contract.ts
-src/routes/p.$slug.tsx
-```
-
-No dependency version, lockfile, workflow definition, database, migration, RLS, grant, Auth, Storage, generated route, renderer or public-writer change was introduced.
-
----
-
-## 8. PTW-01 planning disposition
+## 6. PTW-01 planning disposition
 
 ```text
 STAGE_ID = PTW-01
@@ -168,10 +143,7 @@ PLANNING_RELEASE_GATE_CONCLUSION = success
 PLANNING_ARTIFACT_ID = 8504351243
 PLANNING_ARTIFACT_DIGEST = sha256:bcf74ef966248f43271b93c32a5c3ff2bfb18a76b2aabc8e9dfbaa48aaadc91b
 PLANNING_STATE = Accepted
-IMPLEMENTATION_AUTHORIZED = true
 AUTHORIZED_EXECUTOR = GitHub-native
-MAX_ACTIVE_IMPLEMENTATION_PRS = 1
-PSG01_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
 
@@ -185,24 +157,81 @@ docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptw-01
 
 The planning acceptance includes the binding schema clarification that public form fields must be queried and validated by the composite authority `accepted tenant.id + accepted form.id`.
 
-PTW-01 implementation remains subject to the exact `FILES_ALLOWED`, prohibitions, executable evidence and Definition of Done in the accepted planning envelope.
-
 ---
 
-## 9. Binding next action
-
-After merge of PTW-01 planning PR #41 and verification of its final green Release Gate:
+## 7. PTW-01 final implementation disposition
 
 ```text
-NEXT_STAGE_AUTHORIZED = PTW-01 implementation
-PTW01_PLANNING_STATE = Accepted
-PTW01_IMPLEMENTATION_AUTHORIZED = true
-AUTHORIZED_EXECUTOR = GitHub-native
-MAX_ACTIVE_PTW01_IMPLEMENTATION_PRS = 1
-PSG01_AUTHORIZED = false
+STAGE_ID = PTW-01
+IMPLEMENTATION_PR = 42
+IMPLEMENTATION_HEAD = 312bcc329deaf6f10447aa821833d62dba2e854a
+IMPLEMENTATION_MERGE_HEAD = 82b1ead61e8edde6b70454b758c4b51ccded9a4f
+IMPLEMENTATION_MERGED = true
+FINAL_EXTERNAL_AUDIT = Accepted
+IMPLEMENTATION_STATE = Accepted
+EXECUTOR = GitHub-native
 LOVABLE_AUTHORIZED = false
 ```
 
-PTW-01 implementation must start from the accepted planning merge head, use one branch and one active PR, remain within `FILES_ALLOWED`, preserve all inherited regressions and complete direct final audit before merge.
+The implementation was merged only after direct final audit acceptance and expected-head protection.
 
-PSG-01 planning or implementation and Lovable remain blocked until PTW-01 implementation is merged, reconciled and accepted.
+Accepted Release Gate:
+
+```text
+RELEASE_GATE_RUN = 29866481241
+RELEASE_GATE_JOB = 88755888278
+RELEASE_GATE_CONCLUSION = success
+ARTIFACT_ID = 8509468989
+ARTIFACT_DIGEST = sha256:269182b91d0b242a7117505d3414cdd879b9bb2b567f76cb5b71410bb711ca82
+ARTIFACT_HEAD = 312bcc329deaf6f10447aa821833d62dba2e854a
+
+PTC01 = 10 passed, 0 failed
+PTR01 = 7 passed, 0 failed
+PSC01 = 11 passed, 0 failed
+PPR_GN_01 = 13 passed, 0 failed
+PTW01_AUTHORITY = 14 passed, 0 failed
+PTW01_SQL_STRUCTURAL = 8 passed, 0 failed
+LSH01_UNIT = 22 passed, 0 failed
+LSH01_RUNTIME = 15 passed, 0 failed
+LSH01_STRUCTURAL = 27 passed, 0 failed
+LSH01_SQL_STRUCTURAL = 17 passed, 0 failed
+TYPECHECK = success
+BUILD = success
+BUILD_DEV = success
+DETERMINISTIC_ROUTE_TREE = success
+```
+
+Accepted implementation properties:
+
+- Host-derived authority before service-role access for direct leads, forms, campaign events and Meta CAPI;
+- exact tenant-scoped resource cardinality and post-validation;
+- shared public lead writer across direct, form, portal and DLQ replay paths;
+- portal connector authority with 0/1/N handling;
+- tenant-bound property, launch, broker, form, field, campaign, Meta and portal operations;
+- safe feed distinction between zero total links, explicit eligible links and existing noneligible links;
+- exact and idempotent hardening of `events_public_insert`;
+- anonymous DML revocation restricted to `anon`, preserving authenticated and server-side behavior;
+- no reopening of accepted LSH, Auth, Storage, tenant middleware or `create_manual_lead` boundaries.
+
+Canonical final evidence:
+
+```text
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptw-01-final-acceptance.md
+```
+
+---
+
+## 8. Binding next action
+
+```text
+NEXT_STAGE_AUTHORIZED = PSG-01 planning only
+PSG01_PLANNING_AUTHORIZED = true
+PSG01_IMPLEMENTATION_AUTHORIZED = false
+AUTHORIZED_EXECUTOR = GitHub-native
+MAX_ACTIVE_PSG01_PLANNING_PRS = 1
+LOVABLE_AUTHORIZED = false
+```
+
+PSG-01 may begin only with Architecture First planning and direct audit of the current GitHub `main` after this documentation-only reconciliation is merged.
+
+No PSG-01 runtime, migration, RLS, grant, Auth, Storage or security implementation is authorized by this map.
