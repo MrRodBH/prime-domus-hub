@@ -27,7 +27,8 @@
     "test:lsv-01:lot-a": "tsx --tsconfig tsconfig.json ./run-lsv-01-lot-a.ts",
     "test:ptc-01": "tsx --tsconfig tsconfig.json ./run-public-tenant-context-specs.ts",
     "test:ptr-01": "tsx --tsconfig tsconfig.json ./run-public-tenant-read-binding-specs.ts",
-    "test:psc-01": "tsx --tsconfig tsconfig.json ./run-public-settings-campaign-read-recovery-specs.ts"
+    "test:psc-01": "tsx --tsconfig tsconfig.json ./run-public-settings-campaign-read-recovery-specs.ts",
+    "test:ppr-01": "tsx --tsconfig tsconfig.json ./run-public-page-runtime-verification-specs.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
