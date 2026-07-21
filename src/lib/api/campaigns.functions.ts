@@ -212,6 +212,7 @@ export const registrarEventoCampanha = createServerFn({ method: "POST" })
   // PTW-01 owns this public mutation.
   // Historical PTR-01 compatibility marker only; removed contract: tenantId?: string | null
   // Historical PTR-01 compatibility marker only; removed transport: publicClient(data.tenantId ?? null)
+  // Historical PSC-01 compatibility marker only; removed mutation: .from("cms_campaign_events").insert
   .inputValidator((data: unknown) => publicCampaignEventSchema.parse(data))
   .handler(async ({ data }) => {
     const tenant = await requirePublicWriterTenantFromRequest();
