@@ -1,28 +1,26 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
-import { assertOptionalTenantScopedRow } from "@/lib/public-tenant-read-guards";
+import { requirePublicWriterTenantFromRequest } from "@/lib/public-writers/public-writer-authority.server";
+import {
+  loadPublicMetaCredentials,
+  loadTenantSettingValue,
+} from "@/lib/public-writers/public-campaign-writer.server";
 
 /** Pixel ID — lido no servidor via service role, sempre vinculado ao tenant público resolvido. */
 export const obterMetaPixelId = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ pixel_id: string | null }> => {
-    const tenant = await requirePublicTenantFromRequest();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
-      .from("site_settings")
-      .select("tenant_id, value")
-      .eq("tenant_id", tenant.id)
-      .eq("key", "meta_integracao")
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-
-    const row = assertOptionalTenantScopedRow(
-      tenant.id,
-      data as unknown as { tenant_id: string; value: unknown } | null,
-    );
-    const value = (row?.value as { pixel_id?: string } | null) ?? null;
-    return { pixel_id: value?.pixel_id ? String(value.pixel_id) : null };
+    const tenant = await requirePublicWriterTenantFromRequest();
+    const value = await loadTenantSettingValue<{ pixel_id?: unknown }>({
+      tenant,
+      key: "meta_integracao",
+    });
+    return {
+      pixel_id:
+        typeof value?.pixel_id === "string" && value.pixel_id.trim()
+          ? value.pixel_id.trim()
+          : null,
+    };
   },
 );
 
@@ -113,49 +111,40 @@ export interface MetaUserData {
   fbc?: string;
 }
 
-/** Envia evento server-side para a Meta Conversions API.
- *  Não lança em falha — apenas loga, para não impactar UX. */
-export const enviarEventoMetaCAPI = createServerFn({ method: "POST" })
-  .inputValidator(
-    z.object({
-      event_name: z.string().min(1),
-      event_id: z.string().min(1),
-      event_source_url: z.string().optional(),
-      action_source: z.enum(["website", "system_generated"]).default("website"),
-      user_data: z
-        .object({
-          email: z.string().optional(),
-          phone: z.string().optional(),
-          first_name: z.string().optional(),
-          last_name: z.string().optional(),
-          city: z.string().optional(),
-          state: z.string().optional(),
-          client_ip: z.string().optional(),
-          client_user_agent: z.string().optional(),
-          fbp: z.string().optional(),
-          fbc: z.string().optional(),
-        })
-        .optional(),
-      custom_data: z.record(z.string(), z.unknown()).optional(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: pixelRow } = await supabaseAdmin
-        .from("site_settings")
-        .select("value")
-        .eq("key", "meta_integracao")
-        .maybeSingle();
-      const pixel_id = (pixelRow?.value as { pixel_id?: string } | null)?.pixel_id;
-      if (!pixel_id) return { ok: false, reason: "no-pixel-id" };
+const metaEventSchema = z
+  .object({
+    event_name: z.string().min(1),
+    event_id: z.string().min(1),
+    event_source_url: z.string().optional(),
+    action_source: z.enum(["website", "system_generated"]).default("website"),
+    user_data: z
+      .object({
+        email: z.string().optional(),
+        phone: z.string().optional(),
+        first_name: z.string().optional(),
+        last_name: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        client_ip: z.string().optional(),
+        client_user_agent: z.string().optional(),
+        fbp: z.string().optional(),
+        fbc: z.string().optional(),
+      })
+      .strict()
+      .optional(),
+    custom_data: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
 
-      const { data: credRow } = await supabaseAdmin
-        .from("site_settings")
-        .select("value")
-        .eq("key", "meta_credenciais")
-        .maybeSingle();
-      const token = (credRow?.value as { conversions_api_token?: string } | null)?.conversions_api_token;
+/** Envia evento server-side para a Meta Conversions API.
+ *  Falhas de transporte não impactam UX, mas a autoridade Host deve ser resolvida antes. */
+export const enviarEventoMetaCAPI = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => metaEventSchema.parse(data))
+  .handler(async ({ data }) => {
+    const tenant = await requirePublicWriterTenantFromRequest();
+    try {
+      const { pixelId, token } = await loadPublicMetaCredentials(tenant);
+      if (!pixelId) return { ok: false, reason: "no-pixel-id" };
       if (!token) return { ok: false, reason: "no-token" };
 
       const ud = data.user_data ?? {};
@@ -191,7 +180,7 @@ export const enviarEventoMetaCAPI = createServerFn({ method: "POST" })
         ],
       };
 
-      const url = `https://graph.facebook.com/v18.0/${pixel_id}/events?access_token=${encodeURIComponent(token)}`;
+      const url = `https://graph.facebook.com/v18.0/${pixelId}/events?access_token=${encodeURIComponent(token)}`;
       const res = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -203,8 +192,11 @@ export const enviarEventoMetaCAPI = createServerFn({ method: "POST" })
         return { ok: false, reason: "http-error", status: res.status };
       }
       return { ok: true };
-    } catch (e) {
-      console.error("[Meta CAPI] exceção", e);
+    } catch (error) {
+      console.error("[Meta CAPI] exceção", {
+        tenantId: tenant.id,
+        error,
+      });
       return { ok: false, reason: "exception" };
     }
   });
