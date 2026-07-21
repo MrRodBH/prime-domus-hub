@@ -2,7 +2,7 @@
 
 ## Status
 
-**Audited planning inventory — no runtime change**
+**Corrected audited planning inventory — no runtime change**
 
 ```text
 STAGE_ID = PSG-01
@@ -10,6 +10,7 @@ BASELINE_MAIN = 55e0a7b95aedd767c605bceb1ea84999ecf08145
 CANONICAL_ISSUE = 4
 PLANNING_ONLY = true
 IMPLEMENTATION_AUTHORIZED = false
+PLANNING_MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
 
@@ -17,7 +18,7 @@ LOVABLE_AUTHORIZED = false
 
 ## 1. Inventory method
 
-This inventory was produced by direct inspection of the current GitHub `main` and generated schema types.
+This inventory was produced by direct inspection of the current GitHub `main`, generated schema types, accepted predecessor evidence and the direct final audit finding on planning PR #44.
 
 Classification:
 
@@ -29,6 +30,8 @@ HISTORICAL_CONTEXT = informative only; not current runtime authority
 ```
 
 No Lovable report, runtime patch, migration, database write or inferred historical branch content was used as current authority.
+
+The corrected inventory adds public catalog, city, neighborhood and property-detail surfaces that were directly proven but absent from the rejected planning HEAD.
 
 ---
 
@@ -142,7 +145,7 @@ requestMiddleware = errorMiddleware
 createCsrfMiddleware = absent
 ```
 
-Issue #4 adds the explicit accepted planning requirement:
+Required outcome:
 
 ```text
 SERVER_FUNCTION_CSRF_MIDDLEWARE_PRESENT = true
@@ -196,7 +199,7 @@ renderer = dangerouslySetInnerHTML
 server sanitizer = absent
 ```
 
-Persisted destinations reaching the renderer:
+Persisted destinations:
 
 ```text
 hero.imagem_url → CSS background URL
@@ -205,8 +208,8 @@ image.url → img src
 gallery.imagens[].url → img src
 video.embed_url → iframe src
 cta.botao_href → anchor href
-seo.canonical → canonical/og URL
-seo.og_image → metadata image URL
+seo.canonical → canonical destination
+seo.og_image → metadata image destination
 ```
 
 ### 4.2 Blog posts
@@ -246,12 +249,8 @@ CLASSIFICATION = DIRECT_FINDING
 Current execution:
 
 ```text
-launch_projects.descricao
-→ dangerouslySetInnerHTML
-
-launch_projects.video_url
-→ string replacement watch?v=/embed/
-→ iframe src
+launch_projects.descricao → dangerouslySetInnerHTML
+launch_projects.video_url → string replacement → iframe src
 ```
 
 Additional destinations:
@@ -264,7 +263,46 @@ OG image
 broker WhatsApp link
 ```
 
-### 4.4 Sanitizer dependency state
+### 4.4 Property detail and catalog DTO
+
+```text
+PUBLIC_READ = src/lib/api/catalogo.functions.ts::obterImovel
+CONSUMER = src/routes/imovel.$slug.tsx
+CLASSIFICATION = DIRECT_FINDING
+```
+
+Current property detail authority:
+
+```text
+strict tenant authority = absent
+supabaseAdmin import = before accepted tenant
+selector = global slug + status=ativo
+cardinality = maybeSingle
+limit(2) = absent
+tenant post-validation = absent
+```
+
+Persisted or derived destinations serialized by the server read:
+
+```text
+video_url
+tour_url
+imagem_capa
+imovel_imagens.url
+imovel_imagens.thumb
+corretor.foto_url
+```
+
+Current destination behavior:
+
+```text
+server central policy = absent
+Storage signing after accepted tenant = false
+unknown embed denied before DTO = false
+raw property media DTO = true
+```
+
+### 4.5 Sanitizer dependency state
 
 ```text
 FILE = package.json
@@ -339,8 +377,6 @@ site branding logo_url → img src
 site contact WhatsApp → anchor href
 ```
 
-No central destination policy is applied.
-
 ### 5.4 Footer and social destinations
 
 ```text
@@ -377,14 +413,25 @@ pagina_sobre.hero_image_url → img src
 pagina_sobre.cta_url → router destination cast
 ```
 
-### 5.6 Property maps and embeds
+### 5.6 Property maps, media and embeds
 
 ```text
-FILE = src/routes/imovel.$slug.tsx
+FILES:
+- src/lib/api/catalogo.functions.ts
+- src/lib/embed-url.ts
+- src/routes/imovel.$slug.tsx
 CLASSIFICATION = DIRECT_FINDING
 ```
 
-Known internally constructed Google Maps URLs are deterministic. Video/tour values depend on `toEmbedUrl`, whose unknown-host fallback is unsafe.
+Known internally constructed Google Maps URLs are deterministic. Property video/tour values depend on `toEmbedUrl`, whose unknown-host fallback is unsafe. Property cover, gallery and broker images are returned by the public read before any central destination policy.
+
+Required ownership:
+
+```text
+primary authority = server public-read boundary
+renderer checks = defensive only
+raw fallback = prohibited
+```
 
 ---
 
@@ -415,12 +462,6 @@ collection tenant post-validation
 safe URL output
 ```
 
-Generated schema proves:
-
-```text
-website_menu_items.tenant_id = string
-```
-
 ### 6.2 Blog
 
 ```text
@@ -445,13 +486,6 @@ status=publicado
 maybeSingle
 ```
 
-Generated schema proves:
-
-```text
-blog_posts.tenant_id = string
-blog_categorias.tenant_id = string
-```
-
 ### 6.3 Launches
 
 ```text
@@ -469,20 +503,96 @@ detail = global slug + maybeSingle
 children = project_id only
 ```
 
-Generated schema proves tenant identity on:
+Generated schema proves tenant identity on launch project and child tables used by the public detail flow.
+
+### 6.4 Property catalog, cities and neighborhoods
 
 ```text
-launch_projects
-launch_statuses
-launch_amenities
-launch_project_amenities
-launch_project_imagens
-launch_pdfs
-launch_payment_conditions
-launch_units
+FILE = src/lib/api/catalogo.functions.ts
+PUBLIC_FUNCTIONS:
+- listarImoveis
+- listarCidades
+- listarBairros
+CLASSIFICATION = DIRECT_FINDING + SCHEMA_FINDING
 ```
 
-### 6.4 Existing PTR suite scope
+Current collection authority:
+
+```text
+global anonymous client
+Host resolution = absent
+tenant_id equality = absent
+every-row tenant post-validation = absent
+tenant_id excluded after validation = not proven
+```
+
+Additional proven behavior:
+
+```text
+listarImoveis signs or preserves property cover destinations
+listarBairros calculates counts from a global active-property collection
+listarCidades returns a global city collection
+```
+
+Required contract:
+
+```text
+Host
+→ accepted tenant
+→ tenant_id equality
+→ tenant-scoped collection
+→ every-row tenant post-validation
+→ safe tenant-free DTO
+```
+
+### 6.5 Property detail
+
+```text
+FILE = src/lib/api/catalogo.functions.ts
+PUBLIC_FUNCTION = obterImovel
+CLASSIFICATION = DIRECT_FINDING + SCHEMA_FINDING
+```
+
+Current flow:
+
+```text
+strict { slug }
+→ supabaseAdmin
+→ global slug + status=ativo
+→ maybeSingle
+→ Storage signing
+→ raw destination DTO
+```
+
+Missing:
+
+```text
+Host-derived tenant before service role
+tenant_id equality
+limit(2)
+explicit 0/1/N
+tenant post-validation
+nested tenant compatibility
+destination policy before DTO
+```
+
+Planning assertions:
+
+```text
+PUBLIC_CATALOG_LIST_HOST_BOUND = false
+PUBLIC_CITY_COLLECTION_HOST_BOUND = false
+PUBLIC_NEIGHBORHOOD_COLLECTION_HOST_BOUND = false
+PUBLIC_PROPERTY_DETAIL_HOST_BOUND = false
+PUBLIC_PROPERTY_DETAIL_TENANT_FILTER = false
+PUBLIC_PROPERTY_DETAIL_CARDINALITY_EXPLICIT = false
+PUBLIC_PROPERTY_DETAIL_USES_MAYBE_SINGLE = true
+PUBLIC_PROPERTY_DESTINATIONS_SERVER_VALIDATED = false
+PUBLIC_PROPERTY_RAW_VIDEO_URL_SERIALIZED = true
+PUBLIC_PROPERTY_RAW_TOUR_URL_SERIALIZED = true
+PUBLIC_PROPERTY_RAW_MEDIA_URL_SERIALIZED = true
+```
+
+### 6.6 Existing PTR suite scope
 
 ```text
 FILE = src/lib/__tests__/public-tenant-read-binding.spec.ts
@@ -500,7 +610,7 @@ campaign listing
 campaign consumer
 ```
 
-They do not cover blog, menu or launch reads. Therefore current green PTR evidence is not evidence that those residual surfaces are tenant-bound.
+They do not cover blog, menu, launch, catalog, city, neighborhood or property-detail reads.
 
 Governance interpretation:
 
@@ -517,13 +627,35 @@ PTR01_REOPENED = false
 ### 7.1 PTW-01
 
 ```text
-public writer authority modules = frozen
+src/lib/public-writers/* = frozen
 shared public lead writer = frozen
 portal immediate/replay business path = frozen
 campaign-event DML hardening = frozen
 ```
 
-PSG may modify only the DLQ route authentication precondition, not its business mutation.
+PSG may modify only DLQ route authentication, not its business mutation.
+
+`src/lib/api/catalogo.functions.ts` contains both public reads and the accepted lead mutation adapter. Future implementation authority is restricted to:
+
+```text
+listarImoveis
+listarCidades
+listarBairros
+obterImovel
+public-read-only helpers and DTO types required by those functions
+```
+
+Immutable inside the same file:
+
+```text
+publicLeadSchema
+enviarLead
+requirePublicWriterTenantFromRequest
+writePublicLead
+lead recipient authority
+lead tenant authority
+PTW public mutation behavior
+```
 
 ### 7.2 PPR-GN-01
 
@@ -538,13 +670,15 @@ Supabase Auth configuration = frozen
 Storage authorization and upload boundaries = frozen
 ```
 
+Storage signing implementation inside authorized public read functions may be reordered only to occur after accepted tenant/resource authority. This does not authorize changes to Storage authorization, upload or bucket policy.
+
 ---
 
 ## 8. Proposed central boundaries
 
 ```text
 src/lib/operational-route-auth.server.ts
-→ dedicated bearer secret parsing and constant-time verification
+→ dedicated bearer-secret parsing and constant-time verification
 
 src/lib/public-content-security.ts
 → pure URL, destination, target and embed decisions
@@ -553,7 +687,7 @@ src/lib/public-html-sanitizer.server.ts
 → pinned server-side sanitizer policy
 ```
 
-No route or renderer may create a competing allowlist, fallback or heuristic.
+No route, API function or renderer may create a competing allowlist, fallback or heuristic.
 
 ---
 
@@ -572,19 +706,106 @@ run-public-surface-tenant-read-specs.ts
 docs/runbooks/initial-admin-bootstrap.md
 ```
 
-Existing runtime files are frozen in the Impact Analysis `FILES_ALLOWED` list. Generated route-tree change is permitted only as a deterministic consequence of deleting bootstrap-admin.
+Existing public-read files include:
+
+```text
+src/lib/public-page-contract.ts
+src/lib/api/blog.functions.ts
+src/lib/api/lancamentos.functions.ts
+src/lib/api/menu.functions.ts
+src/lib/api/site.functions.ts
+src/lib/api/catalogo.functions.ts # public-read scope only
+src/lib/embed-url.ts
+```
+
+Generated route-tree change is permitted only as a deterministic consequence of deleting bootstrap-admin.
 
 ---
 
-## 10. Planning conclusion
+## 10. Required future evidence additions
+
+The PSG tenant-read suite must add executable coverage for:
+
+```text
+listarImoveis
+listarCidades
+listarBairros
+obterImovel
+```
+
+Collections:
+
+```text
+unknown Host → deny before query
+missing tenant → deny
+foreign row → deny
+mixed-tenant collection → deny
+same-tenant collection → accept
+tenant_id absent from DTO
+```
+
+Property detail:
+
+```text
+0 rows → not found
+1 same-tenant row → accepted
+N rows → ambiguous and denied
+foreign row → denied
+missing tenant_id → denied
+query error → fail closed
+```
+
+Structural evidence:
+
+```text
+Host precedes service role
+tenant equality precedes slug equality
+limit(2) present
+maybeSingle authority absent
+Storage signing after tenant/resource authority
+```
+
+Destination evidence:
+
+```text
+safe signed HTTPS media accepted
+safe approved relative asset accepted
+unsafe protocols denied
+protocol-relative denied
+credential-bearing denied
+unknown video/tour provider denied
+HTTP embed denied
+exact approved provider/path accepted
+raw fallback absent
+```
+
+PTW preservation evidence:
+
+```text
+publicLeadSchema unchanged
+enviarLead unchanged
+writePublicLead delegation preserved
+PTW authority green
+PTW SQL structural green
+```
+
+---
+
+## 11. Planning conclusion
 
 ```text
 PSG01_SURFACE_INVENTORY_COMPLETE = true
+PUBLIC_CATALOG_AND_PROPERTY_FINDINGS_INCLUDED = true
 DIRECT_FINDINGS_SEPARATED_FROM_HYPOTHESES = true
+CATALOGO_PUBLIC_READ_SCOPE_ONLY = true
+CATALOGO_PUBLIC_WRITER_CHANGED = false
+PTW_PUBLIC_WRITER_BOUNDARIES_CHANGED = false
+PSG01_PLANNING_STATE = Ready for Final External Audit
 PSG01_IMPLEMENTATION_AUTHORIZED = false
 PSG01_IMPLEMENTATION_STARTED = false
+PLANNING_MERGE_AUTHORIZED = false
 MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
 
-The only permitted next action is direct audit of the PSG-01 planning PR.
+The only permitted next action after a green corrected Release Gate is direct audit of the corrected PSG-01 planning PR.
