@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  PublicWriterError,
+  resolvePortalConnectorAuthority,
+} from "@/lib/public-writers/public-writer-authority.server";
+import {
+  loadPortalFeedSnapshot,
+  recordPortalFeedFailure,
+  recordPortalFeedSuccess,
+} from "@/lib/public-writers/portal-writer.server";
 
-// XML escape
 function esc(s: unknown): string {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -35,7 +43,6 @@ function tipoImovel(tipo: string | null | undefined): string {
 }
 
 function finalidadeVrsync(fin: string | null | undefined): string {
-  // "venda" | "aluguel" | "temporada"
   if (fin === "aluguel") return "For Rent";
   if (fin === "temporada") return "Seasonal";
   return "For Sale";
@@ -45,7 +52,7 @@ function finalidadeVrsync(fin: string | null | undefined): string {
 function buildVrSyncXml(tenant: any, imoveis: any[], images: Map<string, string[]>): string {
   const now = new Date().toISOString();
   const providerName = tenant?.nome ?? "Imobiliária";
-  const providerEmail = tenant?.email ?? "contato@imobiliaria.com.br";
+  const providerEmail = "contato@imobiliaria.com.br";
 
   const items = imoveis
     .map((im) => {
@@ -108,130 +115,63 @@ export const Route = createFileRoute("/api/public/feeds/$portal/$token")({
     handlers: {
       GET: async ({ params, request }) => {
         const started = Date.now();
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { logEvent, clientIp } = await import("@/lib/observability.server");
         const ip = clientIp(request);
         const portal = params.portal.toLowerCase();
-        const token = params.token;
         const source = `/api/public/feeds/${portal}`;
 
-        const { data: conn } = await supabaseAdmin
-          .from("portal_connectors")
-          .select("*, tenants!inner(id, nome, slug)")
-          .eq("feed_token", token)
-          .eq("portal_slug", portal)
-          .maybeSingle();
-
-        if (!conn) {
-          await logEvent({ category: "feed", source, event: "invalid_token", severity: "warn", statusCode: 401, ip, meta: { portal }, latencyMs: Date.now() - started });
-          return new Response("Token inválido", { status: 401 });
-        }
-        if (!conn.ativo) {
-          await logEvent({ category: "feed", source, event: "portal_inactive", severity: "warn", statusCode: 403, tenantId: conn.tenant_id, ip, meta: { portal }, latencyMs: Date.now() - started });
-          return new Response("Portal desativado", { status: 403 });
+        let connector;
+        try {
+          connector = await resolvePortalConnectorAuthority({
+            portalSlug: portal,
+            token: params.token,
+          });
+        } catch (error) {
+          const status = error instanceof PublicWriterError ? error.status : 500;
+          const message = error instanceof Error ? error.message : "connector resolution failed";
+          await logEvent({ category: "feed", source, event: "connector_rejected", severity: status >= 500 ? "error" : "warn", statusCode: status, ip, meta: { portal }, latencyMs: Date.now() - started, errorMessage: message });
+          return new Response(message, { status });
         }
 
-
-
-        // Rate-limit universal: 30 requisições/min por token e 60/min por IP
         const { rateLimit, rateLimitResponse } = await import("@/lib/rate-limit.server");
-        const rlTok = await rateLimit({ scope: "feed", key: token, limit: 30 });
+        const rlTok = await rateLimit({ scope: "feed", key: `${connector.id}:${connector.portalSlug}`, limit: 30 });
         if (!rlTok.allowed) {
-          await logEvent({ category: "feed", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal, scope: "token" }, latencyMs: Date.now() - started });
+          await logEvent({ category: "feed", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: connector.tenant.id, ip, meta: { portal, scope: "token" }, latencyMs: Date.now() - started });
           return rateLimitResponse(rlTok.retryAfter, "rate limit excedido (30/min por token)");
         }
         const rlIp = await rateLimit({ scope: "feed-ip", key: ip ?? "unknown", limit: 60 });
         if (!rlIp.allowed) {
-          await logEvent({ category: "feed", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: conn.tenant_id, ip, meta: { portal, scope: "ip" }, latencyMs: Date.now() - started });
+          await logEvent({ category: "feed", source, event: "rate_limited", severity: "warn", statusCode: 429, tenantId: connector.tenant.id, ip, meta: { portal, scope: "ip" }, latencyMs: Date.now() - started });
           return rateLimitResponse(rlIp.retryAfter, "rate limit excedido (60/min por IP)");
         }
 
-        // Verifica tenant ativo
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tenant = (conn as any).tenants;
-
-        // Busca imóveis publicados do tenant que estão marcados p/ este portal (ou todos, se nenhum vínculo)
-        const { data: vinculos } = await supabaseAdmin
-          .from("imovel_portais")
-          .select("imovel_id")
-          .eq("tenant_id", tenant.id)
-          .eq("portal_slug", portal)
-          .in("status", ["ativo", "aguardando", "publicado", "processando"]);
-
-        const ids = (vinculos ?? []).map((v) => v.imovel_id);
-
-        let q = supabaseAdmin
-          .from("imoveis")
-          .select("*, bairros(nome)")
-          .eq("tenant_id", tenant.id)
-          .eq("status", "ativo")
-          .order("updated_at", { ascending: false })
-          .limit(500);
-        if (ids.length > 0) q = q.in("id", ids);
-
-        const { data: imoveis, error } = await q;
-        if (error) {
-          await supabaseAdmin.from("portal_sync_logs").insert({
-            tenant_id: tenant.id, portal_slug: portal, acao: "feed_read",
-            status: "erro", erro: error.message, duration_ms: Date.now() - started,
-          } as never);
-          await logEvent({ category: "feed", source, event: "query_failed", severity: "error", statusCode: 500, tenantId: tenant.id, ip, meta: { portal }, latencyMs: Date.now() - started, errorMessage: error.message });
-          return new Response("Erro ao gerar feed", { status: 500 });
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const list = (imoveis ?? []).map((im: any) => ({ ...im, bairro_nome: im.bairros?.nome ?? "" }));
-
-        // Imagens
-        const imgMap = new Map<string, string[]>();
-        if (list.length > 0) {
-          const { data: imgs } = await supabaseAdmin
-            .from("imovel_imagens")
-            .select("imovel_id, url, ordem")
-            .in("imovel_id", list.map((i) => i.id))
-            .order("ordem", { ascending: true });
-          (imgs ?? []).forEach((i) => {
-            const arr = imgMap.get(i.imovel_id) ?? [];
-            arr.push(i.url);
-            imgMap.set(i.imovel_id, arr);
+        try {
+          const snapshot = await loadPortalFeedSnapshot({ connector });
+          const xml = buildVrSyncXml(snapshot.tenant, snapshot.properties, snapshot.images);
+          await recordPortalFeedSuccess({
+            connector,
+            properties: snapshot.properties,
+            durationMs: Date.now() - started,
           });
+          await logEvent({ category: "feed", source, event: "success", severity: "info", statusCode: 200, tenantId: connector.tenant.id, ip, meta: { portal, count: snapshot.properties.length }, latencyMs: Date.now() - started });
+          return new Response(xml, {
+            status: 200,
+            headers: {
+              "content-type": "application/xml; charset=utf-8",
+              "cache-control": "public, max-age=300",
+            },
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Erro ao gerar feed";
+          const status = error instanceof PublicWriterError ? error.status : 500;
+          await recordPortalFeedFailure({
+            connector,
+            durationMs: Date.now() - started,
+            errorMessage: message,
+          }).catch(() => undefined);
+          await logEvent({ category: "feed", source, event: "feed_failed", severity: status >= 500 ? "error" : "warn", statusCode: status, tenantId: connector.tenant.id, ip, meta: { portal }, latencyMs: Date.now() - started, errorMessage: message });
+          return new Response(status >= 500 ? "Erro ao gerar feed" : message, { status });
         }
-
-        const xml = buildVrSyncXml(tenant, list, imgMap);
-
-        // Marca imoveis como publicados (upsert)
-        if (list.length > 0) {
-          const rows = list.map((im) => ({
-            tenant_id: tenant.id,
-            imovel_id: im.id,
-            portal_slug: portal,
-            status: "publicado",
-            publicado: true,
-            ultima_leitura: new Date().toISOString(),
-          }));
-          await supabaseAdmin.from("imovel_portais").upsert(rows as never, { onConflict: "imovel_id,portal_slug" });
-        }
-
-        await supabaseAdmin.from("portal_connectors").update({
-          ultimo_sync_at: new Date().toISOString(),
-          status: "ativo",
-          ultimo_erro: null,
-        } as never).eq("id", conn.id);
-
-        await supabaseAdmin.from("portal_sync_logs").insert({
-          tenant_id: tenant.id, portal_slug: portal, acao: "feed_read",
-          status: "ok", payload: { count: list.length } as never,
-          duration_ms: Date.now() - started,
-        } as never);
-        await logEvent({ category: "feed", source, event: "success", severity: "info", statusCode: 200, tenantId: tenant.id, ip, meta: { portal, count: list.length }, latencyMs: Date.now() - started });
-
-        return new Response(xml, {
-          status: 200,
-          headers: {
-            "content-type": "application/xml; charset=utf-8",
-            "cache-control": "public, max-age=300",
-          },
-        });
       },
     },
   },
