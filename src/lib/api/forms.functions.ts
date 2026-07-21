@@ -206,6 +206,31 @@ export const listarSubmissoes = createServerFn({ method: "POST" })
 // PUBLIC — leitura de form publicado + submissão anônima
 // ============================================================================
 
+type PublicFormConfig = {
+  success_message?: string;
+  redirect_url?: string;
+  submit_button_label?: string;
+  notify_emails?: string[];
+  criar_lead?: boolean;
+  lead_origem_slug?: string;
+  webhook_url?: string;
+  map_nome?: string;
+  map_email?: string;
+  map_telefone?: string;
+  map_mensagem?: string;
+};
+
+type PublicFieldValidation = {
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  regex?: string;
+  mascara?: string;
+};
+
+type PublicFieldOption = { label: string; value: string };
+
 type PublicFormRow = {
   id: string;
   tenant_id: string;
@@ -213,7 +238,7 @@ type PublicFormRow = {
   slug: string;
   descricao?: string | null;
   status?: string;
-  config: Record<string, unknown>;
+  config: PublicFormConfig;
 };
 
 type PublicFieldRow = {
@@ -226,8 +251,8 @@ type PublicFieldRow = {
   placeholder?: string | null;
   ajuda?: string | null;
   obrigatorio: boolean;
-  opcoes?: unknown;
-  validacao: Record<string, unknown>;
+  opcoes?: PublicFieldOption[];
+  validacao: PublicFieldValidation;
   valor_padrao?: string | null;
   largura?: string;
 };
@@ -248,7 +273,7 @@ async function loadPublishedForm(input: {
   if (error) throw new Error(error.message);
   return selectExactlyOneTenantScopedRow(
     input.tenant,
-    data as PublicFormRow[] | null,
+    data as unknown as PublicFormRow[] | null,
     {
       allowZero: input.allowZero,
       zeroMessage: "Formulário não encontrado ou não publicado.",
@@ -341,18 +366,7 @@ export const submeterFormulario = createServerFn({ method: "POST" })
       }
     }
 
-    const config = (form.config ?? {}) as {
-      criar_lead?: boolean;
-      lead_origem_slug?: string;
-      notify_emails?: string[];
-      webhook_url?: string;
-      map_nome?: string;
-      map_email?: string;
-      map_telefone?: string;
-      map_mensagem?: string;
-      success_message?: string;
-    };
-
+    const config = form.config;
     let leadId: string | null = null;
     if (config.criar_lead) {
       const nome = (config.map_nome && (data.dados[config.map_nome] as string)) || (data.dados.nome as string) || "Sem nome";
