@@ -25,6 +25,30 @@ type PortalPropertyRow = {
   corretor_id: string | null;
 };
 
+export type PortalFeedLinkRow = {
+  tenant_id?: string | null;
+  imovel_id?: string | null;
+  portal_slug?: string | null;
+  status?: string | null;
+};
+
+export type PortalFeedLinkSelection =
+  | { mode: "all_active_tenant_properties"; propertyIds: [] }
+  | { mode: "explicit_property_ids"; propertyIds: string[] }
+  | { mode: "no_properties"; propertyIds: [] };
+
+const ELIGIBLE_PORTAL_LINK_STATUSES = new Set([
+  "ativo",
+  "aguardando",
+  "publicado",
+  "processando",
+]);
+
+const NON_ELIGIBLE_PORTAL_LINK_STATUSES = new Set([
+  "inativo",
+  "erro",
+]);
+
 export interface PortalFeedSnapshot {
   tenant: { id: string; nome: string | null };
   properties: Array<Record<string, unknown> & { id: string; bairro_nome: string }>;
@@ -182,6 +206,72 @@ async function resolveFeedTenant(
   return row;
 }
 
+export function decidePortalFeedLinkSelection(
+  connector: PortalConnectorAuthority,
+  rows: readonly PortalFeedLinkRow[] | null | undefined,
+): PortalFeedLinkSelection {
+  const acceptedLinks = assertTenantScopedCollection(connector.tenant, rows);
+  if (acceptedLinks.length === 0) {
+    return { mode: "all_active_tenant_properties", propertyIds: [] };
+  }
+
+  const seenPropertyIds = new Set<string>();
+  const eligiblePropertyIds: string[] = [];
+
+  for (const row of acceptedLinks) {
+    if (row.portal_slug !== connector.portalSlug) {
+      throw new PublicWriterError(
+        "resource_foreign_tenant",
+        "Portal link response does not match accepted connector.",
+        403,
+      );
+    }
+
+    const propertyId = row.imovel_id?.trim();
+    if (!propertyId) {
+      throw new PublicWriterError(
+        "portal_link_state_ambiguous",
+        "Portal link state is missing property identity.",
+        409,
+      );
+    }
+    if (seenPropertyIds.has(propertyId)) {
+      throw new PublicWriterError(
+        "portal_link_state_ambiguous",
+        "Portal link state contains duplicate property authority.",
+        409,
+      );
+    }
+    seenPropertyIds.add(propertyId);
+
+    const status = row.status?.trim().toLowerCase();
+    if (!status) {
+      throw new PublicWriterError(
+        "portal_link_state_ambiguous",
+        "Portal link state is missing status.",
+        409,
+      );
+    }
+    if (ELIGIBLE_PORTAL_LINK_STATUSES.has(status)) {
+      eligiblePropertyIds.push(propertyId);
+      continue;
+    }
+    if (NON_ELIGIBLE_PORTAL_LINK_STATUSES.has(status)) {
+      continue;
+    }
+    throw new PublicWriterError(
+      "portal_link_state_ambiguous",
+      `Portal link state contains unsupported status: ${status}.`,
+      409,
+    );
+  }
+
+  if (eligiblePropertyIds.length === 0) {
+    return { mode: "no_properties", propertyIds: [] };
+  }
+  return { mode: "explicit_property_ids", propertyIds: eligiblePropertyIds };
+}
+
 export async function loadPortalFeedSnapshot(input: {
   connector: PortalConnectorAuthority;
 }): Promise<PortalFeedSnapshot> {
@@ -193,60 +283,65 @@ export async function loadPortalFeedSnapshot(input: {
     .from("imovel_portais")
     .select("tenant_id, imovel_id, portal_slug, status")
     .eq("tenant_id", connector.tenant.id)
-    .eq("portal_slug", connector.portalSlug)
-    .in("status", ["ativo", "aguardando", "publicado", "processando"]);
+    .eq("portal_slug", connector.portalSlug);
   if (linkError) throw new Error(linkError.message);
-  const acceptedLinks = assertTenantScopedCollection(
-    connector.tenant,
-    links as Array<{ tenant_id: string; imovel_id: string; portal_slug: string; status: string }> | null,
+
+  const linkSelection = decidePortalFeedLinkSelection(
+    connector,
+    links as PortalFeedLinkRow[] | null,
   );
-  if (acceptedLinks.some((row) => row.portal_slug !== connector.portalSlug)) {
-    throw new PublicWriterError(
-      "resource_foreign_tenant",
-      "Portal link response does not match accepted connector.",
-      403,
-    );
-  }
-  const linkedIds = acceptedLinks.map((row) => row.imovel_id);
-  if (new Set(linkedIds).size !== linkedIds.length) {
-    throw new PublicWriterError(
-      "portal_link_state_ambiguous",
-      "Portal link state contains duplicate property authority.",
-      409,
-    );
-  }
 
-  let query = supabaseAdmin
-    .from("imoveis")
-    .select("*, bairros(nome)")
-    .eq("tenant_id", connector.tenant.id)
-    .eq("status", "ativo")
-    .order("updated_at", { ascending: false })
-    .limit(500);
-  if (linkedIds.length > 0) query = query.in("id", linkedIds);
-  const { data: properties, error: propertyError } = await query;
-  if (propertyError) throw new Error(propertyError.message);
+  let acceptedProperties: Array<
+    Record<string, unknown> & {
+      id: string;
+      tenant_id: string;
+      bairro_nome: string;
+    }
+  > = [];
 
-  const acceptedProperties = assertTenantScopedCollection(
-    connector.tenant,
-    properties as Array<Record<string, unknown> & { id: string; tenant_id: string; bairros?: { nome?: string } | null }> | null,
-  ).map((property) => ({
-    ...property,
-    bairro_nome: property.bairros?.nome ?? "",
-  }));
-  const propertyIds = acceptedProperties.map((property) => property.id);
-  if (linkedIds.length > 0) {
-    const acceptedIdSet = new Set(propertyIds);
-    const unresolved = linkedIds.filter((id) => !acceptedIdSet.has(id));
-    if (unresolved.length > 0) {
-      throw new PublicWriterError(
-        "portal_link_state_ambiguous",
-        "Portal link state references unavailable properties.",
-        409,
-      );
+  if (linkSelection.mode !== "no_properties") {
+    let query = supabaseAdmin
+      .from("imoveis")
+      .select("*, bairros(nome)")
+      .eq("tenant_id", connector.tenant.id)
+      .eq("status", "ativo")
+      .order("updated_at", { ascending: false })
+      .limit(500);
+    if (linkSelection.mode === "explicit_property_ids") {
+      query = query.in("id", linkSelection.propertyIds);
+    }
+
+    const { data: properties, error: propertyError } = await query;
+    if (propertyError) throw new Error(propertyError.message);
+
+    acceptedProperties = assertTenantScopedCollection(
+      connector.tenant,
+      properties as Array<
+        Record<string, unknown> & {
+          id: string;
+          tenant_id: string;
+          bairros?: { nome?: string } | null;
+        }
+      > | null,
+    ).map((property) => ({
+      ...property,
+      bairro_nome: property.bairros?.nome ?? "",
+    }));
+
+    if (linkSelection.mode === "explicit_property_ids") {
+      const acceptedIdSet = new Set(acceptedProperties.map((property) => property.id));
+      const unresolved = linkSelection.propertyIds.filter((id) => !acceptedIdSet.has(id));
+      if (unresolved.length > 0) {
+        throw new PublicWriterError(
+          "portal_link_state_ambiguous",
+          "Portal link state references unavailable properties.",
+          409,
+        );
+      }
     }
   }
 
+  const propertyIds = acceptedProperties.map((property) => property.id);
   const images = new Map<string, string[]>();
   if (propertyIds.length > 0) {
     const { data: imageRows, error: imageError } = await supabaseAdmin
