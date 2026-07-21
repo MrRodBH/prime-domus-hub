@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { loadRequiredPublicRootData } from "../lib/public-tenant-read-guards";
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
 import { CmsPreviewOverlay } from "../components/site/CmsPreviewOverlay";
 import { CampaignRenderer } from "../components/site/CampaignRenderer";
@@ -79,31 +80,24 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async () => {
-    let faviconUrl: string | null = null;
-    let metaPixelId: string | null = null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let brandingV2: any = {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let seoGlobal: any = {};
-    let siteName = "RM Prime Imóveis";
-    try {
-      const { obterSiteSettings } = await import("../lib/api/site.functions");
-      const settings = await obterSiteSettings();
-      faviconUrl = settings.branding.favicon_url ?? null;
-      brandingV2 = settings.branding_v2 ?? {};
-      seoGlobal = settings.seo_global ?? {};
-      siteName = settings.branding.site_name || siteName;
-    } catch {
-      // ignore
-    }
-    try {
-      const { obterMetaPixelId } = await import("../lib/api/meta.functions");
-      const r = await obterMetaPixelId();
-      metaPixelId = r.pixel_id;
-    } catch {
-      // ignore
-    }
-    return { faviconUrl, metaPixelId, brandingV2, seoGlobal, siteName };
+    const { settings, meta } = await loadRequiredPublicRootData(
+      async () => {
+        const { obterSiteSettings } = await import("../lib/api/site.functions");
+        return obterSiteSettings();
+      },
+      async () => {
+        const { obterMetaPixelId } = await import("../lib/api/meta.functions");
+        return obterMetaPixelId();
+      },
+    );
+
+    return {
+      faviconUrl: settings.branding.favicon_url ?? null,
+      metaPixelId: meta.pixel_id,
+      brandingV2: settings.branding_v2 ?? {},
+      seoGlobal: settings.seo_global ?? {},
+      siteName: settings.branding.site_name || "RM Prime Imóveis",
+    };
   },
   head: ({ loaderData }) => {
     const seo = loaderData?.seoGlobal ?? {};
@@ -226,7 +220,6 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
-
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();

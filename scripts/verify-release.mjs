@@ -91,6 +91,7 @@ run("Lead authorization unit specifications", "bun", ["run", "test:lsh-01:unit"]
 run("Lead structural specifications", "bun", ["run", "test:lsh-01:structural"]);
 run("PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
 run("PTR-01 public tenant read binding specifications", "bun", ["run", "test:ptr-01"]);
+run("PSC-01 public settings and campaign recovery specifications", "bun", ["run", "test:psc-01"]);
 
 console.log(
   JSON.stringify(
@@ -104,6 +105,7 @@ console.log(
       cycleCompositeDigestStable: true,
       publicTenantContextSpecsPassed: true,
       publicTenantReadBindingSpecsPassed: true,
+      publicSettingsCampaignRecoverySpecsPassed: true,
       routeTreeSha256: cycleA,
     },
     null,

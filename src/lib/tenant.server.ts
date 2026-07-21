@@ -2,6 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import type { Database } from "@/integrations/supabase/types";
+import { PublicTenantResolutionError } from "@/lib/public-tenant-resolution-error";
 
 export interface PublicTenantIdentity {
   id: string;
@@ -176,7 +177,7 @@ export async function resolvePublicTenantFromRequest(): Promise<PublicTenantIden
 /** Public read surfaces must fail closed rather than return cross-tenant or empty fallback data. */
 export async function requirePublicTenantFromRequest(): Promise<PublicTenantIdentity> {
   const tenant = await resolvePublicTenantFromRequest();
-  if (!tenant) throw new Error("Public tenant authority could not be resolved.");
+  if (!tenant) throw new PublicTenantResolutionError();
   return tenant;
 }
 
