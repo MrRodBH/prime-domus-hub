@@ -76,10 +76,8 @@ function Page() {
       ...attr,
       origem: "Anúncio (Avaliação)",
       consent_lgpd: true,
-      notificar_gestores: true,
     });
 
-    // Meta events (não bloqueia)
     const event_id = metaEventId();
     metaTrack("Lead", { content_name: "Formulário Anuncie", source: "/anuncie" }, event_id);
     const ids = metaBrowserIds();
