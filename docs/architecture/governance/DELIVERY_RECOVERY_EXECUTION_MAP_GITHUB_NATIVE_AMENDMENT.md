@@ -4,7 +4,7 @@
 
 **Accepted and binding**
 
-**Current audited `main`:** `0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2`  
+**Accepted implementation merge head:** `0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2`  
 **Authority:** explicit product-owner clarification that prompt budgets apply only to Lovable  
 **Related governance:** `GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md`
 
@@ -49,10 +49,10 @@ PSC01_STATE = Accepted
 PSC01_RUNTIME_HEAD = e5032890c7cc44dd03990d4e462ec3b3bb723be0
 PSC01_ACCEPTANCE_HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
 PPR_GN_01_STATE = Accepted
-CURRENT_MAIN_HEAD = 0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2
+PPR_GN_01_IMPLEMENTATION_MERGE_HEAD = 0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2
 ```
 
-The audited `main` remains the sole implementation authority.
+The accepted implementation merge head remains the runtime authority; later documentation-only reconciliation does not alter runtime.
 
 ---
 
