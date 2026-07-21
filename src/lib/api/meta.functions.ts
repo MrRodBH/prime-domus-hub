@@ -2,10 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
-import {
-  requirePublicWriterTenantFromRequest,
-  selectExactlyOneTenantScopedRow,
-} from "@/lib/public-writers/public-writer-authority.server";
+import { assertOptionalTenantScopedRow } from "@/lib/public-tenant-read-guards";
+import { requirePublicWriterTenantFromRequest } from "@/lib/public-writers/public-writer-authority.server";
 import { loadPublicMetaCredentials } from "@/lib/public-writers/public-campaign-writer.server";
 
 /** Pixel ID — lido no servidor via service role, sempre vinculado ao tenant público resolvido. */
@@ -20,14 +18,10 @@ export const obterMetaPixelId = createServerFn({ method: "GET" }).handler(
       .eq("key", "meta_integracao")
       .limit(2);
     if (error) throw new Error(error.message);
-    const row = selectExactlyOneTenantScopedRow(
-      tenant,
-      data as Array<{ tenant_id: string; value: unknown }> | null,
-      {
-        allowZero: true,
-        ambiguousMessage: "Tenant Meta integration setting is ambiguous.",
-      },
-    );
+    if ((data ?? []).length > 1) {
+      throw new Error("Tenant Meta integration setting is ambiguous.");
+    }
+    const row = assertOptionalTenantScopedRow(tenant.id, data?.[0] ?? null);
     const value = row?.value as { pixel_id?: unknown } | null | undefined;
     return {
       pixel_id:
