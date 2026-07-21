@@ -25,6 +25,12 @@ function section(source: string, start: string, end?: string): string {
   return source.slice(startIndex, endIndex);
 }
 
+function withoutComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+}
+
 async function expectWriterError(
   run: () => unknown | Promise<unknown>,
   code: PublicWriterError["code"],
@@ -155,12 +161,15 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "campaign event writer rejects client tenant transport",
     run: async () => {
       const source = read("src/lib/api/campaigns.functions.ts");
-      const block = section(source, "const publicCampaignEventSchema");
-      assert(block.includes(".strict()"), "campaign event schema is not strict");
-      assert(!block.includes("tenantId"), "campaign event accepts tenantId");
-      assert(!block.includes("x-tenant-id"), "campaign event creates tenant header");
-      assert(block.includes("requirePublicWriterTenantFromRequest"), "campaign event lacks Host authority");
-      assert(block.includes("recordPublicCampaignEvent"), "campaign event bypasses shared writer");
+      const schemaBlock = section(source, "const publicCampaignEventSchema", "export const registrarEventoCampanha");
+      const writerBlock = withoutComments(section(source, "export const registrarEventoCampanha"));
+      assert(schemaBlock.includes(".strict()"), "campaign event schema is not strict");
+      assert(!schemaBlock.includes("tenantId"), "campaign event schema accepts tenantId");
+      assert(!writerBlock.includes("tenantId"), "campaign event executable writer accepts tenantId");
+      assert(!writerBlock.includes("publicClient"), "campaign event executable writer creates client tenant transport");
+      assert(!writerBlock.includes("x-tenant-id"), "campaign event executable writer creates tenant header");
+      assert(writerBlock.includes("requirePublicWriterTenantFromRequest"), "campaign event lacks Host authority");
+      assert(writerBlock.includes("recordPublicCampaignEvent"), "campaign event bypasses shared writer");
       const writer = read("src/lib/public-writers/public-campaign-writer.server.ts");
       assert(writer.includes('.eq("tenant_id", tenant.id)'), "campaign lookup is not tenant-bound");
       assert(writer.includes('.eq("status", "active")'), "inactive campaign can be accepted");
