@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planning-only — ready for direct external audit after Release Gate**
+**Planning-only — corrected and ready for direct external audit after a new Release Gate**
 
 ```text
 STAGE_ID = PSG-01
@@ -13,6 +13,7 @@ AUTHORIZED_EXECUTOR = GitHub-native
 PLANNING_ONLY = true
 IMPLEMENTATION_AUTHORIZED = false
 IMPLEMENTATION_STARTED = false
+PLANNING_MERGE_AUTHORIZED = false
 MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 MAX_ACTIVE_PLANNING_PRS = 1
@@ -22,11 +23,13 @@ MAX_ACTIVE_PLANNING_PRS = 1
 
 ## 1. Purpose
 
-PSG-01 is the Architecture First gate for public privileged entrypoints, public operational entrypoints, persisted public content execution, persisted public destinations and server-function CSRF protection before controlled homologation.
+PSG-01 is the Architecture First gate for public privileged entrypoints, public operational entrypoints, persisted public content execution, persisted public destinations, residual public tenant reads and server-function CSRF protection before controlled homologation.
 
 This document freezes the implementation envelope. It does not implement, patch, migrate, grant, revoke, sanitize, delete or otherwise change runtime behavior.
 
 PSG-01 is not a reopening of PTH-01, PTR-01, PPR-GN-01 or PTW-01. Historical terminal or accepted classifications remain unchanged. Findings below describe the audited current `main` and define a new bounded security outcome.
+
+The correction incorporated after direct audit of planning HEAD `9fb1e1c903702b3f4f07ced1715c01e4edbd4cf8` adds the directly proven public catalog/property-read surfaces previously omitted from the inventory and future implementation envelope.
 
 ---
 
@@ -37,8 +40,9 @@ Authority order:
 1. audited GitHub `main` at `55e0a7b95aedd767c605bceb1ea84999ecf08145`;
 2. binding delivery map;
 3. accepted PTW-01 final evidence;
-4. canonical issue #4 and its CSRF finding;
-5. this planning document after direct audit and merge.
+4. canonical issue #4;
+5. direct final audit finding recorded on PR #44;
+6. this corrected planning document after direct audit and merge.
 
 Predecessor state:
 
@@ -62,11 +66,13 @@ PSG-01 must establish all of the following as one coherent public-surface bounda
 1. no anonymous HTTP authority may create a privileged administrative identity or role;
 2. no publishable or public credential may authorize an operational replay endpoint;
 3. persisted HTML must be sanitized by one pinned server-side policy before public execution;
-4. persisted `href`, `src`, iframe and embed destinations must be validated by explicit policy;
+4. persisted `href`, `src`, iframe and embed destinations must be validated by explicit policy before public DTO serialization;
 5. custom TanStack Start configuration must install an explicit server-function CSRF boundary;
 6. intentionally public server routes must remain separately reachable and must not acquire accidental browser-only CSRF semantics;
-7. residual public blog, menu and launch reads must be bound to the accepted Host-derived tenant authority;
-8. all security decisions must fail closed on absence, malformed input, ambiguity, unsupported protocol, unsupported destination or missing server configuration.
+7. residual public blog, menu, launch, catalog, city, neighborhood and property-detail reads must be bound to accepted Host-derived tenant authority;
+8. Storage signing and service-role access for public reads may begin only after accepted tenant and resource authority;
+9. public DTOs must be tenant-free and destination-safe;
+10. all security decisions must fail closed on absence, malformed input, ambiguity, unsupported protocol, unsupported destination, foreign tenant, missing tenant or missing server configuration.
 
 ---
 
@@ -81,8 +87,6 @@ PSG-01 must establish all of the following as one coherent public-surface bounda
 - checks whether any global `admin` role exists;
 - creates and confirms a Supabase Auth user when necessary;
 - inserts a global `admin` role.
-
-The route possesses privileged identity-creation authority without an operator secret, authenticated operator, signed request or private network boundary.
 
 ```text
 PUBLIC_BOOTSTRAP_ADMIN_ROUTE_PRESENT = true
@@ -101,7 +105,7 @@ OR
 x-cron-secret == CRON_SECRET
 ```
 
-A publishable key is not an operational authorization secret. The accepted PTW-01 business replay path is otherwise preserved and must not be duplicated or redesigned by PSG-01.
+A publishable key is not an operational authorization secret. The accepted PTW-01 replay business path is otherwise preserved and must not be duplicated or redesigned by PSG-01.
 
 ```text
 DLQ_REPLAY_PUBLISHABLE_KEY_AUTH = true
@@ -111,9 +115,9 @@ DLQ_REPLAY_BUSINESS_MUTATION_OWNER = PTW-01
 
 ### 4.3 Custom Start configuration lacks explicit CSRF middleware
 
-`src/start.ts` defines a custom Start instance with function and request middleware, but does not install `createCsrfMiddleware()`.
+`src/start.ts` defines a custom Start instance with function and request middleware but does not install `createCsrfMiddleware()`.
 
-The required boundary is server-function-specific so intentionally public server routes remain distinct:
+The required boundary is server-function-specific:
 
 ```text
 createCsrfMiddleware({
@@ -154,7 +158,7 @@ Proven consumers include:
 - CMS hero background, image, gallery, CTA and video blocks;
 - blog cover image and HTML-contained links/images;
 - launch video, images and document links;
-- property video/tour embeds;
+- property video/tour embeds, cover, gallery and broker image;
 - contact map iframe;
 - site branding images, footer links and social links;
 - website menu links;
@@ -162,7 +166,7 @@ Proven consumers include:
 
 `src/lib/embed-url.ts` recognizes several providers but returns the original URL for an unknown host. Therefore an unknown destination can reach an iframe.
 
-`src/lib/public-page-contract.ts` currently validates persisted URLs only as strings.
+`src/lib/public-page-contract.ts` validates persisted URLs only as strings. `src/lib/api/catalogo.functions.ts` similarly serializes property destinations before any central server-side destination policy.
 
 ```text
 CENTRAL_PUBLIC_URL_POLICY_PRESENT = false
@@ -173,7 +177,7 @@ UNSAFE_PROTOCOL_DENIED_BY_SHARED_POLICY = false
 
 ### 4.6 Residual public menu reads are global
 
-`listarMenuPublico` uses a global anonymous client, has no Host tenant resolution and no `tenant_id` equality. Generated schema proves `website_menu_items.tenant_id` exists.
+`listarMenuPublico` uses a global anonymous client, has no Host tenant resolution and no `tenant_id` equality.
 
 ```text
 PUBLIC_MENU_HOST_BOUND = false
@@ -183,7 +187,7 @@ PUBLIC_MENU_ROW_TENANT_POST_VALIDATION = false
 
 ### 4.7 Residual public blog reads are global
 
-Public blog list and categories use a global anonymous client. Public post detail uses `supabaseAdmin`, global `slug` and `maybeSingle()` without Host tenant authority. Generated schema proves `blog_posts.tenant_id` and `blog_categorias.tenant_id` exist.
+Public blog list and categories use a global anonymous client. Public post detail uses `supabaseAdmin`, global `slug` and `maybeSingle()` without Host tenant authority.
 
 ```text
 PUBLIC_BLOG_LIST_HOST_BOUND = false
@@ -196,8 +200,6 @@ PUBLIC_BLOG_DETAIL_CARDINALITY_EXPLICIT = false
 
 Public launch statuses, amenities, list and detail use a global anonymous client. Detail resolves global `slug` with `maybeSingle()`, and child reads use only `project_id`.
 
-Generated schema proves tenant identity exists on the launch project and child tables used by the public detail flow.
-
 ```text
 PUBLIC_LAUNCH_STATUS_HOST_BOUND = false
 PUBLIC_LAUNCH_AMENITY_HOST_BOUND = false
@@ -207,11 +209,56 @@ PUBLIC_LAUNCH_DETAIL_CARDINALITY_EXPLICIT = false
 PUBLIC_LAUNCH_CHILDREN_TENANT_BOUND = false
 ```
 
-### 4.9 Existing green PTR evidence does not cover these residuals
+### 4.9 Residual public catalog and property reads are global
 
-The current PTR structural suite checks site settings, Meta settings, CMS pages and campaigns. It does not execute or structurally inspect public blog, menu or launch surfaces.
+`src/lib/api/catalogo.functions.ts` contains four directly proven public-read surfaces:
+
+```text
+listarImoveis
+listarCidades
+listarBairros
+obterImovel
+```
+
+The collection functions use a global anonymous client. They do not resolve tenant from Host, apply explicit `tenant_id` equality or post-validate each row against the accepted tenant.
+
+`obterImovel` imports `supabaseAdmin`, resolves by global `slug + status`, uses `maybeSingle()`, and performs Storage signing before any accepted Host-derived tenant/resource authority. It serializes `video_url`, `tour_url`, cover and image destinations without central destination validation.
+
+```text
+PUBLIC_CATALOG_LIST_HOST_BOUND = false
+PUBLIC_CITY_COLLECTION_HOST_BOUND = false
+PUBLIC_NEIGHBORHOOD_COLLECTION_HOST_BOUND = false
+
+PUBLIC_PROPERTY_DETAIL_HOST_BOUND = false
+PUBLIC_PROPERTY_DETAIL_TENANT_FILTER = false
+PUBLIC_PROPERTY_DETAIL_CARDINALITY_EXPLICIT = false
+PUBLIC_PROPERTY_DETAIL_USES_MAYBE_SINGLE = true
+
+PUBLIC_PROPERTY_DESTINATIONS_SERVER_VALIDATED = false
+PUBLIC_PROPERTY_RAW_VIDEO_URL_SERIALIZED = true
+PUBLIC_PROPERTY_RAW_TOUR_URL_SERIALIZED = true
+PUBLIC_PROPERTY_RAW_MEDIA_URL_SERIALIZED = true
+```
+
+The same file also contains the accepted PTW public lead adapter. PSG-01 may modify only the public-read functions and directly required read-only helpers/DTO types. Public mutation semantics remain frozen.
+
+```text
+CATALOGO_PUBLIC_READ_SCOPE_ONLY = true
+CATALOGO_PUBLIC_WRITER_CHANGED = false
+PTW_PUBLIC_WRITER_BOUNDARIES_CHANGED = false
+```
+
+### 4.10 Existing green PTR evidence does not cover these residuals
+
+The current PTR structural suite checks site settings, Meta settings, CMS pages and campaigns. It does not execute or structurally inspect public blog, menu, launch, catalog, city, neighborhood or property-detail surfaces.
 
 This is a PSG-01 current-main finding. It does not reopen or reclassify historical PTR-01.
+
+```text
+PTR01_HISTORICAL_STATE = unchanged
+PSG01_CURRENT_MAIN_RESIDUAL_FINDING = true
+PTR01_REOPENED = false
+```
 
 ---
 
@@ -224,16 +271,18 @@ The following are not accepted facts and must be resolved before editing the cor
 3. whether deployment uses additional trusted origins requiring explicit CSRF configuration;
 4. whether persisted production content currently contains tags or providers outside the proposed allowlists;
 5. whether any external menu destination requires a host-specific exception beyond generic HTTPS;
-6. whether launch or blog public consumers depend on the current raw DTO shape;
-7. whether an existing sanitization package is hidden in a transitive dependency — transitive availability is not accepted implementation authority.
+6. whether launch, blog, catalog or property consumers depend on the current raw DTO shape;
+7. whether property/city/neighborhood tables require a narrower tenant-compatible relation strategy than generated types alone reveal;
+8. whether any accepted signed-URL hostname requires an explicit deployment-derived media policy entry;
+9. whether an existing sanitizer package is hidden in a transitive dependency — transitive availability is not accepted implementation authority.
 
 Fail-closed preflight rule:
 
 ```text
-UNRESOLVED_CALLER_OR_PROVIDER_REQUIREMENT
+UNRESOLVED_CALLER_PROVIDER_OR_SCHEMA_REQUIREMENT
 → stop the affected workstream
 → record the evidence
-→ do not add a heuristic or broad exception
+→ do not add a heuristic, tenant fallback or broad exception
 ```
 
 ---
@@ -260,8 +309,6 @@ no public runtime bootstrap route
 → audited operator action
 ```
 
-The default implementation decision is route deletion, not replacement with another public service-role endpoint.
-
 ### 6.2 Operational DLQ replay
 
 Current:
@@ -282,16 +329,15 @@ dedicated server-only operational secret
 → accepted PTW replay path
 ```
 
-The dedicated secret must not be accepted in query string, request body, log metadata or response.
-
-### 6.3 Persisted content
+### 6.3 Persisted content and destinations
 
 Required:
 
 ```text
 persisted tenant-scoped content
 → accepted tenant-bound public read
-→ server-side HTML sanitizer and URL policy
+→ exact resource or tenant-scoped collection validation
+→ server-side HTML sanitizer and destination policy
 → tenant-free safe DTO
 → renderer
 ```
@@ -311,17 +357,36 @@ cross-site browser request
 
 Intentional public server routes remain controlled by their own input, tenant, credential or signature boundary.
 
-### 6.5 Public read authority
+### 6.5 Unified public read authority
 
-Required for blog, menu and launches:
+Required for blog, menu, launches, catalog, cities, neighborhoods and property detail:
 
 ```text
 Host
 → accepted tenant
-→ tenant equality
-→ explicit 0/1/N or tenant-scoped collection validation
-→ sanitized and destination-safe DTO
+→ explicit tenant equality
+→ exact resource or tenant-scoped collection validation
+→ destination and HTML policy
+→ tenant-free safe DTO
+→ renderer
 ```
+
+Coverage:
+
+```text
+blog
+menu
+launches
+property catalog
+cities
+neighborhoods
+property detail
+property media
+property video
+property tour
+```
+
+No client-supplied tenant, default tenant, first-row authority, global anonymous authority, global slug or `maybeSingle()` authority is accepted.
 
 ---
 
@@ -337,7 +402,7 @@ Implementation must:
 - add an operator runbook for initial administrator provisioning;
 - prohibit any replacement public service-role bootstrap endpoint.
 
-If an active required caller is proven, implementation must stop and request re-planning rather than retain anonymous authority.
+If an active required caller is proven, implementation must stop and request re-planning.
 
 ### 7.2 Operational route authentication
 
@@ -360,13 +425,13 @@ Required contract:
 
 ### 7.3 Server-function CSRF
 
-`src/start.ts` must install the framework CSRF middleware in `requestMiddleware` for `serverFn` handlers.
+`src/start.ts` must install framework CSRF middleware in `requestMiddleware` for `serverFn` handlers.
 
 Required constraints:
 
 - preserve existing error middleware;
 - preserve function middleware ordering unless direct framework evidence requires adjustment;
-- do not set `allowRequestsWithoutOriginCheck` or an equivalent permissive bypass;
+- do not set `allowRequestsWithoutOriginCheck` or equivalent bypass;
 - do not hardcode production origins without deployment evidence;
 - prove intentionally public server routes remain reachable through their own boundaries.
 
@@ -378,7 +443,7 @@ Create one pure policy module:
 src/lib/public-content-security.ts
 ```
 
-It must own typed decisions for:
+It owns typed decisions for:
 
 - safe internal application paths;
 - safe HTTPS navigation URLs;
@@ -394,18 +459,18 @@ Create one server-only sanitizer:
 src/lib/public-html-sanitizer.server.ts
 ```
 
-The implementation must add exact direct dependencies:
+Pin direct dependencies:
 
 ```text
 sanitize-html = 2.17.5
 @types/sanitize-html = 2.16.1
 ```
 
-The direct versions and `bun.lock` must be audited in the implementation PR. No sanitizer may be loaded from a CDN or inferred from a transitive dependency.
+No sanitizer may be loaded from a CDN or inferred from a transitive dependency.
 
 ### 7.5 Pinned HTML policy
 
-Allowed content tags may include only the documented editorial subset:
+Allowed editorial tags are limited to:
 
 ```text
 p, br, strong, em, b, i, u,
@@ -426,16 +491,14 @@ object, embed, iframe, svg, math, template, noscript
 
 Attribute rules:
 
-- no `on*` event attributes;
+- no `on*` attributes;
 - no arbitrary `style`, `class` or `id`;
-- anchors may retain only normalized safe `href`, `title`, `target`, `rel`;
-- images may retain only normalized safe `src`, `alt`, `title`, `width`, `height`;
-- tables may retain only minimal semantic attributes directly justified by tests;
+- anchors retain only normalized safe `href`, `title`, `target`, `rel`;
+- images retain only normalized safe `src`, `alt`, `title`, `width`, `height`;
 - protocol-relative URLs are denied;
 - HTML comments are removed;
-- external `_blank` links receive `noopener noreferrer`.
-
-Sanitization must be deterministic and idempotent.
+- external `_blank` links receive `noopener noreferrer`;
+- sanitization is deterministic and idempotent.
 
 ### 7.6 Destination policy
 
@@ -448,21 +511,21 @@ URLs containing username/password credentials,
 malformed or control-character destinations
 ```
 
-Navigation contexts:
+Navigation:
 
 - internal links: normalized absolute application paths only;
 - external links: HTTPS only;
-- `mailto:` and `tel:` only where the component contract explicitly permits them;
+- `mailto:` and `tel:` only where explicitly permitted;
 - unknown schemes fail closed.
 
 Image/document contexts:
 
 - accepted signed HTTPS URLs and approved relative application assets;
 - no arbitrary data URI or blob URI;
-- failure of optional decorative media may omit the media;
-- failure of required executable/navigation destinations must deny the unsafe value.
+- invalid optional decorative media may be omitted;
+- invalid required executable/navigation destinations deny the unsafe value.
 
-Embed contexts use an exact HTTPS host/path allowlist:
+Embed contexts use exact HTTPS host/path allowlists:
 
 ```text
 www.youtube.com/embed/*
@@ -473,7 +536,7 @@ kuula.co/share/*
 www.google.com/maps/embed*
 ```
 
-Equivalent hosts or paths are not accepted heuristically. Unknown providers return `null` or throw a stable policy error; raw fallback is prohibited.
+Equivalent hosts or paths are not accepted heuristically. Unknown providers return `null` or a stable policy error; raw fallback is prohibited.
 
 ### 7.7 Sanitization placement
 
@@ -482,22 +545,23 @@ Security must be applied before public DTO serialization whenever a server publi
 Required coverage:
 
 - CMS page blocks and SEO destinations;
-- blog post HTML, cover image and metadata destinations;
+- blog HTML, cover image and metadata destinations;
 - launch description, video, images and documents;
-- site settings destinations used by header, footer, institutional CTA and contact map;
-- menu URL output.
+- site settings destinations used by Header, Footer, institutional CTA and contact map;
+- menu URL output;
+- property video, tour, cover, gallery, thumbnails and broker image.
 
-Renderers may retain defensive typed checks, but they must not become the only authority.
+Renderers may retain defensive typed checks but must not be the only authority.
 
 ### 7.8 Residual tenant-bound read remediation
 
 #### Blog
 
 - resolve tenant from Host before service-role use;
-- list, categories and detail must include `tenant_id` equality;
+- list, categories and detail include `tenant_id` equality;
 - detail uses `tenant_id + slug + published + limit(2)`;
 - explicit 0/1/N and tenant post-validation;
-- nested category and author rows must be proven compatible with the accepted tenant;
+- nested category and author rows must be tenant-compatible;
 - no `maybeSingle()` authority and no global anonymous client.
 
 #### Menu
@@ -505,7 +569,7 @@ Renderers may retain defensive typed checks, but they must not become the only a
 - resolve tenant from Host;
 - query visible items by `tenant_id`;
 - post-validate every collection row;
-- sanitize/normalize URLs before DTO return;
+- normalize destinations before DTO return;
 - no global anonymous client.
 
 #### Launches
@@ -516,6 +580,83 @@ Renderers may retain defensive typed checks, but they must not become the only a
 - nested status, city, neighborhood and broker rows must be tenant-compatible;
 - signing/service-role access begins only after accepted tenant and project authority;
 - no global anonymous client, global slug or `maybeSingle()` authority.
+
+### 7.9 Catalog, cities, neighborhoods and property detail
+
+#### Property catalog
+
+```text
+Host
+→ accepted tenant
+→ tenant_id equality
+→ active-property filters
+→ every-row tenant post-validation
+→ safe media DTO
+```
+
+Prohibited:
+
+- global anonymous client;
+- tenant supplied by client;
+- tenant default or heuristic;
+- row without proven `tenant_id`;
+- Storage signing before tenant authority;
+- silent retention of unsafe media URL.
+
+#### Cities and neighborhoods
+
+```text
+Host
+→ accepted tenant
+→ tenant_id equality
+→ tenant-scoped collection
+→ every-row tenant post-validation
+→ tenant-free DTO
+```
+
+Property counts by neighborhood must use the accepted tenant.
+
+#### Property detail
+
+```text
+strict { slug }
+→ Host-derived tenant
+→ tenant_id equality
+→ slug equality
+→ active status
+→ limit(2)
+→ explicit 0/1/N decision
+→ tenant post-validation
+→ nested tenant compatibility
+→ Storage signing
+→ destination-safe DTO
+```
+
+Prohibited:
+
+```text
+maybeSingle() as authority
+global slug
+service role before tenant authority
+first-row selection
+foreign or missing-tenant row
+tenant_id in public DTO
+```
+
+#### Property destinations
+
+Apply central policy before serialization of:
+
+```text
+video_url
+tour_url
+imagem_capa
+imovel_imagens.url
+imovel_imagens.thumb
+corretor.foto_url
+```
+
+Unsafe or unknown video/tour destinations must not reach the renderer. Valid signed HTTPS media may be preserved. Optional invalid decorative media may be omitted. Raw fallback is prohibited.
 
 ---
 
@@ -541,6 +682,7 @@ src/lib/api/blog.functions.ts
 src/lib/api/lancamentos.functions.ts
 src/lib/api/menu.functions.ts
 src/lib/api/site.functions.ts
+src/lib/api/catalogo.functions.ts                        # public-read functions only
 src/lib/embed-url.ts
 
 src/components/site/CmsPageRenderer.tsx
@@ -553,7 +695,29 @@ src/routes/contato.tsx
 src/routes/sobre.tsx
 ```
 
-A consumer file may be changed only when necessary to consume the safe DTO or remove a raw fallback. Presence in `FILES_ALLOWED` is not permission for unrelated refactoring.
+`src/lib/api/catalogo.functions.ts` is authorized only for:
+
+```text
+listarImoveis
+listarCidades
+listarBairros
+obterImovel
+public-read-only helpers and DTO types required by those functions
+```
+
+The following boundaries inside the same file are immutable:
+
+```text
+publicLeadSchema
+enviarLead
+requirePublicWriterTenantFromRequest
+writePublicLead
+PTW public mutation behavior
+lead recipient authority
+lead tenant authority
+```
+
+A consumer file may change only to consume a safe DTO or remove a raw fallback. Presence in `FILES_ALLOWED` is not permission for unrelated refactoring.
 
 ### 8.3 Generated consequence
 
@@ -561,7 +725,7 @@ A consumer file may be changed only when necessary to consume the safe DTO or re
 src/routeTree.gen.ts
 ```
 
-This file may change only through deterministic route generation caused by deleting the bootstrap route. Manual edits are prohibited.
+May change only through deterministic generation caused by deleting bootstrap-admin. Manual edits are prohibited.
 
 ### 8.4 Tests and Release Gate
 
@@ -591,12 +755,13 @@ PSG-01 must not:
 
 - create or alter migrations;
 - alter RLS, grants, functions, triggers or database schema;
-- alter Supabase Auth configuration or Storage;
+- alter Supabase Auth configuration or Storage boundaries;
 - modify tenant resolver, tenant middleware or impersonation;
-- modify accepted PTW public-writer boundaries;
+- modify `src/lib/public-writers/*`;
+- modify `publicLeadSchema`, `enviarLead`, `requirePublicWriterTenantFromRequest` or `writePublicLead`;
 - change portal DLQ business selection, replay, retry or resolution semantics;
 - change `create_manual_lead` or LSH boundaries;
-- change email provider callbacks or email delivery authorization;
+- change email callbacks or delivery authorization;
 - redesign CMS admin permissions, roles or publishing workflow;
 - add a replacement public bootstrap endpoint;
 - add wildcard embed hosts or protocol fallbacks;
@@ -611,7 +776,7 @@ PSG-01 must not:
 
 ## 10. Stable error and decision model
 
-Implementation must define stable internal decision categories, without leaking secrets or raw policy internals:
+Implementation must define stable internal categories without leaking secrets or removed content:
 
 ```text
 operator_route_unauthorized
@@ -628,7 +793,7 @@ public_resource_foreign_tenant
 public_resource_missing_tenant
 ```
 
-HTTP responses for operational authentication must remain generic. Logs must not contain credential values or sanitized-out payload content.
+Operational-auth responses remain generic. Logs must not contain credential values or sanitized-out payload content.
 
 ---
 
@@ -638,15 +803,15 @@ HTTP responses for operational authentication must remain generic. Logs must not
 
 Prove:
 
-- public bootstrap route no longer exists;
+- public bootstrap route absent;
 - generated route tree contains no bootstrap route;
-- no source imports or links to the route;
+- no source imports or links to it;
 - operator runbook exists and contains no secrets;
-- no replacement service-role bootstrap HTTP route was introduced.
+- no replacement service-role bootstrap HTTP route exists.
 
 ### 11.2 Operational DLQ authentication
 
-Execute negative and positive cases:
+Execute:
 
 ```text
 missing environment secret → deny
@@ -666,67 +831,118 @@ Prove service-role import and DLQ query are never reached on denial.
 
 Execute:
 
-- same-origin serverFn request accepted;
-- cross-site serverFn request denied;
+- same-origin serverFn accepted;
+- cross-site serverFn denied;
 - malformed or disallowed Origin denied;
 - missing-origin behavior follows secure framework default;
-- intentionally public server routes are not accidentally blocked by the serverFn filter;
+- intentionally public server routes are not accidentally blocked;
 - existing auth and tenant middleware remain active.
 
 ### 11.4 HTML sanitizer
 
 Execute at minimum:
 
-- script removal;
-- event attribute removal;
-- style/class/id removal;
+- script, event attribute, style/class/id removal;
 - iframe/object/embed/svg/math removal;
-- JavaScript/VBScript/data/blob/file URL removal;
-- protocol-relative URL removal;
+- JavaScript/VBScript/data/blob/file/protocol-relative URL removal;
 - safe editorial markup preservation;
-- table/list/code preservation within policy;
+- table/list/code preservation;
 - external `_blank` rel normalization;
 - deterministic repeated sanitization;
-- HTML comments removed;
-- malformed nested markup handled without policy bypass.
+- comments removed;
+- malformed nested markup handled without bypass.
 
 ### 11.5 URL and embed policy
 
-Execute per context:
+Execute:
 
 - safe relative internal path;
 - safe HTTPS external link;
-- explicit mailto/tel acceptance only in allowed contexts;
-- credential-bearing URL denied;
-- control-character obfuscation denied;
-- encoded JavaScript scheme denied;
-- each allowed embed provider accepted only at its exact host/path;
-- unknown host/path denied;
-- HTTP embed denied;
-- `toEmbedUrl` has no raw unknown-provider fallback;
-- contact map and CMS video use the same policy authority.
+- mailto/tel only in allowed contexts;
+- credential-bearing and control-character URLs denied;
+- encoded JavaScript denied;
+- exact allowed provider/host/path accepted;
+- unknown host/path and HTTP embed denied;
+- `toEmbedUrl` has no raw fallback;
+- contact map, CMS video and property video/tour use the same policy authority.
 
 ### 11.6 Tenant-bound public reads
 
 Execute 0/1/N, foreign and missing-tenant cases for:
 
-- blog post detail;
-- blog lists and categories collections;
+- blog post detail, lists and categories;
 - menu collection;
-- launch detail;
-- launch statuses and amenities collections;
-- launch list;
-- launch child collections.
+- launch detail, statuses, amenities, list and child collections;
+- property catalog;
+- city collection;
+- neighborhood collection;
+- property detail.
 
-Prove:
+For `listarImoveis`, `listarCidades` and `listarBairros`, execute:
+
+```text
+unknown Host → deny before query
+missing tenant → deny
+foreign row → deny
+mixed-tenant collection → deny
+valid same-tenant collection → accept
+tenant_id absent from DTO
+```
+
+For `obterImovel`, execute:
+
+```text
+0 rows → not found
+1 same-tenant row → accepted
+N rows → ambiguous and denied
+foreign row → denied
+missing tenant_id → denied
+query error → fail closed
+```
+
+Prove structurally:
 
 - Host failure precedes service-role use;
 - tenant equality precedes slug/project equality;
-- child queries use accepted tenant and accepted project;
-- no global anonymous client or `maybeSingle()` authority remains;
+- `limit(2)` is present for exact detail reads;
+- `maybeSingle()` authority is absent;
+- Storage signing occurs only after tenant/resource authority;
+- child queries use accepted tenant and accepted parent;
+- no global anonymous client remains in authorized public reads;
 - sanitized DTOs contain no `tenant_id`.
 
-### 11.7 Regression evidence
+### 11.7 Property destination security
+
+Execute:
+
+```text
+safe signed HTTPS image → accepted
+safe approved relative asset → accepted
+javascript/data/blob/protocol-relative/credential-bearing URL → denied
+unknown video provider → denied
+unknown tour provider → denied
+HTTP embed → denied
+exact approved provider/path → accepted
+raw fallback → absent
+```
+
+Prove unsafe values are removed or denied before public DTO serialization.
+
+### 11.8 PTW preservation
+
+Prove:
+
+```text
+publicLeadSchema unchanged
+enviarLead authority unchanged
+writePublicLead delegation preserved
+CATALOGO_PUBLIC_WRITER_CHANGED = false
+PTW_PUBLIC_WRITER_BOUNDARIES_CHANGED = false
+```
+
+PTW authority and SQL structural suites must remain green.
+
+### 11.9 Regression evidence
 
 The Release Gate must execute:
 
@@ -793,11 +1009,28 @@ PUBLIC_LAUNCH_HOST_BOUND = true
 PUBLIC_LAUNCH_DETAIL_CARDINALITY_EXPLICIT = true
 PUBLIC_LAUNCH_CHILDREN_TENANT_BOUND = true
 
+PUBLIC_CATALOG_HOST_BOUND = true
+PUBLIC_CATALOG_COLLECTION_TENANT_VALIDATED = true
+PUBLIC_CITY_COLLECTION_HOST_BOUND = true
+PUBLIC_CITY_COLLECTION_TENANT_VALIDATED = true
+PUBLIC_NEIGHBORHOOD_COLLECTION_HOST_BOUND = true
+PUBLIC_NEIGHBORHOOD_COLLECTION_TENANT_VALIDATED = true
+PUBLIC_PROPERTY_DETAIL_HOST_BOUND = true
+PUBLIC_PROPERTY_DETAIL_TENANT_FILTER = true
+PUBLIC_PROPERTY_DETAIL_CARDINALITY_EXPLICIT = true
+PUBLIC_PROPERTY_DETAIL_MAYBE_SINGLE_AUTHORITY = false
+PUBLIC_PROPERTY_MEDIA_POLICY_SERVER_BOUND = true
+PUBLIC_PROPERTY_RAW_VIDEO_URL_SERIALIZED = false
+PUBLIC_PROPERTY_RAW_TOUR_URL_SERIALIZED = false
+PUBLIC_PROPERTY_RAW_UNSAFE_MEDIA_SERIALIZED = false
+
+CATALOGO_PUBLIC_READ_SCOPE_ONLY = true
+CATALOGO_PUBLIC_WRITER_CHANGED = false
 PTW_PUBLIC_WRITER_BOUNDARIES_CHANGED = false
 DLQ_BUSINESS_MUTATION_CHANGED = false
 TENANT_RESOLVER_CHANGED = false
 AUTH_CONFIGURATION_CHANGED = false
-STORAGE_CHANGED = false
+STORAGE_BOUNDARIES_CHANGED = false
 DATABASE_SCHEMA_CHANGED = false
 RLS_GRANTS_CHANGED = false
 WORKFLOW_DEFINITION_CHANGED = false
@@ -816,18 +1049,24 @@ A future implementation may be accepted only after direct GitHub inspection prov
 
 1. exact baseline and one implementation PR;
 2. all changed files are inside the accepted envelope;
-3. bootstrap route is absent without a replacement public privileged route;
-4. operational secret transport and constant-time verification are exact;
-5. PTW replay business logic is unchanged;
-6. CSRF middleware is present and public server routes remain intentional;
+3. bootstrap route absent without replacement public privileged route;
+4. operational secret transport and constant-time verification exact;
+5. PTW replay business logic unchanged;
+6. CSRF middleware present and public server routes intentional;
 7. sanitization occurs server-side under one pinned policy;
 8. all URL/embed consumers use the central policy or receive already-safe DTOs;
-9. blog, menu and launch reads are Host/tenant-bound with executable 0/1/N evidence;
-10. dependency and lockfile changes are limited to the pinned sanitizer packages;
-11. no migration, RLS, grant, Auth, Storage, workflow or unrelated runtime change exists;
-12. Release Gate and artifact are tied to the exact implementation HEAD;
-13. no blocking review or unresolved thread exists;
-14. merge remains prohibited until explicit final audit acceptance.
+9. blog, menu and launch reads are Host/tenant-bound with executable evidence;
+10. `catalogo.functions.ts` changed only in `listarImoveis`, `listarCidades`, `listarBairros`, `obterImovel` and directly required read-only helpers/DTO types;
+11. catalog, city, neighborhood and property-detail reads are Host/tenant-bound;
+12. property detail uses `limit(2)`, explicit 0/1/N and no `maybeSingle()` authority;
+13. service role and Storage signing occur only after accepted tenant/resource authority;
+14. property media, video and tour are validated before DTO serialization with no raw fallback;
+15. `publicLeadSchema`, `enviarLead`, `writePublicLead` delegation and PTW writer modules remain unchanged;
+16. dependency and lockfile changes are limited to pinned sanitizer packages;
+17. no migration, RLS, grant, Auth, Storage-boundary, workflow or unrelated runtime change exists;
+18. Release Gate and artifact are tied to the exact implementation HEAD;
+19. no blocking review or unresolved thread exists;
+20. merge remains prohibited until explicit final audit acceptance.
 
 ---
 
@@ -835,6 +1074,7 @@ A future implementation may be accepted only after direct GitHub inspection prov
 
 ```text
 PSG01_PLANNING_STATE = Ready for Final External Audit
+PSG01_PLANNING_MERGE_AUTHORIZED = false
 PSG01_IMPLEMENTATION_AUTHORIZED = false
 PSG01_IMPLEMENTATION_STARTED = false
 MERGE_AUTHORIZED = false
