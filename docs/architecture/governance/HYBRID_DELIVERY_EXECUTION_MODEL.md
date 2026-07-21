@@ -11,6 +11,8 @@
 
 This decision was explicitly authorized by the product owner after repeated execution loops, budget overrun and insufficient interpretation fidelity in external implementation prompts.
 
+**Normative amendment:** `docs/architecture/governance/GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md`
+
 ---
 
 ## 1. Objective
@@ -91,16 +93,20 @@ Every Lovable task MUST have:
 - binary acceptance criteria;
 - direct GitHub audit after execution.
 
-### 3.3 Mandatory executor change
+### 3.3 Failure handling by executor
 
-If a principal implementation and its single consolidated corrective fail, the same material problem MUST NOT be restarted under another stage identifier with the same executor.
+For Lovable execution, the stage-specific prompt budget remains binding. When the allowed Lovable attempts fail, the next decision MUST be terminalization, formal scope reduction or executor change.
 
-The next decision MUST be one of:
+For GitHub-native execution, prompt count is not an implementation budget. Corrections may continue in the same branch and PR when:
 
-- change executor;
-- formally reduce scope before a new stage begins;
-- terminalize as `Blocked External` when the remaining dependency is external;
-- reject or supersede the path.
+- the exact failure or audit finding is known;
+- the correction is causally connected to that evidence;
+- the diff remains inside the frozen scope;
+- no parallel implementation flow exists;
+- the complete Release Gate is rerun;
+- merge remains blocked until final audit.
+
+GitHub-native work must be stopped or re-planned when the scope must expand, an architectural decision is missing, an external dependency blocks completion, or repeated attempts lack new diagnostic evidence.
 
 ---
 
@@ -132,6 +138,16 @@ This budget is global for the pre-homologation visual package, not per screen or
 
 Documentation, terminal reconciliation, roadmap maintenance, audit confirmation and governance holds MUST be performed directly in GitHub without Lovable interaction.
 
+### 4.4 Applicability
+
+```text
+LOVABLE_PROMPT_BUDGET_APPLICABLE = true
+GITHUB_NATIVE_PROMPT_BUDGET_APPLICABLE = false
+GITHUB_NATIVE_CHANGE_CONTROL = evidence-driven
+```
+
+The Lovable ceiling remains whatever is frozen by the applicable stage. GitHub-native commits, PR revisions and CI corrections do not consume that ceiling.
+
 ---
 
 ## 5. Required workflow
@@ -142,8 +158,9 @@ Audited main
 → frozen GitHub-native execution envelope
 → branch and pull request
 → automated and structural evidence
+→ evidence-driven correction when required
 → direct audit
-→ merge or rejection
+→ merge or explicit stop/replan
 → next authorized gate
 ```
 
@@ -181,7 +198,7 @@ This model does not relax any existing invariant:
 - signed URL is not primary authorization;
 - Same-Backend Homologation Cell remains binding;
 - external Supabase is not a canonical fallback;
-- accepted phases and terminal stages are not reopened.
+- accepted phases and terminal stages are not reopened unless an explicit later governance decision supersedes only the delivery-process classification.
 
 ---
 
@@ -189,4 +206,22 @@ This model does not relax any existing invariant:
 
 This document supersedes any earlier operational rule that treated the Lovable report as the standard audit source or GitHub inspection as exceptional.
 
-It does not supersede accepted architectural or security contracts. Where delivery-process wording conflicts, this document and the direct-audit rule prevail because they are more restrictive and were explicitly authorized by the product owner.
+`GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md` supersedes any clause that applies Lovable prompt-count limits to direct GitHub-native execution.
+
+It does not supersede accepted architectural or security contracts. Where delivery-process wording conflicts, this model, its normative amendment and the direct-audit rule prevail because they were explicitly authorized by the product owner and preserve stronger evidence controls.
+
+---
+
+## 9. Current public-page consequence
+
+```text
+PPR01_PROCESS_CLASSIFICATION = Superseded
+PR_33_STATE = Closed — Unmerged
+PR_33_REOPEN_AUTHORIZED = false
+PPR_GN_01_PLANNING_PATH = authorized
+PPR_GN_01_IMPLEMENTATION = blocked until planning acceptance
+PTW01_AUTHORIZED = false
+LOVABLE_AUTHORIZED = false
+```
+
+The public-page technical objective remains release-blocking and must be completed from audited `main` through the PPR-GN-01 envelope.
