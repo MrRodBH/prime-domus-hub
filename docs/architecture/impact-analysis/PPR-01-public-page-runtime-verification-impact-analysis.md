@@ -7,10 +7,10 @@
 ```text
 STAGE_ID = PPR-01
 PLANNING_BASELINE_HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
-PLANNING_HEAD_AUDITED = 03762599a1f14c02622da8c648abe0d5ee10e308
-PLANNING_RELEASE_GATE_RUN = 29790961174
-PLANNING_RELEASE_GATE_JOB = 88512462460
-PLANNING_RELEASE_GATE_CONCLUSION = success
+PLANNING_ACCEPTANCE_HEAD = ca8697b5eba70035e7db435bf4e3e4808ee7959f
+PLANNING_RELEASE_GATE_RUNS = 29790961174, 29791221790
+PLANNING_RELEASE_GATE_CONCLUSIONS = success, success
+PLANNING_PATH_CORRECTION = src/routes/p/$slug.tsx -> src/routes/p.$slug.tsx
 PREDECESSOR = PSC-01 Accepted
 EXECUTOR = GitHub-native direct file edits
 LOVABLE_AUTHORIZED = false
@@ -49,12 +49,12 @@ PSC-01 runtime HEAD = e5032890c7cc44dd03990d4e462ec3b3bb723be0
 PSC-01 acceptance HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
 ```
 
-Binding predecessor guarantees:
+Binding guarantees:
 
 - public tenant authority derives from the server-owned request Host;
 - unresolved authority fails closed;
 - no default RM Prime tenant fallback exists;
-- the Release Gate persists complete execution evidence.
+- the Release Gate persists execution evidence.
 
 ### 2.2 Public page function
 
@@ -76,10 +76,10 @@ Audited behavior:
 
 ### 2.3 Public page route
 
-Current file:
+Current file confirmed by the generated route tree:
 
 ```text
-src/routes/p/$slug.tsx
+src/routes/p.$slug.tsx
 ```
 
 Audited behavior:
@@ -150,13 +150,14 @@ Responsibilities:
 5. pure cardinality, tenant-postcondition and schema validation;
 6. dependency-injected loader used by production and executable tests.
 
-Required boundary exports, or exact functional equivalents:
+Required exports, or exact functional equivalents:
 
 ```text
 CmsBlock
 PublicPageSeo
 PublicPageDto
 PublicPageRow
+publicPageInputSchema
 parsePublicPageRows
 loadPublicPageForRequest
 ```
@@ -189,7 +190,7 @@ Required behavior:
 Update:
 
 ```text
-src/routes/p/$slug.tsx
+src/routes/p.$slug.tsx
 ```
 
 Required behavior:
@@ -241,7 +242,7 @@ Structural checks may prove wiring only. Runtime cardinality and cross-tenant cl
 ```text
 src/lib/public-page-contract.ts
 src/lib/api/pages.functions.ts
-src/routes/p/$slug.tsx
+src/routes/p.$slug.tsx
 src/lib/__tests__/public-page-runtime-verification.spec.ts
 run-public-page-runtime-verification-specs.ts
 package.json
@@ -366,6 +367,7 @@ LOVABLE_AUTHORIZED = false
 
 ```text
 PPR01_PLANNING_STATE = Accepted
+PPR01_PLANNING_PATH_CORRECTION_COMPLETE = true
 PPR01_IMPLEMENTATION_STARTED = false
 PPR01_PRINCIPAL_CONSUMED = false
 PPR01_CORRECTIVE_CONSUMED = false
