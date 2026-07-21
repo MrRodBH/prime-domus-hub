@@ -73,6 +73,9 @@ function inspectRegisterAuthority(label) {
 run("Preflight — PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
 run("Preflight — PTR-01 public tenant read binding specifications", "bun", ["run", "test:ptr-01"]);
 run("Preflight — PSC-01 public settings and campaign recovery specifications", "bun", ["run", "test:psc-01"]);
+run("Preflight — PPR-GN-01 public page runtime specifications", "bun", ["run", "test:ppr-gn-01"]);
+run("Preflight — PTW-01 public writer authority specifications", "bun", ["run", "test:ptw-01:authority"]);
+run("Preflight — PTW-01 campaign-event SQL structural specifications", "bun", ["run", "test:ptw-01:sql-structural"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -92,8 +95,9 @@ if (cycleC !== cycleA) {
 }
 
 run("Lead authorization unit specifications", "bun", ["run", "test:lsh-01:unit"]);
+run("Lead runtime operation specifications", "bun", ["run", "test:lsh-01:runtime"]);
 run("Lead structural specifications", "bun", ["run", "test:lsh-01:structural"]);
-run("PPR-GN-01 public page runtime specifications", "bun", ["run", "test:ppr-gn-01"]);
+run("Lead SQL structural specifications", "bun", ["run", "test:lsh-01:sql-structural"]);
 
 console.log(
   JSON.stringify(
@@ -109,6 +113,12 @@ console.log(
       publicTenantReadBindingSpecsPassed: true,
       publicSettingsCampaignRecoverySpecsPassed: true,
       publicPageRuntimeSpecsPassed: true,
+      publicTenantWriterAuthoritySpecsPassed: true,
+      publicTenantWriterSqlStructuralSpecsPassed: true,
+      leadAuthorizationUnitSpecsPassed: true,
+      leadRuntimeOperationSpecsPassed: true,
+      leadStructuralSpecsPassed: true,
+      leadSqlStructuralSpecsPassed: true,
       routeTreeSha256: cycleA,
     },
     null,
