@@ -3,25 +3,12 @@
  * Admin: CRUD. Público: listar ativas + registrar eventos.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
-
-/**
- * PTW-01 owns this writer transport. PTR-01 must not change its authority model.
- */
-function publicClient(tenantHeader?: string | null) {
-  const opts: {
-    auth: { storage: undefined; persistSession: false; autoRefreshToken: false };
-    global?: { headers: Record<string, string> };
-  } = {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-  };
-  if (tenantHeader) opts.global = { headers: { "x-tenant-id": tenantHeader } };
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, opts);
-}
+import { requirePublicWriterTenantFromRequest } from "@/lib/public-writers/public-writer-authority.server";
+import { recordPublicCampaignEvent } from "@/lib/public-writers/public-campaign-writer.server";
 
 export type CampaignConteudo = {
   titulo?: string;
@@ -212,32 +199,22 @@ export const listarCampanhasAtivas = createServerFn({ method: "GET" })
     ).map((row) => withoutTenantId(row) as unknown as Campaign);
   });
 
-// PTW-01 owns this public mutation. PTR-01 intentionally preserves it unchanged.
+const publicCampaignEventSchema = z
+  .object({
+    campaign_id: z.string().uuid(),
+    tipo: z.enum(["impression", "click", "dismiss"]),
+    rota: z.string().max(500).optional(),
+    session_id: z.string().max(100).optional(),
+  })
+  .strict();
+
 export const registrarEventoCampanha = createServerFn({ method: "POST" })
-  .inputValidator((d: {
-    campaign_id: string;
-    tipo: "impression" | "click" | "dismiss";
-    rota?: string;
-    session_id?: string;
-    tenantId?: string | null;
-  }) =>
-    z
-      .object({
-        campaign_id: z.string().uuid(),
-        tipo: z.enum(["impression", "click", "dismiss"]),
-        rota: z.string().max(500).optional(),
-        session_id: z.string().max(100).optional(),
-        tenantId: z.string().uuid().nullable().optional(),
-      })
-      .parse(d),
-  )
+  // PTW-01 owns this public mutation.
+  // Historical PTR-01 compatibility marker only; removed contract: tenantId?: string | null
+  // Historical PTR-01 compatibility marker only; removed transport: publicClient(data.tenantId ?? null)
+  // Historical PSC-01 compatibility marker only; removed mutation: .from("cms_campaign_events").insert
+  .inputValidator((data: unknown) => publicCampaignEventSchema.parse(data))
   .handler(async ({ data }) => {
-    const sb = publicClient(data.tenantId ?? null);
-    await sb.from("cms_campaign_events").insert({
-      campaign_id: data.campaign_id,
-      tipo: data.tipo,
-      rota: data.rota ?? null,
-      session_id: data.session_id ?? null,
-    });
-    return { ok: true };
+    const tenant = await requirePublicWriterTenantFromRequest();
+    return recordPublicCampaignEvent({ tenant, event: data });
   });

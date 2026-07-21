@@ -11,6 +11,15 @@ import { obterSiteSettings } from "@/lib/api/site.functions";
 import { attributionPayload } from "@/lib/attribution";
 import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
 
+type AdvertiseLeadPayload = ReturnType<typeof attributionPayload> & {
+  nome: string;
+  email?: string;
+  telefone?: string;
+  mensagem?: string;
+  origem: string;
+  consent_lgpd: true;
+};
+
 export const Route = createFileRoute("/anuncie")({
   head: () => ({
     meta: [
@@ -35,7 +44,7 @@ function Page() {
   const [consent, setConsent] = useState(false);
 
   const enviar = useMutation({
-    mutationFn: (payload: Parameters<typeof enviarLead>[0]["data"]) =>
+    mutationFn: (payload: AdvertiseLeadPayload) =>
       enviarLead({ data: payload }),
     onSuccess: () => {
       toast.success("Informações recebidas! Um consultor entrará em contato em breve.");
@@ -76,10 +85,8 @@ function Page() {
       ...attr,
       origem: "Anúncio (Avaliação)",
       consent_lgpd: true,
-      notificar_gestores: true,
     });
 
-    // Meta events (não bloqueia)
     const event_id = metaEventId();
     metaTrack("Lead", { content_name: "Formulário Anuncie", source: "/anuncie" }, event_id);
     const ids = metaBrowserIds();

@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+import { resolvePortalConnectorForTenant } from "@/lib/public-writers/public-writer-authority.server";
+import { ingestPortalLead } from "@/lib/public-writers/portal-writer.server";
 
 // Segurança: aceita apikey == SUPABASE_PUBLISHABLE_KEY (padrão pg_cron)
 // ou header x-cron-secret == CRON_SECRET (uso manual/interno).
@@ -37,38 +40,69 @@ export const Route = createFileRoute("/api/public/hooks/portal-dlq-retry")({
           });
         }
 
+        const leadSchema = z
+          .object({
+            nome: z.string().min(1).max(200),
+            email: z.string().email().max(200).optional().nullable(),
+            telefone: z.string().max(50).optional().nullable(),
+            mensagem: z.string().max(2000).optional().nullable(),
+            imovel_codigo: z.string().max(60).optional().nullable(),
+            imovel_id: z.string().uuid().optional().nullable(),
+            portal_reference: z.string().max(120).optional().nullable(),
+            valor_estimado: z.number().nullable().optional(),
+          })
+          .strict();
+        const itemSchema = z
+          .object({
+            id: z.string().uuid(),
+            tenant_id: z.string().uuid(),
+            portal_slug: z.string().min(2).max(40),
+            acao: z.string(),
+            payload: z
+              .object({
+                portal: z.string().min(2).max(40),
+                token: z.string().min(10).optional(),
+                lead: leadSchema,
+              })
+              .strict(),
+          })
+          .passthrough();
+
         let ok = 0, retry = 0, skipped = 0;
-        for (const item of items ?? []) {
+        for (const rawItem of items ?? []) {
+          let item: z.infer<typeof itemSchema>;
           try {
-            if (item.acao === "lead_ingest") {
-              const p = item.payload?.lead ?? {};
-              const insertRow = {
-                tenant_id: item.tenant_id,
-                nome: p.nome,
-                email: p.email ?? null,
-                telefone: p.telefone ?? null,
-                mensagem: p.mensagem ?? null,
-                origem: `portal:${item.portal_slug}`,
-                imovel_id: p.imovel_id ?? null,
-                status: "novo",
-                consent_lgpd: true,
-                consent_at: new Date().toISOString(),
-                utm_source: item.portal_slug,
-                utm_medium: "portal",
-              };
-              const { error: insErr } = await supabaseAdmin.from("leads").insert(insertRow as never);
-              if (insErr) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await (supabaseAdmin as any).rpc("portal_dlq_mark_retry", { _id: item.id, _erro: insErr.message });
-                retry++;
-              } else {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await (supabaseAdmin as any).rpc("portal_dlq_mark_resolved", { _id: item.id });
-                ok++;
-              }
-            } else {
-              skipped++;
+            item = itemSchema.parse(rawItem);
+          } catch (validationError) {
+            const message = validationError instanceof Error ? validationError.message : "invalid DLQ item";
+            const itemId = typeof rawItem?.id === "string" ? rawItem.id : null;
+            if (itemId) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await (supabaseAdmin as any).rpc("portal_dlq_mark_retry", { _id: itemId, _erro: message });
             }
+            retry++;
+            continue;
+          }
+
+          try {
+            if (item.acao !== "lead_ingest") {
+              skipped++;
+              continue;
+            }
+            const persistedPortal = item.portal_slug.trim().toLowerCase();
+            if (item.payload.portal.trim().toLowerCase() !== persistedPortal) {
+              throw new Error("DLQ portal identity conflicts with persisted queue authority.");
+            }
+
+            const connector = await resolvePortalConnectorForTenant({
+              tenantId: item.tenant_id,
+              portalSlug: persistedPortal,
+            });
+            await ingestPortalLead({ connector, lead: item.payload.lead });
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (supabaseAdmin as any).rpc("portal_dlq_mark_resolved", { _id: item.id });
+            ok++;
           } catch (e) {
             const msg = e instanceof Error ? e.message : "erro";
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -28,7 +28,10 @@
     "test:ptc-01": "tsx --tsconfig tsconfig.json ./run-public-tenant-context-specs.ts",
     "test:ptr-01": "tsx --tsconfig tsconfig.json ./run-public-tenant-read-binding-specs.ts",
     "test:psc-01": "tsx --tsconfig tsconfig.json ./run-public-settings-campaign-read-recovery-specs.ts",
-    "test:ppr-gn-01": "tsx --tsconfig tsconfig.json ./run-public-page-runtime-verification-specs.ts"
+    "test:ppr-gn-01": "tsx --tsconfig tsconfig.json ./run-public-page-runtime-verification-specs.ts",
+    "test:ptw-01:authority": "tsx --tsconfig tsconfig.json ./run-public-tenant-writer-authority-specs.ts",
+    "test:ptw-01:sql-structural": "tsx --tsconfig tsconfig.json ./run-public-tenant-writer-sql-structural-specs.ts",
+    "test:ptw-01": "bun run test:ptw-01:authority && bun run test:ptw-01:sql-structural"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

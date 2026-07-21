@@ -12,6 +12,15 @@ import { enviarLead } from "@/lib/api/catalogo.functions";
 import { attributionPayload } from "@/lib/attribution";
 import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
 
+type ContactLeadPayload = ReturnType<typeof attributionPayload> & {
+  nome: string;
+  email?: string;
+  telefone?: string;
+  mensagem?: string;
+  origem: string;
+  consent_lgpd: true;
+};
+
 export const Route = createFileRoute("/contato")({
   head: () => ({
     meta: [
@@ -38,7 +47,7 @@ function Page() {
   const [consent, setConsent] = useState(false);
 
   const enviar = useMutation({
-    mutationFn: (p: Parameters<typeof enviarLead>[0]["data"]) => enviarLead({ data: p }),
+    mutationFn: (p: ContactLeadPayload) => enviarLead({ data: p }),
     onSuccess: () => {
       toast.success("Mensagem enviada! Retornaremos em breve.");
       (document.getElementById("contato-form") as HTMLFormElement | null)?.reset();
@@ -68,7 +77,6 @@ function Page() {
       ...attr,
       origem: "Contato (Site)",
       consent_lgpd: true,
-      notificar_gestores: true,
     });
 
     const event_id = metaEventId();
