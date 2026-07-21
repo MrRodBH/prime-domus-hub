@@ -70,6 +70,10 @@ function inspectRegisterAuthority(label) {
   return digest;
 }
 
+run("Preflight — PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
+run("Preflight — PTR-01 public tenant read binding specifications", "bun", ["run", "test:ptr-01"]);
+run("Preflight — PSC-01 public settings and campaign recovery specifications", "bun", ["run", "test:psc-01"]);
+
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
 run("Cycle A — typecheck", "bun", ["run", "typecheck"]);
@@ -89,9 +93,7 @@ if (cycleC !== cycleA) {
 
 run("Lead authorization unit specifications", "bun", ["run", "test:lsh-01:unit"]);
 run("Lead structural specifications", "bun", ["run", "test:lsh-01:structural"]);
-run("PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
-run("PTR-01 public tenant read binding specifications", "bun", ["run", "test:ptr-01"]);
-run("PSC-01 public settings and campaign recovery specifications", "bun", ["run", "test:psc-01"]);
+run("PPR-GN-01 public page runtime specifications", "bun", ["run", "test:ppr-gn-01"]);
 
 console.log(
   JSON.stringify(
@@ -106,6 +108,7 @@ console.log(
       publicTenantContextSpecsPassed: true,
       publicTenantReadBindingSpecsPassed: true,
       publicSettingsCampaignRecoverySpecsPassed: true,
+      publicPageRuntimeSpecsPassed: true,
       routeTreeSha256: cycleA,
     },
     null,
