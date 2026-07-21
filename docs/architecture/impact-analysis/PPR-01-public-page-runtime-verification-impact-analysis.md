@@ -2,65 +2,61 @@
 
 ## Status
 
-**Ready for External Audit — planning only**
+**Accepted — planning only**
 
 ```text
 STAGE_ID = PPR-01
-BASELINE_HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
+PLANNING_BASELINE_HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
+PLANNING_HEAD_AUDITED = 03762599a1f14c02622da8c648abe0d5ee10e308
+PLANNING_RELEASE_GATE_RUN = 29790961174
+PLANNING_RELEASE_GATE_JOB = 88512462460
+PLANNING_RELEASE_GATE_CONCLUSION = success
 PREDECESSOR = PSC-01 Accepted
 EXECUTOR = GitHub-native direct file edits
 LOVABLE_AUTHORIZED = false
 RUNTIME_CHANGES_IN_THIS_ANALYSIS = false
-PRINCIPAL_IMPLEMENTATION_STARTED = false
-PRINCIPAL_IMPLEMENTATION_CONSUMED = false
-CORRECTIVE_IMPLEMENTATION_CONSUMED = false
-REMAINING_IMPLEMENTATION_BUDGET = 2/2
+PPR01_IMPLEMENTATION_STARTED = false
+PPR01_PRINCIPAL_CONSUMED = false
+PPR01_CORRECTIVE_CONSUMED = false
+PPR01_REMAINING_IMPLEMENTATION_BUDGET = 2/2
 ```
 
 ---
 
 ## 1. Objective
 
-Independently prove and, where necessary, correct the public CMS page read boundary so that:
+Prove and, where necessary, correct the public CMS page read boundary so that:
 
-- request Host remains the only tenant authority;
+- request Host is the only tenant authority;
 - client input contains only the page slug;
 - lookup cardinality is explicit for 0, 1 and N rows;
 - every returned row is revalidated against the server-resolved tenant;
 - the public DTO is JSON-serializable and statically typed;
-- `blocks` and `seo` are validated rather than returned as `unknown`;
+- `blocks` and `seo` are runtime-validated rather than exposed as `unknown`;
 - unknown Host, query failure, duplicate result and foreign-tenant response fail closed;
-- page-route typecheck succeeds without unsafe casts.
+- the route consumes the DTO without unsafe structural casts.
 
-PPR-01 is page-read scope only. It does not reopen PTR-01 and does not authorize public writers, settings, Meta, campaigns, CMS sanitization or operational-security work.
+PPR-01 is page-read scope only. It does not reopen PTR-01 and does not authorize settings, Meta, campaigns, writers, CMS sanitization, database or operational-security changes.
 
 ---
 
-## 2. Current repository findings
+## 2. Audited current state
 
 ### 2.1 Accepted predecessor
 
-PSC-01 is accepted at runtime HEAD:
-
 ```text
-e5032890c7cc44dd03990d4e462ec3b3bb723be0
+PSC-01 runtime HEAD = e5032890c7cc44dd03990d4e462ec3b3bb723be0
+PSC-01 acceptance HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
 ```
 
-Its acceptance evidence is merged at:
-
-```text
-871b5aa962e71cf3da5c585392f32b4cbca987e6
-```
-
-The following predecessor guarantees remain binding:
+Binding predecessor guarantees:
 
 - public tenant authority derives from the server-owned request Host;
 - unresolved authority fails closed;
 - no default RM Prime tenant fallback exists;
-- collection reads validate returned `tenant_id`;
-- Release Gate persists complete execution evidence.
+- the Release Gate persists complete execution evidence.
 
-### 2.2 Current public page function
+### 2.2 Public page function
 
 Current file:
 
@@ -68,17 +64,17 @@ Current file:
 src/lib/api/pages.functions.ts
 ```
 
-Observed public behavior:
+Audited behavior:
 
 - strict input contains only `slug`;
-- `requirePublicTenantFromRequest()` is called before the query;
-- query includes `tenant_id`, `slug` and `status = published` predicates;
+- tenant is resolved before the query;
+- query includes `tenant_id`, `slug` and `status = published`;
 - response includes `tenant_id`;
 - current lookup uses `maybeSingle()`;
-- response row is returned directly;
-- `blocks` and `seo` originate from JSON columns and are not runtime-validated into a stable public contract.
+- response is returned directly;
+- JSON `blocks` and `seo` are not converted into an explicit validated public contract.
 
-### 2.3 Current public page route
+### 2.3 Public page route
 
 Current file:
 
@@ -86,50 +82,19 @@ Current file:
 src/routes/p/$slug.tsx
 ```
 
-Observed route behavior:
+Audited behavior:
 
 - consumer sends only `slug`;
-- absence of a row becomes `notFound()`;
-- `head` locally casts the page shape;
-- component locally casts `page.blocks as CmsBlock[]`;
-- canonical URL is hardcoded to the RM Prime domain instead of deriving tenant-aware authority.
+- missing row becomes `notFound()`;
+- `head` locally casts the page and SEO shape;
+- component casts `page.blocks as CmsBlock[]`;
+- canonical URL falls back to a hardcoded RM Prime domain.
 
-The hardcoded canonical URL is a page-read product correctness defect, but PPR-01 must not invent domain authority. The accepted correction is to omit a generated canonical fallback when no validated page-level canonical URL is present. A later domain-provisioning stage may establish canonical-domain generation.
-
-### 2.4 Cardinality gap
-
-`maybeSingle()` reports an error for multiple rows, but PPR-01 requires explicit, testable 0/1/N semantics under application control.
-
-Required query behavior:
-
-```text
-read at most 2 matching rows
-0 rows -> null / not found
-1 same-tenant valid row -> accepted DTO
-2 rows -> fail closed as ambiguity
-foreign-tenant returned row -> fail closed
-query error -> fail closed
-```
-
-No `ORDER BY`, `LIMIT 1`, first-row selection or heuristic resolution is permitted.
-
-### 2.5 Runtime-contract gap
-
-The public return type must not contain `unknown`, functions, class instances or database-only fields.
-
-Required DTO characteristics:
-
-- plain object;
-- strings, booleans, nulls, arrays and plain nested objects only;
-- no `tenant_id` returned;
-- `blocks` validated as the supported discriminated block union;
-- `seo` validated as a finite plain object;
-- `JSON.stringify(dto)` succeeds;
-- route consumes the DTO without local structural casts.
+PPR-01 must not invent domain authority. When no validated page-level canonical URL exists, the route must omit a generated canonical fallback. Future domain provisioning may define tenant-aware canonical generation.
 
 ---
 
-## 3. Authority and data-flow contract
+## 3. Mandatory authority and cardinality contract
 
 ```text
 request Host
@@ -137,7 +102,7 @@ request Host
   -> accepted PublicTenantIdentity
   -> query cms_pages by tenant_id + slug + published
   -> retrieve at most two rows
-  -> application cardinality check
+  -> explicit 0/1/N cardinality check
   -> tenant_id response postcondition
   -> runtime schema validation
   -> strip tenant_id
@@ -145,23 +110,30 @@ request Host
   -> route notFound or render
 ```
 
-Prohibited authority sources:
+Required semantics:
 
 ```text
-payload.tenantId
-query-string tenant
-x-tenant-id supplied by browser
-route path as tenant authority
-page slug as tenant authority
-first row returned by database
-hardcoded RM Prime tenant/domain fallback
+0 rows -> null / not found
+1 valid same-tenant row -> accepted DTO
+2 rows -> fail closed as ambiguity
+foreign-tenant row -> fail closed
+missing tenant_id -> fail closed
+query error -> fail closed
 ```
+
+Prohibited:
+
+- payload/query/header tenant authority;
+- page slug as tenant authority;
+- `ORDER BY ... LIMIT 1` or first-row selection;
+- heuristic or fallback resolution;
+- hardcoded RM Prime tenant/domain fallback.
 
 ---
 
 ## 4. Frozen implementation design
 
-### 4.1 Shared public page contract
+### 4.1 Shared contract
 
 Create:
 
@@ -171,14 +143,14 @@ src/lib/public-page-contract.ts
 
 Responsibilities:
 
-1. define explicit schemas/types for every supported `CmsBlock` variant;
-2. define explicit `PublicPageSeo` schema/type;
-3. define `PublicPageDto`;
-4. define the database-facing `PublicPageRow` boundary with `tenant_id`;
-5. implement pure cardinality and response validation;
-6. implement a dependency-injected loader used by production and executable tests.
+1. explicit schemas and types for every supported `CmsBlock` variant;
+2. explicit `PublicPageSeo` schema/type;
+3. explicit `PublicPageDto`;
+4. database-facing `PublicPageRow` with `tenant_id`;
+5. pure cardinality, tenant-postcondition and schema validation;
+6. dependency-injected loader used by production and executable tests.
 
-Required public exports:
+Required boundary exports, or exact functional equivalents:
 
 ```text
 CmsBlock
@@ -189,9 +161,9 @@ parsePublicPageRows
 loadPublicPageForRequest
 ```
 
-The precise names may vary only if the same boundaries remain explicit and testable.
+The DTO must contain only JSON-safe plain values and must not return `tenant_id`.
 
-### 4.2 Production page function
+### 4.2 Production function
 
 Update:
 
@@ -201,16 +173,16 @@ src/lib/api/pages.functions.ts
 
 Required behavior:
 
-- re-export `CmsBlock` and public page types from the shared contract when needed by existing consumers;
-- preserve admin CRUD behavior unchanged;
+- preserve admin CRUD unchanged;
+- re-export public page types when required by existing consumers;
 - preserve strict `{ slug }` input and reject unknown fields;
-- call the shared dependency-injected loader;
-- resolve tenant before executing the query;
-- query `cms_pages` with explicit `tenant_id`, `slug`, `status = published`;
-- select `tenant_id` plus all public DTO fields;
+- resolve tenant before data access;
+- query with explicit tenant, slug and published predicates;
+- select tenant plus all public fields;
 - read at most two rows;
 - propagate query errors;
-- return `PublicPageDto | null` only after cardinality, tenant and schema validation.
+- use the shared loader/contract;
+- return `PublicPageDto | null` only after validation.
 
 ### 4.3 Public route
 
@@ -224,12 +196,12 @@ Required behavior:
 
 - no client tenant input;
 - no `as CmsBlock[]` cast;
-- no local cast of page/SEO shape;
-- missing page still produces `notFound()`;
+- no local page/SEO shape cast;
+- missing page remains `notFound()`;
 - render receives typed `page.blocks` directly;
-- use page-provided validated canonical URL only when present;
-- do not generate a hardcoded RM Prime canonical URL for another tenant;
-- unknown Host and page-query failures must reach the route error boundary.
+- validated page canonical is used only when present;
+- no hardcoded RM Prime canonical fallback;
+- tenant/query failures reach the route error boundary.
 
 ### 4.4 Executable specifications
 
@@ -240,33 +212,31 @@ src/lib/__tests__/public-page-runtime-verification.spec.ts
 run-public-page-runtime-verification-specs.ts
 ```
 
-The tests must invoke the same contract functions used by production.
+Tests must execute the same contract functions used by production.
 
-Required executable cases:
+Mandatory cases:
 
 1. tenant-resolution failure propagates and query callback is not called;
 2. query failure propagates;
 3. zero rows returns `null`;
-4. exactly one valid same-tenant row returns a typed DTO;
-5. two matching rows fail closed as ambiguous;
-6. a foreign-tenant returned row fails closed;
+4. one valid same-tenant row returns a typed DTO;
+5. two rows fail closed as ambiguous;
+6. a foreign-tenant row fails closed;
 7. missing `tenant_id` fails closed;
 8. malformed block data fails closed;
 9. malformed SEO fails closed;
-10. valid DTO survives JSON serialization and reconstruction;
+10. valid DTO survives JSON serialization/reconstruction;
 11. returned DTO excludes `tenant_id`;
-12. strict page input rejects `tenantId` and unknown fields;
-13. route consumes typed blocks without `as CmsBlock[]`;
-14. no hardcoded RM Prime canonical fallback remains in the public page route;
-15. existing PTC-01 and PSC-01 suites remain green.
+12. strict input rejects `tenantId` and unknown fields;
+13. route consumes typed blocks without an unsafe cast;
+14. hardcoded RM Prime canonical fallback is absent;
+15. PTC-01, PTR regression and PSC-01 suites remain green.
 
-Structural inspection may confirm wiring, but it cannot be reported as runtime cardinality or cross-tenant proof. Those claims require execution of the production-shared contract functions.
+Structural checks may prove wiring only. Runtime cardinality and cross-tenant claims require execution of production-shared contract functions.
 
 ---
 
 ## 5. FILES_ALLOWED — principal implementation
-
-Only the following paths may change in the PPR-01 principal PR:
 
 ```text
 src/lib/public-page-contract.ts
@@ -278,9 +248,11 @@ package.json
 scripts/verify-release.mjs
 ```
 
-No workflow change is required because `.github/workflows/release-gate.yml` already persists the complete gate log.
+No workflow change is required because the Release Gate already uploads its full log.
 
-Files outside this list are prohibited.
+```text
+FILES_OUTSIDE_ALLOWED = prohibited
+```
 
 ---
 
@@ -288,8 +260,7 @@ Files outside this list are prohibited.
 
 PPR-01 must not:
 
-- alter `src/lib/api/site.functions.ts`;
-- alter `src/lib/api/meta.functions.ts`;
+- alter site settings or Meta readers;
 - alter campaign readers or campaign-event writers;
 - alter forms, leads, portal routes or portal writers;
 - alter `CmsPageRenderer` rendering/security behavior;
@@ -299,16 +270,16 @@ PPR-01 must not:
 - alter dependency versions or `bun.lock`;
 - alter TanStack registration or generated route files manually;
 - add fallback tenant/domain logic;
-- use `ORDER BY ... LIMIT 1` to resolve ambiguity;
 - use broad codemods;
 - start PTW-01, PSG-01 or HVP-01;
-- invoke Lovable.
+- invoke Lovable;
+- create a parallel PPR-01 implementation flow.
 
 ---
 
 ## 7. Release Gate requirements
 
-Update the canonical release verifier to run:
+Add and execute:
 
 ```text
 bun run test:ppr-01
@@ -320,15 +291,15 @@ The principal PR must prove:
 build:dev = success
 build = success
 typecheck = success
-route-tree digest stable across all configured cycles
+route-tree digest stable across configured cycles
 PTC-01 specs = success
 PTR regression specs = success
 PSC-01 specs = success
 PPR-01 specs = success
-release-gate artifact uploaded = success
+release-gate artifact upload = success
 ```
 
-A green gate proves only the commands and tests actually executed. Acceptance additionally requires direct patch audit against this Impact Analysis.
+A green gate is necessary but not sufficient; final acceptance also requires direct patch audit against this envelope.
 
 ---
 
@@ -376,11 +347,11 @@ PPR01_REMAINING_CORRECTIVE_BUDGET = 1
 After principal external audit:
 
 - `Accepted`: authorize PTW-01 planning only;
-- principal defect with remaining budget: authorize one consolidated corrective;
-- failed corrective or governance breach: terminalize with a valid terminal state;
-- never create a parallel PPR-01 implementation flow.
+- blocking principal defect: permit one consolidated corrective;
+- failed corrective or governance breach: assign a valid terminal state;
+- no parallel implementation is permitted.
 
-Until PPR-01 is accepted:
+Until PPR-01 acceptance:
 
 ```text
 PTW01_STARTED = false
@@ -394,10 +365,10 @@ LOVABLE_AUTHORIZED = false
 ## 10. Planning-gate decision
 
 ```text
-PPR01_PLANNING_READY_FOR_EXTERNAL_AUDIT = true
+PPR01_PLANNING_STATE = Accepted
 PPR01_IMPLEMENTATION_STARTED = false
 PPR01_PRINCIPAL_CONSUMED = false
 PPR01_CORRECTIVE_CONSUMED = false
 PPR01_REMAINING_IMPLEMENTATION_BUDGET = 2/2
-NEXT_ACTION_AFTER_PLANNING_ACCEPTANCE = open one GitHub-native principal implementation PR
+NEXT_ACTION_AUTHORIZED = open one GitHub-native principal implementation PR
 ```
