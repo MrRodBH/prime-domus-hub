@@ -66,8 +66,8 @@ The accepted implementation merge head remains the runtime authority; later docu
 | 4 | PSC-01 | Accepted | GitHub-native | Release Gate |
 | 5 | PPR-01 | Superseded | historical GitHub-native PR #33 | closed unmerged; diagnostic only |
 | 6 | PPR-GN-01 — Public Page GitHub-Native Completion | Accepted | GitHub-native | PR #38; direct final audit; Release Gate |
-| 7 | PTW-01 | Planning Authorized | GitHub-native | Architecture First; implementation not authorized |
-| 8 | PSG-01 | Planned — Blocked by PTW-01 | GitHub-native | no implementation authorization |
+| 7 | PTW-01 — Public Tenant-Bound Writers | Planning Accepted — Implementation Authorized | GitHub-native | Architecture First; one active implementation PR |
+| 8 | PSG-01 | Planned — Blocked by PTW-01 | GitHub-native | no planning or implementation authorization |
 | 9 | HVP-01 | Planned — Blocked by PSG-01 | runbook/operator | evidence gate |
 | 10 | VSP-01 | Optional — Not authorized | Lovable only when triggered by HVP-01 | Lovable-specific budget |
 | 11 | Controlled Homologation | Blocked | operator/product team | acceptance gate |
@@ -95,7 +95,7 @@ It is the accepted GitHub-native replacement envelope created after the executor
 
 ---
 
-## 6. Accepted implementation evidence
+## 6. Accepted PPR-GN-01 implementation evidence
 
 PR #38 was merged only after direct final audit acceptance with expected-head protection.
 
@@ -135,7 +135,7 @@ Accepted implementation properties:
 
 ---
 
-## 7. Scope integrity
+## 7. PPR-GN-01 scope integrity
 
 The accepted PR changed exactly:
 
@@ -153,17 +153,56 @@ No dependency version, lockfile, workflow definition, database, migration, RLS, 
 
 ---
 
-## 8. Binding next action
+## 8. PTW-01 planning disposition
 
 ```text
-NEXT_STAGE_AUTHORIZED = PTW-01 planning only
-PTW01_PLANNING_AUTHORIZED = true
-PTW01_IMPLEMENTATION_AUTHORIZED = false
+STAGE_ID = PTW-01
+PREDECESSOR = PPR-GN-01 Accepted
+CANONICAL_ISSUE = 16
+DUPLICATE_ISSUE = 12 — Closed as duplicate
+PLANNING_PR = 41
+AUDITED_PLANNING_CONTENT_HEAD = 84e9834afa9c30d42e60e7f79c13a12052685676
+PLANNING_RELEASE_GATE_RUN = 29853391455
+PLANNING_RELEASE_GATE_JOB = 88711618102
+PLANNING_RELEASE_GATE_CONCLUSION = success
+PLANNING_ARTIFACT_ID = 8504351243
+PLANNING_ARTIFACT_DIGEST = sha256:bcf74ef966248f43271b93c32a5c3ff2bfb18a76b2aabc8e9dfbaa48aaadc91b
+PLANNING_STATE = Accepted
+IMPLEMENTATION_AUTHORIZED = true
+AUTHORIZED_EXECUTOR = GitHub-native
+MAX_ACTIVE_IMPLEMENTATION_PRS = 1
 PSG01_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
-MAX_ACTIVE_PTW01_PLANNING_PRS = 1
 ```
 
-PTW-01 must begin with direct audit of current public mutation contracts and an accepted Impact Analysis before any implementation.
+Accepted planning authority:
 
-PTW-01 implementation, PSG-01 and Lovable remain blocked until their respective explicit gates are satisfied.
+```text
+docs/architecture/impact-analysis/PTW-01-public-tenant-bound-writers-impact-analysis.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptw-01-public-writer-authority-inventory.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptw-01-planning-acceptance.md
+```
+
+The planning acceptance includes the binding schema clarification that public form fields must be queried and validated by the composite authority `accepted tenant.id + accepted form.id`.
+
+PTW-01 implementation remains subject to the exact `FILES_ALLOWED`, prohibitions, executable evidence and Definition of Done in the accepted planning envelope.
+
+---
+
+## 9. Binding next action
+
+After merge of PTW-01 planning PR #41 and verification of its final green Release Gate:
+
+```text
+NEXT_STAGE_AUTHORIZED = PTW-01 implementation
+PTW01_PLANNING_STATE = Accepted
+PTW01_IMPLEMENTATION_AUTHORIZED = true
+AUTHORIZED_EXECUTOR = GitHub-native
+MAX_ACTIVE_PTW01_IMPLEMENTATION_PRS = 1
+PSG01_AUTHORIZED = false
+LOVABLE_AUTHORIZED = false
+```
+
+PTW-01 implementation must start from the accepted planning merge head, use one branch and one active PR, remain within `FILES_ALLOWED`, preserve all inherited regressions and complete direct final audit before merge.
+
+PSG-01 planning or implementation and Lovable remain blocked until PTW-01 implementation is merged, reconciled and accepted.
