@@ -127,12 +127,12 @@ export const obterPaginaPublica = createServerFn({ method: "GET" })
   .handler(async ({ data }) =>
     loadPublicPageForRequest(
       requirePublicTenantFromRequest,
-      async (tenantId) => {
+      async (tenant) => {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: rows, error } = await supabaseAdmin
           .from("cms_pages")
           .select("tenant_id, id, slug, titulo, descricao, seo, blocks, published_at")
-          .eq("tenant_id", tenantId)
+          .eq("tenant_id", tenant.id)
           .eq("slug", data.slug)
           .eq("status", "published")
           .limit(2);
