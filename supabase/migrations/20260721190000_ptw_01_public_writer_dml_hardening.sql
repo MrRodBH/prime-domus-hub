@@ -2,48 +2,49 @@
 -- Close the legacy anonymous Data API campaign-event writer after the
 -- application writer has moved to Host-resolved server authority.
 --
--- Fail-closed rule: the migration does not guess a historical policy name.
--- It inspects pg_policies and proceeds only when exactly one INSERT policy
--- exposes public.cms_campaign_events to anon/PUBLIC.
+-- Same-backend read-only evidence captured on 2026-07-21:
+-- EXACT_LEGACY_POLICY_NAME: events_public_insert
+-- DIRECT_PUBLIC_TABLE_GRANTS: none
+-- ANON_DIRECT_GRANTS: DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+-- AUTHENTICATED_DIRECT_GRANTS: DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+-- SERVICE_ROLE_DIRECT_GRANTS: DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+-- SANDBOX_EXEC_DIRECT_GRANTS: INSERT, SELECT
+--
+-- The migration intentionally preserves authenticated, service_role, postgres,
+-- sandbox_exec, events_admin_read and tenant_isolation exactly as audited.
 
 DO $ptw_01$
 DECLARE
-  v_policy_count integer;
-  v_policy_name text;
+  v_unexpected_policy_names text[];
 BEGIN
-  SELECT count(*), min(policyname)
-    INTO v_policy_count, v_policy_name
+  SELECT array_agg(policyname ORDER BY policyname)
+    INTO v_unexpected_policy_names
   FROM pg_policies
   WHERE schemaname = 'public'
     AND tablename = 'cms_campaign_events'
     AND cmd = 'INSERT'
+    AND policyname <> 'events_public_insert'
     AND (
       roles @> ARRAY['anon']::name[]
       OR roles @> ARRAY['public']::name[]
     );
 
-  IF v_policy_count <> 1 THEN
+  IF COALESCE(cardinality(v_unexpected_policy_names), 0) > 0 THEN
     RAISE EXCEPTION
-      'ptw_01_campaign_event_anon_insert_policy_cardinality_conflict:%',
-      v_policy_count;
+      'ptw_01_unexpected_anonymous_campaign_event_insert_policies:%',
+      array_to_string(v_unexpected_policy_names, ',');
   END IF;
-
-  RAISE NOTICE
-    'PTW-01 removing proven anonymous campaign-event INSERT policy: %',
-    v_policy_name;
-
-  EXECUTE format(
-    'DROP POLICY %I ON public.cms_campaign_events',
-    v_policy_name
-  );
 END
 $ptw_01$;
 
--- Direct public Data API mutation is no longer part of the architecture.
+DROP POLICY IF EXISTS "events_public_insert"
+  ON public.cms_campaign_events;
+
+-- Direct anonymous Data API mutation is no longer part of the architecture.
+-- There was no direct PUBLIC table grant in the audited ACL, so PUBLIC is not
+-- a revoke target. Authenticated and service-role privileges remain untouched.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE
   ON TABLE public.cms_campaign_events
-  FROM PUBLIC, anon;
+  FROM anon;
 
--- authenticated privileges and policies are intentionally preserved.
--- service_role privileges are intentionally preserved for the server writer.
 -- No unrelated table, function, membership, impersonation or Lead boundary is touched.
