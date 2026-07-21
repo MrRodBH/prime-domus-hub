@@ -193,11 +193,17 @@ export function parsePublicPageRows(
   return dto;
 }
 
+export type PublicPageTenantIdentity = {
+  id: string;
+};
+
 export async function loadPublicPageForRequest(
-  requireTenant: () => Promise<{ id: string }>,
-  fetchRows: (tenantId: string) => Promise<readonly unknown[] | null | undefined>,
+  requireTenant: () => Promise<PublicPageTenantIdentity>,
+  fetchRows: (
+    tenant: PublicPageTenantIdentity,
+  ) => Promise<readonly unknown[] | null | undefined>,
 ): Promise<PublicPageDto | null> {
   const tenant = await requireTenant();
-  const rows = await fetchRows(tenant.id);
+  const rows = await fetchRows(tenant);
   return parsePublicPageRows(tenant.id, rows);
 }
