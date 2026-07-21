@@ -169,22 +169,21 @@ async function resolveTenantManagerEmails(
   tenant: PublicWriterTenantIdentity,
 ): Promise<string[]> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const admin = supabaseAdmin as any;
-  const { data: memberships, error: membershipError } = await admin
+  const { data: memberships, error: membershipError } = await supabaseAdmin
     .from("tenant_members")
-    .select("tenant_id, user_id, role, status")
+    .select("tenant_id, user_id, tenant_role, membership_status")
     .eq("tenant_id", tenant.id)
-    .eq("status", "active")
-    .in("role", ["owner", "admin"]);
+    .eq("membership_status", "active")
+    .in("tenant_role", ["owner", "admin"]);
   if (membershipError) throw new Error(membershipError.message);
   const acceptedMemberships = assertTenantScopedCollection(
     tenant,
-    memberships as Array<{ tenant_id: string; user_id: string }> | null,
+    memberships,
   );
   const userIds = Array.from(new Set(acceptedMemberships.map((row) => row.user_id).filter(Boolean)));
   if (!userIds.length) return [];
 
-  const { data: brokers, error: brokerError } = await admin
+  const { data: brokers, error: brokerError } = await supabaseAdmin
     .from("corretores")
     .select("tenant_id, user_id, email")
     .eq("tenant_id", tenant.id)
@@ -194,7 +193,7 @@ async function resolveTenantManagerEmails(
     new Set(
       assertTenantScopedCollection(
         tenant,
-        brokers as Array<{ tenant_id: string; user_id: string; email: string | null }> | null,
+        brokers,
       )
         .map((row) => row.email?.trim())
         .filter((email): email is string => Boolean(email)),
