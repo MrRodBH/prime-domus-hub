@@ -104,6 +104,37 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
+    name: "accepted tenant identity is passed unchanged and reused for response validation",
+    run: async () => {
+      const acceptedTenant = { id: TENANT_A };
+      let receivedTenant: { id: string } | undefined;
+      let caught: unknown;
+
+      try {
+        await loadPublicPageForRequest(
+          async () => acceptedTenant,
+          async (tenant) => {
+            receivedTenant = tenant;
+            return [validRow({ tenant_id: TENANT_B })];
+          },
+        );
+      } catch (error) {
+        caught = error;
+      }
+
+      assert(receivedTenant === acceptedTenant, "query did not receive the accepted tenant identity object");
+      assert(caught instanceof PublicPageContractError, "foreign response did not reach the page postcondition");
+      assert(caught.code === "foreign_tenant_page", "parser did not reuse the accepted tenant id");
+
+      const contractSource = readFileSync(
+        resolve(process.cwd(), "src/lib/public-page-contract.ts"),
+        "utf8",
+      );
+      assert(contractSource.includes("const rows = await fetchRows(tenant);"), "loader does not pass the accepted identity");
+      assert(!contractSource.includes("fetchRows(tenant.id)"), "loader reduces identity to an unbound string");
+    },
+  },
+  {
     name: "zero rows returns null",
     run: async () => {
       assert(parsePublicPageRows(TENANT_A, []) === null, "empty rows must return null");
@@ -188,7 +219,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       for (const required of [
         "loadPublicPageForRequest",
         "requirePublicTenantFromRequest",
-        '.eq("tenant_id", tenantId)',
+        '.eq("tenant_id", tenant.id)',
         '.eq("slug", data.slug)',
         '.eq("status", "published")',
         ".limit(2)",
