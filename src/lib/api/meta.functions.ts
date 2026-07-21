@@ -1,20 +1,34 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requirePublicWriterTenantFromRequest } from "@/lib/public-writers/public-writer-authority.server";
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import {
-  loadPublicMetaCredentials,
-  loadTenantSettingValue,
-} from "@/lib/public-writers/public-campaign-writer.server";
+  requirePublicWriterTenantFromRequest,
+  selectExactlyOneTenantScopedRow,
+} from "@/lib/public-writers/public-writer-authority.server";
+import { loadPublicMetaCredentials } from "@/lib/public-writers/public-campaign-writer.server";
 
 /** Pixel ID — lido no servidor via service role, sempre vinculado ao tenant público resolvido. */
 export const obterMetaPixelId = createServerFn({ method: "GET" }).handler(
   async (): Promise<{ pixel_id: string | null }> => {
-    const tenant = await requirePublicWriterTenantFromRequest();
-    const value = await loadTenantSettingValue<{ pixel_id?: unknown }>({
+    const tenant = await requirePublicTenantFromRequest();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("site_settings")
+      .select("tenant_id, value")
+      .eq("tenant_id", tenant.id)
+      .eq("key", "meta_integracao")
+      .limit(2);
+    if (error) throw new Error(error.message);
+    const row = selectExactlyOneTenantScopedRow(
       tenant,
-      key: "meta_integracao",
-    });
+      data as Array<{ tenant_id: string; value: unknown }> | null,
+      {
+        allowZero: true,
+        ambiguousMessage: "Tenant Meta integration setting is ambiguous.",
+      },
+    );
+    const value = row?.value as { pixel_id?: unknown } | null | undefined;
     return {
       pixel_id:
         typeof value?.pixel_id === "string" && value.pixel_id.trim()
