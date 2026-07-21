@@ -6,18 +6,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { loadPublicPageForRequest } from "@/lib/public-page-contract";
 
-export type CmsBlock =
-  | { id: string; type: "hero"; data: { eyebrow?: string; titulo: string; subtitulo?: string; imagem_url?: string; cta_label?: string; cta_href?: string; altura?: "sm" | "md" | "lg" } }
-  | { id: string; type: "richtext"; data: { html: string; align?: "left" | "center" } }
-  | { id: string; type: "image"; data: { url: string; alt?: string; legenda?: string } }
-  | { id: string; type: "gallery"; data: { imagens: Array<{ url: string; alt?: string }>; colunas?: 2 | 3 | 4 } }
-  | { id: string; type: "video"; data: { embed_url: string; titulo?: string } }
-  | { id: string; type: "cta"; data: { titulo: string; descricao?: string; botao_label: string; botao_href: string; variante?: "default" | "outline" } }
-  | { id: string; type: "form"; data: { form_slug: string; titulo?: string } }
-  | { id: string; type: "features"; data: { titulo?: string; itens: Array<{ titulo: string; descricao?: string; icone?: string }> } }
-  | { id: string; type: "faq"; data: { titulo?: string; itens: Array<{ pergunta: string; resposta: string }> } }
-  | { id: string; type: "spacer"; data: { altura: "sm" | "md" | "lg" | "xl" } };
+export type {
+  CmsBlock,
+  PublicPageDto,
+  PublicPageSeo,
+} from "@/lib/public-page-contract";
 
 const blockSchema = z.object({
   id: z.string(),
@@ -124,17 +119,23 @@ export const excluirPagina = createServerFn({ method: "POST" })
 // ============================================================================
 
 export const obterPaginaPublica = createServerFn({ method: "GET" })
-  .inputValidator((d) => z.object({ slug: z.string().min(1) }).strict().parse(d))
-  .handler(async ({ data }) => {
-    const tenant = await requirePublicTenantFromRequest();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
-      .from("cms_pages")
-      .select("id, slug, titulo, descricao, seo, blocks, published_at, tenant_id")
-      .eq("tenant_id", tenant.id)
-      .eq("slug", data.slug)
-      .eq("status", "published")
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return row;
-  });
+  .inputValidator((d) =>
+    z.object({ slug: z.string().min(1) }).strict().parse(d),
+  )
+  .handler(async ({ data }) =>
+    loadPublicPageForRequest(
+      requirePublicTenantFromRequest,
+      async (tenant) => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: rows, error } = await supabaseAdmin
+          .from("cms_pages")
+          .select("tenant_id, id, slug, titulo, descricao, seo, blocks, published_at")
+          .eq("tenant_id", tenant.id)
+          .eq("slug", data.slug)
+          .eq("status", "published")
+          .limit(2);
+        if (error) throw new Error(error.message);
+        return rows;
+      },
+    ),
+  );
