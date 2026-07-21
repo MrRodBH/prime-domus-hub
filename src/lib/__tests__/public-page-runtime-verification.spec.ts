@@ -5,6 +5,7 @@ import {
   parsePublicPageRows,
   publicPageInputSchema,
   PublicPageContractError,
+  type PublicPageContractErrorCode,
 } from "@/lib/public-page-contract";
 import { PublicTenantResolutionError } from "@/lib/public-tenant-resolution-error";
 
@@ -12,11 +13,7 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`ASSERT: ${message}`);
 }
 
-async function assertRejects(
-  run: () => Promise<unknown>,
-  expected: unknown,
-  message: string,
-) {
+async function expectRejected(run: () => Promise<unknown>, expected: unknown, message: string) {
   let caught: unknown;
   try {
     await run();
@@ -26,25 +23,21 @@ async function assertRejects(
   assert(caught === expected, message);
 }
 
-function assertContractError(
-  run: () => unknown,
-  code: PublicPageContractError["code"],
-  message: string,
-) {
+function expectContractError(run: () => unknown, code: PublicPageContractErrorCode) {
   let caught: unknown;
   try {
     run();
   } catch (error) {
     caught = error;
   }
-  assert(caught instanceof PublicPageContractError, `${message}: expected contract error`);
-  assert(caught.code === code, `${message}: unexpected error code ${caught.code}`);
+  assert(caught instanceof PublicPageContractError, `expected ${code} contract error`);
+  assert(caught.code === code, `expected ${code}, received ${caught.code}`);
 }
 
 const TENANT_A = "11111111-1111-4111-8111-111111111111";
 const TENANT_B = "22222222-2222-4222-8222-222222222222";
 
-function validRow(overrides: Record<string, unknown> = {}) {
+function validRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     tenant_id: TENANT_A,
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -58,18 +51,11 @@ function validRow(overrides: Record<string, unknown> = {}) {
       noindex: false,
     },
     blocks: [
-      {
-        id: "hero-1",
-        type: "hero",
-        data: { titulo: "Tenant A", altura: "md" },
-      },
+      { id: "hero-1", type: "hero", data: { titulo: "Tenant A", altura: "md" } },
       {
         id: "faq-1",
         type: "faq",
-        data: {
-          titulo: "Perguntas",
-          itens: [{ pergunta: "Onde?", resposta: "Belo Horizonte" }],
-        },
+        data: { titulo: "Perguntas", itens: [{ pergunta: "Onde?", resposta: "BH" }] },
       },
     ],
     published_at: "2026-07-20T12:00:00.000Z",
@@ -79,11 +65,11 @@ function validRow(overrides: Record<string, unknown> = {}) {
 
 export const specs: Array<{ name: string; run: () => Promise<void> }> = [
   {
-    name: "unknown Host authority failure propagates before page query",
+    name: "tenant authority failure propagates before query",
     run: async () => {
       const failure = new PublicTenantResolutionError();
       let queryCalled = false;
-      await assertRejects(
+      await expectRejected(
         () =>
           loadPublicPageForRequest(
             async () => {
@@ -95,16 +81,16 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
             },
           ),
         failure,
-        "tenant authority failure must propagate",
+        "tenant failure was not propagated",
       );
-      assert(queryCalled === false, "page query executed after tenant authority failure");
+      assert(!queryCalled, "query ran after tenant failure");
     },
   },
   {
-    name: "page query failure propagates",
+    name: "query failure propagates",
     run: async () => {
-      const failure = new Error("page query failed");
-      await assertRejects(
+      const failure = new Error("query failed");
+      await expectRejected(
         () =>
           loadPublicPageForRequest(
             async () => ({ id: TENANT_A }),
@@ -113,137 +99,119 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
             },
           ),
         failure,
-        "page query failure must propagate",
+        "query failure was not propagated",
       );
     },
   },
   {
     name: "zero rows returns null",
     run: async () => {
-      assert(parsePublicPageRows(TENANT_A, []) === null, "zero rows must return null");
+      assert(parsePublicPageRows(TENANT_A, []) === null, "empty rows must return null");
       assert(parsePublicPageRows(TENANT_A, null) === null, "null rows must return null");
     },
   },
   {
-    name: "one valid same-tenant row returns a typed DTO",
+    name: "one same-tenant row returns typed DTO",
     run: async () => {
       const page = parsePublicPageRows(TENANT_A, [validRow()]);
-      assert(page !== null, "valid page missing");
-      assert(page.slug === "institucional", "slug not preserved");
-      assert(page.blocks[0]?.type === "hero", "typed block not preserved");
-      assert(page.seo.canonical === "https://tenant-a.example/p/institucional", "SEO not preserved");
+      assert(page?.slug === "institucional", "slug missing");
+      assert(page.blocks[0]?.type === "hero", "typed hero missing");
+      assert(page.seo.canonical === "https://tenant-a.example/p/institucional", "SEO missing");
     },
   },
   {
-    name: "N rows fail closed as ambiguous",
+    name: "multiple rows fail closed",
     run: async () => {
-      assertContractError(
+      expectContractError(
         () => parsePublicPageRows(TENANT_A, [validRow(), validRow({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" })]),
         "ambiguous_page",
-        "duplicate public page",
       );
     },
   },
   {
-    name: "foreign-tenant row fails closed",
+    name: "foreign tenant row fails closed",
     run: async () => {
-      assertContractError(
+      expectContractError(
         () => parsePublicPageRows(TENANT_A, [validRow({ tenant_id: TENANT_B })]),
         "foreign_tenant_page",
-        "foreign tenant page",
       );
     },
   },
   {
-    name: "missing tenant_id fails closed",
+    name: "missing tenant id fails closed",
     run: async () => {
-      const row = validRow();
-      delete row.tenant_id;
-      assertContractError(
-        () => parsePublicPageRows(TENANT_A, [row]),
-        "invalid_page_row",
-        "missing tenant id",
-      );
+      const { tenant_id: _omitted, ...row } = validRow();
+      expectContractError(() => parsePublicPageRows(TENANT_A, [row]), "invalid_page_row");
     },
   },
   {
-    name: "malformed block data fails closed",
+    name: "malformed block fails closed",
     run: async () => {
-      assertContractError(
-        () =>
-          parsePublicPageRows(TENANT_A, [
-            validRow({ blocks: [{ id: "hero-1", type: "hero", data: {} }] }),
-          ]),
+      expectContractError(
+        () => parsePublicPageRows(TENANT_A, [validRow({ blocks: [{ id: "hero-1", type: "hero", data: {} }] })]),
         "invalid_page_row",
-        "malformed block",
       );
     },
   },
   {
     name: "malformed SEO fails closed",
     run: async () => {
-      assertContractError(
+      expectContractError(
         () => parsePublicPageRows(TENANT_A, [validRow({ seo: { noindex: "yes" } })]),
         "invalid_page_row",
-        "malformed SEO",
       );
     },
   },
   {
-    name: "public DTO is serializable and excludes tenant_id",
+    name: "DTO is serializable and excludes tenant id",
     run: async () => {
       const page = parsePublicPageRows(TENANT_A, [validRow()]);
-      assert(page !== null, "valid page missing");
+      assert(page, "valid page missing");
       const reconstructed = JSON.parse(JSON.stringify(page)) as Record<string, unknown>;
-      assert(reconstructed.slug === "institucional", "serialized DTO lost slug");
-      assert(!("tenant_id" in reconstructed), "tenant_id leaked into public DTO");
+      assert(reconstructed.slug === "institucional", "serialization lost slug");
+      assert(!("tenant_id" in reconstructed), "tenant id leaked");
     },
   },
   {
-    name: "strict input rejects tenant authority and unknown fields",
+    name: "strict input rejects tenant and unknown fields",
     run: async () => {
-      assert(publicPageInputSchema.safeParse({ slug: "institucional" }).success, "valid slug rejected");
-      assert(
-        !publicPageInputSchema.safeParse({ slug: "institucional", tenantId: TENANT_A }).success,
-        "client tenant input accepted",
-      );
-      assert(
-        !publicPageInputSchema.safeParse({ slug: "institucional", extra: true }).success,
-        "unknown field accepted",
-      );
+      assert(publicPageInputSchema.safeParse({ slug: "institucional" }).success, "valid input rejected");
+      assert(!publicPageInputSchema.safeParse({ slug: "institucional", tenantId: TENANT_A }).success, "tenant input accepted");
+      assert(!publicPageInputSchema.safeParse({ slug: "institucional", extra: true }).success, "unknown input accepted");
     },
   },
   {
-    name: "production page function uses explicit cardinality and shared contract",
+    name: "production function wires explicit cardinality",
     run: async () => {
       const source = readFileSync(resolve(process.cwd(), "src/lib/api/pages.functions.ts"), "utf8");
       const publicBlock = source.slice(source.indexOf("export const obterPaginaPublica"));
-      assert(publicBlock.includes("loadPublicPageForRequest"), "shared page loader not used");
-      assert(publicBlock.includes("requirePublicTenantFromRequest"), "request tenant authority not required");
-      assert(publicBlock.includes('.eq("tenant_id", tenantId)'), "tenant equality missing");
-      assert(publicBlock.includes('.eq("slug", data.slug)'), "slug equality missing");
-      assert(publicBlock.includes('.eq("status", "published")'), "published filter missing");
-      assert(publicBlock.includes(".limit(2)"), "explicit 0/1/N cardinality read missing");
-      assert(!publicBlock.includes("maybeSingle"), "public page still delegates cardinality to maybeSingle");
+      for (const required of [
+        "loadPublicPageForRequest",
+        "requirePublicTenantFromRequest",
+        '.eq("tenant_id", tenantId)',
+        '.eq("slug", data.slug)',
+        '.eq("status", "published")',
+        ".limit(2)",
+      ]) {
+        assert(publicBlock.includes(required), `missing public page wiring: ${required}`);
+      }
+      assert(!publicBlock.includes("maybeSingle"), "public lookup still uses maybeSingle");
     },
   },
   {
-    name: "public page route consumes typed DTO without hardcoded canonical fallback",
+    name: "route consumes typed DTO without hardcoded canonical fallback",
     run: async () => {
       const source = readFileSync(resolve(process.cwd(), "src/routes/p.$slug.tsx"), "utf8");
-      assert(!source.includes("as CmsBlock[]"), "route retains unsafe CmsBlock cast");
-      assert(!source.includes("as { titulo:"), "route retains local page shape cast");
-      assert(source.includes("<CmsPageRenderer blocks={page.blocks}"), "typed blocks are not passed directly");
-      assert(!source.includes("rmprimeimoveis.com.br/p/"), "hardcoded RM Prime canonical fallback remains");
-      assert(source.includes("seo.canonical ?"), "canonical link is not conditional on validated page SEO");
+      assert(!source.includes("as CmsBlock[]"), "unsafe block cast remains");
+      assert(!source.includes("as { titulo:"), "local page shape cast remains");
+      assert(source.includes("<CmsPageRenderer blocks={page.blocks}"), "typed blocks not used directly");
+      assert(!source.includes("rmprimeimoveis.com.br/p/"), "hardcoded canonical fallback remains");
+      assert(source.includes("seo.canonical ?"), "validated canonical is not conditional");
     },
   },
 ];
 
-export async function runPublicPageRuntimeVerificationSpecs(): Promise<{
-  passed: number;
-  failed: number;
-}> {
+export async function runPublicPageRuntimeVerificationSpecs(): Promise<{ passed: number; failed: number }> {
   let passed = 0;
   let failed = 0;
   for (const spec of specs) {
