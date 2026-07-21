@@ -68,7 +68,6 @@ function Page() {
       ...attr,
       origem: "Contato (Site)",
       consent_lgpd: true,
-      notificar_gestores: true,
     });
 
     const event_id = metaEventId();
