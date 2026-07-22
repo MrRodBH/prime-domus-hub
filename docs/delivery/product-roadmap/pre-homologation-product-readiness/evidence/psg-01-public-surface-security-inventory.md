@@ -2,14 +2,20 @@
 
 ## Status
 
-**Corrected audited planning inventory — no runtime change**
+**Accepted planning inventory — merged; no runtime change**
 
 ```text
 STAGE_ID = PSG-01
 BASELINE_MAIN = 55e0a7b95aedd767c605bceb1ea84999ecf08145
 CANONICAL_ISSUE = 4
+PSG01_PLANNING_PR = 44
+PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
+PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
+PSG01_PLANNING_STATE = Accepted
+PSG01_PLANNING_MERGED = true
 PLANNING_ONLY = true
 IMPLEMENTATION_AUTHORIZED = false
+IMPLEMENTATION_STARTED = false
 PLANNING_MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
@@ -32,6 +38,8 @@ HISTORICAL_CONTEXT = informative only; not current runtime authority
 No Lovable report, runtime patch, migration, database write or inferred historical branch content was used as current authority.
 
 The corrected inventory adds public catalog, city, neighborhood and property-detail surfaces that were directly proven but absent from the rejected planning HEAD.
+
+The accepted inventory was merged through PR #44 at `0f23e4198cf7caf1ad046a32b861f4397994a607`. That documentation-only merge did not start or authorize implementation.
 
 ---
 
@@ -800,7 +808,11 @@ DIRECT_FINDINGS_SEPARATED_FROM_HYPOTHESES = true
 CATALOGO_PUBLIC_READ_SCOPE_ONLY = true
 CATALOGO_PUBLIC_WRITER_CHANGED = false
 PTW_PUBLIC_WRITER_BOUNDARIES_CHANGED = false
-PSG01_PLANNING_STATE = Ready for Final External Audit
+PSG01_PLANNING_STATE = Accepted
+PSG01_PLANNING_MERGED = true
+PSG01_PLANNING_PR = 44
+PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
+PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
 PSG01_IMPLEMENTATION_AUTHORIZED = false
 PSG01_IMPLEMENTATION_STARTED = false
 PLANNING_MERGE_AUTHORIZED = false
@@ -808,4 +820,4 @@ MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
 
-The only permitted next action after a green corrected Release Gate is direct audit of the corrected PSG-01 planning PR.
+The next action is explicit user authorization for PSG-01 implementation execution. No implementation instruction is emitted by this inventory.
