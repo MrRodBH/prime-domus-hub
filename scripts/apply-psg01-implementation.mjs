@@ -25,18 +25,6 @@ function git(args, capture = false) {
   return capture ? result.stdout.trim() : "";
 }
 
-function isBase64Character(character) {
-  const code = character.charCodeAt(0);
-  return (
-    (code >= 65 && code <= 90) ||
-    (code >= 97 && code <= 122) ||
-    (code >= 48 && code <= 57) ||
-    character === "+" ||
-    character === "/" ||
-    character === "="
-  );
-}
-
 git(["fetch", "--depth=1", "origin", "main"]);
 const fetchedMain = git(["rev-parse", "FETCH_HEAD"], true);
 if (fetchedMain !== baseline) {
@@ -47,18 +35,17 @@ if (fetchedMain !== baseline) {
 git(["checkout", "FETCH_HEAD", "--", "package.json", "scripts/verify-release.mjs"]);
 
 const partContents = parts.map((path) => readFileSync(path, "utf8"));
+if (partContents[1].length !== 12001 || partContents[1][8954] !== "b") {
+  console.error("PSG-01 verified transport insertion was not found at the expected position");
+  process.exit(1);
+}
+partContents[1] = `${partContents[1].slice(0, 8954)}${partContents[1].slice(8955)}`;
+
 partContents.forEach((content, index) => {
-  const rejected = Array.from(content)
-    .filter((character) => !isBase64Character(character))
-    .map((character) => `U+${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
-  console.log(
-    `part-${index}: length=${content.length} sha256=${digest(content)} rejected=${rejected.join(",") || "none"}`,
-  );
+  console.log(`part-${index}: normalized-length=${content.length} sha256=${digest(content)}`);
 });
-const encoded = Array.from(partContents.join(""))
-  .filter(isBase64Character)
-  .join("");
-console.log(`encoded-normalized: length=${encoded.length} sha256=${digest(encoded)}`);
+const encoded = partContents.join("");
+console.log(`encoded: length=${encoded.length} sha256=${digest(encoded)}`);
 if (encoded.length !== expectedEncodedLength || digest(encoded) !== expectedEncodedDigest) {
   console.error("PSG-01 encoded patch integrity mismatch");
   process.exit(1);
@@ -77,3 +64,4 @@ git(["apply", "--verbose", "--binary", "/tmp/psg01.patch"]);
 
 for (const path of parts) rmSync(path, { force: true });
 rmSync("scripts/apply-psg01-implementation.mjs", { force: true });
+rmSync("psg01-patch-01.txt", { force: true });
