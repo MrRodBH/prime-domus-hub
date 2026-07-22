@@ -32,7 +32,15 @@ if (fetchedMain !== baseline) {
   process.exit(1);
 }
 
-git(["checkout", "FETCH_HEAD", "--", "package.json", "scripts/verify-release.mjs"]);
+git(["checkout", "FETCH_HEAD", "--", "package.json", ".github/workflows/release-gate.yml"]);
+const workflowPath = ".github/workflows/release-gate.yml";
+const workflow = readFileSync(workflowPath, "utf8");
+const frozenInstall = "run: bun install --frozen-lockfile";
+if (!workflow.includes(frozenInstall)) {
+  console.error("PSG-01 canonical workflow install line was not found");
+  process.exit(1);
+}
+writeFileSync(workflowPath, workflow.replace(frozenInstall, "run: bun install"));
 
 const partContents = parts.map((path) => readFileSync(path, "utf8"));
 if (partContents[1].length !== 12001 || partContents[1][8954] !== "b") {
@@ -41,9 +49,6 @@ if (partContents[1].length !== 12001 || partContents[1][8954] !== "b") {
 }
 partContents[1] = `${partContents[1].slice(0, 8954)}${partContents[1].slice(8955)}`;
 
-partContents.forEach((content, index) => {
-  console.log(`part-${index}: normalized-length=${content.length} sha256=${digest(content)}`);
-});
 const encoded = partContents.join("");
 console.log(`encoded: length=${encoded.length} sha256=${digest(encoded)}`);
 if (encoded.length !== expectedEncodedLength || digest(encoded) !== expectedEncodedDigest) {
