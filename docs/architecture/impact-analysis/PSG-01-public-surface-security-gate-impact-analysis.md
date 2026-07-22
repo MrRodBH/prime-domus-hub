@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planning-only — corrected and ready for direct external audit after a new Release Gate**
+**Planning Accepted and Merged — implementation pending explicit authorization**
 
 ```text
 STAGE_ID = PSG-01
@@ -10,6 +10,11 @@ PREDECESSOR = PTW-01 Accepted
 BASELINE_MAIN = 55e0a7b95aedd767c605bceb1ea84999ecf08145
 CANONICAL_ISSUE = 4
 AUTHORIZED_EXECUTOR = GitHub-native
+PSG01_PLANNING_PR = 44
+PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
+PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
+PSG01_PLANNING_STATE = Accepted
+PSG01_PLANNING_MERGED = true
 PLANNING_ONLY = true
 IMPLEMENTATION_AUTHORIZED = false
 IMPLEMENTATION_STARTED = false
@@ -31,29 +36,33 @@ PSG-01 is not a reopening of PTH-01, PTR-01, PPR-GN-01 or PTW-01. Historical ter
 
 The correction incorporated after direct audit of planning HEAD `9fb1e1c903702b3f4f07ced1715c01e4edbd4cf8` adds the directly proven public catalog/property-read surfaces previously omitted from the inventory and future implementation envelope.
 
+The corrected Architecture First planning was accepted and merged through PR #44. That documentation-only merge did not start or authorize implementation.
+
 ---
 
 ## 2. Authority and predecessor state
 
 Authority order:
 
-1. audited GitHub `main` at `55e0a7b95aedd767c605bceb1ea84999ecf08145`;
+1. audited GitHub `main` at `0f23e4198cf7caf1ad046a32b861f4397994a607`;
 2. binding delivery map;
 3. accepted PTW-01 final evidence;
 4. canonical issue #4;
 5. direct final audit finding recorded on PR #44;
 6. this corrected planning document after direct audit and merge.
 
-Predecessor state:
+Predecessor and planning state:
 
 ```text
 PTW01_IMPLEMENTATION_STATE = Accepted
 PTW01_IMPLEMENTATION_MERGED = true
 PTW01_IMPLEMENTATION_HEAD = 312bcc329deaf6f10447aa821833d62dba2e854a
 PTW01_IMPLEMENTATION_MERGE_HEAD = 82b1ead61e8edde6b70454b758c4b51ccded9a4f
-CURRENT_MAIN = 55e0a7b95aedd767c605bceb1ea84999ecf08145
-PSG01_PLANNING_AUTHORIZED = true
+CURRENT_MAIN = 0f23e4198cf7caf1ad046a32b861f4397994a607
+PSG01_PLANNING_STATE = Accepted
+PSG01_PLANNING_MERGED = true
 PSG01_IMPLEMENTATION_AUTHORIZED = false
+PSG01_IMPLEMENTATION_STARTED = false
 LOVABLE_AUTHORIZED = false
 ```
 
@@ -1073,12 +1082,17 @@ A future implementation may be accepted only after direct GitHub inspection prov
 ## 14. Planning decision
 
 ```text
-PSG01_PLANNING_STATE = Ready for Final External Audit
+PSG01_PLANNING_STATE = Accepted
+PSG01_PLANNING_MERGED = true
+PSG01_PLANNING_PR = 44
+PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
+PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
 PSG01_PLANNING_MERGE_AUTHORIZED = false
 PSG01_IMPLEMENTATION_AUTHORIZED = false
 PSG01_IMPLEMENTATION_STARTED = false
+NEXT_ACTION = explicit authorization for PSG-01 implementation execution
 MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
 
-Only direct audit and potential correction of this planning envelope are authorized next.
+The accepted planning envelope is binding. No implementation may begin until explicit authorization by the product owner.
