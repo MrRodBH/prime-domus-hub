@@ -38,8 +38,12 @@ const partContents = parts.map((path) => readFileSync(path, "utf8"));
 partContents.forEach((content, index) => {
   console.log(`part-${index}: length=${content.length} sha256=${digest(content)}`);
 });
-const encoded = partContents.join("");
-console.log(`encoded: length=${encoded.length} sha256=${digest(encoded)}`);
+const encoded = partContents
+  .join("")
+  .split("")
+  .filter((character) => character !== "\n" && character !== "\r" && character !== " " && character !== "\t")
+  .join("");
+console.log(`encoded-normalized: length=${encoded.length} sha256=${digest(encoded)}`);
 if (encoded.length !== expectedEncodedLength || digest(encoded) !== expectedEncodedDigest) {
   console.error("PSG-01 encoded patch integrity mismatch");
   process.exit(1);
