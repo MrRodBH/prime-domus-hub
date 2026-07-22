@@ -2,7 +2,7 @@
 
 ## Status
 
-**Corrected planning — ready for Final External Audit after successful Release Gate**
+**Planning Accepted and Merged — implementation pending explicit authorization**
 
 ```text
 STAGE_ID = PSG-01
@@ -10,6 +10,11 @@ BASELINE_MAIN = 55e0a7b95aedd767c605bceb1ea84999ecf08145
 CANONICAL_ISSUE = 4
 PLANNING_BRANCH = agent/psg-01-planning
 REJECTED_PLANNING_HEAD = 9fb1e1c903702b3f4f07ced1715c01e4edbd4cf8
+PSG01_PLANNING_PR = 44
+PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
+PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
+PSG01_PLANNING_STATE = Accepted
+PSG01_PLANNING_MERGED = true
 PLANNING_ONLY = true
 PSG01_IMPLEMENTATION_AUTHORIZED = false
 PSG01_IMPLEMENTATION_STARTED = false
@@ -28,7 +33,7 @@ It contains no runtime, dependency, lockfile, migration, RLS, grant, Auth, Stora
 
 The correction resolves the final-audit blocker on PR #44 by adding the directly proven public catalog, city, neighborhood and property-detail surfaces to the inventory, trust-boundary model, future `FILES_ALLOWED`, required tests, Definition of Done and final audit criteria.
 
-Planning merge and implementation authorization remain separate decisions.
+Planning merge and implementation authorization remain separate decisions. The accepted planning was merged through PR #44 at `0f23e4198cf7caf1ad046a32b861f4397994a607`; no implementation was started or authorized by that merge.
 
 ---
 
@@ -433,10 +438,15 @@ The planning audit must confirm:
 ## 12. Terminal planning state
 
 ```text
-PSG01_PLANNING_STATE = Ready for Final External Audit
+PSG01_PLANNING_STATE = Accepted
+PSG01_PLANNING_MERGED = true
+PSG01_PLANNING_PR = 44
+PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
+PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
 PSG01_PLANNING_MERGE_AUTHORIZED = false
 PSG01_IMPLEMENTATION_AUTHORIZED = false
 PSG01_IMPLEMENTATION_STARTED = false
+NEXT_ACTION = explicit authorization for PSG-01 implementation execution
 MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
