@@ -3,6 +3,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import { assertTenantScopedRows } from "@/lib/public-tenant-read-guards";
+import {
+  normalizePublicEmbedUrl,
+  normalizePublicMediaUrl,
+  normalizePublicNavigationUrl,
+} from "@/lib/public-content-security";
 
 // 1 ano em segundos (URLs assinadas longas para conteúdo público estático)
 const SIGN_TTL = 60 * 60 * 24 * 365;
@@ -14,11 +19,12 @@ export async function signedUrl(
   path: string | null | undefined,
 ): Promise<string | null> {
   if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const existing = normalizePublicMediaUrl(path);
+  if (existing) return existing;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, SIGN_TTL);
   if (error || !data) return null;
-  return data.signedUrl;
+  return normalizePublicMediaUrl(data.signedUrl);
 }
 
 export interface SiteSettings {
@@ -310,6 +316,19 @@ export async function hydrateSiteSettings(
   if (result.pagina_lancamentos.image_path) result.pagina_lancamentos.image_url = await signedUrl("site", result.pagina_lancamentos.image_path);
   if (result.pagina_sobre.hero_image_path) result.pagina_sobre.hero_image_url = await signedUrl("site", result.pagina_sobre.hero_image_path);
   if (result.pagina_anuncie.hero_image_path) result.pagina_anuncie.hero_image_url = await signedUrl("site", result.pagina_anuncie.hero_image_path);
+
+  const normalizeLinks = (links: { label: string; url: string }[] | undefined) =>
+    (links ?? []).flatMap((link) => {
+      const url = normalizePublicNavigationUrl(link.url, "contact");
+      return url ? [{ ...link, url }] : [];
+    });
+  result.footer.coluna1_links = normalizeLinks(result.footer.coluna1_links);
+  result.footer.coluna2_links = normalizeLinks(result.footer.coluna2_links);
+  if (result.contato.instagram) result.contato.instagram = normalizePublicNavigationUrl(result.contato.instagram) ?? undefined;
+  if (result.contato.facebook) result.contato.facebook = normalizePublicNavigationUrl(result.contato.facebook) ?? undefined;
+  if (result.contato.linkedin) result.contato.linkedin = normalizePublicNavigationUrl(result.contato.linkedin) ?? undefined;
+  if (result.pagina_sobre.cta_url) result.pagina_sobre.cta_url = normalizePublicNavigationUrl(result.pagina_sobre.cta_url, "contact") ?? undefined;
+  if (result.pagina_contato.mapa_url) result.pagina_contato.mapa_url = normalizePublicEmbedUrl(result.pagina_contato.mapa_url) ?? undefined;
 
   return result;
 }

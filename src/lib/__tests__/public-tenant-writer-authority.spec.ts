@@ -545,7 +545,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
-    name: "immediate and replay paths share one writer and preserve frozen auth",
+    name: "immediate and replay paths share one writer and preserve dedicated operator auth",
     run: async () => {
       const immediate = read("src/routes/api/public/portal-leads.ts");
       const replay = read("src/routes/api/public/hooks/portal-dlq-retry.ts");
@@ -553,10 +553,12 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       assert(!immediate.includes('.from("leads")') && !replay.includes('.from("leads")'), "parallel lead writer remains");
       assert(replay.includes("resolvePortalConnectorForTenant"), "replay tenant revalidation missing");
       assert(replay.includes("portal_dlq_mark_retry") && replay.includes("portal_dlq_mark_resolved"), "DLQ item binding missing");
-      assert(
-        replay.includes("const authorized = (anon && apikey === anon) || (cronSecret && provided === cronSecret);"),
-        "DLQ hook authentication changed",
-      );
+      assert(replay.includes("verifyPortalDlqRetryRequest(request)"), "dedicated DLQ auth boundary missing");
+      assert(!replay.includes("SUPABASE_PUBLISHABLE_KEY") && !replay.includes("CRON_SECRET"), "legacy DLQ credentials remain");
+      assert(!replay.includes("x-cron-secret") && !replay.includes('headers.get("apikey")'), "legacy DLQ headers remain");
+      const auth = read("src/lib/operational-route-auth.server.ts");
+      assert(auth.includes("PORTAL_DLQ_RETRY_SECRET"), "dedicated DLQ secret missing");
+      assert(auth.includes("timingSafeEqual"), "constant-time DLQ comparison missing");
       const writer = read("src/lib/public-writers/portal-writer.server.ts");
       assert(writer.includes("tenant_id: input.connector.tenant.id"), "lead log tenant mismatch");
       assert(writer.includes("tenant_id: connector.tenant.id"), "feed write tenant mismatch");

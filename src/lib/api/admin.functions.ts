@@ -33,48 +33,6 @@ async function ensureActiveTenantMembership(context: any): Promise<{ tenantId: s
   return { tenantId };
 }
 
-// ===== Bootstrap: cria o primeiro admin se ainda não existir nenhum =====
-export const bootstrapAdmin = createServerFn({ method: "POST" })
-  .inputValidator(
-    z.object({
-      email: z.string().email(),
-      password: z.string().min(6),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    // Se já existe pelo menos um admin, não faz nada (idempotente / seguro)
-    const { count } = await supabaseAdmin
-      .from("user_roles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "admin");
-    if ((count ?? 0) > 0) {
-      return { ok: true, alreadyInitialized: true };
-    }
-
-    // Procura usuário existente
-    const { data: existing } = await supabaseAdmin.auth.admin.listUsers();
-    let userId = existing?.users.find((u) => u.email === data.email)?.id;
-
-    if (!userId) {
-      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email: data.email,
-        password: data.password,
-        email_confirm: true,
-      });
-      if (createErr || !created.user) throw new Error(createErr?.message ?? "Falha ao criar usuário");
-      userId = created.user.id;
-    }
-
-    const { error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: "admin" });
-    if (roleErr && !roleErr.message.includes("duplicate")) throw new Error(roleErr.message);
-
-    return { ok: true, alreadyInitialized: false };
-  });
-
 // ===== Verifica se o usuário atual é admin =====
 export const sourMe = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  normalizePublicEmbedUrl,
+  normalizePublicMediaUrl,
+  normalizePublicNavigationUrl,
+} from "@/lib/public-content-security";
+import { sanitizePublicHtml } from "@/lib/public-html-sanitizer.server";
 
 const heroBlockSchema = z
   .object({
@@ -285,6 +291,99 @@ export function parsePublicPageRows(
   return dto;
 }
 
+
+function requireSafeDestination(value: string | null, label: string): string {
+  if (!value) {
+    throw new PublicPageContractError(
+      "invalid_page_row",
+      `Public page contains an unsafe ${label} destination`,
+    );
+  }
+  return value;
+}
+
+function sanitizePublicPageDto(dto: PublicPageDto): PublicPageDto {
+  const seo: PublicPageSeo = {
+    ...dto.seo,
+    ...(dto.seo.og_image
+      ? { og_image: normalizePublicMediaUrl(dto.seo.og_image) ?? undefined }
+      : {}),
+    ...(dto.seo.canonical
+      ? { canonical: normalizePublicNavigationUrl(dto.seo.canonical) ?? undefined }
+      : {}),
+  };
+
+  const blocks = dto.blocks.map((block): CmsBlock => {
+    switch (block.type) {
+      case "hero":
+        return {
+          ...block,
+          data: {
+            ...block.data,
+            ...(block.data.imagem_url
+              ? { imagem_url: normalizePublicMediaUrl(block.data.imagem_url) ?? undefined }
+              : {}),
+            ...(block.data.cta_href
+              ? {
+                  cta_href: requireSafeDestination(
+                    normalizePublicNavigationUrl(block.data.cta_href, "contact"),
+                    "hero CTA",
+                  ),
+                }
+              : {}),
+          },
+        };
+      case "richtext":
+        return { ...block, data: { ...block.data, html: sanitizePublicHtml(block.data.html) } };
+      case "image":
+        return {
+          ...block,
+          data: {
+            ...block.data,
+            url: requireSafeDestination(normalizePublicMediaUrl(block.data.url), "image"),
+          },
+        };
+      case "gallery":
+        return {
+          ...block,
+          data: {
+            ...block.data,
+            imagens: block.data.imagens.flatMap((image) => {
+              const url = normalizePublicMediaUrl(image.url);
+              return url ? [{ ...image, url }] : [];
+            }),
+          },
+        };
+      case "video":
+        return {
+          ...block,
+          data: {
+            ...block.data,
+            embed_url: requireSafeDestination(
+              normalizePublicEmbedUrl(block.data.embed_url),
+              "video embed",
+            ),
+          },
+        };
+      case "cta":
+        return {
+          ...block,
+          data: {
+            ...block.data,
+            botao_href: requireSafeDestination(
+              normalizePublicNavigationUrl(block.data.botao_href, "contact"),
+              "CTA",
+            ),
+          },
+        };
+      default:
+        return block;
+    }
+  });
+
+  return { ...dto, seo, blocks };
+}
+
 export async function loadPublicPageForRequest(
   requireTenant: () => Promise<PublicPageTenantIdentity>,
   fetchRows: (
@@ -293,5 +392,6 @@ export async function loadPublicPageForRequest(
 ): Promise<PublicPageDto | null> {
   const tenant = await requireTenant();
   const rows = await fetchRows(tenant);
-  return parsePublicPageRows(tenant.id, rows);
+  const dto = parsePublicPageRows(tenant.id, rows);
+  return dto ? sanitizePublicPageDto(dto) : null;
 }

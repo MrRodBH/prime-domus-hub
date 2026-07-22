@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
+import { normalizePublicDocumentUrl, normalizePublicMediaUrl } from "@/lib/public-content-security";
+import { sanitizePublicHtml } from "@/lib/public-html-sanitizer.server";
+import { toEmbedUrl } from "@/lib/embed-url";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function ensureAdmin(context: any) {
@@ -11,38 +16,46 @@ async function ensureAdmin(context: any) {
   if (error || !data) throw new Error("Acesso negado: requer permissão de administrador.");
 }
 
+type PublicLaunchRow = { tenant_id: string } & Record<string, any>;
+
+function oneLaunchRelation(value: unknown): PublicLaunchRow | null {
+  if (Array.isArray(value)) return (value[0] as PublicLaunchRow | undefined) ?? null;
+  return value && typeof value === "object" ? (value as PublicLaunchRow) : null;
+}
+
+function stripLaunchRelation(tenantId: string, value: unknown, label: string): Record<string, any> | null {
+  const row = oneLaunchRelation(value);
+  if (!row) return null;
+  if (row.tenant_id !== tenantId) throw new Error(`public_resource_foreign_tenant:${label}`);
+  return withoutTenantId(row) as Record<string, any>;
+}
+
 // ===== Status (público) =====
 export const listarStatusLancamento = createServerFn({ method: "GET" }).handler(async () => {
-  const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-  const { data, error } = await sb
+  const tenant = await requirePublicTenantFromRequest();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("launch_statuses")
-    .select("id,slug,nome,ordem,ativo")
+    .select("tenant_id,id,slug,nome,ordem,ativo")
+    .eq("tenant_id", tenant.id)
     .eq("ativo", true)
     .order("ordem");
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return assertTenantScopedRows(tenant.id, data as unknown as PublicLaunchRow[] | null).map(withoutTenantId);
 });
 
 // ===== Amenities (público) =====
 export const listarAmenities = createServerFn({ method: "GET" }).handler(async () => {
-  const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-  const { data, error } = await sb
+  const tenant = await requirePublicTenantFromRequest();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("launch_amenities")
-    .select("id,slug,nome,ordem,ativo")
+    .select("tenant_id,id,slug,nome,ordem,ativo")
+    .eq("tenant_id", tenant.id)
     .eq("ativo", true)
     .order("ordem");
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return assertTenantScopedRows(tenant.id, data as unknown as PublicLaunchRow[] | null).map(withoutTenantId);
 });
 
 // ===== Listar empreendimentos (admin) =====
@@ -424,111 +437,145 @@ export const adminRemoverPdfLancamento = createServerFn({ method: "POST" })
 
 
 // ===== PÚBLICO =====
-import { createClient as createPublicClient } from "@supabase/supabase-js";
-function sbPublic() {
-  return createPublicClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+async function signLaunchDestination(
+  admin: typeof import("@/integrations/supabase/client.server").supabaseAdmin,
+  value: string | null | undefined,
+  width?: number,
+): Promise<string | null> {
+  if (!value) return null;
+  const existing = normalizePublicMediaUrl(value);
+  if (existing) return existing;
+  const options = width
+    ? { transform: { width, quality: 75, resize: "contain" as const } }
+    : undefined;
+  const { data, error } = await admin.storage
+    .from("lancamentos")
+    .createSignedUrl(value, 60 * 60 * 24, options);
+  if (error) return null;
+  return normalizePublicMediaUrl(data?.signedUrl);
 }
 
 export const listarLancamentosPublico = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = sbPublic();
-  const { data, error } = await sb
+  const tenant = await requirePublicTenantFromRequest();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("launch_projects")
-    .select("id, slug, nome, construtora, entrega, destaque, imagem_capa, endereco, status:status_id(nome,slug)")
+    .select("tenant_id,id,slug,nome,construtora,entrega,destaque,imagem_capa,endereco,status:status_id(tenant_id,nome,slug)")
+    .eq("tenant_id", tenant.id)
     .eq("publicado", true)
     .order("destaque", { ascending: false })
     .order("entrega", { ascending: true });
   if (error) throw new Error(error.message);
-  const rows = data ?? [];
-  // Assina capas (800px) no servidor para evitar exposição do admin signer
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return await Promise.all(rows.map(async (r: any) => {
-    let capa_url: string | null = null;
-    if (r.imagem_capa) {
-      if (r.imagem_capa.startsWith("http")) capa_url = r.imagem_capa;
-      else {
-        const { data: s } = await sb.storage.from("lancamentos")
-          .createSignedUrl(r.imagem_capa, 60 * 60 * 24, { transform: { width: 800, quality: 70, resize: "contain" as const } });
-        capa_url = s?.signedUrl ?? null;
-      }
-    }
-    return { ...r, capa_url };
+  const rows = assertTenantScopedRows(tenant.id, data as unknown as PublicLaunchRow[] | null);
+  return Promise.all(rows.map(async (row) => {
+    const dto = withoutTenantId(row) as Record<string, any>;
+    dto.status = stripLaunchRelation(tenant.id, dto.status, "launch_status");
+    dto.capa_url = await signLaunchDestination(supabaseAdmin, dto.imagem_capa, 800);
+    delete dto.imagem_capa;
+    return dto;
   }));
 });
 
-
 export const obterLancamentoPublico = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ slug: z.string().min(1) }))
+  .inputValidator(z.object({ slug: z.string().min(1) }).strict())
   .handler(async ({ data }) => {
-    const sb = sbPublic();
-    const { data: proj, error } = await sb
+    const tenant = await requirePublicTenantFromRequest();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const projectResult = await supabaseAdmin
       .from("launch_projects")
       .select(`
-        id, slug, nome, descricao, quartos, suites, vagas, area_apartamentos,
-        construtora, entrega, endereco, arquitetura,
-        numero_unidades, numero_torres, unidades_por_andar, numero_andares, elevadores,
-        imagem_capa, video_url, meta_title, meta_description, og_image,
-        status:status_id(nome,slug),
-        corretor:corretor_id(id,nome,telefone,whatsapp,foto_url,creci),
-        cidade:cidade_id(nome,uf),
-        bairro:bairro_id(nome)
+        tenant_id,id,slug,nome,descricao,quartos,suites,vagas,area_apartamentos,
+        construtora,entrega,endereco,arquitetura,numero_unidades,numero_torres,
+        unidades_por_andar,numero_andares,elevadores,imagem_capa,video_url,
+        meta_title,meta_description,og_image,
+        status:status_id(tenant_id,nome,slug),
+        corretor:corretor_id(tenant_id,id,nome,telefone,whatsapp,foto_url,creci),
+        cidade:cidade_id(tenant_id,nome,estado),
+        bairro:bairro_id(tenant_id,nome)
       `)
+      .eq("tenant_id", tenant.id)
       .eq("slug", data.slug)
       .eq("publicado", true)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!proj) return null;
+      .limit(2);
+    if (projectResult.error) throw new Error(projectResult.error.message);
+    const projects = assertTenantScopedRows(
+      tenant.id,
+      projectResult.data as unknown as PublicLaunchRow[] | null,
+    );
+    if (projects.length === 0) return null;
+    if (projects.length > 1) throw new Error("public_resource_ambiguous");
 
-    const [{ data: amenRows }, { data: imagens }, { data: pdfs }, { data: pc }, { data: units }] = await Promise.all([
-      sb.from("launch_project_amenities").select("amenity:amenity_id(slug,nome)").eq("project_id", proj.id),
-      sb.from("launch_project_imagens").select("id,storage_path,legenda,ordem").eq("project_id", proj.id).order("ordem"),
-      sb.from("launch_pdfs").select("id,kind,titulo,storage_path,created_at").eq("project_id", proj.id).order("created_at", { ascending: false }),
-      sb.from("launch_payment_conditions").select("*").eq("project_id", proj.id).maybeSingle(),
-      sb.from("launch_units").select("id,unidade,bloco,area,tipo,vagas,valor,status").eq("project_id", proj.id).eq("ativa", true).order("bloco").order("unidade"),
+    const project = projects[0];
+    const projectId = String(project.id);
+    const [amenityResult, imageResult, pdfResult, paymentResult, unitResult] = await Promise.all([
+      supabaseAdmin.from("launch_project_amenities")
+        .select("tenant_id,amenity:amenity_id(tenant_id,slug,nome)")
+        .eq("tenant_id", tenant.id).eq("project_id", projectId),
+      supabaseAdmin.from("launch_project_imagens")
+        .select("tenant_id,id,storage_path,legenda,ordem")
+        .eq("tenant_id", tenant.id).eq("project_id", projectId).order("ordem"),
+      supabaseAdmin.from("launch_pdfs")
+        .select("tenant_id,id,kind,titulo,storage_path,created_at")
+        .eq("tenant_id", tenant.id).eq("project_id", projectId).order("created_at", { ascending: false }),
+      supabaseAdmin.from("launch_payment_conditions")
+        .select("tenant_id,id,entrada,num_parcelas,observacoes,parcela_30,parcela_60,parcela_90,qtd_anuais,qtd_semestrais,sinal,valor_anual,valor_parcela,valor_semestral")
+        .eq("tenant_id", tenant.id).eq("project_id", projectId).limit(2),
+      supabaseAdmin.from("launch_units")
+        .select("tenant_id,id,unidade,bloco,area,tipo,vagas,valor,status")
+        .eq("tenant_id", tenant.id).eq("project_id", projectId).eq("ativa", true).order("bloco").order("unidade"),
     ]);
-
-    // gerar URLs assinadas (24h) para imagens e PDFs
-    async function signOne(path: string, width?: number) {
-      const opts = width ? { transform: { width, quality: 75, resize: "contain" as const } } : undefined;
-      const { data: s } = await sb.storage.from("lancamentos").createSignedUrl(path, 60 * 60 * 24, opts);
-      return s?.signedUrl ?? null;
+    for (const result of [amenityResult, imageResult, pdfResult, paymentResult, unitResult]) {
+      if (result.error) throw new Error(result.error.message);
     }
 
-    const imagensSigned = await Promise.all(
-      (imagens ?? []).map(async (i: { id: string; storage_path: string; legenda: string | null; ordem: number }) => ({
-        ...i,
-        url: await signOne(i.storage_path, 1600),
-        thumb: await signOne(i.storage_path, 400),
-      })),
-    );
-    const pdfsSigned = await Promise.all(
-      (pdfs ?? []).map(async (p: { id: string; kind: string; titulo: string | null; storage_path: string; created_at: string }) => ({
-        ...p, url: await signOne(p.storage_path),
-      })),
-    );
-    const capaUrl = proj.imagem_capa ? await signOne(proj.imagem_capa, 1920) : null;
-    const ogImageUrl = proj.og_image ? await signOne(proj.og_image, 1200) : capaUrl;
+    const amenityRows = assertTenantScopedRows(tenant.id, amenityResult.data as unknown as PublicLaunchRow[] | null);
+    const imageRows = assertTenantScopedRows(tenant.id, imageResult.data as unknown as PublicLaunchRow[] | null);
+    const pdfRows = assertTenantScopedRows(tenant.id, pdfResult.data as unknown as PublicLaunchRow[] | null);
+    const paymentRows = assertTenantScopedRows(tenant.id, paymentResult.data as unknown as PublicLaunchRow[] | null);
+    const unitRows = assertTenantScopedRows(tenant.id, unitResult.data as unknown as PublicLaunchRow[] | null);
+    if (paymentRows.length > 1) throw new Error("public_resource_ambiguous");
 
-    // estatística rápida de preços
-    const precos = (units ?? []).map((u: { valor: number | null }) => u.valor).filter((v: number | null): v is number => typeof v === "number" && v > 0);
-    const precoMin = precos.length ? Math.min(...precos) : null;
-    const precoMax = precos.length ? Math.max(...precos) : null;
+    const images = await Promise.all(imageRows.map(async (row) => {
+      const { storage_path, ...dto } = withoutTenantId(row) as Record<string, any>;
+      return {
+        ...dto,
+        url: await signLaunchDestination(supabaseAdmin, String(storage_path), 1600),
+        thumb: await signLaunchDestination(supabaseAdmin, String(storage_path), 400),
+      };
+    }));
+    const pdfs = await Promise.all(pdfRows.map(async (row) => {
+      const { storage_path, ...dto } = withoutTenantId(row) as Record<string, any>;
+      const signed = await signLaunchDestination(supabaseAdmin, String(storage_path));
+      return { ...dto, url: normalizePublicDocumentUrl(signed) };
+    }));
 
-    return {
-      ...proj,
-      imagem_capa_url: capaUrl,
-      og_image_url: ogImageUrl,
-      amenities: ((amenRows ?? []) as Array<{ amenity: { slug: string; nome: string } | { slug: string; nome: string }[] | null }>).flatMap((a) => (Array.isArray(a.amenity) ? a.amenity : a.amenity ? [a.amenity] : [])),
-      imagens: imagensSigned,
-      pdfs: pdfsSigned,
-      tabela_precos_atual: pdfsSigned.find((p) => p.kind === "tabela_precos") ?? null,
-      condicoes: pc ?? null,
-      unidades: units ?? [],
-      preco_min: precoMin,
-      preco_max: precoMax,
-    };
+    const dto = withoutTenantId(project) as Record<string, any>;
+    dto.status = stripLaunchRelation(tenant.id, dto.status, "launch_status");
+    dto.corretor = stripLaunchRelation(tenant.id, dto.corretor, "launch_broker");
+    if (dto.corretor?.foto_url) dto.corretor.foto_url = normalizePublicMediaUrl(dto.corretor.foto_url);
+    dto.cidade = stripLaunchRelation(tenant.id, dto.cidade, "launch_city");
+    if (dto.cidade?.estado) dto.cidade.uf = dto.cidade.estado;
+    dto.bairro = stripLaunchRelation(tenant.id, dto.bairro, "launch_neighborhood");
+    dto.descricao = sanitizePublicHtml(typeof dto.descricao === "string" ? dto.descricao : "");
+    dto.video_url = toEmbedUrl(typeof dto.video_url === "string" ? dto.video_url : null);
+    dto.imagem_capa_url = await signLaunchDestination(supabaseAdmin, dto.imagem_capa, 1920);
+    dto.og_image_url = await signLaunchDestination(supabaseAdmin, dto.og_image, 1200) ?? dto.imagem_capa_url;
+    delete dto.imagem_capa;
+    delete dto.og_image;
+    dto.amenities = amenityRows.flatMap((row) => {
+      const amenity = stripLaunchRelation(tenant.id, row.amenity, "launch_amenity");
+      return amenity ? [amenity] : [];
+    });
+    dto.imagens = images;
+    dto.pdfs = pdfs;
+    dto.tabela_precos_atual = pdfs.find((pdf) => pdf.kind === "tabela_precos") ?? null;
+    dto.condicoes = paymentRows[0] ? withoutTenantId(paymentRows[0]) : null;
+    dto.unidades = unitRows.map(withoutTenantId);
+    const prices = dto.unidades
+      .map((unit: Record<string, any>) => unit.valor)
+      .filter((value: unknown): value is number => typeof value === "number" && value > 0);
+    dto.preco_min = prices.length ? Math.min(...prices) : null;
+    dto.preco_max = prices.length ? Math.max(...prices) : null;
+    return dto;
   });
 
