@@ -15,15 +15,15 @@ async function ensureAdmin(context: any) {
   if (error || !data) throw new Error("Acesso negado.");
 }
 
-type PublicNestedTenant = { tenant_id: string } & Record<string, unknown>;
-type PublicBlogRow = { tenant_id: string } & Record<string, unknown>;
+type PublicNestedTenant = { tenant_id: string } & Record<string, any>;
+type PublicBlogRow = { tenant_id: string } & Record<string, any>;
 
 function oneNested(value: unknown): PublicNestedTenant | null {
   if (Array.isArray(value)) return (value[0] as PublicNestedTenant | undefined) ?? null;
   return value && typeof value === "object" ? (value as PublicNestedTenant) : null;
 }
 
-function safeNested(tenantId: string, value: unknown, label: string): Record<string, unknown> | null {
+function safeNested(tenantId: string, value: unknown, label: string): Record<string, any> | null {
   const nested = oneNested(value);
   if (!nested) return null;
   if (nested.tenant_id !== tenantId) throw new Error(`public_resource_foreign_tenant:${label}`);
@@ -31,12 +31,12 @@ function safeNested(tenantId: string, value: unknown, label: string): Record<str
 }
 
 function toPublicBlogDto(tenantId: string, row: PublicBlogRow, includeContent: boolean) {
-  const dto = withoutTenantId(row) as Record<string, unknown>;
+  const dto = withoutTenantId(row) as Record<string, any>;
   dto.categoria = safeNested(tenantId, dto.categoria, "blog_category");
   if ("autor" in dto) dto.autor = safeNested(tenantId, dto.autor, "blog_author");
   if (typeof dto.imagem_capa === "string") dto.imagem_capa = normalizePublicMediaUrl(dto.imagem_capa);
   if (includeContent) dto.conteudo = sanitizePublicHtml(typeof dto.conteudo === "string" ? dto.conteudo : "");
-  const autor = dto.autor as Record<string, unknown> | null;
+  const autor = dto.autor as Record<string, any> | null;
   if (autor && typeof autor.foto_url === "string") autor.foto_url = normalizePublicMediaUrl(autor.foto_url);
   return dto;
 }

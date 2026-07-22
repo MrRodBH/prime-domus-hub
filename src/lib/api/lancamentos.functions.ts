@@ -543,10 +543,10 @@ export const obterLancamentoPublico = createServerFn({ method: "POST" })
         thumb: await signLaunchDestination(supabaseAdmin, String(storage_path), 400),
       };
     }));
-    const pdfs = await Promise.all(pdfRows.map(async (row) => {
+    const pdfs: Array<Record<string, any>> = await Promise.all(pdfRows.map(async (row) => {
       const { storage_path, ...dto } = withoutTenantId(row) as Record<string, any>;
       const signed = await signLaunchDestination(supabaseAdmin, String(storage_path));
-      return { ...dto, url: normalizePublicDocumentUrl(signed) };
+      return { ...dto, url: normalizePublicDocumentUrl(signed) } as Record<string, any>;
     }));
 
     const dto = withoutTenantId(project) as Record<string, any>;

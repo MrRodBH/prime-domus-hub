@@ -33,7 +33,6 @@ import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
-import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
@@ -193,11 +192,6 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
 const ApiPublicPortalLeadsRoute = ApiPublicPortalLeadsRouteImport.update({
   id: '/api/public/portal-leads',
   path: '/api/public/portal-leads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
-  id: '/api/public/bootstrap-admin',
-  path: '/api/public/bootstrap-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSuperObservabilidadeRoute =
@@ -480,7 +474,6 @@ export interface FileRoutesByFullPath {
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -544,7 +537,6 @@ export interface FileRoutesByTo {
   '/admin/site': typeof AuthenticatedAdminSiteRoute
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -613,7 +605,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
   '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -682,7 +673,6 @@ export interface FileRouteTypes {
     | '/admin/site'
     | '/super/dlq'
     | '/super/observabilidade'
-    | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/admin/'
@@ -746,7 +736,6 @@ export interface FileRouteTypes {
     | '/admin/site'
     | '/super/dlq'
     | '/super/observabilidade'
-    | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/admin'
@@ -814,7 +803,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/site'
     | '/_authenticated/super/dlq'
     | '/_authenticated/super/observabilidade'
-    | '/api/public/bootstrap-admin'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
@@ -861,7 +849,6 @@ export interface RootRouteChildren {
   ImovelSlugRoute: typeof ImovelSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
-  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksPortalDlqRetryRoute: typeof ApiPublicHooksPortalDlqRetryRoute
@@ -1041,13 +1028,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/portal-leads'
       fullPath: '/api/public/portal-leads'
       preLoaderRoute: typeof ApiPublicPortalLeadsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bootstrap-admin': {
-      id: '/api/public/bootstrap-admin'
-      path: '/api/public/bootstrap-admin'
-      fullPath: '/api/public/bootstrap-admin'
-      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/super/observabilidade': {
@@ -1491,7 +1471,6 @@ const rootRouteChildren: RootRouteChildren = {
   ImovelSlugRoute: ImovelSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
-  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksPortalDlqRetryRoute: ApiPublicHooksPortalDlqRetryRoute,
@@ -1505,3 +1484,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -70,7 +70,7 @@ export const listarImoveis = createServerFn({ method: "GET" })
       .eq("status", "ativo");
 
     if (data.finalidade) query = query.eq("finalidade", data.finalidade);
-    if (data.tipo) query = query.eq("tipo", data.tipo);
+    if (data.tipo) query = query.eq("tipo", data.tipo as any);
     if (data.bairro) query = query.eq("bairro.slug", data.bairro);
     if (data.cidade && !data.bairro) {
       const cityResult = await supabaseAdmin
