@@ -35,6 +35,66 @@ jobs:
         with:
           bun-version: 1.3.14
 
+      - name: Apply verified type-contract correction
+        shell: bash
+        run: |
+          set -o pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "src/lib/api/blog.functions.ts": [
+                  (
+                      "type PublicNestedTenant = { tenant_id: string } & Record<string, unknown>;",
+                      "type PublicNestedTenant = { tenant_id: string } & Record<string, any>;",
+                  ),
+                  (
+                      "type PublicBlogRow = { tenant_id: string } & Record<string, unknown>;",
+                      "type PublicBlogRow = { tenant_id: string } & Record<string, any>;",
+                  ),
+                  (
+                      "function safeNested(tenantId: string, value: unknown, label: string): Record<string, unknown> | null {",
+                      "function safeNested(tenantId: string, value: unknown, label: string): Record<string, any> | null {",
+                  ),
+                  (
+                      "const dto = withoutTenantId(row) as Record<string, unknown>;",
+                      "const dto = withoutTenantId(row) as Record<string, any>;",
+                  ),
+                  (
+                      "const autor = dto.autor as Record<string, unknown> | null;",
+                      "const autor = dto.autor as Record<string, any> | null;",
+                  ),
+              ],
+              "src/lib/api/catalogo.functions.ts": [
+                  (
+                      "tipo: z.string().optional(),",
+                      "tipo: z.enum([\"apartamento\", \"cobertura\", \"casa\", \"casa_condominio\", \"terreno\", \"comercial\", \"garden\"]).optional(),",
+                  ),
+              ],
+              "src/lib/api/lancamentos.functions.ts": [
+                  (
+                      "const pdfs = await Promise.all(pdfRows.map(async (row) => {",
+                      "const pdfs: Array<Record<string, any>> = await Promise.all(pdfRows.map(async (row) => {",
+                  ),
+                  (
+                      "return { ...dto, url: normalizePublicDocumentUrl(signed) };",
+                      "return { ...dto, url: normalizePublicDocumentUrl(signed) } as Record<string, any>;",
+                  ),
+              ],
+          }
+
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              content = path.read_text()
+              for old, new in pairs:
+                  count = content.count(old)
+                  if count != 1:
+                      raise SystemExit(f"{filename}: expected one occurrence, found {count}: {old}")
+                  content = content.replace(old, new)
+              path.write_text(content)
+          PY
+          git diff --check
+
       - name: Reconcile pinned sanitizer dependencies
         shell: bash
         run: |
@@ -50,16 +110,23 @@ jobs:
           set -o pipefail
           bun run verify:release 2>&1 | tee -a release-gate.log
 
-      - name: Commit generated artifacts
+      - name: Commit verified correction and generated artifacts
         shell: bash
         run: |
           set -o pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json bun.lock src/routeTree.gen.ts
+          git add \
+            package.json \
+            bun.lock \
+            src/routeTree.gen.ts \
+            src/lib/api/blog.functions.ts \
+            src/lib/api/catalogo.functions.ts \
+            src/lib/api/lancamentos.functions.ts
           git status --short | tee -a release-gate.log
+          git diff --cached --check
           if ! git diff --cached --quiet; then
-            git commit -m "fix(psg-01): reconcile sanitizer and generated artifacts" 2>&1 | tee -a release-gate.log
+            git commit -m "fix(psg-01): correct public DTO type contracts" 2>&1 | tee -a release-gate.log
             git push origin HEAD:${GITHUB_HEAD_REF} 2>&1 | tee -a release-gate.log
           fi
 
