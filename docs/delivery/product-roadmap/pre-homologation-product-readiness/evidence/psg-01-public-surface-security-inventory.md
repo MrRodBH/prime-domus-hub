@@ -2,21 +2,22 @@
 
 ## Status
 
-**Accepted planning inventory — merged; no runtime change**
+**Preflight-amended planning inventory — ready for direct external audit; no runtime change**
 
 ```text
 STAGE_ID = PSG-01
-BASELINE_MAIN = 55e0a7b95aedd767c605bceb1ea84999ecf08145
+CURRENT_MAIN_BASELINE = 443b537aa68d007b729aba37ee87d6cc1f62e344
 CANONICAL_ISSUE = 4
-PSG01_PLANNING_PR = 44
-PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
-PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
-PSG01_PLANNING_STATE = Accepted
-PSG01_PLANNING_MERGED = true
+ORIGINAL_PLANNING_PR = 44
+ORIGINAL_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
+IMPLEMENTATION_PR = 46
+IMPLEMENTATION_PR_STATE = Closed — Unmerged
+RUNTIME_IMPLEMENTATION_APPLIED = false
+IMPLEMENTATION_FINAL_DIFF_FILES = 0
+PREFLIGHT_PLANNING_AMENDMENT_AUTHORIZED = true
+PREFLIGHT_PLANNING_AMENDMENT_STATE = Ready for Direct External Audit
+IMPLEMENTATION_RESUME_AUTHORIZED = false
 PLANNING_ONLY = true
-IMPLEMENTATION_AUTHORIZED = false
-IMPLEMENTATION_STARTED = false
-PLANNING_MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
 
@@ -39,7 +40,7 @@ No Lovable report, runtime patch, migration, database write or inferred historic
 
 The corrected inventory adds public catalog, city, neighborhood and property-detail surfaces that were directly proven but absent from the rejected planning HEAD.
 
-The accepted inventory was merged through PR #44 at `0f23e4198cf7caf1ad046a32b861f4397994a607`. That documentation-only merge did not start or authorize implementation.
+The accepted inventory was merged through PR #44. Direct implementation preflight on PR #46 later proved an omitted anonymous bootstrap server function and unresolved DLQ caller/test assumptions. PR #46 was closed unmerged with zero final file diff. This amendment records those findings without changing runtime.
 
 ---
 
@@ -89,7 +90,30 @@ Planning consequence:
 DEFAULT_IMPLEMENTATION = delete public route
 REPLACEMENT_PUBLIC_ROUTE = prohibited
 OPERATOR_RUNBOOK = required
-CALLER_PREFLIGHT = required
+CALLER_PREFLIGHT = resolved — no first-party caller
+```
+
+### 2.1.1 Anonymous bootstrapAdmin server function
+
+```text
+FILE = src/lib/api/admin.functions.ts
+SYMBOL = bootstrapAdmin
+SURFACE = createServerFn POST
+AUTH_MIDDLEWARE = absent
+SERVICE_ROLE_USED = true
+AUTH_USER_CREATION = true
+GLOBAL_ADMIN_ROLE_CREATION = true
+FIRST_PARTY_REFERENCES = definition only
+CLASSIFICATION = DIRECT_FINDING
+```
+
+Amended consequence:
+
+```text
+IMPLEMENTATION = delete bootstrapAdmin export only
+OTHER_ADMIN_FUNCTIONS = immutable
+PUBLIC_OR_SERVER_FN_REPLACEMENT = prohibited
+OPERATOR_ONLY_RUNBOOK = required
 ```
 
 ### 2.2 Portal DLQ retry
@@ -128,12 +152,31 @@ PTW_BUSINESS_REPLAY_PATH = accepted and frozen
 PSG_AUTH_SCOPE = authentication boundary only
 ```
 
-Caller facts not proven by repository:
+Repository caller evidence:
 
 ```text
-SCHEDULER_IDENTITY = HYPOTHESIS
-SCHEDULER_SUPPORTED_HEADER = HYPOTHESIS
-SECRET_ROTATION_PROCEDURE = HYPOTHESIS
+PRODUCTION_SCHEDULER_DEFINITION = absent
+FIRST_PARTY_RUNTIME_CALLER = absent
+PG_CRON_HTTP_CALL_FOR_ROUTE = absent
+DEPLOYMENT_WORKFLOW_CALLER = absent
+LEGACY_QA_CALLER = tests/portals/test_public_endpoints.py
+NEGATIVE_SECURITY_CALLER = tests/security/test_tenant_isolation.py
+PTW_STRUCTURAL_AUTH_ASSERTION = src/lib/__tests__/public-tenant-writer-authority.spec.ts
+EXTERNAL_SCHEDULER_IDENTITY = unproven
+EXTERNAL_SCHEDULER_SUPPORTED_HEADER = unproven
+SECRET_ROTATION_PROCEDURE = absent
+```
+
+Amended consequence:
+
+```text
+AUTH_IMPLEMENTATION = dedicated Authorization Bearer secret
+UNCONFIGURED_ROUTE = deny all
+REPOSITORY_SCHEDULER_CREATION = prohibited
+OPERATOR_RUNBOOK = required
+HOMOLOGATION_ENABLEMENT = blocked until operator evidence
+LEGACY_QA_APIKEY_EXPECTATION = remove
+PTW_REPLAY_BUSINESS_PATH = immutable
 ```
 
 ---
@@ -682,7 +725,31 @@ Storage signing implementation inside authorized public read functions may be re
 
 ---
 
-## 8. Proposed central boundaries
+## 8. Preflight-amended privileged and operational envelope
+
+```text
+src/routes/api/public/bootstrap-admin.ts                  # deletion only
+src/lib/api/admin.functions.ts                            # delete bootstrapAdmin export only
+src/routes/api/public/hooks/portal-dlq-retry.ts          # authentication boundary only
+src/lib/operational-route-auth.server.ts                 # new dedicated auth boundary
+src/lib/__tests__/public-tenant-writer-authority.spec.ts   # DLQ auth assertion only
+tests/portals/test_public_endpoints.py                    # DLQ auth case only
+docs/runbooks/initial-admin-bootstrap.md
+docs/runbooks/portal-dlq-retry.md
+```
+
+Immutability:
+
+```text
+admin.functions.ts non-bootstrap symbols = immutable
+PTW replay business path = immutable
+portal QA unrelated cases = immutable
+repository scheduler/provider/workflow creation = prohibited
+```
+
+---
+
+## 9. Proposed central boundaries
 
 ```text
 src/lib/operational-route-auth.server.ts
@@ -699,7 +766,7 @@ No route, API function or renderer may create a competing allowlist, fallback or
 
 ---
 
-## 9. Proposed implementation envelope summary
+## 10. Proposed implementation envelope summary
 
 New files:
 
@@ -730,7 +797,7 @@ Generated route-tree change is permitted only as a deterministic consequence of 
 
 ---
 
-## 10. Required future evidence additions
+## 11. Required future evidence additions
 
 The PSG tenant-read suite must add executable coverage for:
 
@@ -799,25 +866,26 @@ PTW SQL structural green
 
 ---
 
-## 11. Planning conclusion
+## 12. Preflight-amended planning conclusion
 
 ```text
 PSG01_SURFACE_INVENTORY_COMPLETE = true
+SECOND_BOOTSTRAP_AUTHORITY_INVENTORIED = true
+DLQ_REPOSITORY_CALLER_EVIDENCE_RECONCILED = true
 PUBLIC_CATALOG_AND_PROPERTY_FINDINGS_INCLUDED = true
 DIRECT_FINDINGS_SEPARATED_FROM_HYPOTHESES = true
 CATALOGO_PUBLIC_READ_SCOPE_ONLY = true
 CATALOGO_PUBLIC_WRITER_CHANGED = false
 PTW_PUBLIC_WRITER_BOUNDARIES_CHANGED = false
-PSG01_PLANNING_STATE = Accepted
-PSG01_PLANNING_MERGED = true
-PSG01_PLANNING_PR = 44
-PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
-PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
-PSG01_IMPLEMENTATION_AUTHORIZED = false
-PSG01_IMPLEMENTATION_STARTED = false
-PLANNING_MERGE_AUTHORIZED = false
-MERGE_AUTHORIZED = false
+ORIGINAL_PLANNING_STATE = Accepted
+ORIGINAL_PLANNING_MERGED = true
+IMPLEMENTATION_PR = 46
+IMPLEMENTATION_PR_STATE = Closed — Unmerged
+RUNTIME_IMPLEMENTATION_APPLIED = false
+PREFLIGHT_PLANNING_AMENDMENT_STATE = Ready for Direct External Audit
+AMENDMENT_MERGE_AUTHORIZED = false
+IMPLEMENTATION_RESUME_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
 
-The next action is explicit user authorization for PSG-01 implementation execution. No implementation instruction is emitted by this inventory.
+The next action is direct external audit of the exact amendment PR and Release Gate artifact. No implementation instruction is emitted by this inventory.
