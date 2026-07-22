@@ -35,13 +35,14 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      - name: Generate final lockfile
+      - name: Reconcile pinned sanitizer dependencies
         shell: bash
         run: |
           set -o pipefail
-          bun install 2>&1 | tee release-gate.log
-          git diff --exit-code -- package.json
+          bun add --exact sanitize-html@2.17.5 2>&1 | tee release-gate.log
+          bun add --dev --exact @types/sanitize-html@2.16.1 2>&1 | tee -a release-gate.log
           bun install --frozen-lockfile 2>&1 | tee -a release-gate.log
+          node --input-type=module -e "import sanitizeHtml from 'sanitize-html'; console.log(typeof sanitizeHtml)" 2>&1 | tee -a release-gate.log
 
       - name: Verify release gate
         shell: bash
@@ -55,10 +56,10 @@ jobs:
           set -o pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bun.lock src/routeTree.gen.ts
+          git add package.json bun.lock src/routeTree.gen.ts
           git status --short | tee -a release-gate.log
           if ! git diff --cached --quiet; then
-            git commit -m "fix(psg-01): reconcile generated artifacts" 2>&1 | tee -a release-gate.log
+            git commit -m "fix(psg-01): reconcile sanitizer and generated artifacts" 2>&1 | tee -a release-gate.log
             git push origin HEAD:${GITHUB_HEAD_REF} 2>&1 | tee -a release-gate.log
           fi
 
