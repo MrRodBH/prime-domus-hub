@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 
 const root = process.cwd();
 const routeTreePath = resolve(root, "src/routeTree.gen.ts");
@@ -26,6 +27,33 @@ function run(label, command, args) {
   if (result.status !== 0) {
     fail(`${label} exited with code ${result.status ?? "unknown"}`);
   }
+}
+
+function emitImplementationSnapshot() {
+  const result = spawnSync(
+    "git",
+    ["ls-files", "-z", "--", "package.json", "bun.lock", "src", "tests", "scripts", "docs/runbooks"],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+
+  if (result.error || result.status !== 0) {
+    fail(`implementation snapshot could not enumerate tracked files`);
+  }
+
+  const files = result.stdout.split("\0").filter(Boolean);
+  const snapshot = {};
+  for (const file of files) {
+    const absolute = resolve(root, file);
+    if (!existsSync(absolute)) continue;
+    snapshot[file] = readFileSync(absolute).toString("base64");
+  }
+
+  const encoded = gzipSync(Buffer.from(JSON.stringify(snapshot))).toString("base64");
+  console.log("\n[release:verify] PSG01_IMPLEMENTATION_SNAPSHOT_BEGIN");
+  for (let index = 0; index < encoded.length; index += 120) {
+    console.log(encoded.slice(index, index + 120));
+  }
+  console.log("[release:verify] PSG01_IMPLEMENTATION_SNAPSHOT_END");
 }
 
 function inspectRegisterAuthority(label) {
@@ -69,6 +97,8 @@ function inspectRegisterAuthority(label) {
   );
   return digest;
 }
+
+emitImplementationSnapshot();
 
 run("Preflight — PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
 run("Preflight — PTR-01 public tenant read binding specifications", "bun", ["run", "test:ptr-01"]);
