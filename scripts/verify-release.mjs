@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
@@ -70,37 +69,6 @@ function inspectRegisterAuthority(label) {
   );
   return digest;
 }
-
-function emitTemporaryRepositorySnapshot() {
-  const archivePath = resolve(tmpdir(), `psg01-source-${process.pid}.tar.gz`);
-  const result = spawnSync(
-    "tar",
-    [
-      "-czf",
-      archivePath,
-      "--exclude=.git",
-      "--exclude=node_modules",
-      "--exclude=.output",
-      "--exclude=dist",
-      "--exclude=.vinxi",
-      ".",
-    ],
-    { cwd: root, env: process.env, encoding: "utf8" },
-  );
-  if (result.error || result.status !== 0) {
-    fail(`temporary repository snapshot failed: ${result.error?.message ?? result.stderr}`);
-  }
-
-  const base64 = readFileSync(archivePath).toString("base64");
-  rmSync(archivePath, { force: true });
-  console.log("\nPSG01_TEMP_SOURCE_SNAPSHOT_BEGIN");
-  for (let index = 0; index < base64.length; index += 65_536) {
-    console.log(base64.slice(index, index + 65_536));
-  }
-  console.log("PSG01_TEMP_SOURCE_SNAPSHOT_END");
-}
-
-emitTemporaryRepositorySnapshot();
 
 run("Preflight — PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
 run("Preflight — PTR-01 public tenant read binding specifications", "bun", ["run", "test:ptr-01"]);
