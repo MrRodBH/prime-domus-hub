@@ -67,8 +67,8 @@ jobs:
               ],
               "src/lib/api/catalogo.functions.ts": [
                   (
-                      "tipo: z.string().optional(),",
-                      "tipo: z.enum([\"apartamento\", \"cobertura\", \"casa\", \"casa_condominio\", \"terreno\", \"comercial\", \"garden\"]).optional(),",
+                      "if (data.tipo) query = query.eq(\"tipo\", data.tipo);",
+                      "if (data.tipo) query = query.eq(\"tipo\", data.tipo as any);",
                   ),
               ],
               "src/lib/api/lancamentos.functions.ts": [
