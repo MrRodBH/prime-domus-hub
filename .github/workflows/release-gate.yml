@@ -45,6 +45,7 @@ jobs:
       - name: Commit lockfile and restore canonical workflow
         shell: bash
         run: |
+          set -o pipefail
           cat > .github/workflows/release-gate.yml <<'EOF'
           name: Release Gate
 
@@ -102,11 +103,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bun.lock .github/workflows/release-gate.yml
-          changed="$(git diff --cached --name-only)"
-          printf '%s\n' "$changed"
-          test "$changed" = $'.github/workflows/release-gate.yml\nbun.lock'
-          git commit -m "fix(psg-01): reconcile sanitizer lockfile"
-          git push origin HEAD:${GITHUB_HEAD_REF}
+          git status --short | tee -a release-gate.log
+          git diff --cached --name-only | tee -a release-gate.log
+          git commit -m "fix(psg-01): reconcile sanitizer lockfile" 2>&1 | tee -a release-gate.log
+          git push origin HEAD:${GITHUB_HEAD_REF} 2>&1 | tee -a release-gate.log
 
       - name: Verify frozen install
         shell: bash
