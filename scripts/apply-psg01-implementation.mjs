@@ -30,7 +30,6 @@ git([
   "--",
   "package.json",
   "scripts/verify-release.mjs",
-  ".github/workflows/release-gate.yml",
 ]);
 
 const encoded = parts.map((path) => readFileSync(path, "utf8")).join("");
