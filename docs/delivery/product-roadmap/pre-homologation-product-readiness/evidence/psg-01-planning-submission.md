@@ -2,23 +2,24 @@
 
 ## Status
 
-**Planning Accepted and Merged — implementation pending explicit authorization**
+**Preflight Planning Amendment Submitted — ready for direct external audit**
 
 ```text
 STAGE_ID = PSG-01
-BASELINE_MAIN = 55e0a7b95aedd767c605bceb1ea84999ecf08145
+CURRENT_MAIN_BASELINE = 443b537aa68d007b729aba37ee87d6cc1f62e344
 CANONICAL_ISSUE = 4
-PLANNING_BRANCH = agent/psg-01-planning
-REJECTED_PLANNING_HEAD = 9fb1e1c903702b3f4f07ced1715c01e4edbd4cf8
-PSG01_PLANNING_PR = 44
-PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
-PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
-PSG01_PLANNING_STATE = Accepted
-PSG01_PLANNING_MERGED = true
+ORIGINAL_PLANNING_PR = 44
+ORIGINAL_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
+FAILED_IMPLEMENTATION_PR = 46
+FAILED_IMPLEMENTATION_PR_STATE = Closed — Unmerged
+FAILED_IMPLEMENTATION_HEAD = dda7ca8a074afffe9d8edd89eb57000444dc77dd
+RUNTIME_IMPLEMENTATION_APPLIED = false
+FINAL_IMPLEMENTATION_DIFF_FILES = 0
+AMENDMENT_BRANCH = agent/psg-01-preflight-planning-amendment
+AMENDMENT_AUTHORIZED = true
+AMENDMENT_STATE = Ready for Direct External Audit
+IMPLEMENTATION_RESUME_AUTHORIZED = false
 PLANNING_ONLY = true
-PSG01_IMPLEMENTATION_AUTHORIZED = false
-PSG01_IMPLEMENTATION_STARTED = false
-PSG01_PLANNING_MERGE_AUTHORIZED = false
 MERGE_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
 ```
@@ -27,13 +28,13 @@ LOVABLE_AUTHORIZED = false
 
 ## 1. Submission purpose
 
-This submission packages the corrected Architecture First planning outcome for the Public Surface Security Gate.
+This submission packages the PSG-01 preflight planning amendment required after the first authorized implementation attempt stopped fail-closed.
 
 It contains no runtime, dependency, lockfile, migration, RLS, grant, Auth, Storage, public-writer, workflow or generated-route change.
 
-The correction resolves the final-audit blocker on PR #44 by adding the directly proven public catalog, city, neighborhood and property-detail surfaces to the inventory, trust-boundary model, future `FILES_ALLOWED`, required tests, Definition of Done and final audit criteria.
+The amendment incorporates the omitted `src/lib/api/admin.functions.ts::bootstrapAdmin` anonymous privileged server function, resolves deletion without runtime replacement, records the absence of a repository-owned portal DLQ scheduler, reconciles stale QA/PTW authentication assertions, adds the required portal-DLQ operator runbook and expands `FILES_ALLOWED` narrowly.
 
-Planning merge and implementation authorization remain separate decisions. The accepted planning was merged through PR #44 at `0f23e4198cf7caf1ad046a32b861f4397994a607`; no implementation was started or authorized by that merge.
+PR #46 is closed unmerged with zero final changed files. Direct audit acceptance, protected merge of the amendment and a new explicit product-owner implementation authorization remain separate required decisions.
 
 ---
 
@@ -41,13 +42,14 @@ Planning merge and implementation authorization remain separate decisions. The a
 
 ```text
 docs/architecture/impact-analysis/
-PSG-01-public-surface-security-gate-impact-analysis.md
+PSG-01-public-surface-security-gate-impact-analysis.md      # accepted original authority
+PSG-01-preflight-planning-amendment.md                    # binding superseding delta
 
 docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/
 psg-01-public-surface-security-inventory.md
 ```
 
-The Impact Analysis is normative for implementation scope, `FILES_ALLOWED`, prohibitions, tests, Definition of Done, fail-closed behavior and final audit criteria.
+The accepted original Impact Analysis remains normative except where the preflight amendment explicitly supersedes bootstrap, DLQ caller/transport, `FILES_ALLOWED`, evidence, Definition of Done and next-action statements.
 
 The inventory is the direct-evidence record supporting the planning decisions.
 
@@ -351,25 +353,21 @@ All previous Definition of Done assertions and prohibitions remain binding.
 
 ---
 
-## 9. Planning scope integrity
+## 9. Preflight amendment scope integrity
 
-The corrected planning PR must still change exactly these three documentation files:
+The amendment PR must change exactly these four documentation files:
 
 ```text
-docs/architecture/impact-analysis/
-PSG-01-public-surface-security-gate-impact-analysis.md
-
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/
-psg-01-public-surface-security-inventory.md
-
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/
-psg-01-planning-submission.md
+docs/architecture/governance/DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/psg-01-public-surface-security-inventory.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/psg-01-planning-submission.md
+docs/architecture/impact-analysis/PSG-01-preflight-planning-amendment.md
 ```
 
 Expected assertions:
 
 ```text
-CHANGED_DOCUMENTS = 3
+CHANGED_DOCUMENTS = 4
 PLANNING_RUNTIME_FILES_CHANGED = 0
 PLANNING_MIGRATIONS_CHANGED = 0
 PLANNING_RLS_GRANTS_CHANGED = 0
@@ -409,45 +407,99 @@ The new artifact must be bound to the corrected final planning HEAD, not the rej
 
 ---
 
-## 11. Corrected direct final audit checklist
+## 11. Preflight amendment direct final audit checklist
 
 The planning audit must confirm:
 
-1. `main` remains at the audited baseline while the PR is open;
-2. exactly one PSG-01 planning branch and PR exist;
-3. exactly three documentation files changed;
-4. every material finding is directly supported or labeled as hypothesis;
-5. the implementation envelope covers the canonical issue families and all proven residual public-read surfaces;
-6. `catalogo.functions.ts` is authorized only for the four public-read functions and directly required read-only helpers/DTO types;
-7. `publicLeadSchema`, `enviarLead`, `writePublicLead` delegation and PTW writer modules remain explicitly frozen;
-8. bootstrap removal does not authorize a replacement public service-role endpoint;
-9. DLQ authentication cannot alter the accepted PTW business path;
-10. CSRF planning preserves intentional public server routes;
-11. HTML and destination policies are centralized, server-side and fail-closed;
-12. property media, video and tour are validated before DTO serialization;
-13. catalog, cities, neighborhoods and property detail are Host/tenant-bound with explicit collection or 0/1/N evidence;
-14. service role and Storage signing occur only after authority;
-15. exact sanitizer dependencies and lockfile impact are frozen;
-16. `FILES_ALLOWED` is complete but does not authorize unrelated refactors;
-17. migrations, RLS, grants, Auth, Storage boundaries and accepted writer boundaries remain prohibited;
-18. Release Gate artifact is tied to the corrected final planning HEAD;
-19. implementation remains unauthorized after planning audit.
+1. `main` remains at `443b537aa68d007b729aba37ee87d6cc1f62e344` while the PR is open;
+2. exactly one PSG-01 amendment branch and PR exist;
+3. exactly four documentation files changed;
+4. `bootstrapAdmin` is directly inventoried and its deletion decision is explicit;
+5. no replacement public or server-function bootstrap authority is authorized;
+6. non-bootstrap code in `admin.functions.ts` is explicitly immutable;
+7. repository-owned DLQ scheduler evidence is correctly recorded as absent;
+8. no external scheduler/provider is inferred;
+9. dedicated bearer auth, unconfigured fail-closed behavior and operator runbook are frozen;
+10. PTW replay business semantics remain immutable;
+11. stale PTW and portal-QA auth assertions are narrowly reconciled in future implementation scope;
+12. all original HTML, destination, CSRF and tenant-read planning remains binding;
+13. `FILES_ALLOWED` includes only the four newly required implementation files plus the accepted envelope;
+14. migrations, RLS, grants, Auth, Storage, scheduler and workflow changes remain prohibited;
+15. Release Gate artifact is tied to the exact amendment HEAD;
+16. no blocking review or unresolved thread exists;
+17. implementation resume remains unauthorized after amendment audit.
 
 ---
 
-## 12. Terminal planning state
+## 12. Preflight amendment delta submitted for audit
+
+### Direct findings
 
 ```text
-PSG01_PLANNING_STATE = Accepted
-PSG01_PLANNING_MERGED = true
-PSG01_PLANNING_PR = 44
-PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
-PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
-PSG01_PLANNING_MERGE_AUTHORIZED = false
-PSG01_IMPLEMENTATION_AUTHORIZED = false
-PSG01_IMPLEMENTATION_STARTED = false
-NEXT_ACTION = explicit authorization for PSG-01 implementation execution
-MERGE_AUTHORIZED = false
+PUBLIC_BOOTSTRAP_ADMIN_SERVER_FN_PRESENT = true
+PUBLIC_BOOTSTRAP_ADMIN_SERVER_FN_AUTH_MIDDLEWARE = false
+PUBLIC_BOOTSTRAP_ADMIN_SERVER_FN_FIRST_PARTY_CALLER = false
+DLQ_REPLAY_REPOSITORY_PRODUCTION_SCHEDULER = absent
+DLQ_REPLAY_FIRST_PARTY_RUNTIME_CALLER = absent
+DLQ_REPLAY_LEGACY_QA_APIKEY_EXPECTATION = true
+PTW_DLQ_LEGACY_AUTH_ASSERTION = true
+```
+
+### Frozen decisions
+
+```text
+BOOTSTRAP_PUBLIC_ROUTE = delete
+BOOTSTRAP_ANONYMOUS_SERVER_FN = delete
+BOOTSTRAP_RUNTIME_REPLACEMENT = prohibited
+BOOTSTRAP_OPERATOR_ONLY_RUNBOOK = required
+
+DLQ_SECRET_ENV = PORTAL_DLQ_RETRY_SECRET
+DLQ_TRANSPORT = Authorization: Bearer
+DLQ_PUBLISHABLE_KEY_AUTH = prohibited
+DLQ_LEGACY_X_CRON_SECRET_AUTH = prohibited
+DLQ_REPOSITORY_SCHEDULER_CREATION = prohibited
+DLQ_UNCONFIGURED_ROUTE = deny all
+DLQ_OPERATOR_RUNBOOK = required
+DLQ_HOMOLOGATION_ENABLEMENT = operator evidence required
+```
+
+### Newly added FILES_ALLOWED
+
+```text
+src/lib/api/admin.functions.ts                            # delete bootstrapAdmin export only
+src/lib/__tests__/public-tenant-writer-authority.spec.ts   # DLQ auth assertion only
+tests/portals/test_public_endpoints.py                    # DLQ auth case only
+docs/runbooks/portal-dlq-retry.md
+```
+
+### Scope integrity
+
+```text
+RUNTIME_FILES_CHANGED = 0
+DEPENDENCIES_CHANGED = 0
+LOCKFILE_CHANGED = 0
+MIGRATIONS_CHANGED = 0
+RLS_GRANTS_CHANGED = 0
+AUTH_STORAGE_CHANGED = 0
+WORKFLOW_CHANGED = 0
+IMPLEMENTATION_RESUME_AUTHORIZED = false
+```
+
+---
+
+## 13. Terminal amendment state
+
+```text
+ORIGINAL_PLANNING_STATE = Accepted
+ORIGINAL_PLANNING_MERGED = true
+FAILED_IMPLEMENTATION_PR = 46
+FAILED_IMPLEMENTATION_PR_STATE = Closed — Unmerged
+RUNTIME_IMPLEMENTATION_APPLIED = false
+PREFLIGHT_PLANNING_AMENDMENT_AUTHORIZED = true
+PREFLIGHT_PLANNING_AMENDMENT_STATE = Ready for Direct External Audit
+AMENDMENT_MERGE_AUTHORIZED = false
+IMPLEMENTATION_RESUME_AUTHORIZED = false
+NEXT_ACTION = direct audit of exact amendment PR and Release Gate artifact
 LOVABLE_AUTHORIZED = false
 ```
 
