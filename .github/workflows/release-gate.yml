@@ -36,7 +36,10 @@ jobs:
           bun-version: 1.3.14
 
       - name: Apply PSG-01 implementation
-        run: node scripts/apply-psg01-implementation.mjs
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/apply-psg01-implementation.mjs 2>&1 | tee release-gate.log
 
       - name: Commit consolidated implementation
         shell: bash
@@ -54,7 +57,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          bun run verify:release 2>&1 | tee release-gate.log
+          bun run verify:release 2>&1 | tee -a release-gate.log
 
       - name: Upload release gate evidence
         if: always()
