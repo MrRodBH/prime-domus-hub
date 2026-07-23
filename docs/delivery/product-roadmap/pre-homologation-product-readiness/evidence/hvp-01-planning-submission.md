@@ -141,23 +141,31 @@ Before planning merge, direct audit must verify:
 - external Supabase is not introduced as fallback;
 - `Blocked External` is the fail-closed result for missing operational prerequisites;
 - the complete canonical Release Gate succeeds on the exact final PR HEAD;
-- the Release Gate artifact is persisted and its digest is recorded;
+- the Release Gate artifact is persisted and its digest is recorded in immutable GitHub PR/audit metadata bound to that HEAD;
 - merge remains unauthorized until direct planning audit acceptance.
 
-## 8. Release Gate placeholder
+## 8. Release Gate evidence location
 
-To be populated only from GitHub evidence after the PR run:
+Release Gate identifiers are intentionally not written back into this planning file before audit because any such write would create a new PR HEAD and invalidate the evidence it attempts to record.
+
+The authoritative final planning evidence must be recorded in immutable or append-only GitHub metadata after the Release Gate completes:
+
+- PR check/run metadata;
+- persisted GitHub Actions artifact;
+- direct external audit review or issue comment bound to the exact final HEAD.
+
+Required recorded fields:
 
 ```text
-RELEASE_GATE_RUN = pending
-RELEASE_GATE_JOB = pending
-RELEASE_GATE_CONCLUSION = pending
-ARTIFACT_ID = pending
-ARTIFACT_DIGEST = pending
-ARTIFACT_HEAD = pending
+RELEASE_GATE_RUN
+RELEASE_GATE_JOB
+RELEASE_GATE_CONCLUSION
+ARTIFACT_ID
+ARTIFACT_DIGEST
+ARTIFACT_HEAD
 ```
 
-A pending or failed Release Gate prevents planning acceptance.
+A missing, stale, failed or differently bound Release Gate prevents planning acceptance.
 
 ## 9. Requested audit decision
 
