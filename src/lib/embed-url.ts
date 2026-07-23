@@ -1,51 +1,51 @@
-// Converte URLs de vídeo/tour em URLs prontas para <iframe src>.
-// Suporta: YouTube (watch/shorts/youtu.be), Vimeo, Matterport, Kuula.
-// Caso desconhecido, retorna a URL original (usuário pode colar URL de embed direta).
+import { normalizePublicEmbedUrl } from "@/lib/public-content-security";
+
+function videoId(pathname: string): string | null {
+  const value = pathname.split("/").filter(Boolean)[0];
+  return value && /^[A-Za-z0-9_-]+$/.test(value) ? value : null;
+}
 
 export function toEmbedUrl(input: string | null | undefined): string | null {
-  if (!input) return null;
-  const url = input.trim();
-  if (!url) return null;
-
+  if (!input?.trim()) return null;
   try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, "");
+    const parsed = new URL(input.trim());
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
+    const host = parsed.hostname.toLowerCase();
+    let candidate: string | null = null;
 
-    // YouTube
     if (host === "youtu.be") {
-      const id = u.pathname.slice(1);
-      return id ? `https://www.youtube.com/embed/${id}` : url;
-    }
-    if (host.endsWith("youtube.com")) {
-      if (u.pathname === "/watch") {
-        const id = u.searchParams.get("v");
-        return id ? `https://www.youtube.com/embed/${id}` : url;
+      const id = videoId(parsed.pathname);
+      candidate = id ? `https://www.youtube.com/embed/${id}` : null;
+    } else if (host === "youtube.com" || host === "www.youtube.com") {
+      if (parsed.pathname === "/watch") {
+        const id = parsed.searchParams.get("v");
+        candidate = id && /^[A-Za-z0-9_-]+$/.test(id)
+          ? `https://www.youtube.com/embed/${id}`
+          : null;
+      } else if (parsed.pathname.startsWith("/shorts/")) {
+        const id = videoId(parsed.pathname.slice("/shorts".length));
+        candidate = id ? `https://www.youtube.com/embed/${id}` : null;
+      } else if (parsed.pathname.startsWith("/embed/")) {
+        candidate = `https://www.youtube.com${parsed.pathname}${parsed.search}`;
       }
-      if (u.pathname.startsWith("/shorts/")) {
-        const id = u.pathname.split("/")[2];
-        return id ? `https://www.youtube.com/embed/${id}` : url;
-      }
-      if (u.pathname.startsWith("/embed/")) return url;
+    } else if (host === "www.youtube-nocookie.com" && parsed.pathname.startsWith("/embed/")) {
+      candidate = parsed.toString();
+    } else if (host === "vimeo.com" || host === "www.vimeo.com") {
+      const id = videoId(parsed.pathname);
+      candidate = id ? `https://player.vimeo.com/video/${id}` : null;
+    } else if (host === "player.vimeo.com" && parsed.pathname.startsWith("/video/")) {
+      candidate = parsed.toString();
+    } else if (host === "my.matterport.com" && (parsed.pathname === "/show" || parsed.pathname === "/show/")) {
+      candidate = parsed.toString();
+    } else if ((host === "matterport.com" || host === "www.matterport.com") && parsed.searchParams.get("m")) {
+      candidate = `https://my.matterport.com/show/?m=${encodeURIComponent(parsed.searchParams.get("m")!)}`;
+    } else if (host === "kuula.co" && parsed.pathname.startsWith("/share/")) {
+      candidate = parsed.toString();
+    } else if (host === "www.google.com" && parsed.pathname.startsWith("/maps/embed")) {
+      candidate = parsed.toString();
     }
 
-    // Vimeo
-    if (host === "vimeo.com") {
-      const id = u.pathname.split("/").filter(Boolean)[0];
-      return id ? `https://player.vimeo.com/video/${id}` : url;
-    }
-    if (host === "player.vimeo.com") return url;
-
-    // Matterport
-    if (host.endsWith("matterport.com")) {
-      if (u.pathname.startsWith("/show")) return url;
-      const m = u.searchParams.get("m");
-      if (m) return `https://my.matterport.com/show/?m=${m}`;
-    }
-
-    // Kuula
-    if (host.endsWith("kuula.co")) return url;
-
-    return url;
+    return normalizePublicEmbedUrl(candidate);
   } catch {
     return null;
   }

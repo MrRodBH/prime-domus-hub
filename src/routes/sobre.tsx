@@ -65,12 +65,24 @@ function Page() {
             {s.cta_titulo && <h3 className="font-display text-3xl mb-3">{s.cta_titulo}</h3>}
             {s.cta_texto && <p className="text-muted-foreground mb-6">{s.cta_texto}</p>}
             {s.cta_label && (
-              <Link
-                to={(s.cta_url as "/contato") ?? "/contato"}
-                className="inline-block bg-petroleum hover:bg-gold text-linen px-8 py-4 rounded-full text-sm uppercase tracking-[0.18em] font-medium transition-colors"
-              >
-                {s.cta_label}
-              </Link>
+              s.cta_url?.startsWith("https://") ? (
+                <a
+                  href={s.cta_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block bg-petroleum hover:bg-gold text-linen px-8 py-4 rounded-full text-sm uppercase tracking-[0.18em] font-medium transition-colors"
+                >
+                  {s.cta_label}
+                </a>
+              ) : (
+                <Link
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  to={(s.cta_url ?? "/contato") as any}
+                  className="inline-block bg-petroleum hover:bg-gold text-linen px-8 py-4 rounded-full text-sm uppercase tracking-[0.18em] font-medium transition-colors"
+                >
+                  {s.cta_label}
+                </Link>
+              )
             )}
           </div>
         )}

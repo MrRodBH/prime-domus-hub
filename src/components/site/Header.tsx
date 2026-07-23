@@ -31,7 +31,7 @@ export function Header() {
     const className = "text-[11px] uppercase tracking-[0.22em] font-medium text-foreground/80 hover:text-gold transition-colors";
     if (isExternal) {
       return (
-        <a key={item.id} href={item.url} target={item.target} rel="noreferrer" className={className} onClick={onClickExtra}>
+        <a key={item.id} href={item.url} target={item.target} rel="noopener noreferrer" className={className} onClick={onClickExtra}>
           {item.label}
         </a>
       );
@@ -59,7 +59,7 @@ export function Header() {
           <a
             href={wa}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-2 bg-petroleum text-linen text-[11px] font-semibold uppercase tracking-[0.18em] py-3 px-5 rounded-full hover:bg-gold transition-colors duration-300"
           >
             <MessageCircle className="size-4" strokeWidth={1.5} />
@@ -82,7 +82,7 @@ export function Header() {
             <a
               href={wa}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="sm:hidden mt-2 inline-flex items-center gap-2 bg-petroleum text-linen text-[11px] font-semibold uppercase tracking-[0.18em] py-3 px-5 rounded-full justify-center"
             >
               <MessageCircle className="size-4" strokeWidth={1.5} />

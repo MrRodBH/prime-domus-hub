@@ -1,15 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-function publicClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
+import { normalizePublicMediaUrl } from "@/lib/public-content-security";
+import { sanitizePublicHtml } from "@/lib/public-html-sanitizer.server";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function ensureAdmin(context: any) {
@@ -20,60 +15,92 @@ async function ensureAdmin(context: any) {
   if (error || !data) throw new Error("Acesso negado.");
 }
 
+type PublicNestedTenant = { tenant_id: string } & Record<string, any>;
+type PublicBlogRow = { tenant_id: string } & Record<string, any>;
+
+function oneNested(value: unknown): PublicNestedTenant | null {
+  if (Array.isArray(value)) return (value[0] as PublicNestedTenant | undefined) ?? null;
+  return value && typeof value === "object" ? (value as PublicNestedTenant) : null;
+}
+
+function safeNested(tenantId: string, value: unknown, label: string): Record<string, any> | null {
+  const nested = oneNested(value);
+  if (!nested) return null;
+  if (nested.tenant_id !== tenantId) throw new Error(`public_resource_foreign_tenant:${label}`);
+  return withoutTenantId(nested);
+}
+
+function toPublicBlogDto(tenantId: string, row: PublicBlogRow, includeContent: boolean) {
+  const dto = withoutTenantId(row) as Record<string, any>;
+  dto.categoria = safeNested(tenantId, dto.categoria, "blog_category");
+  if ("autor" in dto) dto.autor = safeNested(tenantId, dto.autor, "blog_author");
+  if (typeof dto.imagem_capa === "string") dto.imagem_capa = normalizePublicMediaUrl(dto.imagem_capa);
+  if (includeContent) dto.conteudo = sanitizePublicHtml(typeof dto.conteudo === "string" ? dto.conteudo : "");
+  const autor = dto.autor as Record<string, any> | null;
+  if (autor && typeof autor.foto_url === "string") autor.foto_url = normalizePublicMediaUrl(autor.foto_url);
+  return dto;
+}
+
 // ============ PUBLIC ============
 
 export const listarPostsPublicos = createServerFn({ method: "GET" })
   .inputValidator(
-    z
-      .object({
-        categoria: z.string().optional(),
-        limite: z.number().int().min(1).max(50).optional(),
-      })
-      .optional()
-      .default({}),
+    z.object({
+      categoria: z.string().min(1).optional(),
+      limite: z.number().int().min(1).max(50).optional(),
+    }).optional().default({}),
   )
   .handler(async ({ data }) => {
-    const supabase = publicClient();
-    let q = supabase
+    const tenant = await requirePublicTenantFromRequest();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let query = supabaseAdmin
       .from("blog_posts")
       .select(
-        "id, titulo, slug, resumo, imagem_capa, publicado_em, categoria:blog_categorias(nome, slug)",
+        "tenant_id, id, titulo, slug, resumo, imagem_capa, publicado_em, categoria:blog_categorias(tenant_id,nome,slug)",
       )
+      .eq("tenant_id", tenant.id)
       .eq("status", "publicado")
       .order("publicado_em", { ascending: false, nullsFirst: false })
       .limit(data.limite ?? 24);
-    if (data.categoria) q = q.eq("categoria.slug", data.categoria);
-    const { data: rows, error } = await q;
+    if (data.categoria) query = query.eq("categoria.slug", data.categoria);
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return assertTenantScopedRows(tenant.id, rows as unknown as PublicBlogRow[] | null)
+      .map((row) => toPublicBlogDto(tenant.id, row, false));
   });
 
 export const obterPostPublico = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ slug: z.string() }))
+  .inputValidator(z.object({ slug: z.string().min(1) }).strict())
   .handler(async ({ data }) => {
-    // Usa admin client porque o join com `corretores` requer SELECT em colunas
-    // que não estão expostas ao role anon (apenas colunas seguras são públicas).
+    const tenant = await requirePublicTenantFromRequest();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: post, error } = await supabaseAdmin
+    const { data: rows, error } = await supabaseAdmin
       .from("blog_posts")
       .select(
-        "id, titulo, slug, resumo, conteudo, imagem_capa, publicado_em, meta_title, meta_description, categoria:blog_categorias(nome, slug), autor:corretores(nome, sobrenome, foto_url, slug)",
+        "tenant_id, id, titulo, slug, resumo, conteudo, imagem_capa, publicado_em, meta_title, meta_description, categoria:blog_categorias(tenant_id,nome,slug), autor:corretores(tenant_id,nome,sobrenome,foto_url,slug)",
       )
+      .eq("tenant_id", tenant.id)
       .eq("slug", data.slug)
       .eq("status", "publicado")
-      .maybeSingle();
+      .limit(2);
     if (error) throw new Error(error.message);
-    return post;
+    const accepted = assertTenantScopedRows(tenant.id, rows as unknown as PublicBlogRow[] | null);
+    if (accepted.length === 0) return null;
+    if (accepted.length > 1) throw new Error("public_resource_ambiguous");
+    return toPublicBlogDto(tenant.id, accepted[0], true);
   });
 
 export const listarCategoriasPublicas = createServerFn({ method: "GET" }).handler(async () => {
-  const supabase = publicClient();
-  const { data, error } = await supabase
+  const tenant = await requirePublicTenantFromRequest();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("blog_categorias")
-    .select("id, nome, slug")
+    .select("tenant_id, id, nome, slug")
+    .eq("tenant_id", tenant.id)
     .order("ordem", { ascending: true });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return assertTenantScopedRows(tenant.id, data as unknown as PublicBlogRow[] | null)
+    .map(withoutTenantId);
 });
 
 // ============ ADMIN ============

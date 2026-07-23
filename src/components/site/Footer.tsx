@@ -38,7 +38,7 @@ const DEFAULT_COL2_LINKS = [
 function FooterLink({ href, label }: { href: string; label: string }) {
   const isExternal = /^https?:\/\//i.test(href);
   if (isExternal) {
-    return <a href={href} target="_blank" rel="noreferrer" className="hover:text-gold transition-colors">{label}</a>;
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">{label}</a>;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return <Link to={href as any} className="hover:text-gold transition-colors">{label}</Link>;

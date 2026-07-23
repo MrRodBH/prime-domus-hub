@@ -3,7 +3,7 @@
 Sem auth. Valida contratos HTTP:
   * /api/public/feeds/<portal>/<token> — token inválido → 401
   * /api/public/portal-leads (POST) — payload inválido → 400
-  * /api/public/hooks/portal-dlq-retry — sem auth → 401, com apikey → 200
+  * /api/public/hooks/portal-dlq-retry — credenciais legadas negadas; bearer dedicado quando configurado
   * Header Retry-After presente em resposta 429 quando rate-limit dispara
 """
 import json
@@ -17,7 +17,8 @@ import urllib.error
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tests._helpers.session import BASE_URL, TestReport
 
-APIKEY = os.environ.get("QA_APIKEY", "sb_publishable_-93nS2kUAsWf6HzDvHD4vQ_u3B9Bqx4")
+APIKEY = os.environ.get("QA_APIKEY", "sb_publishable_test_only")
+DLQ_SECRET = os.environ.get("PORTAL_DLQ_RETRY_SECRET")
 
 
 def http(method, path, body=None, headers=None):
@@ -62,16 +63,23 @@ def main():
         "dlq-retry sem auth → 401", f"HTTP {status}"
     )
 
-    # 5. dlq-retry com apikey
+    # 5. publishable key legada deve ser negada
     status, body, _ = http("POST", "/api/public/hooks/portal-dlq-retry", headers={"apikey": APIKEY})
-    if status == 200:
-        try:
-            payload = json.loads(body)
-            r.ok("dlq-retry autenticado → 200", f"processed={payload.get('processed')}")
-        except Exception:
-            r.ok("dlq-retry autenticado → 200", body[:120])
-    else:
-        r.fail("dlq-retry autenticado → 200", f"HTTP {status} body={body[:120]}")
+    (r.ok if status == 401 else r.fail)(
+        "dlq-retry com apikey legada → 401", f"HTTP {status} body={body[:120]}"
+    )
+
+    # 6. bearer dedicado: aceita somente quando o ambiente de QA o configurou.
+    bearer = DLQ_SECRET or "not-configured-test-secret"
+    status, body, _ = http(
+        "POST",
+        "/api/public/hooks/portal-dlq-retry",
+        headers={"Authorization": f"Bearer {bearer}"},
+    )
+    expected = 200 if DLQ_SECRET else 401
+    (r.ok if status == expected else r.fail)(
+        f"dlq-retry bearer dedicado → {expected}", f"HTTP {status} body={body[:120]}"
+    )
 
     r.dump()
 

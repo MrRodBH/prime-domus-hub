@@ -1,251 +1,272 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requirePublicWriterTenantFromRequest } from "@/lib/public-writers/public-writer-authority.server";
 import { writePublicLead } from "@/lib/public-writers/public-lead-writer.server";
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
+import { normalizePublicMediaUrl } from "@/lib/public-content-security";
+import { toEmbedUrl } from "@/lib/embed-url";
 
-function publicClient() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
+type TenantRow = { tenant_id: string } & Record<string, any>;
+
+function oneRelation(value: unknown): TenantRow | null {
+  if (Array.isArray(value)) return (value[0] as TenantRow | undefined) ?? null;
+  return value && typeof value === "object" ? (value as TenantRow) : null;
 }
 
-const filtersSchema = z
-  .object({
-    finalidade: z.enum(["venda", "aluguel", "lancamento"]).optional(),
-    tipo: z.string().optional(),
-    cidade: z.string().optional(),
-    bairro: z.string().optional(),
-    quartos_min: z.number().int().optional(),
-    suites_min: z.number().int().optional(),
-    vagas_min: z.number().int().optional(),
-    preco_min: z.number().optional(),
-    preco_max: z.number().optional(),
-    area_min: z.number().optional(),
-    busca: z.string().optional(),
-    apenas_destaque: z.boolean().optional(),
-    ordenar: z.enum(["recentes", "preco_asc", "preco_desc", "area_desc"]).optional(),
-    limite: z.number().int().min(1).max(60).optional(),
-  })
-  .optional()
-  .default({});
+function stripNestedTenant(tenantId: string, value: unknown, label: string): Record<string, any> | null {
+  const row = oneRelation(value);
+  if (!row) return null;
+  if (row.tenant_id !== tenantId) throw new Error(`public_resource_foreign_tenant:${label}`);
+  return withoutTenantId(row) as Record<string, any>;
+}
+
+async function publicMediaUrl(
+  admin: typeof import("@/integrations/supabase/client.server").supabaseAdmin,
+  bucket: string,
+  value: string | null | undefined,
+  transform?: { width?: number; height?: number; quality?: number; resize?: "contain" | "cover" | "fill" },
+): Promise<string | null> {
+  if (!value) return null;
+  const alreadyPublic = normalizePublicMediaUrl(value);
+  if (alreadyPublic) return alreadyPublic;
+  const { data, error } = await admin.storage.from(bucket).createSignedUrl(
+    value,
+    60 * 60 * 24,
+    transform ? { transform } : undefined,
+  );
+  if (error) return null;
+  return normalizePublicMediaUrl(data?.signedUrl);
+}
+
+const filtersSchema = z.object({
+  finalidade: z.enum(["venda", "aluguel", "lancamento"]).optional(),
+  tipo: z.string().optional(),
+  cidade: z.string().optional(),
+  bairro: z.string().optional(),
+  quartos_min: z.number().int().optional(),
+  suites_min: z.number().int().optional(),
+  vagas_min: z.number().int().optional(),
+  preco_min: z.number().optional(),
+  preco_max: z.number().optional(),
+  area_min: z.number().optional(),
+  busca: z.string().optional(),
+  apenas_destaque: z.boolean().optional(),
+  ordenar: z.enum(["recentes", "preco_asc", "preco_desc", "area_desc"]).optional(),
+  limite: z.number().int().min(1).max(60).optional(),
+}).optional().default({});
 
 export const listarImoveis = createServerFn({ method: "GET" })
   .inputValidator(filtersSchema)
   .handler(async ({ data }) => {
-    const supabase = publicClient();
-    let q = supabase
+    const tenant = await requirePublicTenantFromRequest();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let query = supabaseAdmin
       .from("imoveis")
       .select(
-        "id, codigo, titulo, slug, finalidade, tipo, status, preco, preco_sob_consulta, area_util, quartos, suites, vagas, badge, destaque, exclusivo, imagem_capa, bairro:bairros(nome, slug, cidade:cidades(slug)), imagens:imovel_imagens(url, ordem)",
+        "tenant_id, id, codigo, titulo, slug, finalidade, tipo, status, preco, preco_sob_consulta, area_util, quartos, suites, vagas, badge, destaque, exclusivo, imagem_capa, bairro:bairros(tenant_id,nome,slug,cidade:cidades(tenant_id,slug)), imagens:imovel_imagens(tenant_id,url,ordem)",
       )
+      .eq("tenant_id", tenant.id)
       .eq("status", "ativo");
 
-    if (data.finalidade) q = q.eq("finalidade", data.finalidade);
-    if (data.tipo) q = q.eq("tipo", data.tipo);
-    if (data.bairro) q = q.eq("bairro.slug", data.bairro);
+    if (data.finalidade) query = query.eq("finalidade", data.finalidade);
+    if (data.tipo) query = query.eq("tipo", data.tipo as any);
+    if (data.bairro) query = query.eq("bairro.slug", data.bairro);
     if (data.cidade && !data.bairro) {
-      const { data: cid } = await supabase.from("cidades").select("id").eq("slug", data.cidade).maybeSingle();
-      const cidadeId = (cid as { id?: string } | null)?.id;
-      if (cidadeId) {
-        const { data: bs } = await supabase.from("bairros").select("id").eq("cidade_id", cidadeId);
-        const ids = (bs ?? []).map((b: { id: string }) => b.id);
-        if (ids.length === 0) return [];
-        q = q.in("bairro_id", ids);
-      } else {
-        return [];
-      }
+      const cityResult = await supabaseAdmin
+        .from("cidades")
+        .select("tenant_id,id")
+        .eq("tenant_id", tenant.id)
+        .eq("slug", data.cidade)
+        .limit(2);
+      if (cityResult.error) throw new Error(cityResult.error.message);
+      const cities = assertTenantScopedRows(tenant.id, cityResult.data as unknown as TenantRow[] | null);
+      if (cities.length === 0) return [];
+      if (cities.length > 1) throw new Error("public_resource_ambiguous");
+      const neighborhoodResult = await supabaseAdmin
+        .from("bairros")
+        .select("tenant_id,id")
+        .eq("tenant_id", tenant.id)
+        .eq("cidade_id", cities[0].id);
+      if (neighborhoodResult.error) throw new Error(neighborhoodResult.error.message);
+      const neighborhoodIds = assertTenantScopedRows(
+        tenant.id,
+        neighborhoodResult.data as unknown as TenantRow[] | null,
+      ).map((row) => String(row.id));
+      if (neighborhoodIds.length === 0) return [];
+      query = query.in("bairro_id", neighborhoodIds);
     }
-    if (data.quartos_min) q = q.gte("quartos", data.quartos_min);
-    if (data.suites_min) q = q.gte("suites", data.suites_min);
-    if (data.vagas_min) q = q.gte("vagas", data.vagas_min);
-    if (data.preco_min) q = q.gte("preco", data.preco_min);
-    if (data.preco_max) q = q.lte("preco", data.preco_max);
-    if (data.area_min) q = q.gte("area_util", data.area_min);
-    if (data.busca) q = q.or(`titulo.ilike.%${data.busca}%,codigo.ilike.%${data.busca}%,endereco.ilike.%${data.busca}%`);
-    if (data.apenas_destaque) q = q.eq("destaque", true);
+    if (data.quartos_min) query = query.gte("quartos", data.quartos_min);
+    if (data.suites_min) query = query.gte("suites", data.suites_min);
+    if (data.vagas_min) query = query.gte("vagas", data.vagas_min);
+    if (data.preco_min) query = query.gte("preco", data.preco_min);
+    if (data.preco_max) query = query.lte("preco", data.preco_max);
+    if (data.area_min) query = query.gte("area_util", data.area_min);
+    if (data.busca) query = query.or(`titulo.ilike.%${data.busca}%,codigo.ilike.%${data.busca}%,endereco.ilike.%${data.busca}%`);
+    if (data.apenas_destaque) query = query.eq("destaque", true);
 
     switch (data.ordenar) {
-      case "preco_asc":
-        q = q.order("preco", { ascending: true, nullsFirst: false });
-        break;
-      case "preco_desc":
-        q = q.order("preco", { ascending: false, nullsFirst: false });
-        break;
-      case "area_desc":
-        q = q.order("area_util", { ascending: false, nullsFirst: false });
-        break;
-      default:
-        q = q.order("destaque", { ascending: false }).order("publicado_em", { ascending: false });
+      case "preco_asc": query = query.order("preco", { ascending: true, nullsFirst: false }); break;
+      case "preco_desc": query = query.order("preco", { ascending: false, nullsFirst: false }); break;
+      case "area_desc": query = query.order("area_util", { ascending: false, nullsFirst: false }); break;
+      default: query = query.order("destaque", { ascending: false }).order("publicado_em", { ascending: false });
     }
+    if (data.limite) query = query.limit(data.limite);
 
-    if (data.limite) q = q.limit(data.limite);
-
-    const { data: rows, error } = await q;
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    const list = rows ?? [];
-    let admin: typeof import("@/integrations/supabase/client.server").supabaseAdmin | null = null;
-    try {
-      admin = (await import("@/integrations/supabase/client.server")).supabaseAdmin;
-    } catch (e) {
-      console.error("supabaseAdmin indisponível em listarImoveis:", e);
-    }
-    await Promise.all(
-      list.map(async (r) => {
-        const row = r as { imagem_capa?: string | null; imagens?: Array<{ url?: string | null; ordem?: number | null }> };
-        const primeiraFoto = [...(row.imagens ?? [])]
-          .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))[0]?.url;
-        const capa = primeiraFoto || row.imagem_capa;
-        delete row.imagens;
-        if (!capa) { row.imagem_capa = null; return; }
-        if (capa.startsWith("http")) { row.imagem_capa = capa; return; }
-        if (!admin) { row.imagem_capa = null; return; }
-        try {
-          const { data: s } = await admin.storage
-            .from("imoveis")
-            .createSignedUrl(capa, 60 * 60 * 24 * 365, {
-              transform: { width: 1280, quality: 72, resize: "contain" },
-            });
-          row.imagem_capa = s?.signedUrl ?? null;
-        } catch {
-          row.imagem_capa = null;
-        }
-      }),
-    );
-    return list;
+    const accepted = assertTenantScopedRows(tenant.id, rows as unknown as TenantRow[] | null);
+    return Promise.all(accepted.map(async (row) => {
+      const dto = withoutTenantId(row) as Record<string, any>;
+      const neighborhood = stripNestedTenant(tenant.id, dto.bairro, "property_neighborhood");
+      if (neighborhood?.cidade) {
+        neighborhood.cidade = stripNestedTenant(tenant.id, neighborhood.cidade, "property_city");
+      }
+      dto.bairro = neighborhood;
+      const images = assertTenantScopedRows(
+        tenant.id,
+        (Array.isArray(dto.imagens) ? dto.imagens : []) as TenantRow[],
+      );
+      const firstImage = [...images].sort((a, b) => Number(a.ordem ?? 0) - Number(b.ordem ?? 0))[0];
+      dto.imagem_capa = await publicMediaUrl(
+        supabaseAdmin,
+        "imoveis",
+        String(firstImage?.url ?? dto.imagem_capa ?? "") || null,
+        { width: 1280, quality: 72, resize: "contain" },
+      );
+      delete dto.imagens;
+      return dto;
+    }));
   });
 
-export const listarCidades = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const supabase = publicClient();
-    const { data, error } = await supabase
-      .from("cidades")
-      .select("id, nome, slug, estado")
-      .order("nome", { ascending: true });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
+export const listarCidades = createServerFn({ method: "GET" }).handler(async () => {
+  const tenant = await requirePublicTenantFromRequest();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("cidades")
+    .select("tenant_id,id,nome,slug,estado")
+    .eq("tenant_id", tenant.id)
+    .order("nome", { ascending: true });
+  if (error) throw new Error(error.message);
+  return assertTenantScopedRows(tenant.id, data as unknown as TenantRow[] | null).map(withoutTenantId);
+});
 
 export const listarBairros = createServerFn({ method: "GET" })
-  .inputValidator(
-    z.object({
-      limite: z.number().int().min(1).max(50).optional(),
-      apenas_destaque: z.boolean().optional(),
-      cidade: z.string().optional(),
-    }).optional().default({}),
-  )
+  .inputValidator(z.object({
+    limite: z.number().int().min(1).max(50).optional(),
+    apenas_destaque: z.boolean().optional(),
+    cidade: z.string().optional(),
+  }).optional().default({}))
   .handler(async ({ data }) => {
-    const supabase = publicClient();
-    let q = supabase
+    const tenant = await requirePublicTenantFromRequest();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let cityId: string | null = null;
+    if (data.cidade) {
+      const cityResult = await supabaseAdmin
+        .from("cidades")
+        .select("tenant_id,id")
+        .eq("tenant_id", tenant.id)
+        .eq("slug", data.cidade)
+        .limit(2);
+      if (cityResult.error) throw new Error(cityResult.error.message);
+      const cities = assertTenantScopedRows(tenant.id, cityResult.data as unknown as TenantRow[] | null);
+      if (cities.length === 0) return [];
+      if (cities.length > 1) throw new Error("public_resource_ambiguous");
+      cityId = String(cities[0].id);
+    }
+
+    let query = supabaseAdmin
       .from("bairros")
-      .select("id, nome, slug, descricao, imagem_url, destaque, cidade_id, cidade:cidades(id, nome, slug, estado)")
+      .select("tenant_id,id,nome,slug,descricao,imagem_url,destaque,cidade_id,cidade:cidades(tenant_id,id,nome,slug,estado)")
+      .eq("tenant_id", tenant.id)
       .order("destaque", { ascending: false })
       .order("nome", { ascending: true });
-    if (data.apenas_destaque) q = q.eq("destaque", true);
-    if (data.cidade) {
-      const { data: cid } = await supabase.from("cidades").select("id").eq("slug", data.cidade).maybeSingle();
-      const cidadeId = (cid as { id?: string } | null)?.id;
-      if (!cidadeId) return [];
-      q = q.eq("cidade_id", cidadeId);
-    }
-    if (data.limite) q = q.limit(data.limite);
-    const { data: bairros, error } = await q;
+    if (data.apenas_destaque) query = query.eq("destaque", true);
+    if (cityId) query = query.eq("cidade_id", cityId);
+    if (data.limite) query = query.limit(data.limite);
+    const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
-    const list = bairros ?? [];
+    const neighborhoods = assertTenantScopedRows(tenant.id, rows as unknown as TenantRow[] | null);
 
-    const { data: counts } = await supabase
+    const countsResult = await supabaseAdmin
       .from("imoveis")
-      .select("bairro_id")
+      .select("tenant_id,bairro_id")
+      .eq("tenant_id", tenant.id)
       .eq("status", "ativo");
+    if (countsResult.error) throw new Error(countsResult.error.message);
+    const countRows = assertTenantScopedRows(tenant.id, countsResult.data as unknown as TenantRow[] | null);
     const countMap = new Map<string, number>();
-    for (const c of counts ?? []) {
-      const id = (c as { bairro_id: string | null }).bairro_id;
-      if (id) countMap.set(id, (countMap.get(id) ?? 0) + 1);
+    for (const row of countRows) {
+      if (row.bairro_id) countMap.set(String(row.bairro_id), (countMap.get(String(row.bairro_id)) ?? 0) + 1);
     }
 
-    let admin: typeof import("@/integrations/supabase/client.server").supabaseAdmin | null = null;
-    try {
-      admin = (await import("@/integrations/supabase/client.server")).supabaseAdmin;
-    } catch (e) {
-      console.error("supabaseAdmin indisponível em listarBairros:", e);
-    }
-    await Promise.all(
-      list.map(async (b) => {
-        const row = b as { id: string; imagem_url?: string | null; count?: number };
-        row.count = countMap.get(row.id) ?? 0;
-        if (row.imagem_url && !row.imagem_url.startsWith("http") && admin) {
-          try {
-            const { data: s } = await admin.storage
-              .from("imoveis")
-              .createSignedUrl(row.imagem_url, 60 * 60 * 24 * 365, {
-                transform: { width: 800, quality: 72, resize: "contain" },
-              });
-            if (s) row.imagem_url = s.signedUrl;
-          } catch { /* keep raw */ }
-        }
-      }),
-    );
-    return list;
+    return Promise.all(neighborhoods.map(async (row) => {
+      const dto = withoutTenantId(row) as Record<string, any>;
+      dto.cidade = stripNestedTenant(tenant.id, dto.cidade, "neighborhood_city");
+      dto.count = countMap.get(String(dto.id)) ?? 0;
+      dto.imagem_url = await publicMediaUrl(
+        supabaseAdmin,
+        "imoveis",
+        typeof dto.imagem_url === "string" ? dto.imagem_url : null,
+        { width: 800, quality: 72, resize: "contain" },
+      );
+      return dto;
+    }));
   });
 
 export const obterImovel = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ slug: z.string().min(1) }))
+  .inputValidator(z.object({ slug: z.string().min(1) }).strict())
   .handler(async ({ data }) => {
+    const tenant = await requirePublicTenantFromRequest();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: imovel, error } = await supabaseAdmin
+    const result = await supabaseAdmin
       .from("imoveis")
       .select(
-        `id, codigo, titulo, slug, descricao, finalidade, tipo, status, preco, preco_sob_consulta,
-         condominio, iptu, area_total, area_util, quartos, suites, banheiros, vagas, endereco,
-         rua, numero, complemento, cidade, estado, cep,
-         badge, destaque, exclusivo, caracteristicas, imagem_capa, video_url, tour_url,
-         latitude, longitude, mostrar_rua, mostrar_endereco_completo, publicado_em,
-         bairro:bairros(id, nome, slug, cidade:cidades(id, nome, slug, estado)),
-         corretor:corretores(id, nome, sobrenome, slug, creci, email, telefone, whatsapp, foto_url, bio),
-         imagens:imovel_imagens(id, url, alt, ordem)`,
+        `tenant_id,id,codigo,titulo,slug,descricao,finalidade,tipo,status,preco,preco_sob_consulta,
+         condominio,iptu,area_total,area_util,quartos,suites,banheiros,vagas,endereco,
+         rua,numero,complemento,cidade,estado,cep,badge,destaque,exclusivo,caracteristicas,
+         imagem_capa,video_url,tour_url,latitude,longitude,mostrar_rua,mostrar_endereco_completo,publicado_em,
+         bairro:bairros(tenant_id,id,nome,slug,cidade:cidades(tenant_id,id,nome,slug,estado)),
+         corretor:corretores(tenant_id,id,nome,sobrenome,slug,creci,email,telefone,whatsapp,foto_url,bio),
+         imagens:imovel_imagens(tenant_id,id,url,alt,ordem)`,
       )
+      .eq("tenant_id", tenant.id)
       .eq("slug", data.slug)
       .eq("status", "ativo")
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!imovel) return null;
-    if (imovel.imagens) {
-      imovel.imagens.sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
-      await Promise.all(
-        (imovel.imagens as Array<{ url: string; thumb?: string }>).map(async (img) => {
-          if (!img.url || img.url.startsWith("http")) {
-            img.thumb = img.url;
-            return;
-          }
-          const [full, thumb] = await Promise.all([
-            supabaseAdmin.storage
-              .from("imoveis")
-              .createSignedUrl(img.url, 60 * 60 * 24 * 365, {
-                transform: { width: 1280, height: 800, quality: 70, resize: "contain" },
-              }),
-            supabaseAdmin.storage
-              .from("imoveis")
-              .createSignedUrl(img.url, 60 * 60 * 24 * 365, {
-                transform: { width: 240, height: 160, quality: 58, resize: "contain" },
-              }),
-          ]);
-          if (full.data) img.url = full.data.signedUrl;
-          img.thumb = thumb.data?.signedUrl ?? img.url;
-        }),
-      );
-    }
-    const imRow = imovel as { imagem_capa?: string | null };
-    if (imRow.imagem_capa && !imRow.imagem_capa.startsWith("http")) {
-      const { data: s } = await supabaseAdmin.storage
-        .from("imoveis")
-        .createSignedUrl(imRow.imagem_capa, 60 * 60 * 24 * 365, {
-          transform: { width: 1280, height: 800, quality: 70, resize: "contain" },
-        });
-      if (s) imRow.imagem_capa = s.signedUrl;
-    }
-    return imovel;
+      .limit(2);
+    if (result.error) throw new Error(result.error.message);
+    const rows = assertTenantScopedRows(tenant.id, result.data as unknown as TenantRow[] | null);
+    if (rows.length === 0) return null;
+    if (rows.length > 1) throw new Error("public_resource_ambiguous");
+
+    const dto = withoutTenantId(rows[0]) as Record<string, any>;
+    const neighborhood = stripNestedTenant(tenant.id, dto.bairro, "property_neighborhood");
+    if (neighborhood?.cidade) neighborhood.cidade = stripNestedTenant(tenant.id, neighborhood.cidade, "property_city");
+    dto.bairro = neighborhood;
+    const broker = stripNestedTenant(tenant.id, dto.corretor, "property_broker");
+    if (broker && typeof broker.foto_url === "string") broker.foto_url = normalizePublicMediaUrl(broker.foto_url);
+    dto.corretor = broker;
+
+    const images = assertTenantScopedRows(
+      tenant.id,
+      (Array.isArray(dto.imagens) ? dto.imagens : []) as TenantRow[],
+    ).sort((a, b) => Number(a.ordem ?? 0) - Number(b.ordem ?? 0));
+    dto.imagens = await Promise.all(images.map(async (image) => {
+      const clean = withoutTenantId(image) as Record<string, any>;
+      clean.url = await publicMediaUrl(supabaseAdmin, "imoveis", String(clean.url), {
+        width: 1280, height: 800, quality: 70, resize: "contain",
+      });
+      clean.thumb = await publicMediaUrl(supabaseAdmin, "imoveis", String(image.url), {
+        width: 240, height: 160, quality: 58, resize: "contain",
+      });
+      return clean;
+    }));
+    dto.imagem_capa = await publicMediaUrl(supabaseAdmin, "imoveis", dto.imagem_capa, {
+      width: 1280, height: 800, quality: 70, resize: "contain",
+    });
+    dto.video_url = toEmbedUrl(typeof dto.video_url === "string" ? dto.video_url : null);
+    dto.tour_url = toEmbedUrl(typeof dto.tour_url === "string" ? dto.tour_url : null);
+    return dto;
   });
 
 const publicLeadSchema = z

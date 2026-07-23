@@ -179,7 +179,7 @@ function Page() {
             <section>
               <h2 className="font-display text-3xl mb-6">Vídeo</h2>
               <div className="aspect-video">
-                <iframe src={d.video_url.replace("watch?v=", "embed/")} title={d.nome} allowFullScreen className="w-full h-full rounded" />
+                <iframe src={d.video_url} title={d.nome} allowFullScreen className="w-full h-full rounded" />
               </div>
             </section>
           )}

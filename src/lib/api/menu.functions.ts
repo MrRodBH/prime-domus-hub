@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
+import { normalizePublicLinkPresentation, normalizePublicNavigationUrl } from "@/lib/public-content-security";
 
 export interface MenuItem {
   id: string;
@@ -14,21 +16,26 @@ export interface MenuItem {
   tipo: "internal" | "external";
 }
 
-function publicClient() {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-  });
-}
+type PublicMenuRow = MenuItem & { tenant_id: string };
 
 export const listarMenuPublico = createServerFn({ method: "GET" }).handler(async () => {
-  const supabase = publicClient();
-  const { data, error } = await supabase
+  const tenant = await requirePublicTenantFromRequest();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("website_menu_items")
-    .select("id, location, label, url, ordem, visivel, target, tipo")
+    .select("tenant_id, id, location, label, url, ordem, visivel, target, tipo")
+    .eq("tenant_id", tenant.id)
     .eq("visivel", true)
     .order("ordem", { ascending: true });
   if (error) throw new Error(error.message);
-  return (data ?? []) as MenuItem[];
+  return assertTenantScopedRows(tenant.id, data as unknown as PublicMenuRow[] | null)
+    .map((row): MenuItem => {
+      const dto = withoutTenantId(row);
+      const url = normalizePublicNavigationUrl(dto.url, "contact");
+      if (!url) throw new Error("unsafe_navigation_destination");
+      const presentation = normalizePublicLinkPresentation(url, dto.target);
+      return { ...dto, url, target: presentation.target };
+    });
 });
 
 export const listarMenuAdmin = createServerFn({ method: "GET" })

@@ -2,24 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { resolvePortalConnectorForTenant } from "@/lib/public-writers/public-writer-authority.server";
 import { ingestPortalLead } from "@/lib/public-writers/portal-writer.server";
-
-// Segurança: aceita apikey == SUPABASE_PUBLISHABLE_KEY (padrão pg_cron)
-// ou header x-cron-secret == CRON_SECRET (uso manual/interno).
+import {
+  operationalUnauthorizedResponse,
+  verifyPortalDlqRetryRequest,
+} from "@/lib/operational-route-auth.server";
 export const Route = createFileRoute("/api/public/hooks/portal-dlq-retry")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const started = Date.now();
-        const anon = process.env.SUPABASE_PUBLISHABLE_KEY;
-        const cronSecret = process.env.CRON_SECRET;
-        const apikey = request.headers.get("apikey");
-        const provided = request.headers.get("x-cron-secret");
-        const authorized = (anon && apikey === anon) || (cronSecret && provided === cronSecret);
-        if (!authorized) {
-          return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "content-type": "application/json" },
-          });
-        }
+        const authorization = verifyPortalDlqRetryRequest(request);
+        if (!authorization.ok) return operationalUnauthorizedResponse();
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { logEvent } = await import("@/lib/observability.server");
