@@ -15,6 +15,7 @@ VSP01_AUTHORIZED = false
 LSV03_AUTHORIZED = false
 CONTROLLED_HOMOLOGATION_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
+HG14_TRIGGERED = false
 ```
 
 ## 1. Purpose
@@ -86,6 +87,10 @@ LSV-02 remains `Superseded — terminal`. Its operational deliverables were not 
 - fail-fast and fail-closed behavior;
 - permanent post-real-operation prohibition;
 - no external Supabase as canonical fallback.
+
+The 73 tenants matching `scp0121_*` remain classified as `PREEXISTING_INTERNAL_TEST_RESIDUE`. They are protected preexisting objects for HVP-01 purposes: they are not fixtures, must not enter the deletion manifest and must not be cleaned by name, prefix or broad query.
+
+`HG14_TRIGGERED = false` remains factual. The post-real-operation prohibition is prospective and becomes binding only after real operation begins; this planning does not claim that event has occurred.
 
 No historical LSV-02 execution result, fixture claim, live-session claim or acceptance claim is transferred to HVP-01.
 
