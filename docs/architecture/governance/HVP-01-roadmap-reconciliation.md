@@ -2,7 +2,18 @@
 
 ## Status
 
+**Superseded — historical fail-closed evidence preserved**
+
+> Superseded by HRC-01 (`docs/architecture/governance/HRC-01-roadmap-reconciliation.md`).
+> Content below is retained as historical planning input. Live execution was
+> never authorized and does not carry over.
+> `PASSIVE_BLOCKED_EXTERNAL_ALLOWED = false`.
+> `HVP01_HISTORICAL_FAIL_CLOSED_EVIDENCE_PRESERVED = true`.
+
+## Historical Status (preserved verbatim)
+
 **Planning-only reconciliation — Ready for Direct External Audit**
+
 
 ```text
 STAGE_ID = HVP-01

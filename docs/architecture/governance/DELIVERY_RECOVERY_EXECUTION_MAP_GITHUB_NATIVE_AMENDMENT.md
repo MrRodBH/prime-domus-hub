@@ -2,6 +2,32 @@
 
 ## Status
 
+**Active governance — reconciled by HRC-01**
+
+```text
+CURRENT_MAIN_BASELINE               = f9326691f561b958c2a4ed7230dd5bf6059a8df4
+HISTORICAL_HVP01_PLANNING_HEAD      = 3735d1543a6e6be93fb452a96e258237e781644f
+UNAUTHORIZED_DRIFT_COMMIT           = 9617cdb8e930376b9a30c1054362ef1c052cdea5
+CURRENT_ACCEPTED_STAGE              = HRC-01 Planning
+HVP01_STATE                         = Superseded — historical fail-closed evidence preserved
+HRC01_STATE                         = Planning — Ready for Direct External Audit
+HRI01_STATE                         = Planned — Not Authorized
+VSP01_STATE                         = Optional — Not Authorized
+LSV03_STATE                         = Planned — Not Started
+PASSIVE_BLOCKED_EXTERNAL_ALLOWED    = false
+CONTROLLED_HOMOLOGATION_AUTHORIZED  = false
+PRODUCTION_AUTHORIZED               = false
+NEXT_ACTION                         = direct external audit of HRC-01 planning
+LOVABLE_AUTHORIZED                  = false
+```
+
+**Authority:** HRC-01 reconciliation supersedes HVP-01 as active readiness
+authority. HRI-01 is the future implementation stage and remains not
+authorized. See `docs/architecture/impact-analysis/HRC-01-homologation-readiness-closure-impact-analysis.md`
+and `docs/architecture/governance/HRC-01-roadmap-reconciliation.md`.
+
+## Historical Status (preserved verbatim)
+
 **Accepted governance with PSG-01 preflight amendment in direct-audit gate**
 
 ```text
@@ -23,6 +49,7 @@ LOVABLE_AUTHORIZED = false
 
 **Authority:** explicit product-owner authorization for the planning-only preflight amendment.  
 **Related governance:** `GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md`.
+
 
 ---
 
