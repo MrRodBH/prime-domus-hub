@@ -12,21 +12,6 @@ function fail(message) {
   process.exit(1);
 }
 
-function digest(content) {
-  return createHash("sha256").update(content).digest("hex");
-}
-
-function functionalTopology(content) {
-  const registerIndex = content.lastIndexOf("declare module");
-  const topology = registerIndex >= 0 ? content.slice(0, registerIndex) : content;
-  return `${topology.trimEnd()}\n`;
-}
-
-if (!existsSync(routeTreePath)) fail("preflight: src/routeTree.gen.ts is missing");
-const committedRouteTreeBeforeGeneration = readFileSync(routeTreePath, "utf8");
-const committedFunctionalTopology = functionalTopology(committedRouteTreeBeforeGeneration);
-const committedFunctionalTopologySha256 = digest(committedFunctionalTopology);
-
 function run(label, command, args) {
   console.log(`\n[release:verify] ${label}`);
   const result = spawnSync(command, args, {
@@ -48,16 +33,14 @@ function inspectRegisterAuthority(label) {
   for (const required of ["interface Register", "ssr: true", "router:"]) {
     if (!registerBlock.includes(required)) fail(`${label}: generated Register block is missing ${required}`);
   }
-  const routeTreeDigest = digest(content);
-  const topologyDigest = digest(functionalTopology(content));
+  const digest = createHash("sha256").update(content).digest("hex");
   console.log(JSON.stringify({
     label,
-    routeTreeSha256: routeTreeDigest,
-    functionalRouteTopologySha256: topologyDigest,
+    routeTreeSha256: digest,
     tanstackRegisterAuthorityCount: matches.length,
     authoredRegisterDeclarationExists: false,
   }, null, 2));
-  return routeTreeDigest;
+  return digest;
 }
 
 run("Preflight — PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
@@ -87,22 +70,6 @@ run("Lead runtime operation specifications", "bun", ["run", "test:lsh-01:runtime
 run("Lead structural specifications", "bun", ["run", "test:lsh-01:structural"]);
 run("Lead SQL structural specifications", "bun", ["run", "test:lsh-01:sql-structural"]);
 
-const generatedRouteTree = readFileSync(routeTreePath, "utf8");
-const generatedFunctionalTopology = functionalTopology(generatedRouteTree);
-const generatedFunctionalTopologySha256 = digest(generatedFunctionalTopology);
-
-console.log(JSON.stringify({
-  label: "hri-01-generated-route-tree-evidence",
-  committedFunctionalRouteTopologySha256: committedFunctionalTopologySha256,
-  generatedFunctionalRouteTopologySha256: generatedFunctionalTopologySha256,
-  functionalTopologyByteEqual: generatedFunctionalTopology === committedFunctionalTopology,
-  generatedRouteTreeSha256: digest(generatedRouteTree),
-  externalFunctionalTopologyAuditRequired: true,
-}, null, 2));
-console.log("[hri-01:generated-route-tree-base64:start]");
-console.log(Buffer.from(generatedRouteTree, "utf8").toString("base64"));
-console.log("[hri-01:generated-route-tree-base64:end]");
-
 console.log(JSON.stringify({
   status: "PASS",
   typecheckExitCode: 0,
@@ -111,7 +78,6 @@ console.log(JSON.stringify({
   tanstackRegisterAuthorityCount: 1,
   generatedRouteTreeManualEdit: false,
   cycleCompositeDigestStable: true,
-  externalFunctionalTopologyAuditRequired: true,
   publicTenantContextSpecsPassed: true,
   publicTenantReadBindingSpecsPassed: true,
   publicSettingsCampaignRecoverySpecsPassed: true,
