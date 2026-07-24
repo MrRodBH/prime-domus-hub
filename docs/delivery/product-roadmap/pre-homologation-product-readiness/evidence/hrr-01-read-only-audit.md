@@ -1,19 +1,20 @@
-# HRR-01 — Read-Only GitHub Audit Evidence
+# HRR-01 — GitHub Audit, Merge and Post-Merge Evidence
 
 ## Audit identity
 
 ```text
 Repository: MrRodBH/prime-domus-hub
 Audited branch: main
-Audited HEAD: bc996d084932dea3c96877d5d597d9dcc3b3afb1
+Audited HEAD before planning merge: bc996d084932dea3c96877d5d597d9dcc3b3afb1
 Historical handoff HEAD: bc996d084932dea3c96877d5d597d9dcc3b3afb1
 Planning branch: agent/hrr-01-planning-reconciliation
+Planning HEAD: 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
 Executor: ChatGPT GitHub-native
 Lovable used: false
-Audit mode: read-only before branch creation
+Audit mode: read-only before branch creation and protected merge
 ```
 
-## Repository state
+## Repository state before HRR-01
 
 ```text
 DEFAULT_BRANCH = main
@@ -26,20 +27,7 @@ BEHIND_BY = 0
 MERGE_BASE = f9326691f561b958c2a4ed7230dd5bf6059a8df4
 ```
 
-## Changed paths between rejection gate and current main
-
-```text
-bun.lock
-package.json
-docs/architecture/governance/DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md
-docs/architecture/governance/HRC-01-roadmap-reconciliation.md
-docs/architecture/governance/HVP-01-roadmap-reconciliation.md
-docs/architecture/impact-analysis/HRC-01-homologation-readiness-closure-impact-analysis.md
-docs/architecture/impact-analysis/HVP-01-homologation-validation-preflight-impact-analysis.md
-src/routeTree.gen.ts
-```
-
-## Scope violation evidence
+## HRC-01 scope violation evidence
 
 The HRC-01 Impact Analysis recorded:
 
@@ -49,7 +37,7 @@ vite.config.ts = prohibited
 src/routeTree.gen.ts not present in FILES_ALLOWED
 ```
 
-Current commit history shows:
+Current commit history showed:
 
 ```text
 src/routeTree.gen.ts
@@ -86,7 +74,7 @@ ROUTE_TREE_REGISTER_FOOTER_PRESENT = false
 FILE_ENDS_AFTER_ADDFILETYPES = true
 ```
 
-### authored declaration search
+### Authored declaration search
 
 ```text
 SEARCH_TERM = tanstack-start-register
@@ -103,14 +91,7 @@ blob = b5968ce52fe060f4a275dbe76d8ab2e68516c1db
 packageManager = bun@1.3.14
 ```
 
-### registration type dependencies
-
-```text
-src/router.tsx blob = 8b0405c4f54b96d0fdd2c454186e5289e74dc4bc
-src/start.ts blob = a204b1389f283e8888206b8f969d96cd629cab82
-```
-
-## Accepted GNR-01 historical evidence
+## Accepted GNR-01 evidence
 
 ```text
 GNR01_IMPLEMENTATION_COMMIT = 9a9c97c549e0f6a575546abc5a9ffa0a3904078d
@@ -119,11 +100,61 @@ GNR01_STATE = Accepted
 REJECTED_STRATEGY_B_PRESENT_AT_ACCEPTANCE = false
 GENERATED_ROUTE_TREE_MANUAL_EDIT_AT_ACCEPTANCE = false
 TANSTACK_REGISTER_AUTHORITY_COUNT_AT_ACCEPTANCE = 1
+STRATEGY_B_ALLOWED = false
 ```
 
-GNR-01 removed the authored declaration and the generated-file rewriting
-plugin, and established the generated route tree as the single Register
-authority.
+GNR-01 removed the authored declaration and generated-file rewriting plugin,
+and established the generated route tree as the single Register authority.
+
+## HRR-01 planning branch audit
+
+```text
+EXPECTED_MAIN_HEAD = bc996d084932dea3c96877d5d597d9dcc3b3afb1
+ACTUAL_MAIN_HEAD_BEFORE_MERGE = bc996d084932dea3c96877d5d597d9dcc3b3afb1
+EXPECTED_PLANNING_HEAD = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
+ACTUAL_PLANNING_HEAD = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
+MAIN_HEAD_MATCHED = true
+PLANNING_HEAD_MATCHED = true
+ANCESTRY_VERIFIED = true
+PLANNING_AHEAD_BY = 6
+PLANNING_BEHIND_BY = 0
+FINAL_DIFF_FILES = 5
+FILES_OUTSIDE_ALLOWED = 0
+SRC_DIFF = 0
+ROUTE_TREE_DIFF = 0
+VITE_CONFIG_DIFF = 0
+PACKAGE_JSON_DIFF = 0
+BUN_LOCK_DIFF = 0
+WORKFLOW_DIFF = 0
+SUPABASE_DIFF = 0
+```
+
+Authorized planning paths:
+
+```text
+docs/architecture/impact-analysis/HRR-01-homologation-readiness-recovery-route-registration-reconciliation-impact-analysis.md
+docs/architecture/governance/HRC-01-roadmap-reconciliation.md
+docs/architecture/governance/HRC-01-terminal-rejection-record.md
+docs/architecture/governance/HRR-01-roadmap-reconciliation.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/hrr-01-read-only-audit.md
+```
+
+## Protected planning merge
+
+```text
+PR_NUMBER = 50
+PR_BASE = main
+PR_HEAD = agent/hrr-01-planning-reconciliation
+PR_HEAD_SHA = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
+EXPECTED_HEAD_PROTECTION_USED = true
+MERGE_METHOD = squash
+PLANNING_MERGE_HEAD = 3f3bf60193f6294e629b4547a2d7875b2a7e9722
+PR_MERGED = true
+```
+
+The five files on merged `main` were compared with the planning branch and had
+identical blob SHAs. No planning content was lost or altered by the squash
+merge.
 
 ## Operations not executed
 
@@ -141,21 +172,28 @@ CRON_MUTATION_EXECUTED = false
 QUEUE_MUTATION_EXECUTED = false
 WEBHOOK_EXECUTED = false
 EMAIL_EXECUTED = false
-MAIN_MOVED = false
+FORCE_PUSH_EXECUTED = false
+RESET_EXECUTED = false
+HISTORY_REWRITE_EXECUTED = false
 ```
 
-## HRR-01 result submitted for audit
+## Final HRR-01 disposition
 
 ```text
 HRC01_STATE = Rejected — Terminal
-HRR01_STATE = Planning — Ready for Direct External Audit
+HRR01_STATE = Accepted
+HRR01_PLANNING_STATE = Accepted
+HRR01_PLANNING_MERGED = true
 HRR01_PRINCIPAL_PROMPT_CONSUMED = true
 HRR01_CORRECTIVE_PROMPT_CONSUMED = false
 HRR01_REMAINING_PROMPT_BUDGET = 1/2
+GNR01_STATE = Accepted
+STRATEGY_B_ALLOWED = false
 HRI01_STATE = Planned — Not Authorized
 LIVE_EXECUTION_AUTHORIZED = false
 CONTROLLED_HOMOLOGATION_AUTHORIZED = false
 PRODUCTION_AUTHORIZED = false
+LOVABLE_EXECUTION_AUTHORIZED = false
 ```
 
-This evidence does not declare HRR-01 accepted and does not authorize merge.
+No later stage is authorized by this evidence.
