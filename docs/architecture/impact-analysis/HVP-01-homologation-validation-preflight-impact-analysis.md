@@ -2,7 +2,20 @@
 
 ## Status
 
+**Superseded — historical fail-closed evidence preserved**
+
+> Superseded by HRC-01 (`docs/architecture/impact-analysis/HRC-01-homologation-readiness-closure-impact-analysis.md`).
+> HVP-01 planning content, fail-closed evidence and preflight findings are
+> preserved below as historical inputs only. Live execution was never
+> authorized. HRC-01 is now the active readiness authority; HRI-01 is the
+> future implementation stage and remains not authorized.
+> `PASSIVE_BLOCKED_EXTERNAL_ALLOWED = false`.
+> `HVP01_HISTORICAL_FAIL_CLOSED_EVIDENCE_PRESERVED = true`.
+
+## Historical Status (preserved verbatim)
+
 **Planning and preparation only — Ready for Direct External Audit**
+
 
 ```text
 STAGE_ID = HVP-01
