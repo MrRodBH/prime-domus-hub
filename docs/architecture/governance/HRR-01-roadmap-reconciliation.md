@@ -2,43 +2,34 @@
 
 ## Status
 
-**Accepted — Planning merged and post-merge reconciliation completed**
+**Accepted — Planning merged; HRI-01 implementation accepted and merged**
 
 ```text
 STAGE_ID = HRR-01
-AUDITED_MAIN_BASELINE = bc996d084932dea3c96877d5d597d9dcc3b3afb1
-PLANNING_BRANCH = agent/hrr-01-planning-reconciliation
-PLANNING_HEAD = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
-PLANNING_PR = 50
-PLANNING_MERGE_METHOD = squash
-PLANNING_MERGE_HEAD = 3f3bf60193f6294e629b4547a2d7875b2a7e9722
 EXECUTOR = ChatGPT GitHub-native
 LOVABLE_EXECUTION_AUTHORIZED = false
+
 HVP01_STATE = Historical predecessor — not reopened
 HRC01_STATE = Rejected — Terminal
 HRR01_STATE = Accepted
-HRR01_PLANNING_STATE = Accepted
-HRR01_PLANNING_MERGED = true
-HRI01_STATE = Planned — Not Authorized
+GNR01_STATE = Accepted
+HRI01_STATE = Accepted — Implementation Merged
+
 LIVE_EXECUTION_AUTHORIZED = false
 CONTROLLED_HOMOLOGATION_AUTHORIZED = false
 PRODUCTION_AUTHORIZED = false
+NEXT_STAGE_AUTHORIZED = none
 ```
 
 ## 1. Authority
 
 This document is the current stage-specific Product Readiness authority for the
-HRC-01 terminal rejection and HRR-01 planning disposition.
-
-It supersedes prior current-state text that described HRR-01 as
-`Planning — Ready for Direct External Audit` or stated that its merge was not
-authorized. The HRR-01 Impact Analysis remains the accepted planning analysis;
-its pre-merge status header is historical execution context and does not
-supersede this post-merge reconciliation.
+HRC-01 terminal rejection, HRR-01 planning disposition and the reconciled
+successor state after the protected HRI-01 implementation merge.
 
 Historical HRC-01 and HVP-01 planning content remains evidence only. It cannot
-reopen HRC-01, authorize Strategy B, authorize HRI-01 or authorize live
-execution.
+reopen HRC-01, reactivate Strategy B, authorize live execution or authorize a
+successor stage.
 
 ## 2. Executable chain
 
@@ -53,7 +44,7 @@ PSG-01       Accepted with Non-Blocking Backlog — Merged
 HVP-01       Historical predecessor — not reopened
 HRC-01       Rejected — Terminal
 HRR-01       Accepted — Planning merged
-HRI-01       Planned — Not Authorized
+HRI-01       Accepted — Implementation Merged
 VSP-01       Optional — Not Authorized
 LSV-03       Planned — Blocked
 Controlled Homologation  Not Authorized
@@ -79,11 +70,10 @@ HRC-01
 HRC01_PRINCIPAL_PROMPT_CONSUMED = true
 HRC01_CORRECTIVE_PROMPT_CONSUMED = true
 HRC01_REMAINING_PROMPT_BUDGET = 0/2
-HRC01_FILES_OUTSIDE_ALLOWED = 1
-HRC01_OUTSIDE_ALLOWED_PATH = src/routeTree.gen.ts
 HRC01_FINAL_EXTERNAL_AUDIT_ACCEPTED = false
 HRC01_STATE = Rejected — Terminal
 HRC01_ADDITIONAL_PROMPT_AUTHORIZED = false
+HRC01_BUDGET_CLASSIFICATION = historical terminal predecessor state
 ```
 
 HRC-01 may not be reopened, retried, renamed or used as runtime authority.
@@ -93,59 +83,85 @@ HRC-01 may not be reopened, retried, renamed or used as runtime authority.
 ```text
 GNR01_STATE = Accepted
 CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
+GENERATED_REGISTER_AUTHORITY_COUNT = 1
+AUTHORED_REGISTER_DECLARATION_COUNT = 0
+GENERATED_FILE_REWRITER_COUNT = 0
 AUTHORED_DECLARATION_ALLOWED = false
 GENERATED_FILE_REWRITING_PLUGIN_ALLOWED = false
 STRATEGY_B_ALLOWED = false
 ```
 
-The absence of a Register augmentation at the audited baseline remains a
-blocking technical finding for a future separately authorized implementation.
-It does not alter GNR-01 and does not authorize a fallback.
+The official TanStack/Vite generator output in `src/routeTree.gen.ts` is the sole
+Register authority. No authored declaration, footer injector, post-processing
+rewrite or fallback authority is accepted.
 
-## 5. HRR-01 budget and execution result
+## 5. HRR-01 planning result
 
 ```text
-HRR01_STARTED = true
 HRR01_PRINCIPAL_PROMPT_CONSUMED = true
 HRR01_CORRECTIVE_PROMPT_CONSUMED = false
 HRR01_REMAINING_PROMPT_BUDGET = 1/2
 HRR01_RUNTIME_CHANGED = false
-HRR01_MANUAL_GENERATION_EXECUTED = false
-HRR01_MANUAL_TYPECHECK_EXECUTED = false
-HRR01_MANUAL_BUILD_EXECUTED = false
-AUTOMATIC_RELEASE_GATE_TRIGGERED_BY_PR = true
 HRR01_FILES_OUTSIDE_ALLOWED = 0
-HRR01_PLANNING_DIFF_FILES = 5
-HRR01_PLANNING_CONTENT_MATCHED_BRANCH = true
 HRR01_PLANNING_STATE = Accepted
 HRR01_PLANNING_MERGED = true
+
+HRR01_PLANNING_PR = 50
+HRR01_PLANNING_HEAD = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
+HRR01_PLANNING_MERGE_METHOD = squash
+HRR01_PLANNING_MERGE_SHA = 3f3bf60193f6294e629b4547a2d7875b2a7e9722
 ```
 
-PR #50 was merged with expected-head protection against
-`21fe811ec96c5da777ae9dc3090fbf551e8c4ae0`. The merge introduced only the five
-authorized documentary paths. No runtime, generated route, Vite configuration,
-package, lockfile, workflow or Supabase path changed.
+HRR-01 changed documentation only. It did not authorize implementation by
+itself; HRI-01 was subsequently authorized, executed, externally accepted and
+merged through its own protected governance flow.
 
-No build, typecheck or route-generation command was invoked manually by the
-executor. Opening the protected PRs triggered the repository's existing
-`Release Gate` workflow automatically. That CI execution is recorded as an
-automatic repository control and is not a product-runtime implementation.
-
-## 6. Successor control
+## 6. HRI-01 successor reconciliation
 
 ```text
-HRI01_STARTED = false
-HRI01_AUTHORIZED = false
-HRI01_EXECUTION_ENVELOPE_FROZEN = false
-HRI01_LIVE_EXECUTION_AUTHORIZED = false
-NEXT_STAGE_AUTHORIZED = none
-NEXT_ACTION = explicit governance decision required before any HRI-01 action
+FINAL_EXTERNAL_AUDIT = Accepted
+HRI01_STATE = Accepted
+
+HRI01_IMPLEMENTATION_PR = 53
+HRI01_IMPLEMENTATION_HEAD = a390f842db3f6f2714f3a564b70cedfa2c78248d
+HRI01_IMPLEMENTATION_MERGED = true
+HRI01_IMPLEMENTATION_MERGE_METHOD = squash
+HRI01_IMPLEMENTATION_MERGE_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
+
+HRI01_POST_MERGE_RELEASE_GATE_RUN_ID = 30116233612
+HRI01_POST_MERGE_RELEASE_GATE_EVENT = push
+HRI01_POST_MERGE_RELEASE_GATE_RESULT = success
+
+HRI01_PRINCIPAL_PROMPT_CONSUMED = true
+HRI01_CORRECTIVE_PROMPT_CONSUMED = false
+HRI01_REMAINING_PROMPT_BUDGET = 1/2
+HRC01_BUDGET_CHANGED_DURING_HRI01 = false
 ```
 
-HRR-01 acceptance does not auto-authorize HRI-01. A future HRI-01 action
-requires a separate explicit authorization and a then-current GitHub audit.
+The protected implementation merge introduced the five authorized HRI-01
+paths. Its post-merge `Release Gate` checked out
+`91d63bc5ed18540fc122301150a996ed0fe51021` from `main`; checkout, Bun setup,
+frozen installation, release verification and evidence upload completed
+successfully.
 
-## 7. Product Experience Parallel Lane
+## 7. Successor control
+
+```text
+HRI01_STARTED = true
+HRI01_AUTHORIZED = true
+HRI01_IMPLEMENTATION_MERGED = true
+HRI01_LIVE_EXECUTION_AUTHORIZED = false
+LIVE_EXECUTION_AUTHORIZED = false
+CONTROLLED_HOMOLOGATION_AUTHORIZED = false
+PRODUCTION_AUTHORIZED = false
+LOVABLE_EXECUTION_AUTHORIZED = false
+NEXT_STAGE_AUTHORIZED = none
+```
+
+Acceptance and merge of HRI-01 do not authorize controlled homologation,
+production, LSV-03, VSP-01 or any other successor.
+
+## 8. Product Experience parallel lane
 
 ```text
 PRODUCT_EXPERIENCE_PLANNING_BLOCKED_BY_HVP01 = false
@@ -154,28 +170,5 @@ PRODUCT_EXPERIENCE_PLANNING_BLOCKED_BY_HRR01 = false
 PRODUCT_EXPERIENCE_RUNTIME_IMPLEMENTATION_AUTHORIZED = false
 ```
 
-Product Experience planning may proceed separately. Runtime implementation is
-not authorized by HRR-01.
-
-## 8. Merge and post-merge verification
-
-```text
-MAIN_HEAD_BEFORE = bc996d084932dea3c96877d5d597d9dcc3b3afb1
-PLANNING_HEAD_VERIFIED = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
-PR_NUMBER = 50
-MERGE_METHOD = squash
-PLANNING_MERGE_HEAD = 3f3bf60193f6294e629b4547a2d7875b2a7e9722
-ANCESTRY_VERIFIED = true
-FILES_CHANGED = 5
-FILES_OUTSIDE_ALLOWED = 0
-SRC_DIFF = 0
-ROUTE_TREE_DIFF = 0
-VITE_CONFIG_DIFF = 0
-PACKAGE_JSON_DIFF = 0
-BUN_LOCK_DIFF = 0
-WORKFLOW_DIFF = 0
-SUPABASE_DIFF = 0
-```
-
-No force push, reset, history rewrite or automatic successor execution was
-performed.
+Product Experience planning remains a separate lane. Runtime implementation is
+not authorized by this reconciliation.
