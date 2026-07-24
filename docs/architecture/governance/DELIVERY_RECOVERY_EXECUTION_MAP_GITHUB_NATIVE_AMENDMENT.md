@@ -2,331 +2,219 @@
 
 ## Status
 
-**Active governance — reconciled by HRC-01**
+**Active governance — reconciled by RPD-01 planning**
 
 ```text
-CURRENT_MAIN_BASELINE               = f9326691f561b958c2a4ed7230dd5bf6059a8df4
-HISTORICAL_HVP01_PLANNING_HEAD      = 3735d1543a6e6be93fb452a96e258237e781644f
-UNAUTHORIZED_DRIFT_COMMIT           = 9617cdb8e930376b9a30c1054362ef1c052cdea5
-CURRENT_ACCEPTED_STAGE              = HRC-01 Planning
-HVP01_STATE                         = Superseded — historical fail-closed evidence preserved
-HRC01_STATE                         = Planning — Ready for Direct External Audit
-HRI01_STATE                         = Planned — Not Authorized
-VSP01_STATE                         = Optional — Not Authorized
-LSV03_STATE                         = Planned — Not Started
-PASSIVE_BLOCKED_EXTERNAL_ALLOWED    = false
-CONTROLLED_HOMOLOGATION_AUTHORIZED  = false
-PRODUCTION_AUTHORIZED               = false
-NEXT_ACTION                         = direct external audit of HRC-01 planning
-LOVABLE_AUTHORIZED                  = false
-```
-
-**Authority:** HRC-01 reconciliation supersedes HVP-01 as active readiness
-authority. HRI-01 is the future implementation stage and remains not
-authorized. See `docs/architecture/impact-analysis/HRC-01-homologation-readiness-closure-impact-analysis.md`
-and `docs/architecture/governance/HRC-01-roadmap-reconciliation.md`.
-
-## Historical Status (preserved verbatim)
-
-**Accepted governance with PSG-01 preflight amendment in direct-audit gate**
-
-```text
-CURRENT_MAIN = 443b537aa68d007b729aba37ee87d6cc1f62e344
-CURRENT_RUNTIME_MAIN = 82b1ead61e8edde6b70454b758c4b51ccded9a4f
-CURRENT_ACCEPTED_STAGE = PSG-01 Planning
-PSG01_PLANNING_STATE = Accepted
-PSG01_PLANNING_MERGED = true
-PSG01_IMPLEMENTATION_PR = 46
-PSG01_IMPLEMENTATION_PR_STATE = Closed — Unmerged
-PSG01_RUNTIME_IMPLEMENTATION_APPLIED = false
-PSG01_IMPLEMENTATION_FINAL_DIFF_FILES = 0
-PSG01_PREFLIGHT_PLANNING_AMENDMENT_AUTHORIZED = true
-PSG01_PREFLIGHT_PLANNING_AMENDMENT_STATE = Ready for Direct External Audit
-PSG01_IMPLEMENTATION_RESUME_AUTHORIZED = false
-NEXT_ACTION = direct external audit of PSG-01 preflight planning amendment
+CURRENT_MAIN_BASELINE = 7d0ea2869e0c15887637063a85a833ccff0721c4
+CURRENT_ACCEPTED_STAGE = HRI-01 Accepted / Closed
+CURRENT_PLANNING_STAGE = RPD-01 — Ready for Direct External Audit
+RPD01_ACCEPTED = false
+RPD01_MERGE_AUTHORIZED = false
+PRM2_PLANNING_AUTHORIZED = false
+PRM3_IMPLEMENTATION_AUTHORIZED = false
 LOVABLE_AUTHORIZED = false
+DEPLOY_AUTHORIZED = false
+LIVE_TESTING_AUTHORIZED = false
+CONTROLLED_HOMOLOGATION_AUTHORIZED = false
+PRODUCTION_AUTHORIZED = false
+NEXT_STAGE_AUTHORIZED = none
 ```
 
-**Authority:** explicit product-owner authorization for the planning-only preflight amendment.  
-**Related governance:** `GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md`.
+This amendment records the accepted GitHub-native recovery chain and the new product-delivery sequence after HRI-01. It supersedes stale executable ordering while preserving historical evidence.
 
+## 1. Accepted GitHub-native chain
 
----
+| Order | Stage | State | Evidence model |
+|---:|---|---|---|
+| 1 | DRA-01 | Accepted | direct repository audit |
+| 2 | GNR-01 | Accepted | GitHub-native PR and Release Gate |
+| 3 | PTC-01 | Accepted | GitHub-native PR and Release Gate |
+| 4 | PSC-01 | Accepted | GitHub-native PR and Release Gate |
+| 5 | PPR-GN-01 | Accepted | GitHub-native replacement completion |
+| 6 | PTW-01 | Accepted | planning + implementation + direct audit |
+| 7 | PSG-01 | Accepted with Non-Blocking Backlog / Merged | public-surface security gate |
+| 8 | HVP-01 | Superseded / historical | live execution never authorized |
+| 9 | HRC-01 | Rejected / terminal | no reopening |
+| 10 | HRR-01 | Accepted | roadmap reconciliation |
+| 11 | HRI-01 | Accepted / Closed | implementation + documentary reconciliation merged |
+| 12 | RPD-01 | Planning Complete — Ready for Direct External Audit | documentary rebaseline only |
 
-## 1. Purpose
-
-This document governs the post-FRP delivery recovery path after the PPR-01 principal and corrective GitHub-native attempts were incorrectly terminalized through a Lovable-specific prompt-budget rule.
-
-It preserves PR #33 as closed diagnostic history, records the accepted PPR-GN-01 and PTW-01 paths, records the accepted PSG-01 planning, records PR #46 as a closed unmerged zero-diff preflight stop, and places the planning amendment in direct-audit state without authorizing implementation resume.
-
----
-
-## 2. Historical disposition
-
-### PPR-01
+## 2. HRI-01 closure authority
 
 ```text
-PPR01_PROCESS_CLASSIFICATION = Superseded
-PPR01_PR_33_STATE = Closed — Unmerged
-PPR01_PR_33_REOPEN_AUTHORIZED = false
-PPR01_PR_33_MERGE_AUTHORIZED = false
-PPR01_BRANCH_ACCEPTED_AS_AUTHORITY = false
-PPR01_TECHNICAL_OBJECTIVE_COMPLETED = false
+HRI01_IMPLEMENTATION_PR = 53
+HRI01_IMPLEMENTATION_MERGE_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
+HRI01_RECONCILIATION_PR = 54
+HRI01_RECONCILIATION_MERGE_SHA = 7d0ea2869e0c15887637063a85a833ccff0721c4
+FINAL_PUSH_RELEASE_GATE_RUN_ID = 30126260293
+FINAL_PUSH_RELEASE_GATE_RESULT = success
+MERGE_RECONCILIATION_COMPLETE = true
 ```
 
-Reason for `Superseded`:
-
-- the prior `Rejected — terminal` decision relied on a prompt-budget rule that does not apply to direct GitHub-native execution;
-- PR #33 remained red and was never merged;
-- its code and CI findings remain diagnostic history only;
-- PPR-GN-01 restarted from audited `main` under the accepted GitHub-native governance amendment.
-
-The supersession changes the process classification only. It does not retroactively accept PR #33.
-
----
-
-## 3. Accepted predecessor state
+Generated registration authority remains:
 
 ```text
-PSC01_STATE = Accepted
-PSC01_RUNTIME_HEAD = e5032890c7cc44dd03990d4e462ec3b3bb723be0
-PSC01_ACCEPTANCE_HEAD = 871b5aa962e71cf3da5c585392f32b4cbca987e6
-
-PPR_GN_01_STATE = Accepted
-PPR_GN_01_IMPLEMENTATION_HEAD = ca48472bb6b7676e4c61639a1528c66083ab1c36
-PPR_GN_01_IMPLEMENTATION_MERGE_HEAD = 0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2
-
-PTW01_STATE = Accepted
-PTW01_IMPLEMENTATION_HEAD = 312bcc329deaf6f10447aa821833d62dba2e854a
-PTW01_IMPLEMENTATION_MERGE_HEAD = 82b1ead61e8edde6b70454b758c4b51ccded9a4f
-
-PSG01_PLANNING_STATE = Accepted
-PSG01_PLANNING_PR = 44
-PSG01_PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
-PSG01_PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
-PSG01_PLANNING_MERGED = true
-PSG01_IMPLEMENTATION_PR = 46
-PSG01_IMPLEMENTATION_PR_STATE = Closed — Unmerged
-PSG01_RUNTIME_IMPLEMENTATION_APPLIED = false
-PSG01_IMPLEMENTATION_FINAL_DIFF_FILES = 0
-PSG01_PREFLIGHT_PLANNING_AMENDMENT_AUTHORIZED = true
-PSG01_IMPLEMENTATION_RESUME_AUTHORIZED = false
+CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
+GENERATED_REGISTER_AUTHORITY_COUNT = 1
+AUTHORED_REGISTER_DECLARATION_COUNT = 0
+GENERATED_FILE_REWRITER_COUNT = 0
+STRATEGY_B_ALLOWED = false
 ```
 
-Accepted implementation merge heads remain runtime authority for their respective stages. PSG-01 PR #46 introduced no accepted runtime change; the amendment remains planning-only.
+## 3. Historical terminal preservation
 
----
-
-## 4. Current execution sequence
-
-| Order | Stage | State | Executor | Control model |
-|---:|---|---|---|---|
-| 1 | DRA-01 | Accepted | direct GitHub audit | complete |
-| 2 | GNR-01 | Accepted | GitHub-native | Release Gate |
-| 3 | PTC-01 | Accepted | GitHub-native | Release Gate |
-| 4 | PSC-01 | Accepted | GitHub-native | Release Gate |
-| 5 | PPR-01 | Superseded | historical GitHub-native PR #33 | closed unmerged; diagnostic only |
-| 6 | PPR-GN-01 — Public Page GitHub-Native Completion | Accepted | GitHub-native | PR #38; direct final audit; Release Gate |
-| 7 | PTW-01 — Public Tenant-Bound Writers | Accepted | GitHub-native | PR #41 planning; PR #42 implementation; direct final audit; Release Gate |
-| 8 | PSG-01 — Public Surface Security Gate | Planning Accepted; Implementation Blocked; Preflight Amendment Ready for Direct Audit | GitHub-native | PR #44 merged; PR #46 closed unmerged with zero diff; amendment reconciles bootstrap and DLQ preflight evidence |
-| 9 | HVP-01 | Planned — Blocked by PSG-01 | runbook/operator | evidence gate |
-| 10 | VSP-01 | Optional — Not authorized | Lovable only when triggered by HVP-01 | Lovable-specific budget |
-| 11 | Controlled Homologation | Blocked | operator/product team | acceptance gate |
-
----
-
-## 5. PPR-GN-01 final disposition
+The following units remain terminal or historical and may not be reopened:
 
 ```text
-STAGE_ID = PPR-GN-01
-PREDECESSOR = PSC-01 Accepted
-EXECUTOR = GitHub-native
-LOVABLE_AUTHORIZED = false
-GITHUB_NATIVE_PROMPT_BUDGET = not_applicable
-IMPLEMENTATION_PR = 38
-IMPLEMENTATION_HEAD = ca48472bb6b7676e4c61639a1528c66083ab1c36
-MERGE_HEAD = 0b6aa1a0f5d9df8786a51acae91f24a6ded94ec2
-FINAL_EXTERNAL_AUDIT = Accepted
-STATE = Accepted
+PR-M1
+LSO-01
+LSV-01
+LSV-02
+LSR-01
+LSR-02
+FRP-01
+HVP-01
+HRC-01
+HRI-01
 ```
 
-PPR-GN-01 is not a reopening of PR #33 and is not a renamed Lovable retry. It is the accepted GitHub-native replacement envelope created after the executor-governance clarification.
+Historical documents and rejected implementations remain diagnostic evidence only. They do not authorize a successor, transfer accepted deliverables or reopen prompt budgets.
 
-Accepted PPR-GN-01 Release Gate:
+## 4. Reconciled product-delivery sequence
 
 ```text
-RELEASE_GATE_RUN = 29848399476
-RELEASE_GATE_JOB = 88694757635
-RELEASE_GATE_CONCLUSION = success
-ARTIFACT_ID = 8502371728
-ARTIFACT_DIGEST = sha256:1006a5c950bfff937aa4a4723b05e74f8825a263b53cdc9f9d5901ec897b7c66
-
-PTC01 = 10 passed, 0 failed
-PTR01 = 7 passed, 0 failed
-PSC01 = 11 passed, 0 failed
-PPR_GN_01 = 13 passed, 0 failed
-TYPECHECK = success
-BUILD = success
-BUILD_DEV = success
-ROUTE_TREE_DIGEST_A_B_C = cce40b0d1a66716df8768468b86233e12ca896dcfb2c3e1954f912e45a1a828c
-TANSTACK_REGISTER_AUTHORITY_COUNT = 1
-GENERATED_ROUTE_TREE_MANUAL_EDIT = false
+HRI-01 Accepted / Closed
+→ RPD-01 Product Delivery Rebaseline
+→ PR-M2 Functional Completion
+→ PR-M3 Final Interface and Operational Readiness
+→ Pre-Homologation Release Candidate Deploy
+→ TH-M1 Internal End-to-End UAT
+→ TH-M2 Consolidated Remediation and Product Acceptance
+→ LSV-03 Same-Backend Controlled Security Validation
+→ Formal Homologation
+→ Production
 ```
 
-Accepted implementation properties include server-owned tenant authority, strict slug input, explicit 0/1/N cardinality, tenant post-validation, validated SEO and blocks, tenant-free DTO serialization, removal of route casts and removal of the hardcoded canonical fallback.
+The Release Candidate Deploy is part of PR-M3. TH-M1 is internal pre-homologation validation, not formal homologation. LSV-03 occurs after functional and visual product acceptance.
 
----
-
-## 6. PTW-01 planning disposition
+## 5. Stale path disposition
 
 ```text
-STAGE_ID = PTW-01
-PREDECESSOR = PPR-GN-01 Accepted
-CANONICAL_ISSUE = 16
-DUPLICATE_ISSUE = 12 — Closed as duplicate
-PLANNING_PR = 41
-AUDITED_PLANNING_CONTENT_HEAD = 84e9834afa9c30d42e60e7f79c13a12052685676
-PLANNING_RELEASE_GATE_RUN = 29853391455
-PLANNING_RELEASE_GATE_JOB = 88711618102
-PLANNING_RELEASE_GATE_CONCLUSION = success
-PLANNING_ARTIFACT_ID = 8504351243
-PLANNING_ARTIFACT_DIGEST = sha256:bcf74ef966248f43271b93c32a5c3ff2bfb18a76b2aabc8e9dfbaa48aaadc91b
-PLANNING_STATE = Accepted
-AUTHORIZED_EXECUTOR = GitHub-native
-LOVABLE_AUTHORIZED = false
+RRS-01 = Superseded by GNR-01/HRI-01
+PTA-01 = Absorbed by PTW-01/PSG-01 and remaining PR-M2 inventory
+MOC-01 = Absorbed by PR-M3 operational readiness and LSV-03
+RHV-01 = Absorbed by LSV-03
+LSV-04 = Absorbed by TH-M2 and LSV-03 according to factual scope
+RDA-01 = Absorbed by PR-M2 dashboard authority and PR-M3 UX
+RC-01 = Absorbed by TH-M1 and TH-M2
 ```
 
-Accepted planning authority:
+No historical record is deleted. Only stale executable authority is removed.
+
+## 6. RPD-01 planning authority
 
 ```text
-docs/architecture/impact-analysis/PTW-01-public-tenant-bound-writers-impact-analysis.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptw-01-public-writer-authority-inventory.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptw-01-planning-acceptance.md
+STAGE_ID = RPD-01
+EXECUTOR = ChatGPT GitHub-native
+BASELINE_MAIN = 7d0ea2869e0c15887637063a85a833ccff0721c4
+RPD01_PLANNING_AUTHORIZED = true
+RPD01_RUNTIME_IMPLEMENTATION_AUTHORIZED = false
+RPD01_PRINCIPAL_PROMPT_CONSUMED = true
+RPD01_CORRECTIVE_PROMPT_CONSUMED = false
+RPD01_REMAINING_PROMPT_BUDGET = 1/2
 ```
 
-The planning acceptance includes the binding schema clarification that public form fields must be queried and validated by the composite authority `accepted tenant.id + accepted form.id`.
+RPD-01 may change exactly six documentary paths. It may not change runtime, frontend, CMS/CRM/Super Admin runtime, dependencies, workflows, database, Auth, Storage, integrations or deployment.
 
----
+## 7. Ownership after RPD-01
 
-## 7. PTW-01 final implementation disposition
+### 7.1 PR-M2
+
+PR-M2 owns functional completion and audited inventories for:
+
+- tenant lifecycle and onboarding;
+- domains, DNS, Cloudflare decision, SSL and publication;
+- white label, public site and CMS;
+- CRM, Kanban, funnel and lead ingestion;
+- properties and portal publication;
+- portal, marketing and tracking connector registries;
+- tenant dashboard functional authority;
+- Super Admin SaaS Control Plane functional authority;
+- plans, entitlements, limits and integration diagnostics.
+
+### 7.2 PR-M3
+
+PR-M3 owns final interface, design system, responsive and accessible UX, operational readiness and the pre-homologation Release Candidate deploy. Lovable is the planned primary implementation platform; the UX/product professional joins at the PR-M2 handoff and participates throughout PR-M3, TH-M1 and TH-M2.
+
+### 7.3 TH-M1
+
+TH-M1 owns internal end-to-end validation of the complete customer journey, tenant operations, CMS, CRM, properties, portals, campaigns, dashboards and Super Admin Control Plane. It produces a consolidated findings report and does not automatically accept the product.
+
+### 7.4 TH-M2
+
+TH-M2 owns consolidated remediation, regression and Product Acceptance Review.
+
+### 7.5 LSV-03
+
+LSV-03 owns controlled Same-Backend security and multi-tenant validation after TH-M2 acceptance.
+
+## 8. Extensibility and discovery contract
 
 ```text
-STAGE_ID = PTW-01
-IMPLEMENTATION_PR = 42
-IMPLEMENTATION_HEAD = 312bcc329deaf6f10447aa821833d62dba2e854a
-IMPLEMENTATION_MERGE_HEAD = 82b1ead61e8edde6b70454b758c4b51ccded9a4f
-IMPLEMENTATION_MERGED = true
-FINAL_EXTERNAL_AUDIT = Accepted
-IMPLEMENTATION_STATE = Accepted
-EXECUTOR = GitHub-native
-LOVABLE_AUTHORIZED = false
+DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
+PORTAL_CATALOG_IS_EXTENSIBLE = true
+MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
+CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CMS_LAYOUT_AND_COMPONENT_CATALOGS_ARE_EXTENSIBLE = true
+DASHBOARD_REFINEMENT_IS_EXPECTED = true
+SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+TENANT_CUSTOMIZATION_IS_EXPECTED = true
 ```
 
-The implementation was merged only after direct final audit acceptance and expected-head protection.
-
-Accepted Release Gate:
+The following remain prohibited:
 
 ```text
-RELEASE_GATE_RUN = 29866481241
-RELEASE_GATE_JOB = 88755888278
-RELEASE_GATE_CONCLUSION = success
-ARTIFACT_ID = 8509468989
-ARTIFACT_DIGEST = sha256:269182b91d0b242a7117505d3414cdd879b9bb2b567f76cb5b71410bb711ca82
-ARTIFACT_HEAD = 312bcc329deaf6f10447aa821833d62dba2e854a
-
-PTC01 = 10 passed, 0 failed
-PTR01 = 7 passed, 0 failed
-PSC01 = 11 passed, 0 failed
-PPR_GN_01 = 13 passed, 0 failed
-PTW01_AUTHORITY = 14 passed, 0 failed
-PTW01_SQL_STRUCTURAL = 8 passed, 0 failed
-LSH01_UNIT = 22 passed, 0 failed
-LSH01_RUNTIME = 15 passed, 0 failed
-LSH01_STRUCTURAL = 27 passed, 0 failed
-LSH01_SQL_STRUCTURAL = 17 passed, 0 failed
-TYPECHECK = success
-BUILD = success
-BUILD_DEV = success
-DETERMINISTIC_ROUTE_TREE = success
+SILENT_SCOPE_EXPANSION_AFTER_STAGE_START
+RETROACTIVE_DEFINITION_OF_DONE_EXPANSION
+UNBOUNDED_IMPLEMENTATION_PROMPTS
+TENANT_SPECIFIC_CODE_FORKS
+CLIENT_SIDE_AUTHORITY
+PARALLEL_CMS_RUNTIME
+DUPLICATE_CMS_EDITOR_PATH
+SUPER_ADMIN_DIRECT_TENANT_AUTHORITY
 ```
 
-Accepted implementation properties:
+New requirements may enter an Execution Envelope before its stage starts. During-stage findings must be classified. Improvements and extensions are routed to TH-M1/TH-M2 or backlog and cannot silently consume a corrective prompt.
 
-- Host-derived authority before service-role access for direct leads, forms, campaign events and Meta CAPI;
-- exact tenant-scoped resource cardinality and post-validation;
-- shared public lead writer across direct, form, portal and DLQ replay paths;
-- portal connector authority with 0/1/N handling;
-- tenant-bound property, launch, broker, form, field, campaign, Meta and portal operations;
-- safe feed distinction between zero total links, explicit eligible links and existing noneligible links;
-- exact and idempotent hardening of `events_public_insert`;
-- anonymous DML revocation restricted to `anon`, preserving authenticated and server-side behavior;
-- no reopening of accepted LSH, Auth, Storage, tenant middleware or `create_manual_lead` boundaries.
-
-Canonical final evidence:
+## 9. Super Admin boundary
 
 ```text
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/ptw-01-final-acceptance.md
+TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
+SUPER_ADMIN_GLOBAL_AUTHORITY = global platform administration only
+SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
+IMPERSONATION_MUST_BE_SERVER_VALIDATED = true
+IMPERSONATION_MUST_BE_VISIBLE = true
+IMPERSONATION_MUST_BE_AUDITED = true
 ```
 
----
+The Control Plane inventory includes global dashboard, tenants, users, memberships, roles, plans, entitlements, limits, domains, integrations, portals, campaigns, incident and support tooling, audit, jobs, cron, queues, webhooks and diagnostics.
 
-## 8. PSG-01 planning final disposition
+## 10. Current gate
 
 ```text
-STAGE_ID = PSG-01
-PREDECESSOR = PTW-01 Accepted
-CANONICAL_ISSUE = 4
-PLANNING_PR = 44
-PLANNING_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
-PLANNING_MERGE_HEAD = 0f23e4198cf7caf1ad046a32b861f4397994a607
-PLANNING_MERGED = true
-FINAL_EXTERNAL_PLANNING_AUDIT = Accepted
-PLANNING_STATE = Accepted
-AUTHORIZED_EXECUTOR = GitHub-native
-IMPLEMENTATION_AUTHORIZED = false
-IMPLEMENTATION_STARTED = false
-LOVABLE_AUTHORIZED = false
+RPD01_STATE = Planning Complete — Ready for Direct External Audit
+RPD01_ACCEPTED = false
+RPD01_MERGE_AUTHORIZED = false
+PRM2_PLANNING_AUTHORIZED = false
+PRM2_IMPLEMENTATION_AUTHORIZED = false
+PRM3_IMPLEMENTATION_AUTHORIZED = false
+LOVABLE_EXECUTION_AUTHORIZED = false
+DEPLOY_AUTHORIZED = false
+LIVE_TESTING_AUTHORIZED = false
+CONTROLLED_HOMOLOGATION_AUTHORIZED = false
+PRODUCTION_AUTHORIZED = false
+NEXT_STAGE_AUTHORIZED = none
 ```
 
-Accepted planning Release Gate:
-
-```text
-RELEASE_GATE_RUN = 29878588233
-RELEASE_GATE_JOB = 88794376960
-RELEASE_GATE_CONCLUSION = success
-ARTIFACT_ID = 8513950228
-ARTIFACT_DIGEST = sha256:e91cc43630348de299cba6f13794c0a87171321ba7360de99b3cf55b8f47e0b8
-ARTIFACT_HEAD = 32ddbcf46e26cdf67ba0c1a4284b374341bb4892
-```
-
-Accepted planning authority:
-
-```text
-docs/architecture/impact-analysis/PSG-01-public-surface-security-gate-impact-analysis.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/psg-01-public-surface-security-inventory.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/psg-01-planning-submission.md
-```
-
-The planning merge is documentation-only and does not authorize or start runtime implementation.
-
----
-
-## 9. PSG-01 preflight amendment gate
-
-```text
-PSG01_ORIGINAL_PLANNING_STATE = Accepted
-PSG01_ORIGINAL_PLANNING_MERGED = true
-PSG01_IMPLEMENTATION_PR = 46
-PSG01_IMPLEMENTATION_PR_STATE = Closed — Unmerged
-PSG01_RUNTIME_IMPLEMENTATION_APPLIED = false
-PSG01_IMPLEMENTATION_FINAL_DIFF_FILES = 0
-PSG01_PREFLIGHT_BLOCKER = omitted bootstrapAdmin server function plus unproven DLQ scheduler transport
-PSG01_PREFLIGHT_PLANNING_AMENDMENT_AUTHORIZED = true
-PSG01_PREFLIGHT_PLANNING_AMENDMENT_STATE = Ready for Direct External Audit
-PSG01_IMPLEMENTATION_RESUME_AUTHORIZED = false
-NEXT_ACTION = direct external audit and protected merge decision for the amendment
-AUTHORIZED_EXECUTOR = GitHub-native
-LOVABLE_AUTHORIZED = false
-```
-
-Implementation resume remains prohibited. A new implementation authorization is valid only after direct audit acceptance and protected merge of the amendment into `main`.
+Required next action: complete the pull-request Release Gate and perform direct external audit of RPD-01. Do not merge or start PR-M2 without separate authorization.

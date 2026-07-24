@@ -1,576 +1,333 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Authority:** derived from
-`docs/architecture/governance/FINITE_DELIVERY_GOVERNANCE.md`
-(materialization commit `c1141448fd3c36ef7ae8ff60613c383673fde0d6`).
+**Status:** Active governance — reconciled by RPD-01  
+**Baseline:** `7d0ea2869e0c15887637063a85a833ccff0721c4`  
+**Authority:** derived from `FINITE_DELIVERY_GOVERNANCE.md` and the audited GitHub-native recovery chain.
 
-This document is the single finite, auditable execution map for the
-remaining roadmap until homologation and production. No new stage may
-start without a frozen Execution Envelope registered here. No stage
-may exceed two implementation prompts (principal + corrective).
+This document is the finite, auditable execution map for the remaining product delivery path. No stage may start without a frozen Execution Envelope and explicit authorization. Each stage admits at most one principal implementation prompt and one consolidated corrective prompt.
 
----
+## 1. Current finite sequence
 
-## 1. Finite sequence
+| # | Stage | State | Successor condition |
+|---:|---|---|---|
+| 1 | PR-PH.0 | Accepted | historical predecessor |
+| 2 | PR-M1 | Superseded | historical only |
+| 3 | LSO-01 | Rejected / Closed | historical only |
+| 4 | LSH-01 | Accepted / Closed | historical only |
+| 5 | LSV-01 | Superseded / terminal | no reopening |
+| 6 | LSV-02 | Superseded / terminal | no reopening |
+| 7 | LSR-01 | Superseded / terminal | no reopening |
+| 8 | LSR-02 | Rejected / terminal | no reopening |
+| 9 | FRP-01 | Rejected / terminal | no reopening |
+| 10 | DRA-01 | Accepted | complete |
+| 11 | GNR-01 | Accepted | complete |
+| 12 | PTC-01 | Accepted | complete |
+| 13 | PSC-01 | Accepted | complete |
+| 14 | PPR-GN-01 | Accepted | complete |
+| 15 | PTW-01 | Accepted | complete |
+| 16 | PSG-01 | Accepted with Non-Blocking Backlog / Merged | complete |
+| 17 | HVP-01 | Superseded / historical | no reopening |
+| 18 | HRC-01 | Rejected / terminal | no reopening |
+| 19 | HRR-01 | Accepted | complete |
+| 20 | HRI-01 | Accepted / Closed | complete |
+| 21 | RPD-01 | Planning Complete — Ready for Direct External Audit | audit and protected merge |
+| 22 | PR-M2 | Planned — Blocked by RPD-01 | RPD-01 Accepted and explicit planning authorization |
+| 23 | PR-M3 | Planned — Blocked by PR-M2 | PR-M2 Accepted |
+| 24 | TH-M1 | Planned — Blocked by PR-M3 | PR-M3 Accepted and Release Candidate available |
+| 25 | TH-M2 | Planned — Blocked by TH-M1 | TH-M1 findings report complete |
+| 26 | LSV-03 | Planned — Blocked by TH-M2 | TH-M2 Accepted |
+| 27 | Homologação formal | Blocked by LSV-03 | LSV-03 Accepted and explicit authorization |
+| 28 | Produção | Blocked | formal homologation accepted and explicit production decision |
 
-| # | Stage | State |
-|---|---|---|
-| 1 | PR-PH.0 | Accepted |
-| 2 | PR-M1 | Superseded |
-| 3 | LSO-01 | Rejected / Closed |
-| 4 | LSH-01 | Accepted / Closed |
-| 5 | LSV-01 | Superseded (terminal · FINAL_CORRECTIVE_EXECUTED = true · REMAINING_IMPLEMENTATION_BUDGET = 0) |
-| 6 | LSV-02 | Superseded (terminal · principal prompt consumed with fail-closed abort before fixtures · final corrective consumed for factual reconciliation and terminalization · REMAINING_IMPLEMENTATION_BUDGET = 0 · zero database/Auth/Storage/cron mutations · findings preserved as mandatory inputs for future formal replanning only — NOT transferred to any successor · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsv-02-principal-prompt-abort-report.md` and `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`) |
-| 7 | LSR-01 | Superseded (terminal · principal prompt consumed · corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · principal result: failed persistence verification · corrective result: failed closed · reason: stage could not stabilize TanStack Start registration within its frozen scope · successor: LSR-02 · envelope: `docs/architecture/impact-analysis/LSR-01-lsv-02-closure-recovery-roadmap-reconciliation-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-01-closure-recovery-execution.json`) |
-| 8 | LSR-02 | Rejected — terminal · principal prompt consumed · final corrective prompt consumed · REMAINING_IMPLEMENTATION_BUDGET = 0/2 · final external audit accepted = false · Strategy B implementation retained as rejected technical history · no additional implementation prompt authorized · blocking findings preserved (controlled_dev_required_not_executed, compiler_file_list_not_proven, cycle_composite_digest_not_proven, partial_footer_fail_closed_not_fully_implemented, conflicting_current_states_present_before_reconciliation) · successor: FRP-01 · envelope: `docs/architecture/impact-analysis/LSR-02-tanstack-start-registration-stability-impact-analysis.md` · evidence: `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/lsr-02-tanstack-start-registration-stability-execution.json` |
-| 9 | FRP-01 | Rejected — terminal · principal prompt consumed · final corrective prompt consumed · `REMAINING_IMPLEMENTATION_BUDGET = 0/2` · final external audit accepted = false · planning artifacts retained as rejected technical history · no additional implementation prompt authorized · no successor authorized · blocking findings preserved (ROADMAP_FRP01_STATE_CONFLICT, ROADMAP_FRP01_BUDGET_CONFLICT, ROADMAP_LSR02_SUCCESSOR_STATE_STALE, BOOTSTRAP_ADMIN_ELIGIBILITY_DESCRIPTION_INACCURATE, PORTAL_DLQ_RETRY_SIGNED_WEBHOOK_CLASSIFICATION_INACCURATE) · envelope: `docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md` |
-| 10 | RRS-01 | Planned — Blocked · `RRS01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
-| 11 | PTA-01 | Planned — Blocked · `PTA01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
-| 12 | MOC-01 | Planned — Blocked · `MOC01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
-| 13 | RHV-01 | Planned — Blocked · `RHV01_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization |
-| 14 | LSV-03 | Planned — Blocked · `LSV03_STARTED = false` · not authorized by rejected FRP-01 planning · requires a future explicit governance decision before any new Execution Envelope or implementation authorization · no deliverables auto-transferred from LSV-02, LSR-01 or LSR-02 · no external Supabase target required or recommended |
-| 15 | LSV-04 | Planned — Blocked by LSV-03 |
-| 16 | RDA-01 | Planned — Blocked by LSV-04 |
-| 17 | RC-01 | Planned — Blocked by RDA-01 |
-| 18 | PR-M2 | Planned — Blocked by RC-01 · scope reconciled to `White Label, CMS, Domains & Onboarding` (Public Tenant Authority owned exclusively by PTA-01) |
-| 19 | PR-M3 | Planned — Blocked by PR-M2 |
-| 20 | TH-M1 | Planned — Blocked by PR-M3 |
-| 21 | TH-M2 | Planned — Blocked by TH-M1 |
-| 22 | Homologação | Blocked by TH-M2 |
-| 23 | Produção | Blocked until homologation acceptance |
+## 2. Stale sequence disposition
 
-Historical stages 1–4 preserved without reopening. LSV-01 legacy Lotes
-A / B / C are historical only; not executable next steps.
+| Historical stage | Current classification |
+|---|---|
+| RRS-01 | Superseded by Accepted Later Authority — GNR-01/HRI-01 |
+| PTA-01 | Absorbed by accepted PTW-01/PSG-01 plus PR-M2 inventory |
+| MOC-01 | Absorbed by PR-M3 operational readiness and LSV-03 |
+| RHV-01 | Absorbed by LSV-03 |
+| LSV-04 | Absorbed by TH-M2 and LSV-03 according to factual scope |
+| RDA-01 | Absorbed by PR-M2 functional authority and PR-M3 final UX |
+| RC-01 | Absorbed by TH-M1 and TH-M2 |
 
----
+Historical artifacts remain available for evidence. They are not executable successors and cannot conflict with the sequence in §1.
 
-## 2. Execution Envelopes
+## 3. RPD-01 Execution Envelope
 
-Each future stage requires its Execution Envelope frozen before any
-implementation prompt is issued. Envelopes below are initial and
-binding; details still undefined are recorded explicitly as
-"Execution Envelope required before implementation."
+```text
+STAGE_ID = RPD-01
+STAGE_TYPE = Architecture First planning and roadmap reconciliation
+BASELINE_MAIN = 7d0ea2869e0c15887637063a85a833ccff0721c4
+EXECUTOR = ChatGPT GitHub-native
+RPD01_PLANNING_AUTHORIZED = true
+RPD01_RUNTIME_IMPLEMENTATION_AUTHORIZED = false
+```
 
-### 2.1 LSV-02 — Live Identity & Tenant Context Verification (Same-Backend Homologation Cell)
+### 3.1 Objective
 
-- **OBJECTIVE:** execute live identity, real-session, Tenant Context,
-  impersonation and forged-header probes inside an isolated
-  Homologation Cell running on the current pre-homologation primary
-  backend. Full contract lives in
-  `docs/architecture/impact-analysis/LSV-02-same-backend-homologation-cell-execution-envelope-impact-analysis.md`.
-- **PREDECESSOR:** LSV-01 — Superseded (terminal).
-- **ENTRY_GATE:** Homologation Cell Eligibility Preflight approved
-  (pre-homologation status, zero real clients/tenants/subscriptions/
-  leads/media/users/personal data, controlled write window, explicit
-  operator authorization, recovery/backup mechanism in place). If any
-  criterion fails, LSV-02 fails closed and reverts to Blocked External.
-  (HISTORICAL — NOT CURRENT AUTHORITY: the historical external
-  non-production project `rm-prime-lsv-nonprod` / project ref
-  `adxqbrfcqhnoierwhymj` is preserved only as historical registry; it is
-  NOT a current fallback, NOT recommended, NOT required, and NOT a next
-  step for any stage.)
-- **DELIVERABLES:** hard guards (HG-01..HG-14); protected baseline
-  registry (RM Prime tenant + preexisting protected entities pinned by
-  canonical ID); minimum two synthetic tenants; synthetic Auth users,
-  memberships, roles, imóveis, leads, events and Storage objects; per-
-  run fixture manifest; live probes; deterministic manifest-based
-  teardown; residue scan; persisted evidence artifact.
-- **MINIMUM_EVIDENCE:** `eligibility_preflight_passed=true`,
-  `protected_baseline_registered=true`,
-  `synthetic_tenants_created >= 2`, `real_sessions_acquired > 0`,
-  `forged_header_denial_verified=true`,
-  `tenant_context_smoke_failed = 0`,
-  `rm_prime_tenant_preserved=true`,
-  `protected_baseline_changed=false`, `orphaned_fixtures = 0`,
-  `residue_scan_passed=true`, `evidence_persisted=true`.
-- **EXTERNAL_DEPENDENCIES:** none mandatory. Operational dependencies:
-  recovery/backup mechanism and controlled maintenance window.
-  (HISTORICAL — NOT CURRENT AUTHORITY: prior references to any external
-  Supabase project as fallback are preserved as historical registry
-  only and carry no operational authority.)
-- **HARD_GUARDS (frozen):** HG-01..HG-14 as defined in the LSV-02
-  Impact Analysis. HG-14 permanent disablement applies only after real-
-  operation start; HG-14 was NOT triggered by the LSV-02 abort.
-- **OUT_OF_SCOPE:** full authorization matrix; full RLS matrix; full
-  grants matrix; atomicity; rollback of Lead operations; concurrency;
-  migration changes; RLS changes; grant changes; LSH-01 accepted
-  runtime edits; use of real data; post-real-operation execution.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 2. REMAINING_IMPLEMENTATION_BUDGET = 0.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **FINAL_STATE:** Superseded (terminal). Findings preserved as
-  mandatory inputs for future formal replanning only. No deliverables
-  auto-transferred to any successor.
-- **SUCCESSOR:** LSR-01 (documentary and generator-configuration
-  closure recovery).
+Reconcile the remaining delivery path around functional completion, extensible integrations, CMS, CRM, Tenant Admin, Super Admin Control Plane, final UX, pre-homologation deploy, end-to-end UAT, consolidated remediation, controlled security validation, formal homologation and production.
 
-### 2.2 LSR-02 — TanStack Start Registration Stability & LSR-01 Terminal Reconciliation
+### 3.2 Deliverables
 
-- **STATE:** Rejected — terminal. Final external audit decision.
-  `LSR_02_STATE = Rejected`. `LSR_02_FINAL_STATE = Rejected`.
-  `LSR_02_TERMINAL = true`. `PRINCIPAL_EXTERNAL_AUDIT_ACCEPTED = false`.
-  `FINAL_EXTERNAL_AUDIT_ACCEPTED = false`.
-  `READY_FOR_FINAL_EXTERNAL_AUDIT = false`.
-  `NEW_IMPLEMENTATION_PROMPT_AUTHORIZED = false`.
-  `BUDGET_REOPENING_AUTHORIZED = false`.
-  Strategy B implementation (dedicated declaration
-  `src/tanstack-start-register.d.ts` + scoped
-  `lsr02:strip-tanstack-start-register-footer` Vite plugin +
-  bidirectional static assertions in `vite.config.ts`) is retained
-  in the repository as rejected technical history only; it is NOT
-  an accepted deliverable and does NOT satisfy the LSR-02
-  Definition of Done. Any real-execution outcome fields previously
-  recorded (Cycle A / Cycle B digests, TOTAL_REGISTER_SOURCE_COUNT,
-  route-tree SHA-256, FUNCTIONAL_ROUTE_DIFF) are historical
-  observations, not audit-accepted results.
-- **BLOCKING FINDINGS (preserved, non-authoritative for any
-  successor):**
-  1. `CONTROLLED_DEV_REQUIRED_NOT_EXECUTED` — Cycle B relied on
-     canonical `build:dev` + `build` sequences driven from the
-     current harness process instead of a separately controlled
-     `vite dev` instance under harness authority, so stability
-     under an authorized, harness-owned development process was
-     not proven.
-  2. `COMPILER_FILE_LIST_NOT_PROVEN` — inclusion of
-     `src/tanstack-start-register.d.ts` in the compiler file list
-     was asserted but not evidenced by a persisted, verifiable
-     compiler file-list artifact.
-  3. `CYCLE_COMPOSITE_DIGEST_NOT_PROVEN` — the required
-     deterministic ordered-manifest digest covering
-     `src/routeTree.gen.ts`, the selected canonical source,
-     `vite.config.ts`, `package.json`, and `bun.lock` was not
-     independently computed and evidenced.
-  4. `PARTIAL_FOOTER_FAIL_CLOSED_NOT_FULLY_IMPLEMENTED` — the
-     stripper handles known and loose footer shapes but does not
-     fully cover every partial-footer permutation with a
-     fail-closed proof.
-  5. `CONFLICTING_CURRENT_STATES_PRESENT` — prior planning and
-     execution documents recorded coexisting "not started",
-     "started", and "ready for final audit" states, resolved by
-     this reconciliation into the single terminal state
-     `Rejected`.
-- **PREDECESSOR:** LSR-01 — Superseded (terminal · principal consumed ·
-  corrective consumed · remaining budget 0/2 · corrective failed
-  closed · register stability not resolved).
-- **DELIVERABLES:** none accepted. Strategy B code artifacts remain
-  present as rejected technical history.
-- **FILES_ALLOWED:** frozen to nine paths (see impact analysis).
-  `FUTURE_ADDENDUM_ALLOWED = false`. This reconciliation writes
-  only to authorized documentary and evidence paths within that
-  set.
-- **MINIMUM_EVIDENCE:** not satisfied. `tanstack_start_register_source_count = 1`
-  and `duplicate_module_augmentation = false` were observed, but
-  `controlled_dev`, `compiler_file_list_proof`, and
-  `cycle_composite_digest` were not proven; therefore the
-  Definition of Done is NOT met.
-- **EXTERNAL_DEPENDENCIES:** none.
-- **HARD_GUARDS:** no manual edits to `src/routeTree.gen.ts`; no
-  functional route changes; no runtime behavior change; no
-  migrations / RLS / grants / policies / Auth / Storage / cron / DB
-  changes. This document-only reconciliation preserves all
-  guards.
-- **OUT_OF_SCOPE:** LSV-03; LSV-04; `CLIENT_TENANT_AUTHORITY`;
-  maintenance mode; tenant fixtures; Auth harness; Storage; DB;
-  migrations; RLS; grants; policies; cron; queues; `net.http_post`;
-  external Supabase; functional route changes; reopening of
-  LSR-01; any new implementation prompt for LSR-02.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 2. `REMAINING_IMPLEMENTATION_BUDGET = 0/2`. Budget
-  reopening is not authorized.
-- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Blocked External · Rejected · Superseded. Final state = `Rejected`.
-- **SUCCESSOR:** Successor attempt: FRP-01 — executed and Rejected
-  (terminal). No successor currently authorized. Rejection of LSR-02
-  does NOT auto-start LSV-03 and does NOT auto-transfer any
-  deliverable from LSR-01, LSV-02, or the rejected LSR-02
-  implementation.
+1. unique current roadmap sequence;
+2. disposition of stale executable stages;
+3. PR-M2 functional ownership;
+4. PR-M3 final-interface ownership;
+5. TH-M1 internal UAT ownership;
+6. TH-M2 consolidated remediation ownership;
+7. LSV-03 position after functional and visual acceptance;
+8. Product Discovery, Customization & Test Feedback Contract;
+9. explicit Super Admin Control Plane boundary;
+10. documentary evidence and direct-audit PR.
 
+### 3.3 FILES_ALLOWED
 
-### 2.3 FRP-01 — Formal Replacement-Path Planning Gate
+```text
+docs/architecture/ROADMAP_ARCHITECTURAL.md
+docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md
+docs/architecture/governance/DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md
+docs/architecture/governance/RPD-01-product-delivery-rebaseline.md
+docs/architecture/impact-analysis/RPD-01-roadmap-product-delivery-rebaseline-impact-analysis.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/rpd-01-product-delivery-rebaseline-submission.md
+```
 
-- **STATE:** Rejected — terminal. Final external audit decision.
-  `FRP_01_STATE = Rejected`; `FRP_01_TERMINAL = true`;
-  `FRP01_PRINCIPAL_PROMPT_CONSUMED = true`;
-  `FRP01_CORRECTIVE_PROMPT_CONSUMED = true`;
-  `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 0/2`;
-  `FRP01_FINAL_EXTERNAL_AUDIT_ACCEPTED = false`;
-  `FRP01_ADDITIONAL_PROMPT_AUTHORIZED = false`;
-  `FRP01_BUDGET_REOPENING_AUTHORIZED = false`;
-  `READY_FOR_FINAL_EXTERNAL_AUDIT = false`;
-  `NEXT_STAGE_AUTHORIZED = none`;
-  `FRP01_IMPLEMENTATION_CHANGES = false`.
-- **BLOCKING FINDINGS (preserved, not backlog):**
-  `ROADMAP_FRP01_STATE_CONFLICT = true`;
-  `ROADMAP_FRP01_BUDGET_CONFLICT = true`;
-  `ROADMAP_LSR02_SUCCESSOR_STATE_STALE = true`;
-  `BOOTSTRAP_ADMIN_ELIGIBILITY_DESCRIPTION_INACCURATE = true`;
-  `PORTAL_DLQ_RETRY_SIGNED_WEBHOOK_CLASSIFICATION_INACCURATE = true`;
-  `FRP01_DEFINITION_OF_DONE_MET = false`.
-- **DELIVERABLES:** rejected historical planning · not accepted ·
-  not executable · not transferable. The Impact Analysis
-  (`docs/architecture/impact-analysis/FRP-01-formal-replacement-path-planning-impact-analysis.md`)
-  is retained solely as rejected technical history.
-- **PREDECESSOR:** LSR-02 — Rejected (terminal).
-- **HARD_GUARDS (preserved):** `SERVER_IS_SOLE_TENANT_AUTHORITY = true`;
-  `CLIENT_TENANT_AUTHORITY = false`;
-  `HEADER_TENANT_AUTHORITY = false`;
-  `PATH_TENANT_AUTHORITY = false`;
-  `SAME_BACKEND_HOMOLOGATION_CELL = required`;
-  `EXTERNAL_SUPABASE_CANONICAL_FALLBACK = prohibited`;
-  `HG_14_TRIGGERED = false`;
-  RM Prime tenant preserved as Protected Baseline;
-  73 `scp0121_*` tenants preserved as
-  `PREEXISTING_INTERNAL_TEST_RESIDUE` (no cleanup planned).
-- **OUT_OF_SCOPE:** implementation of any successor stage;
-  correction / removal / rollback of Strategy B artifacts; any
-  code, migration, RLS, grants, policies, Auth, Storage, cron
-  or runtime change.
-- **FILES_ALLOWED:** exactly two paths — this map and the FRP-01
-  Impact Analysis. `FUTURE_ADDENDUM_ALLOWED = false`.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 2. `FRP01_REMAINING_IMPLEMENTATION_BUDGET = 0/2`. Budget
-  reopening is not authorized. No third implementation prompt is
-  authorized.
-- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Superseded · Rejected · Blocked External. Final state = `Rejected`.
-- **SUCCESSOR:** none authorized. RRS-01 remains
-  `Planned — Blocked`; it is NOT authorized by this rejected
-  planning and requires a future explicit governance decision
-  before any new Execution Envelope or implementation authorization.
+### 3.4 Absolute prohibitions
 
-### 2.4 RRS-01 — Registration Runtime Stabilization Replacement
+```text
+RUNTIME_CHANGE = prohibited
+FRONTEND_CHANGE = prohibited
+CMS_RUNTIME_CHANGE = prohibited
+CRM_RUNTIME_CHANGE = prohibited
+SUPER_ADMIN_RUNTIME_CHANGE = prohibited
+DEPENDENCY_CHANGE = prohibited
+DATABASE_AUTH_STORAGE_CHANGE = prohibited
+WORKFLOW_CHANGE = prohibited
+DEPLOY = prohibited
+LIVE_TESTING = prohibited
+LOVABLE = prohibited
+CODEX = prohibited
+HOMOLOGATION = prohibited
+PRODUCTION = prohibited
+```
 
-- **STATE:** Planned — Blocked. `RRS01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
-- **OBJECTIVE:** finite, deterministic replacement for the rejected
-  Strategy B; single canonical source for the TanStack Start
-  `Register` module augmentation.
-- **PREDECESSOR:** FRP-01 accepted.
-- **DELIVERABLES (preliminary):** single canonical source of
-  augmentation; explicit treatment of rejected Strategy B
-  artifacts (retention, controlled replacement or rollback);
-  compiler file-list proof; composite deterministic digest of
-  `src/routeTree.gen.ts` + canonical source + `vite.config.ts` +
-  `package.json` + `bun.lock`; cycles A/B under build, build:dev
-  and a harness-owned `vite dev` instance; fail-closed footer
-  permutation proof.
-- **AREAS AFFECTED (preliminary):** `src/routeTree.gen.ts`
-  generator path; `vite.config.ts`; canonical augmentation source
-  (currently `src/tanstack-start-register.d.ts` as rejected
-  history); `tsconfig.json`; `package.json`; `bun.lock`.
-- **EXPRESSLY FORBIDDEN:** DB / Auth / Storage / cron / RLS /
-  grants / policies / triggers changes; migrations; runtime
-  feature changes; automatic reuse of LSR-02 claims; skipping
-  compiler file-list proof; skipping composite digest.
-- **MIGRATIONS POTENTIALLY NEEDED:** none.
-- **RLS / GRANTS / POLICIES IMPACT:** none.
-- **TESTS REQUIRED (preliminary):** compiler file-list proof;
-  composite digest; cycles A/B across three generator drivers;
-  partial-footer fail-closed proof.
-- **EVIDENCE:** persisted evidence JSON under
-  `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/`.
-- **EXTERNAL DEPENDENCIES:** none.
-- **DEFINITION OF DONE (preliminary):**
-  `tanstack_start_register_source_count = 1`;
-  `duplicate_module_augmentation = false`;
-  `controlled_dev_proof = true`;
-  `compiler_file_list_proof = true`;
-  `cycle_composite_digest_proof = true`;
-  `partial_footer_fail_closed_proof = true`.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0.
-- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Superseded · Rejected · Blocked External.
-- **SUCCESSOR:** PTA-01.
+### 3.5 Prompt budget
 
-### 2.5 PTA-01 — Public Tenant Authority Hardening
+```text
+RPD01_PRINCIPAL_PROMPT_CONSUMED = true
+RPD01_CORRECTIVE_PROMPT_CONSUMED = false
+RPD01_REMAINING_PROMPT_BUDGET = 1/2
+```
 
-- **STATE:** Planned — Blocked. `PTA01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
-- **OBJECTIVE:** enforce server-authoritative tenant resolution
-  across every public writer/reader for `public.leads`,
-  `public.form_submissions` and `public.cms_campaign_events`
-  (factual canonical object per FRP-01 final corrective —
-  `public.cms_campaign_public_events` is
-  `UNVERIFIED_OR_STALE_REFERENCE`).
-- **PREDECESSOR:** RRS-01 accepted.
-- **DELIVERABLES (preliminary):** canonical server-side tenant
-  origin per public writer; RLS/grants/policies review and
-  required migrations; fail-closed handling of missing/ambiguous
-  tenant; cross-tenant negative tests; forged-header /
-  forged-payload probes.
-- **AREAS AFFECTED (preliminary):**
-  `src/routes/api/public/portal-leads.ts`,
-  `src/routes/api/public/feeds.$portal.$token.ts`,
-  `src/lib/api/forms.functions.ts`,
-  `src/lib/api/campaigns.functions.ts`,
-  `src/lib/api/leads-crm.functions.ts`,
-  `src/lib/api/portals.functions.ts`,
-  RLS/grants/policies for the three public tables,
-  `src/lib/tenant.server.ts`.
-  `src/routes/api/public/bootstrap-admin.ts` and
-  `src/routes/api/public/hooks/**` are explicitly OUT of PTA-01
-  implementation scope (bootstrap-admin classified as
-  `PUBLIC_PRIVILEGED_AUTH_BOOTSTRAP_SURFACE`; hooks classified as
-  operational webhooks maintenance-gated by MOC-01).
-- **EXPRESSLY FORBIDDEN:** client / header / path tenant authority;
-  default tenant; ORDER BY / LIMIT 1 / heuristic tenant
-  selection; Storage authority delegated to client; cron / queue
-  changes; silent absorption of `bootstrap-admin.ts`.
+### 3.6 Maximum state
 
-- **MIGRATIONS POTENTIALLY NEEDED:** RLS policies, grants,
-  server-side helper functions for the three public tables.
-- **RLS / GRANTS / POLICIES IMPACT:** likely revision required;
-  exact scope frozen in the PTA-01 Execution Envelope.
-- **TESTS REQUIRED (preliminary):** cross-tenant negative probes;
-  forged-header / forged-payload probes; anonymous writer probes;
-  server-authority parity tests.
-- **EVIDENCE:** persisted evidence JSON with per-writer
-  attribution proofs.
-- **EXTERNAL DEPENDENCIES:** none.
-- **DEFINITION OF DONE (preliminary):**
-  `SERVER_IS_SOLE_TENANT_AUTHORITY = true` proven per writer;
-  `HEADER_TENANT_AUTHORITY = false`;
-  `PATH_TENANT_AUTHORITY = false`;
-  `CLIENT_TENANT_AUTHORITY = false`;
-  anonymous writer defects on `public.leads` (and the other two
-  tables) resolved or explicitly re-classified with authorized
-  evidence.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0.
-- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Superseded · Rejected · Blocked External.
-- **SUCCESSOR:** MOC-01.
+```text
+RPD01_STATE = Planning Complete — Ready for Direct External Audit
+RPD01_ACCEPTED = false
+RPD01_MERGE_AUTHORIZED = false
+NEXT_STAGE_AUTHORIZED = none
+```
 
-### 2.6 MOC-01 — Maintenance & Operational Control Boundary
+## 4. PR-M2 preliminary Execution Envelope
 
-- **STATE:** Planned — Blocked. `MOC01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
-- **OBJECTIVE:** deliver a coordinated maintenance and operational
-  control boundary across frontend, public pages, server
-  functions, Edge Functions, cron, queues, webhooks, triggers,
-  outbound integrations and `net.http_post` callers.
-- **PREDECESSOR:** PTA-01 accepted.
-- **DELIVERABLES (preliminary):** complete inventory of existing
-  jobs/integrations (anchored by
-  `supabase/migrations/20260616204333_email_infra.sql` and
-  `supabase/migrations/20260616204617_email_infra.sql`);
-  controlled activation / deactivation mechanism;
-  observability; fail-closed behavior for public writer paths
-  during maintenance; operator runbook.
-- **AREAS AFFECTED (preliminary):** frontend maintenance surface;
-  public route guards; server functions; Edge Functions; cron;
-  queues; webhooks; triggers; outbound HTTP.
-- **EXPRESSLY FORBIDDEN:** unbounded runtime feature changes;
-  changes to LSH-01 accepted runtime edits; DB / Auth / Storage
-  changes outside the maintenance surface; introduction of
-  external Supabase.
-- **MIGRATIONS POTENTIALLY NEEDED:** limited to the maintenance
-  boundary primitives.
-- **RLS / GRANTS / POLICIES IMPACT:** limited to enforcing
-  fail-closed writes during maintenance windows.
-- **TESTS REQUIRED (preliminary):** activation / deactivation
-  probes; write-denial probes during maintenance; observability
-  probes; inventory coverage proof.
-- **EVIDENCE:** inventory manifest + persisted evidence JSON.
-- **EXTERNAL DEPENDENCIES:** none.
-- **DEFINITION OF DONE (preliminary):** complete inventory
-  persisted; activation / deactivation proven; fail-closed public
-  writers proven during maintenance; observability proven.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0.
-- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Superseded · Rejected · Blocked External.
-- **SUCCESSOR:** RHV-01.
+**State:** Planned — Blocked. This section is preliminary and does not authorize implementation.
 
-### 2.7 RHV-01 — Replacement Homologation Verification
+### 4.1 Objective
 
-- **STATE:** Planned — Blocked. `RHV01_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
-- **OBJECTIVE:** execute live identity, real-session, tenant
-  context, impersonation and forged-header probes under the
-  Same-Backend Homologation Cell, replacing the failed LSV-02
-  outcome.
-- **PREDECESSOR:** MOC-01 accepted.
-- **DELIVERABLES (preliminary):** eligibility preflight
-  confirmation; Protected Baseline registry (RM Prime tenant +
-  preexisting protected entities); synthetic fixtures; real
-  sessions; tenant context probes; forged-header probes;
-  impersonation probes; deterministic teardown; residue scan;
-  Auth aggregate evidence; cron / queue inventory confirmation;
-  latest restore point confirmed; separate Storage physical
-  backup where applicable; persisted evidence JSON.
-- **AREAS AFFECTED (preliminary):** live backend under controlled
-  maintenance window; Auth; Storage; cron; server functions;
-  harness code.
-- **EXPRESSLY FORBIDDEN:** use of real data; removal of RM Prime
-  tenant; removal of the 73 `scp0121_*` residue tenants;
-  external Supabase as canonical fallback; permanent HG-14
-  disablement outside real operation.
-- **MIGRATIONS POTENTIALLY NEEDED:** none (may become required
-  only if PTA-01 / RRS-01 aftermath demands it — to be
-  re-planned in that case).
-- **RLS / GRANTS / POLICIES IMPACT:** none new; verifies the
-  state established by PTA-01.
-- **TESTS REQUIRED (preliminary):** live probes per the LSV-02
-  hard-guard matrix (HG-01..HG-14 preserved); Auth aggregate
-  evidence; residue scan.
-- **EVIDENCE:** persisted evidence JSON with per-probe attribution.
-- **EXTERNAL DEPENDENCIES:** operator authorization; controlled
-  maintenance window; recovery / backup mechanism verified.
-- **DEFINITION OF DONE (preliminary):**
-  `eligibility_preflight_passed = true`;
-  `protected_baseline_registered = true`;
-  `synthetic_tenants_created >= 2`;
-  `real_sessions_acquired > 0`;
-  `forged_header_denial_verified = true`;
-  `tenant_context_smoke_failed = 0`;
-  `rm_prime_tenant_preserved = true`;
-  `protected_baseline_changed = false`;
-  `orphaned_fixtures = 0`;
-  `residue_scan_passed = true`;
-  `evidence_persisted = true`.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0.
-- **TERMINAL_STATES:** Accepted · Accepted with Non-Blocking Backlog ·
-  Superseded · Rejected · Blocked External.
-- **SUCCESSOR:** LSV-03 (unblocking condition: RHV-01 accepted
-  AND formal end-to-end acceptance of RRS-01 → PTA-01 → MOC-01
-  → RHV-01).
+Complete and validate product functionality before final interface work.
 
-### 2.8 LSV-03 — Lead Authorization, RLS, Grants & Impersonation Verification
+### 4.2 Functional domains
 
-- **STATE:** Planned — Blocked. `LSV03_STARTED = false`. Not authorized by rejected FRP-01 planning. Requires a future explicit governance decision before any new Execution Envelope or implementation authorization.
-- **OBJECTIVE:** preserve the historical objective of LSV-03
-  without automatically absorbing the scope of LSV-02, LSR-01 or
-  LSR-02.
-- **PREDECESSOR:** RHV-01 accepted plus formal acceptance of the
-  full replacement path.
-- **MINIMUM_EVIDENCE:** Execution Envelope required before
-  implementation.
-- **EXTERNAL_DEPENDENCIES:** unresolved by the current planning.
-  No external Supabase project is required, recommended or
-  designated as canonical fallback.
-- **OUT_OF_SCOPE:** automatic transfer of LSV-02 / LSR-01 /
-  LSR-02 deliverables; implementation; live tests; migrations;
-  RLS changes; grant changes.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2 ·
-  consumed 0.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **SUCCESSOR:** LSV-04, remaining blocked.
+- tenant lifecycle and onboarding;
+- users, memberships, roles and permissions;
+- Configuration Center;
+- domains, DNS, Cloudflare decision, SSL and publication;
+- white label and public site;
+- CMS, Content Workspace, page builder, templates, components and workflow;
+- properties, media, site publication and portal publication;
+- extensible Portal Connector Registry;
+- extensible Marketing and Tracking Connector Registry;
+- automatic campaign lead ingestion into CRM;
+- CRM, Kanban, funnel, history, conversations, tasks, reports and automations;
+- tenant dashboard functional authority;
+- Super Admin SaaS Control Plane functional authority;
+- plans, entitlements, limits and commercial visibility;
+- integration diagnostics.
 
-### 2.9 LSV-04 — Lead Transaction Integrity & Final Acceptance
+### 4.3 Required inventories
 
-- **OBJECTIVE:** prove atomicity of `create_manual_lead`, rollback
-  under intermediate failures, concurrency behavior, absence of
-  orphan audit rows and finalize Lead security acceptance.
-- **PREDECESSOR:** LSV-03 — Accepted.
-- **DELIVERABLES:** atomic lead + audit event proofs; rollback
-  probes; concurrency probes; residue verification; final acceptance
-  package.
-- **MINIMUM_EVIDENCE:** Execution Envelope required before
-  implementation.
-- **EXTERNAL_DEPENDENCIES:** unresolved by the current planning. No
-  external Supabase project is required, recommended or designated as
-  canonical fallback.
-- **OUT_OF_SCOPE:** migrations; RLS or grant changes; LSH-01 runtime
-  edits; new stages beyond LSV closure.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **SUCCESSOR:** RDA-01.
+```text
+TENANT_FUNCTIONAL_INVENTORY = required
+CMS_FUNCTIONAL_INVENTORY = required
+CRM_FUNCTIONAL_INVENTORY = required
+TENANT_DASHBOARD_FUNCTIONAL_INVENTORY = required
+SUPER_ADMIN_FUNCTIONAL_INVENTORY = required
+PORTAL_CONNECTOR_INVENTORY = required
+MARKETING_CONNECTOR_INVENTORY = required
+DOMAIN_AND_CLOUDFLARE_INVENTORY = required
+```
 
-### 2.10 RDA-01 — Role-Aware Dashboard & Decision Intelligence
+Every capability must be classified as implemented and validated, incomplete, legacy/dual path, missing, blocked, redesign required, separate gate required or future commercial scope.
 
-- **STATE:** Planned — Blocked by LSV-04.
-- **OBJECTIVE / DELIVERABLES / MINIMUM_EVIDENCE / EXTERNAL_DEPENDENCIES /
-  OUT_OF_SCOPE / SUCCESSOR:** Execution Envelope required before
-  implementation.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
+### 4.4 Architectural guards
 
-### 2.11 RC-01 — Regression & Consolidation
+- server-only tenant authority;
+- no tenant-specific code forks;
+- no closed provider catalog;
+- no duplicate CRM/CMS runtime;
+- no direct Super Admin tenant authority;
+- credentials referenced securely and tenant-scoped;
+- unknown or ambiguous tenant fails closed.
 
-- **STATE:** Planned — Blocked by RDA-01.
-- Execution Envelope required before implementation.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **SUCCESSOR:** PR-M2.
+### 4.5 Prompt budget
 
-### 2.12 PR-M2 — White Label, CMS, Domains & Onboarding
+```text
+principal = 1
+corrective = 1
+consumed = 0/2
+```
 
-- **STATE:** Planned — Blocked by RC-01.
-- Execution Envelope required before implementation.
-- **AUTHORITY:** White Label, CMS, Domains & Onboarding.
-  `PUBLIC_TENANT_AUTHORITY_SCOPE = completed_exclusively_by_PTA_01`.
-  `PR_M2_MUST_NOT_REOPEN_PTA_01 = true`. PR-M2 may validate
-  functional integration with the accepted PTA-01 boundary but
-  MUST NOT redefine tenant authority, reopen RLS/grants/policies
-  established by PTA-01, reimplement public writers, or introduce
-  alternative paths, fallbacks or heuristics.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **SUCCESSOR:** PR-M3.
+## 5. PR-M3 preliminary Execution Envelope
 
-### 2.13 PR-M3 — Product Quality, Operational Readiness & Closing Review
+**State:** Planned — Blocked by PR-M2.
 
-- **STATE:** Planned — Blocked by PR-M2.
-- Execution Envelope required before implementation.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **SUCCESSOR:** TH-M1.
+### 5.1 Objective
 
-### 2.14 TH-M1 — Homologation Provisioning & Full Validation
+Implement the final product interface and operational readiness after functional completion.
 
-- **STATE:** Planned — Blocked by PR-M3.
-- Execution Envelope required before implementation.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **SUCCESSOR:** TH-M2.
+### 5.2 Executor model
 
-### 2.15 TH-M2 — Defect Resolution, Regression & Production Gate
+```text
+LOVABLE = primary implementation platform
+UX_PRODUCT_PROFESSIONAL = active collaborator
+CHATGPT_GITHUB_AUDIT = mandatory
+```
 
-- **STATE:** Planned — Blocked by TH-M1.
-- Execution Envelope required before implementation.
-- **PROMPT_BUDGET:** principal 1 · corrective 1 · absolute max 2.
-- **TERMINAL_STATES:** Accepted · Superseded · Rejected ·
-  Blocked External.
-- **SUCCESSOR:** Homologação.
+### 5.3 Scope
 
-### 2.16 Homologação
+- information architecture and design system;
+- Tenant Admin and Super Admin Control Plane;
+- CRM, Kanban, leads and funnel;
+- CMS, editor, page builder, preview and publication;
+- dashboards, graphs, tables, filters and reports;
+- onboarding, domains, portals, campaigns and configuration;
+- responsive, accessibility and perceived-performance review;
+- environments, observability, runbooks and operational readiness;
+- pre-homologation Release Candidate deployment.
 
-- **STATE:** Blocked by TH-M2.
+Reference dashboard images define information density and composition only, never final color palette or brand identity.
 
-### 2.17 Produção
+### 5.4 Exit gate
 
-- **STATE:** Blocked until homologation acceptance.
+```text
+FINAL_FRONTEND_IMPLEMENTED = true
+FINAL_TENANT_DASHBOARD_IMPLEMENTED = true
+FINAL_SUPER_ADMIN_CONTROL_PLANE_UX_IMPLEMENTED = true
+FINAL_CMS_EDITOR_EXPERIENCE_IMPLEMENTED = true
+FINAL_CRM_EXPERIENCE_IMPLEMENTED = true
+CRITICAL_FLOWS_USABLE = true
+RESPONSIVE_VALIDATION_PASSED = true
+ACCESSIBILITY_CRITICALS_RESOLVED = true
+PRE_HOMOLOGATION_RELEASE_CANDIDATE_DEPLOYED = true
+TEAM_TEST_ENVIRONMENT_AVAILABLE = true
+```
 
+### 5.5 Prompt budget
 
----
+```text
+principal = 1
+corrective = 1
+consumed = 0/2
+```
 
-## 3. Binding rules
+## 6. TH-M1 preliminary Execution Envelope
 
-- No stage may begin without a frozen Execution Envelope registered
-  here.
-- No stage may exceed the declared PROMPT_BUDGET (max 2).
-- Legacy LSV-01 Lotes A / B / C are historical only and cannot be
-  used as active execution units.
-- Terminal states are exhaustive: Accepted, Accepted with Non-Blocking Backlog, Blocked External, Rejected, Superseded. No other closing state is permitted.
-- Historical accepted states (Fase 2, Fase 3, Fase 4, PR-PH.0,
-  LSH-01) are not reopened by this map.
-- FRP-01 is planning-only. Explicit flags:
-  `FRP01_IMPLEMENTATION_CHANGES = false`;
-  `RRS01_STARTED = false`;
-  `PTA01_STARTED = false`;
-  `MOC01_STARTED = false`;
-  `RHV01_STARTED = false`;
-  `LSV03_STARTED = false`.
-- `SAME_BACKEND_HOMOLOGATION_CELL = required` and
-  `EXTERNAL_SUPABASE_CANONICAL_FALLBACK = prohibited` remain
-  binding across the whole replacement path.
-- 73 `scp0121_*` tenants remain
-  `PREEXISTING_INTERNAL_TEST_RESIDUE`; not scheduled for cleanup
-  by any stage introduced under FRP-01.
+**State:** Planned — Blocked by PR-M3.
+
+TH-M1 is internal pre-homologation UAT, not formal homologation. It validates the complete tenant lifecycle, domains and Cloudflare, public site and CMS, properties and portals, Tenant Admin dashboards, CRM, marketing/tracking connectors and Super Admin Control Plane.
+
+```text
+THM1_FINDINGS_REPORT = required
+THM1_PRODUCT_ACCEPTANCE = not automatic
+```
+
+Prompt budget: principal 1, corrective 1, consumed 0/2.
+
+## 7. TH-M2 preliminary Execution Envelope
+
+**State:** Planned — Blocked by TH-M1.
+
+TH-M2 owns consolidated remediation of blocking backend/frontend defects, essential missing capabilities, authorization/isolation defects, integration defects, CRM/CMS/Super Admin defects, UX and dashboard refinements, connector extensions, tenant customizations and regression.
+
+Prompt budget: principal 1, corrective 1, consumed 0/2.
+
+## 8. LSV-03 preliminary Execution Envelope
+
+**State:** Planned — Blocked by TH-M2.
+
+LSV-03 validates Same-Backend security and multi-tenant behavior only after product acceptance:
+
+- tenant A versus tenant B;
+- controlled sessions;
+- forged headers and payloads;
+- impersonation;
+- RLS, grants and policies;
+- Storage isolation;
+- public writers/readers and signed resources;
+- cron, queues, webhooks and outbound controls;
+- fixture manifest, teardown, residue scan and protected baseline.
+
+It does not own common UX or functional discovery.
+
+Prompt budget: principal 1, corrective 1, consumed 0/2.
+
+## 9. Product Discovery, Customization & Test Feedback Contract
+
+### 9.1 Extensible domains
+
+```text
+PROVIDER_CATALOG_IS_EXTENSIBLE = true
+PORTAL_CATALOG_IS_EXTENSIBLE = true
+MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
+CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CMS_COMPONENT_CATALOG_IS_EXTENSIBLE = true
+CMS_TEMPLATE_CATALOG_IS_EXTENSIBLE = true
+CMS_LAYOUT_CATALOG_IS_EXTENSIBLE = true
+DASHBOARD_REFINEMENT_IS_EXPECTED = true
+SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+SUPER_ADMIN_OPERATIONAL_WIDGETS_ARE_EXTENSIBLE = true
+TENANT_CUSTOMIZATION_IS_EXPECTED = true
+```
+
+### 9.2 Governance limits
+
+```text
+SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
+RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
+UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
+TENANT_SPECIFIC_CODE_FORKS = prohibited
+CLIENT_SIDE_AUTHORITY = prohibited
+PARALLEL_CMS_RUNTIME = prohibited
+DUPLICATE_CMS_EDITOR_PATH = prohibited
+SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
+```
+
+Requirements discovered before a stage starts may enter its frozen envelope. During-stage findings must be classified. Blocking defects within frozen scope may use the consolidated corrective prompt. Improvements and extensions flow to TH-M1/TH-M2 or backlog and cannot silently expand the active stage.
+
+## 10. Current authorization state
+
+```text
+RPD01_STATE = Planning Complete — Ready for Direct External Audit
+RPD01_ACCEPTED = false
+RPD01_MERGE_AUTHORIZED = false
+PRM2_PLANNING_AUTHORIZED = false
+PRM2_IMPLEMENTATION_AUTHORIZED = false
+PRM3_IMPLEMENTATION_AUTHORIZED = false
+LOVABLE_EXECUTION_AUTHORIZED = false
+DEPLOY_AUTHORIZED = false
+LIVE_TESTING_AUTHORIZED = false
+CONTROLLED_HOMOLOGATION_AUTHORIZED = false
+PRODUCTION_AUTHORIZED = false
+NEXT_STAGE_AUTHORIZED = none
+```
