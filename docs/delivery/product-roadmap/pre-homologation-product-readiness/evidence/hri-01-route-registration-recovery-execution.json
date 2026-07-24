@@ -1,7 +1,7 @@
 {
   "stageId": "HRI-01",
   "stageName": "Homologation Readiness Implementation — Generated Register Authority Recovery & Deterministic Release Proof",
-  "status": "Implementation Complete — Final Release Gate Pending",
+  "status": "Implementation Complete — Ready for Direct External Audit",
   "repository": "MrRodBH/prime-domus-hub",
   "executor": "ChatGPT GitHub-native",
   "lovableExecutionAuthorized": false,
@@ -9,6 +9,7 @@
     "mainHead": "74058f0a1ff64de4e9ad498eb14a12512f9180aa",
     "branch": "agent/hri-01-generated-register-recovery",
     "auditedImplementationHead": "7b3c12005a154f4f24d4d8d3ee562c83ff6fe836",
+    "evidenceGateHead": "b1e02298ce811dfe28610f0f7270404ec9ddf9fa",
     "pullRequest": 53,
     "merged": false,
     "mainChanged": false
@@ -98,6 +99,12 @@
       "runId": 30113666761,
       "conclusion": "success",
       "classification": "canonical verifier and workflow restored"
+    },
+    {
+      "runNumber": 151,
+      "runId": 30114310459,
+      "conclusion": "success",
+      "classification": "definitive implementation and evidence set verified"
     }
   ],
   "verification": {
@@ -112,6 +119,7 @@
     "buildDevExitCode": 0,
     "releaseGateCommand": "bun run verify:release",
     "releaseGateResult": "success",
+    "finalEvidenceReleaseGateRunId": 30114310459,
     "cycleCompositeDigestStable": true
   },
   "regressionResults": {
@@ -139,7 +147,8 @@
     "releaseGateWorkflow": 0,
     "authoredDeclaration": 0,
     "supabase": 0,
-    "database": 0
+    "database": 0,
+    "unexpectedFileChangeCount": 0
   },
   "authorization": {
     "hri01Accepted": false,
@@ -149,8 +158,5 @@
     "controlledHomologationAuthorized": false,
     "productionAuthorized": false,
     "nextStageAuthorized": "none"
-  },
-  "finalReleaseGate": {
-    "status": "pending after definitive evidence commit"
   }
 }
