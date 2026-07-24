@@ -2,33 +2,80 @@
 
 ## Status
 
-**Planning-only reconciliation — Ready for Direct External Audit**
+**Rejected — Terminal**
 
 ```text
 STAGE_ID = HRC-01
-CURRENT_MAIN_BASELINE = f9326691f561b958c2a4ed7230dd5bf6059a8df4
+FINAL_HEAD = bc996d084932dea3c96877d5d597d9dcc3b3afb1
+REJECTION_GATE_COMMIT = f9326691f561b958c2a4ed7230dd5bf6059a8df4
 HISTORICAL_HVP01_PLANNING_HEAD = 3735d1543a6e6be93fb452a96e258237e781644f
-UNAUTHORIZED_DRIFT_COMMIT = 9617cdb8e930376b9a30c1054362ef1c052cdea5
-REJECTION_RECORD_COMMIT = f9326691f561b958c2a4ed7230dd5bf6059a8df4
-PLANNING_AUTHORIZED = true
+PRINCIPAL_PROMPT_CONSUMED = true
+CORRECTIVE_PROMPT_CONSUMED = true
+REMAINING_PROMPT_BUDGET = 0/2
+FINAL_EXTERNAL_AUDIT_ACCEPTED = false
+ADDITIONAL_PROMPT_AUTHORIZED = false
 LIVE_EXECUTION_AUTHORIZED = false
 HRI01_AUTHORIZED = false
-VSP01_AUTHORIZED = false
-LSV03_AUTHORIZED = false
 CONTROLLED_HOMOLOGATION_AUTHORIZED = false
 PRODUCTION_AUTHORIZED = false
-PASSIVE_BLOCKED_EXTERNAL_ALLOWED = false
 ```
 
-## 1. Purpose
+## 1. Terminal disposition
 
-This document reconciles the executable chain after HVP-01 was consumed and
-after an unauthorized toolchain-drift commit landed on `main`. HRC-01
-supersedes HVP-01 as the active readiness authority and defines internal
-resolution paths for every remaining dependency. HRC-01 is planning only;
-implementation is deferred to HRI-01, which is not authorized.
+HRC-01 is rejected and closed. It may not be reopened, renamed, resumed or
+used as authority for runtime implementation.
 
-## 2. Executable chain
+The detailed terminal evidence is recorded in:
+
+`docs/architecture/governance/HRC-01-terminal-rejection-record.md`.
+
+The original planning analysis remains available at:
+
+`docs/architecture/impact-analysis/HRC-01-homologation-readiness-closure-impact-analysis.md`.
+
+That planning document is historical input only. Its previous current-state
+claims are superseded by this terminal status and by HRR-01.
+
+## 2. Rejection reason
+
+The HRC-01 execution envelope prohibited changes to `src/**` and did not
+authorize `src/routeTree.gen.ts`.
+
+The final execution changed that generated file by removing the TanStack Start
+Register augmentation.
+
+```text
+FILES_OUTSIDE_ALLOWED = 1
+OUTSIDE_ALLOWED_PATH = src/routeTree.gen.ts
+SCOPE_COMPLIANCE = false
+```
+
+No technical usefulness of the resulting tree can cure the governance breach.
+
+## 3. Current route-registration finding
+
+```text
+ROUTE_TREE_REGISTER_FOOTER_PRESENT = false
+DEDICATED_REGISTER_DECLARATION_PRESENT = false
+CANONICAL_REGISTER_AUTHORITY_PROVEN = false
+```
+
+This is a blocking finding for future implementation, not an authorization to
+repair runtime inside HRC-01.
+
+## 4. Accepted architecture preserved
+
+```text
+GNR01_STATE = Accepted
+CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
+AUTHORED_DECLARATION_ALLOWED = false
+GENERATED_FILE_REWRITING_PLUGIN_ALLOWED = false
+STRATEGY_B_ALLOWED = false
+```
+
+HRC-01 does not supersede or amend GNR-01.
+
+## 5. Reconciled executable chain
 
 ```text
 DRA-01       Accepted
@@ -38,66 +85,40 @@ PSC-01       Accepted
 PPR-GN-01    Accepted
 PTW-01       Accepted
 PSG-01       Accepted with Non-Blocking Backlog — Merged
-HVP-01       Superseded — historical fail-closed evidence preserved
-HRC-01       Planning — Ready for Direct External Audit
+HVP-01       Historical predecessor — not reopened
+HRC-01       Rejected — Terminal
+HRR-01       Planning — Ready for Direct External Audit
 HRI-01       Planned — Not Authorized
 VSP-01       Optional — Not Authorized
-LSV-03       Planned — Not Started
-Controlled Homologation  Blocked by HRI-01 acceptance
-Production               Blocked until controlled homologation acceptance
+LSV-03       Planned — Blocked
+Controlled Homologation  Not Authorized
+Production               Not Authorized
 ```
 
-Terminal stages (PR-M1, LSO-01, LSV-01, LSV-02, LSR-01, LSR-02, FRP-01,
-PPR-01) remain terminal and are not reopened.
+## 6. Historical input preservation
 
-## 3. HVP-01 supersession
+HVP-01 and HRC-01 planning content, protected-baseline facts and fail-closed
+findings remain available as historical evidence. They carry no implementation
+authority and do not transfer prompt budget or deliverables to HRR-01/HRI-01.
 
-HVP-01 planning content, fail-closed evidence and preflight findings are
-preserved as historical inputs. HVP-01 is not reopened, renamed or resumed;
-its live-execution authorization was never granted and does not carry over.
-
-The 73 `scp0121_*` tenants remain `PREEXISTING_INTERNAL_TEST_RESIDUE`,
-protected as preexisting objects. The RM Prime tenant remains the Protected
-Baseline. Identity is by canonical ID only.
-
-## 4. Toolchain drift record
-
-Commit `9617cdb8e930376b9a30c1054362ef1c052cdea5` bumped
-`@lovable.dev/vite-tanstack-config` (2.7.6 → 2.7.7) and
-`@lovable.dev/vite-plugin-dev-server-bridge` (1.1.1 → 1.2.1) without an
-authorized envelope. HRC-01 restored `package.json` and `bun.lock` exactly
-from `3735d154...`. Both drift and restoration commits remain in history as
-evidence — no force push, no rebase, no destructive reset.
+## 7. Product Experience Parallel Lane
 
 ```text
-PACKAGE_JSON_EXACTLY_RESTORED = true
-BUN_LOCK_EXACTLY_RESTORED     = true
-TOOLCHAIN_DRIFT_REVERSED      = true
-```
-
-## 5. Passive-external-block prohibition
-
-`Blocked External` is preserved only as historical security evidence and is
-prohibited as an active posture. Every dependency must carry:
-`RESOLUTION_OWNER`, `RESOLUTION_STAGE`, `RESOLUTION_SCOPE`,
-`INTERNAL_REMEDIATION_PATH`, `ENTRY_GATE`, `EXIT_GATE`,
-`NEXT_EXECUTABLE_ACTION`.
-
-## 6. Product Experience Parallel Lane
-
-```text
-PRODUCT_EXPERIENCE_PLANNING_BLOCKED_BY_HVP01         = false
-PRODUCT_EXPERIENCE_PLANNING_BLOCKED_BY_HRC01         = false
+PRODUCT_EXPERIENCE_PLANNING_BLOCKED_BY_HVP01 = false
+PRODUCT_EXPERIENCE_PLANNING_BLOCKED_BY_HRC01 = false
 PRODUCT_EXPERIENCE_RUNTIME_IMPLEMENTATION_AUTHORIZED = false
 ```
 
-Product experience planning may proceed in parallel; runtime implementation
-is not authorized here.
+## 8. Successor control
 
-## 7. Successor control
+```text
+HRR01_STATE = Planning — Ready for Direct External Audit
+HRR01_PRINCIPAL_PROMPT_CONSUMED = true
+HRR01_CORRECTIVE_PROMPT_CONSUMED = false
+HRR01_REMAINING_PROMPT_BUDGET = 1/2
+HRI01_STARTED = false
+HRI01_AUTHORIZED = false
+NEXT_ACTION = direct external audit of HRR-01 planning branch
+```
 
-HRC-01 may terminate as `Accepted`, `Accepted with Non-Blocking Backlog`,
-`Rejected` or `Superseded`. Only `Accepted` or an explicitly compatible
-`Accepted with Non-Blocking Backlog` may permit a later decision to
-authorize HRI-01. VSP-01, LSV-03 and Controlled Homologation remain
-unauthorized by this reconciliation.
+No merge and no later stage are authorized by this document.
