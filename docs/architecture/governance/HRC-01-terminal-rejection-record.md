@@ -26,8 +26,8 @@ ANCESTRY = bc996d08 is 9 commits ahead of f9326691 and 0 behind
 The HRC-01 execution envelope prohibited changes to `src/**` and did not list
 `src/routeTree.gen.ts` in `FILES_ALLOWED`.
 
-The final HRC-01 commit changed `src/routeTree.gen.ts` by removing the generated
-TanStack Start Register augmentation.
+The final HRC-01 execution changed `src/routeTree.gen.ts` by removing the
+generated TanStack Start Register augmentation.
 
 ```text
 FILES_OUTSIDE_ALLOWED = 1
@@ -47,8 +47,8 @@ DEDICATED_REGISTER_DECLARATION_PRESENT = false
 CANONICAL_REGISTER_AUTHORITY_PROVEN = false
 ```
 
-These fields are findings only. They do not authorize runtime repair in
-HRC-01 or HRR-01.
+These fields are findings only. They do not authorize runtime repair in HRC-01
+or HRR-01.
 
 ## Historical document treatment
 
@@ -61,8 +61,9 @@ docs/architecture/impact-analysis/HVP-01-homologation-validation-preflight-impac
 docs/architecture/governance/HVP-01-roadmap-reconciliation.md
 ```
 
-Any prior status text stating `Planning — Ready for Direct External Audit` is
-superseded by this terminal record and by HRR-01 roadmap reconciliation.
+Any prior status stating `Planning — Ready for Direct External Audit` is
+superseded by this terminal record and the accepted HRR-01 roadmap
+reconciliation.
 
 ## Strategy preservation
 
@@ -73,10 +74,17 @@ AUTHORED_REGISTER_DECLARATION_AUTHORIZED = false
 GENERATED_ROUTE_TREE_REWRITER_AUTHORIZED = false
 ```
 
-## Successor control
+## HRR-01 disposition and successor control
 
 ```text
-HRR01_STATE = Planning — Ready for Direct External Audit
+HRR01_STATE = Accepted
+HRR01_PLANNING_STATE = Accepted
+HRR01_PLANNING_MERGED = true
+HRR01_PLANNING_PR = 50
+HRR01_PLANNING_MERGE_HEAD = 3f3bf60193f6294e629b4547a2d7875b2a7e9722
+HRR01_PRINCIPAL_PROMPT_CONSUMED = true
+HRR01_CORRECTIVE_PROMPT_CONSUMED = false
+HRR01_REMAINING_PROMPT_BUDGET = 1/2
 HRI01_STATE = Planned — Not Authorized
 LIVE_EXECUTION_AUTHORIZED = false
 CONTROLLED_HOMOLOGATION_AUTHORIZED = false
@@ -84,4 +92,4 @@ PRODUCTION_AUTHORIZED = false
 ```
 
 HRC-01 cannot be reopened, corrected again or used as an implementation
-authority.
+authority. HRR-01 acceptance does not auto-authorize HRI-01.
