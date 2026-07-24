@@ -156,14 +156,14 @@ The five files on merged `main` were compared with the planning branch and had
 identical blob SHAs. No planning content was lost or altered by the squash
 merge.
 
-## Operations not executed
+## Manual operations not executed
 
 ```text
-ROUTE_GENERATION_EXECUTED = false
-TYPECHECK_EXECUTED = false
-BUILD_EXECUTED = false
-BUILD_DEV_EXECUTED = false
-VITE_DEV_EXECUTED = false
+MANUAL_ROUTE_GENERATION_EXECUTED = false
+MANUAL_TYPECHECK_EXECUTED = false
+MANUAL_BUILD_EXECUTED = false
+MANUAL_BUILD_DEV_EXECUTED = false
+MANUAL_VITE_DEV_EXECUTED = false
 MIGRATION_EXECUTED = false
 DATABASE_MUTATION_EXECUTED = false
 AUTH_MUTATION_EXECUTED = false
@@ -176,6 +176,25 @@ FORCE_PUSH_EXECUTED = false
 RESET_EXECUTED = false
 HISTORY_REWRITE_EXECUTED = false
 ```
+
+## Automatic GitHub Release Gate
+
+Opening protected PRs against `main` triggered the repository's existing
+`Release Gate` workflow automatically. This was not a manually invoked command
+and did not change product runtime files.
+
+```text
+AUTOMATIC_RELEASE_GATE_TRIGGERED_BY_PR = true
+PR50_RELEASE_GATE_RUN_ID = 30110425395
+PR50_RELEASE_GATE_STATUS = completed
+PR50_RELEASE_GATE_CONCLUSION = success
+PR51_RELEASE_GATE_RUN_ID = 30110604498
+PR51_RELEASE_GATE_STATUS_AT_AUDIT = in_progress
+```
+
+The automatic workflow may execute the repository's canonical verification
+sequence, including build, typecheck and deterministic route-generation checks.
+This CI activity is classified separately from manual HRR-01 execution.
 
 ## Final HRR-01 disposition
 
