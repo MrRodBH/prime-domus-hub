@@ -2,17 +2,23 @@
 
 ## Status
 
-**Planning-only reconciliation — Ready for Direct External Audit**
+**Accepted — Planning merged and post-merge reconciliation completed**
 
 ```text
 STAGE_ID = HRR-01
 AUDITED_MAIN_BASELINE = bc996d084932dea3c96877d5d597d9dcc3b3afb1
 PLANNING_BRANCH = agent/hrr-01-planning-reconciliation
+PLANNING_HEAD = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
+PLANNING_PR = 50
+PLANNING_MERGE_METHOD = squash
+PLANNING_MERGE_HEAD = 3f3bf60193f6294e629b4547a2d7875b2a7e9722
 EXECUTOR = ChatGPT GitHub-native
 LOVABLE_EXECUTION_AUTHORIZED = false
 HVP01_STATE = Historical predecessor — not reopened
 HRC01_STATE = Rejected — Terminal
-HRR01_STATE = Planning — Ready for Direct External Audit
+HRR01_STATE = Accepted
+HRR01_PLANNING_STATE = Accepted
+HRR01_PLANNING_MERGED = true
 HRI01_STATE = Planned — Not Authorized
 LIVE_EXECUTION_AUTHORIZED = false
 CONTROLLED_HOMOLOGATION_AUTHORIZED = false
@@ -21,29 +27,18 @@ PRODUCTION_AUTHORIZED = false
 
 ## 1. Authority
 
-This document is the current stage-specific Product Readiness reconciliation
-for the HRC-01 rejection and the route-registration divergence found at
-`bc996d084932dea3c96877d5d597d9dcc3b3afb1`.
+This document is the current stage-specific Product Readiness authority for the
+HRC-01 terminal rejection and HRR-01 planning disposition.
 
-It supersedes any prior current-state statement that still describes HRC-01 as
-`Planning — Ready for Direct External Audit`. Those statements remain
-historical planning input only.
+It supersedes prior current-state text that described HRR-01 as
+`Planning — Ready for Direct External Audit` or stated that its merge was not
+authorized. The HRR-01 Impact Analysis remains the accepted planning analysis;
+its pre-merge status header is historical execution context and does not
+supersede this post-merge reconciliation.
 
-The superseded current-state blocks include, specifically:
-
-```text
-docs/architecture/governance/DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md
-  superseded scope: HRC-01/HVP-01 current-state header and next-action fields only
-  preserved scope: accepted predecessor history and evidence references
-
-docs/architecture/impact-analysis/HRC-01-homologation-readiness-closure-impact-analysis.md
-  superseded scope: current status and successor authorization claims
-  preserved scope: planning analysis and historical inventory only
-```
-
-No text in those historical blocks may override the terminal HRC-01 decision
-or authorize HRI-01. This document does not replace accepted architecture
-decisions, especially GNR-01.
+Historical HRC-01 and HVP-01 planning content remains evidence only. It cannot
+reopen HRC-01, authorize Strategy B, authorize HRI-01 or authorize live
+execution.
 
 ## 2. Executable chain
 
@@ -57,7 +52,7 @@ PTW-01       Accepted
 PSG-01       Accepted with Non-Blocking Backlog — Merged
 HVP-01       Historical predecessor — not reopened
 HRC-01       Rejected — Terminal
-HRR-01       Planning — Ready for Direct External Audit
+HRR-01       Accepted — Planning merged
 HRI-01       Planned — Not Authorized
 VSP-01       Optional — Not Authorized
 LSV-03       Planned — Blocked
@@ -91,8 +86,7 @@ HRC01_STATE = Rejected — Terminal
 HRC01_ADDITIONAL_PROMPT_AUTHORIZED = false
 ```
 
-HRC-01 documents remain historical planning input. They do not authorize a
-retry, implementation, live operation or successor.
+HRC-01 may not be reopened, retried, renamed or used as runtime authority.
 
 ## 4. GNR-01 preservation
 
@@ -104,11 +98,11 @@ GENERATED_FILE_REWRITING_PLUGIN_ALLOWED = false
 STRATEGY_B_ALLOWED = false
 ```
 
-The absence of a Register augmentation at the audited baseline is a blocking
-finding. It does not change the accepted strategy and does not authorize a
-fallback.
+The absence of a Register augmentation at the audited baseline remains a
+blocking technical finding for a future separately authorized implementation.
+It does not alter GNR-01 and does not authorize a fallback.
 
-## 5. HRR-01 budget and scope
+## 5. HRR-01 budget and execution result
 
 ```text
 HRR01_STARTED = true
@@ -117,30 +111,31 @@ HRR01_CORRECTIVE_PROMPT_CONSUMED = false
 HRR01_REMAINING_PROMPT_BUDGET = 1/2
 HRR01_RUNTIME_CHANGED = false
 HRR01_GENERATION_EXECUTED = false
+HRR01_FILES_OUTSIDE_ALLOWED = 0
+HRR01_PLANNING_DIFF_FILES = 5
+HRR01_PLANNING_CONTENT_MATCHED_BRANCH = true
+HRR01_PLANNING_STATE = Accepted
+HRR01_PLANNING_MERGED = true
 ```
 
-HRR-01 is complete only as a planning branch submitted for direct external
-audit. No merge is authorized by this document.
+PR #50 was merged with expected-head protection against
+`21fe811ec96c5da777ae9dc3090fbf551e8c4ae0`. The merge introduced only the five
+authorized documentary paths. No runtime, generated route, Vite configuration,
+package, lockfile, workflow or Supabase path changed.
 
 ## 6. Successor control
-
-HRI-01 remains only a named future stage.
 
 ```text
 HRI01_STARTED = false
 HRI01_AUTHORIZED = false
 HRI01_EXECUTION_ENVELOPE_FROZEN = false
 HRI01_LIVE_EXECUTION_AUTHORIZED = false
-NEXT_ACTION = direct external audit of HRR-01 planning branch
+NEXT_STAGE_AUTHORIZED = none
+NEXT_ACTION = explicit governance decision required before any HRI-01 action
 ```
 
-Only an explicit post-audit decision by Rodolfo may:
-
-1. accept HRR-01;
-2. authorize a corrective HRR-01 pass; or
-3. authorize future HRI-01 planning/implementation.
-
-No stage auto-starts and no deliverable is transferred automatically.
+HRR-01 acceptance does not auto-authorize HRI-01. A future HRI-01 action
+requires a separate explicit authorization and a then-current GitHub audit.
 
 ## 7. Product Experience Parallel Lane
 
@@ -154,24 +149,25 @@ PRODUCT_EXPERIENCE_RUNTIME_IMPLEMENTATION_AUTHORIZED = false
 Product Experience planning may proceed separately. Runtime implementation is
 not authorized by HRR-01.
 
-## 8. Merge gate
-
-Before any merge, direct audit must verify:
+## 8. Merge and post-merge verification
 
 ```text
-BASE_MAIN_SHA = bc996d084932dea3c96877d5d597d9dcc3b3afb1
-BRANCH_IS_DESCENDANT_OF_BASE = true
+MAIN_HEAD_BEFORE = bc996d084932dea3c96877d5d597d9dcc3b3afb1
+PLANNING_HEAD_VERIFIED = 21fe811ec96c5da777ae9dc3090fbf551e8c4ae0
+PR_NUMBER = 50
+MERGE_METHOD = squash
+PLANNING_MERGE_HEAD = 3f3bf60193f6294e629b4547a2d7875b2a7e9722
+ANCESTRY_VERIFIED = true
+FILES_CHANGED = 5
 FILES_OUTSIDE_ALLOWED = 0
 SRC_DIFF = 0
+ROUTE_TREE_DIFF = 0
 VITE_CONFIG_DIFF = 0
 PACKAGE_JSON_DIFF = 0
 BUN_LOCK_DIFF = 0
 WORKFLOW_DIFF = 0
-ROUTE_TREE_DIFF = 0
-HRC01_STATE = Rejected — Terminal
-HRR01_STATE = Planning — Ready for Direct External Audit
-HRI01_AUTHORIZED = false
+SUPABASE_DIFF = 0
 ```
 
-The merge, if later authorized, must use expected-head protection. No automatic
-merge, force push, reset or history rewrite is permitted.
+No force push, reset, history rewrite or automatic successor execution was
+performed.
