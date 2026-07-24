@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-gate-${{ github.ref }}
@@ -25,10 +25,8 @@ jobs:
       VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
       CRON_SECRET: ci-placeholder-secret
     steps:
-      - name: Checkout audited PR head
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -43,22 +41,6 @@ jobs:
         run: |
           set -o pipefail
           bun run verify:release 2>&1 | tee release-gate.log
-
-      - name: Persist HRI-01 official generated route tree
-        if: github.event_name == 'pull_request' && github.head_ref == 'agent/hri-01-generated-register-recovery'
-        shell: bash
-        run: |
-          set -euo pipefail
-          changed="$(git diff --name-only)"
-          if [ "$changed" != "src/routeTree.gen.ts" ]; then
-            echo "Unexpected generated working-tree diff: $changed" >&2
-            exit 1
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/routeTree.gen.ts
-          git commit -m "fix(hri-01): restore generated Register authority"
-          git push origin HEAD:${{ github.head_ref }}
 
       - name: Upload release gate evidence
         if: always()
