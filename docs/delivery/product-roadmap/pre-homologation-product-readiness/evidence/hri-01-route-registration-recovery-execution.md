@@ -2,13 +2,14 @@
 
 ## Evidence status
 
-**Implementation evidence complete — Final Release Gate Pending**
+**Implementation evidence complete — Ready for Direct External Audit**
 
 ```text
 REPOSITORY = MrRodBH/prime-domus-hub
 MAIN_BASELINE = 74058f0a1ff64de4e9ad498eb14a12512f9180aa
 BRANCH = agent/hri-01-generated-register-recovery
 AUDITED_IMPLEMENTATION_HEAD = 7b3c12005a154f4f24d4d8d3ee562c83ff6fe836
+EVIDENCE_GATE_HEAD = b1e02298ce811dfe28610f0f7270404ec9ddf9fa
 PR_NUMBER = 53
 MERGE_EXECUTED = false
 MAIN_CHANGED = false
@@ -127,6 +128,7 @@ FUNCTIONAL_ROUTE_TOPOLOGY_DIFF = 0
 | 143 | 30112896967 | success | official generator output and hashes extracted |
 | 144 | 30113268229 | success | official generated route tree persisted by GitHub Actions |
 | 147 | 30113666761 | success | canonical verifier and workflow restored; complete Release Gate passed |
+| 151 | 30114310459 | success | definitive implementation and evidence set passed the Release Gate |
 
 Runs 140–142 are preserved as failed experimental evidence-helper runs. They do
 not establish acceptance, but their logs show that the three builds,
@@ -144,6 +146,7 @@ BUILD_DEV_COMMAND = bun run build:dev
 BUILD_DEV_RESULT = success
 RELEASE_GATE_COMMAND = bun run verify:release
 RELEASE_GATE_RESULT = success
+FINAL_EVIDENCE_RELEASE_GATE_RUN_ID = 30114310459
 ```
 
 The successful canonical run reported:
@@ -174,7 +177,7 @@ PUBLIC_SURFACE_SECURITY_SPECS = passed
 PUBLIC_SURFACE_TENANT_READ_SPECS = passed
 ```
 
-## 7. Final scope before final evidence gate
+## 7. Final scope
 
 ```text
 PACKAGE_JSON_DIFF = 0
@@ -188,9 +191,10 @@ RELEASE_GATE_WORKFLOW_DIFF = 0
 AUTHORED_DECLARATION_DIFF = 0
 SUPABASE_DIFF = 0
 DATABASE_DIFF = 0
+UNEXPECTED_FILE_CHANGE_COUNT = 0
 ```
 
-Expected definitive files:
+Definitive files:
 
 ```text
 docs/architecture/impact-analysis/HRI-01-homologation-readiness-implementation-impact-analysis.md
@@ -203,8 +207,11 @@ src/routeTree.gen.ts
 ## 8. Disposition
 
 ```text
-HRI01_STATE = Implementation Complete — Final Release Gate Pending
+HRI01_STATE = Implementation Complete — Ready for Direct External Audit
 HRI01_ACCEPTED = false
+HRI01_PRINCIPAL_PROMPT_CONSUMED = true
+HRI01_CORRECTIVE_PROMPT_CONSUMED = false
+HRI01_REMAINING_PROMPT_BUDGET = 1/2
 MERGE_EXECUTED = false
 MAIN_CHANGED = false
 LIVE_EXECUTION_AUTHORIZED = false
@@ -213,5 +220,5 @@ PRODUCTION_AUTHORIZED = false
 LOVABLE_EXECUTION_AUTHORIZED = false
 ```
 
-The branch must stop for direct external GitHub audit after the final Release
-Gate succeeds on the definitive evidence commit.
+The branch stops for direct external GitHub audit. No merge or successor stage
+is authorized by this evidence.
