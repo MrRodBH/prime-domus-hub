@@ -1,24 +1,24 @@
 {
   "stageId": "HRI-01",
   "stageName": "Homologation Readiness Implementation — Generated Register Authority Recovery & Deterministic Release Proof",
-  "status": "Implementation Complete — Ready for Direct External Audit",
+  "status": "Accepted — Implementation Merged",
+  "finalExternalAudit": "Accepted",
   "repository": "MrRodBH/prime-domus-hub",
   "executor": "ChatGPT GitHub-native",
   "lovableExecutionAuthorized": false,
-  "baseline": {
-    "mainHead": "74058f0a1ff64de4e9ad498eb14a12512f9180aa",
+  "implementation": {
+    "originalBaseline": "74058f0a1ff64de4e9ad498eb14a12512f9180aa",
     "branch": "agent/hri-01-generated-register-recovery",
-    "auditedImplementationHead": "7b3c12005a154f4f24d4d8d3ee562c83ff6fe836",
-    "evidenceGateHead": "b1e02298ce811dfe28610f0f7270404ec9ddf9fa",
     "pullRequest": 53,
-    "merged": false,
-    "mainChanged": false
+    "head": "a390f842db3f6f2714f3a564b70cedfa2c78248d",
+    "merged": true,
+    "mergeMethod": "squash",
+    "mergeSha": "91d63bc5ed18540fc122301150a996ed0fe51021"
   },
   "governanceBudget": {
     "hri01PrincipalPromptConsumed": true,
     "hri01CorrectivePromptConsumed": false,
     "hri01RemainingPromptBudget": "1/2",
-    "principalExecutionResumption": true,
     "correctivePrompt": false,
     "hrc01BudgetClassification": "historical terminal predecessor state",
     "hrc01BudgetChangedDuringHri01": false
@@ -27,6 +27,7 @@
     "gnr01State": "Accepted",
     "hrc01State": "Rejected — Terminal",
     "hrr01State": "Accepted",
+    "hri01State": "Accepted",
     "canonicalRegisterStrategy": "generated route-tree augmentation",
     "generatedRegisterAuthorityCount": 1,
     "authoredRegisterDeclarationCount": 0,
@@ -68,19 +69,19 @@
       "runNumber": 140,
       "runId": 30111997762,
       "conclusion": "failure",
-      "classification": "technical commands passed; temporary byte-oriented topology comparator rejected generator formatting"
+      "classification": "technical commands completed; temporary comparator rejected generator formatting"
     },
     {
       "runNumber": 141,
       "runId": 30112294625,
       "conclusion": "failure",
-      "classification": "technical commands passed; temporary evidence exporter ReferenceError"
+      "classification": "technical commands completed; temporary evidence exporter ReferenceError"
     },
     {
       "runNumber": 142,
       "runId": 30112600486,
       "conclusion": "failure",
-      "classification": "technical commands passed; temporary evidence exporter ReferenceError"
+      "classification": "technical commands completed; temporary evidence exporter ReferenceError"
     },
     {
       "runNumber": 143,
@@ -92,7 +93,7 @@
       "runNumber": 144,
       "runId": 30113268229,
       "conclusion": "success",
-      "classification": "official generated route tree persisted by GitHub Actions"
+      "classification": "official generated route tree persisted"
     },
     {
       "runNumber": 147,
@@ -105,36 +106,35 @@
       "runId": 30114310459,
       "conclusion": "success",
       "classification": "definitive implementation and evidence set verified"
+    },
+    {
+      "runNumber": 154,
+      "runId": 30114663053,
+      "conclusion": "success",
+      "classification": "definitive pull-request head verified"
     }
   ],
-  "verification": {
-    "typecheckCommand": "bun run typecheck",
-    "typecheckResult": "success",
-    "typecheckExitCode": 0,
-    "buildCommand": "bun run build",
-    "buildResult": "success",
-    "buildExitCode": 0,
-    "buildDevCommand": "bun run build:dev",
-    "buildDevResult": "success",
-    "buildDevExitCode": 0,
-    "releaseGateCommand": "bun run verify:release",
-    "releaseGateResult": "success",
-    "finalEvidenceReleaseGateRunId": 30114310459,
-    "cycleCompositeDigestStable": true
-  },
-  "regressionResults": {
-    "leadAuthorization": { "passed": 22, "failed": 0 },
-    "leadRuntimeOperations": { "passed": 15, "failed": 0 },
-    "leadStructural": { "passed": 27, "failed": 0 },
-    "leadSqlStructural": { "passed": 17, "failed": 0 },
-    "publicTenantContextSpecsPassed": true,
-    "publicTenantReadBindingSpecsPassed": true,
-    "publicSettingsCampaignRecoverySpecsPassed": true,
-    "publicPageRuntimeSpecsPassed": true,
-    "publicTenantWriterAuthoritySpecsPassed": true,
-    "publicTenantWriterSqlStructuralSpecsPassed": true,
-    "publicSurfaceSecuritySpecsPassed": true,
-    "publicSurfaceTenantReadSpecsPassed": true
+  "postMergeReleaseGate": {
+    "runId": 30116233612,
+    "event": "push",
+    "branch": "main",
+    "headSha": "91d63bc5ed18540fc122301150a996ed0fe51021",
+    "status": "completed",
+    "conclusion": "success",
+    "jobId": 89557473837,
+    "jobName": "Typecheck, build and deterministic route generation",
+    "steps": {
+      "checkout": "success",
+      "setupBun": "success",
+      "frozenInstall": "success",
+      "verifyRelease": "success",
+      "evidenceUpload": "success"
+    },
+    "artifact": {
+      "id": 8605584800,
+      "name": "release-gate-91d63bc5ed18540fc122301150a996ed0fe51021",
+      "digest": "sha256:d14390afbcadf25041d14dd29bb25611a37b48926e38d59d38807da5ba380bb3"
+    }
   },
   "protectedDiffs": {
     "packageJson": 0,
@@ -151,12 +151,12 @@
     "unexpectedFileChangeCount": 0
   },
   "authorization": {
-    "hri01Accepted": false,
-    "mergeExecuted": false,
-    "mainChanged": false,
+    "hri01Accepted": true,
+    "implementationMerged": true,
     "liveExecutionAuthorized": false,
     "controlledHomologationAuthorized": false,
     "productionAuthorized": false,
+    "lovableExecutionAuthorized": false,
     "nextStageAuthorized": "none"
   }
 }

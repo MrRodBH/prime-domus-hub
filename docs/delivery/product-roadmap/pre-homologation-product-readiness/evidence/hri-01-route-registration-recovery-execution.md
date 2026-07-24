@@ -2,20 +2,23 @@
 
 ## Evidence status
 
-**Implementation evidence complete — Ready for Direct External Audit**
+**Accepted — Implementation merged and post-merge Release Gate successful**
 
 ```text
 REPOSITORY = MrRodBH/prime-domus-hub
+FINAL_EXTERNAL_AUDIT = Accepted
+HRI01_STATE = Accepted
+
 MAIN_BASELINE = 74058f0a1ff64de4e9ad498eb14a12512f9180aa
-BRANCH = agent/hri-01-generated-register-recovery
-AUDITED_IMPLEMENTATION_HEAD = 7b3c12005a154f4f24d4d8d3ee562c83ff6fe836
-EVIDENCE_GATE_HEAD = b1e02298ce811dfe28610f0f7270404ec9ddf9fa
-PR_NUMBER = 53
-MERGE_EXECUTED = false
-MAIN_CHANGED = false
+HRI01_IMPLEMENTATION_BRANCH = agent/hri-01-generated-register-recovery
+HRI01_IMPLEMENTATION_PR = 53
+HRI01_IMPLEMENTATION_HEAD = a390f842db3f6f2714f3a564b70cedfa2c78248d
+HRI01_IMPLEMENTATION_MERGED = true
+HRI01_IMPLEMENTATION_MERGE_METHOD = squash
+HRI01_IMPLEMENTATION_MERGE_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
 ```
 
-## 1. Execution authority
+## 1. Execution authority and budget
 
 ```text
 EXECUTOR = ChatGPT GitHub-native
@@ -23,9 +26,7 @@ LOVABLE_EXECUTION_AUTHORIZED = false
 GNR01_STATE = Accepted
 HRC01_STATE = Rejected — Terminal
 HRR01_STATE = Accepted
-```
 
-```text
 HRI01_PRINCIPAL_PROMPT_CONSUMED = true
 HRI01_CORRECTIVE_PROMPT_CONSUMED = false
 HRI01_REMAINING_PROMPT_BUDGET = 1/2
@@ -47,16 +48,14 @@ VERIFY_RELEASE_FINAL_BLOB_SHA = 042bd63c0c13a549f9c80aa74ba38d516f76cfb6
 RELEASE_GATE_WORKFLOW_FINAL_BLOB_SHA = 52957dfb34f8ecb4925c9e6d5b5d456c41ef4709
 ```
 
-The verifier and workflow final blobs match the audited `main` baseline.
-`package.json`, `bun.lock`, Vite configuration, TypeScript configuration,
-router and start entry remain unchanged.
+The verifier and workflow final blobs match the audited baseline. Package,
+lockfile, Vite configuration, TypeScript configuration, router and start entry
+remain unchanged.
 
 ## 3. Official generator output
 
-The route tree was not manually edited. GitHub Actions checked out the audited
-PR head, executed the canonical Release Gate and committed the working-tree
-output only after verifying that the sole generated diff was
-`src/routeTree.gen.ts`.
+The route tree was not manually edited. GitHub Actions executed the canonical
+generation path and persisted only the official generator output.
 
 ```text
 ROUTE_TREE_GENERATED_BY_OFFICIAL_GENERATOR = true
@@ -67,6 +66,7 @@ GENERATED_REGISTER_AUTHORITY_COUNT = 1
 AUTHORED_REGISTER_DECLARATION_COUNT = 0
 GENERATED_FILE_REWRITER_COUNT = 0
 STRATEGY_B_ALLOWED = false
+FUNCTIONAL_ROUTE_TOPOLOGY_DIFF = 0
 ```
 
 Effective generated augmentation:
@@ -83,103 +83,74 @@ declare module '@tanstack/react-start' {
 }
 ```
 
-## 4. Deterministic cycles
-
-The canonical verifier executed:
+## 4. Deterministic verification
 
 ```text
 CYCLE_A_COMMAND = bun run build:dev
 CYCLE_B_COMMAND = bun run build
 CYCLE_C_COMMAND = bun run build:dev
-```
 
-Each cycle produced:
-
-```text
 CYCLE_A_ROUTE_TREE_SHA256 = 65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745
 CYCLE_B_ROUTE_TREE_SHA256 = 65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745
 CYCLE_C_ROUTE_TREE_SHA256 = 65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745
 GENERATION_CYCLES_DETERMINISTIC = true
-```
-
-The generator-produced functional topology digest observed during extraction
-was stable across all three cycles:
-
-```text
 GENERATED_FUNCTIONAL_ROUTE_TOPOLOGY_SHA256 = 650b317417e8dccb9e31da2c2461a0b30e6378cb0e6d85da2ca63263ee4130b3
 ```
 
-The final GitHub diff against the baseline shows only ten additions at the end
-of `src/routeTree.gen.ts`, consisting exclusively of the Register augmentation.
-There are no removals or changes to route declarations, paths, identifiers,
-parents or child mappings.
-
-```text
-FUNCTIONAL_ROUTE_TOPOLOGY_DIFF = 0
-```
-
-## 5. Release Gate runs
+## 5. Implementation Release Gate chronology
 
 | Run | ID | Conclusion | Factual classification |
 |---|---:|---|---|
-| 140 | 30111997762 | failure | all technical commands completed; temporary byte-oriented topology comparator rejected generator formatting |
-| 141 | 30112294625 | failure | all technical commands completed; temporary evidence exporter raised `ReferenceError` |
-| 142 | 30112600486 | failure | all technical commands completed; temporary evidence exporter raised `ReferenceError` |
+| 140 | 30111997762 | failure | technical commands completed; temporary comparator rejected generator formatting |
+| 141 | 30112294625 | failure | technical commands completed; temporary evidence exporter raised `ReferenceError` |
+| 142 | 30112600486 | failure | technical commands completed; temporary evidence exporter raised `ReferenceError` |
 | 143 | 30112896967 | success | official generator output and hashes extracted |
-| 144 | 30113268229 | success | official generated route tree persisted by GitHub Actions |
-| 147 | 30113666761 | success | canonical verifier and workflow restored; complete Release Gate passed |
-| 151 | 30114310459 | success | definitive implementation and evidence set passed the Release Gate |
+| 144 | 30113268229 | success | official generated route tree persisted |
+| 147 | 30113666761 | success | canonical verifier and workflow restored |
+| 151 | 30114310459 | success | definitive implementation and evidence set verified |
+| 154 | 30114663053 | success | definitive PR head verified |
 
-Runs 140–142 are preserved as failed experimental evidence-helper runs. They do
-not establish acceptance, but their logs show that the three builds,
-typechecks, route generation and repository specifications completed before the
-helper-specific failure.
+Runs 140–142 remain failed experimental evidence-helper runs and do not
+establish acceptance. The definitive PR-head gate completed successfully before
+the protected merge.
 
-## 6. Successful verification result
+## 6. Protected merge and post-merge gate
 
 ```text
-TYPECHECK_COMMAND = bun run typecheck
-TYPECHECK_RESULT = success
-BUILD_COMMAND = bun run build
-BUILD_RESULT = success
-BUILD_DEV_COMMAND = bun run build:dev
-BUILD_DEV_RESULT = success
-RELEASE_GATE_COMMAND = bun run verify:release
-RELEASE_GATE_RESULT = success
-FINAL_EVIDENCE_RELEASE_GATE_RUN_ID = 30114310459
+HRI01_IMPLEMENTATION_PR = 53
+HRI01_IMPLEMENTATION_HEAD = a390f842db3f6f2714f3a564b70cedfa2c78248d
+HRI01_IMPLEMENTATION_MERGED = true
+HRI01_IMPLEMENTATION_MERGE_METHOD = squash
+HRI01_IMPLEMENTATION_MERGE_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
+
+HRI01_POST_MERGE_RELEASE_GATE_RUN_ID = 30116233612
+HRI01_POST_MERGE_RELEASE_GATE_EVENT = push
+HRI01_POST_MERGE_RELEASE_GATE_BRANCH = main
+HRI01_POST_MERGE_RELEASE_GATE_HEAD_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
+HRI01_POST_MERGE_RELEASE_GATE_STATUS = completed
+HRI01_POST_MERGE_RELEASE_GATE_RESULT = success
+HRI01_POST_MERGE_RELEASE_GATE_JOB_ID = 89557473837
+
+CHECKOUT = success
+SETUP_BUN = success
+FROZEN_INSTALL = success
+VERIFY_RELEASE = success
+EVIDENCE_UPLOAD = success
 ```
 
-The successful canonical run reported:
+The post-merge run checked out the exact `main` SHA. Its artifact is:
 
 ```text
-TYPECHECK_EXIT_CODE = 0
-BUILD_EXIT_CODE = 0
-BUILD_DEV_EXIT_CODE = 0
-TANSTACK_REGISTER_AUTHORITY_COUNT = 1
-GENERATED_ROUTE_TREE_MANUAL_EDIT = false
-CYCLE_COMPOSITE_DIGEST_STABLE = true
-```
-
-Additional regression evidence:
-
-```text
-LEAD_AUTHORIZATION = passed 22 / failed 0
-LEAD_RUNTIME_OPERATIONS = passed 15 / failed 0
-LEAD_STRUCTURAL = passed 27 / failed 0
-LEAD_SQL_STRUCTURAL = passed 17 / failed 0
-PUBLIC_TENANT_CONTEXT_SPECS = passed
-PUBLIC_TENANT_READ_BINDING_SPECS = passed
-PUBLIC_SETTINGS_CAMPAIGN_RECOVERY_SPECS = passed
-PUBLIC_PAGE_RUNTIME_SPECS = passed
-PUBLIC_TENANT_WRITER_AUTHORITY_SPECS = passed
-PUBLIC_TENANT_WRITER_SQL_STRUCTURAL_SPECS = passed
-PUBLIC_SURFACE_SECURITY_SPECS = passed
-PUBLIC_SURFACE_TENANT_READ_SPECS = passed
+ARTIFACT_ID = 8605584800
+ARTIFACT_NAME = release-gate-91d63bc5ed18540fc122301150a996ed0fe51021
+ARTIFACT_DIGEST = sha256:d14390afbcadf25041d14dd29bb25611a37b48926e38d59d38807da5ba380bb3
 ```
 
 ## 7. Final scope
 
 ```text
+IMPLEMENTATION_FILES_CHANGED = 5
+IMPLEMENTATION_FILES_OUTSIDE_ALLOWED = 0
 PACKAGE_JSON_DIFF = 0
 BUN_LOCK_DIFF = 0
 VITE_CONFIG_DIFF = 0
@@ -194,31 +165,19 @@ DATABASE_DIFF = 0
 UNEXPECTED_FILE_CHANGE_COUNT = 0
 ```
 
-Definitive files:
+## 8. Final disposition
 
 ```text
-docs/architecture/impact-analysis/HRI-01-homologation-readiness-implementation-impact-analysis.md
-docs/architecture/governance/HRI-01-roadmap-reconciliation.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/hri-01-route-registration-recovery-execution.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/hri-01-route-registration-recovery-execution.json
-src/routeTree.gen.ts
-```
+HRI01_STATE = Accepted
+HRI01_ACCEPTED = true
+HRI01_IMPLEMENTATION_MERGED = true
 
-## 8. Disposition
-
-```text
-HRI01_STATE = Implementation Complete — Ready for Direct External Audit
-HRI01_ACCEPTED = false
-HRI01_PRINCIPAL_PROMPT_CONSUMED = true
-HRI01_CORRECTIVE_PROMPT_CONSUMED = false
-HRI01_REMAINING_PROMPT_BUDGET = 1/2
-MERGE_EXECUTED = false
-MAIN_CHANGED = false
 LIVE_EXECUTION_AUTHORIZED = false
 CONTROLLED_HOMOLOGATION_AUTHORIZED = false
 PRODUCTION_AUTHORIZED = false
 LOVABLE_EXECUTION_AUTHORIZED = false
+NEXT_STAGE_AUTHORIZED = none
 ```
 
-The branch stops for direct external GitHub audit. No merge or successor stage
-is authorized by this evidence.
+This evidence closes the implementation merge facts only. It does not authorize
+controlled homologation, production, LSV-03, VSP-01 or any successor stage.
