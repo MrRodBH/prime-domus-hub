@@ -93,7 +93,7 @@ const generatedFunctionalTopologySha256 = digest(generatedFunctionalTopology);
 
 console.log(JSON.stringify({
   label: "hri-01-generated-route-tree-evidence",
-  committedFunctionalRouteTopologySha256,
+  committedFunctionalRouteTopologySha256: committedFunctionalTopologySha256,
   generatedFunctionalRouteTopologySha256,
   functionalTopologyByteEqual: generatedFunctionalTopology === committedFunctionalTopology,
   generatedRouteTreeSha256: digest(generatedRouteTree),
