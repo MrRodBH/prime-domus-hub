@@ -110,7 +110,10 @@ HRR01_PRINCIPAL_PROMPT_CONSUMED = true
 HRR01_CORRECTIVE_PROMPT_CONSUMED = false
 HRR01_REMAINING_PROMPT_BUDGET = 1/2
 HRR01_RUNTIME_CHANGED = false
-HRR01_GENERATION_EXECUTED = false
+HRR01_MANUAL_GENERATION_EXECUTED = false
+HRR01_MANUAL_TYPECHECK_EXECUTED = false
+HRR01_MANUAL_BUILD_EXECUTED = false
+AUTOMATIC_RELEASE_GATE_TRIGGERED_BY_PR = true
 HRR01_FILES_OUTSIDE_ALLOWED = 0
 HRR01_PLANNING_DIFF_FILES = 5
 HRR01_PLANNING_CONTENT_MATCHED_BRANCH = true
@@ -122,6 +125,11 @@ PR #50 was merged with expected-head protection against
 `21fe811ec96c5da777ae9dc3090fbf551e8c4ae0`. The merge introduced only the five
 authorized documentary paths. No runtime, generated route, Vite configuration,
 package, lockfile, workflow or Supabase path changed.
+
+No build, typecheck or route-generation command was invoked manually by the
+executor. Opening the protected PRs triggered the repository's existing
+`Release Gate` workflow automatically. That CI execution is recorded as an
+automatic repository control and is not a product-runtime implementation.
 
 ## 6. Successor control
 
