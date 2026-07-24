@@ -29,7 +29,21 @@ It supersedes any prior current-state statement that still describes HRC-01 as
 `Planning — Ready for Direct External Audit`. Those statements remain
 historical planning input only.
 
-It does not replace accepted architecture decisions, especially GNR-01.
+The superseded current-state blocks include, specifically:
+
+```text
+docs/architecture/governance/DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md
+  superseded scope: HRC-01/HVP-01 current-state header and next-action fields only
+  preserved scope: accepted predecessor history and evidence references
+
+docs/architecture/impact-analysis/HRC-01-homologation-readiness-closure-impact-analysis.md
+  superseded scope: current status and successor authorization claims
+  preserved scope: planning analysis and historical inventory only
+```
+
+No text in those historical blocks may override the terminal HRC-01 decision
+or authorize HRI-01. This document does not replace accepted architecture
+decisions, especially GNR-01.
 
 ## 2. Executable chain
 
