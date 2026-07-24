@@ -1,12 +1,45 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — reconciliado por RPD-01  
+**Status:** Ratificado — RPD-01 Accepted; reconciliação pós-merge pronta para auditoria externa  
 **Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
-**Baseline do rebaseline:** `7d0ea2869e0c15887637063a85a833ccff0721c4`  
-**Etapa atual:** `RPD-01 — Roadmap Product Delivery Rebaseline`  
-**Executor desta etapa:** ChatGPT GitHub-native  
+**Baseline anterior:** `7d0ea2869e0c15887637063a85a833ccff0721c4`  
+**Main após merge do planejamento:** `1acf99e272e448e834b52a0018e3d34b79f0a133`  
+**Executor:** ChatGPT GitHub-native
 
-## 1. Regras permanentes
+## 1. Estado vinculante da RPD-01
+
+```text
+STAGE_ID = RPD-01
+FINAL_EXTERNAL_AUDIT = Accepted
+RPD01_STATE = Accepted
+RPD01_ACCEPTED = true
+
+RPD01_PLANNING_PR = 55
+RPD01_PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
+RPD01_PLANNING_MERGED = true
+RPD01_PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+
+RPD01_RECONCILIATION_STATE = Ready for Direct External Audit
+RPD01_RECONCILIATION_MERGED = false
+```
+
+Release Gates:
+
+```text
+RPD01_PLANNING_RELEASE_GATE_RUN_ID = 30132995455
+RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
+RPD01_PLANNING_RELEASE_GATE_RESULT = success
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
+
+POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
+POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_MERGE_RELEASE_GATE_RESULT = success
+POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
+POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
+```
+
+## 2. Regras permanentes
 
 1. Architecture First e Impact Analysis antes de mudança estrutural ou runtime relevante.
 2. GitHub `main` auditado é a fonte técnica final.
@@ -15,20 +48,17 @@
 5. Sem fallback implícito, tenant default, heurística, dual path ou `ORDER BY/LIMIT 1` autoritativo.
 6. Ambiguidade falha rápido e fechado.
 7. Super Admin sem impersonação explícita não acessa recurso tenant-scoped.
-8. `x-tenant-id` é somente transporte e deve ser revalidado no servidor.
+8. `x-tenant-id` é transporte e deve ser revalidado pelo servidor.
 9. Storage não confia em bucket, path ou filename enviados pelo client.
 10. Signed URL não é autorização primária.
 11. Same-Backend Homologation Cell permanece vinculante.
 12. Supabase externo não é fallback canônico.
 13. Cada etapa admite no máximo um prompt principal e um corretivo consolidado.
-14. Não criar lotes, sublotes ou identificadores decimais para contornar budget.
-15. Nenhuma etapa sucessora inicia sem predecessor terminal compatível, Execution Envelope congelado e autorização explícita.
+14. Nenhuma etapa sucessora inicia sem predecessor terminal compatível, Execution Envelope congelado e autorização explícita.
 
-## 2. Estado arquitetural aceito
+## 3. Estado arquitetural aceito
 
-### 2.1 Fases encerradas
-
-| Macro | Estado |
+| Macro / etapa | Estado |
 |---|---|
 | Fase 2 — Multi-Tenant Core | Accepted / Closed |
 | Fase 3 — Membership Evolution Model | Accepted / Closed |
@@ -41,9 +71,10 @@
 | PTW-01 | Accepted |
 | PSG-01 | Accepted with Non-Blocking Backlog / Merged |
 | HRR-01 | Accepted |
-| HRI-01 | Accepted / Closed / Implementation and reconciliation merged |
+| HRI-01 | Accepted / Closed |
+| RPD-01 | Accepted; planejamento merged; reconciliação em auditoria externa |
 
-### 2.2 Autoridade de Register
+Autoridade de Register:
 
 ```text
 CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
@@ -53,119 +84,58 @@ GENERATED_FILE_REWRITER_COUNT = 0
 STRATEGY_B_ALLOWED = false
 ```
 
-A autoridade única é o output oficial do gerador em `src/routeTree.gen.ts`.
-
-### 2.3 Etapas terminais históricas
-
-Os itens abaixo permanecem preservados como histórico e não podem ser reabertos:
+## 4. Caminho crítico executável
 
 ```text
-PR-M1
-LSO-01
-LSV-01
-LSV-02
-LSR-01
-LSR-02
-FRP-01
-HVP-01
-HRC-01
-HRI-01
+HRI-01 Accepted / Closed
+→ RPD-01 Accepted
+→ PR-M2 Planned — Blocked pending explicit authorization
+→ PR-M3 Product UX Refactor, Final Interface and Operational Readiness
+→ PR-M3 deliverable: Pre-Homologation Release Candidate Deploy
+→ TH-M1 Pre-Homologation End-to-End Product Validation and UAT
+→ TH-M2 Consolidated Remediation, Regression and Product Acceptance
+→ LSV-03 Same-Backend Controlled Security and Multi-Tenant Validation
+→ Homologação formal
+→ Produção
 ```
 
-Estados `Rejected`, `Superseded` ou históricos não recuperam autoridade executável.
+O Release Candidate Deploy é deliverable da PR-M3, não etapa autônoma. A homologação formal somente pode iniciar quando PR-M2 e PR-M3 estiverem Accepted, TH-M1 tiver relatório completo, TH-M2 estiver Accepted e LSV-03 estiver Accepted.
 
-## 3. Caminho crítico executável após RPD-01
-
-```text
-HRI-01
-Accepted / Closed
-    ↓
-RPD-01
-Roadmap Product Delivery Rebaseline
-    ↓
-PR-M2
-Tenant Product Functional Completion, Integrations,
-White Label, CMS, CRM, Super Admin Control Plane,
-Domains and Onboarding
-    ↓
-PR-M3
-Product UX Refactor, Final Interface
-and Operational Readiness
-    ↓
-PR-M3 deliverable
-Pre-Homologation Release Candidate Deploy
-    ↓
-TH-M1
-Pre-Homologation End-to-End Product Validation and UAT
-    ↓
-TH-M2
-Consolidated Remediation, Regression
-and Product Acceptance
-    ↓
-LSV-03
-Same-Backend Controlled Security
-and Multi-Tenant Validation
-    ↓
-Homologação formal
-    ↓
-Produção
-```
-
-O Release Candidate Deploy é deliverable da PR-M3, não etapa autônoma.
-
-Homologação formal somente pode iniciar quando:
-
-```text
-PR-M2 = Accepted
-PR-M3 = Accepted
-TH-M1 = completed with findings report
-TH-M2 = Accepted
-LSV-03 = Accepted
-```
-
-Produção permanece bloqueada até homologação formal aceita e decisão explícita de produção.
-
-## 4. Disposição da sequência anterior
+## 5. Disposição da sequência anterior
 
 | Etapa antiga | Disposição vigente |
 |---|---|
 | RRS-01 | Superseded by Accepted Later Authority — GNR-01/HRI-01 |
-| PTA-01 | Absorbed by accepted PTW-01/PSG-01 and remaining PR-M2 functional inventory |
-| MOC-01 | Absorbed by PR-M3 operational readiness and LSV-03 controlled validation |
+| PTA-01 | Absorbed by accepted PTW-01/PSG-01 and PR-M2 |
+| MOC-01 | Absorbed by PR-M3 and LSV-03 |
 | RHV-01 | Absorbed by LSV-03 |
-| LSV-04 | Absorbed by TH-M2 and LSV-03 according to factual scope |
-| RDA-01 | Absorbed by PR-M2 dashboard functional authority and PR-M3 final UX |
+| LSV-04 | Absorbed by TH-M2 and LSV-03 |
+| RDA-01 | Absorbed by PR-M2 and PR-M3 |
 | RC-01 | Absorbed by TH-M1 and TH-M2 |
 
-Os artefatos históricos continuam válidos para rastreabilidade, mas não formam uma cadeia executável concorrente.
+Registros históricos são preservados, mas não formam cadeia executável concorrente.
 
-## 5. PR-M2 — Tenant Product Functional Completion
+## 6. PR-M2 — ownership funcional
 
-**Estado:** Planned — blocked until RPD-01 acceptance and explicit planning authorization.
+**Estado:** Planned — Blocked pending explicit authorization.
 
-### 5.1 Ownership
+PR-M2 deverá auditar, classificar, completar e validar funcionalmente:
 
-PR-M2 é responsável por inventariar, completar e validar funcionalmente:
-
-- tenant lifecycle e onboarding;
-- usuários, memberships, roles e permissões;
+- tenant lifecycle, onboarding, usuários, memberships, roles e permissões;
 - Configuration Center;
-- domínio próprio, DNS, TXT, SSL, anti-takeover e Cloudflare;
-- white label, site público e publicação;
-- CMS, Content Workspace, page builder, templates, componentes e workflow editorial;
-- imóveis, mídia e publicação em site/portais;
+- domínios, DNS/TXT, SSL, anti-takeover e decisão Cloudflare;
+- white label, site público, publicação e rollback;
+- CMS, Content Workspace, editor, page builder, templates e workflow;
+- imóveis, mídia e publicação em nenhum, um ou vários portais;
 - Portal Connector Registry extensível;
 - Marketing and Tracking Connector Registry extensível;
-- ingestão automática de leads para o estágio inicial aceito do Kanban;
+- ingestão automática de leads no estágio inicial aceito do Kanban;
 - CRM, Kanban, funil, histórico, conversas, tarefas, relatórios e automações;
-- dashboard e relatórios tenant-scoped com autoridade funcional determinística;
-- Super Admin SaaS Control Plane funcional, separado do Tenant Admin;
-- planos, entitlements, limites e visibilidade comercial factual;
-- integrações e diagnósticos operacionais.
+- dashboards tenant-scoped com autoridade funcional determinística;
+- Super Admin SaaS Control Plane separado do Tenant Admin;
+- planos, entitlements, limites, billing visibility e diagnósticos.
 
-### 5.2 Inventários obrigatórios
-
-Antes de congelar implementação, cada domínio deve ser classificado como:
+Classificação mínima:
 
 ```text
 IMPLEMENTED_AND_VALIDATED
@@ -178,29 +148,9 @@ REQUIRES_SEPARATE_GATE
 FUTURE_COMMERCIAL_SCOPE
 ```
 
-A existência de rota, tela, tabela ou componente não comprova completude funcional.
+## 7. Extensibilidade obrigatória
 
-### 5.3 Portais e integrações
-
-O catálogo de portais não é fechado. Cada integração deve registrar, no mínimo:
-
-```text
-portal_id
-tenant_id
-portal_name
-portal_status
-integration_method
-configuration_schema
-credential_reference
-feed_or_endpoint
-mapping_profile
-publication_rules
-last_sync_status
-last_sync_at
-error_state
-```
-
-Métodos iniciais possíveis, sem limitação futura:
+Portais e métodos iniciais não constituem lista fechada:
 
 ```text
 JSON_API
@@ -212,212 +162,91 @@ MANUAL_EXPORT
 CUSTOM_ADAPTER
 ```
 
-Canais essenciais:
+Canais essenciais e extensíveis:
 
 ```text
 META_ADS = required
 GOOGLE_ADS = required
 META_PIXEL = required
+LINKEDIN_ADS = extensible
+TIKTOK_ADS = extensible
+GOOGLE_ANALYTICS = extensible
+GOOGLE_TAG_MANAGER = extensible
+FUTURE_CHANNELS = extensible
 ```
 
-O desenho deve suportar LinkedIn Ads, TikTok Ads, Google Analytics, Google Tag Manager e canais futuros.
+Leads de campanhas devem entrar automaticamente no CRM com tenant derivado no servidor, provenance, origem, campanha, anúncio, UTM, deduplicação e histórico inicial.
 
-### 5.4 CRM e ingestão de leads
-
-Leads de campanhas e integrações devem entrar automaticamente no CRM, no estágio inicial aceito do Kanban, com tenant derivado no servidor, provenance, origem, campanha, anúncio, UTM, deduplicação e histórico inicial.
-
-O CRM deve ser auditado funcionalmente para captura, deduplicação, atribuição, Kanban, funil, tarefas, agenda, visitas, propostas, notas, anexos, histórico de ações, histórico de conversas, relatórios, automações, SLA, alertas, importação, exportação e permissões.
-
-### 5.5 CMS
-
-O CMS deve possuir inventário auditado de editor universal, adapters, dispatcher, metadata-driven forms, page builder, landing pages, blocos, widgets, templates, conteúdo, mídia, preview, versionamento, agendamento, publicação, rollback, permissões, workflow e SEO.
-
-O catálogo de layouts, templates, componentes, controles editoriais e tipos de conteúdo deve ser extensível e data-driven, sem editor paralelo, runtime paralelo ou fork por tenant.
-
-### 5.6 Super Admin SaaS Control Plane
+## 8. CMS, CRM, dashboards e Super Admin
 
 ```text
-TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
-```
-
-O Control Plane deve inventariar dashboard executivo global, tenants, usuários, memberships, roles, planos, entitlements, limites, domínios, integrações, portais, campanhas, incidentes, logs, auditoria, suporte, jobs, cron, filas, webhooks e diagnósticos.
-
-Acesso tenant-scoped pelo Super Admin exige impersonação explícita, server-validated, visível e auditada.
-
-## 6. PR-M3 — Product UX Refactor, Final Interface and Operational Readiness
-
-**Estado:** Planned — blocked by PR-M2.
-
-### 6.1 Executor e colaboração
-
-```text
-LOVABLE = primary implementation platform
-UX_PRODUCT_PROFESSIONAL = active collaborator
-CHATGPT_GITHUB_AUDIT = mandatory
-```
-
-Entrada do profissional de UX/produto:
-
-```text
-preparatory_entry = final discovery and handoff of PR-M2
-primary_phase = entire PR-M3
-validation_support = TH-M1 and TH-M2
-```
-
-### 6.2 Escopo
-
-PR-M3 é responsável pela interface final de:
-
-- Tenant Admin;
-- Super Admin Control Plane;
-- CRM, Kanban, leads e funil;
-- CMS, editor, page builder, preview e publicação;
-- dashboards, KPIs, gráficos, tabelas, filtros e relatórios;
-- onboarding, Configuration Center, domínios, portais e campanhas;
-- design system, tokens, tipografia, temas, espaçamento e estados;
-- navegação, responsividade, acessibilidade, feedback visual e performance percebida.
-
-Imagens de referência fornecidas pelo Product Owner definem somente densidade informacional, composição, organização de cards, hierarquia de métricas e visibilidade operacional. Não definem paleta, tema, tipografia, identidade ou estilo final.
-
-### 6.3 Exit gate
-
-```text
-FINAL_FRONTEND_IMPLEMENTED = true
-FINAL_TENANT_DASHBOARD_IMPLEMENTED = true
-FINAL_SUPER_ADMIN_CONTROL_PLANE_UX_IMPLEMENTED = true
-FINAL_CMS_EDITOR_EXPERIENCE_IMPLEMENTED = true
-FINAL_CRM_EXPERIENCE_IMPLEMENTED = true
-CRITICAL_FLOWS_USABLE = true
-RESPONSIVE_VALIDATION_PASSED = true
-ACCESSIBILITY_CRITICALS_RESOLVED = true
-PRE_HOMOLOGATION_RELEASE_CANDIDATE_DEPLOYED = true
-TEAM_TEST_ENVIRONMENT_AVAILABLE = true
-```
-
-O deploy da PR-M3 é pré-homologação e não autoriza produção.
-
-## 7. TH-M1 — Pre-Homologation End-to-End Product Validation and UAT
-
-**Estado:** Planned — blocked by PR-M3.
-
-TH-M1 não é homologação formal. Ela executa validação interna completa por Product Owner, time interno, profissional de UX/produto e operadores autorizados.
-
-Deve testar, no mínimo:
-
-- criação, onboarding, suspensão e reativação de tenant;
-- usuários, roles, permissões e convites;
-- domínio, DNS, Cloudflare, SSL, white label, CMS e publicação;
-- CMS end-to-end, do rascunho ao rollback;
-- cadastro completo de imóvel, mídia, site e nenhum/um/vários portais;
-- dashboards e relatórios do Tenant Admin;
-- CRM, Kanban, funil, histórico, conversas, automações e relatórios;
-- Meta Ads, Google Ads, Meta Pixel, analytics, GTM, LinkedIn, TikTok, UTMs e conversões;
-- Super Admin global, tenants, planos, limites, diagnósticos, suporte, auditoria e impersonação.
-
-Resultado obrigatório:
-
-```text
-THM1_FINDINGS_REPORT = required
-THM1_PRODUCT_ACCEPTANCE = not automatic
-```
-
-## 8. TH-M2 — Consolidated Remediation, Regression and Product Acceptance
-
-**Estado:** Planned — blocked by TH-M1.
-
-TH-M2 recebe um inventário consolidado e classifica defeitos bloqueantes de backend/frontend, capacidades essenciais ausentes, falhas de autorização ou isolamento, falhas de integração, refinamentos de UX/dashboard, extensões de conector, customizações tenant, achados de CMS, CRM e Super Admin, além de backlog não bloqueante.
-
-TH-M2 executa correções bloqueantes, capacidades essenciais ausentes, regressão completa, repetição dos fluxos críticos, validação de segurança aplicável e Product Acceptance Review.
-
-## 9. LSV-03 — Same-Backend Controlled Security and Multi-Tenant Validation
-
-**Estado:** Planned — blocked by TH-M2.
-
-LSV-03 ocorre somente após aceitação funcional e visual do produto. Seu escopo é técnico e controlado:
-
-- tenant A versus tenant B;
-- sessões controladas;
-- forged headers e payloads;
-- impersonação;
-- RLS, grants e policies;
-- Storage isolation;
-- public writers e readers;
-- signed resources;
-- cron, queues, webhooks e outbound controls;
-- fixture manifest;
-- teardown;
-- residue scan;
-- protected baseline unchanged.
-
-LSV-03 não é usada para descobrir funcionalidades básicas ausentes ou defeitos comuns de UX, CRM, CMS, dashboard ou Super Admin.
-
-## 10. Product Discovery, Customization & Test Feedback Contract
-
-### 10.1 Flexibilidade obrigatória
-
-```text
-DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
-PROVIDER_CATALOG_IS_EXTENSIBLE = true
-PORTAL_CATALOG_IS_EXTENSIBLE = true
-MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
-CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
-CRM_WORKFLOW_REFINEMENT_IS_EXPECTED = true
-DASHBOARD_REFINEMENT_IS_EXPECTED = true
-TENANT_CUSTOMIZATION_IS_EXPECTED = true
 CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 CMS_COMPONENT_CATALOG_IS_EXTENSIBLE = true
 CMS_TEMPLATE_CATALOG_IS_EXTENSIBLE = true
 CMS_LAYOUT_CATALOG_IS_EXTENSIBLE = true
-CMS_CONTENT_TYPE_CATALOG_IS_EXTENSIBLE = true
 CMS_EDITOR_UX_REFINEMENT_IS_EXPECTED = true
-CMS_PUBLICATION_WORKFLOW_REFINEMENT_IS_EXPECTED = true
+
+CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CRM_WORKFLOW_REFINEMENT_IS_EXPECTED = true
+KANBAN_STAGE_CONFIGURATION_IS_EXTENSIBLE = true
+
+DASHBOARD_REFINEMENT_IS_EXPECTED = true
 SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
-SUPER_ADMIN_DASHBOARD_REFINEMENT_IS_EXPECTED = true
-SUPER_ADMIN_OPERATIONAL_WIDGETS_ARE_EXTENSIBLE = true
-SUPER_ADMIN_REPORT_CATALOG_IS_EXTENSIBLE = true
-SUPER_ADMIN_SUPPORT_TOOLS_ARE_EXTENSIBLE = true
+TENANT_CUSTOMIZATION_IS_EXPECTED = true
 ```
 
-### 10.2 Limites da flexibilidade
-
 ```text
-SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
-RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
-UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
-TENANT_SPECIFIC_CODE_FORKS = prohibited
-CLIENT_SIDE_AUTHORITY = prohibited
-PARALLEL_CMS_RUNTIME = prohibited
-DUPLICATE_CMS_EDITOR_PATH = prohibited
-SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
+TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
+SUPER_ADMIN_GLOBAL_AUTHORITY = global platform administration only
+SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
+SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
 ```
 
-Novos requisitos identificados antes de uma etapa podem entrar no Execution Envelope. Achados durante execução devem ser classificados. Defeitos bloqueantes dentro do escopo podem usar o corretivo consolidado; melhorias e extensões não podem ampliar silenciosamente a etapa. Descobertas da TH-M1 são consolidadas para TH-M2.
+Impersonação deve ser explícita, server-validated, visível, reversível e auditada.
 
-## 11. Backlogs arquiteturais preservados
+## 9. PR-M3, TH-M1, TH-M2 e LSV-03
 
-- Upload Provenance Token;
-- M3.3.2 Metadata Rewrite Batch;
-- Media Picker Return Contract Normalization;
-- Public Asset Strategy / CDN / Cache;
-- billing provider real, checkout, customer portal e webhooks comerciais reais;
-- GA-07 — `docs/architecture/DECISION_LOG.md`;
-- GA-08 — Documentation Repository Reorganization;
-- Storage Abstraction Layer;
-- Plugin Marketplace Evolution;
-- Workspace Ingestion System;
-- Observability Layer.
+PR-M3 é responsável pela interface final do Tenant Admin, Super Admin, CRM, CMS, dashboards, relatórios, onboarding, domínios, portais e campanhas. Lovable é a plataforma primária planejada; o profissional de UX/produto entra no handoff final da PR-M2, participa de toda a PR-M3 e apoia TH-M1/TH-M2.
 
-Backlogs não substituem o caminho crítico e não autorizam implementação automática.
+As imagens fornecidas pelo Product Owner são referências somente de densidade informacional, composição, organização de cards, hierarquia de métricas e visibilidade operacional. Não definem paleta, tema, tipografia, identidade ou estilo final.
 
-## 12. Estado e próxima ação
+TH-M1 é UAT interna pré-homologação e produz relatório consolidado. TH-M2 executa remediação, regressão e Product Acceptance Review. LSV-03 ocorre depois da aceitação funcional e visual e valida segurança, isolamento e Same-Backend Homologation Cell.
+
+## 10. Contrato de descoberta e testes
 
 ```text
-RPD01_STATE = Planning Complete — Ready for Direct External Audit
-RPD01_ACCEPTED = false
-RPD01_MERGE_AUTHORIZED = false
+DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
+PORTAL_CATALOG_IS_EXTENSIBLE = true
+MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
+CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+DASHBOARD_REFINEMENT_IS_EXPECTED = true
+SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+TENANT_CUSTOMIZATION_IS_EXPECTED = true
+```
+
+Proibido:
+
+```text
+SILENT_SCOPE_EXPANSION_AFTER_STAGE_START
+RETROACTIVE_DEFINITION_OF_DONE_EXPANSION
+UNBOUNDED_IMPLEMENTATION_PROMPTS
+TENANT_SPECIFIC_CODE_FORKS
+CLIENT_SIDE_AUTHORITY
+PARALLEL_CMS_RUNTIME
+DUPLICATE_CMS_EDITOR_PATH
+SUPER_ADMIN_DIRECT_TENANT_AUTHORITY
+```
+
+Descobertas da TH-M1 são consolidadas para TH-M2; itens não bloqueantes recebem owner, prioridade e backlog.
+
+## 11. Budget e autorizações
+
+```text
 RPD01_PRINCIPAL_PROMPT_CONSUMED = true
 RPD01_CORRECTIVE_PROMPT_CONSUMED = false
 RPD01_REMAINING_PROMPT_BUDGET = 1/2
+
 PRM2_PLANNING_AUTHORIZED = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM3_IMPLEMENTATION_AUTHORIZED = false
@@ -428,5 +257,3 @@ CONTROLLED_HOMOLOGATION_AUTHORIZED = false
 PRODUCTION_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
-
-Próxima ação: Release Gate e auditoria externa direta do PR de planejamento RPD-01. Nenhuma etapa posterior está autorizada por este documento.
