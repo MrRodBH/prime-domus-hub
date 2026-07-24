@@ -1,0 +1,156 @@
+{
+  "stageId": "HRI-01",
+  "stageName": "Homologation Readiness Implementation — Generated Register Authority Recovery & Deterministic Release Proof",
+  "status": "Implementation Complete — Final Release Gate Pending",
+  "repository": "MrRodBH/prime-domus-hub",
+  "executor": "ChatGPT GitHub-native",
+  "lovableExecutionAuthorized": false,
+  "baseline": {
+    "mainHead": "74058f0a1ff64de4e9ad498eb14a12512f9180aa",
+    "branch": "agent/hri-01-generated-register-recovery",
+    "auditedImplementationHead": "7b3c12005a154f4f24d4d8d3ee562c83ff6fe836",
+    "pullRequest": 53,
+    "merged": false,
+    "mainChanged": false
+  },
+  "governanceBudget": {
+    "hri01PrincipalPromptConsumed": true,
+    "hri01CorrectivePromptConsumed": false,
+    "hri01RemainingPromptBudget": "1/2",
+    "principalExecutionResumption": true,
+    "correctivePrompt": false,
+    "hrc01BudgetClassification": "historical terminal predecessor state",
+    "hrc01BudgetChangedDuringHri01": false
+  },
+  "architecture": {
+    "gnr01State": "Accepted",
+    "hrc01State": "Rejected — Terminal",
+    "hrr01State": "Accepted",
+    "canonicalRegisterStrategy": "generated route-tree augmentation",
+    "generatedRegisterAuthorityCount": 1,
+    "authoredRegisterDeclarationCount": 0,
+    "generatedFileRewriterCount": 0,
+    "strategyBAllowed": false
+  },
+  "generatorOutput": {
+    "generatedByOfficialGenerator": true,
+    "manualRouteTreeEdited": false,
+    "routeTreeBaselineBlobSha": "07e280d3d005e807e32088008991312d7c2754d0",
+    "routeTreeFinalBlobSha": "d71f9718f3bdab2865af5bfd7e7a152914b7758d",
+    "routeTreeSha256": "65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745",
+    "functionalRouteTopologyDiff": 0,
+    "generatedFunctionalRouteTopologySha256": "650b317417e8dccb9e31da2c2461a0b30e6378cb0e6d85da2ca63263ee4130b3"
+  },
+  "cycles": [
+    {
+      "id": "A",
+      "command": "bun run build:dev",
+      "routeTreeSha256": "65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745",
+      "result": "success"
+    },
+    {
+      "id": "B",
+      "command": "bun run build",
+      "routeTreeSha256": "65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745",
+      "result": "success"
+    },
+    {
+      "id": "C",
+      "command": "bun run build:dev",
+      "routeTreeSha256": "65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745",
+      "result": "success"
+    }
+  ],
+  "generationCyclesDeterministic": true,
+  "releaseGateRuns": [
+    {
+      "runNumber": 140,
+      "runId": 30111997762,
+      "conclusion": "failure",
+      "classification": "technical commands passed; temporary byte-oriented topology comparator rejected generator formatting"
+    },
+    {
+      "runNumber": 141,
+      "runId": 30112294625,
+      "conclusion": "failure",
+      "classification": "technical commands passed; temporary evidence exporter ReferenceError"
+    },
+    {
+      "runNumber": 142,
+      "runId": 30112600486,
+      "conclusion": "failure",
+      "classification": "technical commands passed; temporary evidence exporter ReferenceError"
+    },
+    {
+      "runNumber": 143,
+      "runId": 30112896967,
+      "conclusion": "success",
+      "classification": "official generator output extraction"
+    },
+    {
+      "runNumber": 144,
+      "runId": 30113268229,
+      "conclusion": "success",
+      "classification": "official generated route tree persisted by GitHub Actions"
+    },
+    {
+      "runNumber": 147,
+      "runId": 30113666761,
+      "conclusion": "success",
+      "classification": "canonical verifier and workflow restored"
+    }
+  ],
+  "verification": {
+    "typecheckCommand": "bun run typecheck",
+    "typecheckResult": "success",
+    "typecheckExitCode": 0,
+    "buildCommand": "bun run build",
+    "buildResult": "success",
+    "buildExitCode": 0,
+    "buildDevCommand": "bun run build:dev",
+    "buildDevResult": "success",
+    "buildDevExitCode": 0,
+    "releaseGateCommand": "bun run verify:release",
+    "releaseGateResult": "success",
+    "cycleCompositeDigestStable": true
+  },
+  "regressionResults": {
+    "leadAuthorization": { "passed": 22, "failed": 0 },
+    "leadRuntimeOperations": { "passed": 15, "failed": 0 },
+    "leadStructural": { "passed": 27, "failed": 0 },
+    "leadSqlStructural": { "passed": 17, "failed": 0 },
+    "publicTenantContextSpecsPassed": true,
+    "publicTenantReadBindingSpecsPassed": true,
+    "publicSettingsCampaignRecoverySpecsPassed": true,
+    "publicPageRuntimeSpecsPassed": true,
+    "publicTenantWriterAuthoritySpecsPassed": true,
+    "publicTenantWriterSqlStructuralSpecsPassed": true,
+    "publicSurfaceSecuritySpecsPassed": true,
+    "publicSurfaceTenantReadSpecsPassed": true
+  },
+  "protectedDiffs": {
+    "packageJson": 0,
+    "bunLock": 0,
+    "viteConfig": 0,
+    "tsconfig": 0,
+    "routerTsx": 0,
+    "startTs": 0,
+    "verifyRelease": 0,
+    "releaseGateWorkflow": 0,
+    "authoredDeclaration": 0,
+    "supabase": 0,
+    "database": 0
+  },
+  "authorization": {
+    "hri01Accepted": false,
+    "mergeExecuted": false,
+    "mainChanged": false,
+    "liveExecutionAuthorized": false,
+    "controlledHomologationAuthorized": false,
+    "productionAuthorized": false,
+    "nextStageAuthorized": "none"
+  },
+  "finalReleaseGate": {
+    "status": "pending after definitive evidence commit"
+  }
+}
