@@ -1,53 +1,92 @@
-# RPD-01 — Product Delivery Rebaseline Planning Submission
+# RPD-01 — Product Delivery Rebaseline Submission and Post-Merge Reconciliation Evidence
 
 ## Status
 
-**Planning Complete — Ready for Direct External Audit**
+**RPD-01 Accepted — planning merged; post-merge Release Gate successful; reconciliation ready for direct external audit**
 
 ```text
 STAGE_ID = RPD-01
-PROMPT_TYPE = principal
+PROMPT_TYPE = protected_merge_and_post_merge_reconciliation
 EXECUTOR = ChatGPT GitHub-native
-BASELINE_MAIN = 7d0ea2869e0c15887637063a85a833ccff0721c4
+FINAL_EXTERNAL_AUDIT = Accepted
+RPD01_STATE = Accepted
+RPD01_ACCEPTED = true
+RPD01_RECONCILIATION_STATE = Ready for Direct External Audit
+RPD01_RECONCILIATION_MERGED = false
 ```
 
-## 1. Baseline verification
+## 1. Baseline and planning evidence
 
 ```text
-CURRENT_MAIN_HEAD_VERIFIED = true
-CURRENT_MAIN_HEAD = 7d0ea2869e0c15887637063a85a833ccff0721c4
-MAIN_CHANGED_BEFORE_BRANCH_CREATION = false
-OPEN_RPD01_PRS_BEFORE_EXECUTION = 0
+PRE_MERGE_MAIN_HEAD = 7d0ea2869e0c15887637063a85a833ccff0721c4
+PLANNING_PR = 55
+PLANNING_BRANCH = agent/rpd-01-product-delivery-rebaseline
+PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
+PLANNING_MERGE_REF = c5e5f3470751c9aad5b01bb2d64a60dfb1d1c834
+PLANNING_MERGE_METHOD = squash
+PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_MAIN_HEAD = 1acf99e272e448e834b52a0018e3d34b79f0a133
 ```
 
-HRI-01 evidence:
+The protected merge used the exact expected planning head. The resulting `main` is one squash commit ahead of the pre-merge baseline and contains only the six authorized documentary paths.
+
+## 2. Planning Pull Request Release Gate
 
 ```text
-HRI01_STATE = Accepted
-HRI01_IMPLEMENTATION_PR = 53
-HRI01_IMPLEMENTATION_PR_MERGED = true
-HRI01_IMPLEMENTATION_MERGE_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
-HRI01_RECONCILIATION_PR = 54
-HRI01_RECONCILIATION_PR_MERGED = true
-HRI01_RECONCILIATION_MERGE_SHA = 7d0ea2869e0c15887637063a85a833ccff0721c4
-MERGE_RECONCILIATION_COMPLETE = true
+RPD01_PLANNING_RELEASE_GATE_RUN_ID = 30132995455
+RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
+RPD01_PLANNING_RELEASE_GATE_RESULT = success
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_NAME = release-gate-c5e5f3470751c9aad5b01bb2d64a60dfb1d1c834
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
 ```
 
-Final baseline Release Gate:
+## 3. Post-merge Release Gate
 
 ```text
-FINAL_PUSH_RELEASE_GATE_RUN_ID = 30126260293
-FINAL_PUSH_RELEASE_GATE_RESULT = success
-FINAL_PUSH_RELEASE_GATE_JOB_ID = 89590369120
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_ID = 8609386519
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_NAME = release-gate-7d0ea2869e0c15887637063a85a833ccff0721c4
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_DIGEST = sha256:8b3d2029fd79c24c4f39c32162b963ea78132579ccbdf6c3af00af26a1c23028
+POST_MERGE_RELEASE_GATE_RUN_URL = https://github.com/MrRodBH/prime-domus-hub/actions/runs/30134139802
+POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
+POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_MERGE_RELEASE_GATE_EVENT = push
+POST_MERGE_RELEASE_GATE_BRANCH = main
+POST_MERGE_RELEASE_GATE_HEAD_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_RELEASE_GATE_STATUS = completed
+POST_MERGE_RELEASE_GATE_RESULT = success
+POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
+POST_MERGE_RELEASE_GATE_ARTIFACT_NAME = release-gate-1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
 ```
 
-## 2. Register authority verification
+Job steps:
 
 ```text
-ROUTE_TREE_BLOB_SHA = d71f9718f3bdab2865af5bfd7e7a152914b7758d
+CHECKOUT = success
+SETUP_BUN = success
+FROZEN_INSTALL = success
+VERIFY_RELEASE_GATE = success
+UPLOAD_RELEASE_GATE_EVIDENCE = success
+COMPLETE_JOB = success
+```
+
+The checkout fetched and checked out `origin/main` at the exact merge SHA. The release artifact reported:
+
+```text
+STATUS = PASS
+TYPECHECK_EXIT_CODE = 0
+BUILD_EXIT_CODE = 0
+BUILD_DEV_EXIT_CODE = 0
+TANSTACK_REGISTER_AUTHORITY_COUNT = 1
+AUTHORED_REGISTER_DECLARATION_EXISTS = false
+GENERATED_ROUTE_TREE_MANUAL_EDIT = false
+CYCLE_COMPOSITE_DIGEST_STABLE = true
+ROUTE_TREE_SHA256 = 65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745
+```
+
+Public-surface and lead specifications also completed with zero failures.
+
+## 4. Register authority
+
+```text
 CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
 GENERATED_REGISTER_AUTHORITY_COUNT = 1
 AUTHORED_REGISTER_DECLARATION_COUNT = 0
@@ -55,49 +94,12 @@ GENERATED_FILE_REWRITER_COUNT = 0
 STRATEGY_B_ALLOWED = false
 ```
 
-`src/routeTree.gen.ts` ends with the generated TanStack Start `Register` augmentation. `src/tanstack-start-register.d.ts` is absent. `vite.config.ts` states that no authored declaration file or generated-file rewriting plugin is permitted.
-
-## 3. Branch
-
-```text
-BRANCH = agent/rpd-01-product-delivery-rebaseline
-BRANCH_BASE = 7d0ea2869e0c15887637063a85a833ccff0721c4
-BRANCH_CREATED_FROM_EXACT_BASE = true
-BRANCH_IS_DESCENDANT_OF_BASE = true
-```
-
-## 4. Files changed
-
-Exactly six documentary paths are authorized and changed:
-
-```text
-docs/architecture/ROADMAP_ARCHITECTURAL.md
-docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md
-docs/architecture/governance/DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md
-docs/architecture/governance/RPD-01-product-delivery-rebaseline.md
-docs/architecture/impact-analysis/RPD-01-roadmap-product-delivery-rebaseline-impact-analysis.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/rpd-01-product-delivery-rebaseline-submission.md
-```
-
-```text
-FILES_CHANGED = 6
-FILES_OUTSIDE_ALLOWED = 0
-```
-
-## 5. Roadmap result
-
-```text
-STALE_EXECUTABLE_SEQUENCE_REMOVED = true
-HISTORICAL_RECORDS_PRESERVED = true
-CURRENT_ROADMAP_AUTHORITY_UNIQUE = true
-```
-
-Reconciled sequence:
+## 5. Reconciled Product Delivery sequence
 
 ```text
 HRI-01 Accepted / Closed
-→ RPD-01 Product Delivery Rebaseline
-→ PR-M2 Functional Completion
+→ RPD-01 Accepted
+→ PR-M2 Planned — Blocked pending explicit authorization
 → PR-M3 Final Interface and Operational Readiness
 → Pre-Homologation Release Candidate Deploy
 → TH-M1 Internal End-to-End UAT
@@ -107,7 +109,9 @@ HRI-01 Accepted / Closed
 → Production
 ```
 
-Stale-stage dispositions:
+The Release Candidate Deploy remains a PR-M3 deliverable. TH-M1 is internal UAT, not formal homologation. LSV-03 remains after TH-M2 acceptance.
+
+## 6. Historical-stage disposition
 
 ```text
 RRS-01 = Superseded by Accepted Later Authority
@@ -119,15 +123,9 @@ RDA-01 = Absorbed by PR-M2 and PR-M3
 RC-01 = Absorbed by TH-M1 and TH-M2
 ```
 
-## 6. Ownership reconciliation
+Historical records remain preserved without reopening or automatic transfer of budget, deliverables or authority.
 
-```text
-PRM2_SCOPE_RECONCILED = true
-PRM3_SCOPE_RECONCILED = true
-THM1_SCOPE_RECONCILED = true
-THM2_SCOPE_RECONCILED = true
-LSV03_POSITION_RECONCILED = true
-```
+## 7. Ownership result
 
 ```text
 PRM2_TENANT_FUNCTIONAL_OWNERSHIP = true
@@ -135,15 +133,18 @@ PRM2_CMS_FUNCTIONAL_OWNERSHIP = true
 PRM2_CRM_FUNCTIONAL_OWNERSHIP = true
 PRM2_SUPER_ADMIN_FUNCTIONAL_OWNERSHIP = true
 PRM2_INTEGRATION_FUNCTIONAL_OWNERSHIP = true
+
 PRM3_TENANT_FINAL_UX_OWNERSHIP = true
 PRM3_CMS_FINAL_UX_OWNERSHIP = true
 PRM3_CRM_FINAL_UX_OWNERSHIP = true
 PRM3_SUPER_ADMIN_FINAL_UX_OWNERSHIP = true
+
 THM1_TENANT_E2E_VALIDATION_REQUIRED = true
 THM1_CMS_E2E_VALIDATION_REQUIRED = true
 THM1_CRM_E2E_VALIDATION_REQUIRED = true
 THM1_SUPER_ADMIN_E2E_VALIDATION_REQUIRED = true
 THM1_INTEGRATION_E2E_VALIDATION_REQUIRED = true
+
 THM2_TENANT_REMEDIATION_OWNERSHIP = true
 THM2_CMS_REMEDIATION_OWNERSHIP = true
 THM2_CRM_REMEDIATION_OWNERSHIP = true
@@ -151,7 +152,7 @@ THM2_SUPER_ADMIN_REMEDIATION_OWNERSHIP = true
 THM2_INTEGRATION_REMEDIATION_OWNERSHIP = true
 ```
 
-## 7. Extensibility and discovery result
+## 8. Extensibility and discovery result
 
 ```text
 PORTAL_CONNECTOR_EXTENSIBILITY_RECORDED = true
@@ -187,7 +188,7 @@ MANUAL_EXPORT
 CUSTOM_ADAPTER
 ```
 
-Marketing essentials and extension points:
+Marketing contract:
 
 ```text
 META_ADS = required
@@ -200,7 +201,7 @@ GOOGLE_TAG_MANAGER = extensible
 FUTURE_CHANNELS = extensible
 ```
 
-## 8. Super Admin boundary
+## 9. Super Admin boundary
 
 ```text
 TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
@@ -209,24 +210,17 @@ SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
 SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
 IMPERSONATION_MUST_BE_SERVER_VALIDATED = true
 IMPERSONATION_MUST_BE_VISIBLE = true
+IMPERSONATION_MUST_BE_REVERSIBLE = true
 IMPERSONATION_MUST_BE_AUDITED = true
 ```
 
-## 9. UX collaboration and dashboard references
-
-```text
-UX_PROFESSIONAL_POSITION_RECORDED = true
-LOVABLE_PRIMARY_PHASE_RECORDED = true
-RELEASE_CANDIDATE_DEPLOY_POSITION_RECORDED = true
-```
-
-The UX/product professional is planned for final PR-M2 handoff, all of PR-M3, and TH-M1/TH-M2 support.
-
-Dashboard reference images are recorded only as examples of information density, composition, card organization, metric hierarchy and operational visibility. They are not color-palette or brand authority.
-
 ## 10. Scope integrity
 
+Exactly the six authorized documents are modified in the reconciliation branch.
+
 ```text
+FILES_CHANGED = 6
+FILES_OUTSIDE_ALLOWED = 0
 RUNTIME_FILES_CHANGED = 0
 FRONTEND_FILES_CHANGED = 0
 CMS_RUNTIME_FILES_CHANGED = 0
@@ -243,31 +237,13 @@ LOVABLE_EXECUTED = false
 CODEX_EXECUTED = false
 ```
 
-## 11. Pull-request Release Gate
-
-```text
-RELEASE_GATE_RUN_ID = pending
-RELEASE_GATE_RESULT = pending
-RELEASE_GATE_ARTIFACT_ID = pending
-RELEASE_GATE_ARTIFACT_DIGEST = pending
-```
-
-The final PR HEAD must pass the canonical Release Gate. This document does not declare a pending run successful. Direct external audit remains mandatory after CI completion.
-
-## 12. Budget
+## 11. Budget and authorization
 
 ```text
 RPD01_PRINCIPAL_PROMPT_CONSUMED = true
 RPD01_CORRECTIVE_PROMPT_CONSUMED = false
 RPD01_REMAINING_PROMPT_BUDGET = 1/2
-```
 
-## 13. Submission state
-
-```text
-RPD01_STATE = Planning Complete — Ready for Direct External Audit
-RPD01_ACCEPTED = false
-RPD01_MERGE_AUTHORIZED = false
 PRM2_PLANNING_AUTHORIZED = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM3_IMPLEMENTATION_AUTHORIZED = false
@@ -279,4 +255,4 @@ PRODUCTION_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
 
-Stop for direct external GitHub audit. Do not merge and do not start any successor stage.
+Stop for direct external GitHub audit. Do not merge the reconciliation PR and do not start any successor stage.
