@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted — planning merged; post-merge Release Gate successful; documentary reconciliation ready for direct external audit**
+**Accepted — corrective reconciliation complete; ready for final direct external audit**
 
 ```text
 STAGE_ID = RPD-01
@@ -12,13 +12,15 @@ FINAL_EXTERNAL_AUDIT = Accepted
 RPD01_STATE = Accepted
 RPD01_ACCEPTED = true
 IMPLEMENTATION_CHANGES = false
+RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
+RPD01_RECONCILIATION_MERGED = false
 ```
 
 ## 1. Problem statement
 
-The repository contained historical execution sequences created before the accepted GNR-01/HRI-01 recovery chain. Those sequences placed technical validation before product functional completion, final UX, internal end-to-end validation and consolidated remediation.
+Historical execution sequences placed technical validation before product functional completion, final UX, internal end-to-end validation and consolidated remediation. RPD-01 removes stale executable authority, preserves history and establishes one Product Delivery path.
 
-That ordering no longer represented the Product Owner's delivery decision. RPD-01 removed stale executable authority, preserved historical evidence and established one current Product Delivery path.
+The post-merge reconciliation initially compressed accepted requirements and removed audit-critical details. The single corrective restores those requirements without changing accepted state, evidence, merge SHA, sequencing or authorization boundaries.
 
 ## 2. Accepted decision
 
@@ -26,11 +28,11 @@ That ordering no longer represented the Product Owner's delivery decision. RPD-0
 HRI-01 Accepted / Closed
 → RPD-01 Accepted
 → PR-M2 Planned — Blocked pending explicit authorization
-→ PR-M3 Final Interface and Operational Readiness
-→ Pre-Homologation Release Candidate Deploy
-→ TH-M1 Internal End-to-End UAT
-→ TH-M2 Consolidated Remediation and Product Acceptance
-→ LSV-03 Controlled Security and Multi-Tenant Validation
+→ PR-M3 Product UX Refactor, Final Interface and Operational Readiness
+→ PR-M3 deliverable: Pre-Homologation Release Candidate Deploy
+→ TH-M1 Pre-Homologation End-to-End Product Validation and UAT
+→ TH-M2 Consolidated Remediation, Regression and Product Acceptance
+→ LSV-03 Same-Backend Controlled Security and Multi-Tenant Validation
 → Formal Homologation
 → Production
 ```
@@ -43,7 +45,6 @@ Formal homologation starts only after PR-M2 and PR-M3 are Accepted, TH-M1 has pr
 BASELINE_MAIN = 7d0ea2869e0c15887637063a85a833ccff0721c4
 RPD01_PLANNING_PR = 55
 RPD01_PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
-
 RPD01_PLANNING_RELEASE_GATE_RUN_ID = 30132995455
 RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
 RPD01_PLANNING_RELEASE_GATE_RESULT = success
@@ -56,28 +57,29 @@ RPD01_PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
 
 POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
 POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_MERGE_RELEASE_GATE_EVENT = push
+POST_MERGE_RELEASE_GATE_BRANCH = main
+POST_MERGE_RELEASE_GATE_HEAD_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
 POST_MERGE_RELEASE_GATE_RESULT = success
 POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
 POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
 ```
 
-The post-merge Release Gate checked out `main` at the exact merge SHA and produced final status `PASS` with successful development and production builds, typecheck, deterministic route generation and release evidence upload.
-
 ## 4. Permanent invariants
 
 RPD-01 does not alter:
 
-- server as sole tenant authority;
-- client/header/path non-authority;
+- server as sole tenant, authorization and commercial authority;
+- client, header and path non-authority;
 - fail-fast and fail-closed behavior;
 - explicit cardinality;
 - Super Admin tenant access only through explicit server-validated impersonation;
 - RLS, grants and Storage isolation;
-- prohibition on tenant default, fallback, dual path or heuristic resolution;
+- prohibition on tenant default, fallback, dual path and heuristic resolution;
 - Signed URL not being primary authorization;
 - Same-Backend Homologation Cell;
 - prohibition on external Supabase as canonical fallback;
-- accepted generated `Register` authority.
+- accepted generated Register authority.
 
 ```text
 CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
@@ -89,16 +91,7 @@ FUNCTIONAL_ROUTE_TOPOLOGY_DIFF = 0
 
 ## 5. Scope impact
 
-RPD-01 changed documentation only:
-
-1. `ROADMAP_ARCHITECTURAL.md`;
-2. `FINITE_ROADMAP_EXECUTION_MAP.md`;
-3. `DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md`;
-4. the RPD-01 governance record;
-5. this Impact Analysis;
-6. the planning submission evidence.
-
-No runtime, frontend, CMS, CRM, Super Admin, dependency, workflow, database, Auth, Storage or deployment change was authorized or executed.
+Exactly six documentary paths are changed. No runtime, frontend, CMS runtime, CRM runtime, Super Admin runtime, dependency, workflow, database, Auth, Storage, deployment or live-test change is authorized or executed.
 
 ## 6. Historical-stage impact
 
@@ -112,27 +105,11 @@ RDA-01 = Absorbed by PR-M2 and PR-M3
 RC-01 = Absorbed by TH-M1 and TH-M2
 ```
 
-No historical record is deleted. Rejected and Superseded stages remain terminal and cannot transfer authority, budget or deliverables automatically.
+No historical record is deleted or reactivated.
 
 ## 7. PR-M2 impact
 
-PR-M2 becomes the single functional-completion macro before final UX. Its future planning gate must audit and classify:
-
-- tenant creation, lifecycle and onboarding;
-- users, memberships, roles, permissions and invitation flow;
-- Configuration Center;
-- domains, Cloudflare operating model, DNS/TXT, SSL and anti-takeover;
-- white label, public site, CMS and publication;
-- properties, media and portal publication;
-- portal connectors and their mapping/diagnostics;
-- marketing, tracking and attribution connectors;
-- automatic campaign-lead ingestion into CRM/Kanban;
-- CRM, Kanban, funnel, tasks, calendar, histories, reports and automations;
-- tenant dashboard formulas, permissions, periods, timezone and drill-down;
-- Super Admin SaaS Control Plane;
-- plans, entitlements, limits, billing visibility and diagnostics.
-
-Classification contract:
+PR-M2 is the single functional-completion macro before final UX. Every capability is classified by direct repository audit as:
 
 ```text
 IMPLEMENTED_AND_VALIDATED
@@ -145,11 +122,38 @@ REQUIRES_SEPARATE_GATE
 FUTURE_COMMERCIAL_SCOPE
 ```
 
-### 7.1 Portal connectors
+### 7.1 Tenant, onboarding and domains
 
-The portal catalog is open-ended and must not depend on a fixed enum or tenant-specific fork.
+The future envelope covers tenant lifecycle, onboarding, users, memberships, roles, permissions, invitations, Configuration Center, white label, public site and publication.
 
-Initial methods:
+```text
+CLOUDFLARE_INTEGRATION_MODEL =
+MANUAL_ASSISTED
+OR API_AUTOMATED
+OR HYBRID
+```
+
+The future decision preserves DNS, TXT verification, SSL, anti-takeover, canonical host, redirects, publication, rollback, status and diagnostics. No option is selected by RPD-01.
+
+### 7.2 Portal Connector Registry
+
+The catalog is open-ended and does not depend on a fixed enum or tenant code fork.
+
+```text
+portal_id
+tenant_id
+portal_name
+portal_status
+integration_method
+configuration_schema
+credential_reference
+feed_or_endpoint
+mapping_profile
+publication_rules
+last_sync_status
+last_sync_at
+error_state
+```
 
 ```text
 JSON_API
@@ -161,9 +165,9 @@ MANUAL_EXPORT
 CUSTOM_ADAPTER
 ```
 
-Each connector requires versioned configuration, secure credential reference, mapping, publication rules, status, synchronization evidence and diagnostics.
+`portal_name` is configurable; `integration_method` is declared and validated. Credential references do not expose secrets. Adapter configuration and mapping are versionable.
 
-### 7.2 Marketing and tracking
+### 7.3 Marketing, tracking and lead ingestion
 
 ```text
 META_ADS = required
@@ -176,32 +180,109 @@ GOOGLE_TAG_MANAGER = extensible
 FUTURE_CHANNELS = extensible
 ```
 
-The model must distinguish advertising platform, tracking, analytics, pixel/tag, lead ingestion, conversion events, campaign/UTM attribution, consent and connector diagnostics.
+The model distinguishes advertising, tracking, analytics, pixel/tag, lead ingestion, conversion events, campaign and UTM attribution, consent and diagnostics.
 
-### 7.3 Automatic lead ingestion
+Campaign leads enter the accepted initial Kanban stage with server-derived tenant authority. Payload tenant values are not authority. Provenance, source, campaign, ad, UTM, deduplication, available lead fields, initial history and assignment rules are preserved.
 
-Campaign leads must enter the accepted initial Kanban stage with server-derived tenant authority. Payload tenant values are not authority. Provenance, source, campaign, ad, UTM, deduplication, available lead fields, initial history and tenant-specific assignment rules must be preserved.
+### 7.4 CMS impact
 
-### 7.4 CMS and CRM
+The future audit inventories:
 
-CMS must be metadata-driven and support extensible layouts, sections, blocks, widgets, templates, content types and editor controls without parallel runtime, duplicate editor path or tenant-specific fork.
+- Content Workspace, universal editor, adapters, dispatcher and metadata-driven forms;
+- page builder, landing page builder, layouts, sections, blocks, widgets and templates;
+- menus, headers, footers, grids, columns, cards, galleries, videos and tours;
+- forms, CTAs, testimonials, property listings, launches, teams, contacts, maps and embeds;
+- rich text, preview, versioning, scheduling, publication, rollback, permissions and workflow;
+- media, SEO, responsive behavior, reusable blocks, themes and data-driven tenant customization.
 
-CRM capabilities are audit-driven. Kanban stages, funnels, automations, reports and UX may evolve through tenant-scoped data and configuration without code forks.
+CMS Component and Layout Registry:
 
-### 7.5 Dashboards and Super Admin
+```text
+component_key
+component_name
+component_category
+schema_version
+configuration_schema
+content_schema
+layout_constraints
+responsive_rules
+visibility_rules
+tenant_customizable
+theme_aware
+preview_supported
+versioning_supported
+publication_supported
+deprecated
+replacement_component_key
+```
 
-PR-M2 owns deterministic functional authority for tenant and Super Admin dashboards; PR-M3 owns final presentation.
+```text
+NEW_LAYOUT
+NEW_SECTION
+NEW_BLOCK
+NEW_WIDGET
+NEW_TEMPLATE
+NEW_CONTENT_TYPE
+NEW_EDITOR_CONTROL
+NEW_TENANT_CONFIGURATION
+```
+
+```text
+TENANT_SPECIFIC_CODE_FORK = prohibited
+DUPLICATE_EDITOR_PATH = prohibited
+PARALLEL_CMS_RUNTIME = prohibited
+CLIENT_SIDE_AUTHORITY = prohibited
+```
+
+CMS findings taxonomy:
+
+```text
+CMS_BLOCKING_FUNCTIONAL_DEFECT
+CMS_BLOCKING_EDITOR_DEFECT
+CMS_BLOCKING_PUBLICATION_DEFECT
+CMS_BLOCKING_PREVIEW_DEFECT
+CMS_BLOCKING_VERSIONING_DEFECT
+CMS_BLOCKING_PERMISSION_DEFECT
+CMS_BLOCKING_RESPONSIVE_DEFECT
+CMS_BLOCKING_ACCESSIBILITY_DEFECT
+CMS_LAYOUT_REFINEMENT
+CMS_EDITOR_UX_REFINEMENT
+CMS_COMPONENT_EXTENSION
+CMS_TEMPLATE_EXTENSION
+CMS_CONTENT_TYPE_EXTENSION
+CMS_TENANT_CUSTOMIZATION
+CMS_NON_BLOCKING_BACKLOG
+```
+
+### 7.5 CRM impact
+
+The future audit inventories lead capture, deduplication, assignment, Kanban, funnel, stages, transitions, tasks, calendar, contacts, visits, proposals, action and conversation history, notes, attachments, source, campaigns, reports, automations, permissions, audit, import, export, communication integrations, dashboards, KPIs, filters, SLA, alerts, follow-ups and relationships to property, broker and campaign.
+
+CRM evolution uses tenant-scoped data and configuration, not code forks or client authority.
+
+### 7.6 Dashboard impact
+
+```text
+PRM2_DASHBOARD_FUNCTIONAL_AUTHORITY = true
+PRM3_DASHBOARD_FINAL_PRESENTATION = true
+```
+
+The functional inventory includes source data, formulas, periods, timezone, cardinality, permissions, filters, drill-down, won/lost/discarded distinction, property, lead, funnel, campaign and publication metrics, reports, empty states and role-scoped data.
+
+### 7.7 Super Admin impact
 
 ```text
 TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
+SUPER_ADMIN_GLOBAL_AUTHORITY = global platform administration only
+SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
 SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
 ```
 
-Super Admin impersonation must be explicit, server-validated, visible, reversible and audited.
+The inventory includes global executive dashboard, tenants, users, memberships, roles, plans, entitlements, limits, billing visibility, domains, integrations, portals, campaigns, incidents, logs, audit, support, impersonation, health, jobs, cron, queues, webhooks, diagnostics and global reports.
+
+Impersonation is explicit, server-validated, visible, reversible and audited.
 
 ## 8. PR-M3 impact
-
-PR-M3 is the macro for the final product experience after functional stabilization.
 
 ```text
 LOVABLE = primary implementation platform
@@ -209,17 +290,24 @@ UX_PRODUCT_PROFESSIONAL = active collaborator
 CHATGPT_GITHUB_AUDIT = mandatory
 ```
 
-The professional enters during final PR-M2 handoff, participates throughout PR-M3 and supports TH-M1/TH-M2.
+PR-M3 covers final UX/UI and operational readiness for Tenant Admin, Super Admin, CRM, CMS, dashboards, reports, onboarding, domains, portals and campaigns. Its exit requires a deployable pre-homologation Release Candidate and a team-accessible validation environment.
 
-PR-M3 covers Tenant Admin, Super Admin, CRM, CMS, dashboards, reports, onboarding, domains, portals, campaigns, design system, navigation, responsive behavior, accessibility, interaction states and perceived performance.
-
-Reference images are not palette authority; they are references for density, composition, card organization, metric hierarchy and operational visibility.
-
-PR-M3 exit requires a deployable pre-homologation Release Candidate and team-accessible validation environment.
+Reference images are not palette authority. They are references for density, composition, card organization, metric hierarchy and operational visibility.
 
 ## 9. TH-M1 impact
 
-TH-M1 is internal UAT, not formal homologation. It reproduces the complete lifecycle of a tenant, including onboarding, domain, Cloudflare, users, CMS, properties, portals, dashboards, CRM, marketing/tracking, Super Admin and explicit impersonation.
+TH-M1 is internal UAT, not formal homologation. It validates:
+
+- tenant entry and onboarding;
+- users, roles, permissions and invitations;
+- domain, DNS, Cloudflare and SSL;
+- white label, site and publication;
+- CMS from draft to rollback;
+- complete property and no/one/multiple portal publication;
+- dashboards and reports;
+- CRM, Kanban, history and conversations;
+- Meta Ads, Google Ads, Meta Pixel, analytics, GTM, LinkedIn, TikTok, UTMs and conversions;
+- Super Admin, explicit impersonation, impersonation exit and no tenant-scoped access without impersonation.
 
 ```text
 THM1_FINDINGS_REPORT = required
@@ -229,8 +317,6 @@ THM1_PRODUCT_ACCEPTANCE = not automatic
 ## 10. TH-M2 impact
 
 TH-M2 owns consolidated remediation, regression and Product Acceptance Review.
-
-Classification includes:
 
 ```text
 BLOCKING_BACKEND_DEFECT
@@ -242,21 +328,73 @@ UX_REFINEMENT
 DASHBOARD_REFINEMENT
 CONNECTOR_EXTENSION
 TENANT_CUSTOMIZATION
-CMS_* classifications
-CRM_* classifications
-SUPER_ADMIN_* classifications
+
+CMS_BLOCKING_FUNCTIONAL_DEFECT
+CMS_BLOCKING_EDITOR_DEFECT
+CMS_BLOCKING_PUBLICATION_DEFECT
+CMS_BLOCKING_PREVIEW_DEFECT
+CMS_BLOCKING_VERSIONING_DEFECT
+CMS_BLOCKING_PERMISSION_DEFECT
+CMS_BLOCKING_RESPONSIVE_DEFECT
+CMS_BLOCKING_ACCESSIBILITY_DEFECT
+CMS_LAYOUT_REFINEMENT
+CMS_EDITOR_UX_REFINEMENT
+CMS_COMPONENT_EXTENSION
+CMS_TEMPLATE_EXTENSION
+CMS_CONTENT_TYPE_EXTENSION
+CMS_TENANT_CUSTOMIZATION
+
+CRM_BLOCKING_FUNCTIONAL_DEFECT
+CRM_WORKFLOW_DEFECT
+CRM_AUTOMATION_DEFECT
+CRM_REPORTING_DEFECT
+CRM_UX_REFINEMENT
+
+SUPER_ADMIN_BLOCKING_FUNCTIONAL_DEFECT
+SUPER_ADMIN_AUTHORIZATION_DEFECT
+SUPER_ADMIN_IMPERSONATION_DEFECT
+SUPER_ADMIN_TENANT_LIFECYCLE_DEFECT
+SUPER_ADMIN_COMMERCIAL_VISIBILITY_DEFECT
+SUPER_ADMIN_INTEGRATION_DIAGNOSTIC_DEFECT
+SUPER_ADMIN_DASHBOARD_REFINEMENT
+SUPER_ADMIN_REPORT_EXTENSION
+SUPER_ADMIN_SUPPORT_TOOL_EXTENSION
+SUPER_ADMIN_UX_REFINEMENT
+
 NON_BLOCKING_BACKLOG
 ```
 
-Essential or blocking findings cannot be hidden as backlog.
+No wildcard classification is authoritative. Essential or blocking findings cannot be hidden as backlog.
 
 ## 11. LSV-03 impact
 
-LSV-03 moves after TH-M2. It validates controlled security and isolation, not common functional discovery. Its future envelope must cover tenant A/B, sessions, forged inputs, impersonation, RLS, grants, policies, Storage, public writers/readers, signed resources, cron, queues, webhooks, outbound controls, fixture manifest, teardown, residue scan and protected baseline.
+LSV-03 follows TH-M2 acceptance and validates Same-Backend security and isolation, including tenant A/B, controlled sessions, forged inputs, impersonation, RLS, grants, policies, Storage, public boundaries, cron, queues, webhooks, outbound controls, fixture manifest, teardown and residue scan.
 
-## 12. Product Discovery, Customization & Test Feedback Contract
+## 12. Ownership matrix
 
-Allowed:
+```text
+PRM2_TENANT_FUNCTIONAL_OWNERSHIP = true
+PRM2_CMS_FUNCTIONAL_OWNERSHIP = true
+PRM2_CRM_FUNCTIONAL_OWNERSHIP = true
+PRM2_SUPER_ADMIN_FUNCTIONAL_OWNERSHIP = true
+PRM2_INTEGRATION_FUNCTIONAL_OWNERSHIP = true
+PRM3_TENANT_FINAL_UX_OWNERSHIP = true
+PRM3_CMS_FINAL_UX_OWNERSHIP = true
+PRM3_CRM_FINAL_UX_OWNERSHIP = true
+PRM3_SUPER_ADMIN_FINAL_UX_OWNERSHIP = true
+THM1_TENANT_E2E_VALIDATION_REQUIRED = true
+THM1_CMS_E2E_VALIDATION_REQUIRED = true
+THM1_CRM_E2E_VALIDATION_REQUIRED = true
+THM1_SUPER_ADMIN_E2E_VALIDATION_REQUIRED = true
+THM1_INTEGRATION_E2E_VALIDATION_REQUIRED = true
+THM2_TENANT_REMEDIATION_OWNERSHIP = true
+THM2_CMS_REMEDIATION_OWNERSHIP = true
+THM2_CRM_REMEDIATION_OWNERSHIP = true
+THM2_SUPER_ADMIN_REMEDIATION_OWNERSHIP = true
+THM2_INTEGRATION_REMEDIATION_OWNERSHIP = true
+```
+
+## 13. Product Discovery, Customization & Test Feedback Contract
 
 ```text
 DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
@@ -270,8 +408,6 @@ SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 TENANT_CUSTOMIZATION_IS_EXPECTED = true
 ```
 
-Prohibited:
-
 ```text
 SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
 RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
@@ -283,9 +419,7 @@ DUPLICATE_CMS_EDITOR_PATH = prohibited
 SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
 ```
 
-Before a stage starts, newly discovered requirements may enter its frozen envelope. After stage start, findings must be classified. Blocking defects inside frozen scope may use the single corrective prompt. TH-M1 findings are consolidated for TH-M2; non-blocking items receive owner, priority and backlog.
-
-## 13. Security and infrastructure impact
+## 14. Security and infrastructure impact
 
 ```text
 MIGRATIONS = none
@@ -300,7 +434,7 @@ WEBHOOK_MUTATIONS = none
 DEPLOYMENT = none
 ```
 
-## 14. Scope integrity
+## 15. Scope integrity, budget and authorization
 
 ```text
 FILES_CHANGED = 6
@@ -314,17 +448,13 @@ DATABASE_AUTH_STORAGE_CHANGED = 0
 WORKFLOW_CHANGED = 0
 DEPLOY_EXECUTED = false
 LIVE_TESTING_EXECUTED = false
-```
 
-## 15. Budget and state transition
-
-```text
 RPD01_PRINCIPAL_PROMPT_CONSUMED = true
-RPD01_CORRECTIVE_PROMPT_CONSUMED = false
-RPD01_REMAINING_PROMPT_BUDGET = 1/2
-
-RPD01_RECONCILIATION_STATE = Ready for Direct External Audit
+RPD01_CORRECTIVE_PROMPT_CONSUMED = true
+RPD01_REMAINING_PROMPT_BUDGET = 0/2
+RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
 RPD01_RECONCILIATION_MERGED = false
+RPD01_RECONCILIATION_MERGE_AUTHORIZED = false
 
 PRM2_PLANNING_AUTHORIZED = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
