@@ -2,28 +2,29 @@
 
 ## Status
 
-**Historical recovery authority preserved; RPD-01 Accepted and merged; reconciliation ready for direct external audit**
+**Historical recovery authority preserved; RPD-01 Accepted; corrective reconciliation ready for final direct external audit**
 
 ```text
 CURRENT_MAIN_HEAD = 1acf99e272e448e834b52a0018e3d34b79f0a133
 CURRENT_ACCEPTED_STAGE = RPD-01
 RPD01_ACCEPTED = true
 RPD01_PLANNING_MERGED = true
-RPD01_RECONCILIATION_STATE = Ready for Direct External Audit
+RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
 RPD01_RECONCILIATION_MERGED = false
+RPD01_RECONCILIATION_MERGE_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
 
-## 1. Purpose
+## 1. Purpose and authority
 
-This amendment preserves the factual GitHub-native recovery chain that restored the accepted generated `Register` authority and reconciles it with the accepted Product Delivery roadmap. It no longer defines a separate successor chain after HRI-01.
+This amendment preserves the factual GitHub-native recovery chain that restored the accepted generated `Register` authority. It no longer defines a separate successor chain after HRI-01.
 
-Current authority order:
+Authority order:
 
 1. audited GitHub `main`;
 2. permanent architecture and security invariants;
 3. accepted stage-specific records;
-4. `ROADMAP_ARCHITECTURAL.md` and `FINITE_ROADMAP_EXECUTION_MAP.md` as reconciled by RPD-01;
+4. `ROADMAP_ARCHITECTURAL.md`, `FINITE_ROADMAP_EXECUTION_MAP.md` and the accepted RPD-01 record;
 5. this amendment for recovery history and continuity only.
 
 Rejected, Superseded and historical records do not regain executable authority.
@@ -60,23 +61,20 @@ RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
 RPD01_PLANNING_RELEASE_GATE_RESULT = success
 RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
 RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
-
 RPD01_PLANNING_MERGED = true
 RPD01_PLANNING_MERGE_METHOD = squash
 RPD01_PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
-
 POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
 POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_MERGE_RELEASE_GATE_EVENT = push
+POST_MERGE_RELEASE_GATE_BRANCH = main
+POST_MERGE_RELEASE_GATE_HEAD_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
 POST_MERGE_RELEASE_GATE_RESULT = success
 POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
 POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
 ```
 
-The post-merge run checked out `main` at the exact merge SHA and completed dependency installation, release verification, development and production builds, typecheck, deterministic route generation and evidence upload successfully.
-
 ## 4. Current Product Delivery path
-
-The recovery chain is complete. The current future-delivery authority is:
 
 ```text
 HRI-01 Accepted / Closed
@@ -107,7 +105,29 @@ RC-01 = Absorbed by TH-M1 and TH-M2
 
 No deliverable, budget or authorization is transferred automatically from LSV-02, LSR-01, LSR-02, FRP-01, HVP-01 or HRC-01.
 
-## 6. Permanent invariants
+## 6. Corrective preservation contract
+
+The corrective restores accepted detail removed during the first reconciliation. Canonical authority now explicitly preserves:
+
+- configurable `portal_name` and validated `integration_method`;
+- Portal Connector Registry fields, secure credential references and versionable adapters;
+- Cloudflare decision alternatives `MANUAL_ASSISTED`, `API_AUTOMATED` and `HYBRID`;
+- complete CMS and CRM functional inventories;
+- CMS Component and Layout Registry schema;
+- explicit CMS, CRM and Super Admin defect taxonomies;
+- deterministic tenant and Super Admin dashboard authority;
+- Super Admin global Control Plane inventory and explicit impersonation boundary;
+- TH-M1 end-to-end flows and TH-M2 consolidated classification;
+- ownership matrix across PR-M2, PR-M3, TH-M1 and TH-M2.
+
+The exact detailed contracts are authoritative in:
+
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md`;
+- `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`;
+- `docs/architecture/governance/RPD-01-product-delivery-rebaseline.md`;
+- `docs/architecture/impact-analysis/RPD-01-roadmap-product-delivery-rebaseline-impact-analysis.md`.
+
+## 7. Permanent invariants
 
 ```text
 SERVER_IS_SOLE_TENANT_AUTHORITY = true
@@ -121,31 +141,56 @@ SAME_BACKEND_HOMOLOGATION_CELL = binding
 EXTERNAL_SUPABASE_CANONICAL_FALLBACK = prohibited
 ```
 
-## 7. Product-discovery contract
-
-Future PR-M2 and PR-M3 planning may incorporate factual capabilities discovered by direct repository audit and product testing. Portal, marketing, CRM, CMS, dashboard and Super Admin catalogs remain extensible, but silent scope expansion, tenant-specific forks, client authority, duplicate CMS runtime and direct Super Admin tenant authority remain prohibited.
-
-## 8. Scope integrity of this reconciliation
+## 8. Product Discovery, Customization & Test Feedback Contract
 
 ```text
+DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
+PROVIDER_CATALOG_IS_EXTENSIBLE = true
+PORTAL_CATALOG_IS_EXTENSIBLE = true
+MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
+CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+DASHBOARD_REFINEMENT_IS_EXPECTED = true
+SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+TENANT_CUSTOMIZATION_IS_EXPECTED = true
+```
+
+```text
+SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
+RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
+UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
+TENANT_SPECIFIC_CODE_FORKS = prohibited
+CLIENT_SIDE_AUTHORITY = prohibited
+PARALLEL_CMS_RUNTIME = prohibited
+DUPLICATE_CMS_EDITOR_PATH = prohibited
+SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
+```
+
+## 9. Scope integrity
+
+```text
+FILES_CHANGED = 6
+FILES_OUTSIDE_ALLOWED = 0
 RUNTIME_FILES_CHANGED = 0
 FRONTEND_FILES_CHANGED = 0
 CMS_RUNTIME_FILES_CHANGED = 0
 CRM_RUNTIME_FILES_CHANGED = 0
 SUPER_ADMIN_RUNTIME_FILES_CHANGED = 0
+DEPENDENCIES_CHANGED = 0
 DATABASE_AUTH_STORAGE_CHANGED = 0
 WORKFLOW_CHANGED = 0
 DEPLOY_EXECUTED = false
 LIVE_TESTING_EXECUTED = false
+LOVABLE_EXECUTED = false
+CODEX_EXECUTED = false
 ```
 
-## 9. Budget and authorization
+## 10. Budget and authorization
 
 ```text
 RPD01_PRINCIPAL_PROMPT_CONSUMED = true
-RPD01_CORRECTIVE_PROMPT_CONSUMED = false
-RPD01_REMAINING_PROMPT_BUDGET = 1/2
-
+RPD01_CORRECTIVE_PROMPT_CONSUMED = true
+RPD01_REMAINING_PROMPT_BUDGET = 0/2
 PRM2_PLANNING_AUTHORIZED = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM3_IMPLEMENTATION_AUTHORIZED = false
