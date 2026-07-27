@@ -1,9 +1,10 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — RPD-01 Accepted / Closed  
+**Status:** Ratificado — RPD-01 Accepted / Closed; PR-M2 planning ready for final direct external audit  
 **Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
 **HEAD técnico após merge da reconciliação:** `acdc461b0a3c430339c7d07d0fafc94063eca5d8`  
-**Executor da RPD-01:** ChatGPT GitHub-native
+**Baseline auditado da PR-M2:** `985a48e26c72c36aa80cac21ab32c768dac84c17`  
+**Executor da RPD-01 e planejamento PR-M2:** ChatGPT GitHub-native
 
 ## 1. Fechamento vinculante da RPD-01
 
@@ -106,13 +107,14 @@ STRATEGY_B_ALLOWED = false
 | HRR-01 | Accepted |
 | HRI-01 | Accepted / Closed |
 | RPD-01 | Accepted / Closed |
+| PR-M2 | Planning — Ready for Final Direct External Audit; implementation not ready |
 
 ## 4. Caminho crítico executável
 
 ```text
 HRI-01 Accepted / Closed
 → RPD-01 Accepted / Closed
-→ PR-M2 Planned — Blocked pending explicit authorization
+→ PR-M2 Planning — Ready for Final Direct External Audit
 → PR-M3 Product UX Refactor, Final Interface and Operational Readiness
 → PR-M3 deliverable: Pre-Homologation Release Candidate Deploy
 → TH-M1 Pre-Homologation End-to-End Product Validation and UAT
@@ -122,7 +124,7 @@ HRI-01 Accepted / Closed
 → Produção
 ```
 
-O Release Candidate Deploy é deliverable da PR-M3, não etapa autônoma. TH-M1 é UAT interna. Homologação formal somente pode começar após PR-M2 e PR-M3 Accepted, relatório completo da TH-M1, TH-M2 Accepted e LSV-03 Accepted.
+PR-M2 permanece sem implementação autorizada e sem prompt principal consumido. O Release Candidate Deploy é deliverable da PR-M3, não etapa autônoma. TH-M1 é UAT interna. Homologação formal somente pode começar após PR-M2 e PR-M3 Accepted, relatório completo da TH-M1, TH-M2 Accepted e LSV-03 Accepted.
 
 ## 5. Disposição histórica
 
@@ -140,9 +142,9 @@ Registros históricos são preservados, mas não formam cadeia executável conco
 
 ## 6. PR-M2 — conclusão funcional
 
-**Estado:** Planned — Blocked pending explicit authorization.
+**Estado:** Planning — Ready for Final Direct External Audit. Implementação não pronta e não autorizada.
 
-A futura auditoria direta deve classificar cada capacidade como:
+A auditoria direta classificou cada capacidade como:
 
 ```text
 IMPLEMENTED_AND_VALIDATED
@@ -155,6 +157,24 @@ REQUIRES_SEPARATE_GATE
 FUTURE_COMMERCIAL_SCOPE
 ```
 
+Resultado vinculável somente após auditoria externa:
+
+```text
+AUDITED_MAIN_HEAD = 985a48e26c72c36aa80cac21ab32c768dac84c17
+CAPABILITIES_AUDITED = 248
+IMPLEMENTED_AND_VALIDATED_COUNT = 32
+IMPLEMENTED_BUT_INCOMPLETE_COUNT = 116
+LEGACY_OR_DUAL_PATH_COUNT = 15
+MISSING_COUNT = 65
+BLOCKED_COUNT = 0
+REQUIRES_REDESIGN_COUNT = 13
+REQUIRES_SEPARATE_GATE_COUNT = 2
+FUTURE_COMMERCIAL_SCOPE_COUNT = 5
+UNCLASSIFIED_CAPABILITIES = 0
+IMPLEMENTATION_SCOPE_FINITE = false
+PRM2_IMPLEMENTATION_READY = false
+```
+
 Escopo mínimo:
 
 - tenant lifecycle, onboarding, usuários, memberships, roles, permissões e Configuration Center;
@@ -163,6 +183,12 @@ Escopo mínimo:
 - ingestão automática de campanhas no CRM/Kanban;
 - CRM, dashboards tenant-scoped e Super Admin SaaS Control Plane;
 - planos, entitlements, limites, billing visibility e diagnósticos.
+
+A matriz completa e o envelope congelado estão em:
+
+- `docs/architecture/impact-analysis/PR-M2-functional-completion-impact-analysis.md`;
+- `docs/architecture/governance/PR-M2-functional-completion-execution-envelope.md`;
+- `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m2-functional-completion-planning-submission.md`.
 
 ### 6.1 Modelo Cloudflare a decidir
 
@@ -173,7 +199,7 @@ OR API_AUTOMATED
 OR HYBRID
 ```
 
-Nenhuma alternativa é escolhida pela RPD-01.
+Nenhuma alternativa é escolhida pela RPD-01 ou pelo planejamento PR-M2. A decisão altera boundary externo, credenciais, DNS, SSL, jobs, retries, rollback e diagnósticos; por isso permanece `REQUIRES_SEPARATE_GATE` sem criação automática de novo stage ID.
 
 ### 6.2 Portal Connector Registry
 
@@ -203,7 +229,7 @@ MANUAL_EXPORT
 CUSTOM_ADAPTER
 ```
 
-A lista de portais e métodos é aberta. `portal_name` é configurável, `integration_method` é declarado e validado, credenciais são referências seguras e adapters/configurações são versionáveis. Fork por tenant é proibido.
+A lista de portais e métodos é aberta. `portal_name` é configurável, `integration_method` é declarado e validado, credenciais são referências seguras e adapters/configurações são versionáveis. Fork por tenant é proibido. O runtime auditado ainda usa modelo legado e requer redesign antes da implementação principal.
 
 ### 6.3 Marketing e leads
 
@@ -218,7 +244,7 @@ GOOGLE_TAG_MANAGER = extensible
 FUTURE_CHANNELS = extensible
 ```
 
-Leads entram no estágio inicial aceito do Kanban com tenant derivado no servidor, provenance, origem, campanha, anúncio, UTM, deduplicação, campos disponíveis e histórico inicial.
+Leads entram no estágio inicial aceito do Kanban com tenant derivado no servidor, provenance, origem, campanha, anúncio, UTM, deduplicação, campos disponíveis e histórico inicial. A auditoria confirmou o writer público e a atribuição, mas não confirmou integração automática completa de Ads.
 
 ### 6.4 CMS Functional Inventory
 
@@ -421,8 +447,13 @@ SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
 ## 11. Autorizações
 
 ```text
-PRM2_PLANNING_AUTHORIZED = false
+PRM2_PLANNING_AUTHORIZED = true
+PRM2_PLANNING_EXECUTED = true
+PRM2_IMPLEMENTATION_READY = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
+PRM2_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
+PRM2_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
+PRM2_REMAINING_IMPLEMENTATION_PROMPT_BUDGET = 2/2
 PRM3_IMPLEMENTATION_AUTHORIZED = false
 LOVABLE_EXECUTION_AUTHORIZED = false
 DEPLOY_AUTHORIZED = false
