@@ -2,56 +2,44 @@
 
 ## Status
 
-**Active governance — reconciled by RPD-01 planning**
+**Historical recovery authority preserved; RPD-01 Accepted; corrective reconciliation ready for final direct external audit**
 
 ```text
-CURRENT_MAIN_BASELINE = 7d0ea2869e0c15887637063a85a833ccff0721c4
-CURRENT_ACCEPTED_STAGE = HRI-01 Accepted / Closed
-CURRENT_PLANNING_STAGE = RPD-01 — Ready for Direct External Audit
-RPD01_ACCEPTED = false
-RPD01_MERGE_AUTHORIZED = false
-PRM2_PLANNING_AUTHORIZED = false
-PRM3_IMPLEMENTATION_AUTHORIZED = false
-LOVABLE_AUTHORIZED = false
-DEPLOY_AUTHORIZED = false
-LIVE_TESTING_AUTHORIZED = false
-CONTROLLED_HOMOLOGATION_AUTHORIZED = false
-PRODUCTION_AUTHORIZED = false
+CURRENT_MAIN_HEAD = 1acf99e272e448e834b52a0018e3d34b79f0a133
+CURRENT_ACCEPTED_STAGE = RPD-01
+RPD01_ACCEPTED = true
+RPD01_PLANNING_MERGED = true
+RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
+RPD01_RECONCILIATION_MERGED = false
+RPD01_RECONCILIATION_MERGE_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
 
-This amendment records the accepted GitHub-native recovery chain and the new product-delivery sequence after HRI-01. It supersedes stale executable ordering while preserving historical evidence.
+## 1. Purpose and authority
 
-## 1. Accepted GitHub-native chain
+This amendment preserves the factual GitHub-native recovery chain that restored the accepted generated `Register` authority. It no longer defines a separate successor chain after HRI-01.
 
-| Order | Stage | State | Evidence model |
-|---:|---|---|---|
-| 1 | DRA-01 | Accepted | direct repository audit |
-| 2 | GNR-01 | Accepted | GitHub-native PR and Release Gate |
-| 3 | PTC-01 | Accepted | GitHub-native PR and Release Gate |
-| 4 | PSC-01 | Accepted | GitHub-native PR and Release Gate |
-| 5 | PPR-GN-01 | Accepted | GitHub-native replacement completion |
-| 6 | PTW-01 | Accepted | planning + implementation + direct audit |
-| 7 | PSG-01 | Accepted with Non-Blocking Backlog / Merged | public-surface security gate |
-| 8 | HVP-01 | Superseded / historical | live execution never authorized |
-| 9 | HRC-01 | Rejected / terminal | no reopening |
-| 10 | HRR-01 | Accepted | roadmap reconciliation |
-| 11 | HRI-01 | Accepted / Closed | implementation + documentary reconciliation merged |
-| 12 | RPD-01 | Planning Complete — Ready for Direct External Audit | documentary rebaseline only |
+Authority order:
 
-## 2. HRI-01 closure authority
+1. audited GitHub `main`;
+2. permanent architecture and security invariants;
+3. accepted stage-specific records;
+4. `ROADMAP_ARCHITECTURAL.md`, `FINITE_ROADMAP_EXECUTION_MAP.md` and the accepted RPD-01 record;
+5. this amendment for recovery history and continuity only.
+
+Rejected, Superseded and historical records do not regain executable authority.
+
+## 2. Completed recovery chain
 
 ```text
-HRI01_IMPLEMENTATION_PR = 53
-HRI01_IMPLEMENTATION_MERGE_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
-HRI01_RECONCILIATION_PR = 54
-HRI01_RECONCILIATION_MERGE_SHA = 7d0ea2869e0c15887637063a85a833ccff0721c4
-FINAL_PUSH_RELEASE_GATE_RUN_ID = 30126260293
-FINAL_PUSH_RELEASE_GATE_RESULT = success
-MERGE_RECONCILIATION_COMPLETE = true
+GNR-01 = Accepted
+HRR-01 = Accepted
+HRC-01 = Rejected — Terminal
+HRI-01 = Accepted / Closed
+RPD-01 = Accepted
 ```
 
-Generated registration authority remains:
+HRI-01 established:
 
 ```text
 CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
@@ -61,151 +49,148 @@ GENERATED_FILE_REWRITER_COUNT = 0
 STRATEGY_B_ALLOWED = false
 ```
 
-## 3. Historical terminal preservation
+The sole accepted authority is emitted by the official TanStack/Vite generator in `src/routeTree.gen.ts`.
 
-The following units remain terminal or historical and may not be reopened:
+## 3. RPD-01 accepted evidence
 
 ```text
-PR-M1
-LSO-01
-LSV-01
-LSV-02
-LSR-01
-LSR-02
-FRP-01
-HVP-01
-HRC-01
-HRI-01
+RPD01_PLANNING_PR = 55
+RPD01_PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
+RPD01_PLANNING_RELEASE_GATE_RUN_ID = 30132995455
+RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
+RPD01_PLANNING_RELEASE_GATE_RESULT = success
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
+RPD01_PLANNING_MERGED = true
+RPD01_PLANNING_MERGE_METHOD = squash
+RPD01_PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
+POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_MERGE_RELEASE_GATE_EVENT = push
+POST_MERGE_RELEASE_GATE_BRANCH = main
+POST_MERGE_RELEASE_GATE_HEAD_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_RELEASE_GATE_RESULT = success
+POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
+POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
 ```
 
-Historical documents and rejected implementations remain diagnostic evidence only. They do not authorize a successor, transfer accepted deliverables or reopen prompt budgets.
-
-## 4. Reconciled product-delivery sequence
+## 4. Current Product Delivery path
 
 ```text
 HRI-01 Accepted / Closed
-→ RPD-01 Product Delivery Rebaseline
-→ PR-M2 Functional Completion
-→ PR-M3 Final Interface and Operational Readiness
+→ RPD-01 Accepted
+→ PR-M2 Planned — Blocked pending explicit authorization
+→ PR-M3
 → Pre-Homologation Release Candidate Deploy
-→ TH-M1 Internal End-to-End UAT
-→ TH-M2 Consolidated Remediation and Product Acceptance
-→ LSV-03 Same-Backend Controlled Security Validation
-→ Formal Homologation
-→ Production
+→ TH-M1
+→ TH-M2
+→ LSV-03
+→ Homologação formal
+→ Produção
 ```
 
-The Release Candidate Deploy is part of PR-M3. TH-M1 is internal pre-homologation validation, not formal homologation. LSV-03 occurs after functional and visual product acceptance.
+This amendment does not authorize any successor.
 
-## 5. Stale path disposition
+## 5. Historical-stage disposition
 
 ```text
 RRS-01 = Superseded by GNR-01/HRI-01
-PTA-01 = Absorbed by PTW-01/PSG-01 and remaining PR-M2 inventory
-MOC-01 = Absorbed by PR-M3 operational readiness and LSV-03
+PTA-01 = Absorbed by PTW-01/PSG-01 and PR-M2
+MOC-01 = Absorbed by PR-M3 and LSV-03
 RHV-01 = Absorbed by LSV-03
-LSV-04 = Absorbed by TH-M2 and LSV-03 according to factual scope
-RDA-01 = Absorbed by PR-M2 dashboard authority and PR-M3 UX
+LSV-04 = Absorbed by TH-M2 and LSV-03
+RDA-01 = Absorbed by PR-M2 and PR-M3
 RC-01 = Absorbed by TH-M1 and TH-M2
 ```
 
-No historical record is deleted. Only stale executable authority is removed.
+No deliverable, budget or authorization is transferred automatically from LSV-02, LSR-01, LSR-02, FRP-01, HVP-01 or HRC-01.
 
-## 6. RPD-01 planning authority
+## 6. Corrective preservation contract
+
+The corrective restores accepted detail removed during the first reconciliation. Canonical authority now explicitly preserves:
+
+- configurable `portal_name` and validated `integration_method`;
+- Portal Connector Registry fields, secure credential references and versionable adapters;
+- Cloudflare decision alternatives `MANUAL_ASSISTED`, `API_AUTOMATED` and `HYBRID`;
+- complete CMS and CRM functional inventories;
+- CMS Component and Layout Registry schema;
+- explicit CMS, CRM and Super Admin defect taxonomies;
+- deterministic tenant and Super Admin dashboard authority;
+- Super Admin global Control Plane inventory and explicit impersonation boundary;
+- TH-M1 end-to-end flows and TH-M2 consolidated classification;
+- ownership matrix across PR-M2, PR-M3, TH-M1 and TH-M2.
+
+The exact detailed contracts are authoritative in:
+
+- `docs/architecture/ROADMAP_ARCHITECTURAL.md`;
+- `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`;
+- `docs/architecture/governance/RPD-01-product-delivery-rebaseline.md`;
+- `docs/architecture/impact-analysis/RPD-01-roadmap-product-delivery-rebaseline-impact-analysis.md`.
+
+## 7. Permanent invariants
 
 ```text
-STAGE_ID = RPD-01
-EXECUTOR = ChatGPT GitHub-native
-BASELINE_MAIN = 7d0ea2869e0c15887637063a85a833ccff0721c4
-RPD01_PLANNING_AUTHORIZED = true
-RPD01_RUNTIME_IMPLEMENTATION_AUTHORIZED = false
-RPD01_PRINCIPAL_PROMPT_CONSUMED = true
-RPD01_CORRECTIVE_PROMPT_CONSUMED = false
-RPD01_REMAINING_PROMPT_BUDGET = 1/2
+SERVER_IS_SOLE_TENANT_AUTHORITY = true
+CLIENT_TENANT_AUTHORITY = false
+HEADER_TENANT_AUTHORITY = false
+PATH_TENANT_AUTHORITY = false
+FAIL_FAST = true
+FAIL_CLOSED = true
+SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
+SAME_BACKEND_HOMOLOGATION_CELL = binding
+EXTERNAL_SUPABASE_CANONICAL_FALLBACK = prohibited
 ```
 
-RPD-01 may change exactly six documentary paths. It may not change runtime, frontend, CMS/CRM/Super Admin runtime, dependencies, workflows, database, Auth, Storage, integrations or deployment.
-
-## 7. Ownership after RPD-01
-
-### 7.1 PR-M2
-
-PR-M2 owns functional completion and audited inventories for:
-
-- tenant lifecycle and onboarding;
-- domains, DNS, Cloudflare decision, SSL and publication;
-- white label, public site and CMS;
-- CRM, Kanban, funnel and lead ingestion;
-- properties and portal publication;
-- portal, marketing and tracking connector registries;
-- tenant dashboard functional authority;
-- Super Admin SaaS Control Plane functional authority;
-- plans, entitlements, limits and integration diagnostics.
-
-### 7.2 PR-M3
-
-PR-M3 owns final interface, design system, responsive and accessible UX, operational readiness and the pre-homologation Release Candidate deploy. Lovable is the planned primary implementation platform; the UX/product professional joins at the PR-M2 handoff and participates throughout PR-M3, TH-M1 and TH-M2.
-
-### 7.3 TH-M1
-
-TH-M1 owns internal end-to-end validation of the complete customer journey, tenant operations, CMS, CRM, properties, portals, campaigns, dashboards and Super Admin Control Plane. It produces a consolidated findings report and does not automatically accept the product.
-
-### 7.4 TH-M2
-
-TH-M2 owns consolidated remediation, regression and Product Acceptance Review.
-
-### 7.5 LSV-03
-
-LSV-03 owns controlled Same-Backend security and multi-tenant validation after TH-M2 acceptance.
-
-## 8. Extensibility and discovery contract
+## 8. Product Discovery, Customization & Test Feedback Contract
 
 ```text
 DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
+PROVIDER_CATALOG_IS_EXTENSIBLE = true
 PORTAL_CATALOG_IS_EXTENSIBLE = true
 MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
 CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
-CMS_LAYOUT_AND_COMPONENT_CATALOGS_ARE_EXTENSIBLE = true
 DASHBOARD_REFINEMENT_IS_EXPECTED = true
 SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 TENANT_CUSTOMIZATION_IS_EXPECTED = true
 ```
 
-The following remain prohibited:
-
 ```text
-SILENT_SCOPE_EXPANSION_AFTER_STAGE_START
-RETROACTIVE_DEFINITION_OF_DONE_EXPANSION
-UNBOUNDED_IMPLEMENTATION_PROMPTS
-TENANT_SPECIFIC_CODE_FORKS
-CLIENT_SIDE_AUTHORITY
-PARALLEL_CMS_RUNTIME
-DUPLICATE_CMS_EDITOR_PATH
-SUPER_ADMIN_DIRECT_TENANT_AUTHORITY
+SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
+RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
+UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
+TENANT_SPECIFIC_CODE_FORKS = prohibited
+CLIENT_SIDE_AUTHORITY = prohibited
+PARALLEL_CMS_RUNTIME = prohibited
+DUPLICATE_CMS_EDITOR_PATH = prohibited
+SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
 ```
 
-New requirements may enter an Execution Envelope before its stage starts. During-stage findings must be classified. Improvements and extensions are routed to TH-M1/TH-M2 or backlog and cannot silently consume a corrective prompt.
-
-## 9. Super Admin boundary
+## 9. Scope integrity
 
 ```text
-TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
-SUPER_ADMIN_GLOBAL_AUTHORITY = global platform administration only
-SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
-IMPERSONATION_MUST_BE_SERVER_VALIDATED = true
-IMPERSONATION_MUST_BE_VISIBLE = true
-IMPERSONATION_MUST_BE_AUDITED = true
+FILES_CHANGED = 6
+FILES_OUTSIDE_ALLOWED = 0
+RUNTIME_FILES_CHANGED = 0
+FRONTEND_FILES_CHANGED = 0
+CMS_RUNTIME_FILES_CHANGED = 0
+CRM_RUNTIME_FILES_CHANGED = 0
+SUPER_ADMIN_RUNTIME_FILES_CHANGED = 0
+DEPENDENCIES_CHANGED = 0
+DATABASE_AUTH_STORAGE_CHANGED = 0
+WORKFLOW_CHANGED = 0
+DEPLOY_EXECUTED = false
+LIVE_TESTING_EXECUTED = false
+LOVABLE_EXECUTED = false
+CODEX_EXECUTED = false
 ```
 
-The Control Plane inventory includes global dashboard, tenants, users, memberships, roles, plans, entitlements, limits, domains, integrations, portals, campaigns, incident and support tooling, audit, jobs, cron, queues, webhooks and diagnostics.
-
-## 10. Current gate
+## 10. Budget and authorization
 
 ```text
-RPD01_STATE = Planning Complete — Ready for Direct External Audit
-RPD01_ACCEPTED = false
-RPD01_MERGE_AUTHORIZED = false
+RPD01_PRINCIPAL_PROMPT_CONSUMED = true
+RPD01_CORRECTIVE_PROMPT_CONSUMED = true
+RPD01_REMAINING_PROMPT_BUDGET = 0/2
 PRM2_PLANNING_AUTHORIZED = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM3_IMPLEMENTATION_AUTHORIZED = false
@@ -216,5 +201,3 @@ CONTROLLED_HOMOLOGATION_AUTHORIZED = false
 PRODUCTION_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
-
-Required next action: complete the pull-request Release Gate and perform direct external audit of RPD-01. Do not merge or start PR-M2 without separate authorization.

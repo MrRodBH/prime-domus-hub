@@ -1,133 +1,276 @@
-# RPD-01 — Product Delivery Rebaseline Planning Submission
+# RPD-01 — Product Delivery Rebaseline Corrective Reconciliation Evidence
 
 ## Status
 
-**Planning Complete — Ready for Direct External Audit**
+**RPD-01 Accepted — corrective reconciliation complete; ready for final direct external audit**
 
 ```text
 STAGE_ID = RPD-01
-PROMPT_TYPE = principal
+PROMPT_TYPE = corrective
 EXECUTOR = ChatGPT GitHub-native
-BASELINE_MAIN = 7d0ea2869e0c15887637063a85a833ccff0721c4
+FINAL_EXTERNAL_AUDIT = Accepted
+RPD01_STATE = Accepted
+RPD01_ACCEPTED = true
+RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
+RPD01_RECONCILIATION_MERGED = false
+RPD01_RECONCILIATION_MERGE_AUTHORIZED = false
 ```
 
-## 1. Baseline verification
+## 1. Baseline and accepted planning evidence
 
 ```text
-CURRENT_MAIN_HEAD_VERIFIED = true
-CURRENT_MAIN_HEAD = 7d0ea2869e0c15887637063a85a833ccff0721c4
-MAIN_CHANGED_BEFORE_BRANCH_CREATION = false
-OPEN_RPD01_PRS_BEFORE_EXECUTION = 0
+PRE_MERGE_MAIN_HEAD = 7d0ea2869e0c15887637063a85a833ccff0721c4
+PLANNING_PR = 55
+PLANNING_BRANCH = agent/rpd-01-product-delivery-rebaseline
+PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
+PLANNING_MERGE_REF = c5e5f3470751c9aad5b01bb2d64a60dfb1d1c834
+PLANNING_MERGE_METHOD = squash
+PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_MAIN_HEAD = 1acf99e272e448e834b52a0018e3d34b79f0a133
 ```
 
-HRI-01 evidence:
+## 2. Planning Release Gate
 
 ```text
-HRI01_STATE = Accepted
-HRI01_IMPLEMENTATION_PR = 53
-HRI01_IMPLEMENTATION_PR_MERGED = true
-HRI01_IMPLEMENTATION_MERGE_SHA = 91d63bc5ed18540fc122301150a996ed0fe51021
-HRI01_RECONCILIATION_PR = 54
-HRI01_RECONCILIATION_PR_MERGED = true
-HRI01_RECONCILIATION_MERGE_SHA = 7d0ea2869e0c15887637063a85a833ccff0721c4
-MERGE_RECONCILIATION_COMPLETE = true
+RPD01_PLANNING_RELEASE_GATE_RUN_ID = 30132995455
+RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
+RPD01_PLANNING_RELEASE_GATE_RESULT = success
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_NAME = release-gate-c5e5f3470751c9aad5b01bb2d64a60dfb1d1c834
+RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
 ```
 
-Final baseline Release Gate:
+## 3. Post-merge Release Gate
 
 ```text
-FINAL_PUSH_RELEASE_GATE_RUN_ID = 30126260293
-FINAL_PUSH_RELEASE_GATE_RESULT = success
-FINAL_PUSH_RELEASE_GATE_JOB_ID = 89590369120
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_ID = 8609386519
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_NAME = release-gate-7d0ea2869e0c15887637063a85a833ccff0721c4
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_DIGEST = sha256:8b3d2029fd79c24c4f39c32162b963ea78132579ccbdf6c3af00af26a1c23028
-```
-
-## 2. Register authority verification
-
-```text
-ROUTE_TREE_BLOB_SHA = d71f9718f3bdab2865af5bfd7e7a152914b7758d
-CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
-GENERATED_REGISTER_AUTHORITY_COUNT = 1
-AUTHORED_REGISTER_DECLARATION_COUNT = 0
-GENERATED_FILE_REWRITER_COUNT = 0
-STRATEGY_B_ALLOWED = false
-```
-
-`src/routeTree.gen.ts` ends with the generated TanStack Start `Register` augmentation. `src/tanstack-start-register.d.ts` is absent. `vite.config.ts` states that no authored declaration file or generated-file rewriting plugin is permitted.
-
-## 3. Branch
-
-```text
-BRANCH = agent/rpd-01-product-delivery-rebaseline
-BRANCH_BASE = 7d0ea2869e0c15887637063a85a833ccff0721c4
-BRANCH_CREATED_FROM_EXACT_BASE = true
-BRANCH_IS_DESCENDANT_OF_BASE = true
-```
-
-## 4. Files changed
-
-Exactly six documentary paths are authorized and changed:
-
-```text
-docs/architecture/ROADMAP_ARCHITECTURAL.md
-docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md
-docs/architecture/governance/DELIVERY_RECOVERY_EXECUTION_MAP_GITHUB_NATIVE_AMENDMENT.md
-docs/architecture/governance/RPD-01-product-delivery-rebaseline.md
-docs/architecture/impact-analysis/RPD-01-roadmap-product-delivery-rebaseline-impact-analysis.md
-docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/rpd-01-product-delivery-rebaseline-submission.md
+POST_MERGE_RELEASE_GATE_RUN_URL = https://github.com/MrRodBH/prime-domus-hub/actions/runs/30134139802
+POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
+POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_MERGE_RELEASE_GATE_EVENT = push
+POST_MERGE_RELEASE_GATE_BRANCH = main
+POST_MERGE_RELEASE_GATE_HEAD_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_RELEASE_GATE_STATUS = completed
+POST_MERGE_RELEASE_GATE_RESULT = success
+POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
+POST_MERGE_RELEASE_GATE_ARTIFACT_NAME = release-gate-1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
 ```
 
 ```text
-FILES_CHANGED = 6
-FILES_OUTSIDE_ALLOWED = 0
+CHECKOUT = success
+SETUP_BUN = success
+FROZEN_INSTALL = success
+VERIFY_RELEASE_GATE = success
+UPLOAD_RELEASE_GATE_EVIDENCE = success
+COMPLETE_JOB = success
+STATUS = PASS
+TYPECHECK_EXIT_CODE = 0
+BUILD_EXIT_CODE = 0
+BUILD_DEV_EXIT_CODE = 0
+TANSTACK_REGISTER_AUTHORITY_COUNT = 1
+AUTHORED_REGISTER_DECLARATION_EXISTS = false
+GENERATED_ROUTE_TREE_MANUAL_EDIT = false
+CYCLE_COMPOSITE_DIGEST_STABLE = true
+ROUTE_TREE_SHA256 = 65268afed0024657acc9c88bd72243b7e4c5890ff78d46687ece223ec5059745
 ```
 
-## 5. Roadmap result
+## 4. Corrective reason and result
+
+The first post-merge reconciliation preserved accepted state and evidence but compressed accepted requirements. The authorized corrective restored the removed audit-critical contracts without reverting factual post-merge data or changing the accepted sequence.
 
 ```text
-STALE_EXECUTABLE_SEQUENCE_REMOVED = true
-HISTORICAL_RECORDS_PRESERVED = true
-CURRENT_ROADMAP_AUTHORITY_UNIQUE = true
+ACCEPTED_STATE_AND_RELEASE_EVIDENCE_PRESERVED = true
+PORTAL_REGISTRY_MINIMUM_SCHEMA_RESTORED = true
+PORTAL_NAME_AND_INTEGRATION_METHOD_RESTORED = true
+CLOUDFLARE_DECISION_MODEL_RESTORED = true
+CMS_FUNCTIONAL_INVENTORY_RESTORED = true
+CMS_COMPONENT_REGISTRY_SCHEMA_RESTORED = true
+CMS_BLOCKED_ITEMS_TAXONOMY_RESTORED = true
+CRM_FUNCTIONAL_INVENTORY_RESTORED = true
+DASHBOARD_FUNCTIONAL_AUTHORITY_DETAILS_RESTORED = true
+SUPER_ADMIN_FUNCTIONAL_INVENTORY_RESTORED = true
+THM1_E2E_FLOW_INVENTORY_RESTORED = true
+THM2_EXPLICIT_CLASSIFICATION_TAXONOMY_RESTORED = true
+OWNERSHIP_MATRIX_RESTORED_IN_CANONICAL_RECORD = true
+WILDCARD_CLASSIFICATIONS_REMAINING = 0
+UNSUPPORTED_TRUE_FLAGS = 0
 ```
 
-Reconciled sequence:
+## 5. Reconciled Product Delivery sequence
 
 ```text
 HRI-01 Accepted / Closed
-→ RPD-01 Product Delivery Rebaseline
-→ PR-M2 Functional Completion
-→ PR-M3 Final Interface and Operational Readiness
-→ Pre-Homologation Release Candidate Deploy
-→ TH-M1 Internal End-to-End UAT
-→ TH-M2 Consolidated Remediation and Product Acceptance
-→ LSV-03 Controlled Security and Multi-Tenant Validation
+→ RPD-01 Accepted
+→ PR-M2 Planned — Blocked pending explicit authorization
+→ PR-M3 Product UX Refactor, Final Interface and Operational Readiness
+→ PR-M3 deliverable: Pre-Homologation Release Candidate Deploy
+→ TH-M1 Pre-Homologation End-to-End Product Validation and UAT
+→ TH-M2 Consolidated Remediation, Regression and Product Acceptance
+→ LSV-03 Same-Backend Controlled Security and Multi-Tenant Validation
 → Formal Homologation
 → Production
 ```
 
-Stale-stage dispositions:
+## 6. Restored Portal and Cloudflare contracts
 
 ```text
-RRS-01 = Superseded by Accepted Later Authority
-PTA-01 = Absorbed by PTW-01/PSG-01 and PR-M2
-MOC-01 = Absorbed by PR-M3 and LSV-03
-RHV-01 = Absorbed by LSV-03
-LSV-04 = Absorbed by TH-M2 and LSV-03
-RDA-01 = Absorbed by PR-M2 and PR-M3
-RC-01 = Absorbed by TH-M1 and TH-M2
+portal_id
+tenant_id
+portal_name
+portal_status
+integration_method
+configuration_schema
+credential_reference
+feed_or_endpoint
+mapping_profile
+publication_rules
+last_sync_status
+last_sync_at
+error_state
 ```
-
-## 6. Ownership reconciliation
 
 ```text
-PRM2_SCOPE_RECONCILED = true
-PRM3_SCOPE_RECONCILED = true
-THM1_SCOPE_RECONCILED = true
-THM2_SCOPE_RECONCILED = true
-LSV03_POSITION_RECONCILED = true
+JSON_API
+XML_FEED
+XLSX
+CSV
+WEBHOOK
+MANUAL_EXPORT
+CUSTOM_ADAPTER
 ```
+
+```text
+CLOUDFLARE_INTEGRATION_MODEL =
+MANUAL_ASSISTED
+OR API_AUTOMATED
+OR HYBRID
+```
+
+The portal catalog is open-ended. `portal_name` is configurable, integration method is declared and validated, credentials are secure references and adapters/configuration are versionable.
+
+## 7. Restored CMS contract
+
+The canonical records now contain the complete CMS functional inventory and this registry schema:
+
+```text
+component_key
+component_name
+component_category
+schema_version
+configuration_schema
+content_schema
+layout_constraints
+responsive_rules
+visibility_rules
+tenant_customizable
+theme_aware
+preview_supported
+versioning_supported
+publication_supported
+deprecated
+replacement_component_key
+```
+
+```text
+NEW_LAYOUT
+NEW_SECTION
+NEW_BLOCK
+NEW_WIDGET
+NEW_TEMPLATE
+NEW_CONTENT_TYPE
+NEW_EDITOR_CONTROL
+NEW_TENANT_CONFIGURATION
+```
+
+```text
+CMS_BLOCKING_FUNCTIONAL_DEFECT
+CMS_BLOCKING_EDITOR_DEFECT
+CMS_BLOCKING_PUBLICATION_DEFECT
+CMS_BLOCKING_PREVIEW_DEFECT
+CMS_BLOCKING_VERSIONING_DEFECT
+CMS_BLOCKING_PERMISSION_DEFECT
+CMS_BLOCKING_RESPONSIVE_DEFECT
+CMS_BLOCKING_ACCESSIBILITY_DEFECT
+CMS_LAYOUT_REFINEMENT
+CMS_EDITOR_UX_REFINEMENT
+CMS_COMPONENT_EXTENSION
+CMS_TEMPLATE_EXTENSION
+CMS_CONTENT_TYPE_EXTENSION
+CMS_TENANT_CUSTOMIZATION
+CMS_NON_BLOCKING_BACKLOG
+```
+
+## 8. Restored CRM, dashboard and Super Admin contracts
+
+CRM inventory includes lead capture, deduplication, assignment, Kanban, funnel, stages, transitions, tasks, calendar, contacts, visits, proposals, histories, notes, attachments, source, campaigns, reports, automations, permissions, audit, import/export, communication integrations, dashboards, KPIs, filters, SLA, alerts, follow-ups and property/broker/campaign relationships.
+
+```text
+PRM2_DASHBOARD_FUNCTIONAL_AUTHORITY = true
+PRM3_DASHBOARD_FINAL_PRESENTATION = true
+TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
+SUPER_ADMIN_GLOBAL_AUTHORITY = global platform administration only
+SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
+SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
+```
+
+Dashboard inventory includes source, formulas, periods, timezone, cardinality, permissions, filters, drill-down, won/lost/discarded, property/lead/funnel/campaign/publication metrics, reports, empty states and role-scoped data.
+
+Super Admin inventory includes global dashboard, tenants, users, memberships, roles, plans, entitlements, limits, billing visibility, domains, integrations, portals, campaigns, incidents, logs, audit, support, impersonation, health, jobs, cron, queues, webhooks, diagnostics and global reports.
+
+## 9. Restored TH-M1 and TH-M2 contracts
+
+TH-M1 validates onboarding, users and permissions, domain/DNS/Cloudflare/SSL, white label/site, CMS draft-to-rollback, property and no/one/multiple portals, dashboards, CRM/Kanban/histories, Meta, Google, Pixel, analytics, GTM, LinkedIn, TikTok, UTMs, conversions, Super Admin and impersonation boundaries.
+
+```text
+THM1_FINDINGS_REPORT = required
+THM1_PRODUCT_ACCEPTANCE = not automatic
+```
+
+TH-M2 explicit classification:
+
+```text
+BLOCKING_BACKEND_DEFECT
+BLOCKING_FRONTEND_DEFECT
+ESSENTIAL_CAPABILITY_MISSING
+AUTHORIZATION_OR_ISOLATION_DEFECT
+INTEGRATION_DEFECT
+UX_REFINEMENT
+DASHBOARD_REFINEMENT
+CONNECTOR_EXTENSION
+TENANT_CUSTOMIZATION
+CMS_BLOCKING_FUNCTIONAL_DEFECT
+CMS_BLOCKING_EDITOR_DEFECT
+CMS_BLOCKING_PUBLICATION_DEFECT
+CMS_BLOCKING_PREVIEW_DEFECT
+CMS_BLOCKING_VERSIONING_DEFECT
+CMS_BLOCKING_PERMISSION_DEFECT
+CMS_BLOCKING_RESPONSIVE_DEFECT
+CMS_BLOCKING_ACCESSIBILITY_DEFECT
+CMS_LAYOUT_REFINEMENT
+CMS_EDITOR_UX_REFINEMENT
+CMS_COMPONENT_EXTENSION
+CMS_TEMPLATE_EXTENSION
+CMS_CONTENT_TYPE_EXTENSION
+CMS_TENANT_CUSTOMIZATION
+CRM_BLOCKING_FUNCTIONAL_DEFECT
+CRM_WORKFLOW_DEFECT
+CRM_AUTOMATION_DEFECT
+CRM_REPORTING_DEFECT
+CRM_UX_REFINEMENT
+SUPER_ADMIN_BLOCKING_FUNCTIONAL_DEFECT
+SUPER_ADMIN_AUTHORIZATION_DEFECT
+SUPER_ADMIN_IMPERSONATION_DEFECT
+SUPER_ADMIN_TENANT_LIFECYCLE_DEFECT
+SUPER_ADMIN_COMMERCIAL_VISIBILITY_DEFECT
+SUPER_ADMIN_INTEGRATION_DIAGNOSTIC_DEFECT
+SUPER_ADMIN_DASHBOARD_REFINEMENT
+SUPER_ADMIN_REPORT_EXTENSION
+SUPER_ADMIN_SUPPORT_TOOL_EXTENSION
+SUPER_ADMIN_UX_REFINEMENT
+NON_BLOCKING_BACKLOG
+```
+
+## 10. Ownership result
 
 ```text
 PRM2_TENANT_FUNCTIONAL_OWNERSHIP = true
@@ -151,82 +294,36 @@ THM2_SUPER_ADMIN_REMEDIATION_OWNERSHIP = true
 THM2_INTEGRATION_REMEDIATION_OWNERSHIP = true
 ```
 
-## 7. Extensibility and discovery result
+## 11. Product discovery contract
 
 ```text
-PORTAL_CONNECTOR_EXTENSIBILITY_RECORDED = true
-MARKETING_CONNECTOR_EXTENSIBILITY_RECORDED = true
-CRM_FUNCTIONAL_INVENTORY_REQUIRED = true
-CRM_FLEXIBILITY_RECORDED = true
-DASHBOARD_FUNCTIONAL_AUTHORITY_REQUIRED = true
-DASHBOARD_FLEXIBILITY_RECORDED = true
-CMS_FUNCTIONAL_INVENTORY_REQUIRED = true
-CMS_COMPONENT_REGISTRY_REQUIRED = true
-CMS_LAYOUT_EXTENSIBILITY_RECORDED = true
-CMS_TEMPLATE_EXTENSIBILITY_RECORDED = true
-CMS_EDITOR_UX_FLEXIBILITY_RECORDED = true
-CMS_BLOCKED_ITEMS_CLASSIFICATION_RECORDED = true
-SUPER_ADMIN_FUNCTIONAL_INVENTORY_REQUIRED = true
-SUPER_ADMIN_CONTROL_PLANE_BOUNDARY_RECORDED = true
-SUPER_ADMIN_DASHBOARD_FUNCTIONAL_AUTHORITY_REQUIRED = true
-SUPER_ADMIN_IMPERSONATION_UX_REQUIRED = true
-SUPER_ADMIN_FLEXIBILITY_CONTRACT_RECORDED = true
-PRODUCT_DISCOVERY_FLEXIBILITY_CONTRACT_RECORDED = true
-SILENT_SCOPE_EXPANSION_PROHIBITED = true
+DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
+PROVIDER_CATALOG_IS_EXTENSIBLE = true
+PORTAL_CATALOG_IS_EXTENSIBLE = true
+MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
+CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+DASHBOARD_REFINEMENT_IS_EXPECTED = true
+SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
+TENANT_CUSTOMIZATION_IS_EXPECTED = true
 ```
 
-Portal methods recorded as an extensible starting set:
-
 ```text
-JSON_API
-XML_FEED
-XLSX
-CSV
-WEBHOOK
-MANUAL_EXPORT
-CUSTOM_ADAPTER
+SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
+RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
+UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
+TENANT_SPECIFIC_CODE_FORKS = prohibited
+CLIENT_SIDE_AUTHORITY = prohibited
+PARALLEL_CMS_RUNTIME = prohibited
+DUPLICATE_CMS_EDITOR_PATH = prohibited
+SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
 ```
 
-Marketing essentials and extension points:
+## 12. Scope integrity
 
 ```text
-META_ADS = required
-GOOGLE_ADS = required
-META_PIXEL = required
-LINKEDIN_ADS = extensible
-TIKTOK_ADS = extensible
-GOOGLE_ANALYTICS = extensible
-GOOGLE_TAG_MANAGER = extensible
-FUTURE_CHANNELS = extensible
-```
-
-## 8. Super Admin boundary
-
-```text
-TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
-SUPER_ADMIN_GLOBAL_AUTHORITY = global platform administration only
-SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
-SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
-IMPERSONATION_MUST_BE_SERVER_VALIDATED = true
-IMPERSONATION_MUST_BE_VISIBLE = true
-IMPERSONATION_MUST_BE_AUDITED = true
-```
-
-## 9. UX collaboration and dashboard references
-
-```text
-UX_PROFESSIONAL_POSITION_RECORDED = true
-LOVABLE_PRIMARY_PHASE_RECORDED = true
-RELEASE_CANDIDATE_DEPLOY_POSITION_RECORDED = true
-```
-
-The UX/product professional is planned for final PR-M2 handoff, all of PR-M3, and TH-M1/TH-M2 support.
-
-Dashboard reference images are recorded only as examples of information density, composition, card organization, metric hierarchy and operational visibility. They are not color-palette or brand authority.
-
-## 10. Scope integrity
-
-```text
+FILES_CHANGED = 6
+FILES_OUTSIDE_ALLOWED = 0
 RUNTIME_FILES_CHANGED = 0
 FRONTEND_FILES_CHANGED = 0
 CMS_RUNTIME_FILES_CHANGED = 0
@@ -236,6 +333,7 @@ DEPENDENCIES_CHANGED = 0
 DATABASE_CHANGED = 0
 AUTH_CHANGED = 0
 STORAGE_CHANGED = 0
+DATABASE_AUTH_STORAGE_CHANGED = 0
 WORKFLOW_CHANGED = 0
 DEPLOY_EXECUTED = false
 LIVE_TESTING_EXECUTED = false
@@ -243,31 +341,12 @@ LOVABLE_EXECUTED = false
 CODEX_EXECUTED = false
 ```
 
-## 11. Pull-request Release Gate
-
-```text
-RELEASE_GATE_RUN_ID = pending
-RELEASE_GATE_RESULT = pending
-RELEASE_GATE_ARTIFACT_ID = pending
-RELEASE_GATE_ARTIFACT_DIGEST = pending
-```
-
-The final PR HEAD must pass the canonical Release Gate. This document does not declare a pending run successful. Direct external audit remains mandatory after CI completion.
-
-## 12. Budget
+## 13. Budget and authorization
 
 ```text
 RPD01_PRINCIPAL_PROMPT_CONSUMED = true
-RPD01_CORRECTIVE_PROMPT_CONSUMED = false
-RPD01_REMAINING_PROMPT_BUDGET = 1/2
-```
-
-## 13. Submission state
-
-```text
-RPD01_STATE = Planning Complete — Ready for Direct External Audit
-RPD01_ACCEPTED = false
-RPD01_MERGE_AUTHORIZED = false
+RPD01_CORRECTIVE_PROMPT_CONSUMED = true
+RPD01_REMAINING_PROMPT_BUDGET = 0/2
 PRM2_PLANNING_AUTHORIZED = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM3_IMPLEMENTATION_AUTHORIZED = false
@@ -279,4 +358,4 @@ PRODUCTION_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
 
-Stop for direct external GitHub audit. Do not merge and do not start any successor stage.
+Stop for final direct external GitHub audit. Do not merge the reconciliation PR and do not start any successor stage.
