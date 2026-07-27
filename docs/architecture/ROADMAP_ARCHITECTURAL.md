@@ -1,32 +1,39 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — RPD-01 Accepted; corretivo da reconciliação pronto para auditoria externa final  
+**Status:** Ratificado — RPD-01 Accepted / Closed  
 **Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
-**Baseline anterior:** `7d0ea2869e0c15887637063a85a833ccff0721c4`  
-**Main após merge do planejamento:** `1acf99e272e448e834b52a0018e3d34b79f0a133`  
-**Executor:** ChatGPT GitHub-native
+**HEAD técnico após merge da reconciliação:** `acdc461b0a3c430339c7d07d0fafc94063eca5d8`  
+**Executor da RPD-01:** ChatGPT GitHub-native
 
-## 1. Estado vinculante da RPD-01
+## 1. Fechamento vinculante da RPD-01
 
 ```text
 STAGE_ID = RPD-01
 FINAL_EXTERNAL_AUDIT = Accepted
-RPD01_STATE = Accepted
+RPD01_STATE = Accepted / Closed
 RPD01_ACCEPTED = true
+RPD01_CLOSURE_COMPLETE = true
+
 RPD01_PLANNING_PR = 55
 RPD01_PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
 RPD01_PLANNING_MERGED = true
 RPD01_PLANNING_MERGE_METHOD = squash
 RPD01_PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
-RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
-RPD01_RECONCILIATION_MERGED = false
-RPD01_RECONCILIATION_MERGE_AUTHORIZED = false
+
+RPD01_RECONCILIATION_FINAL_AUDIT = Accepted
+RPD01_RECONCILIATION_MERGE_AUTHORIZED = true
+RPD01_RECONCILIATION_PR = 56
+RPD01_RECONCILIATION_HEAD = 90b4792b90e66883ebcb1caa62dad9b644793f93
+RPD01_RECONCILIATION_MERGE_METHOD = squash
+RPD01_RECONCILIATION_MERGE_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
+RPD01_RECONCILIATION_MERGED = true
+
 RPD01_PRINCIPAL_PROMPT_CONSUMED = true
 RPD01_CORRECTIVE_PROMPT_CONSUMED = true
 RPD01_REMAINING_PROMPT_BUDGET = 0/2
 ```
 
-Release Gates aceitos:
+Release Gates vinculados:
 
 ```text
 RPD01_PLANNING_RELEASE_GATE_RUN_ID = 30132995455
@@ -34,11 +41,27 @@ RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
 RPD01_PLANNING_RELEASE_GATE_RESULT = success
 RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
 RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
-POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
-POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
-POST_MERGE_RELEASE_GATE_RESULT = success
-POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
-POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
+
+POST_PLANNING_MERGE_RELEASE_GATE_RUN_ID = 30134139802
+POST_PLANNING_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_PLANNING_MERGE_RELEASE_GATE_RESULT = success
+POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
+POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
+
+RPD01_RECONCILIATION_RELEASE_GATE_RUN_ID = 30164381209
+RPD01_RECONCILIATION_RELEASE_GATE_JOB_ID = 89694819354
+RPD01_RECONCILIATION_RELEASE_GATE_RESULT = success
+RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_ID = 8621159498
+RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_DIGEST = sha256:487c976138a033a5d7fe44b51cc517a589e35862aeacfc1437688f1ef6c3081e
+
+FINAL_PUSH_RELEASE_GATE_RUN_ID = 30270513019
+FINAL_PUSH_RELEASE_GATE_JOB_ID = 89991615902
+FINAL_PUSH_RELEASE_GATE_EVENT = push
+FINAL_PUSH_RELEASE_GATE_BRANCH = main
+FINAL_PUSH_RELEASE_GATE_HEAD_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
+FINAL_PUSH_RELEASE_GATE_RESULT = success
+FINAL_PUSH_RELEASE_GATE_ARTIFACT_ID = 8654686143
+FINAL_PUSH_RELEASE_GATE_ARTIFACT_DIGEST = sha256:5b16716597c3dd036ffb7a6600ff6e62768adc8a04293d84b0f891acda6fb400
 ```
 
 ## 2. Regras permanentes
@@ -50,12 +73,13 @@ POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4b
 5. Sem fallback implícito, tenant default, heurística, dual path ou `ORDER BY/LIMIT 1` autoritativo.
 6. Ambiguidade falha rápido e fechado.
 7. Super Admin sem impersonação explícita não acessa recurso tenant-scoped.
-8. Storage não confia em bucket, path ou filename enviados pelo client.
-9. Signed URL não é autorização primária.
-10. Same-Backend Homologation Cell permanece vinculante.
-11. Supabase externo não é fallback canônico.
-12. Cada etapa admite no máximo um prompt principal e um corretivo consolidado.
-13. Nenhuma etapa sucessora inicia sem predecessor compatível, Execution Envelope congelado e autorização explícita.
+8. `x-tenant-id` é somente transporte e deve ser revalidado pelo servidor.
+9. Storage não confia em bucket, path ou filename enviados pelo client.
+10. Signed URL não é autorização primária.
+11. Same-Backend Homologation Cell permanece vinculante.
+12. Supabase externo não é fallback canônico.
+13. Cada etapa admite no máximo um prompt principal e um corretivo consolidado.
+14. Nenhuma etapa sucessora inicia sem predecessor compatível, Execution Envelope congelado e autorização explícita.
 
 ```text
 CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
@@ -81,13 +105,13 @@ STRATEGY_B_ALLOWED = false
 | PSG-01 | Accepted with Non-Blocking Backlog / Merged |
 | HRR-01 | Accepted |
 | HRI-01 | Accepted / Closed |
-| RPD-01 | Accepted; planejamento merged; reconciliação corretiva em auditoria final |
+| RPD-01 | Accepted / Closed |
 
 ## 4. Caminho crítico executável
 
 ```text
 HRI-01 Accepted / Closed
-→ RPD-01 Accepted
+→ RPD-01 Accepted / Closed
 → PR-M2 Planned — Blocked pending explicit authorization
 → PR-M3 Product UX Refactor, Final Interface and Operational Readiness
 → PR-M3 deliverable: Pre-Homologation Release Candidate Deploy
@@ -98,7 +122,7 @@ HRI-01 Accepted / Closed
 → Produção
 ```
 
-O Release Candidate Deploy é deliverable da PR-M3. A TH-M1 é UAT interna. A homologação formal só pode começar após PR-M2 e PR-M3 Accepted, relatório completo da TH-M1, TH-M2 Accepted e LSV-03 Accepted.
+O Release Candidate Deploy é deliverable da PR-M3, não etapa autônoma. TH-M1 é UAT interna. Homologação formal somente pode começar após PR-M2 e PR-M3 Accepted, relatório completo da TH-M1, TH-M2 Accepted e LSV-03 Accepted.
 
 ## 5. Disposição histórica
 
@@ -112,7 +136,7 @@ RDA-01 = Absorbed by PR-M2 and PR-M3
 RC-01 = Absorbed by TH-M1 and TH-M2
 ```
 
-Registros históricos são preservados, mas não formam cadeia executável concorrente.
+Registros históricos são preservados, mas não formam cadeia executável concorrente nem recuperam budget ou autoridade.
 
 ## 6. PR-M2 — conclusão funcional
 
@@ -149,7 +173,7 @@ OR API_AUTOMATED
 OR HYBRID
 ```
 
-Nenhuma opção é escolhida pela RPD-01.
+Nenhuma alternativa é escolhida pela RPD-01.
 
 ### 6.2 Portal Connector Registry
 
@@ -179,7 +203,7 @@ MANUAL_EXPORT
 CUSTOM_ADAPTER
 ```
 
-A lista de portais e métodos é aberta. `portal_name` é configurável, `integration_method` é declarado e validado, credenciais são referências seguras e adapters/configurações são versionáveis. Não criar fork por tenant.
+A lista de portais e métodos é aberta. `portal_name` é configurável, `integration_method` é declarado e validado, credenciais são referências seguras e adapters/configurações são versionáveis. Fork por tenant é proibido.
 
 ### 6.3 Marketing e leads
 
@@ -194,11 +218,13 @@ GOOGLE_TAG_MANAGER = extensible
 FUTURE_CHANNELS = extensible
 ```
 
-Leads entram no estágio inicial aceito do Kanban com tenant derivado no servidor, provenance, origem, campanha, anúncio, UTM, deduplicação e histórico inicial.
+Leads entram no estágio inicial aceito do Kanban com tenant derivado no servidor, provenance, origem, campanha, anúncio, UTM, deduplicação, campos disponíveis e histórico inicial.
 
-### 6.4 CMS
+### 6.4 CMS Functional Inventory
 
-Inventário obrigatório: Content Workspace, editor universal, adapters, dispatcher, metadata-driven forms, page/landing builders, layouts, seções, blocos, widgets, templates, menus, headers, footers, grids, columns, cards, galleries, videos, tours, forms, CTAs, testimonials, property listings, launches, teams, contacts, maps, embeds, rich text, preview, versioning, scheduling, publication, rollback, permissions, workflow, media, SEO, responsiveness, reusable blocks, themes e customizações data-driven.
+Inventário obrigatório: Content Workspace, editor universal, adapters, dispatcher, metadata-driven forms, page builder, landing page builder, layouts, seções, blocos, widgets, templates, menus, cabeçalhos, rodapés, grids, colunas, cards, galerias, vídeos, tours, formulários, CTAs, depoimentos, listagens de imóveis, lançamentos, equipes, contatos, mapas, embeds, rich text, preview, versionamento, agendamento, publicação, rollback, permissões, workflow, mídia, SEO, responsividade, blocos reutilizáveis, temas e customizações data-driven por tenant.
+
+CMS Component and Layout Registry:
 
 ```text
 component_key
@@ -219,6 +245,8 @@ deprecated
 replacement_component_key
 ```
 
+Capacidades extensíveis:
+
 ```text
 NEW_LAYOUT
 NEW_SECTION
@@ -230,7 +258,16 @@ NEW_EDITOR_CONTROL
 NEW_TENANT_CONFIGURATION
 ```
 
-Taxonomia obrigatória:
+Resultados proibidos:
+
+```text
+TENANT_SPECIFIC_CODE_FORK
+DUPLICATE_EDITOR_PATH
+PARALLEL_CMS_RUNTIME
+CLIENT_SIDE_AUTHORITY
+```
+
+Taxonomia CMS:
 
 ```text
 CMS_BLOCKING_FUNCTIONAL_DEFECT
@@ -250,9 +287,9 @@ CMS_TENANT_CUSTOMIZATION
 CMS_NON_BLOCKING_BACKLOG
 ```
 
-### 6.5 CRM
+### 6.5 CRM Functional Inventory
 
-Inventário obrigatório: lead capture, deduplication, assignment, Kanban, funnel, stages, transitions, tasks, calendar, contacts, visits, proposals, action history, conversation history, notes, attachments, source, campaigns, reports, automations, permissions, audit, import, export, communication integrations, dashboards, KPIs, filters, SLA, alerts, follow-ups e relações com imóvel, corretor e campanha.
+Inventário obrigatório: lead capture, deduplicação, atribuição, Kanban, funil, estágios, transições, tarefas, agenda, contatos, visitas, propostas, histórico de ações, histórico de conversas, notas, anexos, origem, campanhas, relatórios, automações, permissões, auditoria, importação, exportação, integrações de comunicação, dashboards, KPIs, filtros, SLA, alertas, follow-ups e relações com imóvel, corretor e campanha.
 
 ### 6.6 Dashboards e Super Admin
 
@@ -267,7 +304,7 @@ SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
 
 Dashboard funcional: fontes, fórmulas, períodos, timezone, cardinalidade, permissões, filtros, drill-down, ganho, perda, descarte, métricas de imóveis, leads, funil, campanhas, publicação, relatórios, empty states e dados por role.
 
-Super Admin: dashboard global, tenants, usuários, memberships, roles, planos, entitlements, limites, billing visibility, domínios, integrações, portais, campanhas, incidentes, logs, auditoria, suporte, impersonação, health, jobs, cron, filas, webhooks, diagnósticos e relatórios globais.
+Super Admin: dashboard executivo global, tenants, usuários, memberships, roles, planos, entitlements, limites, billing visibility, domínios, integrações, portais, campanhas, incidentes, logs, auditoria, suporte, impersonação, health, jobs, cron, filas, webhooks, diagnósticos e relatórios globais. Impersonação deve ser explícita, server-validated, visível, reversível e auditada.
 
 ## 7. PR-M3 — interface final
 
@@ -277,18 +314,18 @@ UX_PRODUCT_PROFESSIONAL = active collaborator
 CHATGPT_GITHUB_AUDIT = mandatory
 ```
 
-PR-M3 responde pela experiência final do Tenant Admin, Super Admin, CRM, CMS, dashboards, relatórios, onboarding, domínios, portais e campanhas. As imagens do Product Owner são referência de densidade, composição, organização, hierarquia e visibilidade; não definem paleta, tipografia ou identidade final.
+PR-M3 responde pela experiência final de Tenant Admin, Super Admin, CRM, CMS, dashboards, relatórios, onboarding, domínios, portais e campanhas. Imagens do Product Owner são referência de densidade, composição, organização, hierarquia e visibilidade, não de paleta, tipografia ou identidade final.
 
 ## 8. TH-M1 e TH-M2
 
-TH-M1 valida end-to-end: onboarding, usuários/permissões, domínio/DNS/Cloudflare/SSL, white label/site, CMS do rascunho ao rollback, imóvel e nenhum/um/múltiplos portais, dashboards, CRM/Kanban/históricos, Meta, Google, Pixel, analytics, GTM, LinkedIn, TikTok, UTMs, conversões, Super Admin, impersonação e ausência de acesso tenant-scoped sem impersonação.
+TH-M1 valida end-to-end: onboarding; usuários, roles, permissões e convites; domínio, DNS, Cloudflare e SSL; white label, site e publicação; CMS do rascunho ao rollback; imóvel completo; nenhum, um e múltiplos portais; dashboards e relatórios; CRM e Kanban; históricos e conversas; Meta Ads, Google Ads, Meta Pixel, analytics, GTM, LinkedIn, TikTok, UTMs e conversões; Super Admin; impersonação explícita; saída da impersonação; e ausência de acesso tenant-scoped sem impersonação.
 
 ```text
 THM1_FINDINGS_REPORT = required
 THM1_PRODUCT_ACCEPTANCE = not automatic
 ```
 
-TH-M2 usa taxonomia explícita:
+Taxonomia TH-M2:
 
 ```text
 BLOCKING_BACKEND_DEFECT
