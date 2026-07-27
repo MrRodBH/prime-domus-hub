@@ -124,16 +124,14 @@ NEXT_STAGE_AUTHORIZED = none
 READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = true
 ```
 
-## 6. Release Gate
+## 6. Release Gate não autorreferencial
 
-Os campos abaixo devem ser preenchidos exclusivamente com o run associado ao HEAD exato do PR de planejamento:
+O HEAD do PR deve permanecer imutável durante o Release Gate. Os identificadores do run, job e artefato são evidência externa do GitHub Actions e devem ser registrados no relatório final do executor e confirmados pela auditoria direta, sem commit posterior destinado a inserir o próprio resultado no HEAD validado.
 
 ```text
-RELEASE_GATE_RUN_ID = pending
-RELEASE_GATE_JOB_ID = pending
-RELEASE_GATE_RESULT = pending
-RELEASE_GATE_ARTIFACT_ID = pending
-RELEASE_GATE_ARTIFACT_DIGEST = pending
+RELEASE_GATE_TARGET = exact immutable planning PR HEAD
+RELEASE_GATE_SELF_REFERENTIAL_UPDATE = prohibited
+RELEASE_GATE_EXTERNAL_METADATA_REQUIRED = true
 ```
 
 A submissão não declara aceite arquitetural nem autoriza implementação.
