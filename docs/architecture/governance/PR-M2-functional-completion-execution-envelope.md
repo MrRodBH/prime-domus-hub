@@ -2,7 +2,7 @@
 
 ## Status
 
-**Frozen for audit — implementation not ready and not authorized**
+**Frozen for final direct external audit — implementation not finite, not ready and not authorized**
 
 ```text
 STAGE_ID = PR-M2
@@ -12,20 +12,31 @@ PREDECESSOR = RPD-01 Accepted / Closed
 SUCCESSOR = PR-M3
 AUDITED_MAIN_HEAD = 985a48e26c72c36aa80cac21ab32c768dac84c17
 
+PRM2_PRE_PRINCIPAL_GATE_STATE = Planning — Ready for Final Direct External Audit
+PRM2_STATE = Planned — Blocked
 PRM2_PLANNING_AUTHORIZED = true
 PRM2_PLANNING_EXECUTED = true
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 
 IMPLEMENTATION_SCOPE_FINITE = false
 PRM2_IMPLEMENTATION_READY = false
+READY_FOR_PRM2_PRINCIPAL_PROMPT = false
 
 PRM2_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_REMAINING_IMPLEMENTATION_PROMPT_BUDGET = 2/2
+
 EXACT_HEAD_RELEASE_GATE_REQUIRED = true
-EXACT_HEAD_RELEASE_GATE_AVAILABLE = false
-OBSERVED_PR_GATE_CHECKOUT = pull_request_merge_ref
-PLANNING_BLOCKED_EXTERNAL = true
+EXACT_HEAD_RELEASE_GATE_AVAILABLE = true
+EXACT_HEAD_RELEASE_GATE_ENFORCED = true
+OBSERVED_PR_GATE_CHECKOUT = exact_pull_request_head_sha
+PLANNING_BLOCKED_EXTERNAL = false
+CYCLE_A_RELEASE_GATE_HEAD = c215a511b7e3230020d961b32b1c61ee86cfe427
+CYCLE_A_RELEASE_GATE_RUN_ID = 30295193938
+CYCLE_A_RELEASE_GATE_JOB_ID = 90074353598
+CYCLE_A_RELEASE_GATE_RESULT = success
+CYCLE_A_RELEASE_GATE_ARTIFACT_ID = 8664411809
+CYCLE_A_RELEASE_GATE_ARTIFACT_DIGEST = sha256:834903b12c244d3d216bc1fa1717afa1878e5ba95bceabd58084e4ccb87a2ce2
 ```
 
 ## 1. Objetivo fechado
@@ -150,8 +161,10 @@ Como `PRM2_IMPLEMENTATION_READY = false`, nenhum arquivo de implementação est�
 
 ```text
 FILES_ALLOWED = none
-FILES_PROHIBITED = all runtime, frontend, database, migration, workflow and dependency files
+FILES_PROHIBITED = all runtime, frontend, database, migration and dependency files
 ```
+
+A alteração de `.github/workflows/release-gate.yml` realizada pelo corretivo consolidado pertence exclusivamente ao gate documental/CI pré-principal, não constitui implementação da PR-M2 e não amplia `FILES_ALLOWED` da futura implementação.
 
 Uma lista futura de `FILES_ALLOWED` somente poderá ser materializada por alteração documental auditada e aceita, sem consumir antecipadamente o prompt principal.
 
@@ -286,15 +299,18 @@ PRM2_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_REMAINING_IMPLEMENTATION_PROMPT_BUDGET = 2/2
 ```
 
-O planejamento não consome budget de implementação.
+O planejamento e seu corretivo GitHub-native não consomem budget de implementação.
 
 ## 18. Estado máximo após esta execução
 
 ```text
-PRM2_STATE = Planning — Blocked External
+PRM2_PRE_PRINCIPAL_GATE_STATE = Planning — Ready for Final Direct External Audit
+PRM2_STATE = Planned — Blocked
+IMPLEMENTATION_SCOPE_FINITE = false
 PRM2_IMPLEMENTATION_READY = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM3_STATE = Planned — Blocked by PR-M2
+PRM3_IMPLEMENTATION_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
 
@@ -310,7 +326,9 @@ O prompt principal somente poderá ser emitido após:
 6. autorização expressa do Rodolfo.
 
 ```text
-READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = false
+READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = true
 READY_FOR_PRM2_PRINCIPAL_PROMPT = false
-EXACT_HEAD_RELEASE_GATE_BLOCKER = active
+EXACT_HEAD_RELEASE_GATE_BLOCKER = resolved
+IMPLEMENTATION_SCOPE_BLOCKER = active
+AUTONOMOUS_DECISIONS_BLOCKER = active
 ```
