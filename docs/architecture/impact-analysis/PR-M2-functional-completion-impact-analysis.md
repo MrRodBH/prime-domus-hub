@@ -14,9 +14,13 @@ UNCLASSIFIED_CAPABILITIES = 0
 IMPLEMENTATION_SCOPE_FINITE = false
 PRM2_IMPLEMENTATION_READY = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
+READY_FOR_PRM2_PRINCIPAL_PROMPT = false
+PRM2_PRE_PRINCIPAL_GATE_STATE = Planning — Ready for Final Direct External Audit
+PRM2_STATE = Planned — Blocked
 PRM2_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_REMAINING_IMPLEMENTATION_PROMPT_BUDGET = 2/2
+EXACT_HEAD_RELEASE_GATE_ENFORCED = true
 ```
 
 ## 1. Resultado
@@ -99,7 +103,54 @@ IS/SG: escopo principal e gate separado. BR: motivo. AE: teste determinístico +
 - Portal Connector Registry canônico não está materializado.
 - Cloudflare e commercial admin authorization exigem decisões autônomas.
 
-## 4. Matriz integral
+## 4. Impact Analysis do corretivo Exact-Head Release Gate
+
+### 4.1 Defeito confirmado
+
+```text
+PULL_REQUEST_WORKFLOW_SHA = temporary merge ref
+PLANNING_BRANCH_HEAD_SHA = actual branch commit
+EXACT_HEAD_MATCH = false
+```
+
+O workflow anterior utilizava `actions/checkout@v4` sem `ref`, fazendo o evento `pull_request` validar `refs/pull/58/merge`. A evidência de CI não podia ser atribuída ao HEAD real da branch.
+
+### 4.2 Risco corrigido
+
+A evidência de typecheck, build e geração determinística somente pode ser vinculada ao commit efetivamente executado. O contrato foi alterado para selecionar `github.event.pull_request.head.sha` em Pull Requests e `github.sha` em pushes para `main`, seguido de comparação fail-closed com `git rev-parse HEAD`.
+
+### 4.3 Requisitos de segurança preservados
+
+```text
+WORKFLOW_EVENT = pull_request and push on main
+PULL_REQUEST_TARGET = exact pull request head SHA
+PUSH_TARGET = github.sha
+PULL_REQUEST_TARGET_EVENT = prohibited
+WRITE_PERMISSIONS = prohibited
+CONTENTS_PERMISSION = read
+SECRETS_ADDED = false
+DEPLOY_CREDENTIALS_ADDED = false
+UNTRUSTED_CODE_WITH_WRITE_TOKEN = prohibited
+```
+
+### 4.4 Evidência do Ciclo A
+
+```text
+CYCLE_A_RELEASE_GATE_HEAD = c215a511b7e3230020d961b32b1c61ee86cfe427
+CYCLE_A_RELEASE_GATE_RUN_ID = 30295193938
+CYCLE_A_RELEASE_GATE_JOB_ID = 90074353598
+CYCLE_A_RELEASE_GATE_EXPECTED_SHA = c215a511b7e3230020d961b32b1c61ee86cfe427
+CYCLE_A_RELEASE_GATE_CHECKED_OUT_SHA = c215a511b7e3230020d961b32b1c61ee86cfe427
+CYCLE_A_RELEASE_GATE_EXACT_HEAD_MATCH = true
+CYCLE_A_RELEASE_GATE_MERGE_REF_USED = false
+CYCLE_A_RELEASE_GATE_RESULT = success
+CYCLE_A_RELEASE_GATE_ARTIFACT_ID = 8664411809
+CYCLE_A_RELEASE_GATE_ARTIFACT_DIGEST = sha256:834903b12c244d3d216bc1fa1717afa1878e5ba95bceabd58084e4ccb87a2ce2
+```
+
+A mudança é restrita ao contrato de CI do gate pré-principal e aos documentos de planejamento. Não modifica runtime, frontend, banco, migrations, RLS, grants, SQL functions, dependências ou o produto.
+
+## 5. Matriz integral
 
 |ID|DOM|CAPABILITY|ROLE|FLOW|FE|SB|DB|AU|TS|DOC|CLASSIFICATION|EF|ES|DEP|SEC|TI|CH|OWNER|IS|SG|BR|AE|
 |---|:---:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|:---:|
@@ -352,11 +403,13 @@ IS/SG: escopo principal e gate separado. BR: motivo. AE: teste determinístico +
 |COM-018|O|Subscription lifecycle operacional|T/S/SA|E|2|2|2|2|0|R|P|18|26|R|A|1|1|M|Y|N|-|A|
 |COM-019|O|MRR e receita realizada|T/S/SA|E|2|1|2|0|0|R|F|18|26|R|A|1|7|M|N|N|-|A|
 
-## 5. Conclusão
+## 6. Conclusão
 
 ```text
 IMPLEMENTATION_SCOPE_FINITE = false
 PRM2_IMPLEMENTATION_READY = false
+PRM2_IMPLEMENTATION_AUTHORIZED = false
+READY_FOR_PRM2_PRINCIPAL_PROMPT = false
 CLOUDFLARE_INTEGRATION_MODEL_DECISION_REQUIRED = true
 COMMERCIAL_ADMIN_AUTHORIZATION_DECISION_REQUIRED = true
 FILES_OUTSIDE_ALLOWED = 0
@@ -364,9 +417,12 @@ RUNTIME_FILES_CHANGED = 0
 FRONTEND_FILES_CHANGED = 0
 DATABASE_FILES_CHANGED = 0
 MIGRATIONS_CHANGED = 0
-WORKFLOW_FILES_CHANGED = 0
+WORKFLOW_FILES_CHANGED = 1
 DEPENDENCIES_CHANGED = 0
+CONFLICTING_CURRENT_DOCUMENTS = 0
+DUPLICATE_CURRENT_STAGE_ENTRIES = 0
+TERMINAL_STAGES_REOPENED = 0
 READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = true
 ```
 
-A implementação principal permanece não autorizada. O budget continua `2/2`.
+A prontidão declarada qualifica exclusivamente o planejamento para auditoria externa final. A implementação principal permanece não finita, bloqueada e não autorizada. O budget continua `2/2`.
