@@ -1,10 +1,10 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — RPD-01 Accepted; corrective reconciliation ready for final external audit  
+**Status:** Active governance — RPD-01 Accepted / Closed  
 **Authority:** `FINITE_DELIVERY_GOVERNANCE.md`, audited GitHub `main` and accepted RPD-01 authority  
-**Current main after planning merge:** `1acf99e272e448e834b52a0018e3d34b79f0a133`
+**Current audited main after reconciliation merge:** `acdc461b0a3c430339c7d07d0fafc94063eca5d8`
 
-No stage may start without a frozen Execution Envelope and explicit authorization. Each stage admits at most one principal implementation prompt and one consolidated corrective prompt.
+No stage may start without a frozen Execution Envelope and explicit authorization. Each stage admits at most one principal prompt and one consolidated corrective prompt.
 
 ## 1. Current finite sequence
 
@@ -24,7 +24,7 @@ No stage may start without a frozen Execution Envelope and explicit authorizatio
 | 12 | GNR-01 | Accepted | completed predecessor |
 | 13 | HRR-01 | Accepted | completed predecessor |
 | 14 | HRI-01 | Accepted / Closed | completed predecessor |
-| 15 | RPD-01 | Accepted; corrective reconciliation under final audit | no automatic successor |
+| 15 | RPD-01 | Accepted / Closed | no automatic successor |
 | 16 | PR-M2 | Planned — Blocked pending explicit authorization | frozen functional envelope required |
 | 17 | PR-M3 | Planned — Blocked by PR-M2 | PR-M2 Accepted required |
 | 18 | PR-M3 deliverable — Pre-Homologation Release Candidate Deploy | Not autonomous | PR-M3 exit gate |
@@ -34,12 +34,13 @@ No stage may start without a frozen Execution Envelope and explicit authorizatio
 | 22 | Homologação formal | Blocked by LSV-03 | explicit authorization required |
 | 23 | Produção | Blocked until homologation acceptance | explicit production decision required |
 
-## 2. RPD-01 accepted evidence and budget
+## 2. RPD-01 terminal evidence and budget
 
 ```text
-FINAL_EXTERNAL_AUDIT = Accepted
-RPD01_STATE = Accepted
+RPD01_STATE = Accepted / Closed
 RPD01_ACCEPTED = true
+RPD01_CLOSURE_COMPLETE = true
+
 RPD01_PLANNING_PR = 55
 RPD01_PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
 RPD01_PLANNING_MERGED = true
@@ -50,14 +51,35 @@ RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
 RPD01_PLANNING_RELEASE_GATE_RESULT = success
 RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
 RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
-POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
-POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
-POST_MERGE_RELEASE_GATE_RESULT = success
-POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
-POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
-RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
-RPD01_RECONCILIATION_MERGED = false
-RPD01_RECONCILIATION_MERGE_AUTHORIZED = false
+
+POST_PLANNING_MERGE_RELEASE_GATE_RUN_ID = 30134139802
+POST_PLANNING_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_PLANNING_MERGE_RELEASE_GATE_RESULT = success
+POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
+POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
+
+RPD01_RECONCILIATION_FINAL_AUDIT = Accepted
+RPD01_RECONCILIATION_MERGE_AUTHORIZED = true
+RPD01_RECONCILIATION_PR = 56
+RPD01_RECONCILIATION_HEAD = 90b4792b90e66883ebcb1caa62dad9b644793f93
+RPD01_RECONCILIATION_RELEASE_GATE_RUN_ID = 30164381209
+RPD01_RECONCILIATION_RELEASE_GATE_JOB_ID = 89694819354
+RPD01_RECONCILIATION_RELEASE_GATE_RESULT = success
+RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_ID = 8621159498
+RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_DIGEST = sha256:487c976138a033a5d7fe44b51cc517a589e35862aeacfc1437688f1ef6c3081e
+RPD01_RECONCILIATION_MERGE_METHOD = squash
+RPD01_RECONCILIATION_MERGE_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
+RPD01_RECONCILIATION_MERGED = true
+
+FINAL_PUSH_RELEASE_GATE_RUN_ID = 30270513019
+FINAL_PUSH_RELEASE_GATE_JOB_ID = 89991615902
+FINAL_PUSH_RELEASE_GATE_EVENT = push
+FINAL_PUSH_RELEASE_GATE_BRANCH = main
+FINAL_PUSH_RELEASE_GATE_HEAD_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
+FINAL_PUSH_RELEASE_GATE_RESULT = success
+FINAL_PUSH_RELEASE_GATE_ARTIFACT_ID = 8654686143
+FINAL_PUSH_RELEASE_GATE_ARTIFACT_DIGEST = sha256:5b16716597c3dd036ffb7a6600ff6e62768adc8a04293d84b0f891acda6fb400
+
 RPD01_PRINCIPAL_PROMPT_CONSUMED = true
 RPD01_CORRECTIVE_PROMPT_CONSUMED = true
 RPD01_REMAINING_PROMPT_BUDGET = 0/2
@@ -67,7 +89,7 @@ RPD01_REMAINING_PROMPT_BUDGET = 0/2
 
 ```text
 HRI-01 Accepted / Closed
-→ RPD-01 Accepted
+→ RPD-01 Accepted / Closed
 → PR-M2 Planned — Blocked pending explicit authorization
 → PR-M3
 → Pre-Homologation Release Candidate Deploy
@@ -96,9 +118,7 @@ Historical evidence remains preserved. Rejected, Superseded or historical artifa
 
 ## 5. PR-M2 frozen-envelope requirements
 
-PR-M2 is next planned but unauthorized. Before its principal prompt, direct GitHub audit and Impact Analysis must freeze the detailed inventory below.
-
-### 5.1 Capability classification
+PR-M2 is planned but unauthorized. Before its principal prompt, direct GitHub audit and Impact Analysis must classify each capability as:
 
 ```text
 IMPLEMENTED_AND_VALIDATED
@@ -111,11 +131,9 @@ REQUIRES_SEPARATE_GATE
 FUTURE_COMMERCIAL_SCOPE
 ```
 
-### 5.2 Tenant and domain completion
+### 5.1 Tenant, domain and Cloudflare
 
-- tenant lifecycle, onboarding, users, memberships, roles, permissions and invitations;
-- Configuration Center, white label, site and publication;
-- DNS, TXT verification, SSL, anti-takeover, canonical host, redirects, rollback, status and diagnostics.
+The envelope must cover tenant lifecycle, onboarding, users, memberships, roles, permissions, invitations, Configuration Center, white label, public site, DNS, TXT verification, SSL, anti-takeover, canonical host, redirects, publication, rollback, status and diagnostics.
 
 ```text
 CLOUDFLARE_INTEGRATION_MODEL =
@@ -126,7 +144,7 @@ OR HYBRID
 
 No option is preselected.
 
-### 5.3 Portal Connector Registry
+### 5.2 Portal Connector Registry
 
 ```text
 portal_id
@@ -156,7 +174,7 @@ CUSTOM_ADAPTER
 
 The registry is open-ended. `portal_name` is configurable; integration method is declared and validated; secure credential references and versionable adapter configuration are mandatory; tenant code forks are prohibited.
 
-### 5.4 Marketing and lead ingestion
+### 5.3 Marketing and lead ingestion
 
 ```text
 META_ADS = required
@@ -171,7 +189,7 @@ FUTURE_CHANNELS = extensible
 
 Campaign leads enter the accepted initial Kanban stage with server-derived tenant authority, provenance, source, campaign, ad, UTM, deduplication and initial history.
 
-### 5.5 CMS inventory and registry
+### 5.4 CMS inventory and registry
 
 Inventory: Content Workspace, universal editor, adapters, dispatcher, metadata-driven forms, page and landing builders, layouts, sections, blocks, widgets, templates, menus, headers, footers, grids, columns, cards, galleries, videos, tours, forms, CTAs, testimonials, property listings, launches, teams, contacts, maps, embeds, rich text, preview, versioning, scheduling, publication, rollback, permissions, workflow, media, SEO, responsiveness, reusable blocks, themes and data-driven tenant customization.
 
@@ -206,6 +224,13 @@ NEW_TENANT_CONFIGURATION
 ```
 
 ```text
+TENANT_SPECIFIC_CODE_FORK = prohibited
+DUPLICATE_EDITOR_PATH = prohibited
+PARALLEL_CMS_RUNTIME = prohibited
+CLIENT_SIDE_AUTHORITY = prohibited
+```
+
+```text
 CMS_BLOCKING_FUNCTIONAL_DEFECT
 CMS_BLOCKING_EDITOR_DEFECT
 CMS_BLOCKING_PUBLICATION_DEFECT
@@ -223,11 +248,11 @@ CMS_TENANT_CUSTOMIZATION
 CMS_NON_BLOCKING_BACKLOG
 ```
 
-### 5.6 CRM inventory
+### 5.5 CRM inventory
 
-Inventory: lead capture, deduplication, assignment, Kanban, funnel, stages, transitions, tasks, calendar, contacts, visits, proposals, action/conversation history, notes, attachments, source, campaigns, reports, automations, permissions, audit, import, export, communication integrations, dashboards, KPIs, filters, SLA, alerts, follow-ups and relationships to property, broker and campaign.
+Inventory: lead capture, deduplication, assignment, Kanban, funnel, stages, transitions, tasks, calendar, contacts, visits, proposals, action and conversation history, notes, attachments, source, campaigns, reports, automations, permissions, audit, import, export, communication integrations, dashboards, KPIs, filters, SLA, alerts, follow-ups and relationships to property, broker and campaign.
 
-### 5.7 Dashboards and Super Admin
+### 5.6 Dashboards and Super Admin
 
 ```text
 PRM2_DASHBOARD_FUNCTIONAL_AUTHORITY = true
@@ -238,7 +263,7 @@ SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
 SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
 ```
 
-Dashboard inventory: data source, formulas, periods, timezone, cardinality, permissions, filters, drill-down, won/lost/discarded, property/lead/funnel/campaign/publication metrics, reports, empty states and role-scoped data.
+Dashboard inventory: data source, formulas, periods, timezone, cardinality, permissions, filters, drill-down, won, lost, discarded, property/lead/funnel/campaign/publication metrics, reports, empty states and role-scoped data.
 
 Super Admin inventory: global dashboard, tenants, users, memberships, roles, plans, entitlements, limits, billing visibility, domains, integrations, portals, campaigns, incidents, logs, audit, support, impersonation, health, jobs, cron, queues, webhooks, diagnostics and global reports.
 
@@ -254,7 +279,7 @@ PR-M3 covers final UX/UI and operational readiness for Tenant Admin, Super Admin
 
 ## 7. TH-M1, TH-M2 and LSV-03
 
-TH-M1 validates tenant onboarding, users/permissions, domain/DNS/Cloudflare/SSL, white label/site, CMS draft-to-rollback, complete property and no/one/multiple portals, dashboards, CRM/Kanban/histories, Meta, Google, Pixel, analytics, GTM, LinkedIn, TikTok, UTMs, conversions, Super Admin and explicit impersonation boundaries.
+TH-M1 validates tenant onboarding, users and permissions, domain/DNS/Cloudflare/SSL, white label/site, CMS draft-to-rollback, complete property and no/one/multiple portals, dashboards, CRM/Kanban/histories, Meta, Google, Pixel, analytics, GTM, LinkedIn, TikTok, UTMs, conversions, Super Admin and explicit impersonation boundaries.
 
 ```text
 THM1_FINDINGS_REPORT = required
@@ -331,7 +356,7 @@ THM2_SUPER_ADMIN_REMEDIATION_OWNERSHIP = true
 THM2_INTEGRATION_REMEDIATION_OWNERSHIP = true
 ```
 
-## 9. Product discovery and flexibility
+## 9. Product Discovery Contract
 
 ```text
 DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
@@ -343,9 +368,6 @@ CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 DASHBOARD_REFINEMENT_IS_EXPECTED = true
 SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 TENANT_CUSTOMIZATION_IS_EXPECTED = true
-```
-
-```text
 SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
 RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
 UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
@@ -356,21 +378,7 @@ DUPLICATE_CMS_EDITOR_PATH = prohibited
 SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
 ```
 
-## 10. Permanent security invariants
-
-```text
-SERVER_IS_SOLE_TENANT_AUTHORITY = true
-CLIENT_TENANT_AUTHORITY = false
-HEADER_TENANT_AUTHORITY = false
-PATH_TENANT_AUTHORITY = false
-FAIL_FAST = true
-FAIL_CLOSED = true
-SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
-SAME_BACKEND_HOMOLOGATION_CELL = binding
-EXTERNAL_SUPABASE_CANONICAL_FALLBACK = prohibited
-```
-
-## 11. Authorization state
+## 10. Current authorization state
 
 ```text
 PRM2_PLANNING_AUTHORIZED = false
