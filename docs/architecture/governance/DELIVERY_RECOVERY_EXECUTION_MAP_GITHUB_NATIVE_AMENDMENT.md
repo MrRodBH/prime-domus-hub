@@ -2,22 +2,22 @@
 
 ## Status
 
-**Historical recovery authority preserved; RPD-01 Accepted; corrective reconciliation ready for final direct external audit**
+**Historical recovery authority preserved; RPD-01 Accepted / Closed**
 
 ```text
-CURRENT_MAIN_HEAD = 1acf99e272e448e834b52a0018e3d34b79f0a133
+CURRENT_MAIN_HEAD = acdc461b0a3c430339c7d07d0fafc94063eca5d8
 CURRENT_ACCEPTED_STAGE = RPD-01
+RPD01_STATE = Accepted / Closed
 RPD01_ACCEPTED = true
 RPD01_PLANNING_MERGED = true
-RPD01_RECONCILIATION_STATE = Corrected — Ready for Final Direct External Audit
-RPD01_RECONCILIATION_MERGED = false
-RPD01_RECONCILIATION_MERGE_AUTHORIZED = false
+RPD01_RECONCILIATION_MERGED = true
+RPD01_CLOSURE_COMPLETE = true
 NEXT_STAGE_AUTHORIZED = none
 ```
 
 ## 1. Purpose and authority
 
-This amendment preserves the factual GitHub-native recovery chain that restored the accepted generated `Register` authority. It no longer defines a separate successor chain after HRI-01.
+This amendment preserves the factual GitHub-native recovery chain that restored the accepted generated `Register` authority. It does not define a separate successor chain after HRI-01.
 
 Authority order:
 
@@ -36,7 +36,7 @@ GNR-01 = Accepted
 HRR-01 = Accepted
 HRC-01 = Rejected — Terminal
 HRI-01 = Accepted / Closed
-RPD-01 = Accepted
+RPD-01 = Accepted / Closed
 ```
 
 HRI-01 established:
@@ -51,7 +51,7 @@ STRATEGY_B_ALLOWED = false
 
 The sole accepted authority is emitted by the official TanStack/Vite generator in `src/routeTree.gen.ts`.
 
-## 3. RPD-01 accepted evidence
+## 3. RPD-01 terminal evidence
 
 ```text
 RPD01_PLANNING_PR = 55
@@ -64,21 +64,44 @@ RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a400
 RPD01_PLANNING_MERGED = true
 RPD01_PLANNING_MERGE_METHOD = squash
 RPD01_PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
-POST_MERGE_RELEASE_GATE_RUN_ID = 30134139802
-POST_MERGE_RELEASE_GATE_JOB_ID = 89614524262
-POST_MERGE_RELEASE_GATE_EVENT = push
-POST_MERGE_RELEASE_GATE_BRANCH = main
-POST_MERGE_RELEASE_GATE_HEAD_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
-POST_MERGE_RELEASE_GATE_RESULT = success
-POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
-POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
+
+POST_PLANNING_MERGE_RELEASE_GATE_RUN_ID = 30134139802
+POST_PLANNING_MERGE_RELEASE_GATE_JOB_ID = 89614524262
+POST_PLANNING_MERGE_RELEASE_GATE_EVENT = push
+POST_PLANNING_MERGE_RELEASE_GATE_BRANCH = main
+POST_PLANNING_MERGE_RELEASE_GATE_HEAD_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
+POST_PLANNING_MERGE_RELEASE_GATE_RESULT = success
+POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
+POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
+
+RPD01_RECONCILIATION_FINAL_AUDIT = Accepted
+RPD01_RECONCILIATION_MERGE_AUTHORIZED = true
+RPD01_RECONCILIATION_PR = 56
+RPD01_RECONCILIATION_HEAD = 90b4792b90e66883ebcb1caa62dad9b644793f93
+RPD01_RECONCILIATION_RELEASE_GATE_RUN_ID = 30164381209
+RPD01_RECONCILIATION_RELEASE_GATE_JOB_ID = 89694819354
+RPD01_RECONCILIATION_RELEASE_GATE_RESULT = success
+RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_ID = 8621159498
+RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_DIGEST = sha256:487c976138a033a5d7fe44b51cc517a589e35862aeacfc1437688f1ef6c3081e
+RPD01_RECONCILIATION_MERGE_METHOD = squash
+RPD01_RECONCILIATION_MERGE_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
+RPD01_RECONCILIATION_MERGED = true
+
+FINAL_PUSH_RELEASE_GATE_RUN_ID = 30270513019
+FINAL_PUSH_RELEASE_GATE_JOB_ID = 89991615902
+FINAL_PUSH_RELEASE_GATE_EVENT = push
+FINAL_PUSH_RELEASE_GATE_BRANCH = main
+FINAL_PUSH_RELEASE_GATE_HEAD_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
+FINAL_PUSH_RELEASE_GATE_RESULT = success
+FINAL_PUSH_RELEASE_GATE_ARTIFACT_ID = 8654686143
+FINAL_PUSH_RELEASE_GATE_ARTIFACT_DIGEST = sha256:5b16716597c3dd036ffb7a6600ff6e62768adc8a04293d84b0f891acda6fb400
 ```
 
 ## 4. Current Product Delivery path
 
 ```text
 HRI-01 Accepted / Closed
-→ RPD-01 Accepted
+→ RPD-01 Accepted / Closed
 → PR-M2 Planned — Blocked pending explicit authorization
 → PR-M3
 → Pre-Homologation Release Candidate Deploy
@@ -105,27 +128,27 @@ RC-01 = Absorbed by TH-M1 and TH-M2
 
 No deliverable, budget or authorization is transferred automatically from LSV-02, LSR-01, LSR-02, FRP-01, HVP-01 or HRC-01.
 
-## 6. Corrective preservation contract
+## 6. Preserved delivery contract
 
-The corrective restores accepted detail removed during the first reconciliation. Canonical authority now explicitly preserves:
-
-- configurable `portal_name` and validated `integration_method`;
-- Portal Connector Registry fields, secure credential references and versionable adapters;
-- Cloudflare decision alternatives `MANUAL_ASSISTED`, `API_AUTOMATED` and `HYBRID`;
-- complete CMS and CRM functional inventories;
-- CMS Component and Layout Registry schema;
-- explicit CMS, CRM and Super Admin defect taxonomies;
-- deterministic tenant and Super Admin dashboard authority;
-- Super Admin global Control Plane inventory and explicit impersonation boundary;
-- TH-M1 end-to-end flows and TH-M2 consolidated classification;
-- ownership matrix across PR-M2, PR-M3, TH-M1 and TH-M2.
-
-The exact detailed contracts are authoritative in:
+The accepted detailed contracts remain authoritative in:
 
 - `docs/architecture/ROADMAP_ARCHITECTURAL.md`;
 - `docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`;
 - `docs/architecture/governance/RPD-01-product-delivery-rebaseline.md`;
 - `docs/architecture/impact-analysis/RPD-01-roadmap-product-delivery-rebaseline-impact-analysis.md`.
+
+They preserve:
+
+- configurable `portal_name` and validated `integration_method`;
+- Portal Connector Registry fields, secure credential references and versionable adapters;
+- Cloudflare alternatives `MANUAL_ASSISTED`, `API_AUTOMATED` and `HYBRID`;
+- CMS and CRM functional inventories;
+- CMS Component and Layout Registry schema and explicit CMS taxonomy;
+- deterministic dashboard authority and final-presentation split;
+- Super Admin global Control Plane inventory and impersonation boundary;
+- TH-M1 end-to-end flows and TH-M2 concrete classification;
+- ownership matrix across PR-M2, PR-M3, TH-M1 and TH-M2;
+- Product Discovery, Customization and Test Feedback Contract.
 
 ## 7. Permanent invariants
 
@@ -153,9 +176,6 @@ CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 DASHBOARD_REFINEMENT_IS_EXPECTED = true
 SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
 TENANT_CUSTOMIZATION_IS_EXPECTED = true
-```
-
-```text
 SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
 RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
 UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
