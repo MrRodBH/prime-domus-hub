@@ -2,10 +2,10 @@
 
 ## Status
 
-**Planning — Ready for Final Direct External Audit**
+**Planning — Blocked External**
 
 ```text
-STATUS = READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT
+STATUS = BLOCKED_EXTERNAL
 STAGE_ID = PR-M2
 EXECUTION_TYPE = pre_principal_architecture_first_gate
 
@@ -110,7 +110,7 @@ COMMERCIAL_FRONTEND_VISIBILITY_COMPLETE = false
 ## 5. Prontidão e governança
 
 ```text
-PRM2_STATE = Planning — Ready for Final Direct External Audit
+PRM2_STATE = Planning — Blocked External
 PRM2_PLANNING_AUTHORIZED = true
 PRM2_PLANNING_EXECUTED = true
 PRM2_IMPLEMENTATION_AUTHORIZED = false
@@ -118,20 +118,28 @@ PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM2_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_REMAINING_IMPLEMENTATION_PROMPT_BUDGET = 2/2
+EXACT_HEAD_RELEASE_GATE_REQUIRED = true
+EXACT_HEAD_RELEASE_GATE_AVAILABLE = false
+OBSERVED_PR_GATE_CHECKOUT = pull_request_merge_ref
+PLANNING_BLOCKED_EXTERNAL = true
 
 PRM3_STATE = Planned — Blocked by PR-M2
 NEXT_STAGE_AUTHORIZED = none
-READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = true
+READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = false
 ```
 
-## 6. Release Gate não autorreferencial
+## 6. Release Gate e bloqueio externo
 
-O HEAD do PR deve permanecer imutável durante o Release Gate. Os identificadores do run, job e artefato são evidência externa do GitHub Actions e devem ser registrados no relatório final do executor e confirmados pela auditoria direta, sem commit posterior destinado a inserir o próprio resultado no HEAD validado.
+O workflow vigente possui `pull_request` e `push` apenas para `main`, usando `actions/checkout@v4` sem `ref`. No PR, o GitHub Actions validou o merge ref temporário, não o commit de branch. Portanto, o requisito de Release Gate sobre o HEAD exato não foi satisfeito e não pode ser corrigido dentro de `FILES_ALLOWED`.
 
 ```text
-RELEASE_GATE_TARGET = exact immutable planning PR HEAD
-RELEASE_GATE_SELF_REFERENTIAL_UPDATE = prohibited
-RELEASE_GATE_EXTERNAL_METADATA_REQUIRED = true
+RELEASE_GATE_REQUIRED_HEAD = exact planning branch HEAD
+OBSERVED_RELEASE_GATE_CHECKOUT = refs/pull/58/merge
+OBSERVED_RELEASE_GATE_RESULT = success
+EXACT_HEAD_RELEASE_GATE_RESULT = not_executed
+WORKFLOW_CHANGE_REQUIRED = true
+WORKFLOW_CHANGE_AUTHORIZED = false
+PLANNING_BLOCKED_EXTERNAL = true
 ```
 
 A submissão não declara aceite arquitetural nem autoriza implementação.
