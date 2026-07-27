@@ -1,8 +1,8 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — RPD-01 Accepted / Closed; PR-M2 Pre-Principal Planning Gate ready for final direct external audit; implementation blocked  
+**Status:** Active governance — RPD-01 Accepted / Closed; PR-M2 Pre-Principal Planning Gate Accepted / Merged; implementation Planned / Blocked  
 **Authority:** `FINITE_DELIVERY_GOVERNANCE.md`, audited GitHub `main`, accepted RPD-01 authority and PR-M2 planning artifacts  
-**Current audited main:** `985a48e26c72c36aa80cac21ab32c768dac84c17`
+**Current audited main:** `fc055cb69c2373a4adbc99d4ac02614ecfbde74f`
 
 No stage may start without a frozen Execution Envelope and explicit authorization. Each stage admits at most one principal prompt and one consolidated corrective prompt.
 
@@ -25,8 +25,8 @@ No stage may start without a frozen Execution Envelope and explicit authorizatio
 | 13 | HRR-01 | Accepted | completed predecessor |
 | 14 | HRI-01 | Accepted / Closed | completed predecessor |
 | 15 | RPD-01 | Accepted / Closed | no automatic successor |
-| 16 | PR-M2 | Pre-Principal Planning Gate — Ready for Final Direct External Audit; implementation — Planned / Blocked | no automatic successor; future implementation requires finite scope and explicit authorization |
-| 17 | PR-M3 | Planned — Blocked by PR-M2 | PR-M2 implementation Accepted required |
+| 16 | PR-M2 | Pre-Principal Planning Gate — Accepted / Merged; implementation — Planned / Blocked | no automatic successor; future implementation requires finite scope and explicit authorization |
+| 17 | PR-M3 | Planned — Blocked by PR-M2 | PR-M2 Accepted required |
 | 18 | PR-M3 deliverable — Pre-Homologation Release Candidate Deploy | Not autonomous | PR-M3 exit gate |
 | 19 | TH-M1 | Planned — Blocked by PR-M3 | internal UAT only |
 | 20 | TH-M2 | Planned — Blocked by TH-M1 | consolidated remediation and acceptance |
@@ -90,7 +90,7 @@ RPD01_REMAINING_PROMPT_BUDGET = 0/2
 ```text
 HRI-01 Accepted / Closed
 → RPD-01 Accepted / Closed
-→ PR-M2 Pre-Principal Planning Gate — Ready for Final Direct External Audit
+→ PR-M2 Pre-Principal Planning Gate — Accepted / Merged
 → PR-M2 implementation — Planned / Blocked
 → no automatic successor
 ```
@@ -142,17 +142,6 @@ PRM2_FUTURE_COMMERCIAL_SCOPE_COUNT = 5
 PRM2_UNCLASSIFIED_CAPABILITIES = 0
 PRM2_IMPLEMENTATION_SCOPE_FINITE = false
 PRM2_IMPLEMENTATION_READY = false
-PRM2_IMPLEMENTATION_AUTHORIZED = false
-READY_FOR_PRM2_PRINCIPAL_PROMPT = false
-PRM2_PRE_PRINCIPAL_GATE_STATE = Planning — Ready for Final Direct External Audit
-PRM2_STATE = Planned — Blocked
-EXACT_HEAD_RELEASE_GATE_ENFORCED = true
-CYCLE_A_RELEASE_GATE_HEAD = c215a511b7e3230020d961b32b1c61ee86cfe427
-CYCLE_A_RELEASE_GATE_RUN_ID = 30295193938
-CYCLE_A_RELEASE_GATE_JOB_ID = 90074353598
-CYCLE_A_RELEASE_GATE_RESULT = success
-CYCLE_A_RELEASE_GATE_ARTIFACT_ID = 8664411809
-CYCLE_A_RELEASE_GATE_ARTIFACT_DIGEST = sha256:834903b12c244d3d216bc1fa1717afa1878e5ba95bceabd58084e4ccb87a2ce2
 ```
 
 Planning authorities:
@@ -161,7 +150,7 @@ Planning authorities:
 - `docs/architecture/governance/PR-M2-functional-completion-execution-envelope.md`;
 - `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m2-functional-completion-planning-submission.md`.
 
-No implementation file, migration, policy, grant or dependency is authorized while `PRM2_IMPLEMENTATION_READY = false`.
+No implementation file, migration, policy, grant or workflow is authorized while `PRM2_IMPLEMENTATION_READY = false`.
 
 ### 5.1 Tenant, domain and Cloudflare
 
@@ -307,7 +296,7 @@ UX_PRODUCT_PROFESSIONAL = active collaborator
 CHATGPT_GITHUB_AUDIT = mandatory
 ```
 
-PR-M3 covers final UX/UI and operational readiness for Tenant Admin, Super Admin, CRM, CMS, dashboards, reports, onboarding, domains, portals and campaigns. Reference images do not define palette or brand identity. PR-M3 remains blocked by PR-M2 and is not authorized.
+PR-M3 covers final UX/UI and operational readiness for Tenant Admin, Super Admin, CRM, CMS, dashboards, reports, onboarding, domains, portals and campaigns. Reference images do not define palette or brand identity.
 
 ## 7. TH-M1, TH-M2 and LSV-03
 
@@ -413,23 +402,52 @@ SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
 ## 10. Current authorization state
 
 ```text
-PRM2_PRE_PRINCIPAL_GATE_STATE = Planning — Ready for Final Direct External Audit
+FINAL_EXTERNAL_PLANNING_AUDIT = Accepted
+PRM2_PRE_PRINCIPAL_GATE_STATE = Accepted / Merged
+PRM2_PLANNING_MERGE_AUTHORIZED = true
+PRM2_PLANNING_MERGED = true
+PRM2_PLANNING_MERGE_METHOD = squash
+PRM2_PLANNING_MERGE_SHA = fc055cb69c2373a4adbc99d4ac02614ecfbde74f
+PRM2_PLANNING_MERGED_AT = 2026-07-27T19:33:37Z
+
+PLANNING_PR = 58
+PLANNING_HEAD = e51a05876e0d4d30f31fbe822e0221873642eae6
+PLANNING_RELEASE_GATE_RUN_ID = 30296162677
+PLANNING_RELEASE_GATE_JOB_ID = 90077707894
+PLANNING_RELEASE_GATE_ARTIFACT_ID = 8664785012
+PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:3af399ba8c78764b0d661addaac96429a88c7cc950c8f28717ff12d72c1f93b5
+
+POST_MERGE_RELEASE_GATE_RUN_ID = 30298768659
+POST_MERGE_RELEASE_GATE_JOB_ID = 90086242677
+POST_MERGE_RELEASE_GATE_EVENT = push
+POST_MERGE_RELEASE_GATE_BRANCH = main
+POST_MERGE_RELEASE_GATE_EXPECTED_SHA = fc055cb69c2373a4adbc99d4ac02614ecfbde74f
+POST_MERGE_RELEASE_GATE_CHECKED_OUT_SHA = fc055cb69c2373a4adbc99d4ac02614ecfbde74f
+POST_MERGE_RELEASE_GATE_EXACT_HEAD_MATCH = true
+POST_MERGE_RELEASE_GATE_MERGE_REF_USED = false
+POST_MERGE_RELEASE_GATE_RESULT = success
+POST_MERGE_RELEASE_GATE_ARTIFACT_NAME = release-gate-fc055cb69c2373a4adbc99d4ac02614ecfbde74f
+POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8665766909
+POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:4648fae81bb752207ac6de062d592a0be6a3166b789d5a63207ceeb5312ad778
+POST_MERGE_RELEASE_GATE_ARTIFACT_EXPIRED = false
+
+PLANNING_ACCEPTED_AND_MERGED = true
+IMPLEMENTATION_ACCEPTED = false
 PRM2_STATE = Planned — Blocked
-PRM2_PLANNING_AUTHORIZED = true
-PRM2_PLANNING_EXECUTED = true
-PRM2_IMPLEMENTATION_SCOPE_FINITE = false
+IMPLEMENTATION_SCOPE_FINITE = false
 PRM2_IMPLEMENTATION_READY = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 READY_FOR_PRM2_PRINCIPAL_PROMPT = false
-PRM2_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
-PRM2_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
-PRM2_REMAINING_IMPLEMENTATION_PROMPT_BUDGET = 2/2
+
+CHATGPT_GITHUB_PROMPT_BUDGET = not_applicable
+LOVABLE_IMPLEMENTATION_PROMPT_BUDGET = 2/2
+LOVABLE_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
+LOVABLE_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
+
 PRM3_STATE = Planned — Blocked by PR-M2
 PRM3_IMPLEMENTATION_AUTHORIZED = false
-LOVABLE_EXECUTION_AUTHORIZED = false
-DEPLOY_AUTHORIZED = false
-LIVE_TESTING_AUTHORIZED = false
-CONTROLLED_HOMOLOGATION_AUTHORIZED = false
-PRODUCTION_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
+RECONCILIATION_READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = true
 ```
+
+The planning gate is accepted and merged. PR-M2 implementation and every successor remain blocked.
