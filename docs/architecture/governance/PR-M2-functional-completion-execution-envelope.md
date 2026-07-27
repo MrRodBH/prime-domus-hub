@@ -22,6 +22,10 @@ PRM2_IMPLEMENTATION_READY = false
 PRM2_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
 PRM2_REMAINING_IMPLEMENTATION_PROMPT_BUDGET = 2/2
+EXACT_HEAD_RELEASE_GATE_REQUIRED = true
+EXACT_HEAD_RELEASE_GATE_AVAILABLE = false
+OBSERVED_PR_GATE_CHECKOUT = pull_request_merge_ref
+PLANNING_BLOCKED_EXTERNAL = true
 ```
 
 ## 1. Objetivo fechado
@@ -287,7 +291,7 @@ O planejamento não consome budget de implementação.
 ## 18. Estado máximo após esta execução
 
 ```text
-PRM2_STATE = Planning — Ready for Final Direct External Audit
+PRM2_STATE = Planning — Blocked External
 PRM2_IMPLEMENTATION_READY = false
 PRM2_IMPLEMENTATION_AUTHORIZED = false
 PRM3_STATE = Planned — Blocked by PR-M2
@@ -306,6 +310,7 @@ O prompt principal somente poderá ser emitido após:
 6. autorização expressa do Rodolfo.
 
 ```text
-READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = true
+READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = false
 READY_FOR_PRM2_PRINCIPAL_PROMPT = false
+EXACT_HEAD_RELEASE_GATE_BLOCKER = active
 ```
