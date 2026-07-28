@@ -13,6 +13,9 @@ function must(cond: boolean, msg: string): void {
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
+const ADMIN_BARREL_PATH = "src/lib/api/admin.functions.ts";
+const ADMIN_IMPLEMENTATION_PATH = "src/lib/api/admin.functions.legacy.ts";
+
 function migrations(): string[] {
   return readdirSync(MIG_DIR)
     .filter((f) => f.endsWith(".sql"))
@@ -110,9 +113,16 @@ const cases: Case[] = [
     },
   },
   {
+    name: "admin barrel exposes the preserved implementation module",
+    run: () => {
+      const barrel = read(ADMIN_BARREL_PATH);
+      must(/export \* from ["']\.\/admin\.functions\.legacy["']/.test(barrel), "legacy implementation re-export missing");
+    },
+  },
+  {
     name: "criarLeadManual handler does not use supabaseAdmin",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       const idx = src.indexOf("criarLeadManual");
       must(idx > 0, "criarLeadManual not found");
       const region = src.slice(idx, idx + 1500);
@@ -122,7 +132,7 @@ const cases: Case[] = [
   {
     name: "adminListarCorretores does not use select(\"*\")",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       const idx = src.indexOf("adminListarCorretores");
       must(idx > 0, "adminListarCorretores not found");
       const region = src.slice(idx, idx + 1000);
@@ -132,7 +142,7 @@ const cases: Case[] = [
   {
     name: "adminAtualizarLead does not cast payload via `as never`",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       const idx = src.indexOf("adminAtualizarLead");
       const region = src.slice(idx, idx + 1200);
       must(!/\bas never\b/.test(region), "`as never` cast leak in adminAtualizarLead");
@@ -141,7 +151,7 @@ const cases: Case[] = [
   {
     name: "manualLeadReturnSchema tightened (status literal novo, version positive int, createdAt datetime)",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       must(/manualLeadReturnSchema[\s\S]{0,400}z\.literal\(\s*["']novo["']\s*\)/.test(src), "status literal novo missing");
       must(/version:\s*z\.number\(\)\.int\(\)\.positive\(\)/.test(src), "version .int().positive() missing");
       must(/createdAt:\s*z\.string\(\)\.datetime\(\)/.test(src), "createdAt .datetime() missing");
@@ -149,9 +159,9 @@ const cases: Case[] = [
   },
   // LSH-01 · Lote A — Runtime Authorization Integration structural proofs.
   {
-    name: "admin.functions.ts consumes the operations module",
+    name: "admin implementation consumes the operations module",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       must(/from ["']@\/lib\/leads\/lead-operations\.server["']/.test(src), "operations import missing");
       must(/createRuntimeLeadOperationsDeps/.test(src), "runtime deps builder not used");
     },
@@ -159,7 +169,7 @@ const cases: Case[] = [
   {
     name: "five Lead server functions call the boundary via operations module",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       const ops = [
         { fn: "adminListarLeads", call: "listLeadsAuthorized" },
         { fn: "adminListarImoveisLite", call: "listLeadPropertiesAuthorized" },
@@ -178,7 +188,7 @@ const cases: Case[] = [
   {
     name: "legacy guards absent from Lead runtime operations regions",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       const regions = ["adminListarLeads", "adminAtualizarLead", "adminListarImoveisLite", "adminListarLeadAssignees", "criarLeadManual"];
       for (const fn of regions) {
         const idx = src.indexOf(`export const ${fn}`);
@@ -246,7 +256,7 @@ const cases: Case[] = [
   {
     name: "wrappers compose requireTenant middleware (not requireSupabaseAuth alone) for Lead operations",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
+      const src = read(ADMIN_IMPLEMENTATION_PATH);
       const ops = ["adminListarLeads", "adminAtualizarLead", "adminListarImoveisLite", "adminListarLeadAssignees", "criarLeadManual"];
       for (const fn of ops) {
         const idx = src.indexOf(`export const ${fn}`);
@@ -280,7 +290,6 @@ const cases: Case[] = [
     },
   },
 ];
-
 
 export async function runLeadStructuralSpecs(): Promise<{ passed: number; failed: number }> {
   let passed = 0;
