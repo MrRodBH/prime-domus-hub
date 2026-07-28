@@ -13,6 +13,15 @@ export const PORTAL_MANUAL_METHODS = [
   "MANUAL_EXPORT",
 ] as const;
 
+export const PortalPublicationRulesSchema = z
+  .object({
+    only_published: z.boolean(),
+    include_statuses: z.array(z.string().min(1).max(80)).max(50).optional(),
+    exclude_fields: z.array(z.string().min(1).max(120)).max(100).optional(),
+    batch_size: z.number().int().min(1).max(500).optional(),
+  })
+  .strict();
+
 export const PortalHybridConfigSchema = z
   .object({
     operation_mode: z.literal("HYBRID"),
@@ -21,7 +30,7 @@ export const PortalHybridConfigSchema = z
     configuration_schema_version: z.number().int().positive(),
     credential_reference: z.string().min(1).max(300).nullable().optional(),
     mapping_profile: z.string().min(1).max(160),
-    publication_rules: z.record(z.string(), z.unknown()).default({}),
+    publication_rules: PortalPublicationRulesSchema,
     retry_policy: z
       .object({
         max_attempts: z.number().int().min(1).max(20),
@@ -33,6 +42,42 @@ export const PortalHybridConfigSchema = z
   .strict();
 
 export type PortalHybridConfig = z.infer<typeof PortalHybridConfigSchema>;
+
+export interface PortalConnectorRow {
+  id: string;
+  tenant_id: string;
+  portal_nome: string;
+  portal_slug: string;
+  ativo: boolean;
+  status: string;
+  feed_url: string | null;
+  webhook_url: string | null;
+  config: unknown;
+  ultimo_sync_at: string | null;
+  ultimo_erro: string | null;
+  created_at: string;
+  updated_at: string;
+  feed_token?: string;
+  webhook_secret?: string;
+}
+
+export interface PortalConnectorView {
+  id: string;
+  tenant_id: string;
+  portal_nome: string;
+  portal_slug: string;
+  ativo: boolean;
+  status: string;
+  feed_url: string | null;
+  webhook_url: string | null;
+  ultimo_sync_at: string | null;
+  ultimo_erro: string | null;
+  created_at: string;
+  updated_at: string;
+  operation_mode: "HYBRID";
+  configuration_state: "ready" | "configuration_required";
+  hybrid_config: PortalHybridConfig | null;
+}
 
 const INLINE_SECRET_KEYS = [
   "secret",
@@ -84,16 +129,22 @@ export function portalConfigurationState(raw: unknown):
   }
 }
 
-export function sanitizePortalConnector<T extends Record<string, unknown>>(row: T) {
-  const {
-    feed_token: _feedToken,
-    webhook_secret: _webhookSecret,
-    ...safe
-  } = row;
+export function sanitizePortalConnector(row: PortalConnectorRow): PortalConnectorView {
   const configuration = portalConfigurationState(row.config);
   return {
-    ...safe,
-    operation_mode: "HYBRID" as const,
+    id: row.id,
+    tenant_id: row.tenant_id,
+    portal_nome: row.portal_nome,
+    portal_slug: row.portal_slug,
+    ativo: row.ativo,
+    status: row.status,
+    feed_url: row.feed_url,
+    webhook_url: row.webhook_url,
+    ultimo_sync_at: row.ultimo_sync_at,
+    ultimo_erro: row.ultimo_erro,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    operation_mode: "HYBRID",
     configuration_state: configuration.state,
     hybrid_config: configuration.config,
   };
