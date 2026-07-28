@@ -24,6 +24,7 @@ function block(content: string, start: string, end?: string) {
 const lifecycleMigration = source("supabase/migrations/20260728165000_pr_m2_tenant_lifecycle.sql");
 const canonicalMutationMigration = source("supabase/migrations/20260713221723_857275c9-958d-46fc-b826-e0c7ae030a3d.sql");
 const lifecycleFunctions = source("src/lib/api/tenant-lifecycle.functions.ts");
+const canonicalBoundary = source("src/lib/api/commercial/membership-mutation-boundary.server.ts");
 const superFunctions = source("src/lib/api/super.functions.ts");
 const superRoute = source("src/routes/_authenticated.super.index.tsx");
 const membershipsRoute = source("src/routes/_authenticated.admin.memberships.tsx");
@@ -133,9 +134,12 @@ check("server functions expose every required lifecycle operation", () => {
   }
 });
 
-check("TypeScript never mutates tenant_members directly", () => {
+check("TypeScript never mutates tenant_members directly and follows canonical boundary", () => {
   assert.equal(/\.from\(["']tenant_members["']\)[\s\S]{0,250}\.(?:insert|update|upsert|delete)\(/.test(lifecycleFunctions), false);
-  assert.ok(lifecycleFunctions.includes('"mutate_tenant_membership"'));
+  assert.equal(/\.from\(["']tenant_members["']\)[\s\S]{0,250}\.(?:insert|update|upsert|delete)\(/.test(canonicalBoundary), false);
+  assert.ok(lifecycleFunctions.includes("membership-mutation-boundary.server"));
+  assert.ok(lifecycleFunctions.includes("executeMembershipMutation"));
+  assert.ok(canonicalBoundary.includes('"mutate_tenant_membership"'));
   assert.ok(lifecycleFunctions.includes('"bootstrap_tenant_with_owner"'));
   assert.ok(lifecycleFunctions.includes('"invite_tenant_member"'));
   assert.ok(lifecycleFunctions.includes('"accept_tenant_invitation"'));
