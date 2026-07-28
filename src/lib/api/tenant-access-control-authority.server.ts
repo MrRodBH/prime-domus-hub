@@ -1,3 +1,5 @@
+import type { TenantContext } from "@/integrations/supabase/tenant-middleware";
+import type { TenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
 import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
 
 export const RBAC_ACTIONS = [
@@ -25,12 +27,23 @@ export type TenantPermissionDecision = {
 
 export type TrustedTenantAccessContext = {
   userId: string;
-  tenant: {
-    tenantId: string;
-    origin: "impersonation" | "selection" | "single-membership";
-    isSuperAdmin: boolean;
-  };
+  tenant: TenantScopedAuthority;
 };
+
+export function trustedTenantAccessContext(context: {
+  userId: string;
+  tenant: TenantContext;
+}): TrustedTenantAccessContext {
+  return {
+    userId: context.userId,
+    tenant: {
+      tenantId: context.tenant.tenantId,
+      isSuperAdmin: context.tenant.isSuperAdmin,
+      impersonation: context.tenant.impersonation,
+      origin: context.tenant.origin,
+    },
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
