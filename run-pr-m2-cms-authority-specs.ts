@@ -81,6 +81,7 @@ check("regular user cannot claim impersonation origin", () => {
 
 const pagesSource = readFileSync("src/lib/api/pages.functions.ts", "utf8");
 const formsSource = readFileSync("src/lib/api/forms.functions.ts", "utf8");
+const campaignsSource = readFileSync("src/lib/api/campaigns.functions.ts", "utf8");
 const cmsSource = readFileSync("src/lib/api/_cms.ts", "utf8");
 
 check("all four administrative page functions use requireTenant", () => {
@@ -130,6 +131,36 @@ check("form field mutation proves parent form ownership", () => {
   assert.ok(fieldsDeleteIndex > formOwnershipIndex);
 });
 
+check("all five administrative campaign functions use requireTenant", () => {
+  assert.equal(
+    campaignsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0,
+    5,
+  );
+  assert.equal(campaignsSource.includes("requireSupabaseAuth"), false);
+  assert.ok(campaignsSource.includes("assertCmsTenantPermission"));
+});
+
+check("administrative campaign operations apply explicit tenant filters", () => {
+  assert.ok(
+    (campaignsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 8,
+  );
+  assert.ok(
+    campaignsSource.includes(".insert({ ...payload, tenant_id: tenantId, created_by: context.userId })"),
+  );
+});
+
+check("campaign metrics prove campaign ownership before reading events", () => {
+  const metricsIndex = campaignsSource.indexOf("export const metricasCampanha");
+  const campaignOwnershipIndex = campaignsSource.indexOf('.from("cms_campaigns")', metricsIndex);
+  const eventsIndex = campaignsSource.indexOf('.from("cms_campaign_events")', campaignOwnershipIndex);
+  assert.ok(metricsIndex >= 0);
+  assert.ok(campaignOwnershipIndex > metricsIndex);
+  assert.ok(eventsIndex > campaignOwnershipIndex);
+  assert.ok(
+    campaignsSource.indexOf('.eq("tenant_id", tenantId)', eventsIndex) > eventsIndex,
+  );
+});
+
 check("strict CMS permission helper validates tenant authority before permission", () => {
   const strictIndex = cmsSource.indexOf("export async function assertCmsTenantPermission");
   const authorityIndex = cmsSource.indexOf("requireCmsTenantAuthority(ctx.tenant)", strictIndex);
@@ -150,6 +181,13 @@ check("public form writer authority remains request-derived and tenant-filtered"
   assert.ok(formsSource.includes('.eq("tenant_id", input.tenant.id)'));
   assert.ok(formsSource.includes("selectExactlyOneTenantScopedRow"));
   assert.ok(formsSource.includes("assertTenantScopedCollection"));
+});
+
+check("public campaign authority remains Host-derived and tenant-filtered", () => {
+  assert.ok(campaignsSource.includes("requirePublicTenantFromRequest"));
+  assert.ok(campaignsSource.includes("requirePublicWriterTenantFromRequest"));
+  assert.ok(campaignsSource.includes('.eq("tenant_id", tenant.id)'));
+  assert.ok(campaignsSource.includes("recordPublicCampaignEvent"));
 });
 
 console.log(`PR-M2 CMS tenant authority specs: ${passed} passed`);
