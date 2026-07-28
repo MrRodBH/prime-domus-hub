@@ -26,7 +26,7 @@ import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-
 import { TenantSelectionGate } from "@/components/workspace/tenant/TenantSelectionRequired";
 
 export function WorkspaceShell() {
-  const path = useRouterState({ select: (s) => s.location.pathname });
+  const path = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -42,19 +42,14 @@ export function WorkspaceShell() {
     setMobileNavOpen(false);
   }, [path]);
 
-  // Patch 2.3.1 — fonte única (reativa) do estado local de impersonação.
   const impersonating = useImpersonation();
 
-  // Patch 2.3.1 · Regra 5 — usuário não-Super nunca deve carregar estado residual.
   useEffect(() => {
     if (isSuper === false && impersonating) {
       clearImpersonationTenantId();
     }
   }, [isSuper, impersonating]);
 
-  // Patch 2.3.1 · Regra 2 — SIGNED_OUT limpa determinística e automaticamente.
-  // F3.4.1 — mesmo listener limpa também a seleção comum de tenant e
-  // reage a troca de usuário (USER_UPDATED / SIGNED_IN com uid diferente).
   useEffect(() => {
     let lastUserId: string | null = null;
     void supabase.auth
@@ -73,7 +68,6 @@ export function WorkspaceShell() {
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
         const uid = session?.user?.id ?? null;
         if (lastUserId && uid && uid !== lastUserId) {
-          // troca de conta na mesma aba — seleção prévia não vale.
           clearImpersonationTenantId();
           clearSelectedTenantId();
         }
@@ -83,12 +77,12 @@ export function WorkspaceShell() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  void papeis; // reserved for role-based rail gating in Bloco 2+
+  void papeis;
 
   const active = contextFromPath(path);
-  const visibleContexts = CONTEXTS.filter((c) => !c.superOnly || isSuper);
+  const visibleContexts = CONTEXTS.filter((context) => !context.superOnly || isSuper);
+  const isInvitationRoute = path === "/invitations";
 
-  // super-only guard: if user is on /super but not super, redirect
   useEffect(() => {
     if (active.superOnly && isSuper === false) {
       navigate({ to: "/admin", replace: true });
@@ -97,66 +91,66 @@ export function WorkspaceShell() {
 
   return (
     <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>
-    <DetailPanelProvider>
-      <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
-        <NavigationRail isSuper={!!isSuper} />
+      <DetailPanelProvider>
+        <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
+          <NavigationRail isSuper={!!isSuper} />
 
-        <div className="flex-1 min-w-0 flex flex-col">
-          <AppHeader
-            isSuper={!!isSuper}
-            impersonating={impersonating}
-            onOpenMobileNav={() => setMobileNavOpen(true)}
-          />
-          <ContextTabs />
-          <main className="flex-1 min-h-0 overflow-y-auto">
-            <div className="p-4 lg:p-6">
-              {/* F3.5 — bloqueia conteúdo tenant-scoped quando N>1 sem
-                  seleção válida, ou quando 0 tenants ativos. Não afeta
-                  Super Admin nem impersonação. */}
-              <TenantSelectionGate isSuper={!!isSuper}>
-                <Outlet />
-              </TenantSelectionGate>
-            </div>
-          </main>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <AppHeader
+              isSuper={!!isSuper}
+              impersonating={impersonating}
+              onOpenMobileNav={() => setMobileNavOpen(true)}
+            />
+            <ContextTabs />
+            <main className="flex-1 min-h-0 overflow-y-auto">
+              <div className="p-4 lg:p-6">
+                {isInvitationRoute ? (
+                  <Outlet />
+                ) : (
+                  <TenantSelectionGate isSuper={!!isSuper}>
+                    <Outlet />
+                  </TenantSelectionGate>
+                )}
+              </div>
+            </main>
+          </div>
+
+          <CommandPalette isSuper={!!isSuper} />
+          <AiDrawer />
+
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetContent side="left" className="w-[260px] p-0">
+              <VisuallyHidden>
+                <SheetTitle>Navegação</SheetTitle>
+              </VisuallyHidden>
+              <div className="h-14 px-4 flex items-center border-b text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Workspace
+              </div>
+              <nav className="p-2 space-y-0.5">
+                {visibleContexts.map((context) => {
+                  const Icon = context.icon;
+                  const isActive = context.id === active.id;
+                  return (
+                    <Link
+                      key={context.id}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      to={context.root as any}
+                      className={`flex items-center gap-3 px-3 h-10 rounded-md text-sm ${
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground/75 hover:bg-foreground/5"
+                      }`}
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      <Icon className="size-4" /> {context.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
-
-        <CommandPalette isSuper={!!isSuper} />
-        <AiDrawer />
-
-        {/* Mobile navigation drawer */}
-        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-          <SheetContent side="left" className="w-[260px] p-0">
-            <VisuallyHidden>
-              <SheetTitle>Navegação</SheetTitle>
-            </VisuallyHidden>
-            <div className="h-14 px-4 flex items-center border-b text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              Workspace
-            </div>
-            <nav className="p-2 space-y-0.5">
-              {visibleContexts.map((c) => {
-                const Icon = c.icon;
-                const isActive = c.id === active.id;
-                return (
-                  <Link
-                    key={c.id}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    to={c.root as any}
-                    className={`flex items-center gap-3 px-3 h-10 rounded-md text-sm ${
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground/75 hover:bg-foreground/5"
-                    }`}
-                    onClick={() => setMobileNavOpen(false)}
-                  >
-                    <Icon className="size-4" /> {c.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </SheetContent>
-        </Sheet>
-      </div>
-    </DetailPanelProvider>
+      </DetailPanelProvider>
     </TenantContextProvider>
   );
 }
