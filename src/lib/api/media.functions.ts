@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
   SIGNED_URL_TTL_DOWNLOAD_SECONDS,
   SIGNED_URL_TTL_PREVIEW_SECONDS,
@@ -9,7 +9,7 @@ import {
 
 /** Lista mídia do tenant atual com busca/filtro/paginação. */
 export const listarMidias = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) =>
     z
       .object({
@@ -22,22 +22,25 @@ export const listarMidias = createServerFn({ method: "POST" })
       .parse(raw ?? {}),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.midias",
+      "visualizar",
+    );
     const { supabase } = context;
     const from = data.page * data.pageSize;
     const to = from + data.pageSize - 1;
-    let q = supabase.from("media_library").select("*", { count: "exact" }).order("created_at", { ascending: false });
+    let q = supabase
+      .from("media_library")
+      .select("*", { count: "exact" })
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false });
     if (data.tipo !== "all") q = q.eq("tipo", data.tipo);
     if (data.search.trim()) q = q.ilike("nome", `%${data.search.trim()}%`);
     if (data.tag.trim()) q = q.contains("tags", [data.tag.trim()]);
     const { data: rows, count, error } = await q.range(from, to);
     if (error) throw new Error(error.message);
-
-    // Tenant efetivo resolvido server-side (IA-001). Toda assinatura passa
-    // por validação anti-cross-tenant + anti-traversal (M3.4).
-    const { data: tenantRow, error: tenantErr } = await supabase.rpc("get_current_tenant_id");
-    if (tenantErr) throw new Error(tenantErr.message);
-    const tenantId = tenantRow as string | null;
-    if (!tenantId) throw new Error("Tenant efetivo não resolvido — listagem de mídia negada.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -47,40 +50,35 @@ export const listarMidias = createServerFn({ method: "POST" })
         const { bucket, path } = validateTenantSignRequest({
           bucket: "site",
           path: rawPath,
-          tenantId: tenantId!,
+          tenantId,
         });
-        const { data: s } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, ttl);
-        return s?.signedUrl ?? null;
+        const { data: signed, error: signError } = await supabaseAdmin.storage
+          .from(bucket)
+          .createSignedUrl(path, ttl);
+        if (signError) return null;
+        return signed?.signedUrl ?? null;
       } catch {
-        // Registros legados fora do prefixo tenant são silenciosamente
-        // omitidos aqui — migração formal é escopo da M3.3.
+        // Registros legados fora do prefixo tenant são omitidos, nunca assinados.
         return null;
       }
     }
 
     const items = await Promise.all(
-      (rows ?? []).map(async (r) => {
+      (rows ?? []).map(async (row) => {
         const [url, url_medium, url_thumbnail] = await Promise.all([
-          signIfSafe(r.arquivo, SIGNED_URL_TTL_DOWNLOAD_SECONDS),
-          signIfSafe(r.arquivo_medium, SIGNED_URL_TTL_PREVIEW_SECONDS),
-          signIfSafe(r.arquivo_thumbnail, SIGNED_URL_TTL_PREVIEW_SECONDS),
+          signIfSafe(row.arquivo, SIGNED_URL_TTL_DOWNLOAD_SECONDS),
+          signIfSafe(row.arquivo_medium, SIGNED_URL_TTL_PREVIEW_SECONDS),
+          signIfSafe(row.arquivo_thumbnail, SIGNED_URL_TTL_PREVIEW_SECONDS),
         ]);
-        return { ...r, url, url_medium, url_thumbnail };
+        return { ...row, url, url_medium, url_thumbnail };
       }),
     );
     return { items, total: count ?? 0 };
   });
 
-
 /**
- * Registra uma mídia já enviada ao bucket.
- *
- * PATCH M3.2.1: o client NÃO define mais o path físico. Deve passar
- * `uploadTarget` produzido por `createUploadTarget` (domain: "media") e,
- * opcionalmente, derivativas (medium/thumbnail) que também tenham sido
- * geradas server-side. Todos os paths são revalidados aqui contra o tenant
- * efetivo (IA-001) — qualquer path fora de `{tenantId}/media/…` ou bucket
- * diferente de `site` é rejeitado fail-fast.
+ * Registra mídia enviada para um target emitido server-side.
+ * Os paths são revalidados contra o tenant efetivo e o domínio `media`.
  */
 const uploadTargetSchema = z.object({
   bucket: z.string().min(1),
@@ -105,7 +103,6 @@ function assertMediaPathSafe(path: string, tenantId: string, bucket: string) {
   if (!path.startsWith(expectedPrefix)) {
     throw new Error("Path fora do escopo do tenant/domínio permitido.");
   }
-  // Nome do arquivo (último segmento) — sem barras extras, sem oculto.
   const filename = path.slice(expectedPrefix.length);
   if (!filename || filename.includes("/") || filename.startsWith(".")) {
     throw new Error("Filename inválido.");
@@ -113,7 +110,7 @@ function assertMediaPathSafe(path: string, tenantId: string, bucket: string) {
 }
 
 export const registrarMidia = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) =>
     z
       .object({
@@ -133,22 +130,14 @@ export const registrarMidia = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.midias", "criar");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.midias",
+      "criar",
+    );
     const { supabase, userId } = context;
 
-    // Resolver tenant efetivo server-side (IA-001) — não confiar em nada
-    // que veio do client.
-    const { data: tenantRow, error: tenantErr } = await supabase.rpc(
-      "get_current_tenant_id",
-    );
-    if (tenantErr) throw new Error(tenantErr.message);
-    const tenantId = tenantRow as string | null;
-    if (!tenantId) {
-      throw new Error("Tenant efetivo não resolvido — impossível registrar mídia.");
-    }
-
-    // Validação dura de todos os paths recebidos.
     assertMediaPathSafe(data.uploadTarget.path, tenantId, data.uploadTarget.bucket);
     if (data.arquivo_medium) {
       assertMediaPathSafe(data.arquivo_medium.path, tenantId, data.arquivo_medium.bucket);
@@ -160,6 +149,7 @@ export const registrarMidia = createServerFn({ method: "POST" })
     const { data: row, error } = await supabase
       .from("media_library")
       .insert({
+        tenant_id: tenantId,
         nome: data.nome,
         arquivo: data.uploadTarget.path,
         arquivo_medium: data.arquivo_medium?.path ?? null,
@@ -181,7 +171,7 @@ export const registrarMidia = createServerFn({ method: "POST" })
   });
 
 export const atualizarMidia = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) =>
     z
       .object({
@@ -193,92 +183,155 @@ export const atualizarMidia = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.midias", "editar");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.midias",
+      "editar",
+    );
     const { id, ...patch } = data;
-    const { data: before } = await context.supabase.from("media_library").select("*").eq("id", id).maybeSingle();
-    const { data: row, error } = await context.supabase.from("media_library").update(patch).eq("id", id).select("*").single();
+    const { data: before, error: beforeError } = await context.supabase
+      .from("media_library")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("id", id)
+      .maybeSingle();
+    if (beforeError) throw new Error(beforeError.message);
+    if (!before) throw new Error("Mídia não encontrada");
+
+    const { data: row, error } = await context.supabase
+      .from("media_library")
+      .update(patch)
+      .eq("tenant_id", tenantId)
+      .eq("id", id)
+      .select("*")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) throw new Error("Mídia não encontrada");
     await logCmsAudit(context, "media_library", "cms.midia.editar", id, before, row);
     return { ok: true };
   });
 
 export const excluirMidia = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((raw) => z.object({ id: z.string().uuid(), force: z.boolean().optional().default(false) }).parse(raw))
+  .middleware([requireTenant])
+  .inputValidator((raw) =>
+    z.object({ id: z.string().uuid(), force: z.boolean().optional().default(false) }).parse(raw),
+  )
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.midias", "excluir");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.midias",
+      "excluir",
+    );
     const { supabase } = context;
-    const { count: usos } = await supabase
+
+    const { data: row, error: rowError } = await supabase
+      .from("media_library")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (rowError) throw new Error(rowError.message);
+    if (!row) throw new Error("Mídia não encontrada");
+
+    const { count: usos, error: usageError } = await supabase
       .from("media_usage")
       .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
       .eq("media_id", data.id);
+    if (usageError) throw new Error(usageError.message);
     if ((usos ?? 0) > 0 && !data.force) {
       return { ok: false, usos: usos ?? 0, message: "Mídia em uso. Confirme para excluir mesmo assim." };
     }
-    const { data: row, error: e1 } = await supabase
-      .from("media_library")
-      .select("*")
-      .eq("id", data.id)
-      .single();
-    if (e1) throw new Error(e1.message);
-    const paths = [row.arquivo, row.arquivo_medium, row.arquivo_thumbnail].filter(Boolean) as string[];
+
+    const paths = [row.arquivo, row.arquivo_medium, row.arquivo_thumbnail]
+      .filter(Boolean)
+      .map((rawPath) =>
+        validateTenantSignRequest({
+          bucket: "site",
+          path: rawPath as string,
+          tenantId,
+        }).path,
+      );
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    if (paths.length) await supabaseAdmin.storage.from("site").remove(paths);
-    const { error: e2 } = await supabase.from("media_library").delete().eq("id", data.id);
-    if (e2) throw new Error(e2.message);
+    if (paths.length) {
+      const { error: storageError } = await supabaseAdmin.storage.from("site").remove(paths);
+      if (storageError) throw new Error(storageError.message);
+    }
+
+    const { error: deleteUsageError } = await supabase
+      .from("media_usage")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("media_id", data.id);
+    if (deleteUsageError) throw new Error(deleteUsageError.message);
+
+    const { error: deleteError } = await supabase
+      .from("media_library")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id);
+    if (deleteError) throw new Error(deleteError.message);
     await logCmsAudit(context, "media_library", "cms.midia.excluir", data.id, row, null);
     return { ok: true };
   });
 
-/** Retorna URL assinada de leitura para uma mídia específica. */
+/** Retorna URL assinada de leitura para mídia do tenant atual. */
 export const obterMidiaUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((raw) => z.object({ id: z.string().uuid(), variant: z.enum(["original", "medium", "thumbnail"]).optional().default("medium") }).parse(raw))
+  .middleware([requireTenant])
+  .inputValidator((raw) =>
+    z.object({
+      id: z.string().uuid(),
+      variant: z.enum(["original", "medium", "thumbnail"]).optional().default("medium"),
+    }).parse(raw),
+  )
   .handler(async ({ data, context }) => {
-    // Tenant efetivo server-side (IA-001). O client não escolhe path/bucket.
-    const { data: tenantRow, error: tenantErr } = await context.supabase.rpc("get_current_tenant_id");
-    if (tenantErr) throw new Error(tenantErr.message);
-    const tenantId = tenantRow as string | null;
-    if (!tenantId) throw new Error("Tenant efetivo não resolvido — assinatura negada.");
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.midias",
+      "visualizar",
+    );
 
-    // RLS + tenant garantem que só carregamos mídia deste tenant.
     const { data: row, error } = await context.supabase
       .from("media_library")
       .select("arquivo, arquivo_medium, arquivo_thumbnail")
+      .eq("tenant_id", tenantId)
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) throw new Error("Mídia não encontrada");
 
     const rawPath =
       data.variant === "original"
         ? row.arquivo
         : data.variant === "thumbnail"
-        ? row.arquivo_thumbnail || row.arquivo
-        : row.arquivo_medium || row.arquivo;
+          ? row.arquivo_thumbnail || row.arquivo
+          : row.arquivo_medium || row.arquivo;
 
-    // Fail-fast: bucket allowlist + prefix tenant + anti-traversal (M3.4).
     const { bucket, path } = validateTenantSignRequest({
       bucket: "site",
       path: rawPath,
       tenantId,
     });
-
     const ttl =
       data.variant === "original"
         ? SIGNED_URL_TTL_DOWNLOAD_SECONDS
         : SIGNED_URL_TTL_PREVIEW_SECONDS;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: signed } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, ttl);
+    const { data: signed, error: signError } = await supabaseAdmin.storage
+      .from(bucket)
+      .createSignedUrl(path, ttl);
+    if (signError) throw new Error(signError.message);
     return { url: signed?.signedUrl ?? null };
   });
 
-
-/** Registra um uso da mídia (chamado por editores de conteúdo). */
+/** Registra uso de uma mídia depois de provar ownership tenant-scoped. */
 export const registrarUsoMidia = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) =>
     z
       .object({
@@ -290,8 +343,24 @@ export const registrarUsoMidia = createServerFn({ method: "POST" })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.midias",
+      "visualizar",
+    );
+    const { data: media, error: mediaError } = await context.supabase
+      .from("media_library")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.media_id)
+      .maybeSingle();
+    if (mediaError) throw new Error(mediaError.message);
+    if (!media) throw new Error("Mídia não encontrada");
+
     const { error } = await context.supabase.from("media_usage").upsert(
       {
+        tenant_id: tenantId,
         media_id: data.media_id,
         entidade: data.entidade,
         entidade_id: data.entidade_id ?? null,
@@ -303,14 +372,30 @@ export const registrarUsoMidia = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Lista onde uma mídia é usada. */
+/** Lista onde uma mídia do tenant atual é usada. */
 export const listarUsosMidia = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) => z.object({ media_id: z.string().uuid() }).parse(raw))
   .handler(async ({ data, context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.midias",
+      "visualizar",
+    );
+    const { data: media, error: mediaError } = await context.supabase
+      .from("media_library")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.media_id)
+      .maybeSingle();
+    if (mediaError) throw new Error(mediaError.message);
+    if (!media) throw new Error("Mídia não encontrada");
+
     const { data: rows, error } = await context.supabase
       .from("media_usage")
       .select("*")
+      .eq("tenant_id", tenantId)
       .eq("media_id", data.media_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
