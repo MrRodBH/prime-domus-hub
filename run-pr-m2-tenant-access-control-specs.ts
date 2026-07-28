@@ -31,6 +31,7 @@ includesAll(migration, [
   "tenant_access_backfill_unassigned_custom_profile",
   "rbac_profiles_tenant_contract",
   "ux_user_profiles_tenant_user_profile",
+  "DROP TRIGGER",
   "REVOKE ALL ON TABLE public.rbac_profiles FROM anon, authenticated",
   "REVOKE ALL ON TABLE public.teams FROM anon, authenticated",
   "CREATE OR REPLACE FUNCTION public.resolve_tenant_permission",
@@ -119,7 +120,7 @@ assert(!broker.includes("auth.admin.createUser"), "broker directory must not cre
 assert(!broker.includes("auth.admin.deleteUser"), "broker directory must not delete Auth users");
 assert(!broker.includes('.from("user_roles")'), "broker directory must not mutate global roles");
 
-includesAll(profilesRoute, ["template de sistema", "tenant", "Global > Equipe > Próprios"], "profiles route");
+includesAll(profilesRoute, ["template de sistema", "tenant", "Global &gt; Equipe &gt; Próprios"], "profiles route");
 includesAll(teamsRoute, ["listTenantMemberships", "membership", "tenant-scoped"], "teams route");
 includesAll(membershipsRoute, ["setUserPerfis", "Perfis RBAC", "Membership role", "Convidar membro"], "memberships route");
 includesAll(auditRoute, ["listTenantAccessAudit", "Auditoria de acessos"], "audit route");
@@ -136,7 +137,7 @@ const mutationRpcCalls = [
   "mutate_tenant_team",
 ];
 for (const rpc of mutationRpcCalls) {
-  const occurrences = functions.split(`\"${rpc}\" as never`).length - 1;
+  const occurrences = functions.split(`"${rpc}" as never`).length - 1;
   assert(occurrences >= 1, `${rpc} must be called by a canonical wrapper`);
 }
 
