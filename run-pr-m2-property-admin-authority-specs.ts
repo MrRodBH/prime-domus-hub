@@ -218,9 +218,11 @@ check("existing form remains compatible through the secure barrel", () => {
 });
 
 check("no source imports the preserved legacy module directly", () => {
+  const directLegacyModuleReference =
+    /(?:from\s+|import\s*\(\s*|require\s*\(\s*)["'][^"']*admin\.functions\.legacy["']/;
   const offenders = listSourceFiles("src")
     .filter((path) => path !== "src/lib/api/admin.functions.legacy.ts")
-    .filter((path) => source(path).includes("admin.functions.legacy"));
+    .filter((path) => directLegacyModuleReference.test(source(path)));
   assert.deepEqual(offenders, ["src/lib/api/admin.functions.ts"]);
 });
 
