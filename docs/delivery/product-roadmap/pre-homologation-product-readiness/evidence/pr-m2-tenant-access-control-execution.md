@@ -5,8 +5,10 @@
 ```text
 STAGE = PR-M2 — Functional Completion
 INCREMENT = Tenant-scoped RBAC, Profile Assignment, Team Management & Legacy User Authority Cutover
+INCREMENT_STATUS = Accepted by deterministic repository gate
 EXECUTION_MODEL = ChatGPT GitHub-native
 INITIAL_HEAD = d826340eb6e50813b158d243915a62faa4045f30
+CODE_VALIDATION_HEAD = 2937d0931abdedc819cbf55680338b88ae502e54
 PULL_REQUEST = 60
 PR_STATE = open / draft
 MERGE_EXECUTED = false
@@ -139,12 +141,49 @@ team membership → tenant access control boundary
 
 Não existe mais criação de senha administrativa na UI ativa.
 
-## 6. Evidência e limites
+## 6. Evidência de repositório e GitHub Actions
+
+```text
+COMMITS_FROM_INITIAL_HEAD = 26
+FILES_CHANGED = 15
+MIGRATIONS_CREATED = 1
+
+CODE_RELEASE_GATE_RUN_ID = 30403193131
+CODE_RELEASE_GATE_JOB_ID = 90422648766
+CODE_RELEASE_GATE_EXPECTED_SHA = 2937d0931abdedc819cbf55680338b88ae502e54
+CODE_RELEASE_GATE_CHECKED_OUT_SHA = 2937d0931abdedc819cbf55680338b88ae502e54
+CODE_RELEASE_GATE_RESULT = success
+CODE_RELEASE_GATE_EXACT_HEAD_MATCH = true
+
+CODE_RELEASE_GATE_ARTIFACT_NAME = release-gate-2937d0931abdedc819cbf55680338b88ae502e54
+CODE_RELEASE_GATE_ARTIFACT_ID = 8705565644
+CODE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:d11e7337c50a1e2daac28565482a3232ec64667219f665232af62c1c8a5deb5a
+CODE_RELEASE_GATE_ARTIFACT_EXPIRED = false
+```
+
+Todos os passos foram comprovados com sucesso:
+
+```text
+Checkout exact event head
+Verify exact checked-out head
+Setup Bun
+Install dependencies
+PR-M2 tenant access control specs
+build:dev
+typecheck
+build
+repeated deterministic route generation
+prior PR-M2 regressions
+LSH-01 regressions
+Upload release gate evidence
+```
+
+Classificação da evidência:
 
 ```text
 PROVED_BY_REPOSITORY = schema contract, RPC definitions, wrappers, UI cutover, legacy active-path retirement
 PROVED_BY_DETERMINISTIC_TEST = structural invariants, ACL declarations, no direct mutations, no password flow, cross-tenant guards
-PROVED_BY_GITHUB_ACTIONS = pending exact-head Release Gate
+PROVED_BY_GITHUB_ACTIONS = exact-head specs, typecheck, build:dev, build, deterministic route generation and regressions
 NOT_EXECUTED_AGAINST_MANAGED_LIVE_BACKEND = migration, backfill counts, live RLS/grant behavior, live RPC behavior
 ```
 
@@ -158,11 +197,43 @@ LIVE_CROSS_TENANT_NEGATIVE_RESULTS = not executed against managed live backend
 
 A aplicação futura deverá ocorrer somente no estágio autorizado de banco/homologação, preservando Same-Backend Homologation Cell.
 
-## 7. Estado do roadmap
+## 7. Definition of Done
+
+```text
+RBAC_TENANT_BOUND = true
+CUSTOM_PROFILES_TENANT_BOUND = true
+USER_PROFILE_ASSIGNMENTS_TENANT_BOUND = true
+SYSTEM_PROFILE_TEMPLATES_IMMUTABLE = true
+CROSS_TENANT_PROFILE_VISIBILITY = false
+CROSS_TENANT_PROFILE_ASSIGNMENT = false
+TENANT_PERMISSION_RESOLVER_CANONICAL = true
+SCOPE_PRECEDENCE_CLOSED = true
+SCOPE_ENFORCED_SERVER_SIDE = true
+OWNER_ROOT_AUTHORITY_PRESERVED = true
+SUPER_ADMIN_IMPERSONATION_REQUIRED = true
+PRIVILEGE_ESCALATION_BLOCKED = true
+TEAMS_TENANT_BOUND = true
+TEAM_MEMBERSHIP_ATOMIC = true
+CROSS_TENANT_TEAM_ASSIGNMENT = false
+USER_ROLES_TENANT_AUTHORITY = false
+HAS_ROLE_ADMIN_TENANT_AUTHORITY = false
+LEGACY_AUTH_USER_PASSWORD_PATH = false
+DIRECT_CLIENT_RBAC_MUTATION = false
+DIRECT_CLIENT_TEAM_MUTATION = false
+DUAL_PATH = false
+HEURISTIC_FALLBACK = false
+TYPECHECK = success
+BUILD = success
+BUILD_DEV = success
+DETERMINISTIC_ROUTE_GENERATION = success
+RELEASE_GATE_EXACT_HEAD = success
+```
+
+## 8. Estado do roadmap
 
 ```text
 PR-M2 = in progress in PR #60
-CURRENT_INCREMENT = Tenant Access Control
+CURRENT_INCREMENT = Tenant Access Control — Accepted in branch
 NEXT_PRM2_INCREMENT = Configuration Center & White Label Functional Completion
 DCA-01 = required after PR-M2
 BCA-01 = required after DCA-01
