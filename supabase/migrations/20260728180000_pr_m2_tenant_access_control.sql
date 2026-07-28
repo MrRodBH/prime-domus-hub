@@ -40,8 +40,9 @@ UPDATE public.user_profiles up
    AND tm.user_id = up.user_id
    AND tm.membership_status <> 'revoked';
 
--- Remove a possible legacy uniqueness rule on (user_id, profile_id). The new
--- canonical cardinality includes tenant_id.
+-- Remove legacy uniqueness rules on (user_id, profile_id). The new canonical
+-- cardinality includes tenant_id. Both constraints and standalone indexes are
+-- discovered structurally; no historical object name is assumed.
 DO $block$
 DECLARE
   r record;
@@ -52,21 +53,81 @@ BEGIN
      WHERE c.conrelid = 'public.user_profiles'::regclass
        AND c.contype = 'u'
        AND (
-         SELECT array_agg(a.attname ORDER BY x.ord)
-           FROM unnest(c.conkey) WITH ORDINALITY AS x(attnum, ord)
-           JOIN pg_attribute a
-             ON a.attrelid = c.conrelid
-            AND a.attnum = x.attnum
-       ) = ARRAY['profile_id','user_id']::text[]
-        OR (
-         SELECT array_agg(a.attname ORDER BY x.ord)
-           FROM unnest(c.conkey) WITH ORDINALITY AS x(attnum, ord)
-           JOIN pg_attribute a
-             ON a.attrelid = c.conrelid
-            AND a.attnum = x.attnum
-       ) = ARRAY['user_id','profile_id']::text[]
+         (
+           SELECT array_agg(a.attname ORDER BY x.ord)
+             FROM unnest(c.conkey) WITH ORDINALITY AS x(attnum, ord)
+             JOIN pg_attribute a
+               ON a.attrelid = c.conrelid
+              AND a.attnum = x.attnum
+         ) = ARRAY['profile_id','user_id']::text[]
+         OR
+         (
+           SELECT array_agg(a.attname ORDER BY x.ord)
+             FROM unnest(c.conkey) WITH ORDINALITY AS x(attnum, ord)
+             JOIN pg_attribute a
+               ON a.attrelid = c.conrelid
+              AND a.attnum = x.attnum
+         ) = ARRAY['user_id','profile_id']::text[]
+       )
   LOOP
     EXECUTE format('ALTER TABLE public.user_profiles DROP CONSTRAINT %I', r.conname);
+  END LOOP;
+
+  FOR r IN
+    SELECT index_class.relname AS index_name
+      FROM pg_index idx
+      JOIN pg_class index_class ON index_class.oid = idx.indexrelid
+     WHERE idx.indrelid = 'public.user_profiles'::regclass
+       AND idx.indisunique
+       AND NOT EXISTS (
+         SELECT 1 FROM pg_constraint c WHERE c.conindid = idx.indexrelid
+       )
+       AND (
+         (
+           SELECT array_agg(a.attname ORDER BY x.ord)
+             FROM unnest(idx.indkey::smallint[]) WITH ORDINALITY AS x(attnum, ord)
+             JOIN pg_attribute a
+               ON a.attrelid = idx.indrelid
+              AND a.attnum = x.attnum
+            WHERE x.attnum > 0
+         ) = ARRAY['profile_id','user_id']::text[]
+         OR
+         (
+           SELECT array_agg(a.attname ORDER BY x.ord)
+             FROM unnest(idx.indkey::smallint[]) WITH ORDINALITY AS x(attnum, ord)
+             JOIN pg_attribute a
+               ON a.attrelid = idx.indrelid
+              AND a.attnum = x.attnum
+            WHERE x.attnum > 0
+         ) = ARRAY['user_id','profile_id']::text[]
+       )
+  LOOP
+    EXECUTE format('DROP INDEX IF EXISTS public.%I', r.index_name);
+  END LOOP;
+END;
+$block$;
+
+-- The historical user_roles trigger synchronized a global app role into a
+-- global user_profiles assignment. That behavior is incompatible with tenant
+-- authority. Drop only triggers whose function body actually writes/reads the
+-- profile tables; user_roles remains available for global roles such as
+-- super_admin.
+DO $block$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT t.tgname
+      FROM pg_trigger t
+      JOIN pg_proc p ON p.oid = t.tgfoid
+     WHERE t.tgrelid = 'public.user_roles'::regclass
+       AND NOT t.tgisinternal
+       AND (
+         pg_get_functiondef(p.oid) ILIKE '%user_profiles%'
+         OR pg_get_functiondef(p.oid) ILIKE '%rbac_profiles%'
+       )
+  LOOP
+    EXECUTE format('DROP TRIGGER %I ON public.user_roles', r.tgname);
   END LOOP;
 END;
 $block$;
@@ -146,6 +207,21 @@ DELETE FROM public.rbac_profiles p
    AND EXISTS (
      SELECT 1 FROM pr_m2_profile_tenant_map m WHERE m.old_profile_id = p.id
    );
+
+-- Remove exact duplicate assignments deterministically before installing the
+-- tenant-aware uniqueness rule.
+WITH ranked AS (
+  SELECT id,
+         row_number() OVER (
+           PARTITION BY tenant_id, user_id, profile_id
+           ORDER BY created_at, id
+         ) AS rn
+    FROM public.user_profiles
+)
+DELETE FROM public.user_profiles up
+ USING ranked r
+ WHERE up.id = r.id
+   AND r.rn > 1;
 
 -- System profiles are immutable global templates; custom profiles are always
 -- tenant-owned.
