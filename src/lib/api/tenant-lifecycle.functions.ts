@@ -10,7 +10,6 @@ import {
 import { parseCommercialSeatLimitDeniedError } from "@/lib/api/commercial/membership-mutation-enforcement-error";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -323,18 +322,19 @@ export const acceptTenantInvitation = createServerFn({ method: "POST" })
       { _actor_user_id: context.userId, _tenant_id: data.tenantId } as never,
     );
     if (error) throw safeLifecycleError(error);
-    if (!isPlainObject(raw)) throw new Error("tenant_lifecycle_invalid_response:accept");
-    if (requireUuid(raw, "userId") !== context.userId) {
+    const response: unknown = raw;
+    if (!isPlainObject(response)) throw new Error("tenant_lifecycle_invalid_response:accept");
+    if (requireUuid(response, "userId") !== context.userId) {
       throw new Error("tenant_lifecycle_invalid_response:userId");
     }
     return {
-      tenantId: requireUuid(raw, "tenantId"),
+      tenantId: requireUuid(response, "tenantId"),
       userId: context.userId,
-      status: requireString(raw, "status"),
-      role: requireString(raw, "role"),
-      invitedAt: raw.invitedAt === null ? null : requireString(raw, "invitedAt"),
-      acceptedAt: requireString(raw, "acceptedAt"),
-      joinedAt: requireString(raw, "joinedAt"),
+      status: requireString(response, "status"),
+      role: requireString(response, "role"),
+      invitedAt: response.invitedAt === null ? null : requireString(response, "invitedAt"),
+      acceptedAt: requireString(response, "acceptedAt"),
+      joinedAt: requireString(response, "joinedAt"),
     };
   });
 
