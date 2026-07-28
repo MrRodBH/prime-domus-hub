@@ -1,10 +1,9 @@
 // Compatibility barrel during PR-M2 incremental cutover.
 //
-// Non-property administrative functions remain provided by the preserved
-// legacy module until their own tenant-scoped boundaries are migrated.
-// Property/catalog mutations are explicitly overridden by the canonical
-// fail-closed boundary below. Explicit exports take precedence over star
-// exports and keep existing UI imports source-compatible.
+// Non-migrated administrative domains remain provided by the preserved legacy
+// module. Property/catalog and tenant access-control surfaces are explicitly
+// overridden by canonical fail-closed boundaries below. Explicit exports take
+// precedence over star exports and keep existing UI imports source-compatible.
 
 export * from "./admin.functions.legacy";
 
@@ -19,3 +18,12 @@ export {
   adminDefinirCapa,
   adminAssinarUrl,
 } from "./property-admin.functions";
+
+export {
+  meuAcessoAdmin,
+  adminListarPapeisPorUsuario,
+  adminDefinirPerfilUsuario,
+  adminCriarUsuarioComLogin,
+  adminAtualizarPapeis,
+  adminAlterarSenhaUsuario,
+} from "./tenant-access-control.functions";
