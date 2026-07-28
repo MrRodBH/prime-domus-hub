@@ -55,6 +55,7 @@ run("PR-M2 — CMS tenant authority specifications", "bun", ["run", "test:pr-m2:
 run("PR-M2 — dashboard tenant authority specifications", "bun", ["run", "test:pr-m2:dashboard-authority"]);
 run("PR-M2 — CRM report authority specifications", "bun", ["run", "test:pr-m2:crm-report-authority"]);
 run("PR-M2 — property admin authority specifications", "bun", ["run", "test:pr-m2:property-admin-authority"]);
+run("PR-M2 — tenant lifecycle specifications", "bun", ["run", "test:pr-m2:tenant-lifecycle"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -94,6 +95,7 @@ console.log(JSON.stringify({
   prM2DashboardTenantAuthoritySpecsPassed: true,
   prM2CrmReportAuthoritySpecsPassed: true,
   prM2PropertyAdminAuthoritySpecsPassed: true,
+  prM2TenantLifecycleSpecsPassed: true,
   leadAuthorizationUnitSpecsPassed: true,
   leadRuntimeOperationSpecsPassed: true,
   leadStructuralSpecsPassed: true,
