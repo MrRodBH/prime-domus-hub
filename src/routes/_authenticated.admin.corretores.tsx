@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   adminListarCorretores,
@@ -60,6 +60,25 @@ const emptyForm = (): BrokerForm => ({
   team_id: null,
 });
 
+function brokerPayload(form: BrokerForm) {
+  return {
+    id: form.id,
+    nome: form.nome,
+    sobrenome: form.sobrenome || null,
+    cpf: form.cpf || null,
+    creci: form.creci || null,
+    email: form.email || null,
+    telefone: form.telefone || null,
+    whatsapp: form.whatsapp || null,
+    cargo: form.cargo || null,
+    bio: form.bio || null,
+    foto_url: form.foto_url || null,
+    ativo: form.ativo,
+    status: form.status,
+    team_id: form.team_id,
+  };
+}
+
 function BrokerDirectoryPage() {
   const qc = useQueryClient();
   const brokers = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
@@ -70,7 +89,7 @@ function BrokerDirectoryPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const save = useMutation({
-    mutationFn: (data: BrokerForm) => adminSalvarCorretor({ data }),
+    mutationFn: (form: BrokerForm) => adminSalvarCorretor({ data: brokerPayload(form) }),
     onSuccess: () => {
       toast.success("Registro profissional salvo sem alterar login, membership ou senha.");
       void qc.invalidateQueries({ queryKey: ["admin", "corretores"] });
@@ -182,7 +201,7 @@ function BrokerDirectoryPage() {
                   <TableCell>{broker.creci ?? "—"}</TableCell>
                   <TableCell>{(teams.data ?? []).find((team) => team.id === broker.team_id)?.nome ?? "—"}</TableCell>
                   <TableCell><Badge variant={broker.ativo ? "default" : "secondary"}>{broker.status ?? (broker.ativo ? "ativo" : "inativo")}</Badge></TableCell>
-                  <TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={() => { setEditing({ ...emptyForm(), ...broker, team_id: broker.team_id ?? null }); setOpen(true); }}><Pencil className="size-4" /></Button>{broker.ativo ? <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Arquivar o registro de ${broker.nome}? O login não será removido.`)) archive.mutate(broker.id); }}><Archive className="size-4 text-destructive" /></Button> : null}</div></TableCell>
+                  <TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={() => { setEditing({ ...emptyForm(), id: broker.id, nome: broker.nome ?? "", sobrenome: broker.sobrenome ?? "", cpf: broker.cpf ?? "", creci: broker.creci ?? "", email: broker.email ?? "", telefone: broker.telefone ?? "", whatsapp: broker.whatsapp ?? "", cargo: broker.cargo ?? "", bio: broker.bio ?? "", foto_url: broker.foto_url ?? "", ativo: Boolean(broker.ativo), status: broker.status ?? (broker.ativo ? "ativo" : "inativo"), team_id: broker.team_id ?? null, user_id: broker.user_id ?? null }); setOpen(true); }}><Pencil className="size-4" /></Button>{broker.ativo ? <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Arquivar o registro de ${broker.nome}? O login não será removido.`)) archive.mutate(broker.id); }}><Archive className="size-4 text-destructive" /></Button> : null}</div></TableCell>
                 </TableRow>
               ))}
               {!brokers.data?.length ? <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">Nenhum corretor cadastrado.</TableCell></TableRow> : null}
@@ -194,6 +213,6 @@ function BrokerDirectoryPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return <div><Label>{label}</Label>{children}</div>;
 }
