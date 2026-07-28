@@ -1,34 +1,72 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
+import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
 
-// ============================================================
-// DASHBOARD CRM IMOBILIÁRIO — backend de agregação
-// ============================================================
-// Retorna todas as métricas em uma única chamada para o painel.
-// Filtros: período, corretor, equipe, origem.
-// Escopo: admin/gerente vê tudo; corretor vê apenas seus leads.
-// ============================================================
+const filtroSchema = z
+  .object({
+    inicio: z.string().datetime(),
+    fim: z.string().datetime(),
+    corretor_id: z.string().uuid().nullable().optional(),
+    team_id: z.string().uuid().nullable().optional(),
+    origem: z.string().trim().min(1).max(200).nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (new Date(data.fim).getTime() < new Date(data.inicio).getTime()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fim"],
+        message: "O fim do período deve ser posterior ao início.",
+      });
+    }
+  });
 
-const filtroSchema = z.object({
-  inicio: z.string(), // ISO
-  fim: z.string(), // ISO
-  corretor_id: z.string().uuid().nullable().optional(),
-  team_id: z.string().uuid().nullable().optional(),
-  origem: z.string().nullable().optional(),
-});
+const leadsFiltradosSchema = z
+  .object({
+    inicio: z.string().datetime().optional(),
+    fim: z.string().datetime().optional(),
+    status: z.array(z.string().min(1).max(80)).max(20).optional(),
+    alerta: z
+      .enum([
+        "sem_atendimento",
+        "sem_followup",
+        "visitas_sem_feedback",
+        "propostas_paradas",
+      ])
+      .optional(),
+    corretor_id: z.string().uuid().nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.inicio &&
+      data.fim &&
+      new Date(data.fim).getTime() < new Date(data.inicio).getTime()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fim"],
+        message: "O fim do período deve ser posterior ao início.",
+      });
+    }
+  });
 
-const STATUS_FUNIL = ["novo", "conversando", "visita", "proposta", "ganho", "perdido"] as const;
+const STATUS_FUNIL = [
+  "novo",
+  "conversando",
+  "visita",
+  "proposta",
+  "ganho",
+  "perdido",
+] as const;
 type StatusFunil = (typeof STATUS_FUNIL)[number];
 
-// Mapeia status do CRM para etapas do funil
 const ETAPA_INDEX: Record<StatusFunil, number> = {
-  novo: 0, // Lead Captado
-  conversando: 1, // Contato Realizado / Qualificado
-  visita: 2, // Visita Agendada
-  proposta: 3, // Proposta
-  ganho: 4, // Venda
-  perdido: 5, // Descartado
+  novo: 0,
+  conversando: 1,
+  visita: 2,
+  proposta: 3,
+  ganho: 4,
+  perdido: 5,
 };
 
 type Lead = {
@@ -44,83 +82,184 @@ type Lead = {
   telefone: string | null;
 };
 
-function diffPercent(atual: number, anterior: number): number {
-  if (anterior === 0) return atual === 0 ? 0 : 100;
-  return Math.round(((atual - anterior) / anterior) * 1000) / 10;
+type DashboardAccess = {
+  tenantId: string;
+  isPrivileged: boolean;
+  brokerId: string | null;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveDashboardAccess(context: any): Promise<DashboardAccess> {
+  const tenantId = requireTenantScopedAuthority(context.tenant, "Dashboard");
+
+  if (context.tenant.isSuperAdmin) {
+    return { tenantId, isPrivileged: true, brokerId: null };
+  }
+
+  const [admin, manager, secretary] = await Promise.all([
+    context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    }),
+    context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "gerente",
+    }),
+    context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "secretaria",
+    }),
+  ]);
+
+  for (const result of [admin, manager, secretary]) {
+    if (result.error) throw new Error("Falha ao validar autorização do dashboard.");
+  }
+
+  const isPrivileged =
+    admin.data === true || manager.data === true || secretary.data === true;
+  if (isPrivileged) return { tenantId, isPrivileged: true, brokerId: null };
+
+  const { data: brokers, error } = await context.supabase
+    .from("corretores")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", context.userId)
+    .limit(2);
+  if (error) throw new Error(error.message);
+  if ((brokers ?? []).length !== 1) {
+    throw new Error("Dashboard broker authority is unresolved or ambiguous.");
+  }
+
+  return {
+    tenantId,
+    isPrivileged: false,
+    brokerId: brokers![0].id,
+  };
 }
 
-function inRange(d: string, ini: Date, fim: Date) {
-  const t = new Date(d).getTime();
-  return t >= ini.getTime() && t <= fim.getTime();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function requireTenantBroker(context: any, tenantId: string, brokerId: string) {
+  const { data, error } = await context.supabase
+    .from("corretores")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", brokerId)
+    .limit(2);
+  if (error) throw new Error(error.message);
+  if ((data ?? []).length !== 1) {
+    throw new Error("Corretor não encontrado no tenant atual.");
+  }
+  return brokerId;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveTeamBrokerIds(context: any, tenantId: string, teamId: string) {
+  const { data: teams, error: teamError } = await context.supabase
+    .from("teams")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", teamId)
+    .limit(2);
+  if (teamError) throw new Error(teamError.message);
+  if ((teams ?? []).length !== 1) {
+    throw new Error("Equipe não encontrada no tenant atual.");
+  }
+
+  const { data: members, error: memberError } = await context.supabase
+    .from("team_members")
+    .select("user_id")
+    .eq("tenant_id", tenantId)
+    .eq("team_id", teamId);
+  if (memberError) throw new Error(memberError.message);
+
+  const userIds = Array.from(
+    new Set((members ?? []).map((member) => member.user_id).filter(Boolean)),
+  );
+  if (userIds.length === 0) return [];
+
+  const { data: brokers, error: brokerError } = await context.supabase
+    .from("corretores")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .in("user_id", userIds);
+  if (brokerError) throw new Error(brokerError.message);
+  return Array.from(new Set((brokers ?? []).map((broker) => broker.id)));
+}
+
+function diffPercent(current: number, previous: number): number {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+function inRange(date: string, start: Date, end: Date) {
+  const timestamp = new Date(date).getTime();
+  return timestamp >= start.getTime() && timestamp <= end.getTime();
 }
 
 export const dashboardStats = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => filtroSchema.parse(d))
+  .middleware([requireTenant])
+  .inputValidator((data: unknown) => filtroSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const access = await resolveDashboardAccess(context);
+    const { tenantId, isPrivileged } = access;
+    const { supabase } = context;
+
+    if (!isPrivileged && data.team_id) {
+      throw new Error("Filtro de equipe não autorizado.");
+    }
+    if (
+      !isPrivileged &&
+      data.corretor_id &&
+      data.corretor_id !== access.brokerId
+    ) {
+      throw new Error("Filtro de corretor não autorizado.");
+    }
+
+    const selectedBrokerId = isPrivileged && data.corretor_id
+      ? await requireTenantBroker(context, tenantId, data.corretor_id)
+      : access.brokerId;
+    const teamBrokerIds = isPrivileged && data.team_id
+      ? await resolveTeamBrokerIds(context, tenantId, data.team_id)
+      : null;
+
     const inicio = new Date(data.inicio);
     const fim = new Date(data.fim);
     const duracao = fim.getTime() - inicio.getTime();
     const inicioAnterior = new Date(inicio.getTime() - duracao);
     const fimAnterior = new Date(inicio.getTime() - 1);
 
-    // ---- Detecta escopo do usuário ----
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    const rolesArr = (roles ?? []).map((r) => (r as { role: string }).role);
-    const isPrivileged = rolesArr.some((r) => ["admin", "gerente", "secretaria"].includes(r));
-
-    let corretorIdSelf: string | null = null;
-    if (!isPrivileged) {
-      const { data: c } = await supabase.from("corretores").select("id").eq("user_id", userId).maybeSingle();
-      corretorIdSelf = (c as { id: string } | null)?.id ?? null;
-    }
-
-    // ---- Filtros adicionais (equipe → resolve corretores) ----
-    let teamCorretorIds: string[] | null = null;
-    if (data.team_id && isPrivileged) {
-      const { data: members } = await supabase
-        .from("team_members")
-        .select("user_id")
-        .eq("team_id", data.team_id);
-      const userIds = (members ?? []).map((m) => (m as { user_id: string }).user_id);
-      if (userIds.length > 0) {
-        const { data: cs } = await supabase.from("corretores").select("id").in("user_id", userIds);
-        teamCorretorIds = (cs ?? []).map((c) => (c as { id: string }).id);
-      } else {
-        teamCorretorIds = [];
-      }
-    }
-
-    // ---- Query base: leads do período atual + período anterior ----
     let query = supabase
       .from("leads")
-      .select("id, status, origem, corretor_id, valor_estimado, created_at, updated_at, nome, email, telefone")
+      .select(
+        "id, status, origem, corretor_id, valor_estimado, created_at, updated_at, nome, email, telefone",
+      )
+      .eq("tenant_id", tenantId)
       .gte("created_at", inicioAnterior.toISOString())
       .lte("created_at", fim.toISOString());
 
-    if (!isPrivileged && corretorIdSelf) query = query.eq("corretor_id", corretorIdSelf);
-    if (data.corretor_id && isPrivileged) query = query.eq("corretor_id", data.corretor_id);
-    if (teamCorretorIds) {
-      if (teamCorretorIds.length === 0) query = query.eq("corretor_id", "00000000-0000-0000-0000-000000000000");
-      else query = query.in("corretor_id", teamCorretorIds);
+    if (selectedBrokerId) query = query.eq("corretor_id", selectedBrokerId);
+    if (teamBrokerIds) {
+      query = teamBrokerIds.length === 0
+        ? query.eq("corretor_id", "00000000-0000-0000-0000-000000000000")
+        : query.in("corretor_id", teamBrokerIds);
     }
     if (data.origem) query = query.eq("origem", data.origem);
 
     const { data: leadsRaw, error } = await query;
     if (error) throw new Error(error.message);
     const leads = (leadsRaw ?? []) as Lead[];
+    const atuais = leads.filter((lead) => inRange(lead.created_at, inicio, fim));
+    const anteriores = leads.filter((lead) =>
+      inRange(lead.created_at, inicioAnterior, fimAnterior),
+    );
 
-    const atuais = leads.filter((l) => inRange(l.created_at, inicio, fim));
-    const anteriores = leads.filter((l) => inRange(l.created_at, inicioAnterior, fimAnterior));
-
-    // ---- BLOCO 1 — Resumo Executivo ----
-    const countByStatus = (arr: Lead[], st: StatusFunil) => arr.filter((l) => l.status === st).length;
-    const countAtLeast = (arr: Lead[], st: StatusFunil) =>
-      arr.filter((l) => {
-        const idx = ETAPA_INDEX[l.status as StatusFunil] ?? -1;
-        const target = ETAPA_INDEX[st];
-        return idx >= target && idx !== 5;
+    const countByStatus = (items: Lead[], status: StatusFunil) =>
+      items.filter((lead) => lead.status === status).length;
+    const countAtLeast = (items: Lead[], status: StatusFunil) =>
+      items.filter((lead) => {
+        const index = ETAPA_INDEX[lead.status as StatusFunil] ?? -1;
+        const target = ETAPA_INDEX[status];
+        return index >= target && index !== ETAPA_INDEX.perdido;
       }).length;
 
     const leadsTotal = atuais.length;
@@ -129,26 +268,36 @@ export const dashboardStats = createServerFn({ method: "POST" })
     const propostas = countAtLeast(atuais, "proposta");
     const vendas = countByStatus(atuais, "ganho");
     const vgv = atuais
-      .filter((l) => l.status === "ganho")
-      .reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0);
+      .filter((lead) => lead.status === "ganho")
+      .reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0);
 
     const resumo = {
-      leads: { atual: leadsTotal, anterior: leadsAnterior, deltaPct: diffPercent(leadsTotal, leadsAnterior) },
+      leads: {
+        atual: leadsTotal,
+        anterior: leadsAnterior,
+        deltaPct: diffPercent(leadsTotal, leadsAnterior),
+      },
       visitas: {
         atual: visitas,
-        conversao: leadsTotal > 0 ? Math.round((visitas / leadsTotal) * 1000) / 10 : 0,
+        conversao: leadsTotal > 0
+          ? Math.round((visitas / leadsTotal) * 1000) / 10
+          : 0,
       },
       propostas: {
         atual: propostas,
-        conversao: visitas > 0 ? Math.round((propostas / visitas) * 1000) / 10 : 0,
+        conversao: visitas > 0
+          ? Math.round((propostas / visitas) * 1000) / 10
+          : 0,
       },
       vendas: { atual: vendas, vgv },
     };
 
-    // ---- BLOCO 3 — Funil ----
     const captado = atuais.length;
-    const contato = atuais.filter((l) => ETAPA_INDEX[l.status as StatusFunil] >= 1 && l.status !== "perdido").length;
-    const qualificado = contato; // sem etapa separada — agregada ao contato
+    const contato = atuais.filter((lead) => {
+      const index = ETAPA_INDEX[lead.status as StatusFunil] ?? -1;
+      return index >= 1 && lead.status !== "perdido";
+    }).length;
+    const qualificado = contato;
     const visitaCount = countAtLeast(atuais, "visita");
     const propostaCount = countAtLeast(atuais, "proposta");
     const vendaCount = countByStatus(atuais, "ganho");
@@ -165,58 +314,81 @@ export const dashboardStats = createServerFn({ method: "POST" })
       {
         etapa: "Qualificado",
         quantidade: qualificado,
-        conversao: contato ? Math.round((qualificado / contato) * 1000) / 10 : 0,
+        conversao: contato
+          ? Math.round((qualificado / contato) * 1000) / 10
+          : 0,
         perda: contato - qualificado,
       },
       {
         etapa: "Visita Agendada",
         quantidade: visitaCount,
-        conversao: qualificado ? Math.round((visitaCount / qualificado) * 1000) / 10 : 0,
+        conversao: qualificado
+          ? Math.round((visitaCount / qualificado) * 1000) / 10
+          : 0,
         perda: qualificado - visitaCount,
       },
       {
         etapa: "Proposta",
         quantidade: propostaCount,
-        conversao: visitaCount ? Math.round((propostaCount / visitaCount) * 1000) / 10 : 0,
+        conversao: visitaCount
+          ? Math.round((propostaCount / visitaCount) * 1000) / 10
+          : 0,
         perda: visitaCount - propostaCount,
       },
       {
         etapa: "Venda",
         quantidade: vendaCount,
-        conversao: propostaCount ? Math.round((vendaCount / propostaCount) * 1000) / 10 : 0,
+        conversao: propostaCount
+          ? Math.round((vendaCount / propostaCount) * 1000) / 10
+          : 0,
         perda: propostaCount - vendaCount,
       },
-      { etapa: "Descartados", quantidade: descartadoCount, conversao: 0, perda: descartadoCount },
+      {
+        etapa: "Descartados",
+        quantidade: descartadoCount,
+        conversao: 0,
+        perda: descartadoCount,
+      },
     ];
 
-    // ---- BLOCO 4 — Alertas ----
-    const agora = Date.now();
-    const HORAS_48 = 48 * 3600 * 1000;
-    const DIAS_7 = 7 * 24 * 3600 * 1000;
-
-    // Para alertas usamos toda a base ativa (não só do período)
-    let allQuery = supabase
+    let activeQuery = supabase
       .from("leads")
       .select("id, status, corretor_id, created_at, updated_at, nome")
+      .eq("tenant_id", tenantId)
       .not("status", "in", '("ganho","perdido")');
-    if (!isPrivileged && corretorIdSelf) allQuery = allQuery.eq("corretor_id", corretorIdSelf);
-    if (data.corretor_id && isPrivileged) allQuery = allQuery.eq("corretor_id", data.corretor_id);
-    const { data: ativosRaw } = await allQuery;
-    const ativos = (ativosRaw ?? []) as Lead[];
+    if (selectedBrokerId) activeQuery = activeQuery.eq("corretor_id", selectedBrokerId);
+    if (teamBrokerIds) {
+      activeQuery = teamBrokerIds.length === 0
+        ? activeQuery.eq("corretor_id", "00000000-0000-0000-0000-000000000000")
+        : activeQuery.in("corretor_id", teamBrokerIds);
+    }
+    const { data: activeRows, error: activeError } = await activeQuery;
+    if (activeError) throw new Error(activeError.message);
+    const ativos = (activeRows ?? []) as Lead[];
 
+    const agora = Date.now();
+    const HORAS_48 = 48 * 60 * 60 * 1000;
+    const DIAS_7 = 7 * 24 * 60 * 60 * 1000;
     const semAtendimento = ativos.filter(
-      (l) => l.status === "novo" && agora - new Date(l.created_at).getTime() > HORAS_48,
+      (lead) =>
+        lead.status === "novo" &&
+        agora - new Date(lead.created_at).getTime() > HORAS_48,
     ).length;
     const semFollowup = ativos.filter(
-      (l) => l.status === "conversando" && agora - new Date(l.updated_at).getTime() > DIAS_7,
+      (lead) =>
+        lead.status === "conversando" &&
+        agora - new Date(lead.updated_at).getTime() > DIAS_7,
     ).length;
     const visitasSemFeedback = ativos.filter(
-      (l) => l.status === "visita" && agora - new Date(l.updated_at).getTime() > DIAS_7,
+      (lead) =>
+        lead.status === "visita" &&
+        agora - new Date(lead.updated_at).getTime() > DIAS_7,
     ).length;
     const propostasParadas = ativos.filter(
-      (l) => l.status === "proposta" && agora - new Date(l.updated_at).getTime() > DIAS_7,
+      (lead) =>
+        lead.status === "proposta" &&
+        agora - new Date(lead.updated_at).getTime() > DIAS_7,
     ).length;
-
     const alertas = {
       semAtendimento,
       semFollowup,
@@ -224,71 +396,119 @@ export const dashboardStats = createServerFn({ method: "POST" })
       propostasParadas,
     };
 
-    // ---- BLOCO 5 — Evolução comercial (série diária dentro do período) ----
-    const dias = Math.max(1, Math.ceil(duracao / (24 * 3600 * 1000)));
-    const serie: Array<{ data: string; leads: number; visitas: number; propostas: number; vendas: number; vgv: number }> = [];
-    for (let i = 0; i < dias; i++) {
-      const d = new Date(inicio.getTime() + i * 24 * 3600 * 1000);
-      const key = d.toISOString().slice(0, 10);
-      serie.push({ data: key, leads: 0, visitas: 0, propostas: 0, vendas: 0, vgv: 0 });
+    const dias = Math.max(1, Math.ceil(duracao / (24 * 60 * 60 * 1000)));
+    const serie: Array<{
+      data: string;
+      leads: number;
+      visitas: number;
+      propostas: number;
+      vendas: number;
+      vgv: number;
+    }> = [];
+    for (let index = 0; index < dias; index += 1) {
+      const date = new Date(inicio.getTime() + index * 24 * 60 * 60 * 1000);
+      serie.push({
+        data: date.toISOString().slice(0, 10),
+        leads: 0,
+        visitas: 0,
+        propostas: 0,
+        vendas: 0,
+        vgv: 0,
+      });
     }
-    const indexByDay = new Map(serie.map((s, i) => [s.data, i]));
-    for (const l of atuais) {
-      const key = l.created_at.slice(0, 10);
-      const idx = indexByDay.get(key);
-      if (idx === undefined) continue;
-      serie[idx].leads += 1;
-      const e = ETAPA_INDEX[l.status as StatusFunil] ?? -1;
-      if (e >= 2 && e !== 5) serie[idx].visitas += 1;
-      if (e >= 3 && e !== 5) serie[idx].propostas += 1;
-      if (l.status === "ganho") {
-        serie[idx].vendas += 1;
-        serie[idx].vgv += Number(l.valor_estimado) || 0;
+    const indexByDay = new Map(serie.map((item, index) => [item.data, index]));
+    for (const lead of atuais) {
+      const index = indexByDay.get(lead.created_at.slice(0, 10));
+      if (index === undefined) continue;
+      serie[index].leads += 1;
+      const stageIndex = ETAPA_INDEX[lead.status as StatusFunil] ?? -1;
+      if (stageIndex >= 2 && stageIndex !== ETAPA_INDEX.perdido) {
+        serie[index].visitas += 1;
+      }
+      if (stageIndex >= 3 && stageIndex !== ETAPA_INDEX.perdido) {
+        serie[index].propostas += 1;
+      }
+      if (lead.status === "ganho") {
+        serie[index].vendas += 1;
+        serie[index].vgv += Number(lead.valor_estimado) || 0;
       }
     }
 
-    // ---- BLOCO 6 — Origem dos leads ----
     const origensMap = new Map<string, { total: number; vendas: number }>();
-    for (const l of atuais) {
-      const k = (l.origem || "Outros").trim() || "Outros";
-      const cur = origensMap.get(k) ?? { total: 0, vendas: 0 };
-      cur.total += 1;
-      if (l.status === "ganho") cur.vendas += 1;
-      origensMap.set(k, cur);
+    for (const lead of atuais) {
+      const key = (lead.origem || "Outros").trim() || "Outros";
+      const current = origensMap.get(key) ?? { total: 0, vendas: 0 };
+      current.total += 1;
+      if (lead.status === "ganho") current.vendas += 1;
+      origensMap.set(key, current);
     }
     const origens = Array.from(origensMap.entries())
-      .map(([nome, v]) => ({
+      .map(([nome, values]) => ({
         nome,
-        quantidade: v.total,
-        percentual: leadsTotal ? Math.round((v.total / leadsTotal) * 1000) / 10 : 0,
-        conversao: v.total ? Math.round((v.vendas / v.total) * 1000) / 10 : 0,
+        quantidade: values.total,
+        percentual: leadsTotal
+          ? Math.round((values.total / leadsTotal) * 1000) / 10
+          : 0,
+        conversao: values.total
+          ? Math.round((values.vendas / values.total) * 1000) / 10
+          : 0,
       }))
-      .sort((a, b) => b.quantidade - a.quantidade);
+      .sort((left, right) => right.quantidade - left.quantidade);
 
-    // ---- BLOCO 7 — Taxas de Conversão (metas hardcoded — configuráveis no futuro) ----
-    const METAS = { leadContato: 80, contatoVisita: 50, visitaProposta: 50, propostaVenda: 40, leadVenda: 5 };
+    const metas = {
+      leadContato: 80,
+      contatoVisita: 50,
+      visitaProposta: 50,
+      propostaVenda: 40,
+      leadVenda: 5,
+    };
     const taxas = [
-      { label: "Lead → Contato", atual: captado ? Math.round((contato / captado) * 1000) / 10 : 0, meta: METAS.leadContato },
-      { label: "Contato → Visita", atual: contato ? Math.round((visitaCount / contato) * 1000) / 10 : 0, meta: METAS.contatoVisita },
-      { label: "Visita → Proposta", atual: visitaCount ? Math.round((propostaCount / visitaCount) * 1000) / 10 : 0, meta: METAS.visitaProposta },
-      { label: "Proposta → Venda", atual: propostaCount ? Math.round((vendaCount / propostaCount) * 1000) / 10 : 0, meta: METAS.propostaVenda },
-      { label: "Lead → Venda", atual: captado ? Math.round((vendaCount / captado) * 1000) / 10 : 0, meta: METAS.leadVenda },
+      {
+        label: "Lead → Contato",
+        atual: captado ? Math.round((contato / captado) * 1000) / 10 : 0,
+        meta: metas.leadContato,
+      },
+      {
+        label: "Contato → Visita",
+        atual: contato ? Math.round((visitaCount / contato) * 1000) / 10 : 0,
+        meta: metas.contatoVisita,
+      },
+      {
+        label: "Visita → Proposta",
+        atual: visitaCount
+          ? Math.round((propostaCount / visitaCount) * 1000) / 10
+          : 0,
+        meta: metas.visitaProposta,
+      },
+      {
+        label: "Proposta → Venda",
+        atual: propostaCount
+          ? Math.round((vendaCount / propostaCount) * 1000) / 10
+          : 0,
+        meta: metas.propostaVenda,
+      },
+      {
+        label: "Lead → Venda",
+        atual: captado ? Math.round((vendaCount / captado) * 1000) / 10 : 0,
+        meta: metas.leadVenda,
+      },
     ];
 
-    // ---- BLOCO 8 — Desempenho individual (do corretor atual) ----
-    let desempenho: { leads: number; visitas: number; propostas: number; vendas: number; vgv: number } | null = null;
-    if (corretorIdSelf) {
-      const meusAtuais = atuais.filter((l) => l.corretor_id === corretorIdSelf);
-      desempenho = {
-        leads: meusAtuais.length,
-        visitas: countAtLeast(meusAtuais, "visita"),
-        propostas: countAtLeast(meusAtuais, "proposta"),
-        vendas: countByStatus(meusAtuais, "ganho"),
-        vgv: meusAtuais.filter((l) => l.status === "ganho").reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0),
-      };
-    }
+    const desempenho = access.brokerId
+      ? (() => {
+          const own = atuais.filter((lead) => lead.corretor_id === access.brokerId);
+          return {
+            leads: own.length,
+            visitas: countAtLeast(own, "visita"),
+            propostas: countAtLeast(own, "proposta"),
+            vendas: countByStatus(own, "ganho"),
+            vgv: own
+              .filter((lead) => lead.status === "ganho")
+              .reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0),
+          };
+        })()
+      : null;
 
-    // ---- BLOCO 9 — Ranking da equipe (apenas privilegiados) ----
     let ranking: Array<{
       corretor_id: string;
       user_id: string | null;
@@ -301,143 +521,207 @@ export const dashboardStats = createServerFn({ method: "POST" })
       vgv: number;
     }> = [];
     if (isPrivileged) {
-      const { data: corretoresRaw } = await supabase.from("corretores").select("id, user_id, nome, sobrenome");
-      const corretores = (corretoresRaw ?? []) as Array<{ id: string; user_id: string | null; nome: string; sobrenome: string | null }>;
-      ranking = corretores
-        .map((c) => {
-          const seus = atuais.filter((l) => l.corretor_id === c.id);
-          const v = countByStatus(seus, "ganho");
+      const { data: brokerRows, error: brokerError } = await supabase
+        .from("corretores")
+        .select("id, user_id, nome, sobrenome")
+        .eq("tenant_id", tenantId);
+      if (brokerError) throw new Error(brokerError.message);
+      ranking = (brokerRows ?? [])
+        .map((broker) => {
+          const own = atuais.filter((lead) => lead.corretor_id === broker.id);
+          const won = countByStatus(own, "ganho");
           return {
-            corretor_id: c.id,
-            user_id: c.user_id,
-            nome: [c.nome, c.sobrenome].filter(Boolean).join(" "),
-            leads: seus.length,
-            visitas: countAtLeast(seus, "visita"),
-            propostas: countAtLeast(seus, "proposta"),
-            vendas: v,
-            conversao: seus.length ? Math.round((v / seus.length) * 1000) / 10 : 0,
-            vgv: seus.filter((l) => l.status === "ganho").reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0),
+            corretor_id: broker.id,
+            user_id: broker.user_id,
+            nome: [broker.nome, broker.sobrenome].filter(Boolean).join(" "),
+            leads: own.length,
+            visitas: countAtLeast(own, "visita"),
+            propostas: countAtLeast(own, "proposta"),
+            vendas: won,
+            conversao: own.length
+              ? Math.round((won / own.length) * 1000) / 10
+              : 0,
+            vgv: own
+              .filter((lead) => lead.status === "ganho")
+              .reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0),
           };
         })
-        .filter((r) => r.leads > 0 || r.vendas > 0)
-        .sort((a, b) => b.vgv - a.vgv)
+        .filter((item) => item.leads > 0 || item.vendas > 0)
+        .sort((left, right) => right.vgv - left.vgv)
         .slice(0, 10);
     }
 
-
-    // ---- BLOCO 2 — IA Comercial (motor de regras) ----
-    const insights: Array<{ tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao"; mensagem: string }> = [];
-
+    const insights: Array<{
+      tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao";
+      mensagem: string;
+    }> = [];
     if (leadsAnterior > 0) {
-      const d = diffPercent(leadsTotal, leadsAnterior);
+      const delta = diffPercent(leadsTotal, leadsAnterior);
       insights.push({
         tipo: "performance",
-        mensagem: d >= 0
-          ? `Você recebeu ${d}% mais leads que no período anterior.`
-          : `Volume de leads caiu ${Math.abs(d)}% em relação ao período anterior.`,
+        mensagem: delta >= 0
+          ? `Você recebeu ${delta}% mais leads que no período anterior.`
+          : `Volume de leads caiu ${Math.abs(delta)}% em relação ao período anterior.`,
       });
     }
     if (vendas > 0 && vgv > 0) {
-      insights.push({ tipo: "performance", mensagem: `VGV do período: ${vgv.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.` });
+      insights.push({
+        tipo: "performance",
+        mensagem: `VGV do período: ${vgv.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        })}.`,
+      });
     }
 
-    // Gargalo: menor taxa de conversão entre etapas consecutivas
-    const transicoes = [
-      { nome: "Lead → Contato", v: captado ? contato / captado : 1 },
-      { nome: "Contato → Visita", v: contato ? visitaCount / contato : 1 },
-      { nome: "Visita → Proposta", v: visitaCount ? propostaCount / visitaCount : 1 },
-      { nome: "Proposta → Venda", v: propostaCount ? vendaCount / propostaCount : 1 },
+    const transitions = [
+      { nome: "Lead → Contato", value: captado ? contato / captado : 1 },
+      { nome: "Contato → Visita", value: contato ? visitaCount / contato : 1 },
+      {
+        nome: "Visita → Proposta",
+        value: visitaCount ? propostaCount / visitaCount : 1,
+      },
+      {
+        nome: "Proposta → Venda",
+        value: propostaCount ? vendaCount / propostaCount : 1,
+      },
     ];
-    const piorTransicao = transicoes.reduce((a, b) => (b.v < a.v ? b : a), transicoes[0]);
+    const worstTransition = transitions.reduce((left, right) =>
+      right.value < left.value ? right : left,
+    );
     if (captado > 0) {
       insights.push({
         tipo: "gargalo",
-        mensagem: `O principal gargalo está na etapa ${piorTransicao.nome} (${Math.round(piorTransicao.v * 100)}% de conversão).`,
+        mensagem: `O principal gargalo está na etapa ${worstTransition.nome} (${Math.round(worstTransition.value * 100)}% de conversão).`,
       });
     }
 
-    const propostasAbertas = ativos.filter((l) => l.status === "proposta").length;
+    const propostasAbertas = ativos.filter((lead) => lead.status === "proposta").length;
     if (propostasAbertas > 0) {
       insights.push({
         tipo: "oportunidade",
-        mensagem: `Existem ${propostasAbertas} proposta${propostasAbertas > 1 ? "s" : ""} aguardando retorno — alta chance de fechamento.`,
+        mensagem: `Existem ${propostasAbertas} proposta${
+          propostasAbertas > 1 ? "s" : ""
+        } aguardando retorno — alta chance de fechamento.`,
       });
     }
-
     if (semAtendimento > 0) {
       insights.push({
         tipo: "alerta",
-        mensagem: `${semAtendimento} lead${semAtendimento > 1 ? "s" : ""} sem atendimento há mais de 48 horas.`,
+        mensagem: `${semAtendimento} lead${
+          semAtendimento > 1 ? "s" : ""
+        } sem atendimento há mais de 48 horas.`,
       });
     }
     if (propostasParadas > 0) {
       insights.push({
         tipo: "alerta",
-        mensagem: `${propostasParadas} proposta${propostasParadas > 1 ? "s" : ""} sem atualização há mais de 7 dias.`,
+        mensagem: `${propostasParadas} proposta${
+          propostasParadas > 1 ? "s" : ""
+        } sem atualização há mais de 7 dias.`,
       });
     }
-
     if (vendas > 0 && dias > 0) {
-      const ritmoDiario = vgv / dias;
-      const previsao30 = Math.round(ritmoDiario * 30);
+      const previsao30 = Math.round((vgv / dias) * 30);
       insights.push({
         tipo: "previsao",
-        mensagem: `Previsão de VGV nos próximos 30 dias: ${previsao30.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
+        mensagem: `Previsão de VGV nos próximos 30 dias: ${previsao30.toLocaleString(
+          "pt-BR",
+          { style: "currency", currency: "BRL" },
+        )}.`,
       });
     }
 
-    return { resumo, funil, alertas, serie, origens, taxas, desempenho, ranking, insights, isPrivileged };
+    return {
+      resumo,
+      funil,
+      alertas,
+      serie,
+      origens,
+      taxas,
+      desempenho,
+      ranking,
+      insights,
+      isPrivileged,
+    };
   });
 
-// ============================================================
-// Lista de leads filtrada (drill-down ao clicar em uma etapa/alerta)
-// ============================================================
 export const dashboardLeadsFiltrados = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) =>
-    z
-      .object({
-        inicio: z.string().optional(),
-        fim: z.string().optional(),
-        status: z.array(z.string()).optional(),
-        alerta: z.enum(["sem_atendimento", "sem_followup", "visitas_sem_feedback", "propostas_paradas"]).optional(),
-        corretor_id: z.string().uuid().nullable().optional(),
-      })
-      .parse(d),
-  )
+  .middleware([requireTenant])
+  .inputValidator((data: unknown) => leadsFiltradosSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    let query = supabase.from("leads").select("id, nome, email, telefone, status, origem, valor_estimado, created_at, updated_at");
+    const access = await resolveDashboardAccess(context);
+    const { tenantId, isPrivileged } = access;
 
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    const isPrivileged = (roles ?? []).some((r) => ["admin", "gerente", "secretaria"].includes((r as { role: string }).role));
-    if (!isPrivileged) {
-      const { data: c } = await supabase.from("corretores").select("id").eq("user_id", userId).maybeSingle();
-      const cid = (c as { id: string } | null)?.id;
-      if (cid) query = query.eq("corretor_id", cid);
-      else return [];
+    if (
+      !isPrivileged &&
+      data.corretor_id &&
+      data.corretor_id !== access.brokerId
+    ) {
+      throw new Error("Filtro de corretor não autorizado.");
     }
-    if (data.corretor_id && isPrivileged) query = query.eq("corretor_id", data.corretor_id);
+    const selectedBrokerId = isPrivileged && data.corretor_id
+      ? await requireTenantBroker(context, tenantId, data.corretor_id)
+      : access.brokerId;
+
+    let query = context.supabase
+      .from("leads")
+      .select(
+        "id, nome, email, telefone, status, origem, valor_estimado, created_at, updated_at",
+      )
+      .eq("tenant_id", tenantId);
+    if (selectedBrokerId) query = query.eq("corretor_id", selectedBrokerId);
     if (data.inicio) query = query.gte("created_at", data.inicio);
     if (data.fim) query = query.lte("created_at", data.fim);
-    if (data.status && data.status.length > 0) query = query.in("status", data.status);
+    if (data.status && data.status.length > 0) {
+      query = query.in("status", data.status);
+    }
+
+    const { data: rows, error } = await query
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+
+    let result = (rows ?? []) as Array<{
+      id: string;
+      nome: string;
+      email: string | null;
+      telefone: string | null;
+      status: string;
+      origem: string | null;
+      valor_estimado: number | null;
+      created_at: string;
+      updated_at: string;
+    }>;
+    if (!data.alerta) return result;
 
     const agora = Date.now();
-    const { data: rows, error } = await query.order("created_at", { ascending: false }).limit(200);
-    if (error) throw new Error(error.message);
-    let result = (rows ?? []) as Array<{ status: string; created_at: string; updated_at: string }>;
-    if (data.alerta) {
-      const HORAS_48 = 48 * 3600 * 1000;
-      const DIAS_7 = 7 * 24 * 3600 * 1000;
-      if (data.alerta === "sem_atendimento") {
-        result = result.filter((l) => l.status === "novo" && agora - new Date(l.created_at).getTime() > HORAS_48);
-      } else if (data.alerta === "sem_followup") {
-        result = result.filter((l) => l.status === "conversando" && agora - new Date(l.updated_at).getTime() > DIAS_7);
-      } else if (data.alerta === "visitas_sem_feedback") {
-        result = result.filter((l) => l.status === "visita" && agora - new Date(l.updated_at).getTime() > DIAS_7);
-      } else if (data.alerta === "propostas_paradas") {
-        result = result.filter((l) => l.status === "proposta" && agora - new Date(l.updated_at).getTime() > DIAS_7);
-      }
+    const HORAS_48 = 48 * 60 * 60 * 1000;
+    const DIAS_7 = 7 * 24 * 60 * 60 * 1000;
+    if (data.alerta === "sem_atendimento") {
+      result = result.filter(
+        (lead) =>
+          lead.status === "novo" &&
+          agora - new Date(lead.created_at).getTime() > HORAS_48,
+      );
+    } else if (data.alerta === "sem_followup") {
+      result = result.filter(
+        (lead) =>
+          lead.status === "conversando" &&
+          agora - new Date(lead.updated_at).getTime() > DIAS_7,
+      );
+    } else if (data.alerta === "visitas_sem_feedback") {
+      result = result.filter(
+        (lead) =>
+          lead.status === "visita" &&
+          agora - new Date(lead.updated_at).getTime() > DIAS_7,
+      );
+    } else if (data.alerta === "propostas_paradas") {
+      result = result.filter(
+        (lead) =>
+          lead.status === "proposta" &&
+          agora - new Date(lead.updated_at).getTime() > DIAS_7,
+      );
     }
     return result;
   });
