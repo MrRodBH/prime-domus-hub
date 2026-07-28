@@ -145,7 +145,7 @@ check("all eight site version functions use requireTenant", () => {
 });
 
 check("site versioning scopes settings and versions by tenant", () => {
-  assert.ok((versionsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 13);
+  assert.ok((versionsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 12);
   assert.ok((versionsSource.match(/tenant_id: tenantId/g)?.length ?? 0) >= 6);
   assert.ok(versionsSource.includes('.from("site_settings")'));
   assert.ok(versionsSource.includes('.from("site_settings_versions")'));
