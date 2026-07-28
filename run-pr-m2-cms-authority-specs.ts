@@ -80,6 +80,7 @@ check("regular user cannot claim impersonation origin", () => {
 });
 
 const pagesSource = readFileSync("src/lib/api/pages.functions.ts", "utf8");
+const formsSource = readFileSync("src/lib/api/forms.functions.ts", "utf8");
 const cmsSource = readFileSync("src/lib/api/_cms.ts", "utf8");
 
 check("all four administrative page functions use requireTenant", () => {
@@ -100,6 +101,35 @@ check("administrative page operations apply explicit tenant filters", () => {
   );
 });
 
+check("all six administrative form functions use requireTenant", () => {
+  assert.equal(
+    formsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0,
+    6,
+  );
+  assert.equal(formsSource.includes("requireSupabaseAuth"), false);
+  assert.ok(formsSource.includes("assertCmsTenantPermission"));
+});
+
+check("administrative form operations apply explicit tenant filters", () => {
+  assert.ok(
+    (formsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 12,
+  );
+  assert.ok(formsSource.includes("tenant_id: tenantId"));
+  assert.ok(
+    formsSource.includes('.from("form_submissions")') &&
+      formsSource.includes('.eq("tenant_id", tenantId)'),
+  );
+});
+
+check("form field mutation proves parent form ownership", () => {
+  const saveFieldsIndex = formsSource.indexOf("export const salvarCampos");
+  const formOwnershipIndex = formsSource.indexOf('.from("cms_forms")', saveFieldsIndex);
+  const fieldsDeleteIndex = formsSource.indexOf('.from("cms_form_fields")', formOwnershipIndex);
+  assert.ok(saveFieldsIndex >= 0);
+  assert.ok(formOwnershipIndex > saveFieldsIndex);
+  assert.ok(fieldsDeleteIndex > formOwnershipIndex);
+});
+
 check("strict CMS permission helper validates tenant authority before permission", () => {
   const strictIndex = cmsSource.indexOf("export async function assertCmsTenantPermission");
   const authorityIndex = cmsSource.indexOf("requireCmsTenantAuthority(ctx.tenant)", strictIndex);
@@ -113,6 +143,13 @@ check("public page resolution remains Host-derived and tenant-filtered", () => {
   assert.ok(pagesSource.includes("requirePublicTenantFromRequest"));
   assert.ok(pagesSource.includes('.eq("tenant_id", tenant.id)'));
   assert.ok(pagesSource.includes('.limit(2)'));
+});
+
+check("public form writer authority remains request-derived and tenant-filtered", () => {
+  assert.ok(formsSource.includes("requirePublicWriterTenantFromRequest"));
+  assert.ok(formsSource.includes('.eq("tenant_id", input.tenant.id)'));
+  assert.ok(formsSource.includes("selectExactlyOneTenantScopedRow"));
+  assert.ok(formsSource.includes("assertTenantScopedCollection"));
 });
 
 console.log(`PR-M2 CMS tenant authority specs: ${passed} passed`);
