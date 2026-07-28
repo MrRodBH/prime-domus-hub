@@ -1,10 +1,10 @@
 /**
  * CMS — Campanhas (banners e popups).
- * Admin: CRUD. Público: listar ativas + registrar eventos.
+ * Admin: CRUD tenant-scoped. Público: listar ativas + registrar eventos.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
 import { requirePublicWriterTenantFromRequest } from "@/lib/public-writers/public-writer-authority.server";
@@ -47,27 +47,41 @@ export type Campaign = {
 };
 
 // ============================================================================
-// ADMIN
+// ADMIN — autoridade tenant-scoped derivada exclusivamente por requireTenant.
 // ============================================================================
 
 export const listarCampanhas = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .handler(async ({ context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.campanhas",
+      "visualizar",
+    );
     const { data, error } = await context.supabase
       .from("cms_campaigns")
       .select("id, nome, tipo, status, prioridade, start_at, end_at, updated_at")
+      .eq("tenant_id", tenantId)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
 
 export const obterCampanha = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.campanhas",
+      "visualizar",
+    );
     const { data: row, error } = await context.supabase
       .from("cms_campaigns")
       .select("*")
+      .eq("tenant_id", tenantId)
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -100,13 +114,19 @@ const upsertSchema = z.object({
 });
 
 export const salvarCampanha = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((d: unknown) => upsertSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
     const isActivating = data.status === "active";
-    await assertCmsPermission(context, "cms.campanhas", data.id ? "editar" : "criar");
-    if (isActivating) await assertCmsPermission(context, "cms.campanhas", "publicar");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.campanhas",
+      data.id ? "editar" : "criar",
+    );
+    if (isActivating) {
+      await assertCmsTenantPermission(context, "cms.campanhas", "publicar");
+    }
     const payload = {
       nome: data.nome,
       tipo: data.tipo,
@@ -118,42 +138,100 @@ export const salvarCampanha = createServerFn({ method: "POST" })
       start_at: data.start_at ?? null,
       end_at: data.end_at ?? null,
     };
+
     if (data.id) {
-      const { data: before } = await context.supabase.from("cms_campaigns").select("*").eq("id", data.id).maybeSingle();
+      const { data: before, error: beforeError } = await context.supabase
+        .from("cms_campaigns")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .eq("id", data.id)
+        .maybeSingle();
+      if (beforeError) throw new Error(beforeError.message);
+      if (!before) throw new Error("Campanha não encontrada");
+
       const { data: row, error } = await context.supabase
-        .from("cms_campaigns").update(payload).eq("id", data.id).select("*").single();
+        .from("cms_campaigns")
+        .update(payload)
+        .eq("tenant_id", tenantId)
+        .eq("id", data.id)
+        .select("*")
+        .maybeSingle();
       if (error) throw new Error(error.message);
-      await logCmsAudit(context, "cms_campaigns", isActivating ? "cms.campanha.publicar" : "cms.campanha.editar", data.id, before, row);
-      return { id: row.id };
-    } else {
-      const { data: row, error } = await context.supabase
-        .from("cms_campaigns").insert({ ...payload, created_by: context.userId }).select("*").single();
-      if (error) throw new Error(error.message);
-      await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
+      if (!row) throw new Error("Campanha não encontrada");
+      await logCmsAudit(
+        context,
+        "cms_campaigns",
+        isActivating ? "cms.campanha.publicar" : "cms.campanha.editar",
+        data.id,
+        before,
+        row,
+      );
       return { id: row.id };
     }
+
+    const { data: row, error } = await context.supabase
+      .from("cms_campaigns")
+      .insert({ ...payload, tenant_id: tenantId, created_by: context.userId })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
+    return { id: row.id };
   });
 
 export const excluirCampanha = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.campanhas", "excluir");
-    const { data: before } = await context.supabase.from("cms_campaigns").select("*").eq("id", data.id).maybeSingle();
-    const { error } = await context.supabase.from("cms_campaigns").delete().eq("id", data.id);
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.campanhas",
+      "excluir",
+    );
+    const { data: before, error: beforeError } = await context.supabase
+      .from("cms_campaigns")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (beforeError) throw new Error(beforeError.message);
+    if (!before) throw new Error("Campanha não encontrada");
+
+    const { error } = await context.supabase
+      .from("cms_campaigns")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     await logCmsAudit(context, "cms_campaigns", "cms.campanha.excluir", data.id, before, null);
     return { ok: true };
   });
 
 export const metricasCampanha = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.campanhas",
+      "visualizar",
+    );
+
+    const { data: campaign, error: campaignError } = await context.supabase
+      .from("cms_campaigns")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (campaignError) throw new Error(campaignError.message);
+    if (!campaign) throw new Error("Campanha não encontrada");
+
     const { data: rows, error } = await context.supabase
       .from("cms_campaign_events")
       .select("tipo")
+      .eq("tenant_id", tenantId)
       .eq("campaign_id", data.id);
     if (error) throw new Error(error.message);
     const totais = { impression: 0, click: 0, dismiss: 0 };
