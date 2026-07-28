@@ -97,8 +97,22 @@ check("property role validation occurs after tenant authority", () => {
   assert.ok(helper >= 0 && authority > helper && role > authority);
 });
 
-check("property and relation identities use explicit tenant filters", () => {
-  assert.ok((property.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 24);
+check("each property operation contains its own explicit tenant boundary", () => {
+  const operations: Array<[string, string | undefined, string[]]> = [
+    ["export const adminListarImoveis", "export const adminObterImovel", ['.eq("tenant_id", tenantId)']],
+    ["export const adminObterImovel", "export const adminSalvarImovel", ['.eq("tenant_id", tenantId)']],
+    ["export const adminSalvarImovel", "export const adminExcluirImovel", ['.eq("tenant_id", tenantId)', "tenant_id: tenantId"]],
+    ["export const adminExcluirImovel", "export const adminAdicionarImagem", ['.eq("tenant_id", tenantId)']],
+    ["export const adminAdicionarImagem", "export const adminRemoverImagem", ['.eq("tenant_id", tenantId)', "tenant_id: tenantId"]],
+    ["export const adminRemoverImagem", "export const adminReordenarImagens", ['.eq("tenant_id", tenantId)']],
+    ["export const adminReordenarImagens", "export const adminDefinirCapa", ['.eq("tenant_id", tenantId)']],
+    ["export const adminDefinirCapa", "export const adminAssinarUrl", ['.eq("tenant_id", tenantId)']],
+    ["export const adminAssinarUrl", undefined, ['.eq("tenant_id", tenantId)']],
+  ];
+  for (const [start, end, markers] of operations) {
+    const operation = block(property, start, end);
+    for (const marker of markers) assert.ok(operation.includes(marker), `${start}:${marker}`);
+  }
   for (const table of ["imoveis", "imovel_imagens", "bairros", "corretores"]) {
     assert.ok(property.includes(`.from(\"${table}\")`), table);
   }
