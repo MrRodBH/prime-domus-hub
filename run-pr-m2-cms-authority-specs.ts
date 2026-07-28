@@ -82,44 +82,30 @@ check("regular user cannot claim impersonation origin", () => {
 const pagesSource = readFileSync("src/lib/api/pages.functions.ts", "utf8");
 const formsSource = readFileSync("src/lib/api/forms.functions.ts", "utf8");
 const campaignsSource = readFileSync("src/lib/api/campaigns.functions.ts", "utf8");
+const versionsSource = readFileSync("src/lib/api/site-versions.functions.ts", "utf8");
 const cmsSource = readFileSync("src/lib/api/_cms.ts", "utf8");
 
 check("all four administrative page functions use requireTenant", () => {
-  assert.equal(
-    pagesSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0,
-    4,
-  );
+  assert.equal(pagesSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 4);
   assert.equal(pagesSource.includes("requireSupabaseAuth"), false);
   assert.ok(pagesSource.includes("assertCmsTenantPermission"));
 });
 
 check("administrative page operations apply explicit tenant filters", () => {
-  assert.ok(
-    (pagesSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 6,
-  );
-  assert.ok(
-    pagesSource.includes(".insert({ ...payload, tenant_id: tenantId, created_by: userId })"),
-  );
+  assert.ok((pagesSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 6);
+  assert.ok(pagesSource.includes(".insert({ ...payload, tenant_id: tenantId, created_by: userId })"));
 });
 
 check("all six administrative form functions use requireTenant", () => {
-  assert.equal(
-    formsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0,
-    6,
-  );
+  assert.equal(formsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 6);
   assert.equal(formsSource.includes("requireSupabaseAuth"), false);
   assert.ok(formsSource.includes("assertCmsTenantPermission"));
 });
 
 check("administrative form operations apply explicit tenant filters", () => {
-  assert.ok(
-    (formsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 12,
-  );
+  assert.ok((formsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 12);
   assert.ok(formsSource.includes("tenant_id: tenantId"));
-  assert.ok(
-    formsSource.includes('.from("form_submissions")') &&
-      formsSource.includes('.eq("tenant_id", tenantId)'),
-  );
+  assert.ok(formsSource.includes('.from("form_submissions")') && formsSource.includes('.eq("tenant_id", tenantId)'));
 });
 
 check("form field mutation proves parent form ownership", () => {
@@ -132,21 +118,14 @@ check("form field mutation proves parent form ownership", () => {
 });
 
 check("all five administrative campaign functions use requireTenant", () => {
-  assert.equal(
-    campaignsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0,
-    5,
-  );
+  assert.equal(campaignsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 5);
   assert.equal(campaignsSource.includes("requireSupabaseAuth"), false);
   assert.ok(campaignsSource.includes("assertCmsTenantPermission"));
 });
 
 check("administrative campaign operations apply explicit tenant filters", () => {
-  assert.ok(
-    (campaignsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 8,
-  );
-  assert.ok(
-    campaignsSource.includes(".insert({ ...payload, tenant_id: tenantId, created_by: context.userId })"),
-  );
+  assert.ok((campaignsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 8);
+  assert.ok(campaignsSource.includes(".insert({ ...payload, tenant_id: tenantId, created_by: context.userId })"));
 });
 
 check("campaign metrics prove campaign ownership before reading events", () => {
@@ -156,9 +135,31 @@ check("campaign metrics prove campaign ownership before reading events", () => {
   assert.ok(metricsIndex >= 0);
   assert.ok(campaignOwnershipIndex > metricsIndex);
   assert.ok(eventsIndex > campaignOwnershipIndex);
-  assert.ok(
-    campaignsSource.indexOf('.eq("tenant_id", tenantId)', eventsIndex) > eventsIndex,
-  );
+  assert.ok(campaignsSource.indexOf('.eq("tenant_id", tenantId)', eventsIndex) > eventsIndex);
+});
+
+check("all eight site version functions use requireTenant", () => {
+  assert.equal(versionsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 8);
+  assert.equal(versionsSource.includes("requireSupabaseAuth"), false);
+  assert.ok(versionsSource.includes("assertCmsTenantPermission"));
+});
+
+check("site versioning scopes settings and versions by tenant", () => {
+  assert.ok((versionsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 13);
+  assert.ok((versionsSource.match(/tenant_id: tenantId/g)?.length ?? 0) >= 6);
+  assert.ok(versionsSource.includes('.from("site_settings")'));
+  assert.ok(versionsSource.includes('.from("site_settings_versions")'));
+});
+
+check("site version restore proves version ownership", () => {
+  const restoreIndex = versionsSource.indexOf("export const restaurarVersao");
+  const versionLookupIndex = versionsSource.indexOf('.from("site_settings_versions")', restoreIndex);
+  const tenantFilterIndex = versionsSource.indexOf('.eq("tenant_id", tenantId)', versionLookupIndex);
+  const idFilterIndex = versionsSource.indexOf('.eq("id", data.id)', tenantFilterIndex);
+  assert.ok(restoreIndex >= 0);
+  assert.ok(versionLookupIndex > restoreIndex);
+  assert.ok(tenantFilterIndex > versionLookupIndex);
+  assert.ok(idFilterIndex > tenantFilterIndex);
 });
 
 check("strict CMS permission helper validates tenant authority before permission", () => {
