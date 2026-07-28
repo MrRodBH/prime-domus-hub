@@ -49,11 +49,23 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
-    name: "public menu collection is tenant-bound and destination-normalized",
+    name: "public menu collection is Host-bound through the published configuration ledger and destination-normalized",
     run: async () => {
-      const block = section(read("src/lib/api/menu.functions.ts"), "export const listarMenuPublico", "export const listarMenuAdmin");
-      tenantBound(block, "menu");
-      assert(block.includes("normalizePublicNavigationUrl"), "menu destination normalization missing");
+      const menuBlock = section(read("src/lib/api/menu.functions.ts"), "export const listarMenuPublico", "export const listarMenuAdmin");
+      assert(menuBlock.includes("requirePublicTenantFromRequest"), "menu lacks Host-derived tenant");
+      assert(menuBlock.includes("loadPublishedConfigurationForTenant(tenant.id)"), "menu bypasses canonical published configuration");
+      assert(menuBlock.includes("normalizeMenuItems"), "menu projection missing");
+      const menuNormalizer = section(read("src/lib/api/menu.functions.ts"), "function normalizeMenuItems", "export const listarMenuPublico");
+      assert(menuNormalizer.includes("normalizePublicNavigationUrl"), "menu destination normalization missing");
+      assert(menuNormalizer.includes("normalizePublicLinkPresentation"), "menu target normalization missing");
+
+      const authority = read("src/lib/api/tenant-configuration-authority.server.ts");
+      const ledger = section(authority, "async function querySingleConfigurationVersion", "export async function loadTenantConfigurationState");
+      assert(ledger.includes("supabaseAdmin"), "menu ledger does not use server-side client");
+      assert(ledger.includes('.eq("tenant_id", tenantId)'), "menu ledger lacks explicit tenant equality");
+      assert(ledger.includes('.eq("key", "configuration")'), "menu ledger lacks canonical key");
+      assert(ledger.includes('.eq("status", status)'), "menu ledger lacks published state selector");
+      assert(ledger.includes(".maybeSingle()"), "menu ledger cardinality is implicit");
     },
   },
   {
