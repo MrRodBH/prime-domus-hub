@@ -47,10 +47,7 @@ check("Super Admin with explicit impersonation is accepted", () => {
 });
 
 check("missing tenant authority fails closed", () => {
-  assert.throws(
-    () => requireCmsTenantAuthority(undefined),
-    /CMS tenant authority unresolved/,
-  );
+  assert.throws(() => requireCmsTenantAuthority(undefined), /CMS tenant authority unresolved/);
 });
 
 check("Super Admin without impersonation fails closed", () => {
@@ -83,6 +80,7 @@ const pagesSource = readFileSync("src/lib/api/pages.functions.ts", "utf8");
 const formsSource = readFileSync("src/lib/api/forms.functions.ts", "utf8");
 const campaignsSource = readFileSync("src/lib/api/campaigns.functions.ts", "utf8");
 const versionsSource = readFileSync("src/lib/api/site-versions.functions.ts", "utf8");
+const mediaSource = readFileSync("src/lib/api/media.functions.ts", "utf8");
 const cmsSource = readFileSync("src/lib/api/_cms.ts", "utf8");
 
 check("all four administrative page functions use requireTenant", () => {
@@ -160,6 +158,47 @@ check("site version restore proves version ownership", () => {
   assert.ok(versionLookupIndex > restoreIndex);
   assert.ok(tenantFilterIndex > versionLookupIndex);
   assert.ok(idFilterIndex > tenantFilterIndex);
+});
+
+check("all seven media functions use requireTenant", () => {
+  assert.equal(mediaSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 7);
+  assert.equal(mediaSource.includes("requireSupabaseAuth"), false);
+  assert.ok(mediaSource.includes("assertCmsTenantPermission"));
+});
+
+check("media database operations are explicitly tenant-scoped", () => {
+  assert.ok((mediaSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 11);
+  assert.ok((mediaSource.match(/tenant_id: tenantId/g)?.length ?? 0) >= 2);
+  assert.ok(mediaSource.includes('.from("media_library")'));
+  assert.ok(mediaSource.includes('.from("media_usage")'));
+});
+
+check("media deletion derives and validates storage paths server-side", () => {
+  const deleteIndex = mediaSource.indexOf("export const excluirMidia");
+  const rowLookupIndex = mediaSource.indexOf('.from("media_library")', deleteIndex);
+  const pathExtractionIndex = mediaSource.indexOf("const paths = [row.arquivo", rowLookupIndex);
+  const validationIndex = mediaSource.indexOf("validateTenantSignRequest", pathExtractionIndex);
+  const storageRemoveIndex = mediaSource.indexOf('.remove(paths)', validationIndex);
+  const metadataDeleteIndex = mediaSource.indexOf('.from("media_library")', storageRemoveIndex);
+  assert.ok(deleteIndex >= 0);
+  assert.ok(rowLookupIndex > deleteIndex);
+  assert.ok(pathExtractionIndex > rowLookupIndex);
+  assert.ok(validationIndex > pathExtractionIndex);
+  assert.ok(storageRemoveIndex > validationIndex);
+  assert.ok(metadataDeleteIndex > storageRemoveIndex);
+});
+
+check("media usage proves parent ownership before writes and reads", () => {
+  const registerIndex = mediaSource.indexOf("export const registrarUsoMidia");
+  const registerParentIndex = mediaSource.indexOf('.from("media_library")', registerIndex);
+  const usageUpsertIndex = mediaSource.indexOf('.from("media_usage").upsert', registerParentIndex);
+  const listIndex = mediaSource.indexOf("export const listarUsosMidia");
+  const listParentIndex = mediaSource.indexOf('.from("media_library")', listIndex);
+  const usageReadIndex = mediaSource.indexOf('.from("media_usage")', listParentIndex);
+  assert.ok(registerParentIndex > registerIndex);
+  assert.ok(usageUpsertIndex > registerParentIndex);
+  assert.ok(listParentIndex > listIndex);
+  assert.ok(usageReadIndex > listParentIndex);
 });
 
 check("strict CMS permission helper validates tenant authority before permission", () => {
