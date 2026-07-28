@@ -1,6 +1,7 @@
 /**
  * Helpers compartilhados dos módulos CMS (Fase 4 — Governança).
- * - assertCmsPermission: valida tenant authority e permissão CMS no servidor.
+ * - assertCmsPermission: helper legado, preservado temporariamente durante o cutover PR-M2.
+ * - assertCmsTenantPermission: valida tenant authority e permissão CMS no servidor.
  * - logCmsAudit: registra mutação no audit_log com before/after + metadados (ip/user_agent).
  */
 import { getRequest, getRequestIP } from "@tanstack/react-start/server";
@@ -20,29 +21,23 @@ export type CmsModule =
 export type CmsAction = "visualizar" | "criar" | "editar" | "excluir" | "publicar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AuthedCtx = { supabase: any; userId: string };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AuthedTenantCtx = { supabase: any; userId: string; tenant: TenantContext };
 
-/**
- * Valida primeiro a autoridade tenant-scoped e somente depois a permissão CMS.
- * Retorna o tenantId aceito para que o caller aplique filtros explícitos.
- */
-export async function assertCmsPermission(
-  ctx: AuthedTenantCtx,
+async function assertPermission(
+  ctx: AuthedCtx,
   modulo: CmsModule,
   action: CmsAction,
-): Promise<string> {
-  const tenantId = requireCmsTenantAuthority(ctx.tenant);
-
+): Promise<void> {
   const isAdmin = await ctx.supabase.rpc("has_role", {
     _user_id: ctx.userId,
     _role: "admin",
   });
-  if (isAdmin?.data === true) return tenantId;
+  if (isAdmin?.data === true) return;
 
-  // Super Admin somente chega aqui após `requireTenant` comprovar
-  // impersonação explícita e o guard acima validar a consistência do contexto.
   const isSuper = await ctx.supabase.rpc("is_super_admin");
-  if (isSuper?.data === true) return tenantId;
+  if (isSuper?.data === true) return;
 
   const { data, error } = await ctx.supabase.rpc("has_cms_permission", {
     _user_id: ctx.userId,
@@ -51,6 +46,31 @@ export async function assertCmsPermission(
   });
   if (error) throw new Error("Falha ao validar permissão CMS.");
   if (!data) throw new Error(`Acesso negado: sua permissão ${modulo}/${action} não está habilitada.`);
+}
+
+/**
+ * Helper legado durante o cutover incremental da PR-M2.
+ * Novas superfícies e módulos migrados devem usar `assertCmsTenantPermission`.
+ */
+export async function assertCmsPermission(
+  ctx: AuthedCtx,
+  modulo: CmsModule,
+  action: CmsAction,
+): Promise<void> {
+  await assertPermission(ctx, modulo, action);
+}
+
+/**
+ * Valida primeiro a autoridade tenant-scoped e somente depois a permissão CMS.
+ * Retorna o tenantId aceito para que o caller aplique filtros explícitos.
+ */
+export async function assertCmsTenantPermission(
+  ctx: AuthedTenantCtx,
+  modulo: CmsModule,
+  action: CmsAction,
+): Promise<string> {
+  const tenantId = requireCmsTenantAuthority(ctx.tenant);
+  await assertPermission(ctx, modulo, action);
   return tenantId;
 }
 
