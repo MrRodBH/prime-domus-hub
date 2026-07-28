@@ -13,6 +13,10 @@ async function assertSuperAdmin(ctx: { supabase: any; userId: string }) {
   if (!data) throw new Error("Forbidden: super_admin only");
 }
 
+// Backward-compatible export without preserving the former direct INSERT path.
+// The only tenant creation authority is the atomic lifecycle boundary.
+export { bootstrapTenantWithOwner as criarTenant } from "@/lib/api/tenant-lifecycle.functions";
+
 export const meuAcessoSuperAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -32,36 +36,10 @@ export const listarTenants = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("tenants")
-      .select("id, slug, nome, status, dominio_principal, plano_codigo, created_at")
+      .select("id, slug, nome, status, dominio_principal, plano_codigo, owner_user_id, metadata, created_at")
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
-  });
-
-const criarSchema = z.object({
-  slug: z.string().min(2).regex(/^[a-z0-9-]+$/, "slug: apenas a-z 0-9 e -"),
-  nome: z.string().min(2),
-  dominio_principal: z.string().min(3).optional().nullable(),
-});
-
-export const criarTenant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => criarSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
-      .from("tenants")
-      .insert({
-        slug: data.slug,
-        nome: data.nome,
-        status: "trial",
-        dominio_principal: data.dominio_principal ?? null,
-      })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    return { id: row.id };
   });
 
 const atualizarSchema = z.object({
@@ -138,7 +116,7 @@ export const superKpisGlobais = createServerFn({ method: "GET" })
       portalOk7d: portalOk7d.count ?? 0,
       portalErr7d: portalErr7d.count ?? 0,
       auditoria24h: auditoria24h.count ?? 0,
-      mrrPending: true, // ⚠️ requer schema de billing (Fase futura)
+      mrrPending: true,
     };
   });
 
@@ -152,11 +130,9 @@ export const superObservabilidade = createServerFn({ method: "GET" })
       _hours: data.hours ?? 24,
     });
     if (error) throw new Error(error.message);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return json as any;
   });
 
-// --- DLQ de Portais ---
 const dlqListSchema = z.object({
   status: z.enum(["pendente", "em_retry", "resolvido", "abandonado", "todos"]).optional().default("todos"),
   portal: z.string().optional().nullable(),
@@ -168,7 +144,6 @@ export const superListarDlq = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => dlqListSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let q = (context.supabase as any).from("portal_sync_dlq").select("*").order("created_at", { ascending: false }).limit(data.limit);
     if (data.status !== "todos") q = q.eq("status", data.status);
     if (data.portal) q = q.eq("portal_slug", data.portal);
@@ -191,7 +166,6 @@ export const superResolverDlq = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => dlqIdSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (context.supabase as any).rpc("portal_dlq_mark_resolved", { _id: data.id });
     if (error) throw new Error(error.message);
     return { ok: true };
