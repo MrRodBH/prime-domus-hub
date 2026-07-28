@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminListarImoveis, adminExcluirImovel } from "@/lib/api/admin.functions";
+import { adminListarImoveis, adminExcluirImovel } from "@/lib/api/property-admin.functions";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -32,7 +32,7 @@ function AdminImoveis() {
             eyebrow="CRM"
             title="Imóveis"
           />
-<p className="text-sm text-muted-foreground mt-1">{data?.length ?? 0} cadastrados</p>
+          <p className="text-sm text-muted-foreground mt-1">{data?.length ?? 0} cadastrados</p>
         </div>
         <Button asChild>
           <Link to="/admin/imoveis/novo"><Plus className="size-4 mr-1" /> Novo imóvel</Link>
