@@ -10,6 +10,7 @@ import {
   parsePortalHybridConfig,
   portalConfigurationState,
   sanitizePortalConnector,
+  type PortalConnectorRow,
   type PortalHybridConfig,
 } from "@/lib/portals/portal-connector-registry";
 
@@ -85,7 +86,7 @@ export const listarPortais = createServerFn({ method: "GET" })
       .order("portal_nome", { ascending: true });
     if (error) throw new Error(error.message);
     return (data ?? []).map((row) =>
-      sanitizePortalConnector(row as unknown as Record<string, unknown>),
+      sanitizePortalConnector(row as unknown as PortalConnectorRow),
     );
   });
 
@@ -96,7 +97,7 @@ const salvarSchema = z
     feed_url: z.string().url().optional().nullable(),
     webhook_url: z.string().url().optional().nullable(),
     hybrid_config: PortalHybridConfigSchema.optional(),
-    config: z.unknown().optional(),
+    config: PortalHybridConfigSchema.optional(),
   })
   .superRefine((data, ctx) => {
     if (data.hybrid_config !== undefined && data.config !== undefined) {
@@ -163,7 +164,7 @@ export const atualizarPortal = createServerFn({ method: "POST" })
     return {
       ok: true,
       changed: true,
-      connector: sanitizePortalConnector(row as unknown as Record<string, unknown>),
+      connector: sanitizePortalConnector(row as unknown as PortalConnectorRow),
     };
   });
 
