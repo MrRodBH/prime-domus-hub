@@ -15,7 +15,6 @@ export const CONFIGURATION_DOMAINS = [
 ] as const;
 
 export type ConfigurationDomain = (typeof CONFIGURATION_DOMAINS)[number];
-
 export type ConfigurationValueKind =
   | "string"
   | "email"
@@ -31,7 +30,6 @@ export type ConfigurationValueKind =
   | "media_id"
   | "analytics_id"
   | "enum";
-
 export type ConfigurationUiControl =
   | "text"
   | "email"
@@ -46,7 +44,6 @@ export type ConfigurationUiControl =
   | "json"
   | "media-picker"
   | "readonly";
-
 export type ConfigurationVisibility = "public" | "admin";
 export type ConfigurationEditAuthority = "configuration_manager" | "system";
 export type ConfigurationSecretClassification = "public_identifier" | "non_secret";
@@ -98,37 +95,33 @@ const text = (
   validationMessage: options.validationMessage ?? `${label} possui valor inválido.`,
   maxLength: options.maxLength ?? 500,
 });
-
 const media = (key: string, label: string) => text(key, "branding", label, {
   valueKind: "media_id",
   defaultValue: null,
   nullable: true,
   uiControl: "media-picker",
+  maxLength: undefined,
   validationMessage: `${label} deve referenciar uma mídia UUID pertencente ao tenant.`,
 });
-
 const flag = (key: string, domain: ConfigurationDomain, label: string, defaultValue = false) => text(key, domain, label, {
   valueKind: "boolean",
   defaultValue,
   uiControl: "switch",
   maxLength: undefined,
 });
-
 const json = (
   key: string,
   domain: ConfigurationDomain,
   label: string,
   defaultValue: unknown,
-  publicExposure = true,
+  options: Partial<ConfigurationDefinition> = {},
 ) => text(key, domain, label, {
+  ...options,
   valueKind: "json",
   defaultValue,
-  uiControl: "json",
-  publicExposure,
-  visibility: publicExposure ? "public" : "admin",
+  uiControl: options.uiControl ?? "json",
   maxLength: undefined,
 });
-
 const enumDefinition = (
   key: string,
   domain: ConfigurationDomain,
@@ -138,12 +131,17 @@ const enumDefinition = (
   extra: Partial<ConfigurationDefinition> = {},
 ) => text(key, domain, label, {
   ...extra,
-  valueKind: "enum",
+  valueKind: extra.valueKind === "font" ? "font" : "enum",
   options,
   defaultValue,
   uiControl: extra.uiControl ?? "select",
   maxLength: undefined,
 });
+
+const FONT_OPTIONS = [
+  "Inter", "Poppins", "Montserrat", "Playfair Display", "Cormorant Garamond",
+  "Roboto", "Lato", "Merriweather", "Source Sans 3", "DM Sans",
+] as const;
 
 export const CONFIGURATION_REGISTRY = [
   text("trade_name", "identity", "Nome fantasia", { maxLength: 160 }),
@@ -153,6 +151,7 @@ export const CONFIGURATION_REGISTRY = [
   text("institutional_description", "identity", "Descrição institucional", { uiControl: "textarea", maxLength: 4000 }),
   text("creci_or_registration", "identity", "CRECI ou registro profissional", { maxLength: 100 }),
   text("tax_document_display", "identity", "Documento fiscal para exibição", { maxLength: 40 }),
+  text("technical_responsible", "identity", "Responsável técnico", { maxLength: 200 }),
   text("founded_year", "identity", "Ano de fundação", { valueKind: "integer", defaultValue: null, nullable: true, uiControl: "number", maxLength: undefined }),
   text("service_regions", "identity", "Regiões atendidas", { valueKind: "string_list", defaultValue: [], uiControl: "string-list", maxLength: undefined }),
   text("languages", "identity", "Idiomas", { valueKind: "string_list", defaultValue: ["pt-BR"], uiControl: "string-list", maxLength: undefined }),
@@ -176,8 +175,10 @@ export const CONFIGURATION_REGISTRY = [
   text("success_color", "visual", "Cor de sucesso", { valueKind: "color", defaultValue: "#16803c", uiControl: "color", maxLength: undefined }),
   text("warning_color", "visual", "Cor de alerta", { valueKind: "color", defaultValue: "#b7791f", uiControl: "color", maxLength: undefined }),
   text("error_color", "visual", "Cor de erro", { valueKind: "color", defaultValue: "#b42318", uiControl: "color", maxLength: undefined }),
-  enumDefinition("heading_font", "visual", "Fonte de títulos", ["Inter", "Poppins", "Montserrat", "Playfair Display", "Cormorant Garamond", "Roboto", "Lato", "Merriweather", "Source Sans 3", "DM Sans"], "Cormorant Garamond", { valueKind: "font" }),
-  enumDefinition("body_font", "visual", "Fonte de texto", ["Inter", "Poppins", "Montserrat", "Playfair Display", "Cormorant Garamond", "Roboto", "Lato", "Merriweather", "Source Sans 3", "DM Sans"], "Inter", { valueKind: "font" }),
+  text("button_color", "visual", "Cor dos botões", { valueKind: "color", defaultValue: "#0f3d44", uiControl: "color", maxLength: undefined }),
+  text("link_color", "visual", "Cor dos links", { valueKind: "color", defaultValue: "#b78b42", uiControl: "color", maxLength: undefined }),
+  enumDefinition("heading_font", "visual", "Fonte de títulos", FONT_OPTIONS, "Cormorant Garamond", { valueKind: "font" }),
+  enumDefinition("body_font", "visual", "Fonte de texto", FONT_OPTIONS, "Inter", { valueKind: "font" }),
   enumDefinition("font_scale", "visual", "Escala tipográfica", ["sm", "md", "lg"], "md"),
   enumDefinition("border_radius_scale", "visual", "Escala de bordas", ["none", "sm", "md", "lg", "full"], "md"),
 
@@ -195,6 +196,8 @@ export const CONFIGURATION_REGISTRY = [
   text("longitude", "contact", "Longitude", { valueKind: "number", defaultValue: null, nullable: true, uiControl: "number", maxLength: undefined }),
   json("business_hours", "contact", "Horários de atendimento", []),
   text("emergency_or_after_hours_message", "contact", "Mensagem fora do horário", { uiControl: "textarea", maxLength: 1000 }),
+  text("location_description", "contact", "Descrição da localização", { maxLength: 500 }),
+  text("map_embed_url", "contact", "URL do mapa", { valueKind: "url", uiControl: "url", maxLength: 2000 }),
 
   text("instagram", "social", "Instagram", { valueKind: "url", uiControl: "url", maxLength: 1000 }),
   text("facebook", "social", "Facebook", { valueKind: "url", uiControl: "url", maxLength: 1000 }),
@@ -203,6 +206,7 @@ export const CONFIGURATION_REGISTRY = [
   text("tiktok", "social", "TikTok", { valueKind: "url", uiControl: "url", maxLength: 1000 }),
   text("x_twitter", "social", "X / Twitter", { valueKind: "url", uiControl: "url", maxLength: 1000 }),
   text("pinterest", "social", "Pinterest", { valueKind: "url", uiControl: "url", maxLength: 1000 }),
+  text("x_twitter_handle", "social", "Handle X / Twitter", { maxLength: 80 }),
 
   text("default_meta_title", "seo", "Título SEO padrão", { maxLength: 70 }),
   text("default_meta_description", "seo", "Descrição SEO padrão", { uiControl: "textarea", maxLength: 200 }),
@@ -212,6 +216,7 @@ export const CONFIGURATION_REGISTRY = [
   json("organization_schema_fields", "seo", "Organization schema", {}),
   json("local_business_schema_fields", "seo", "LocalBusiness schema", {}),
   flag("sitemap_visibility", "seo", "Exibir no sitemap", true),
+  text("seo_keywords", "seo", "Palavras-chave SEO", { maxLength: 1000 }),
 
   text("privacy_policy_reference", "legal", "Referência da política de privacidade", { valueKind: "url", uiControl: "url", maxLength: 1000 }),
   text("terms_reference", "legal", "Referência dos termos", { valueKind: "url", uiControl: "url", maxLength: 1000 }),
@@ -219,6 +224,7 @@ export const CONFIGURATION_REGISTRY = [
   flag("cookie_preferences_enabled", "legal", "Preferências de cookies", true),
   text("data_controller_identity", "legal", "Identidade do controlador", { maxLength: 500 }),
   text("legal_contact", "legal", "Contato jurídico/LGPD", { maxLength: 254 }),
+  text("legal_notice_text", "legal", "Aviso legal do rodapé", { uiControl: "textarea", maxLength: 2000 }),
 
   flag("show_prices", "catalog", "Exibir preços", true),
   flag("show_exact_address", "catalog", "Exibir endereço exato", false),
@@ -266,15 +272,19 @@ export const CONFIGURATION_REGISTRY = [
   json("pagina_contato", "legacy_content", "Página Contato", {}),
   json("pagina_anuncie", "legacy_content", "Página Anuncie", {}),
   json("pagina_lancamentos", "legacy_content", "Página Lançamentos", {}),
+  json("legacy_settings_archive", "legacy_content", "Arquivo integral da configuração legada", {}, {
+    visibility: "admin",
+    publicExposure: false,
+    editAuthority: "system",
+    uiControl: "readonly",
+    previewBehavior: "not_applicable",
+  }),
 ] as const satisfies readonly ConfigurationDefinition[];
 
 export type ConfigurationKey = (typeof CONFIGURATION_REGISTRY)[number]["key"];
 export type ConfigurationSnapshot = Record<ConfigurationKey, unknown>;
 
-const DEFINITION_BY_KEY = new Map<string, ConfigurationDefinition>(
-  CONFIGURATION_REGISTRY.map((definition) => [definition.key, definition]),
-);
-
+const DEFINITION_BY_KEY = new Map<string, ConfigurationDefinition>(CONFIGURATION_REGISTRY.map((definition) => [definition.key, definition]));
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COLOR_RE = /^#[0-9a-f]{6}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -285,15 +295,13 @@ const SECRET_KEY_RE = /(secret|password|private[_-]?key|refresh[_-]?token|client
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
+function stable(value: unknown) {
+  return JSON.stringify(value);
+}
 function validateUrl(key: string, value: string) {
   if (value === "" || value.startsWith("/")) return;
   let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    throw new Error(`configuration_invalid_url:${key}`);
-  }
+  try { parsed = new URL(value); } catch { throw new Error(`configuration_invalid_url:${key}`); }
   if (parsed.protocol !== "https:") throw new Error(`configuration_invalid_url_protocol:${key}`);
   const socialHosts: Partial<Record<string, readonly string[]>> = {
     instagram: ["instagram.com", "www.instagram.com"],
@@ -305,11 +313,8 @@ function validateUrl(key: string, value: string) {
     pinterest: ["pinterest.com", "www.pinterest.com", "br.pinterest.com"],
   };
   const allowed = socialHosts[key];
-  if (allowed && !allowed.includes(parsed.hostname.toLowerCase())) {
-    throw new Error(`configuration_invalid_social_host:${key}`);
-  }
+  if (allowed && !allowed.includes(parsed.hostname.toLowerCase())) throw new Error(`configuration_invalid_social_host:${key}`);
 }
-
 function validateAnalyticsId(key: string, value: string) {
   if (value === "") return;
   const patterns: Record<string, RegExp> = {
@@ -320,24 +325,18 @@ function validateAnalyticsId(key: string, value: string) {
     linkedin_partner_id: /^\d{3,30}$/,
     tiktok_pixel_id: /^[A-Z0-9]{5,40}$/,
   };
-  const pattern = patterns[key];
-  if (!pattern?.test(value)) throw new Error(`configuration_invalid_analytics_id:${key}`);
+  if (!patterns[key]?.test(value)) throw new Error(`configuration_invalid_analytics_id:${key}`);
 }
-
 function validateJsonValue(key: string, value: unknown) {
   const serialized = JSON.stringify(value);
-  if (serialized === undefined || serialized.length > 100_000) {
-    throw new Error(`configuration_invalid_json:${key}`);
-  }
+  if (serialized === undefined || serialized.length > 1_000_000) throw new Error(`configuration_invalid_json:${key}`);
   if (SAFE_TEXT_REJECT_RE.test(serialized)) throw new Error(`configuration_unsafe_content:${key}`);
 }
-
 function validateDefinitionValue(definition: ConfigurationDefinition, value: unknown): unknown {
   if (value === null) {
     if (definition.nullable) return null;
     throw new Error(`configuration_null_not_allowed:${definition.key}`);
   }
-
   switch (definition.valueKind) {
     case "string":
     case "email":
@@ -354,9 +353,7 @@ function validateDefinitionValue(definition: ConfigurationDefinition, value: unk
       if (definition.valueKind === "phone" && value !== "" && !PHONE_RE.test(value)) throw new Error(`configuration_invalid_phone:${definition.key}`);
       if (definition.valueKind === "url") validateUrl(definition.key, value);
       if (definition.valueKind === "color" && !COLOR_RE.test(value)) throw new Error(`configuration_invalid_color:${definition.key}`);
-      if ((definition.valueKind === "font" || definition.valueKind === "enum") && !definition.options?.includes(value)) {
-        throw new Error(`configuration_invalid_option:${definition.key}`);
-      }
+      if ((definition.valueKind === "font" || definition.valueKind === "enum") && !definition.options?.includes(value)) throw new Error(`configuration_invalid_option:${definition.key}`);
       if (definition.valueKind === "analytics_id") validateAnalyticsId(definition.key, value);
       return value;
     }
@@ -374,9 +371,7 @@ function validateDefinitionValue(definition: ConfigurationDefinition, value: unk
       if (definition.key === "longitude" && (value < -180 || value > 180)) throw new Error("configuration_invalid_longitude");
       return value;
     case "string_list":
-      if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || item.length > 200 || SAFE_TEXT_REJECT_RE.test(item))) {
-        throw new Error(`configuration_string_list_required:${definition.key}`);
-      }
+      if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || item.length > 200 || SAFE_TEXT_REJECT_RE.test(item))) throw new Error(`configuration_string_list_required:${definition.key}`);
       return [...new Set(value)];
     case "json":
       validateJsonValue(definition.key, value);
@@ -393,70 +388,49 @@ export function getConfigurationDefinition(key: string): ConfigurationDefinition
   if (!definition) throw new Error(`configuration_key_not_cataloged:${key}`);
   return definition;
 }
-
 export function getConfigurationDefaults(): ConfigurationSnapshot {
-  return Object.fromEntries(
-    CONFIGURATION_REGISTRY.map((definition) => [definition.key, structuredClone(definition.defaultValue)]),
-  ) as ConfigurationSnapshot;
+  return Object.fromEntries(CONFIGURATION_REGISTRY.map((definition) => [definition.key, structuredClone(definition.defaultValue)])) as ConfigurationSnapshot;
 }
-
 export function normalizeConfigurationSnapshot(input: unknown): ConfigurationSnapshot {
   if (!isRecord(input)) throw new Error("configuration_snapshot_must_be_object");
   const normalized = getConfigurationDefaults();
   for (const [key, value] of Object.entries(input)) {
     if (SECRET_KEY_RE.test(key)) throw new Error(`configuration_secret_key_prohibited:${key}`);
     const definition = getConfigurationDefinition(key);
-    if (definition.editAuthority === "system" && value !== definition.defaultValue) {
-      throw new Error(`configuration_system_key_immutable:${key}`);
-    }
     normalized[key as ConfigurationKey] = validateDefinitionValue(definition, value);
   }
   return normalized;
 }
-
 export function validateConfigurationSnapshot(input: unknown): { valid: true; snapshot: ConfigurationSnapshot } | { valid: false; errors: string[] } {
-  try {
-    return { valid: true, snapshot: normalizeConfigurationSnapshot(input) };
-  } catch (error) {
-    return { valid: false, errors: [error instanceof Error ? error.message : "configuration_invalid"] };
-  }
+  try { return { valid: true, snapshot: normalizeConfigurationSnapshot(input) }; }
+  catch (error) { return { valid: false, errors: [error instanceof Error ? error.message : "configuration_invalid"] }; }
 }
-
 export function publicConfigurationSnapshot(input: unknown): Partial<ConfigurationSnapshot> {
   const snapshot = normalizeConfigurationSnapshot(input);
-  return Object.fromEntries(
-    CONFIGURATION_REGISTRY
-      .filter((definition) => definition.publicExposure)
-      .map((definition) => [definition.key, snapshot[definition.key as ConfigurationKey]]),
-  ) as Partial<ConfigurationSnapshot>;
+  return Object.fromEntries(CONFIGURATION_REGISTRY.filter((definition) => definition.publicExposure).map((definition) => [definition.key, snapshot[definition.key as ConfigurationKey]])) as Partial<ConfigurationSnapshot>;
 }
-
 export function configurationDefinitionsForDomain(domain: ConfigurationDomain) {
   return CONFIGURATION_REGISTRY.filter((definition) => definition.domain === domain);
 }
-
 export function configurationDomainSnapshot(input: unknown, domain: ConfigurationDomain): Record<string, unknown> {
   const snapshot = normalizeConfigurationSnapshot(input);
-  return Object.fromEntries(
-    configurationDefinitionsForDomain(domain).map((definition) => [definition.key, snapshot[definition.key as ConfigurationKey]]),
-  );
+  return Object.fromEntries(configurationDefinitionsForDomain(domain).map((definition) => [definition.key, snapshot[definition.key as ConfigurationKey]]));
 }
-
 export function mergeConfigurationDomain(
   input: unknown,
   domain: ConfigurationDomain,
   patch: Record<string, unknown>,
 ): ConfigurationSnapshot {
   const current = normalizeConfigurationSnapshot(input);
-  const allowed = new Set(configurationDefinitionsForDomain(domain).map((definition) => definition.key));
-  for (const key of Object.keys(patch)) {
-    if (!allowed.has(key)) throw new Error(`configuration_domain_key_mismatch:${domain}:${key}`);
+  const definitions = new Map(configurationDefinitionsForDomain(domain).map((definition) => [definition.key, definition]));
+  for (const [key, value] of Object.entries(patch)) {
+    const definition = definitions.get(key);
+    if (!definition) throw new Error(`configuration_domain_key_mismatch:${domain}:${key}`);
+    if (definition.editAuthority === "system" && stable(value) !== stable(current[key as ConfigurationKey])) {
+      throw new Error(`configuration_system_key_immutable:${key}`);
+    }
   }
   return normalizeConfigurationSnapshot({ ...current, ...patch });
 }
-
-export const CONFIGURATION_MEDIA_KEYS = CONFIGURATION_REGISTRY
-  .filter((definition) => definition.valueKind === "media_id")
-  .map((definition) => definition.key) as ConfigurationKey[];
-
+export const CONFIGURATION_MEDIA_KEYS = CONFIGURATION_REGISTRY.filter((definition) => definition.valueKind === "media_id").map((definition) => definition.key) as ConfigurationKey[];
 export const CONFIGURATION_KEY_NAMES = CONFIGURATION_REGISTRY.map((definition) => definition.key) as ConfigurationKey[];
