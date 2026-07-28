@@ -52,6 +52,7 @@ run("Preflight — PTW-01 campaign-event SQL structural specifications", "bun", 
 run("PSG-01 — public-surface security specifications", "bun", ["run", "test:psg-01:security"]);
 run("PSG-01 — public-surface tenant-read specifications", "bun", ["run", "test:psg-01:tenant-reads"]);
 run("PR-M2 — CMS tenant authority specifications", "bun", ["run", "test:pr-m2:cms-authority"]);
+run("PR-M2 — dashboard tenant authority specifications", "bun", ["run", "test:pr-m2:dashboard-authority"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -88,6 +89,7 @@ console.log(JSON.stringify({
   publicSurfaceSecuritySpecsPassed: true,
   publicSurfaceTenantReadSpecsPassed: true,
   prM2CmsTenantAuthoritySpecsPassed: true,
+  prM2DashboardTenantAuthoritySpecsPassed: true,
   leadAuthorizationUnitSpecsPassed: true,
   leadRuntimeOperationSpecsPassed: true,
   leadStructuralSpecsPassed: true,
