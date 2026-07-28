@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
   assertTenantScopedCollection,
   requirePublicWriterTenantFromRequest,
@@ -10,35 +10,53 @@ import {
 import { writePublicLead } from "@/lib/public-writers/public-lead-writer.server";
 
 // ============================================================================
-// ADMIN — CRUD de formulários
+// ADMIN — CRUD de formulários com autoridade tenant-scoped explícita.
 // ============================================================================
 
 export const listarFormulariosAdmin = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .handler(async ({ context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.formularios",
+      "visualizar",
+    );
     const { data, error } = await context.supabase
       .from("cms_forms")
       .select("id, nome, slug, status, descricao, config, created_at, updated_at")
+      .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
 
 export const obterFormularioAdmin = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ data, context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.formularios",
+      "visualizar",
+    );
     const { data: form, error } = await context.supabase
       .from("cms_forms")
       .select("*")
+      .eq("tenant_id", tenantId)
       .eq("id", data.id)
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    const { data: fields } = await context.supabase
+    if (!form) throw new Error("Formulário não encontrado");
+
+    const { data: fields, error: fieldsError } = await context.supabase
       .from("cms_form_fields")
       .select("*")
+      .eq("tenant_id", tenantId)
       .eq("form_id", data.id)
       .order("ordem", { ascending: true });
+    if (fieldsError) throw new Error(fieldsError.message);
     return { form, fields: fields ?? [] };
   });
 
@@ -66,16 +84,31 @@ const formPayloadSchema = z.object({
 });
 
 export const salvarFormulario = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) => formPayloadSchema.parse(raw))
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
     const { supabase, userId } = context;
     const wantsPublish = data.status === "published";
-    await assertCmsPermission(context, "cms.formularios", data.id ? "editar" : "criar");
-    if (wantsPublish) await assertCmsPermission(context, "cms.formularios", "publicar");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.formularios",
+      data.id ? "editar" : "criar",
+    );
+    if (wantsPublish) {
+      await assertCmsTenantPermission(context, "cms.formularios", "publicar");
+    }
+
     if (data.id) {
-      const { data: before } = await supabase.from("cms_forms").select("*").eq("id", data.id).maybeSingle();
+      const { data: before, error: beforeError } = await supabase
+        .from("cms_forms")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .eq("id", data.id)
+        .maybeSingle();
+      if (beforeError) throw new Error(beforeError.message);
+      if (!before) throw new Error("Formulário não encontrado");
+
       const { data: row, error } = await supabase
         .from("cms_forms")
         .update({
@@ -85,16 +118,27 @@ export const salvarFormulario = createServerFn({ method: "POST" })
           descricao: data.descricao ?? null,
           config: data.config,
         })
+        .eq("tenant_id", tenantId)
         .eq("id", data.id)
         .select("*")
-        .single();
+        .maybeSingle();
       if (error) throw new Error(error.message);
-      await logCmsAudit(context, "cms_forms", wantsPublish ? "cms.formulario.publicar" : "cms.formulario.editar", data.id, before, row);
+      if (!row) throw new Error("Formulário não encontrado");
+      await logCmsAudit(
+        context,
+        "cms_forms",
+        wantsPublish ? "cms.formulario.publicar" : "cms.formulario.editar",
+        data.id,
+        before,
+        row,
+      );
       return { id: data.id };
     }
+
     const { data: row, error } = await supabase
       .from("cms_forms")
       .insert({
+        tenant_id: tenantId,
         nome: data.nome,
         slug: data.slug,
         status: data.status,
@@ -110,13 +154,29 @@ export const salvarFormulario = createServerFn({ method: "POST" })
   });
 
 export const excluirFormulario = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.formularios", "excluir");
-    const { data: before } = await context.supabase.from("cms_forms").select("*").eq("id", data.id).maybeSingle();
-    const { error } = await context.supabase.from("cms_forms").delete().eq("id", data.id);
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.formularios",
+      "excluir",
+    );
+    const { data: before, error: beforeError } = await context.supabase
+      .from("cms_forms")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (beforeError) throw new Error(beforeError.message);
+    if (!before) throw new Error("Formulário não encontrado");
+
+    const { error } = await context.supabase
+      .from("cms_forms")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     await logCmsAudit(context, "cms_forms", "cms.formulario.excluir", data.id, before, null);
     return { ok: true };
@@ -152,17 +212,43 @@ const fieldsPayloadSchema = z.object({
 });
 
 export const salvarCampos = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) => fieldsPayloadSchema.parse(raw))
   .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.formularios", "editar");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.formularios",
+      "editar",
+    );
     const { supabase } = context;
-    const { data: before } = await supabase.from("cms_form_fields").select("*").eq("form_id", data.form_id);
-    const { error: e1 } = await supabase.from("cms_form_fields").delete().eq("form_id", data.form_id);
+
+    const { data: form, error: formError } = await supabase
+      .from("cms_forms")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.form_id)
+      .maybeSingle();
+    if (formError) throw new Error(formError.message);
+    if (!form) throw new Error("Formulário não encontrado");
+
+    const { data: before, error: beforeError } = await supabase
+      .from("cms_form_fields")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("form_id", data.form_id);
+    if (beforeError) throw new Error(beforeError.message);
+
+    const { error: e1 } = await supabase
+      .from("cms_form_fields")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("form_id", data.form_id);
     if (e1) throw new Error(e1.message);
+
     if (data.fields.length) {
       const rows = data.fields.map((f) => ({
+        tenant_id: tenantId,
         form_id: data.form_id,
         ordem: f.ordem,
         tipo: f.tipo,
@@ -179,7 +265,14 @@ export const salvarCampos = createServerFn({ method: "POST" })
       const { error: e2 } = await supabase.from("cms_form_fields").insert(rows);
       if (e2) throw new Error(e2.message);
     }
-    await logCmsAudit(context, "cms_form_fields", "cms.formulario.campos.editar", data.form_id, before, data.fields);
+    await logCmsAudit(
+      context,
+      "cms_form_fields",
+      "cms.formulario.campos.editar",
+      data.form_id,
+      before,
+      data.fields,
+    );
     return { ok: true };
   });
 
@@ -188,14 +281,36 @@ export const salvarCampos = createServerFn({ method: "POST" })
 // ============================================================================
 
 export const listarSubmissoes = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((raw) =>
     z.object({ form_id: z.string().uuid().optional(), page: z.number().int().min(0).default(0), pageSize: z.number().int().min(1).max(100).default(50) }).parse(raw ?? {}),
   )
   .handler(async ({ data, context }) => {
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(
+      context,
+      "cms.formularios",
+      "visualizar",
+    );
     const from = data.page * data.pageSize;
     const to = from + data.pageSize - 1;
-    let q = context.supabase.from("form_submissions").select("*", { count: "exact" }).order("created_at", { ascending: false });
+
+    if (data.form_id) {
+      const { data: form, error: formError } = await context.supabase
+        .from("cms_forms")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("id", data.form_id)
+        .maybeSingle();
+      if (formError) throw new Error(formError.message);
+      if (!form) throw new Error("Formulário não encontrado");
+    }
+
+    let q = context.supabase
+      .from("form_submissions")
+      .select("*", { count: "exact" })
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false });
     if (data.form_id) q = q.eq("form_id", data.form_id);
     const { data: rows, count, error } = await q.range(from, to);
     if (error) throw new Error(error.message);
