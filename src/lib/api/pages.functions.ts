@@ -35,8 +35,8 @@ const seoSchema = z.object({
 export const listarPaginas = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }) => {
-    const { assertCmsPermission } = await import("./_cms");
-    const tenantId = await assertCmsPermission(context, "cms.paginas", "visualizar");
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(context, "cms.paginas", "visualizar");
     const { data, error } = await context.supabase
       .from("cms_pages")
       .select("id, slug, titulo, status, updated_at, published_at")
@@ -50,8 +50,8 @@ export const obterPaginaAdmin = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
-    const { assertCmsPermission } = await import("./_cms");
-    const tenantId = await assertCmsPermission(context, "cms.paginas", "visualizar");
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(context, "cms.paginas", "visualizar");
     const { data: row, error } = await context.supabase
       .from("cms_pages")
       .select("*")
@@ -77,11 +77,11 @@ export const salvarPagina = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((d) => salvarSchema.parse(d))
   .handler(async ({ context, data }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
     const { supabase, userId } = context;
     const wantsPublish = data.status === "published";
-    const tenantId = await assertCmsPermission(context, "cms.paginas", data.id ? "editar" : "criar");
-    if (wantsPublish) await assertCmsPermission(context, "cms.paginas", "publicar");
+    const tenantId = await assertCmsTenantPermission(context, "cms.paginas", data.id ? "editar" : "criar");
+    if (wantsPublish) await assertCmsTenantPermission(context, "cms.paginas", "publicar");
     const payload = {
       slug: data.slug,
       titulo: data.titulo,
@@ -125,8 +125,8 @@ export const excluirPagina = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    const tenantId = await assertCmsPermission(context, "cms.paginas", "excluir");
+    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(context, "cms.paginas", "excluir");
     const { data: before } = await context.supabase
       .from("cms_pages")
       .select("*")
