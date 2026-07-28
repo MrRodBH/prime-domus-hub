@@ -88,6 +88,7 @@ check("all four administrative page functions use requireTenant", () => {
     4,
   );
   assert.equal(pagesSource.includes("requireSupabaseAuth"), false);
+  assert.ok(pagesSource.includes("assertCmsTenantPermission"));
 });
 
 check("administrative page operations apply explicit tenant filters", () => {
@@ -99,13 +100,13 @@ check("administrative page operations apply explicit tenant filters", () => {
   );
 });
 
-check("CMS permission checks validate tenant authority before role bypass", () => {
-  const authorityIndex = cmsSource.indexOf("requireCmsTenantAuthority(ctx.tenant)");
-  const adminIndex = cmsSource.indexOf('ctx.supabase.rpc("has_role"');
-  const superIndex = cmsSource.indexOf('ctx.supabase.rpc("is_super_admin"');
-  assert.ok(authorityIndex >= 0);
-  assert.ok(adminIndex > authorityIndex);
-  assert.ok(superIndex > authorityIndex);
+check("strict CMS permission helper validates tenant authority before permission", () => {
+  const strictIndex = cmsSource.indexOf("export async function assertCmsTenantPermission");
+  const authorityIndex = cmsSource.indexOf("requireCmsTenantAuthority(ctx.tenant)", strictIndex);
+  const permissionIndex = cmsSource.indexOf("await assertPermission(ctx, modulo, action)", strictIndex);
+  assert.ok(strictIndex >= 0);
+  assert.ok(authorityIndex > strictIndex);
+  assert.ok(permissionIndex > authorityIndex);
 });
 
 check("public page resolution remains Host-derived and tenant-filtered", () => {
