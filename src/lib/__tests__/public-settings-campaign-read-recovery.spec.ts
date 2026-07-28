@@ -59,11 +59,10 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "foreign collection row fails closed",
     run: async () => {
       assertThrows(
-        () =>
-          assertTenantScopedRows(TENANT_A, [
-            { tenant_id: TENANT_A, id: "a" },
-            { tenant_id: TENANT_B, id: "b" },
-          ]),
+        () => assertTenantScopedRows(TENANT_A, [
+          { tenant_id: TENANT_A, id: "a" },
+          { tenant_id: TENANT_B, id: "b" },
+        ]),
         "foreign collection row must throw",
       );
     },
@@ -108,16 +107,10 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       const failure = new PublicTenantResolutionError();
       let metaCalled = false;
       await assertRejects(
-        () =>
-          loadRequiredPublicRootData(
-            async () => {
-              throw failure;
-            },
-            async () => {
-              metaCalled = true;
-              return { pixel_id: null };
-            },
-          ),
+        () => loadRequiredPublicRootData(
+          async () => { throw failure; },
+          async () => { metaCalled = true; return { pixel_id: null }; },
+        ),
         failure,
         "settings failure propagated",
       );
@@ -129,13 +122,10 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     run: async () => {
       const failure = new Error("meta query failed");
       await assertRejects(
-        () =>
-          loadRequiredPublicRootData(
-            async () => ({ branding: { site_name: "Tenant A" } }),
-            async () => {
-              throw failure;
-            },
-          ),
+        () => loadRequiredPublicRootData(
+          async () => ({ branding: { site_name: "Tenant A" } }),
+          async () => { throw failure; },
+        ),
         failure,
         "Meta failure propagated",
       );
@@ -156,25 +146,33 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "production readers use executable tenant response guards",
     run: async () => {
       const site = readFileSync(resolve(process.cwd(), "src/lib/api/site.functions.ts"), "utf8");
+      const authority = readFileSync(resolve(process.cwd(), "src/lib/api/tenant-configuration-authority.server.ts"), "utf8");
       const meta = readFileSync(resolve(process.cwd(), "src/lib/api/meta.functions.ts"), "utf8");
       const campaigns = readFileSync(resolve(process.cwd(), "src/lib/api/campaigns.functions.ts"), "utf8");
       const root = readFileSync(resolve(process.cwd(), "src/routes/__root.tsx"), "utf8");
 
-      const siteRead = site.slice(
-        site.indexOf("export const obterSiteSettings"),
-        site.indexOf("export const atualizarSiteSettings"),
+      const siteRead = site.slice(site.indexOf("export const obterSiteSettings"), site.indexOf("export const atualizarSiteSettings"));
+      const ledgerRead = authority.slice(
+        authority.indexOf("async function querySingleConfigurationVersion"),
+        authority.indexOf("export async function loadTenantConfigurationState"),
       );
-      const metaRead = meta.slice(
-        meta.indexOf("export const obterMetaPixelId"),
-        meta.indexOf("export const obterMetaConfigAdmin"),
+      const mediaRead = site.slice(
+        site.indexOf("async function resolveConfigurationMedia"),
+        site.indexOf("function normalizeLinkArray"),
       );
-      const campaignRead = campaigns.slice(
-        campaigns.indexOf("export const listarCampanhasAtivas"),
-        campaigns.indexOf("export const registrarEventoCampanha"),
-      );
+      const metaRead = meta.slice(meta.indexOf("export const obterMetaPixelId"), meta.indexOf("export const obterMetaConfigAdmin"));
+      const campaignRead = campaigns.slice(campaigns.indexOf("export const listarCampanhasAtivas"), campaigns.indexOf("export const registrarEventoCampanha"));
 
-      assert(siteRead.includes('select("tenant_id, key, value")'), "settings selects tenant_id");
-      assert(siteRead.includes("assertTenantScopedRows"), "settings response guard");
+      assert(siteRead.includes("requirePublicTenantFromRequest"), "settings require Host tenant");
+      assert(siteRead.includes("loadPublishedConfigurationForTenant(tenant.id)"), "settings use published ledger boundary");
+      assert(ledgerRead.includes('select("id, tenant_id, revision'), "ledger selects tenant_id");
+      assert(ledgerRead.includes('.eq("tenant_id", tenantId)'), "ledger query has tenant equality");
+      assert(ledgerRead.includes('.eq("key", "configuration")'), "ledger query has canonical key");
+      assert(ledgerRead.includes('.eq("status", status)'), "ledger query has publication status");
+      assert(ledgerRead.includes(".maybeSingle()"), "ledger enforces strict cardinality");
+      assert(mediaRead.includes('select("id, tenant_id, arquivo")'), "configuration media selects tenant_id");
+      assert(mediaRead.includes('.eq("tenant_id", tenantId)'), "configuration media is tenant-bound");
+      assert(mediaRead.includes("row.tenant_id !== tenantId"), "configuration media response guard");
       assert(metaRead.includes('select("tenant_id, value")'), "Meta selects tenant_id");
       assert(metaRead.includes("if (error) throw"), "Meta query error propagated");
       assert(metaRead.includes("assertOptionalTenantScopedRow"), "Meta response guard");
@@ -196,10 +194,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
   },
 ];
 
-export async function runPublicSettingsCampaignReadRecoverySpecs(): Promise<{
-  passed: number;
-  failed: number;
-}> {
+export async function runPublicSettingsCampaignReadRecoverySpecs(): Promise<{ passed: number; failed: number }> {
   let passed = 0;
   let failed = 0;
   for (const spec of specs) {
