@@ -121,9 +121,11 @@ check("each property operation contains explicit tenant authority or server-deri
     const operation = block(property, start, end);
     for (const marker of markers) assert.ok(operation.includes(marker), `${start}:${marker}`);
   }
-  for (const table of ["imoveis", "imovel_imagens", "bairros", "corretores"]) {
+  for (const table of ["imoveis", "imovel_imagens"]) {
     assert.ok(property.includes(`.from(\"${table}\")`), table);
   }
+  assert.ok(property.includes('table: "bairros" | "corretores"'));
+  assert.ok(property.includes(".from(table)"));
 });
 
 check("property insert derives tenant and creator on the server", () => {
