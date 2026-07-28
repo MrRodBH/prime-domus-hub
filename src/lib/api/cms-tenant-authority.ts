@@ -1,38 +1,15 @@
-import type { TenantContext } from "@/integrations/supabase/tenant-middleware";
+import type { TenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
+import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
 
-export type CmsTenantAuthority = Pick<
-  TenantContext,
-  "tenantId" | "isSuperAdmin" | "impersonation" | "origin"
->;
+export type CmsTenantAuthority = TenantScopedAuthority;
 
 /**
- * Fail-closed CMS tenant authority guard.
- *
- * CMS mutations and tenant-scoped reads must run only after `requireTenant`.
- * A Super Admin is accepted exclusively through explicit impersonation; a
- * regular user can never present an impersonation origin.
+ * Compatibility wrapper for the CMS boundary.
+ * The canonical tenant-scoped authority logic lives in
+ * `tenant-scoped-authority.ts` and is shared with other PR-M2 domains.
  */
 export function requireCmsTenantAuthority(
   tenant: CmsTenantAuthority | null | undefined,
 ): string {
-  if (!tenant?.tenantId) {
-    throw new Error("CMS tenant authority unresolved.");
-  }
-
-  if (tenant.isSuperAdmin) {
-    if (!tenant.impersonation || tenant.origin !== "impersonation") {
-      throw new Error("CMS Super Admin access requires explicit impersonation.");
-    }
-    return tenant.tenantId;
-  }
-
-  if (tenant.impersonation || tenant.origin === "impersonation") {
-    throw new Error("CMS tenant authority origin is inconsistent.");
-  }
-
-  if (tenant.origin !== "selection" && tenant.origin !== "single-membership") {
-    throw new Error("CMS tenant authority origin is invalid.");
-  }
-
-  return tenant.tenantId;
+  return requireTenantScopedAuthority(tenant, "CMS");
 }
