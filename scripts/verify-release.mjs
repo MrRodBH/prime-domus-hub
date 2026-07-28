@@ -53,6 +53,7 @@ run("PSG-01 — public-surface security specifications", "bun", ["run", "test:ps
 run("PSG-01 — public-surface tenant-read specifications", "bun", ["run", "test:psg-01:tenant-reads"]);
 run("PR-M2 — CMS tenant authority specifications", "bun", ["run", "test:pr-m2:cms-authority"]);
 run("PR-M2 — dashboard tenant authority specifications", "bun", ["run", "test:pr-m2:dashboard-authority"]);
+run("PR-M2 — CRM report authority specifications", "bun", ["run", "test:pr-m2:crm-report-authority"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -90,6 +91,7 @@ console.log(JSON.stringify({
   publicSurfaceTenantReadSpecsPassed: true,
   prM2CmsTenantAuthoritySpecsPassed: true,
   prM2DashboardTenantAuthoritySpecsPassed: true,
+  prM2CrmReportAuthoritySpecsPassed: true,
   leadAuthorizationUnitSpecsPassed: true,
   leadRuntimeOperationSpecsPassed: true,
   leadStructuralSpecsPassed: true,
