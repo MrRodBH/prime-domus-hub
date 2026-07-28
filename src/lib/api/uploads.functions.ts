@@ -5,7 +5,7 @@
 // Regras (IA-004):
 //  - tenantId vem exclusivamente de requireTenant() (nunca do client).
 //  - domain é enum fechado (upload-contract.ts).
-//  - entityId (quando aplicável) é validado contra RLS do tenant efetivo.
+//  - entityId é validado explicitamente contra tenant_id no servidor.
 //  - storageFileName é gerado pelo servidor; nome original é apenas metadata.
 //  - qualquer path/prefixo enviado pelo client é IGNORADO.
 import { createServerFn } from "@tanstack/react-start";
@@ -22,30 +22,26 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const PDF_KINDS = new Set(["pdfs", "book", "planta", "memorial"]);
 const PAGE_VARIANTS = new Set(["sobre", "anuncie"]);
 
-/** Sanitiza o nome original para uso apenas como sufixo do storage filename. */
 function sanitizeName(name: string): string {
   const base = name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\\|\//g, "_")      // impede path traversal
-    .replace(/\.{2,}/g, "_")     // impede ".."
+    .replace(/\\|\//g, "_")
+    .replace(/\.{2,}/g, "_")
     .replace(/\s+/g, "-")
     .replace(/[^a-zA-Z0-9._-]+/g, "_")
-    .replace(/^\.+/, "")         // impede arquivo oculto
+    .replace(/^\.+/, "")
     .slice(0, 120);
   return base || "file";
 }
 
-/** Extrai a extensão validada (letras/números até 8 chars). */
 function safeExt(name: string): string {
-  const m = /\.([a-zA-Z0-9]{1,8})$/.exec(name);
-  return m ? `.${m[1].toLowerCase()}` : "";
+  const match = /\.([a-zA-Z0-9]{1,8})$/.exec(name);
+  return match ? `.${match[1].toLowerCase()}` : "";
 }
 
-/** Gera o filename físico: <8-uuid>-<sanitized>.<ext>. */
 function generateStorageFileName(originalFileName: string): string {
   const clean = sanitizeName(originalFileName);
-  // Remove extensão do clean se houver, para colocar a extensão validada no fim
   const withoutExt = clean.replace(/\.[a-zA-Z0-9]{1,8}$/, "");
   const ext = safeExt(originalFileName);
   const prefix = crypto.randomUUID().slice(0, 8);
@@ -68,10 +64,7 @@ export const createUploadTarget = createServerFn({ method: "POST" })
     const { tenantId } = context.tenant;
     const domain = data.domain as UploadDomain;
     const storageFileName = generateStorageFileName(data.originalFileName);
-
-    // supabase RLS-scoped do usuário — para checagem de ownership da entidade
-    // (só enxerga registros do tenant efetivo).
-    const sb = context.supabase;
+    const supabase = context.supabase;
 
     let bucket: string;
     let subPath: string;
@@ -81,12 +74,16 @@ export const createUploadTarget = createServerFn({ method: "POST" })
         if (!data.entityId || !UUID_RE.test(data.entityId)) {
           throw new Error("entityId (imovel) obrigatório e inválido");
         }
-        const { data: row } = await sb
+        const { data: rows, error } = await supabase
           .from("imoveis")
           .select("id")
+          .eq("tenant_id", tenantId)
           .eq("id", data.entityId)
-          .maybeSingle();
-        if (!row) throw new Error("Imóvel inexistente ou fora do tenant efetivo");
+          .limit(2);
+        if (error) throw new Error(error.message);
+        if ((rows ?? []).length !== 1) {
+          throw new Error("Imóvel inexistente, ambíguo ou fora do tenant efetivo");
+        }
         bucket = "imoveis";
         subPath = `${data.entityId}/${storageFileName}`;
         break;
@@ -97,13 +94,17 @@ export const createUploadTarget = createServerFn({ method: "POST" })
         if (!data.entityId || !UUID_RE.test(data.entityId)) {
           throw new Error("entityId (lançamento) obrigatório e inválido");
         }
-        const { data: row } = await sb
+        const { data: rows, error } = await supabase
           .from("launch_projects")
           .select("id, slug")
+          .eq("tenant_id", tenantId)
           .eq("id", data.entityId)
-          .maybeSingle();
-        if (!row) throw new Error("Lançamento inexistente ou fora do tenant efetivo");
-        // slug vem do banco (server-authoritative), não do client
+          .limit(2);
+        if (error) throw new Error(error.message);
+        if ((rows ?? []).length !== 1) {
+          throw new Error("Lançamento inexistente, ambíguo ou fora do tenant efetivo");
+        }
+        const row = rows![0];
         const slug = (row.slug || row.id) as string;
         bucket = "lancamentos";
         if (domain === "lancamento-capa") {
@@ -128,12 +129,12 @@ export const createUploadTarget = createServerFn({ method: "POST" })
         subPath = `blog/inline/${storageFileName}`;
         break;
       case "cms-page": {
-        const v = (data.variant ?? "").toLowerCase();
-        if (!PAGE_VARIANTS.has(v)) {
-          throw new Error(`variant inválida para cms-page: ${v}`);
+        const variant = (data.variant ?? "").toLowerCase();
+        if (!PAGE_VARIANTS.has(variant)) {
+          throw new Error(`variant inválida para cms-page: ${variant}`);
         }
         bucket = "site";
-        subPath = `${v}/${storageFileName}`;
+        subPath = `${variant}/${storageFileName}`;
         break;
       }
       case "corretor-foto":
