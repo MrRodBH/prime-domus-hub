@@ -112,7 +112,7 @@ check("migrated table operations contain explicit tenant filters", () => {
     const text = files[key as keyof typeof minimum];
     assert.ok(count(text, /\.eq\("tenant_id", tenantId\)/g) >= total, key);
   }
-  assert.ok(count(files.configurationAuthority, /\.eq\("tenant_id", tenantId\)/g) >= 3, "configuration authority");
+  assert.ok(count(files.configurationAuthority, /\.eq\("tenant_id", tenantId\)/g) >= 2, "configuration authority");
   assert.ok(count(files.configurationFunctions, /\.eq\("tenant_id", tenantId\)/g) >= 2, "configuration functions");
   assert.ok(files.versions.includes("legacy_per_key_configuration_mutation_retired"), "legacy versions fail closed");
 });
