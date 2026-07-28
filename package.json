@@ -35,7 +35,8 @@
     "test:psg-01:security": "tsx --tsconfig tsconfig.json ./run-public-surface-security-specs.ts",
     "test:psg-01:tenant-reads": "tsx --tsconfig tsconfig.json ./run-public-surface-tenant-read-specs.ts",
     "test:psg-01": "bun run test:psg-01:security && bun run test:psg-01:tenant-reads",
-    "test:pr-m2:cms-authority": "tsx --tsconfig tsconfig.json ./run-pr-m2-cms-authority-specs.ts"
+    "test:pr-m2:cms-authority": "tsx --tsconfig tsconfig.json ./run-pr-m2-cms-authority-specs.ts",
+    "test:pr-m2:dashboard-authority": "tsx --tsconfig tsconfig.json ./run-pr-m2-dashboard-authority-specs.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -132,12 +133,12 @@
     "undici": "^7.16.0",
     "ws": "^8.18.3",
     "brace-expansion": "^2.0.2",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.0.1"
   },
   "resolutions": {
     "undici": "^7.16.0",
     "ws": "^8.18.3",
     "brace-expansion": "^2.0.2",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.0.1"
   }
 }
