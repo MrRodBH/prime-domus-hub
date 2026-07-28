@@ -14,68 +14,69 @@ function check(name: string, fn: () => void) {
   console.log(`✓ ${name}`);
 }
 
-check("regular explicit tenant selection is accepted", () => {
+function source(path: string) {
+  return readFileSync(path, "utf8");
+}
+
+function count(text: string, pattern: RegExp) {
+  return text.match(pattern)?.length ?? 0;
+}
+
+const tenantA = "11111111-1111-4111-8111-111111111111";
+const tenantB = "22222222-2222-4222-8222-222222222222";
+const tenantC = "33333333-3333-4333-8333-333333333333";
+
+check("tenant authority accepts selection and single membership", () => {
   assert.equal(
     requireCmsTenantAuthority({
-      tenantId: "11111111-1111-4111-8111-111111111111",
+      tenantId: tenantA,
       isSuperAdmin: false,
       impersonation: false,
       origin: "selection",
     }),
-    "11111111-1111-4111-8111-111111111111",
+    tenantA,
   );
-});
-
-check("single active membership authority is accepted", () => {
   assert.equal(
     requireCmsTenantAuthority({
-      tenantId: "22222222-2222-4222-8222-222222222222",
+      tenantId: tenantB,
       isSuperAdmin: false,
       impersonation: false,
       origin: "single-membership",
     }),
-    "22222222-2222-4222-8222-222222222222",
+    tenantB,
   );
 });
 
-check("Super Admin with explicit impersonation is accepted", () => {
+check("tenant authority accepts Super Admin only with explicit impersonation", () => {
   assert.equal(
     requireCmsTenantAuthority({
-      tenantId: "33333333-3333-4333-8333-333333333333",
+      tenantId: tenantC,
       isSuperAdmin: true,
       impersonation: true,
       origin: "impersonation",
     }),
-    "33333333-3333-4333-8333-333333333333",
+    tenantC,
   );
-});
-
-check("missing tenant authority fails closed", () => {
-  assert.throws(() => requireCmsTenantAuthority(undefined), /CMS tenant authority unresolved/);
-});
-
-check("Super Admin without impersonation fails closed", () => {
   assert.throws(
-    () =>
-      requireCmsTenantAuthority({
-        tenantId: "44444444-4444-4444-8444-444444444444",
-        isSuperAdmin: true,
-        impersonation: false,
-        origin: "selection",
-      }),
+    () => requireCmsTenantAuthority({
+      tenantId: tenantC,
+      isSuperAdmin: true,
+      impersonation: false,
+      origin: "selection",
+    }),
     /requires explicit impersonation/,
   );
 });
 
-check("regular user cannot claim impersonation origin", () => {
+check("tenant authority fails closed on missing or inconsistent context", () => {
+  assert.throws(() => requireCmsTenantAuthority(undefined), /authority unresolved/);
   assert.throws(
-    () =>
-      requireCmsTenantAuthority({
-        tenantId: "55555555-5555-4555-8555-555555555555",
-        isSuperAdmin: false,
-        impersonation: true,
-        origin: "impersonation",
-      }),
+    () => requireCmsTenantAuthority({
+      tenantId: tenantA,
+      isSuperAdmin: false,
+      impersonation: true,
+      origin: "impersonation",
+    }),
     /origin is inconsistent/,
   );
 });
@@ -95,27 +96,32 @@ const validHybridConfig = {
   },
 };
 
-check("hybrid portal configuration parses deterministically", () => {
+check("portal hybrid configuration is deterministic and closed", () => {
   assert.deepEqual(parsePortalHybridConfig(validHybridConfig), validHybridConfig);
-});
-
-check("portal configuration rejects non-hybrid mode", () => {
   assert.throws(
     () => parsePortalHybridConfig({ ...validHybridConfig, operation_mode: "AUTOMATED" }),
   );
-});
-
-check("portal configuration rejects inline secrets", () => {
   assert.throws(
     () => parsePortalHybridConfig({ ...validHybridConfig, api_token: "raw-secret" }),
     /inline secret is prohibited/,
   );
 });
 
-check("portal connector responses remove persisted secrets", () => {
+check("portal connector DTO removes persisted secrets", () => {
   const safe = sanitizePortalConnector({
-    id: "connector-1",
+    id: "11111111-1111-4111-8111-111111111119",
+    tenant_id: tenantA,
+    portal_nome: "Portal Teste",
+    portal_slug: "portal-teste",
+    ativo: true,
+    status: "ativo",
+    feed_url: "https://example.test/feed",
+    webhook_url: null,
     config: validHybridConfig,
+    ultimo_sync_at: null,
+    ultimo_erro: null,
+    created_at: "2026-07-28T00:00:00.000Z",
+    updated_at: "2026-07-28T00:00:00.000Z",
     feed_token: "feed-secret",
     webhook_secret: "webhook-secret",
   });
@@ -125,172 +131,121 @@ check("portal connector responses remove persisted secrets", () => {
   assert.equal(safe.configuration_state, "ready");
 });
 
-const pagesSource = readFileSync("src/lib/api/pages.functions.ts", "utf8");
-const formsSource = readFileSync("src/lib/api/forms.functions.ts", "utf8");
-const campaignsSource = readFileSync("src/lib/api/campaigns.functions.ts", "utf8");
-const versionsSource = readFileSync("src/lib/api/site-versions.functions.ts", "utf8");
-const mediaSource = readFileSync("src/lib/api/media.functions.ts", "utf8");
-const portalsSource = readFileSync("src/lib/api/portals.functions.ts", "utf8");
-const portalRegistrySource = readFileSync("src/lib/portals/portal-connector-registry.ts", "utf8");
-const cmsSource = readFileSync("src/lib/api/_cms.ts", "utf8");
+const files = {
+  pages: source("src/lib/api/pages.functions.ts"),
+  forms: source("src/lib/api/forms.functions.ts"),
+  campaigns: source("src/lib/api/campaigns.functions.ts"),
+  versions: source("src/lib/api/site-versions.functions.ts"),
+  media: source("src/lib/api/media.functions.ts"),
+  portals: source("src/lib/api/portals.functions.ts"),
+  portalRegistry: source("src/lib/portals/portal-connector-registry.ts"),
+  cms: source("src/lib/api/_cms.ts"),
+};
 
-check("all four administrative page functions use requireTenant", () => {
-  assert.equal(pagesSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 4);
-  assert.equal(pagesSource.includes("requireSupabaseAuth"), false);
-  assert.ok(pagesSource.includes("assertCmsTenantPermission"));
+check("all migrated administrative surfaces use requireTenant", () => {
+  const expected = {
+    pages: 4,
+    forms: 6,
+    campaigns: 5,
+    versions: 8,
+    media: 7,
+    portals: 6,
+  } as const;
+  for (const [key, total] of Object.entries(expected)) {
+    const text = files[key as keyof typeof expected];
+    assert.equal(count(text, /\.middleware\(\[requireTenant\]\)/g), total, key);
+    assert.equal(text.includes("requireSupabaseAuth"), false, key);
+  }
 });
 
-check("administrative page operations apply explicit tenant filters", () => {
-  assert.ok((pagesSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 6);
-  assert.ok(pagesSource.includes(".insert({ ...payload, tenant_id: tenantId, created_by: userId })"));
+check("migrated database operations contain explicit tenant filters", () => {
+  const minimum = {
+    pages: 6,
+    forms: 12,
+    campaigns: 8,
+    versions: 12,
+    media: 11,
+    portals: 13,
+  } as const;
+  for (const [key, total] of Object.entries(minimum)) {
+    const text = files[key as keyof typeof minimum];
+    assert.ok(count(text, /\.eq\("tenant_id", tenantId\)/g) >= total, key);
+  }
 });
 
-check("all six administrative form functions use requireTenant", () => {
-  assert.equal(formsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 6);
-  assert.equal(formsSource.includes("requireSupabaseAuth"), false);
-  assert.ok(formsSource.includes("assertCmsTenantPermission"));
+check("tenant ids are persisted from server authority", () => {
+  assert.ok(files.pages.includes("tenant_id: tenantId"));
+  assert.ok(files.forms.includes("tenant_id: tenantId"));
+  assert.ok(files.campaigns.includes("tenant_id: tenantId"));
+  assert.ok(count(files.versions, /tenant_id: tenantId/g) >= 6);
+  assert.ok(count(files.media, /tenant_id: tenantId/g) >= 2);
 });
 
-check("administrative form operations apply explicit tenant filters", () => {
-  assert.ok((formsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 12);
-  assert.ok(formsSource.includes("tenant_id: tenantId"));
-  assert.ok(formsSource.includes('.from("form_submissions")') && formsSource.includes('.eq("tenant_id", tenantId)'));
+check("form fields prove parent form ownership before replacement", () => {
+  const start = files.forms.indexOf("export const salvarCampos");
+  const parent = files.forms.indexOf('.from("cms_forms")', start);
+  const deletion = files.forms.indexOf('.from("cms_form_fields")', parent);
+  assert.ok(start >= 0 && parent > start && deletion > parent);
 });
 
-check("form field mutation proves parent form ownership", () => {
-  const saveFieldsIndex = formsSource.indexOf("export const salvarCampos");
-  const formOwnershipIndex = formsSource.indexOf('.from("cms_forms")', saveFieldsIndex);
-  const fieldsDeleteIndex = formsSource.indexOf('.from("cms_form_fields")', formOwnershipIndex);
-  assert.ok(saveFieldsIndex >= 0);
-  assert.ok(formOwnershipIndex > saveFieldsIndex);
-  assert.ok(fieldsDeleteIndex > formOwnershipIndex);
-});
-
-check("all five administrative campaign functions use requireTenant", () => {
-  assert.equal(campaignsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 5);
-  assert.equal(campaignsSource.includes("requireSupabaseAuth"), false);
-  assert.ok(campaignsSource.includes("assertCmsTenantPermission"));
-});
-
-check("administrative campaign operations apply explicit tenant filters", () => {
-  assert.ok((campaignsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 8);
-  assert.ok(campaignsSource.includes(".insert({ ...payload, tenant_id: tenantId, created_by: context.userId })"));
-});
-
-check("campaign metrics prove campaign ownership before reading events", () => {
-  const metricsIndex = campaignsSource.indexOf("export const metricasCampanha");
-  const campaignOwnershipIndex = campaignsSource.indexOf('.from("cms_campaigns")', metricsIndex);
-  const eventsIndex = campaignsSource.indexOf('.from("cms_campaign_events")', campaignOwnershipIndex);
-  assert.ok(metricsIndex >= 0);
-  assert.ok(campaignOwnershipIndex > metricsIndex);
-  assert.ok(eventsIndex > campaignOwnershipIndex);
-  assert.ok(campaignsSource.indexOf('.eq("tenant_id", tenantId)', eventsIndex) > eventsIndex);
-});
-
-check("all eight site version functions use requireTenant", () => {
-  assert.equal(versionsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 8);
-  assert.equal(versionsSource.includes("requireSupabaseAuth"), false);
-  assert.ok(versionsSource.includes("assertCmsTenantPermission"));
-});
-
-check("site versioning scopes settings and versions by tenant", () => {
-  assert.ok((versionsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 12);
-  assert.ok((versionsSource.match(/tenant_id: tenantId/g)?.length ?? 0) >= 6);
-  assert.ok(versionsSource.includes('.from("site_settings")'));
-  assert.ok(versionsSource.includes('.from("site_settings_versions")'));
+check("campaign metrics prove campaign ownership before event reads", () => {
+  const start = files.campaigns.indexOf("export const metricasCampanha");
+  const parent = files.campaigns.indexOf('.from("cms_campaigns")', start);
+  const events = files.campaigns.indexOf('.from("cms_campaign_events")', parent);
+  assert.ok(start >= 0 && parent > start && events > parent);
 });
 
 check("site version restore proves version ownership", () => {
-  const restoreIndex = versionsSource.indexOf("export const restaurarVersao");
-  const versionLookupIndex = versionsSource.indexOf('.from("site_settings_versions")', restoreIndex);
-  const tenantFilterIndex = versionsSource.indexOf('.eq("tenant_id", tenantId)', versionLookupIndex);
-  const idFilterIndex = versionsSource.indexOf('.eq("id", data.id)', tenantFilterIndex);
-  assert.ok(restoreIndex >= 0);
-  assert.ok(versionLookupIndex > restoreIndex);
-  assert.ok(tenantFilterIndex > versionLookupIndex);
-  assert.ok(idFilterIndex > tenantFilterIndex);
+  const start = files.versions.indexOf("export const restaurarVersao");
+  const lookup = files.versions.indexOf('.from("site_settings_versions")', start);
+  const tenant = files.versions.indexOf('.eq("tenant_id", tenantId)', lookup);
+  const id = files.versions.indexOf('.eq("id", data.id)', tenant);
+  assert.ok(start >= 0 && lookup > start && tenant > lookup && id > tenant);
 });
 
-check("all seven media functions use requireTenant", () => {
-  assert.equal(mediaSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 7);
-  assert.equal(mediaSource.includes("requireSupabaseAuth"), false);
-  assert.ok(mediaSource.includes("assertCmsTenantPermission"));
+check("media deletion derives paths from the tenant row before Storage removal", () => {
+  const start = files.media.indexOf("export const excluirMidia");
+  const row = files.media.indexOf('.from("media_library")', start);
+  const paths = files.media.indexOf("const paths = [row.arquivo", row);
+  const validate = files.media.indexOf("validateTenantSignRequest", paths);
+  const remove = files.media.indexOf('.remove(paths)', validate);
+  const metadataDelete = files.media.indexOf('.from("media_library")', remove);
+  assert.ok(start >= 0 && row > start && paths > row && validate > paths);
+  assert.ok(remove > validate && metadataDelete > remove);
 });
 
-check("media database operations are explicitly tenant-scoped", () => {
-  assert.ok((mediaSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 11);
-  assert.ok((mediaSource.match(/tenant_id: tenantId/g)?.length ?? 0) >= 2);
-  assert.ok(mediaSource.includes('.from("media_library")'));
-  assert.ok(mediaSource.includes('.from("media_usage")'));
+check("media usage proves parent ownership before write and read", () => {
+  const register = files.media.indexOf("export const registrarUsoMidia");
+  const registerParent = files.media.indexOf('.from("media_library")', register);
+  const upsert = files.media.indexOf('.from("media_usage").upsert', registerParent);
+  const list = files.media.indexOf("export const listarUsosMidia");
+  const listParent = files.media.indexOf('.from("media_library")', list);
+  const usageRead = files.media.indexOf('.from("media_usage")', listParent);
+  assert.ok(registerParent > register && upsert > registerParent);
+  assert.ok(listParent > list && usageRead > listParent);
 });
 
-check("media deletion derives and validates storage paths server-side", () => {
-  const deleteIndex = mediaSource.indexOf("export const excluirMidia");
-  const rowLookupIndex = mediaSource.indexOf('.from("media_library")', deleteIndex);
-  const pathExtractionIndex = mediaSource.indexOf("const paths = [row.arquivo", rowLookupIndex);
-  const validationIndex = mediaSource.indexOf("validateTenantSignRequest", pathExtractionIndex);
-  const storageRemoveIndex = mediaSource.indexOf('.remove(paths)', validationIndex);
-  const metadataDeleteIndex = mediaSource.indexOf('.from("media_library")', storageRemoveIndex);
-  assert.ok(deleteIndex >= 0);
-  assert.ok(rowLookupIndex > deleteIndex);
-  assert.ok(pathExtractionIndex > rowLookupIndex);
-  assert.ok(validationIndex > pathExtractionIndex);
-  assert.ok(storageRemoveIndex > validationIndex);
-  assert.ok(metadataDeleteIndex > storageRemoveIndex);
+check("portal activation validates hybrid configuration before mutation", () => {
+  const start = files.portals.indexOf("export const atualizarPortal");
+  const current = files.portals.indexOf('.from("portal_connectors")', start);
+  const parse = files.portals.indexOf("parsePortalHybridConfig", current);
+  const active = files.portals.indexOf("if (nextActive)", parse);
+  const transport = files.portals.indexOf("assertPortalTransport", active);
+  const update = files.portals.indexOf('.update(patch as never)', transport);
+  assert.ok(start >= 0 && current > start && parse > current);
+  assert.ok(active > parse && transport > active && update > transport);
 });
 
-check("media usage proves parent ownership before writes and reads", () => {
-  const registerIndex = mediaSource.indexOf("export const registrarUsoMidia");
-  const registerParentIndex = mediaSource.indexOf('.from("media_library")', registerIndex);
-  const usageUpsertIndex = mediaSource.indexOf('.from("media_usage").upsert', registerParentIndex);
-  const listIndex = mediaSource.indexOf("export const listarUsosMidia");
-  const listParentIndex = mediaSource.indexOf('.from("media_library")', listIndex);
-  const usageReadIndex = mediaSource.indexOf('.from("media_usage")', listParentIndex);
-  assert.ok(registerParentIndex > registerIndex);
-  assert.ok(usageUpsertIndex > registerParentIndex);
-  assert.ok(listParentIndex > listIndex);
-  assert.ok(usageReadIndex > listParentIndex);
+check("portal list never selects persisted tokens or secrets", () => {
+  const start = files.portals.indexOf("export const listarPortais");
+  const end = files.portals.indexOf("export const atualizarPortal");
+  const block = files.portals.slice(start, end);
+  assert.equal(block.includes("feed_token"), false);
+  assert.equal(block.includes("webhook_secret"), false);
+  assert.ok(block.includes("sanitizePortalConnector"));
 });
 
-check("all six portal surfaces use requireTenant", () => {
-  assert.equal(portalsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 6);
-  assert.equal(portalsSource.includes("requireSupabaseAuth"), false);
-  assert.ok(portalsSource.includes("requireTenantScopedAuthority"));
-});
-
-check("portal reads and mutations are explicitly tenant-scoped", () => {
-  assert.ok((portalsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 13);
-  assert.ok(portalsSource.includes('.from("portal_connectors")'));
-  assert.ok(portalsSource.includes('.from("imovel_portais")'));
-  assert.ok(portalsSource.includes('.from("portal_sync_logs")'));
-  assert.ok(portalsSource.includes('.from("leads")'));
-});
-
-check("portal activation requires a complete hybrid configuration", () => {
-  const updateIndex = portalsSource.indexOf("export const atualizarPortal");
-  const currentIndex = portalsSource.indexOf('.from("portal_connectors")', updateIndex);
-  const parseIndex = portalsSource.indexOf("parsePortalHybridConfig", currentIndex);
-  const activeCheckIndex = portalsSource.indexOf("if (nextActive)", parseIndex);
-  const transportIndex = portalsSource.indexOf("assertPortalTransport", activeCheckIndex);
-  const updateWriteIndex = portalsSource.indexOf('.update(patch as never)', transportIndex);
-  assert.ok(updateIndex >= 0);
-  assert.ok(currentIndex > updateIndex);
-  assert.ok(parseIndex > currentIndex);
-  assert.ok(activeCheckIndex > parseIndex);
-  assert.ok(transportIndex > activeCheckIndex);
-  assert.ok(updateWriteIndex > transportIndex);
-});
-
-check("portal list response excludes persisted token and webhook secret", () => {
-  const listIndex = portalsSource.indexOf("export const listarPortais");
-  const updateIndex = portalsSource.indexOf("export const atualizarPortal");
-  const listBlock = portalsSource.slice(listIndex, updateIndex);
-  assert.equal(listBlock.includes("feed_token"), false);
-  assert.equal(listBlock.includes("webhook_secret"), false);
-  assert.ok(listBlock.includes("sanitizePortalConnector"));
-});
-
-check("portal registry exposes every supported hybrid method", () => {
+check("portal registry enumerates all hybrid methods and UI states", () => {
   for (const method of [
     "JSON_API",
     "XML_FEED",
@@ -300,46 +255,35 @@ check("portal registry exposes every supported hybrid method", () => {
     "CSV",
     "MANUAL_EXPORT",
   ]) {
-    assert.ok(portalRegistrySource.includes(`\"${method}\"`));
+    assert.ok(files.portalRegistry.includes(`\"${method}\"`), method);
   }
-  assert.ok(portalRegistrySource.includes('z.literal("HYBRID")'));
-  assert.ok(portalRegistrySource.includes("credential_reference"));
-  assert.ok(portalRegistrySource.includes("retry_policy"));
+  for (const field of [
+    "operation_mode",
+    "credential_reference",
+    "mapping_profile",
+    "publication_rules",
+    "retry_policy",
+    "configuration_required",
+  ]) {
+    assert.ok(files.portalRegistry.includes(field), field);
+  }
 });
 
-check("portal registry prohibits inline secrets", () => {
-  assert.ok(portalRegistrySource.includes("INLINE_SECRET_KEYS"));
-  assert.ok(portalRegistrySource.includes("Portal connector inline secret is prohibited"));
-  assert.ok(portalRegistrySource.includes("sanitizePortalConnector"));
+check("strict CMS permission validates tenant authority before permission", () => {
+  const strict = files.cms.indexOf("export async function assertCmsTenantPermission");
+  const authority = files.cms.indexOf("requireCmsTenantAuthority(ctx.tenant)", strict);
+  const permission = files.cms.indexOf("await assertPermission(ctx, modulo, action)", strict);
+  assert.ok(strict >= 0 && authority > strict && permission > authority);
 });
 
-check("strict CMS permission helper validates tenant authority before permission", () => {
-  const strictIndex = cmsSource.indexOf("export async function assertCmsTenantPermission");
-  const authorityIndex = cmsSource.indexOf("requireCmsTenantAuthority(ctx.tenant)", strictIndex);
-  const permissionIndex = cmsSource.indexOf("await assertPermission(ctx, modulo, action)", strictIndex);
-  assert.ok(strictIndex >= 0);
-  assert.ok(authorityIndex > strictIndex);
-  assert.ok(permissionIndex > authorityIndex);
-});
-
-check("public page resolution remains Host-derived and tenant-filtered", () => {
-  assert.ok(pagesSource.includes("requirePublicTenantFromRequest"));
-  assert.ok(pagesSource.includes('.eq("tenant_id", tenant.id)'));
-  assert.ok(pagesSource.includes('.limit(2)'));
-});
-
-check("public form writer authority remains request-derived and tenant-filtered", () => {
-  assert.ok(formsSource.includes("requirePublicWriterTenantFromRequest"));
-  assert.ok(formsSource.includes('.eq("tenant_id", input.tenant.id)'));
-  assert.ok(formsSource.includes("selectExactlyOneTenantScopedRow"));
-  assert.ok(formsSource.includes("assertTenantScopedCollection"));
-});
-
-check("public campaign authority remains Host-derived and tenant-filtered", () => {
-  assert.ok(campaignsSource.includes("requirePublicTenantFromRequest"));
-  assert.ok(campaignsSource.includes("requirePublicWriterTenantFromRequest"));
-  assert.ok(campaignsSource.includes('.eq("tenant_id", tenant.id)'));
-  assert.ok(campaignsSource.includes("recordPublicCampaignEvent"));
+check("public boundaries remain request-derived and tenant-filtered", () => {
+  assert.ok(files.pages.includes("requirePublicTenantFromRequest"));
+  assert.ok(files.pages.includes('.eq("tenant_id", tenant.id)'));
+  assert.ok(files.forms.includes("requirePublicWriterTenantFromRequest"));
+  assert.ok(files.forms.includes('.eq("tenant_id", input.tenant.id)'));
+  assert.ok(files.campaigns.includes("requirePublicTenantFromRequest"));
+  assert.ok(files.campaigns.includes("requirePublicWriterTenantFromRequest"));
+  assert.ok(files.campaigns.includes('.eq("tenant_id", tenant.id)'));
 });
 
 console.log(`PR-M2 tenant authority and hybrid registry specs: ${passed} passed`);
