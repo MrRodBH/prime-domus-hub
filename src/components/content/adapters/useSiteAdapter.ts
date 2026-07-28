@@ -1,106 +1,165 @@
-// Site — Adapter (Bloco 3.1). Cada "seção" (branding, empresa, seo_global, ...)
-// é uma entidade singleton. NÃO é exceção — usa mesmo ContentWorkspace/Editor.
 import { useCallback, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { obterSiteSettings, atualizarSiteSettings } from "@/lib/api/site.functions";
-import { salvarRascunho, listarVersoes, restaurarVersao } from "@/lib/api/site-versions.functions";
+import {
+  getTenantConfigurationDraft,
+  listTenantConfigurationVersions,
+  publishTenantConfiguration,
+  rollbackTenantConfiguration,
+  saveTenantConfigurationDraft,
+} from "@/lib/api/tenant-configuration.functions";
+import {
+  configurationDomainSnapshot,
+  mergeConfigurationDomain,
+  type ConfigurationDomain,
+  type ConfigurationSnapshot,
+} from "@/lib/api/configuration-registry";
 import type {
-  ContentEntityAdapter, ContentEntityDetail, ContentEntityRecord,
-  ContentDraft, StatusValue, VersionRecord,
+  ContentEntityAdapter,
+  ContentEntityDetail,
+  ContentEntityRecord,
+  ContentDraft,
+  StatusValue,
+  VersionRecord,
 } from "../types";
 
-type SiteKey =
-  | "branding" | "branding_v2" | "empresa" | "footer" | "seo_global"
-  | "home_hero" | "home_secoes" | "contato" | "pagina_lancamentos"
-  | "home_diferenciais" | "home_depoimentos"
-  | "pagina_sobre" | "pagina_contato" | "pagina_anuncie";
-
-export const SITE_SECTIONS: Array<{ id: SiteKey; label: string; group: string }> = [
-  { id: "empresa", label: "Empresa", group: "Empresa" },
-  { id: "branding", label: "Logo & Marca", group: "Empresa" },
-  { id: "branding_v2", label: "Branding dinâmico", group: "Empresa" },
-  { id: "contato", label: "Contato (global)", group: "Empresa" },
-  { id: "footer", label: "Rodapé", group: "Empresa" },
-  { id: "seo_global", label: "SEO Global", group: "Empresa" },
-  { id: "home_hero", label: "Home — Hero", group: "Home" },
-  { id: "home_secoes", label: "Home — Seções", group: "Home" },
-  { id: "home_diferenciais", label: "Home — Diferenciais", group: "Home" },
-  { id: "home_depoimentos", label: "Home — Depoimentos", group: "Home" },
-  { id: "pagina_sobre", label: "Página Sobre", group: "Páginas fixas" },
-  { id: "pagina_contato", label: "Página Contato", group: "Páginas fixas" },
-  { id: "pagina_anuncie", label: "Página Anuncie", group: "Páginas fixas" },
-  { id: "pagina_lancamentos", label: "Página Lançamentos", group: "Páginas fixas" },
+export const SITE_SECTIONS: Array<{
+  id: ConfigurationDomain;
+  label: string;
+  group: string;
+  description: string;
+}> = [
+  { id: "identity", label: "Identidade institucional", group: "Marca", description: "Nomes, descrição, registros e regiões atendidas." },
+  { id: "branding", label: "Logos e mídias da marca", group: "Marca", description: "Referências tenant-scoped à biblioteca de mídias." },
+  { id: "visual", label: "Tokens visuais", group: "Marca", description: "Cores, tipografia, escala e bordas." },
+  { id: "contact", label: "Contato e atendimento", group: "Institucional", description: "Canais, endereço, localização e horários." },
+  { id: "social", label: "Redes sociais", group: "Institucional", description: "Destinos sociais HTTPS validados." },
+  { id: "seo", label: "SEO padrão", group: "Publicação", description: "Metadados, robots, schema e sitemap." },
+  { id: "legal", label: "Legal e privacidade", group: "Publicação", description: "Referências legais, cookies e controlador de dados." },
+  { id: "catalog", label: "Comportamento do catálogo", group: "Produto", description: "Exibição, ordenação e CTAs do catálogo." },
+  { id: "lead_capture", label: "Captação de leads", group: "Produto", description: "Campos obrigatórios, consentimento e visibilidade." },
+  { id: "header_footer", label: "Cabeçalho, rodapé e menus", group: "Navegação", description: "Variações, menus, colunas e links legais." },
+  { id: "analytics", label: "Analytics e marketing", group: "Integrações", description: "Identificadores públicos; secrets são proibidos." },
+  { id: "future_activation", label: "Ativações futuras", group: "Integrações", description: "DCA-01, BCA-01 e PR-M3, em modo somente leitura." },
+  { id: "legacy_content", label: "Conteúdo institucional existente", group: "Conteúdo", description: "Snapshots estruturados das páginas fixas existentes." },
 ];
 
+function sectionFor(id: string) {
+  return SITE_SECTIONS.find((section) => section.id === id);
+}
+
 export function useSiteAdapter(): ContentEntityAdapter {
-  const obterFn = useServerFn(obterSiteSettings);
-  const atualizarFn = useServerFn(atualizarSiteSettings);
-  const rascunhoFn = useServerFn(salvarRascunho);
-  const listVFn = useServerFn(listarVersoes);
-  const restoreVFn = useServerFn(restaurarVersao);
+  const stateFn = useServerFn(getTenantConfigurationDraft);
+  const saveFn = useServerFn(saveTenantConfigurationDraft);
+  const publishFn = useServerFn(publishTenantConfiguration);
+  const versionsFn = useServerFn(listTenantConfigurationVersions);
+  const rollbackFn = useServerFn(rollbackTenantConfiguration);
 
   const fetchList = useCallback(async (): Promise<ContentEntityRecord[]> => {
-    return SITE_SECTIONS.map((s) => ({
-      id: s.id,
-      titulo: s.label,
-      slug: s.id,
-      status: "published" as StatusValue,
-      updated_at: new Date().toISOString(),
-      extra: { group: s.group },
+    const state = await stateFn();
+    const status: StatusValue = state.draft ? "draft" : "published";
+    const updatedAt = state.draft?.createdAt ?? state.published?.createdAt ?? new Date(0).toISOString();
+    return SITE_SECTIONS.map((section) => ({
+      id: section.id,
+      titulo: section.label,
+      slug: section.id,
+      status,
+      updated_at: updatedAt,
+      extra: {
+        group: section.group,
+        description: section.description,
+        expectedRevision: state.expectedRevision,
+      },
     }));
-  }, []);
+  }, [stateFn]);
 
   const fetchDetail = useCallback(async (id: string): Promise<ContentEntityDetail> => {
-    const all = await obterFn();
-    const sectionKey = id as SiteKey;
-    const section = SITE_SECTIONS.find((s) => s.id === sectionKey);
-    const value = (all as unknown as Record<string, unknown>)[sectionKey] ?? {};
+    const section = sectionFor(id);
+    if (!section) throw new Error("configuration_domain_not_cataloged");
+    const state = await stateFn();
     return {
       id,
-      titulo: section?.label ?? id,
+      titulo: section.label,
       slug: id,
-      status: "published",
-      updated_at: new Date().toISOString(),
-      descricao: null,
+      status: state.draft ? "draft" : "published",
+      updated_at: state.draft?.createdAt ?? state.published?.createdAt ?? new Date(0).toISOString(),
+      descricao: section.description,
       seo: {},
       blocks: [],
-      data: { value, sectionKey, all },
+      data: {
+        domain: section.id,
+        value: configurationDomainSnapshot(state.snapshot, section.id),
+        snapshot: state.snapshot,
+        expectedRevision: state.expectedRevision,
+        configurationStatus: state.status,
+        publishedRevision: state.published?.revision ?? 0,
+        draftRevision: state.draft?.revision ?? null,
+      },
     };
-  }, [obterFn]);
+  }, [stateFn]);
 
-  const save = useCallback(
-    async (id: string | null, draft: ContentDraft, opts: { publish: boolean }) => {
-      if (!id) throw new Error("Site sections são singletons");
-      const d = draft.data as { value: Record<string, unknown> };
-      if (opts.publish) {
-        await atualizarFn({ data: { key: id as never, value: d.value } });
-      } else {
-        await rascunhoFn({ data: { key: id as never, value: d.value } });
-      }
-      return { id };
-    },
-    [atualizarFn, rascunhoFn],
-  );
+  const save = useCallback(async (
+    id: string | null,
+    draft: ContentDraft,
+    options: { publish: boolean },
+  ) => {
+    if (!id) throw new Error("configuration_domains_are_singletons");
+    const section = sectionFor(id);
+    if (!section) throw new Error("configuration_domain_not_cataloged");
+    if (section.id === "future_activation") throw new Error("configuration_future_activation_is_readonly");
+
+    const data = draft.data as {
+      domain?: ConfigurationDomain;
+      value?: Record<string, unknown>;
+      snapshot?: ConfigurationSnapshot;
+      expectedRevision?: number;
+    };
+    if (data.domain !== section.id || !data.snapshot || !data.value || !Number.isInteger(data.expectedRevision)) {
+      throw new Error("configuration_editor_state_invalid");
+    }
+    const snapshot = mergeConfigurationDomain(data.snapshot, section.id, data.value);
+    await saveFn({
+      data: {
+        snapshot,
+        expectedRevision: data.expectedRevision as number,
+        notes: `Configuration Center — ${section.label}`,
+      },
+    });
+    if (options.publish) {
+      await publishFn({ data: { expectedRevision: data.expectedRevision as number } });
+    }
+    return { id };
+  }, [publishFn, saveFn]);
 
   const remove = useCallback(async () => {
-    throw new Error("Seções do site não podem ser excluídas.");
+    throw new Error("configuration_domains_cannot_be_deleted");
   }, []);
 
-  const listVersions = useCallback(async (id: string): Promise<VersionRecord[]> => {
-    const rows = await listVFn({ data: { key: id as never } });
-    return rows.map((r) => ({
-      id: r.id, label: r.status === "published" ? "Publicada" : (r.notes ?? "Rascunho"),
-      status: r.status, createdAt: r.created_at, createdBy: r.created_by,
-      payload: JSON.parse(r.value_json),
+  const listVersions = useCallback(async (): Promise<VersionRecord[]> => {
+    const rows = await versionsFn();
+    return rows.map((row) => ({
+      id: row.id,
+      label: `${row.status === "published" ? "Publicada" : "Arquivada"} · revisão ${row.revision}`,
+      status: row.status,
+      createdAt: row.createdAt,
+      createdBy: row.createdBy,
+      payload: row.snapshot,
     }));
-  }, [listVFn]);
+  }, [versionsFn]);
 
   const restoreVersion = useCallback(async (_id: string, versionId: string) => {
-    await restoreVFn({ data: { id: versionId } });
-  }, [restoreVFn]);
+    const state = await stateFn();
+    await rollbackFn({
+      data: {
+        versionId,
+        expectedRevision: state.expectedRevision,
+      },
+    });
+  }, [rollbackFn, stateFn]);
+
+  const publicUrl = useCallback(() => "/", []);
 
   return useMemo(
-    () => ({ fetchList, fetchDetail, save, remove, listVersions, restoreVersion }),
-    [fetchList, fetchDetail, save, remove, listVersions, restoreVersion],
+    () => ({ fetchList, fetchDetail, save, remove, listVersions, restoreVersion, publicUrl }),
+    [fetchList, fetchDetail, save, remove, listVersions, restoreVersion, publicUrl],
   );
 }
