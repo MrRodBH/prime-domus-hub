@@ -97,13 +97,21 @@ check("property role validation occurs after tenant authority", () => {
   assert.ok(helper >= 0 && authority > helper && role > authority);
 });
 
-check("each property operation contains its own explicit tenant boundary", () => {
+check("each property operation contains explicit tenant authority or server-derived tenant persistence", () => {
   const operations: Array<[string, string | undefined, string[]]> = [
     ["export const adminListarImoveis", "export const adminObterImovel", ['.eq("tenant_id", tenantId)']],
     ["export const adminObterImovel", "export const adminSalvarImovel", ['.eq("tenant_id", tenantId)']],
     ["export const adminSalvarImovel", "export const adminExcluirImovel", ['.eq("tenant_id", tenantId)', "tenant_id: tenantId"]],
     ["export const adminExcluirImovel", "export const adminAdicionarImagem", ['.eq("tenant_id", tenantId)']],
-    ["export const adminAdicionarImagem", "export const adminRemoverImagem", ['.eq("tenant_id", tenantId)', "tenant_id: tenantId"]],
+    [
+      "export const adminAdicionarImagem",
+      "export const adminRemoverImagem",
+      [
+        "await requireProperty(context, tenantId, data.imovel_id)",
+        "validatePropertyImagePath(data.url, tenantId, data.imovel_id)",
+        "tenant_id: tenantId",
+      ],
+    ],
     ["export const adminRemoverImagem", "export const adminReordenarImagens", ['.eq("tenant_id", tenantId)']],
     ["export const adminReordenarImagens", "export const adminDefinirCapa", ['.eq("tenant_id", tenantId)']],
     ["export const adminDefinirCapa", "export const adminAssinarUrl", ['.eq("tenant_id", tenantId)']],
