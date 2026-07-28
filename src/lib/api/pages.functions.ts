@@ -4,7 +4,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import { loadPublicPageForRequest } from "@/lib/public-page-contract";
 
@@ -29,27 +29,33 @@ const seoSchema = z.object({
 }).partial();
 
 // ============================================================================
-// ADMIN
+// ADMIN — autoridade tenant-scoped derivada exclusivamente por requireTenant.
 // ============================================================================
 
 export const listarPaginas = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .handler(async ({ context }) => {
+    const { assertCmsPermission } = await import("./_cms");
+    const tenantId = await assertCmsPermission(context, "cms.paginas", "visualizar");
     const { data, error } = await context.supabase
       .from("cms_pages")
       .select("id, slug, titulo, status, updated_at, published_at")
+      .eq("tenant_id", tenantId)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
   });
 
 export const obterPaginaAdmin = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
+    const { assertCmsPermission } = await import("./_cms");
+    const tenantId = await assertCmsPermission(context, "cms.paginas", "visualizar");
     const { data: row, error } = await context.supabase
       .from("cms_pages")
       .select("*")
+      .eq("tenant_id", tenantId)
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -68,13 +74,13 @@ const salvarSchema = z.object({
 });
 
 export const salvarPagina = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((d) => salvarSchema.parse(d))
   .handler(async ({ context, data }) => {
     const { assertCmsPermission, logCmsAudit } = await import("./_cms");
     const { supabase, userId } = context;
     const wantsPublish = data.status === "published";
-    await assertCmsPermission(context, "cms.paginas", data.id ? "editar" : "criar");
+    const tenantId = await assertCmsPermission(context, "cms.paginas", data.id ? "editar" : "criar");
     if (wantsPublish) await assertCmsPermission(context, "cms.paginas", "publicar");
     const payload = {
       slug: data.slug,
@@ -87,28 +93,52 @@ export const salvarPagina = createServerFn({ method: "POST" })
       published_at: wantsPublish ? new Date().toISOString() : null,
     };
     if (data.id) {
-      const { data: before } = await supabase.from("cms_pages").select("*").eq("id", data.id).maybeSingle();
+      const { data: before } = await supabase
+        .from("cms_pages")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .eq("id", data.id)
+        .maybeSingle();
       const { data: row, error } = await supabase
-        .from("cms_pages").update(payload).eq("id", data.id).select().maybeSingle();
+        .from("cms_pages")
+        .update(payload)
+        .eq("tenant_id", tenantId)
+        .eq("id", data.id)
+        .select()
+        .maybeSingle();
       if (error) throw new Error(error.message);
+      if (!row) throw new Error("Página não encontrada");
       await logCmsAudit(context, "cms_pages", wantsPublish ? "cms.pagina.publicar" : "cms.pagina.editar", data.id, before, row);
       return row;
     }
     const { data: row, error } = await supabase
-      .from("cms_pages").insert({ ...payload, created_by: userId }).select().maybeSingle();
+      .from("cms_pages")
+      .insert({ ...payload, tenant_id: tenantId, created_by: userId })
+      .select()
+      .maybeSingle();
     if (error) throw new Error(error.message);
     await logCmsAudit(context, "cms_pages", "cms.pagina.criar", row?.id ?? null, null, row);
     return row;
   });
 
 export const excluirPagina = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
     const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.paginas", "excluir");
-    const { data: before } = await context.supabase.from("cms_pages").select("*").eq("id", data.id).maybeSingle();
-    const { error } = await context.supabase.from("cms_pages").delete().eq("id", data.id);
+    const tenantId = await assertCmsPermission(context, "cms.paginas", "excluir");
+    const { data: before } = await context.supabase
+      .from("cms_pages")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!before) throw new Error("Página não encontrada");
+    const { error } = await context.supabase
+      .from("cms_pages")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     await logCmsAudit(context, "cms_pages", "cms.pagina.excluir", data.id, before, null);
     return { ok: true };
