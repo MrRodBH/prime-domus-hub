@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { requireCmsTenantAuthority } from "./src/lib/api/cms-tenant-authority";
+import {
+  parsePortalHybridConfig,
+  sanitizePortalConnector,
+} from "./src/lib/portals/portal-connector-registry";
 
 let passed = 0;
 
@@ -76,11 +80,58 @@ check("regular user cannot claim impersonation origin", () => {
   );
 });
 
+const validHybridConfig = {
+  operation_mode: "HYBRID" as const,
+  automated_method: "JSON_API" as const,
+  manual_method: "CSV" as const,
+  configuration_schema_version: 1,
+  credential_reference: "vault://tenant/portal/credentials",
+  mapping_profile: "default-v1",
+  publication_rules: { only_published: true },
+  retry_policy: {
+    max_attempts: 5,
+    initial_delay_seconds: 30,
+    max_delay_seconds: 3600,
+  },
+};
+
+check("hybrid portal configuration parses deterministically", () => {
+  assert.deepEqual(parsePortalHybridConfig(validHybridConfig), validHybridConfig);
+});
+
+check("portal configuration rejects non-hybrid mode", () => {
+  assert.throws(
+    () => parsePortalHybridConfig({ ...validHybridConfig, operation_mode: "AUTOMATED" }),
+  );
+});
+
+check("portal configuration rejects inline secrets", () => {
+  assert.throws(
+    () => parsePortalHybridConfig({ ...validHybridConfig, api_token: "raw-secret" }),
+    /inline secret is prohibited/,
+  );
+});
+
+check("portal connector responses remove persisted secrets", () => {
+  const safe = sanitizePortalConnector({
+    id: "connector-1",
+    config: validHybridConfig,
+    feed_token: "feed-secret",
+    webhook_secret: "webhook-secret",
+  });
+  assert.equal("feed_token" in safe, false);
+  assert.equal("webhook_secret" in safe, false);
+  assert.equal(safe.operation_mode, "HYBRID");
+  assert.equal(safe.configuration_state, "ready");
+});
+
 const pagesSource = readFileSync("src/lib/api/pages.functions.ts", "utf8");
 const formsSource = readFileSync("src/lib/api/forms.functions.ts", "utf8");
 const campaignsSource = readFileSync("src/lib/api/campaigns.functions.ts", "utf8");
 const versionsSource = readFileSync("src/lib/api/site-versions.functions.ts", "utf8");
 const mediaSource = readFileSync("src/lib/api/media.functions.ts", "utf8");
+const portalsSource = readFileSync("src/lib/api/portals.functions.ts", "utf8");
+const portalRegistrySource = readFileSync("src/lib/portals/portal-connector-registry.ts", "utf8");
 const cmsSource = readFileSync("src/lib/api/_cms.ts", "utf8");
 
 check("all four administrative page functions use requireTenant", () => {
@@ -201,6 +252,67 @@ check("media usage proves parent ownership before writes and reads", () => {
   assert.ok(usageReadIndex > listParentIndex);
 });
 
+check("all six portal surfaces use requireTenant", () => {
+  assert.equal(portalsSource.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0, 6);
+  assert.equal(portalsSource.includes("requireSupabaseAuth"), false);
+  assert.ok(portalsSource.includes("requireTenantScopedAuthority"));
+});
+
+check("portal reads and mutations are explicitly tenant-scoped", () => {
+  assert.ok((portalsSource.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 13);
+  assert.ok(portalsSource.includes('.from("portal_connectors")'));
+  assert.ok(portalsSource.includes('.from("imovel_portais")'));
+  assert.ok(portalsSource.includes('.from("portal_sync_logs")'));
+  assert.ok(portalsSource.includes('.from("leads")'));
+});
+
+check("portal activation requires a complete hybrid configuration", () => {
+  const updateIndex = portalsSource.indexOf("export const atualizarPortal");
+  const currentIndex = portalsSource.indexOf('.from("portal_connectors")', updateIndex);
+  const parseIndex = portalsSource.indexOf("parsePortalHybridConfig", currentIndex);
+  const activeCheckIndex = portalsSource.indexOf("if (nextActive)", parseIndex);
+  const transportIndex = portalsSource.indexOf("assertPortalTransport", activeCheckIndex);
+  const updateWriteIndex = portalsSource.indexOf('.update(patch as never)', transportIndex);
+  assert.ok(updateIndex >= 0);
+  assert.ok(currentIndex > updateIndex);
+  assert.ok(parseIndex > currentIndex);
+  assert.ok(activeCheckIndex > parseIndex);
+  assert.ok(transportIndex > activeCheckIndex);
+  assert.ok(updateWriteIndex > transportIndex);
+});
+
+check("portal list response excludes persisted token and webhook secret", () => {
+  const listIndex = portalsSource.indexOf("export const listarPortais");
+  const updateIndex = portalsSource.indexOf("export const atualizarPortal");
+  const listBlock = portalsSource.slice(listIndex, updateIndex);
+  assert.equal(listBlock.includes("feed_token"), false);
+  assert.equal(listBlock.includes("webhook_secret"), false);
+  assert.ok(listBlock.includes("sanitizePortalConnector"));
+});
+
+check("portal registry exposes every supported hybrid method", () => {
+  for (const method of [
+    "JSON_API",
+    "XML_FEED",
+    "WEBHOOK",
+    "CUSTOM_ADAPTER",
+    "XLSX",
+    "CSV",
+    "MANUAL_EXPORT",
+  ]) {
+    assert.ok(portalRegistrySource.includes(`\"${method}\"`));
+  }
+  assert.ok(portalRegistrySource.includes('z.literal("HYBRID")'));
+  assert.ok(portalRegistrySource.includes("credential_reference"));
+  assert.ok(portalRegistrySource.includes("retry_policy"));
+});
+
+check("portal registry prohibits inline secrets", () => {
+  assert.ok(portalRegistrySource.includes("INLINE_SECRET_KEYS"));
+  assert.ok(portalRegistrySource.includes("Portal connector inline secret is prohibited"));
+  assert.ok(portalRegistrySource.includes("sanitizePortalConnector"));
+});
+
 check("strict CMS permission helper validates tenant authority before permission", () => {
   const strictIndex = cmsSource.indexOf("export async function assertCmsTenantPermission");
   const authorityIndex = cmsSource.indexOf("requireCmsTenantAuthority(ctx.tenant)", strictIndex);
@@ -230,4 +342,4 @@ check("public campaign authority remains Host-derived and tenant-filtered", () =
   assert.ok(campaignsSource.includes("recordPublicCampaignEvent"));
 });
 
-console.log(`PR-M2 CMS tenant authority specs: ${passed} passed`);
+console.log(`PR-M2 tenant authority and hybrid registry specs: ${passed} passed`);
