@@ -2,11 +2,30 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
-import { authorizeTenantAccessControlOperation } from "@/lib/api/tenant-access-control-authority.server";
+import {
+  authorizeTenantAccessControlOperation,
+  trustedTenantAccessContext,
+} from "@/lib/api/tenant-access-control-authority.server";
 
-function trusted(context: any) {
-  return { userId: context.userId, tenant: context.tenant };
-}
+export type BrokerDirectoryView = {
+  id: string;
+  tenant_id: string;
+  user_id: string | null;
+  nome: string;
+  sobrenome: string | null;
+  ativo: boolean;
+  team_id: string | null;
+  cargo: string | null;
+  email: string | null;
+  telefone: string | null;
+  whatsapp: string | null;
+  foto_url: string | null;
+  status: "ativo" | "inativo" | "bloqueado" | "pendente";
+  creci: string | null;
+  cpf: string | null;
+  slug: string;
+  bio: string | null;
+};
 
 function slugify(input: string) {
   return input.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -20,7 +39,8 @@ async function uniqueTenantSlug(admin: any, tenantId: string, base: string, igno
     .eq("tenant_id", tenantId)
     .like("slug", `${root}%`);
   if (error) throw new Error("Falha ao validar slug do corretor.");
-  const used = new Set((data ?? []).filter((row: any) => row.id !== ignoreId).map((row: any) => row.slug as string));
+  const rows = (data ?? []) as Array<{ id: string; slug: string }>;
+  const used = new Set(rows.filter((row) => row.id !== ignoreId).map((row) => row.slug));
   if (!used.has(root)) return root;
   let suffix = 2;
   while (used.has(`${root}-${suffix}`)) suffix += 1;
@@ -46,8 +66,8 @@ const brokerSchema = z.object({
 
 export const adminListarCorretores = createServerFn({ method: "GET" })
   .middleware([requireTenant])
-  .handler(async ({ context }) => {
-    const { tenantId } = await authorizeTenantAccessControlOperation(trusted(context));
+  .handler(async ({ context }): Promise<BrokerDirectoryView[]> => {
+    const { tenantId } = await authorizeTenantAccessControlOperation(trustedTenantAccessContext(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin as any)
       .from("corretores")
@@ -55,23 +75,23 @@ export const adminListarCorretores = createServerFn({ method: "GET" })
       .eq("tenant_id", tenantId)
       .order("nome", { ascending: true });
     if (error) throw new Error("Falha ao listar o diretório de corretores.");
-    return data ?? [];
+    return (data ?? []) as BrokerDirectoryView[];
   });
 
 export const adminSalvarCorretor = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(brokerSchema)
-  .handler(async ({ context, data }) => {
+  .handler(async ({ context, data }): Promise<{ ok: true; id: string; accessLifecycleChanged: false }> => {
     const tenantId = requireTenantScopedAuthority(context.tenant, "Broker Directory");
-    await authorizeTenantAccessControlOperation(trusted(context));
+    await authorizeTenantAccessControlOperation(trustedTenantAccessContext(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as any;
 
-    let existing: any = null;
+    let existing: { id: string; tenant_id: string; user_id: string | null } | null = null;
     if (data.id) {
       const result = await admin.from("corretores").select("id, tenant_id, user_id").eq("tenant_id", tenantId).eq("id", data.id).maybeSingle();
       if (result.error || !result.data) throw new Error("Corretor não encontrado neste tenant.");
-      existing = result.data;
+      existing = result.data as { id: string; tenant_id: string; user_id: string | null };
     }
 
     if (data.team_id) {
@@ -113,9 +133,9 @@ export const adminSalvarCorretor = createServerFn({ method: "POST" })
 export const adminExcluirCorretor = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(z.object({ id: z.string().uuid() }).strict())
-  .handler(async ({ context, data }) => {
+  .handler(async ({ context, data }): Promise<{ ok: true; archived: true; authUserDeleted: false; membershipChanged: false }> => {
     const tenantId = requireTenantScopedAuthority(context.tenant, "Broker Directory");
-    await authorizeTenantAccessControlOperation(trusted(context));
+    await authorizeTenantAccessControlOperation(trustedTenantAccessContext(context));
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existing, error: readError } = await (supabaseAdmin as any)
       .from("corretores")
