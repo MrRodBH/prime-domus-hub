@@ -133,7 +133,7 @@ async function resolveDashboardAccess(context: any): Promise<DashboardAccess> {
   return {
     tenantId,
     isPrivileged: false,
-    brokerId: brokers![0].id,
+    brokerId: (brokers as Array<{ id: string }>)[0].id,
   };
 }
 
@@ -153,7 +153,11 @@ async function requireTenantBroker(context: any, tenantId: string, brokerId: str
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveTeamBrokerIds(context: any, tenantId: string, teamId: string) {
+async function resolveTeamBrokerIds(
+  context: any,
+  tenantId: string,
+  teamId: string,
+): Promise<string[]> {
   const { data: teams, error: teamError } = await context.supabase
     .from("teams")
     .select("id")
@@ -172,8 +176,9 @@ async function resolveTeamBrokerIds(context: any, tenantId: string, teamId: stri
     .eq("team_id", teamId);
   if (memberError) throw new Error(memberError.message);
 
-  const userIds = Array.from(
-    new Set((members ?? []).map((member) => member.user_id).filter(Boolean)),
+  const memberRows = (members ?? []) as Array<{ user_id: string }>;
+  const userIds: string[] = Array.from(
+    new Set(memberRows.map((member) => member.user_id).filter(Boolean)),
   );
   if (userIds.length === 0) return [];
 
@@ -183,7 +188,8 @@ async function resolveTeamBrokerIds(context: any, tenantId: string, teamId: stri
     .eq("tenant_id", tenantId)
     .in("user_id", userIds);
   if (brokerError) throw new Error(brokerError.message);
-  return Array.from(new Set((brokers ?? []).map((broker) => broker.id)));
+  const brokerRows = (brokers ?? []) as Array<{ id: string }>;
+  return Array.from(new Set(brokerRows.map((broker) => broker.id)));
 }
 
 function diffPercent(current: number, previous: number): number {
