@@ -5,6 +5,7 @@
 // Não decide autorização; apenas evita rodar UI tenant-scoped sem um
 // `x-tenant-id` válido. Servidor continua sendo a autoridade.
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Building2, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
@@ -23,9 +24,6 @@ export function TenantSelectionGate({
   const impersonating = useImpersonation();
   const selectedId = useSelectedTenantId();
   const fetchSelectable = useServerFn(listSelectableTenants);
-
-  // F3.5.1 — Super Admin (com ou sem impersonação) fica fora do gate comum.
-  // SA usa fluxo de impersonação próprio; o header já valida x-tenant-id.
   const skip = Boolean(impersonating) || isSuper;
 
   const query = useQuery({
@@ -37,9 +35,6 @@ export function TenantSelectionGate({
 
   if (skip) return <>{children}</>;
 
-  // F3.5.1 — enquanto a lista active-only não retorna, NÃO liberar
-  // conteúdo tenant-scoped: qualquer render prematuro poderia usar
-  // uma seleção stale antes da reconciliação.
   if (query.isPending) {
     return (
       <EmptyState
@@ -66,14 +61,19 @@ export function TenantSelectionGate({
   }
 
   const tenants = query.data ?? [];
-  const activeIds = tenants.map((t) => t.tenantId);
+  const activeIds = tenants.map((tenant) => tenant.tenantId);
 
   if (tenants.length === 0) {
     return (
       <EmptyState
         icon={<Building2 className="size-8 text-muted-foreground" />}
         title="Nenhuma organização ativa"
-        description="Este usuário não possui organização ativa disponível. Contate o administrador para receber acesso."
+        description="Este usuário não possui organização ativa. Verifique se há um convite pendente ou solicite acesso ao administrador."
+        action={
+          <Button size="sm" variant="outline" asChild>
+            <Link to="/invitations">Ver convites pendentes</Link>
+          </Button>
+        }
       />
     );
   }
@@ -109,7 +109,7 @@ function EmptyState({
         <div className="flex justify-center">{icon}</div>
         <h2 className="text-lg font-semibold">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
-        {action && <div className="pt-2">{action}</div>}
+        {action ? <div className="pt-2">{action}</div> : null}
       </div>
     </div>
   );
