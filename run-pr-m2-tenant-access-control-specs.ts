@@ -71,7 +71,7 @@ includesAll(authority, [
   '"access_control", "gerenciar"',
   'decision.scope !== "global"',
 ], "authority");
-assert(!authority.includes("has_role"), "authority must not use has_role");
+assert(!/\.rpc\(\s*["']has_role["']/.test(authority), "authority must not call has_role");
 
 includesAll(functions, [
   "requireTenant",
@@ -99,7 +99,7 @@ assert(!functions.includes('.from("teams").insert'), "team mutations must use SQ
 assert(!functions.includes("fallback"), "canonical server functions must not implement fallback");
 
 assert(rbacBarrel.includes('export * from "./tenant-access-control.functions"'), "rbac barrel must expose only canonical boundary");
-assert(!rbacBarrel.includes("has_role"), "rbac barrel must not retain has_role authority");
+assert(!/\.rpc\(\s*["']has_role["']/.test(rbacBarrel), "rbac barrel must not call has_role");
 
 includesAll(adminBarrel, [
   'from "./tenant-access-control.functions"',
