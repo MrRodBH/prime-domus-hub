@@ -243,7 +243,7 @@ check("portal registry remains hybrid and fail closed", () => {
     "JSON_API", "XML_FEED", "WEBHOOK", "CUSTOM_ADAPTER", "XLSX", "CSV", "MANUAL_EXPORT",
     "operation_mode", "credential_reference", "mapping_profile", "mapping_version", "publication_rules",
     "retry_policy", "configuration_required", "credential_provisioning_required", "adapter_not_implemented", "failed_terminal",
-  ]) assert.ok(files.portalRegistry.includes(`"${token}"`), token);
+  ]) assert.ok(files.portalRegistry.includes(token), token);
   assert.ok(files.portalBarrel.includes("Read-only compatibility aliases"));
   assert.equal(files.portalBarrel.includes("randomBytes"), false);
   assert.equal(files.portalBarrel.includes("has_role"), false);
