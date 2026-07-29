@@ -1,6 +1,6 @@
 -- PR-M2 — Configuration Center & White Label Functional Completion
 -- Canonical authority: immutable whole-tenant snapshots in site_settings_versions.
--- site_settings and website_menu_items are legacy backfill sources only after this cutover.
+-- Legacy site_settings and website_menu_items are backfill sources only.
 
 BEGIN;
 
@@ -41,285 +41,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_site_settings_versions_configuration_revisi
 CREATE INDEX IF NOT EXISTS ix_site_settings_versions_configuration_history
   ON public.site_settings_versions (tenant_id, revision DESC)
   WHERE key = 'configuration';
-
--- Aggregate the legacy key/value rows without selecting an arbitrary row.
-CREATE TEMP TABLE pr_m2_legacy_settings (
-  tenant_id uuid PRIMARY KEY,
-  settings jsonb NOT NULL
-) ON COMMIT DROP;
-
-INSERT INTO pr_m2_legacy_settings (tenant_id, settings)
-SELECT
-  t.id,
-  COALESCE(
-    jsonb_object_agg(ss.key, ss.value) FILTER (WHERE ss.key IS NOT NULL),
-    '{}'::jsonb
-  )
-FROM public.tenants t
-LEFT JOIN public.site_settings ss ON ss.tenant_id = t.id
-GROUP BY t.id;
-
-CREATE TEMP TABLE pr_m2_legacy_menu (
-  tenant_id uuid PRIMARY KEY,
-  menu_items jsonb NOT NULL
-) ON COMMIT DROP;
-
-INSERT INTO pr_m2_legacy_menu (tenant_id, menu_items)
-SELECT
-  t.id,
-  COALESCE(
-    jsonb_agg(
-      jsonb_build_object(
-        'id', mi.id,
-        'location', mi.location,
-        'label', mi.label,
-        'url', mi.url,
-        'order', mi.ordem,
-        'visible', mi.visivel,
-        'target', mi.target,
-        'type', mi.tipo,
-        'parent_id', mi.parent_id
-      ) ORDER BY mi.location, mi.ordem, mi.id
-    ) FILTER (WHERE mi.id IS NOT NULL),
-    '[]'::jsonb
-  )
-FROM public.tenants t
-LEFT JOIN public.website_menu_items mi ON mi.tenant_id = t.id
-GROUP BY t.id;
-
--- Legacy signed/public URLs are not accepted as media authority. Every non-empty
--- path must resolve to exactly one persisted media_library row in the same tenant.
-DO $block$
-BEGIN
-  IF EXISTS (
-    WITH paths AS (
-      SELECT ls.tenant_id, p.config_key, p.legacy_path
-      FROM pr_m2_legacy_settings ls
-      CROSS JOIN LATERAL (
-        VALUES
-          ('primary_logo', NULLIF(ls.settings->'branding'->>'logo_path', '')),
-          ('secondary_logo', NULLIF(ls.settings->'branding_v2'->>'logo_mobile_path', '')),
-          ('favicon', NULLIF(ls.settings->'branding'->>'favicon_path', '')),
-          ('default_og_image', NULLIF(ls.settings->'seo_global'->>'default_og_image_path', ''))
-      ) AS p(config_key, legacy_path)
-      WHERE p.legacy_path IS NOT NULL
-    )
-    SELECT 1
-    FROM paths p
-    WHERE (
-      SELECT count(*)
-      FROM public.media_library ml
-      WHERE ml.tenant_id = p.tenant_id
-        AND p.legacy_path IN (ml.arquivo, ml.arquivo_medium, ml.arquivo_thumbnail)
-    ) <> 1
-  ) THEN
-    RAISE EXCEPTION 'configuration_legacy_media_ambiguous_or_missing';
-  END IF;
-
-  IF EXISTS (
-    SELECT 1
-    FROM pr_m2_legacy_settings ls
-    WHERE (
-      NULLIF(ls.settings->'branding'->>'logo_url', '') IS NOT NULL
-      AND NULLIF(ls.settings->'branding'->>'logo_path', '') IS NULL
-    ) OR (
-      NULLIF(ls.settings->'branding_v2'->>'logo_mobile_url', '') IS NOT NULL
-      AND NULLIF(ls.settings->'branding_v2'->>'logo_mobile_path', '') IS NULL
-    ) OR (
-      NULLIF(ls.settings->'branding'->>'favicon_url', '') IS NOT NULL
-      AND NULLIF(ls.settings->'branding'->>'favicon_path', '') IS NULL
-    ) OR (
-      NULLIF(ls.settings->'seo_global'->>'default_og_image_url', '') IS NOT NULL
-      AND NULLIF(ls.settings->'seo_global'->>'default_og_image_path', '') IS NULL
-    )
-  ) THEN
-    RAISE EXCEPTION 'configuration_legacy_signed_url_without_media_authority';
-  END IF;
-END;
-$block$;
-
-CREATE TEMP TABLE pr_m2_configuration_media_map (
-  tenant_id uuid NOT NULL,
-  config_key text NOT NULL,
-  legacy_path text NOT NULL,
-  media_id uuid NOT NULL,
-  PRIMARY KEY (tenant_id, config_key)
-) ON COMMIT DROP;
-
-INSERT INTO pr_m2_configuration_media_map (tenant_id, config_key, legacy_path, media_id)
-SELECT
-  ls.tenant_id,
-  p.config_key,
-  p.legacy_path,
-  min(ml.id) AS media_id
-FROM pr_m2_legacy_settings ls
-CROSS JOIN LATERAL (
-  VALUES
-    ('primary_logo', NULLIF(ls.settings->'branding'->>'logo_path', '')),
-    ('secondary_logo', NULLIF(ls.settings->'branding_v2'->>'logo_mobile_path', '')),
-    ('favicon', NULLIF(ls.settings->'branding'->>'favicon_path', '')),
-    ('default_og_image', NULLIF(ls.settings->'seo_global'->>'default_og_image_path', ''))
-) AS p(config_key, legacy_path)
-JOIN public.media_library ml
-  ON ml.tenant_id = ls.tenant_id
- AND p.legacy_path IN (ml.arquivo, ml.arquivo_medium, ml.arquivo_thumbnail)
-WHERE p.legacy_path IS NOT NULL
-GROUP BY ls.tenant_id, p.config_key, p.legacy_path;
-
--- Preserve values only when they satisfy the new closed contracts. Ambiguous or
--- previously unvalidated values block the migration rather than silently falling back.
-DO $block$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM pr_m2_legacy_settings ls
-    CROSS JOIN LATERAL (
-      VALUES
-        (NULLIF(ls.settings->'branding_v2'->>'color_primary', '')),
-        (NULLIF(ls.settings->'branding_v2'->>'color_secondary', '')),
-        (NULLIF(ls.settings->'branding_v2'->>'color_accent', '')),
-        (NULLIF(ls.settings->'branding_v2'->>'color_button', '')),
-        (NULLIF(ls.settings->'branding_v2'->>'color_link', ''))
-    ) AS c(value)
-    WHERE c.value IS NOT NULL AND c.value !~ '^#[0-9A-Fa-f]{6}$'
-  ) THEN
-    RAISE EXCEPTION 'configuration_legacy_color_invalid';
-  END IF;
-
-  IF EXISTS (
-    SELECT 1
-    FROM pr_m2_legacy_settings ls
-    CROSS JOIN LATERAL (
-      VALUES
-        (NULLIF(ls.settings->'branding_v2'->>'font_primary', '')),
-        (NULLIF(ls.settings->'branding_v2'->>'font_secondary', ''))
-    ) AS f(value)
-    WHERE f.value IS NOT NULL
-      AND f.value <> ALL (ARRAY[
-        'Inter','Poppins','Montserrat','Playfair Display','Cormorant Garamond',
-        'Roboto','Lato','Merriweather','Source Sans 3','DM Sans'
-      ])
-  ) THEN
-    RAISE EXCEPTION 'configuration_legacy_font_invalid';
-  END IF;
-
-  IF EXISTS (
-    SELECT 1
-    FROM pr_m2_legacy_settings ls
-    WHERE NULLIF(ls.settings->'empresa'->>'fundacao', '') IS NOT NULL
-      AND ls.settings->'empresa'->>'fundacao' !~ '^[0-9]{4}$'
-  ) THEN
-    RAISE EXCEPTION 'configuration_legacy_founded_year_invalid';
-  END IF;
-END;
-$block$;
-
--- One immutable published revision per tenant is materialized from the legacy
--- sources. The full original map is retained as an admin-only archive key.
-WITH snapshots AS (
-  SELECT
-    t.id AS tenant_id,
-    jsonb_strip_nulls(jsonb_build_object(
-      'trade_name', COALESCE(NULLIF(ls.settings->'empresa'->>'nome_fantasia', ''), NULLIF(ls.settings->'branding'->>'site_name', '')),
-      'legal_name', NULLIF(ls.settings->'empresa'->>'razao_social', ''),
-      'short_name', NULLIF(ls.settings->'branding'->>'site_name', ''),
-      'tagline', NULLIF(ls.settings->'empresa'->>'slogan', ''),
-      'institutional_description', NULLIF(ls.settings->'empresa'->>'sobre_curto', ''),
-      'creci_or_registration', COALESCE(NULLIF(ls.settings->'empresa'->>'creci', ''), NULLIF(ls.settings->'contato'->>'creci', '')),
-      'tax_document_display', NULLIF(ls.settings->'empresa'->>'cnpj', ''),
-      'technical_responsible', NULLIF(ls.settings->'empresa'->>'responsavel_tecnico', ''),
-      'founded_year', CASE
-        WHEN NULLIF(ls.settings->'empresa'->>'fundacao', '') IS NULL THEN NULL
-        ELSE to_jsonb((ls.settings->'empresa'->>'fundacao')::integer)
-      END,
-      'primary_logo', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'primary_logo'),
-      'secondary_logo', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'secondary_logo'),
-      'favicon', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'favicon'),
-      'default_og_image', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'default_og_image'),
-      'primary_color', NULLIF(ls.settings->'branding_v2'->>'color_primary', ''),
-      'secondary_color', NULLIF(ls.settings->'branding_v2'->>'color_secondary', ''),
-      'accent_color', NULLIF(ls.settings->'branding_v2'->>'color_accent', ''),
-      'button_color', NULLIF(ls.settings->'branding_v2'->>'color_button', ''),
-      'link_color', NULLIF(ls.settings->'branding_v2'->>'color_link', ''),
-      'body_font', NULLIF(ls.settings->'branding_v2'->>'font_primary', ''),
-      'heading_font', NULLIF(ls.settings->'branding_v2'->>'font_secondary', ''),
-      'primary_email', NULLIF(ls.settings->'contato'->>'email', ''),
-      'primary_phone', NULLIF(ls.settings->'contato'->>'telefone', ''),
-      'whatsapp', NULLIF(ls.settings->'contato'->>'whatsapp', ''),
-      'address', NULLIF(ls.settings->'contato'->>'endereco', ''),
-      'location_description', NULLIF(ls.settings->'contato'->>'localizacao', ''),
-      'instagram', NULLIF(ls.settings->'contato'->>'instagram', ''),
-      'facebook', NULLIF(ls.settings->'contato'->>'facebook', ''),
-      'linkedin', NULLIF(ls.settings->'contato'->>'linkedin', ''),
-      'default_meta_title', NULLIF(ls.settings->'seo_global'->>'default_title', ''),
-      'default_meta_description', NULLIF(ls.settings->'seo_global'->>'default_description', ''),
-      'seo_keywords', NULLIF(ls.settings->'seo_global'->>'keywords', ''),
-      'x_twitter_handle', NULLIF(ls.settings->'seo_global'->>'twitter_handle', ''),
-      'footer_copyright', NULLIF(ls.settings->'footer'->>'copyright', ''),
-      'show_social_links', COALESCE(ls.settings->'footer'->'mostrar_redes', 'true'::jsonb),
-      'legal_notice_text', NULLIF(ls.settings->'footer'->>'texto_legal', ''),
-      'footer_columns', jsonb_build_array(
-        jsonb_build_object(
-          'title', COALESCE(ls.settings->'footer'->>'coluna1_titulo', ''),
-          'links', COALESCE(ls.settings->'footer'->'coluna1_links', '[]'::jsonb)
-        ),
-        jsonb_build_object(
-          'title', COALESCE(ls.settings->'footer'->>'coluna2_titulo', ''),
-          'links', COALESCE(ls.settings->'footer'->'coluna2_links', '[]'::jsonb)
-        )
-      ),
-      'business_hours', COALESCE(ls.settings->'pagina_contato'->'horario_atendimento', '[]'::jsonb),
-      'map_embed_url', NULLIF(ls.settings->'pagina_contato'->>'mapa_url', ''),
-      'menu_locations', jsonb_build_array('header', 'footer'),
-      'menu_items', lm.menu_items,
-      'home_hero', COALESCE(ls.settings->'home_hero', '{}'::jsonb),
-      'home_secoes', COALESCE(ls.settings->'home_secoes', '{}'::jsonb),
-      'home_diferenciais', COALESCE(ls.settings->'home_diferenciais', '{}'::jsonb),
-      'home_depoimentos', COALESCE(ls.settings->'home_depoimentos', '{}'::jsonb),
-      'pagina_sobre', COALESCE(ls.settings->'pagina_sobre', '{}'::jsonb),
-      'pagina_contato', COALESCE(ls.settings->'pagina_contato', '{}'::jsonb),
-      'pagina_anuncie', COALESCE(ls.settings->'pagina_anuncie', '{}'::jsonb),
-      'pagina_lancamentos', COALESCE(ls.settings->'pagina_lancamentos', '{}'::jsonb),
-      'domain_activation_state', 'pending_DCA01',
-      'cloudflare_mode', 'HYBRID_pending_DCA01',
-      'billing_activation_state', 'pending_BCA01',
-      'final_visual_refinement', 'pending_PRM3',
-      'legacy_settings_archive', ls.settings
-    )) AS snapshot
-  FROM public.tenants t
-  JOIN pr_m2_legacy_settings ls ON ls.tenant_id = t.id
-  JOIN pr_m2_legacy_menu lm ON lm.tenant_id = t.id
-)
-INSERT INTO public.site_settings_versions (
-  tenant_id,
-  key,
-  value,
-  status,
-  revision,
-  based_on_revision,
-  content_hash,
-  notes,
-  created_by,
-  published_at
-)
-SELECT
-  s.tenant_id,
-  'configuration',
-  s.snapshot,
-  'published',
-  1,
-  0,
-  encode(digest(s.snapshot::text, 'sha256'), 'hex'),
-  'PR-M2 canonical configuration backfill',
-  NULL,
-  now()
-FROM snapshots s
-WHERE NOT EXISTS (
-  SELECT 1
-  FROM public.site_settings_versions v
-  WHERE v.tenant_id = s.tenant_id
-    AND v.key = 'configuration'
-);
 
 CREATE OR REPLACE FUNCTION public.validate_tenant_configuration_snapshot(
   _tenant_id uuid,
@@ -369,14 +90,18 @@ DECLARE
     'show_whatsapp_cta','show_financing_cta','show_similar_properties','show_featured_properties',
     'lead_consent_required','sticky_header','show_search','show_social_links','show_contact_cta'
   ];
-  v_array_keys constant text[] := ARRAY['service_regions','languages','lead_form_required_fields','menu_locations'];
+  v_array_keys constant text[] := ARRAY[
+    'service_regions','languages','lead_form_required_fields','menu_locations',
+    'business_hours','menu_items','footer_columns','legal_links'
+  ];
   v_media_keys constant text[] := ARRAY[
     'primary_logo','secondary_logo','light_logo','dark_logo','favicon','application_icon',
     'default_social_image','watermark','default_og_image'
   ];
   v_color_keys constant text[] := ARRAY[
     'primary_color','secondary_color','accent_color','background_color','surface_color',
-    'text_color','muted_text_color','success_color','warning_color','error_color','button_color','link_color'
+    'text_color','muted_text_color','success_color','warning_color','error_color',
+    'button_color','link_color'
   ];
 BEGIN
   IF _tenant_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.tenants WHERE id = _tenant_id) THEN
@@ -415,7 +140,10 @@ BEGIN
     END IF;
   END LOOP;
 
-  IF _snapshot ? 'founded_year' AND jsonb_typeof(_snapshot->'founded_year') <> 'number' THEN
+  IF _snapshot ? 'founded_year' AND _snapshot->'founded_year' <> 'null'::jsonb AND (
+    jsonb_typeof(_snapshot->'founded_year') <> 'number'
+    OR (_snapshot->>'founded_year')::integer NOT BETWEEN 1800 AND 2200
+  ) THEN
     RAISE EXCEPTION 'configuration_invalid_founded_year' USING ERRCODE = '22023';
   END IF;
   IF _snapshot ? 'items_per_page' AND (
@@ -482,6 +210,289 @@ BEGIN
 END;
 $fn$;
 
+CREATE TEMP TABLE pr_m2_legacy_settings (
+  tenant_id uuid PRIMARY KEY,
+  settings jsonb NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO pr_m2_legacy_settings (tenant_id, settings)
+SELECT
+  t.id,
+  COALESCE(
+    jsonb_object_agg(ss.key, ss.value) FILTER (WHERE ss.key IS NOT NULL),
+    '{}'::jsonb
+  )
+FROM public.tenants t
+LEFT JOIN public.site_settings ss ON ss.tenant_id = t.id
+GROUP BY t.id;
+
+CREATE TEMP TABLE pr_m2_legacy_menu (
+  tenant_id uuid PRIMARY KEY,
+  menu_items jsonb NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO pr_m2_legacy_menu (tenant_id, menu_items)
+SELECT
+  t.id,
+  COALESCE(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', mi.id,
+        'location', mi.location,
+        'label', mi.label,
+        'url', mi.url,
+        'order', mi.ordem,
+        'visible', mi.visivel,
+        'target', mi.target,
+        'type', mi.tipo,
+        'parent_id', mi.parent_id
+      ) ORDER BY mi.location, mi.ordem, mi.id
+    ) FILTER (WHERE mi.id IS NOT NULL),
+    '[]'::jsonb
+  )
+FROM public.tenants t
+LEFT JOIN public.website_menu_items mi ON mi.tenant_id = t.id
+GROUP BY t.id;
+
+DO $block$
+BEGIN
+  IF EXISTS (
+    WITH paths AS (
+      SELECT ls.tenant_id, p.config_key, p.legacy_path
+      FROM pr_m2_legacy_settings ls
+      CROSS JOIN LATERAL (
+        VALUES
+          ('primary_logo', NULLIF(ls.settings->'branding'->>'logo_path', '')),
+          ('secondary_logo', NULLIF(ls.settings->'branding_v2'->>'logo_mobile_path', '')),
+          ('favicon', NULLIF(ls.settings->'branding'->>'favicon_path', '')),
+          ('default_og_image', NULLIF(ls.settings->'seo_global'->>'default_og_image_path', ''))
+      ) AS p(config_key, legacy_path)
+      WHERE p.legacy_path IS NOT NULL
+    )
+    SELECT 1
+    FROM paths p
+    WHERE (
+      SELECT count(*)
+      FROM public.media_library ml
+      WHERE ml.tenant_id = p.tenant_id
+        AND p.legacy_path IN (ml.arquivo, ml.arquivo_medium, ml.arquivo_thumbnail)
+    ) <> 1
+  ) THEN
+    RAISE EXCEPTION 'configuration_legacy_media_ambiguous_or_missing';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pr_m2_legacy_settings ls
+    WHERE (
+      NULLIF(ls.settings->'branding'->>'logo_url', '') IS NOT NULL
+      AND NULLIF(ls.settings->'branding'->>'logo_path', '') IS NULL
+    ) OR (
+      NULLIF(ls.settings->'branding_v2'->>'logo_mobile_url', '') IS NOT NULL
+      AND NULLIF(ls.settings->'branding_v2'->>'logo_mobile_path', '') IS NULL
+    ) OR (
+      NULLIF(ls.settings->'branding'->>'favicon_url', '') IS NOT NULL
+      AND NULLIF(ls.settings->'branding'->>'favicon_path', '') IS NULL
+    ) OR (
+      NULLIF(ls.settings->'seo_global'->>'default_og_image_url', '') IS NOT NULL
+      AND NULLIF(ls.settings->'seo_global'->>'default_og_image_path', '') IS NULL
+    )
+  ) THEN
+    RAISE EXCEPTION 'configuration_legacy_signed_url_without_media_authority';
+  END IF;
+END;
+$block$;
+
+CREATE TEMP TABLE pr_m2_configuration_media_map (
+  tenant_id uuid NOT NULL,
+  config_key text NOT NULL,
+  legacy_path text NOT NULL,
+  media_id uuid NOT NULL,
+  PRIMARY KEY (tenant_id, config_key)
+) ON COMMIT DROP;
+
+-- Cardinality was proven to be exactly one above; select that exact row directly.
+INSERT INTO pr_m2_configuration_media_map (tenant_id, config_key, legacy_path, media_id)
+SELECT
+  ls.tenant_id,
+  p.config_key,
+  p.legacy_path,
+  ml.id
+FROM pr_m2_legacy_settings ls
+CROSS JOIN LATERAL (
+  VALUES
+    ('primary_logo', NULLIF(ls.settings->'branding'->>'logo_path', '')),
+    ('secondary_logo', NULLIF(ls.settings->'branding_v2'->>'logo_mobile_path', '')),
+    ('favicon', NULLIF(ls.settings->'branding'->>'favicon_path', '')),
+    ('default_og_image', NULLIF(ls.settings->'seo_global'->>'default_og_image_path', ''))
+) AS p(config_key, legacy_path)
+JOIN public.media_library ml
+  ON ml.tenant_id = ls.tenant_id
+ AND p.legacy_path IN (ml.arquivo, ml.arquivo_medium, ml.arquivo_thumbnail)
+WHERE p.legacy_path IS NOT NULL;
+
+DO $block$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pr_m2_legacy_settings ls
+    CROSS JOIN LATERAL (
+      VALUES
+        (NULLIF(ls.settings->'branding_v2'->>'color_primary', '')),
+        (NULLIF(ls.settings->'branding_v2'->>'color_secondary', '')),
+        (NULLIF(ls.settings->'branding_v2'->>'color_accent', '')),
+        (NULLIF(ls.settings->'branding_v2'->>'color_button', '')),
+        (NULLIF(ls.settings->'branding_v2'->>'color_link', ''))
+    ) AS c(value)
+    WHERE c.value IS NOT NULL AND c.value !~ '^#[0-9A-Fa-f]{6}$'
+  ) THEN
+    RAISE EXCEPTION 'configuration_legacy_color_invalid';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pr_m2_legacy_settings ls
+    CROSS JOIN LATERAL (
+      VALUES
+        (NULLIF(ls.settings->'branding_v2'->>'font_primary', '')),
+        (NULLIF(ls.settings->'branding_v2'->>'font_secondary', ''))
+    ) AS f(value)
+    WHERE f.value IS NOT NULL
+      AND f.value <> ALL (ARRAY[
+        'Inter','Poppins','Montserrat','Playfair Display','Cormorant Garamond',
+        'Roboto','Lato','Merriweather','Source Sans 3','DM Sans'
+      ])
+  ) THEN
+    RAISE EXCEPTION 'configuration_legacy_font_invalid';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pr_m2_legacy_settings ls
+    WHERE NULLIF(ls.settings->'empresa'->>'fundacao', '') IS NOT NULL
+      AND ls.settings->'empresa'->>'fundacao' !~ '^[0-9]{4}$'
+  ) THEN
+    RAISE EXCEPTION 'configuration_legacy_founded_year_invalid';
+  END IF;
+END;
+$block$;
+
+CREATE TEMP TABLE pr_m2_configuration_snapshots (
+  tenant_id uuid PRIMARY KEY,
+  snapshot jsonb NOT NULL
+) ON COMMIT DROP;
+
+INSERT INTO pr_m2_configuration_snapshots (tenant_id, snapshot)
+SELECT
+  t.id,
+  jsonb_strip_nulls(jsonb_build_object(
+    'trade_name', COALESCE(NULLIF(ls.settings->'empresa'->>'nome_fantasia', ''), NULLIF(ls.settings->'branding'->>'site_name', '')),
+    'legal_name', NULLIF(ls.settings->'empresa'->>'razao_social', ''),
+    'short_name', NULLIF(ls.settings->'branding'->>'site_name', ''),
+    'tagline', NULLIF(ls.settings->'empresa'->>'slogan', ''),
+    'institutional_description', NULLIF(ls.settings->'empresa'->>'sobre_curto', ''),
+    'creci_or_registration', COALESCE(NULLIF(ls.settings->'empresa'->>'creci', ''), NULLIF(ls.settings->'contato'->>'creci', '')),
+    'tax_document_display', NULLIF(ls.settings->'empresa'->>'cnpj', ''),
+    'technical_responsible', NULLIF(ls.settings->'empresa'->>'responsavel_tecnico', ''),
+    'founded_year', CASE
+      WHEN NULLIF(ls.settings->'empresa'->>'fundacao', '') IS NULL THEN NULL
+      ELSE to_jsonb((ls.settings->'empresa'->>'fundacao')::integer)
+    END,
+    'primary_logo', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'primary_logo'),
+    'secondary_logo', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'secondary_logo'),
+    'favicon', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'favicon'),
+    'default_og_image', (SELECT to_jsonb(mm.media_id) FROM pr_m2_configuration_media_map mm WHERE mm.tenant_id = t.id AND mm.config_key = 'default_og_image'),
+    'primary_color', NULLIF(ls.settings->'branding_v2'->>'color_primary', ''),
+    'secondary_color', NULLIF(ls.settings->'branding_v2'->>'color_secondary', ''),
+    'accent_color', NULLIF(ls.settings->'branding_v2'->>'color_accent', ''),
+    'button_color', NULLIF(ls.settings->'branding_v2'->>'color_button', ''),
+    'link_color', NULLIF(ls.settings->'branding_v2'->>'color_link', ''),
+    'body_font', NULLIF(ls.settings->'branding_v2'->>'font_primary', ''),
+    'heading_font', NULLIF(ls.settings->'branding_v2'->>'font_secondary', ''),
+    'primary_email', NULLIF(ls.settings->'contato'->>'email', ''),
+    'primary_phone', NULLIF(ls.settings->'contato'->>'telefone', ''),
+    'whatsapp', NULLIF(ls.settings->'contato'->>'whatsapp', ''),
+    'address', NULLIF(ls.settings->'contato'->>'endereco', ''),
+    'location_description', NULLIF(ls.settings->'contato'->>'localizacao', ''),
+    'instagram', NULLIF(ls.settings->'contato'->>'instagram', ''),
+    'facebook', NULLIF(ls.settings->'contato'->>'facebook', ''),
+    'linkedin', NULLIF(ls.settings->'contato'->>'linkedin', ''),
+    'default_meta_title', NULLIF(ls.settings->'seo_global'->>'default_title', ''),
+    'default_meta_description', NULLIF(ls.settings->'seo_global'->>'default_description', ''),
+    'seo_keywords', NULLIF(ls.settings->'seo_global'->>'keywords', ''),
+    'x_twitter_handle', NULLIF(ls.settings->'seo_global'->>'twitter_handle', ''),
+    'footer_copyright', NULLIF(ls.settings->'footer'->>'copyright', ''),
+    'show_social_links', COALESCE(ls.settings->'footer'->'mostrar_redes', 'true'::jsonb),
+    'legal_notice_text', NULLIF(ls.settings->'footer'->>'texto_legal', ''),
+    'footer_columns', jsonb_build_array(
+      jsonb_build_object(
+        'title', COALESCE(ls.settings->'footer'->>'coluna1_titulo', ''),
+        'links', COALESCE(ls.settings->'footer'->'coluna1_links', '[]'::jsonb)
+      ),
+      jsonb_build_object(
+        'title', COALESCE(ls.settings->'footer'->>'coluna2_titulo', ''),
+        'links', COALESCE(ls.settings->'footer'->'coluna2_links', '[]'::jsonb)
+      )
+    ),
+    'business_hours', CASE
+      WHEN jsonb_typeof(ls.settings->'pagina_contato'->'horario_atendimento') = 'array'
+        THEN ls.settings->'pagina_contato'->'horario_atendimento'
+      ELSE '[]'::jsonb
+    END,
+    'map_embed_url', NULLIF(ls.settings->'pagina_contato'->>'mapa_url', ''),
+    'menu_locations', jsonb_build_array('header', 'footer'),
+    'menu_items', lm.menu_items,
+    'home_hero', COALESCE(ls.settings->'home_hero', '{}'::jsonb),
+    'home_secoes', COALESCE(ls.settings->'home_secoes', '{}'::jsonb),
+    'home_diferenciais', COALESCE(ls.settings->'home_diferenciais', '{}'::jsonb),
+    'home_depoimentos', COALESCE(ls.settings->'home_depoimentos', '{}'::jsonb),
+    'pagina_sobre', COALESCE(ls.settings->'pagina_sobre', '{}'::jsonb),
+    'pagina_contato', COALESCE(ls.settings->'pagina_contato', '{}'::jsonb),
+    'pagina_anuncie', COALESCE(ls.settings->'pagina_anuncie', '{}'::jsonb),
+    'pagina_lancamentos', COALESCE(ls.settings->'pagina_lancamentos', '{}'::jsonb),
+    'domain_activation_state', 'pending_DCA01',
+    'cloudflare_mode', 'HYBRID_pending_DCA01',
+    'billing_activation_state', 'pending_BCA01',
+    'final_visual_refinement', 'pending_PRM3',
+    'legacy_settings_archive', ls.settings
+  ))
+FROM public.tenants t
+JOIN pr_m2_legacy_settings ls ON ls.tenant_id = t.id
+JOIN pr_m2_legacy_menu lm ON lm.tenant_id = t.id;
+
+DO $block$
+DECLARE
+  v_row record;
+BEGIN
+  FOR v_row IN SELECT tenant_id, snapshot FROM pr_m2_configuration_snapshots
+  LOOP
+    PERFORM public.validate_tenant_configuration_snapshot(v_row.tenant_id, v_row.snapshot);
+  END LOOP;
+END;
+$block$;
+
+INSERT INTO public.site_settings_versions (
+  tenant_id, key, value, status, revision, based_on_revision,
+  content_hash, notes, created_by, published_at
+)
+SELECT
+  s.tenant_id,
+  'configuration',
+  s.snapshot,
+  'published',
+  1,
+  0,
+  encode(digest(s.snapshot::text, 'sha256'), 'hex'),
+  'PR-M2 canonical configuration backfill',
+  NULL,
+  now()
+FROM pr_m2_configuration_snapshots s
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM public.site_settings_versions v
+  WHERE v.tenant_id = s.tenant_id AND v.key = 'configuration'
+);
+
 CREATE OR REPLACE FUNCTION public.assert_tenant_configuration_authority(
   _actor_user_id uuid,
   _tenant_id uuid,
@@ -509,11 +520,7 @@ BEGIN
   END IF;
 
   v_decision := public.resolve_tenant_permission(
-    _actor_user_id,
-    _tenant_id,
-    _tenant_origin,
-    v_module,
-    v_action
+    _actor_user_id, _tenant_id, _tenant_origin, v_module, v_action
   );
   IF COALESCE((v_decision->>'allowed')::boolean, false) IS NOT TRUE
      OR v_decision->>'scope' <> 'global' THEN
@@ -569,11 +576,8 @@ BEGIN
 
   INSERT INTO public.audit_log (tenant_id, user_id, action, entity, entity_id, before, after)
   VALUES (
-    _tenant_id,
-    _actor_user_id,
-    'tenant_configuration.draft.save',
-    'site_settings_versions',
-    v_id::text,
+    _tenant_id, _actor_user_id, 'tenant_configuration.draft.save',
+    'site_settings_versions', v_id::text,
     jsonb_build_object('published_revision', v_current_revision),
     jsonb_build_object('draft_revision', v_current_revision + 1, 'content_hash', v_hash)
   );
@@ -623,13 +627,9 @@ BEGIN
   IF v_deleted_id IS NOT NULL THEN
     INSERT INTO public.audit_log (tenant_id, user_id, action, entity, entity_id, before, after)
     VALUES (
-      _tenant_id,
-      _actor_user_id,
-      'tenant_configuration.draft.discard',
-      'site_settings_versions',
-      v_deleted_id::text,
-      jsonb_build_object('published_revision', v_current_revision),
-      NULL
+      _tenant_id, _actor_user_id, 'tenant_configuration.draft.discard',
+      'site_settings_versions', v_deleted_id::text,
+      jsonb_build_object('published_revision', v_current_revision), NULL
     );
   END IF;
 
@@ -690,11 +690,8 @@ BEGIN
 
   INSERT INTO public.audit_log (tenant_id, user_id, action, entity, entity_id, before, after)
   VALUES (
-    _tenant_id,
-    _actor_user_id,
-    'tenant_configuration.publish',
-    'site_settings_versions',
-    v_draft.id::text,
+    _tenant_id, _actor_user_id, 'tenant_configuration.publish',
+    'site_settings_versions', v_draft.id::text,
     jsonb_build_object('published_revision', v_current_revision),
     jsonb_build_object('published_revision', v_draft.revision, 'content_hash', v_draft.content_hash)
   );
@@ -758,25 +755,16 @@ BEGIN
     tenant_id, key, value, status, revision, based_on_revision,
     content_hash, notes, created_by, published_at
   ) VALUES (
-    _tenant_id,
-    'configuration',
-    v_source.value,
-    'draft',
-    v_current_revision + 1,
-    v_current_revision,
-    v_hash,
+    _tenant_id, 'configuration', v_source.value, 'draft', v_current_revision + 1,
+    v_current_revision, v_hash,
     format('Rollback draft from revision %s', v_source.revision),
-    _actor_user_id,
-    NULL
+    _actor_user_id, NULL
   ) RETURNING id INTO v_id;
 
   INSERT INTO public.audit_log (tenant_id, user_id, action, entity, entity_id, before, after)
   VALUES (
-    _tenant_id,
-    _actor_user_id,
-    'tenant_configuration.rollback.prepare',
-    'site_settings_versions',
-    v_id::text,
+    _tenant_id, _actor_user_id, 'tenant_configuration.rollback.prepare',
+    'site_settings_versions', v_id::text,
     jsonb_build_object('published_revision', v_current_revision, 'source_revision', v_source.revision),
     jsonb_build_object('draft_revision', v_current_revision + 1, 'content_hash', v_hash)
   );
