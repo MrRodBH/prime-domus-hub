@@ -81,6 +81,7 @@ export const listarSubmissoes = createServerFn({ method: "POST" })
     return { items: rows ?? [], total: count ?? 0 };
   });
 
+// PUBLIC — leitura de form publicado
 // ---------------------------------------------------------------------------
 // Public form reader and writer — preserved Host-derived authority.
 // ---------------------------------------------------------------------------
