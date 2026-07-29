@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   DEFAULT_PORTAL_MAPPING,
   cancelTenantPortalJob,
@@ -51,6 +51,32 @@ export const Route = createFileRoute("/_authenticated/admin/portais")({
 });
 
 type ExportFormat = "CSV" | "XLSX" | "MANUAL_EXPORT";
+type PortalJobView = {
+  id: string;
+  revision: number;
+  createdAt: string;
+  operation: "publish" | "unpublish" | "reconcile";
+  currentState: string;
+  attemptCount: number;
+  maxAttempts: number;
+  nextAttemptAt: string | null;
+  lastErrorCode: string | null;
+};
+type PortalLogView = {
+  id: string;
+  createdAt: string;
+  connectorSlug: string;
+  action: string;
+  status: string;
+  errorCode: string | null;
+};
+type PortalRegistryView = {
+  definitions: Array<{
+    connectorKey: PortalAutomatedMethod;
+    displayName: string;
+    availabilityState: string;
+  }>;
+};
 
 function AdminPortais() {
   const queryClient = useQueryClient();
@@ -155,8 +181,9 @@ function AdminPortais() {
   const failed = [connectors, registry, dashboard, diagnostics, jobs, logs].find(
     (query) => query.isError,
   );
-  const connectorRows = connectors.data ?? [];
-  const jobRows = jobs.data ?? [];
+  const connectorRows = (connectors.data ?? []) as PortalConnectorView[];
+  const jobRows = (jobs.data ?? []) as PortalJobView[];
+  const logRows = (logs.data ?? []) as PortalLogView[];
   const diagnostic = diagnostics.data;
   const kpis = dashboard.data;
 
@@ -215,7 +242,7 @@ function AdminPortais() {
         <TabsContent value="connectors" className="space-y-3 pt-3">
           {connectorRows.length === 0 ? (
             <StateCard icon={Settings2} title="empty" description="Nenhuma instância persistida de connector foi encontrada para o tenant." />
-          ) : connectorRows.map((connector) => (
+          ) : connectorRows.map((connector: PortalConnectorView) => (
             <Card key={connector.id}>
               <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <div className="space-y-2">
@@ -272,7 +299,7 @@ function AdminPortais() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {jobRows.map((job) => (
+                  {jobRows.map((job: PortalJobView) => (
                     <TableRow key={job.id}>
                       <TableCell className="text-xs">{formatDate(job.createdAt)}</TableCell>
                       <TableCell>{job.operation}</TableCell>
@@ -308,7 +335,7 @@ function AdminPortais() {
               <Field label="Connector">
                 <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={exportConnectorId} onChange={(event) => setExportConnectorId(event.target.value)}>
                   <option value="">Selecione</option>
-                  {connectorRows.map((connector) => <option key={connector.id} value={connector.id}>{connector.name}</option>)}
+                  {connectorRows.map((connector: PortalConnectorView) => <option key={connector.id} value={connector.id}>{connector.name}</option>)}
                 </select>
               </Field>
               <Field label="Format">
@@ -337,7 +364,7 @@ function AdminPortais() {
               <Table>
                 <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Connector</TableHead><TableHead>Action</TableHead><TableHead>Status</TableHead><TableHead>Error code</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {(logs.data ?? []).map((log) => (
+                  {logRows.map((log: PortalLogView) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs">{formatDate(log.createdAt)}</TableCell>
                       <TableCell className="font-mono text-xs">{log.connectorSlug}</TableCell>
@@ -345,7 +372,7 @@ function AdminPortais() {
                       <TableCell className="text-xs">{log.errorCode ?? "-"}</TableCell>
                     </TableRow>
                   ))}
-                  {(logs.data ?? []).length === 0 ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">empty</TableCell></TableRow> : null}
+                  {logRows.length === 0 ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">empty</TableCell></TableRow> : null}
                 </TableBody>
               </Table>
             </CardContent>
@@ -366,7 +393,7 @@ function AdminPortais() {
         </TabsContent>
       </Tabs>
 
-      <ConnectorDialog connector={editing} registry={registry.data} onClose={() => setEditing(null)} onSaved={invalidate} />
+      <ConnectorDialog connector={editing} registry={registry.data as PortalRegistryView | undefined} onClose={() => setEditing(null)} onSaved={invalidate} />
       <MappingDialog connector={mappingConnector} onClose={() => setMappingConnector(null)} onSaved={invalidate} />
       <CredentialDialog connector={credentialConnector} onClose={() => setCredentialConnector(null)} onSaved={invalidate} />
     </div>
@@ -375,7 +402,7 @@ function AdminPortais() {
 
 function ConnectorDialog({ connector, registry, onClose, onSaved }: {
   connector: PortalConnectorView | null;
-  registry: Awaited<ReturnType<typeof getPortalConnectorRegistry>> | undefined;
+  registry: PortalRegistryView | undefined;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
@@ -416,7 +443,7 @@ function ConnectorDialog({ connector, registry, onClose, onSaved }: {
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Configurar {connector?.name}</DialogTitle></DialogHeader>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Automated method"><select className="h-10 w-full rounded-md border bg-background px-3" value={automatedMethod} onChange={(event) => setAutomatedMethod(event.target.value as PortalAutomatedMethod)}>{definitions.map((item) => <option key={item.connectorKey} value={item.connectorKey}>{item.displayName} — {item.availabilityState}</option>)}</select></Field>
+          <Field label="Automated method"><select className="h-10 w-full rounded-md border bg-background px-3" value={automatedMethod} onChange={(event) => setAutomatedMethod(event.target.value as PortalAutomatedMethod)}>{definitions.map((item: PortalRegistryView["definitions"][number]) => <option key={item.connectorKey} value={item.connectorKey}>{item.displayName} — {item.availabilityState}</option>)}</select></Field>
           <Field label="Manual method"><select className="h-10 w-full rounded-md border bg-background px-3" value={manualMethod} onChange={(event) => setManualMethod(event.target.value as PortalManualMethod)}><option>CSV</option><option>XLSX</option><option>MANUAL_EXPORT</option></select></Field>
           <Field label="Mapping profile"><Input value={mappingProfile} onChange={(event) => setMappingProfile(event.target.value)} /></Field>
           <Field label="Max attempts"><Input type="number" min={1} max={20} value={maxAttempts} onChange={(event) => setMaxAttempts(Number(event.target.value))} /></Field>
@@ -436,7 +463,7 @@ function MappingDialog({ connector, onClose, onSaved }: { connector: PortalConne
     queryFn: () => listTenantPortalMappings({ data: { connectorId: connector!.id } }),
     enabled: connector !== null,
   });
-  const currentVersion = mappings.data?.find((item) => item.current)?.version ?? 0;
+  const currentVersion = mappings.data?.find((item: { current: boolean; version: number }) => item.current)?.version ?? 0;
   const mutation = useMutation({
     mutationFn: () => {
       if (!connector) throw new Error("Connector ausente.");
