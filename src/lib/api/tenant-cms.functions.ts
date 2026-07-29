@@ -11,6 +11,7 @@ import {
   type CmsCampaignSnapshot,
   type CmsFormSnapshot,
   type CmsPageSnapshot,
+  type CmsValidationIssue,
 } from "@/lib/cms/cms-registry";
 import {
   authorizeTenantCampaignOperation,
@@ -24,24 +25,82 @@ const uuidSchema = z.string().uuid();
 const revisionSchema = z.number().int().nonnegative();
 const trusted = (context: any) => ({ userId: context.userId as string, tenant: context.tenant });
 
+type JsonObject = { [key: string]: Json };
+
+type CmsResourceListRow = JsonObject;
+
+type CmsPageListDto = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  status: string;
+  pageType: string;
+  layoutType: string;
+  schemaVersion: number;
+  revision: number;
+  draftVersionId: string | null;
+  publishedVersionId: string | null;
+  publishedAt: string | null;
+  unpublishedAt: string | null;
+  updatedAt: string;
+};
+
+export type CmsVersionDto = {
+  id: string;
+  revision: number;
+  status: "draft" | "published" | "archived";
+  schemaVersion: number;
+  snapshot: JsonObject;
+  contentHash: string;
+  basedOnRevision: number | null;
+  sourceVersionId: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  publishedAt: string | null;
+  archivedAt: string | null;
+};
+
+type CmsValidationIssueDto = {
+  code: string;
+  path: string;
+  message: string;
+};
+
 function toJson(value: unknown): Json {
   const serialized = JSON.stringify(value);
   if (serialized === undefined) throw new Error("cms_non_serializable_value");
   return JSON.parse(serialized) as Json;
 }
 
-function asRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`cms_invalid_rpc_response:${label}`);
+function toJsonObject(value: unknown, label: string): JsonObject {
+  const parsed = toJson(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`cms_invalid_json_object:${label}`);
   }
-  return value as Record<string, unknown>;
+  return parsed as JsonObject;
 }
 
-async function executeCmsRpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
+function stringValue(value: Json | undefined, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function nullableString(value: Json | undefined): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function numberValue(value: Json | undefined, fallback = 0): number {
+  return typeof value === "number" ? value : Number(value ?? fallback);
+}
+
+async function executeCmsRpc(
+  name: string,
+  args: { [key: string]: Json },
+): Promise<JsonObject> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin as any).rpc(name, args);
   if (error) throw safeTenantCmsError(error);
-  return data as T;
+  return toJsonObject(data, name);
 }
 
 async function fetchExactlyOne(
@@ -49,7 +108,7 @@ async function fetchExactlyOne(
   tenantId: string,
   id: string,
   select = "*",
-): Promise<Record<string, unknown>> {
+): Promise<JsonObject> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin as any)
     .from(table)
@@ -58,10 +117,11 @@ async function fetchExactlyOne(
     .eq("id", id)
     .limit(2);
   if (error) throw safeTenantCmsError(error);
-  if (!Array.isArray(data) || data.length !== 1) {
-    throw new Error(data?.length === 0 ? "cms_cross_tenant_reference" : "cms_ambiguous_state");
+  const count = Array.isArray(data) ? data.length : 0;
+  if (count !== 1) {
+    throw new Error(count === 0 ? "cms_cross_tenant_reference" : "cms_ambiguous_state");
   }
-  return data[0] as Record<string, unknown>;
+  return toJsonObject(data[0], `${table}:${id}`);
 }
 
 async function assertExactTenantReferenceSet(
@@ -78,7 +138,10 @@ async function assertExactTenantReferenceSet(
     .eq("tenant_id", tenantId)
     .in("id", uniqueIds);
   if (error) throw safeTenantCmsError(error);
-  const accepted = new Set((data ?? []).map((row: { id: string }) => row.id));
+  const accepted = new Set<string>();
+  for (const row of Array.isArray(data) ? data : []) {
+    if (row && typeof row === "object" && typeof row.id === "string") accepted.add(row.id);
+  }
   if (accepted.size !== uniqueIds.length || uniqueIds.some((id) => !accepted.has(id))) {
     throw new Error("cms_cross_tenant_reference");
   }
@@ -101,7 +164,9 @@ async function assertCampaignReferences(tenantId: string, snapshot: CmsCampaignS
 function normalizePageSnapshot(input: unknown): CmsPageSnapshot {
   const result = validateCmsPageSnapshot(input);
   if (!result.valid) {
-    throw new Error(`cms_page_validation_failed:${result.issues.map((entry) => `${entry.path}:${entry.code}`).join("|")}`);
+    throw new Error(
+      `cms_page_validation_failed:${result.issues.map((entry) => `${entry.path}:${entry.code}`).join("|")}`,
+    );
   }
   return result.value;
 }
@@ -117,7 +182,10 @@ function normalizeFormSnapshot(input: unknown): CmsFormSnapshot {
     names.add(field.nome);
     orders.add(field.ordem);
   }
-  if (parsed.data.config.consent_required && !parsed.data.fields.some((field) => field.consentimento)) {
+  if (
+    parsed.data.config.consent_required &&
+    !parsed.data.fields.some((field) => field.consentimento)
+  ) {
     throw new Error("cms_form_consent_field_required");
   }
   return parsed.data;
@@ -129,35 +197,28 @@ function normalizeCampaignSnapshot(input: unknown): CmsCampaignSnapshot {
   return parsed.data;
 }
 
-export type CmsVersionDto = {
-  id: string;
-  revision: number;
-  status: "draft" | "published" | "archived";
-  schemaVersion: number;
-  snapshot: Record<string, unknown>;
-  contentHash: string;
-  basedOnRevision: number | null;
-  sourceVersionId: string | null;
-  createdBy: string | null;
-  createdAt: string;
-  publishedAt: string | null;
-  archivedAt: string | null;
-};
+function issueDto(issue: CmsValidationIssue): CmsValidationIssueDto {
+  return { code: issue.code, path: issue.path, message: issue.message };
+}
 
-function versionDto(row: Record<string, any>): CmsVersionDto {
+function versionDto(row: JsonObject): CmsVersionDto {
+  const status = stringValue(row.status);
+  if (status !== "draft" && status !== "published" && status !== "archived") {
+    throw new Error("cms_version_status_invalid");
+  }
   return {
-    id: row.id as string,
-    revision: Number(row.revision),
-    status: row.status as CmsVersionDto["status"],
-    schemaVersion: Number(row.schema_version),
-    snapshot: asRecord(row.snapshot, "version_snapshot"),
-    contentHash: row.content_hash as string,
-    basedOnRevision: row.based_on_revision == null ? null : Number(row.based_on_revision),
-    sourceVersionId: row.source_version_id ?? null,
-    createdBy: row.created_by ?? null,
-    createdAt: row.created_at as string,
-    publishedAt: row.published_at ?? null,
-    archivedAt: row.archived_at ?? null,
+    id: stringValue(row.id),
+    revision: numberValue(row.revision),
+    status,
+    schemaVersion: numberValue(row.schema_version),
+    snapshot: toJsonObject(row.snapshot, "version_snapshot"),
+    contentHash: stringValue(row.content_hash),
+    basedOnRevision: row.based_on_revision == null ? null : numberValue(row.based_on_revision),
+    sourceVersionId: nullableString(row.source_version_id),
+    createdBy: nullableString(row.created_by),
+    createdAt: stringValue(row.created_at),
+    publishedAt: nullableString(row.published_at),
+    archivedAt: nullableString(row.archived_at),
   };
 }
 
@@ -171,16 +232,19 @@ async function loadVersionById(
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin as any)
     .from(table)
-    .select("id, revision, status, schema_version, snapshot, content_hash, based_on_revision, source_version_id, created_by, created_at, published_at, archived_at")
+    .select(
+      "id, revision, status, schema_version, snapshot, content_hash, based_on_revision, source_version_id, created_by, created_at, published_at, archived_at",
+    )
     .eq("tenant_id", tenantId)
     .eq(resourceColumn, resourceId)
     .eq("id", versionId)
     .limit(2);
   if (error) throw safeTenantCmsError(error);
-  if (!Array.isArray(data) || data.length !== 1) {
-    throw new Error(data?.length === 0 ? "cms_version_not_found" : "cms_ambiguous_state");
+  const count = Array.isArray(data) ? data.length : 0;
+  if (count !== 1) {
+    throw new Error(count === 0 ? "cms_version_not_found" : "cms_ambiguous_state");
   }
-  return versionDto(data[0]);
+  return versionDto(toJsonObject(data[0], `${table}:${versionId}`));
 }
 
 async function listVersions(
@@ -192,12 +256,16 @@ async function listVersions(
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin as any)
     .from(table)
-    .select("id, revision, status, schema_version, snapshot, content_hash, based_on_revision, source_version_id, created_by, created_at, published_at, archived_at")
+    .select(
+      "id, revision, status, schema_version, snapshot, content_hash, based_on_revision, source_version_id, created_by, created_at, published_at, archived_at",
+    )
     .eq("tenant_id", tenantId)
     .eq(resourceColumn, resourceId)
     .order("revision", { ascending: false });
   if (error) throw safeTenantCmsError(error);
-  return (data ?? []).map(versionDto);
+  return (Array.isArray(data) ? data : []).map((row) =>
+    versionDto(toJsonObject(row, `${table}:version`)),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +300,7 @@ export const getTenantCmsDiagnostics = createServerFn({ method: "GET" })
       "cms_campaigns",
       "cms_campaign_versions",
     ] as const;
-    const counts: Record<string, number> = {};
+    const counts: { [key: string]: number } = {};
     for (const table of tables) {
       const { count, error } = await (supabaseAdmin as any)
         .from(table)
@@ -259,31 +327,36 @@ export const getTenantCmsDiagnostics = createServerFn({ method: "GET" })
 
 export const listTenantPages = createServerFn({ method: "GET" })
   .middleware([requireTenant])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<CmsPageListDto[]> => {
     const auth = await authorizeTenantPageOperation(trusted(context), "list");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin as any)
       .from("cms_pages")
-      .select("id, slug, titulo, descricao, status, page_type, layout_type, schema_version, revision, draft_version_id, published_version_id, published_at, unpublished_at, updated_at")
+      .select(
+        "id, slug, titulo, descricao, status, page_type, layout_type, schema_version, revision, draft_version_id, published_version_id, published_at, unpublished_at, updated_at",
+      )
       .eq("tenant_id", auth.tenantId)
       .order("updated_at", { ascending: false });
     if (error) throw safeTenantCmsError(error);
-    return (data ?? []).map((row: Record<string, any>) => ({
-      id: row.id as string,
-      slug: row.slug as string,
-      title: row.titulo as string,
-      description: row.descricao ?? null,
-      status: row.status as string,
-      pageType: row.page_type as string,
-      layoutType: row.layout_type as string,
-      schemaVersion: Number(row.schema_version),
-      revision: Number(row.revision),
-      draftVersionId: row.draft_version_id ?? null,
-      publishedVersionId: row.published_version_id ?? null,
-      publishedAt: row.published_at ?? null,
-      unpublishedAt: row.unpublished_at ?? null,
-      updatedAt: row.updated_at as string,
-    }));
+    return (Array.isArray(data) ? data : []).map((raw) => {
+      const row = toJsonObject(raw, "cms_pages:list");
+      return {
+        id: stringValue(row.id),
+        slug: stringValue(row.slug),
+        title: stringValue(row.titulo),
+        description: nullableString(row.descricao),
+        status: stringValue(row.status),
+        pageType: stringValue(row.page_type),
+        layoutType: stringValue(row.layout_type),
+        schemaVersion: numberValue(row.schema_version),
+        revision: numberValue(row.revision),
+        draftVersionId: nullableString(row.draft_version_id),
+        publishedVersionId: nullableString(row.published_version_id),
+        publishedAt: nullableString(row.published_at),
+        unpublishedAt: nullableString(row.unpublished_at),
+        updatedAt: stringValue(row.updated_at),
+      };
+    });
   });
 
 export const getTenantPage = createServerFn({ method: "GET" })
@@ -297,30 +370,38 @@ export const getTenantPage = createServerFn({ method: "GET" })
       data.id,
       "id, slug, titulo, descricao, status, page_type, layout_type, schema_version, revision, draft_version_id, published_version_id, published_at, unpublished_at, updated_at",
     );
+    const draftVersionId = nullableString(page.draft_version_id);
+    const publishedVersionId = nullableString(page.published_version_id);
     const [draft, published] = await Promise.all([
-      typeof page.draft_version_id === "string"
-        ? loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.id, page.draft_version_id)
+      draftVersionId
+        ? loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.id, draftVersionId)
         : null,
-      typeof page.published_version_id === "string"
-        ? loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.id, page.published_version_id)
+      publishedVersionId
+        ? loadVersionById(
+            "cms_page_versions",
+            auth.tenantId,
+            "page_id",
+            data.id,
+            publishedVersionId,
+          )
         : null,
     ]);
     return {
-      id: page.id as string,
-      slug: page.slug as string,
-      title: page.titulo as string,
-      description: page.descricao ?? null,
-      status: page.status as string,
-      pageType: page.page_type as string,
-      layoutType: page.layout_type as string,
-      schemaVersion: Number(page.schema_version),
-      revision: Number(page.revision),
+      id: stringValue(page.id),
+      slug: stringValue(page.slug),
+      title: stringValue(page.titulo),
+      description: nullableString(page.descricao),
+      status: stringValue(page.status),
+      pageType: stringValue(page.page_type),
+      layoutType: stringValue(page.layout_type),
+      schemaVersion: numberValue(page.schema_version),
+      revision: numberValue(page.revision),
       draft,
       published,
       effectiveSnapshot: draft?.snapshot ?? published?.snapshot ?? null,
-      publishedAt: page.published_at ?? null,
-      unpublishedAt: page.unpublished_at ?? null,
-      updatedAt: page.updated_at as string,
+      publishedAt: nullableString(page.published_at),
+      unpublishedAt: nullableString(page.unpublished_at),
+      updatedAt: stringValue(page.updated_at),
     };
   });
 
@@ -332,7 +413,10 @@ const pageDraftSchema = z
   })
   .strict();
 
-async function savePageDraftHandler(context: any, data: z.infer<typeof pageDraftSchema>) {
+async function savePageDraftHandler(
+  context: any,
+  data: z.infer<typeof pageDraftSchema>,
+): Promise<JsonObject> {
   const auth = await authorizeTenantPageOperation(
     trusted(context),
     data.id ? "save_draft" : "create_draft",
@@ -342,14 +426,13 @@ async function savePageDraftHandler(context: any, data: z.infer<typeof pageDraft
     ...(data.id ? { page_id: data.id } : {}),
   });
   await assertPageReferences(auth.tenantId, snapshot);
-  const result = await executeCmsRpc<Record<string, unknown>>("save_tenant_page_draft", {
+  return executeCmsRpc("save_tenant_page_draft", {
     _tenant_id: auth.tenantId,
     _actor_user_id: auth.actorUserId,
     _page_id: data.id ?? null,
     _expected_revision: data.expectedRevision,
     _snapshot: toJson(snapshot),
   });
-  return asRecord(result, "save_tenant_page_draft");
 }
 
 export const createTenantPageDraft = createServerFn({ method: "POST" })
@@ -377,19 +460,49 @@ export const validateTenantPageDraft = createServerFn({ method: "POST" })
     const auth = await authorizeTenantPageOperation(trusted(context), "validate");
     let candidate: unknown = data.snapshot;
     if (!candidate && data.pageId) {
-      const page = await fetchExactlyOne("cms_pages", auth.tenantId, data.pageId, "id, draft_version_id");
-      if (typeof page.draft_version_id !== "string") throw new Error("cms_page_draft_not_found");
-      candidate = (await loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.pageId, page.draft_version_id)).snapshot;
+      const page = await fetchExactlyOne(
+        "cms_pages",
+        auth.tenantId,
+        data.pageId,
+        "id, draft_version_id",
+      );
+      const versionId = nullableString(page.draft_version_id);
+      if (!versionId) throw new Error("cms_page_draft_not_found");
+      candidate = (
+        await loadVersionById(
+          "cms_page_versions",
+          auth.tenantId,
+          "page_id",
+          data.pageId,
+          versionId,
+        )
+      ).snapshot;
     }
     const result = validateCmsPageSnapshot(candidate);
-    if (!result.valid) return { valid: false as const, issues: result.issues, snapshot: null };
+    if (!result.valid) {
+      return {
+        valid: false as const,
+        issues: result.issues.map(issueDto),
+        snapshot: null,
+      };
+    }
     try {
       await assertPageReferences(auth.tenantId, result.value);
-      return { valid: true as const, issues: [] as const, snapshot: result.value };
+      return {
+        valid: true as const,
+        issues: [] as CmsValidationIssueDto[],
+        snapshot: toJsonObject(result.value, "page_validation_snapshot"),
+      };
     } catch (error) {
       return {
         valid: false as const,
-        issues: [{ code: "cms_reference_invalid", path: "references", message: safeTenantCmsError(error).message }],
+        issues: [
+          {
+            code: "cms_reference_invalid",
+            path: "references",
+            message: safeTenantCmsError(error).message,
+          },
+        ],
         snapshot: null,
       };
     }
@@ -400,19 +513,40 @@ export const previewTenantPage = createServerFn({ method: "GET" })
   .inputValidator(z.object({ pageId: uuidSchema }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantPageOperation(trusted(context), "preview");
-    const page = await fetchExactlyOne("cms_pages", auth.tenantId, data.pageId, "id, revision, draft_version_id, published_version_id");
-    const versionId = (page.draft_version_id ?? page.published_version_id) as string | null;
+    const page = await fetchExactlyOne(
+      "cms_pages",
+      auth.tenantId,
+      data.pageId,
+      "id, revision, draft_version_id, published_version_id",
+    );
+    const draftVersionId = nullableString(page.draft_version_id);
+    const publishedVersionId = nullableString(page.published_version_id);
+    const versionId = draftVersionId ?? publishedVersionId;
     if (!versionId) throw new Error("cms_page_version_not_found");
-    const version = await loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.pageId, versionId);
+    const version = await loadVersionById(
+      "cms_page_versions",
+      auth.tenantId,
+      "page_id",
+      data.pageId,
+      versionId,
+    );
     const validation = validateCmsPageSnapshot(version.snapshot);
     if (!validation.valid && version.schemaVersion !== 0) {
-      return { valid: false as const, issues: validation.issues, source: null, snapshot: null };
+      return {
+        valid: false as const,
+        issues: validation.issues.map(issueDto),
+        source: null,
+        revision: numberValue(page.revision),
+        versionId,
+        snapshot: null,
+        legacySnapshot: false,
+      };
     }
     return {
       valid: true as const,
-      issues: [] as const,
-      source: page.draft_version_id ? "draft" as const : "published" as const,
-      revision: Number(page.revision),
+      issues: [] as CmsValidationIssueDto[],
+      source: draftVersionId ? ("draft" as const) : ("published" as const),
+      revision: numberValue(page.revision),
       versionId,
       snapshot: version.snapshot,
       legacySnapshot: version.schemaVersion === 0,
@@ -424,13 +558,27 @@ export const publishTenantPage = createServerFn({ method: "POST" })
   .inputValidator(z.object({ pageId: uuidSchema, expectedRevision: revisionSchema }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantPageOperation(trusted(context), "publish");
-    const page = await fetchExactlyOne("cms_pages", auth.tenantId, data.pageId, "id, revision, draft_version_id");
-    if (Number(page.revision) !== data.expectedRevision) throw new Error("cms_page_revision_conflict");
-    if (typeof page.draft_version_id !== "string") throw new Error("cms_page_draft_not_found");
-    const draft = await loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.pageId, page.draft_version_id);
+    const page = await fetchExactlyOne(
+      "cms_pages",
+      auth.tenantId,
+      data.pageId,
+      "id, revision, draft_version_id",
+    );
+    if (numberValue(page.revision) !== data.expectedRevision) {
+      throw new Error("cms_page_revision_conflict");
+    }
+    const versionId = nullableString(page.draft_version_id);
+    if (!versionId) throw new Error("cms_page_draft_not_found");
+    const draft = await loadVersionById(
+      "cms_page_versions",
+      auth.tenantId,
+      "page_id",
+      data.pageId,
+      versionId,
+    );
     const snapshot = normalizePageSnapshot(draft.snapshot);
     await assertPageReferences(auth.tenantId, snapshot);
-    return executeCmsRpc<Record<string, unknown>>("publish_tenant_page", {
+    return executeCmsRpc("publish_tenant_page", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _page_id: data.pageId,
@@ -443,7 +591,7 @@ export const unpublishTenantPage = createServerFn({ method: "POST" })
   .inputValidator(z.object({ pageId: uuidSchema, expectedRevision: revisionSchema }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantPageOperation(trusted(context), "unpublish");
-    return executeCmsRpc<Record<string, unknown>>("unpublish_tenant_page", {
+    return executeCmsRpc("unpublish_tenant_page", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _page_id: data.pageId,
@@ -465,7 +613,13 @@ export const getTenantPageVersion = createServerFn({ method: "GET" })
   .inputValidator(z.object({ pageId: uuidSchema, versionId: uuidSchema }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantPageOperation(trusted(context), "read_version");
-    return loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.pageId, data.versionId);
+    return loadVersionById(
+      "cms_page_versions",
+      auth.tenantId,
+      "page_id",
+      data.pageId,
+      data.versionId,
+    );
   });
 
 export const rollbackTenantPage = createServerFn({ method: "POST" })
@@ -475,8 +629,14 @@ export const rollbackTenantPage = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantPageOperation(trusted(context), "rollback");
-    await loadVersionById("cms_page_versions", auth.tenantId, "page_id", data.pageId, data.versionId);
-    return executeCmsRpc<Record<string, unknown>>("rollback_tenant_page", {
+    await loadVersionById(
+      "cms_page_versions",
+      auth.tenantId,
+      "page_id",
+      data.pageId,
+      data.versionId,
+    );
+    return executeCmsRpc("rollback_tenant_page", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _page_id: data.pageId,
@@ -496,13 +656,17 @@ export const listTenantTemplates = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin as any)
       .from("cms_templates")
-      .select("id, template_key, name, page_type, layout_type, schema_version, revision, current_version_id, created_at, updated_at")
+      .select(
+        "id, template_key, name, page_type, layout_type, schema_version, revision, current_version_id, created_at, updated_at",
+      )
       .eq("tenant_id", auth.tenantId)
       .order("template_key", { ascending: true });
     if (error) throw safeTenantCmsError(error);
     return {
-      system: Object.values(getCmsRegistrySnapshot().templates),
-      tenant: data ?? [],
+      system: toJsonObject(getCmsRegistrySnapshot().templates, "system_templates"),
+      tenant: (Array.isArray(data) ? data : []).map((row) =>
+        toJsonObject(row, "tenant_template"),
+      ),
     };
   });
 
@@ -512,29 +676,31 @@ export const getTenantTemplate = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantTemplateOperation(trusted(context), "read");
     const template = await fetchExactlyOne("cms_templates", auth.tenantId, data.id);
-    const versionId = template.current_version_id;
-    if (typeof versionId !== "string") throw new Error("cms_template_not_found");
+    const versionId = nullableString(template.current_version_id);
+    if (!versionId) throw new Error("cms_template_not_found");
     const version = await fetchExactlyOne("cms_template_versions", auth.tenantId, versionId);
-    if (version.template_id !== data.id) throw new Error("cms_cross_tenant_reference");
+    if (stringValue(version.template_id) !== data.id) throw new Error("cms_cross_tenant_reference");
     return { template, version };
   });
 
 export const createTenantTemplateVersion = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(
-    z.object({
-      templateId: uuidSchema.optional(),
-      templateKey: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
-      name: z.string().min(1).max(200),
-      expectedRevision: revisionSchema,
-      snapshot: pageSnapshotInputSchema,
-    }).strict(),
+    z
+      .object({
+        templateId: uuidSchema.optional(),
+        templateKey: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
+        name: z.string().min(1).max(200),
+        expectedRevision: revisionSchema,
+        snapshot: pageSnapshotInputSchema,
+      })
+      .strict(),
   )
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantTemplateOperation(trusted(context), "save_draft");
     const snapshot = normalizePageSnapshot(data.snapshot);
     await assertPageReferences(auth.tenantId, snapshot);
-    return executeCmsRpc<Record<string, unknown>>("save_tenant_template_version", {
+    return executeCmsRpc("save_tenant_template_version", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _template_id: data.templateId ?? null,
@@ -548,19 +714,28 @@ export const createTenantTemplateVersion = createServerFn({ method: "POST" })
 export const instantiateTenantTemplate = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(
-    z.object({
-      templateId: uuidSchema,
-      templateVersionId: uuidSchema,
-      slug: z.string().min(1).max(180).regex(/^[a-z0-9-]+$/),
-      title: z.string().min(1).max(300),
-    }).strict(),
+    z
+      .object({
+        templateId: uuidSchema,
+        templateVersionId: uuidSchema,
+        slug: z.string().min(1).max(180).regex(/^[a-z0-9-]+$/),
+        title: z.string().min(1).max(300),
+      })
+      .strict(),
   )
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantTemplateOperation(trusted(context), "create_draft");
     const template = await fetchExactlyOne("cms_templates", auth.tenantId, data.templateId, "id");
-    const version = await fetchExactlyOne("cms_template_versions", auth.tenantId, data.templateVersionId, "id, template_id");
-    if (version.template_id !== template.id) throw new Error("cms_cross_tenant_reference");
-    return executeCmsRpc<Record<string, unknown>>("instantiate_tenant_template", {
+    const version = await fetchExactlyOne(
+      "cms_template_versions",
+      auth.tenantId,
+      data.templateVersionId,
+      "id, template_id",
+    );
+    if (stringValue(version.template_id) !== stringValue(template.id)) {
+      throw new Error("cms_cross_tenant_reference");
+    }
+    return executeCmsRpc("instantiate_tenant_template", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _template_id: data.templateId,
@@ -576,16 +751,18 @@ export const instantiateTenantTemplate = createServerFn({ method: "POST" })
 
 export const listTenantForms = createServerFn({ method: "GET" })
   .middleware([requireTenant])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<CmsResourceListRow[]> => {
     const auth = await authorizeTenantFormOperation(trusted(context), "list");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin as any)
       .from("cms_forms")
-      .select("id, nome, slug, status, schema_version, revision, draft_version_id, published_version_id, published_at, unpublished_at, created_at, updated_at")
+      .select(
+        "id, nome, slug, status, schema_version, revision, draft_version_id, published_version_id, published_at, unpublished_at, created_at, updated_at",
+      )
       .eq("tenant_id", auth.tenantId)
       .order("updated_at", { ascending: false });
     if (error) throw safeTenantCmsError(error);
-    return data ?? [];
+    return (Array.isArray(data) ? data : []).map((row) => toJsonObject(row, "cms_forms:list"));
   });
 
 export const getTenantForm = createServerFn({ method: "GET" })
@@ -594,26 +771,51 @@ export const getTenantForm = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantFormOperation(trusted(context), "read");
     const form = await fetchExactlyOne("cms_forms", auth.tenantId, data.id);
+    const draftVersionId = nullableString(form.draft_version_id);
+    const publishedVersionId = nullableString(form.published_version_id);
     const [draft, published] = await Promise.all([
-      typeof form.draft_version_id === "string"
-        ? loadVersionById("cms_form_versions", auth.tenantId, "form_id", data.id, form.draft_version_id)
+      draftVersionId
+        ? loadVersionById("cms_form_versions", auth.tenantId, "form_id", data.id, draftVersionId)
         : null,
-      typeof form.published_version_id === "string"
-        ? loadVersionById("cms_form_versions", auth.tenantId, "form_id", data.id, form.published_version_id)
+      publishedVersionId
+        ? loadVersionById(
+            "cms_form_versions",
+            auth.tenantId,
+            "form_id",
+            data.id,
+            publishedVersionId,
+          )
         : null,
     ]);
-    return { form, draft, published, effectiveSnapshot: draft?.snapshot ?? published?.snapshot ?? null };
+    return {
+      form,
+      draft,
+      published,
+      effectiveSnapshot: draft?.snapshot ?? published?.snapshot ?? null,
+    };
   });
 
 export const saveTenantFormDraft = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(
-    z.object({ id: uuidSchema.optional(), expectedRevision: revisionSchema, snapshot: formSnapshotSchema }).strict(),
+    z
+      .object({
+        id: uuidSchema.optional(),
+        expectedRevision: revisionSchema,
+        snapshot: formSnapshotSchema,
+      })
+      .strict(),
   )
   .handler(async ({ context, data }) => {
-    const auth = await authorizeTenantFormOperation(trusted(context), data.id ? "save_draft" : "create_draft");
-    const snapshot = normalizeFormSnapshot({ ...data.snapshot, ...(data.id ? { form_id: data.id } : {}) });
-    return executeCmsRpc<Record<string, unknown>>("save_tenant_form_definition", {
+    const auth = await authorizeTenantFormOperation(
+      trusted(context),
+      data.id ? "save_draft" : "create_draft",
+    );
+    const snapshot = normalizeFormSnapshot({
+      ...data.snapshot,
+      ...(data.id ? { form_id: data.id } : {}),
+    });
+    return executeCmsRpc("save_tenant_form_definition", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _form_id: data.id ?? null,
@@ -629,9 +831,17 @@ export const validateTenantForm = createServerFn({ method: "POST" })
     await authorizeTenantFormOperation(trusted(context), "validate");
     try {
       const snapshot = normalizeFormSnapshot(data.snapshot);
-      return { valid: true as const, errors: [] as string[], snapshot };
+      return {
+        valid: true as const,
+        errors: [] as string[],
+        snapshot: toJsonObject(snapshot, "form_validation_snapshot"),
+      };
     } catch (error) {
-      return { valid: false as const, errors: [safeTenantCmsError(error).message], snapshot: null };
+      return {
+        valid: false as const,
+        errors: [safeTenantCmsError(error).message],
+        snapshot: null,
+      };
     }
   });
 
@@ -640,12 +850,26 @@ export const publishTenantForm = createServerFn({ method: "POST" })
   .inputValidator(z.object({ formId: uuidSchema, expectedRevision: revisionSchema }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantFormOperation(trusted(context), "publish");
-    const form = await fetchExactlyOne("cms_forms", auth.tenantId, data.formId, "id, revision, draft_version_id");
-    if (Number(form.revision) !== data.expectedRevision) throw new Error("cms_form_revision_conflict");
-    if (typeof form.draft_version_id !== "string") throw new Error("cms_form_draft_not_found");
-    const draft = await loadVersionById("cms_form_versions", auth.tenantId, "form_id", data.formId, form.draft_version_id);
+    const form = await fetchExactlyOne(
+      "cms_forms",
+      auth.tenantId,
+      data.formId,
+      "id, revision, draft_version_id",
+    );
+    if (numberValue(form.revision) !== data.expectedRevision) {
+      throw new Error("cms_form_revision_conflict");
+    }
+    const versionId = nullableString(form.draft_version_id);
+    if (!versionId) throw new Error("cms_form_draft_not_found");
+    const draft = await loadVersionById(
+      "cms_form_versions",
+      auth.tenantId,
+      "form_id",
+      data.formId,
+      versionId,
+    );
     normalizeFormSnapshot(draft.snapshot);
-    return executeCmsRpc<Record<string, unknown>>("publish_tenant_form", {
+    return executeCmsRpc("publish_tenant_form", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _form_id: data.formId,
@@ -668,16 +892,20 @@ export const listTenantFormVersions = createServerFn({ method: "GET" })
 
 export const listTenantCampaigns = createServerFn({ method: "GET" })
   .middleware([requireTenant])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<CmsResourceListRow[]> => {
     const auth = await authorizeTenantCampaignOperation(trusted(context), "list");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await (supabaseAdmin as any)
       .from("cms_campaigns")
-      .select("id, nome, tipo, status, prioridade, schema_version, revision, draft_version_id, published_version_id, published_at, unpublished_at, start_at, end_at, created_at, updated_at")
+      .select(
+        "id, nome, tipo, status, prioridade, schema_version, revision, draft_version_id, published_version_id, published_at, unpublished_at, start_at, end_at, created_at, updated_at",
+      )
       .eq("tenant_id", auth.tenantId)
       .order("updated_at", { ascending: false });
     if (error) throw safeTenantCmsError(error);
-    return data ?? [];
+    return (Array.isArray(data) ? data : []).map((row) =>
+      toJsonObject(row, "cms_campaigns:list"),
+    );
   });
 
 export const getTenantCampaign = createServerFn({ method: "GET" })
@@ -686,27 +914,58 @@ export const getTenantCampaign = createServerFn({ method: "GET" })
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantCampaignOperation(trusted(context), "read");
     const campaign = await fetchExactlyOne("cms_campaigns", auth.tenantId, data.id);
+    const draftVersionId = nullableString(campaign.draft_version_id);
+    const publishedVersionId = nullableString(campaign.published_version_id);
     const [draft, published] = await Promise.all([
-      typeof campaign.draft_version_id === "string"
-        ? loadVersionById("cms_campaign_versions", auth.tenantId, "campaign_id", data.id, campaign.draft_version_id)
+      draftVersionId
+        ? loadVersionById(
+            "cms_campaign_versions",
+            auth.tenantId,
+            "campaign_id",
+            data.id,
+            draftVersionId,
+          )
         : null,
-      typeof campaign.published_version_id === "string"
-        ? loadVersionById("cms_campaign_versions", auth.tenantId, "campaign_id", data.id, campaign.published_version_id)
+      publishedVersionId
+        ? loadVersionById(
+            "cms_campaign_versions",
+            auth.tenantId,
+            "campaign_id",
+            data.id,
+            publishedVersionId,
+          )
         : null,
     ]);
-    return { campaign, draft, published, effectiveSnapshot: draft?.snapshot ?? published?.snapshot ?? null };
+    return {
+      campaign,
+      draft,
+      published,
+      effectiveSnapshot: draft?.snapshot ?? published?.snapshot ?? null,
+    };
   });
 
 export const saveTenantCampaignDraft = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(
-    z.object({ id: uuidSchema.optional(), expectedRevision: revisionSchema, snapshot: campaignSnapshotSchema }).strict(),
+    z
+      .object({
+        id: uuidSchema.optional(),
+        expectedRevision: revisionSchema,
+        snapshot: campaignSnapshotSchema,
+      })
+      .strict(),
   )
   .handler(async ({ context, data }) => {
-    const auth = await authorizeTenantCampaignOperation(trusted(context), data.id ? "save_draft" : "create_draft");
-    const snapshot = normalizeCampaignSnapshot({ ...data.snapshot, ...(data.id ? { campaign_id: data.id } : {}) });
+    const auth = await authorizeTenantCampaignOperation(
+      trusted(context),
+      data.id ? "save_draft" : "create_draft",
+    );
+    const snapshot = normalizeCampaignSnapshot({
+      ...data.snapshot,
+      ...(data.id ? { campaign_id: data.id } : {}),
+    });
     await assertCampaignReferences(auth.tenantId, snapshot);
-    return executeCmsRpc<Record<string, unknown>>("save_tenant_campaign_definition", {
+    return executeCmsRpc("save_tenant_campaign_definition", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _campaign_id: data.id ?? null,
@@ -723,9 +982,17 @@ export const validateTenantCampaign = createServerFn({ method: "POST" })
     try {
       const snapshot = normalizeCampaignSnapshot(data.snapshot);
       await assertCampaignReferences(auth.tenantId, snapshot);
-      return { valid: true as const, errors: [] as string[], snapshot };
+      return {
+        valid: true as const,
+        errors: [] as string[],
+        snapshot: toJsonObject(snapshot, "campaign_validation_snapshot"),
+      };
     } catch (error) {
-      return { valid: false as const, errors: [safeTenantCmsError(error).message], snapshot: null };
+      return {
+        valid: false as const,
+        errors: [safeTenantCmsError(error).message],
+        snapshot: null,
+      };
     }
   });
 
@@ -734,13 +1001,27 @@ export const publishTenantCampaign = createServerFn({ method: "POST" })
   .inputValidator(z.object({ campaignId: uuidSchema, expectedRevision: revisionSchema }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantCampaignOperation(trusted(context), "publish");
-    const campaign = await fetchExactlyOne("cms_campaigns", auth.tenantId, data.campaignId, "id, revision, draft_version_id");
-    if (Number(campaign.revision) !== data.expectedRevision) throw new Error("cms_campaign_revision_conflict");
-    if (typeof campaign.draft_version_id !== "string") throw new Error("cms_campaign_draft_not_found");
-    const draft = await loadVersionById("cms_campaign_versions", auth.tenantId, "campaign_id", data.campaignId, campaign.draft_version_id);
+    const campaign = await fetchExactlyOne(
+      "cms_campaigns",
+      auth.tenantId,
+      data.campaignId,
+      "id, revision, draft_version_id",
+    );
+    if (numberValue(campaign.revision) !== data.expectedRevision) {
+      throw new Error("cms_campaign_revision_conflict");
+    }
+    const versionId = nullableString(campaign.draft_version_id);
+    if (!versionId) throw new Error("cms_campaign_draft_not_found");
+    const draft = await loadVersionById(
+      "cms_campaign_versions",
+      auth.tenantId,
+      "campaign_id",
+      data.campaignId,
+      versionId,
+    );
     const snapshot = normalizeCampaignSnapshot(draft.snapshot);
     await assertCampaignReferences(auth.tenantId, snapshot);
-    return executeCmsRpc<Record<string, unknown>>("publish_tenant_campaign", {
+    return executeCmsRpc("publish_tenant_campaign", {
       _tenant_id: auth.tenantId,
       _actor_user_id: auth.actorUserId,
       _campaign_id: data.campaignId,
