@@ -16,6 +16,7 @@ import { loadRequiredPublicRootData } from "../lib/public-tenant-read-guards";
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
 import { CmsPreviewOverlay } from "../components/site/CmsPreviewOverlay";
 import { CampaignRenderer } from "../components/site/CampaignRenderer";
+import { PublicTrackingRuntime } from "../components/site/PublicTrackingRuntime";
 import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
@@ -80,20 +81,20 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   loader: async () => {
-    const { settings, meta } = await loadRequiredPublicRootData(
+    const { settings, meta: tracking } = await loadRequiredPublicRootData(
       async () => {
         const { obterSiteSettings } = await import("../lib/api/site.functions");
         return obterSiteSettings();
       },
       async () => {
-        const { obterMetaPixelId } = await import("../lib/api/meta.functions");
-        return obterMetaPixelId();
+        const { getPublicTrackingSnapshot } = await import("../lib/api/tenant-tracking.functions");
+        return getPublicTrackingSnapshot();
       },
     );
 
     return {
       faviconUrl: settings.branding.favicon_url ?? null,
-      metaPixelId: meta.pixel_id,
+      tracking,
       brandingV2: settings.branding_v2 ?? {},
       seoGlobal: settings.seo_global ?? {},
       siteName: settings.branding.site_name || "RM Prime Imóveis",
@@ -111,7 +112,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", type: "image/png", href: loaderData?.faviconUrl ?? faviconAsset.url },
       { rel: "apple-touch-icon", href: loaderData?.faviconUrl ?? faviconAsset.url },
     ];
-    // Preload Google Fonts se configurado
     const fontFamilies: string[] = [];
     if (bv2.font_primary) fontFamilies.push(`${bv2.font_primary}:wght@400;500;600;700`);
     if (bv2.font_secondary && bv2.font_secondary !== bv2.font_primary)
@@ -146,10 +146,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       ],
       links,
       scripts: [
-        { async: true, src: "https://www.googletagmanager.com/gtag/js?id=G-BYVFRCL0VV" },
-        {
-          children: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-BYVFRCL0VV');`,
-        },
         {
           type: "application/ld+json",
           children: JSON.stringify({
@@ -191,27 +187,12 @@ function buildBrandingCss(bv2: Record<string, string | undefined | null> | undef
 
 function RootShell({ children }: { children: ReactNode }) {
   const loaderData = Route.useLoaderData();
-  const pixelId = loaderData?.metaPixelId ?? null;
   const brandingCss = buildBrandingCss(loaderData?.brandingV2 as Record<string, string | undefined>);
   return (
     <html lang="pt-BR">
       <head>
         <HeadContent />
         {brandingCss ? <style dangerouslySetInnerHTML={{ __html: brandingCss }} /> : null}
-        {pixelId ? (
-          <>
-            <script
-              dangerouslySetInnerHTML={{
-              __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixelId}');fbq('track','PageView');`,
-              }}
-            />
-            <noscript
-              dangerouslySetInnerHTML={{
-                __html: `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1" />`,
-              }}
-            />
-          </>
-        ) : null}
       </head>
       <body>
         {children}
@@ -223,36 +204,23 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const loaderData = Route.useLoaderData();
   const router = useRouter();
 
   useEffect(() => {
-    // Captura inicial de atribuição (UTM / gclid / fbclid / referrer).
     import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
-    return router.subscribe("onResolved", ({ toLocation }) => {
-      // Recaptura em cada navegação SPA — novos paid touches sobrescrevem.
+    return router.subscribe("onResolved", () => {
       import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
-      const w = window as unknown as {
-        gtag?: (...args: unknown[]) => void;
-        fbq?: (...args: unknown[]) => void;
-      };
-      if (typeof w.gtag === "function") {
-        w.gtag("config", "G-BYVFRCL0VV", {
-          page_path: toLocation.pathname + toLocation.searchStr,
-        });
-      }
-      if (typeof w.fbq === "function") {
-        try { w.fbq("track", "PageView"); } catch { /* noop */ }
-      }
     });
   }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <CmsPreviewOverlay />
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <WhatsAppFab />
       <CampaignRenderer />
+      <PublicTrackingRuntime snapshot={loaderData.tracking} />
       <Toaster />
     </QueryClientProvider>
   );
