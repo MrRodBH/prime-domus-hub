@@ -15,6 +15,10 @@ import {
   listTenantPages,
 } from "@/lib/api/tenant-cms.functions";
 import {
+  SECTION_TYPE_KEYS,
+  type SectionTypeKey,
+} from "@/lib/cms/cms-registry";
+import {
   SIGNED_URL_TTL_PREVIEW_SECONDS,
   validateTenantSignRequest,
 } from "@/lib/storage/signed-url";
@@ -38,9 +42,82 @@ export const excluirPagina = createServerFn({ method: "POST" })
     throw new Error("legacy_cms_page_delete_retired");
   });
 
+type CmsBlockBase<TType extends SectionTypeKey, TData> = {
+  id: string;
+  type: TType;
+  data: TData;
+};
+
+type CmsGalleryItem = {
+  media_id?: string;
+  url?: string;
+  alt?: string;
+  variant?: "original" | "medium" | "thumbnail";
+};
+
+/**
+ * Canonical serializable DTO shared by the CMS editor compatibility adapter
+ * and the public page renderer. Draft-only references and public projections
+ * are explicit optional fields; neither grants storage or tenant authority.
+ */
+export type CmsBlock =
+  | CmsBlockBase<"hero", {
+      eyebrow?: string;
+      titulo: string;
+      subtitulo?: string;
+      media_id?: string;
+      imagem_url?: string;
+      cta_label?: string;
+      cta_href?: string;
+      altura?: "sm" | "md" | "lg";
+    }>
+  | CmsBlockBase<"richtext", {
+      format?: "sanitized_html_v1";
+      html: string;
+      align?: "left" | "center";
+    }>
+  | CmsBlockBase<"image", {
+      media_id?: string;
+      url?: string;
+      alt?: string;
+      legenda?: string;
+      variant?: "original" | "medium" | "thumbnail";
+    }>
+  | CmsBlockBase<"gallery", {
+      imagens: CmsGalleryItem[];
+      colunas?: 2 | 3 | 4;
+    }>
+  | CmsBlockBase<"video", {
+      embed_url: string;
+      titulo?: string;
+    }>
+  | CmsBlockBase<"cta", {
+      titulo: string;
+      descricao?: string;
+      botao_label: string;
+      botao_href: string;
+      variante?: "default" | "outline";
+    }>
+  | CmsBlockBase<"form", {
+      form_id?: string;
+      form_slug?: string;
+      titulo?: string;
+    }>
+  | CmsBlockBase<"features", {
+      titulo?: string;
+      itens: Array<{ titulo: string; descricao?: string; icone?: string }>;
+    }>
+  | CmsBlockBase<"faq", {
+      titulo?: string;
+      itens: Array<{ pergunta: string; resposta: string }>;
+    }>
+  | CmsBlockBase<"spacer", {
+      altura: "sm" | "md" | "lg" | "xl";
+    }>;
+
 type StoredSection = {
   id: string;
-  type: string;
+  type: SectionTypeKey;
   region?: string;
   data: Record<string, unknown>;
 };
@@ -51,12 +128,16 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function isSectionTypeKey(value: unknown): value is SectionTypeKey {
+  return typeof value === "string" && (SECTION_TYPE_KEYS as readonly string[]).includes(value);
+}
+
 function asSections(snapshot: Record<string, unknown>): StoredSection[] {
   const layout = asRecord(snapshot.layout);
   if (!Array.isArray(layout.sections)) throw new Error("public_page_sections_invalid");
   return layout.sections.map((section) => {
     const value = asRecord(section);
-    if (typeof value.id !== "string" || typeof value.type !== "string") {
+    if (typeof value.id !== "string" || !isSectionTypeKey(value.type)) {
       throw new Error("public_page_section_invalid");
     }
     return {
@@ -146,7 +227,7 @@ function projectSection(
   section: StoredSection,
   mediaUrls: ReadonlyMap<string, string>,
   formSlugs: ReadonlyMap<string, string>,
-) {
+): CmsBlock {
   const data = { ...section.data };
   switch (section.type) {
     case "hero": {
@@ -187,7 +268,7 @@ function projectSection(
     default:
       break;
   }
-  return { id: section.id, type: section.type, data };
+  return { id: section.id, type: section.type, data } as CmsBlock;
 }
 
 function projectSeo(snapshot: Record<string, unknown>, mediaUrls: ReadonlyMap<string, string>) {
