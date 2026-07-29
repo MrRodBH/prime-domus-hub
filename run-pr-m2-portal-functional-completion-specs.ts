@@ -205,8 +205,8 @@ includesAll(worker, [
   '"record_tenant_portal_attempt"',
   '"complete_tenant_portal_job"',
   "adapter_not_implemented",
-  ".eq(\"tenant_id\", input.tenantId)",
-  ".eq(\"id\", input.jobId)",
+  '.eq("tenant_id", input.tenantId)',
+  '.eq("id", input.jobId)',
 ], "portal worker");
 check(!/order\([\s\S]{0,100}limit\(1\)/i.test(worker), "worker must not select authoritative job through ORDER BY/LIMIT 1");
 check(!worker.includes("feed_token"), "worker must not read legacy feed token");
@@ -247,7 +247,11 @@ check(!/ORDER BY[\s\S]{0,100}LIMIT\s+1/i.test(migration), "migration must not us
 check(!/GRANT\s+(SELECT|INSERT|UPDATE|DELETE|ALL)[\s\S]{0,100}\sTO\s+(anon|authenticated)/i.test(migration), "migration must not grant direct portal table access");
 check(migration.includes("feed_token = NULL") && migration.includes("webhook_secret = NULL"), "legacy plaintext credentials must be removed");
 check(migration.includes("encode(digest(feed_token, 'sha256'), 'hex')"), "legacy high-entropy token must become one-way verifier before removal");
-check(migration.includes("current_state = 'failed_terminal'"), "dead-letter state must be explicit");
+check(
+  migration.includes("current_state text NOT NULL CHECK") &&
+    migration.includes("Active authority is tenant_portal_jobs.current_state=failed_terminal"),
+  "dead-letter state must be explicit in the canonical schema",
+);
 
 check(legacyBarrel.includes("Read-only compatibility aliases"), "legacy module must be a single canonical barrel");
 check(!legacyBarrel.includes("randomBytes"), "legacy barrel must not issue raw tokens");
