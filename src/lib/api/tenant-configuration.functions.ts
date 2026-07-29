@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import {
@@ -8,7 +9,6 @@ import {
   normalizeConfigurationSnapshot,
   publicConfigurationSnapshot,
   validateConfigurationSnapshot,
-  type ConfigurationSnapshot,
 } from "@/lib/api/configuration-registry";
 import {
   assertConfigurationMediaReferences,
@@ -17,18 +17,30 @@ import {
   loadPublishedConfigurationForTenant,
   loadTenantConfigurationState,
   safeTenantConfigurationError,
+  type SerializableConfigurationSnapshot,
   type TenantConfigurationVersionDto,
 } from "@/lib/api/tenant-configuration-authority.server";
 
 const snapshotSchema = z.record(z.string(), z.unknown());
 const revisionSchema = z.number().int().nonnegative();
 const trusted = (context: any) => ({ userId: context.userId as string, tenant: context.tenant });
+const stable = (value: unknown) => JSON.stringify(value);
+
+function toJson(value: unknown): Json {
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined) throw new Error("configuration_non_serializable_value");
+  return JSON.parse(serialized) as Json;
+}
+
+function toSerializableSnapshot(value: unknown): SerializableConfigurationSnapshot {
+  return normalizeConfigurationSnapshot(value) as unknown as SerializableConfigurationSnapshot;
+}
 
 export type ConfigurationStateDto = {
   tenantId: string;
   published: TenantConfigurationVersionDto | null;
   draft: TenantConfigurationVersionDto | null;
-  snapshot: ConfigurationSnapshot;
+  snapshot: SerializableConfigurationSnapshot;
   expectedRevision: number;
   status: "empty" | "published" | "draft";
 };
@@ -51,9 +63,24 @@ export const getConfigurationRegistry = createServerFn({ method: "GET" })
     return {
       domains: [...CONFIGURATION_DOMAINS],
       definitions: CONFIGURATION_REGISTRY.map((definition) => ({
-        ...definition,
-        options: definition.options ? [...definition.options] : undefined,
-        defaultValue: structuredClone(definition.defaultValue),
+        key: definition.key,
+        domain: definition.domain,
+        label: definition.label,
+        description: definition.description,
+        valueKind: definition.valueKind,
+        defaultValue: toJson(definition.defaultValue),
+        nullable: definition.nullable,
+        visibility: definition.visibility,
+        editAuthority: definition.editAuthority,
+        publicExposure: definition.publicExposure,
+        secretClassification: definition.secretClassification,
+        previewBehavior: definition.previewBehavior,
+        publishBehavior: definition.publishBehavior,
+        rollbackBehavior: definition.rollbackBehavior,
+        uiControl: definition.uiControl,
+        options: definition.options ? [...definition.options] : null,
+        validationMessage: definition.validationMessage,
+        maxLength: definition.maxLength ?? null,
       })),
     };
   });
@@ -95,7 +122,20 @@ export const saveTenantConfigurationDraft = createServerFn({ method: "POST" })
   }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantConfigurationOperation(trusted(context), "editar");
-    const snapshot = normalizeConfigurationSnapshot(data.snapshot);
+    const current = await loadTenantConfigurationState(trusted(context), "visualizar");
+    if (current.expectedRevision !== data.expectedRevision) throw new Error("configuration_revision_conflict");
+
+    const candidate: Record<string, unknown> = { ...data.snapshot };
+    for (const definition of CONFIGURATION_REGISTRY.filter((item) => item.editAuthority === "system")) {
+      const currentValue = current.effectiveSnapshot[definition.key];
+      if (Object.prototype.hasOwnProperty.call(data.snapshot, definition.key)
+          && stable(data.snapshot[definition.key]) !== stable(currentValue)) {
+        throw new Error(`configuration_system_key_immutable:${definition.key}`);
+      }
+      candidate[definition.key] = currentValue ?? definition.defaultValue;
+    }
+
+    const snapshot = toSerializableSnapshot(candidate);
     await assertConfigurationMediaReferences(auth.tenantId, snapshot);
     const result = await executeTenantConfigurationRpc<{
       id: string;
@@ -139,12 +179,12 @@ export const validateTenantConfigurationDraft = createServerFn({ method: "POST" 
   .handler(async ({ context, data }) => {
     const state = await loadTenantConfigurationState(trusted(context), "visualizar");
     const validation = validateConfigurationSnapshot(data.snapshot ?? state.effectiveSnapshot);
-    if (!validation.valid) return validation;
+    if (!validation.valid) return { valid: false as const, errors: validation.errors, snapshot: null };
     try {
       await assertConfigurationMediaReferences(state.tenantId, validation.snapshot);
-      return { valid: true as const, errors: [] as string[], snapshot: validation.snapshot };
+      return { valid: true as const, errors: [] as string[], snapshot: toSerializableSnapshot(validation.snapshot) };
     } catch (error) {
-      return { valid: false as const, errors: [safeTenantConfigurationError(error).message] };
+      return { valid: false as const, errors: [safeTenantConfigurationError(error).message], snapshot: null };
     }
   });
 
@@ -153,14 +193,22 @@ export const previewTenantConfiguration = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const state = await loadTenantConfigurationState(trusted(context), "visualizar");
     const validation = validateConfigurationSnapshot(state.effectiveSnapshot);
-    if (!validation.valid) return { valid: false as const, errors: validation.errors, configuration: null };
+    if (!validation.valid) {
+      return {
+        valid: false as const,
+        errors: validation.errors,
+        source: null,
+        expectedRevision: state.expectedRevision,
+        configuration: null,
+      };
+    }
     await assertConfigurationMediaReferences(state.tenantId, validation.snapshot);
     return {
       valid: true as const,
       errors: [] as string[],
       source: state.draft ? "draft" as const : state.published ? "published" as const : "defaults" as const,
       expectedRevision: state.expectedRevision,
-      configuration: publicConfigurationSnapshot(validation.snapshot),
+      configuration: publicConfigurationSnapshot(validation.snapshot) as unknown as SerializableConfigurationSnapshot,
     };
   });
 
@@ -205,7 +253,7 @@ export const listTenantConfigurationVersions = createServerFn({ method: "GET" })
       revision: Number(row.revision),
       basedOnRevision: row.based_on_revision == null ? null : Number(row.based_on_revision),
       status: row.status as "published" | "archived",
-      snapshot: normalizeConfigurationSnapshot(row.value),
+      snapshot: toSerializableSnapshot(row.value),
       notes: row.notes ?? null,
       createdBy: row.created_by ?? null,
       createdAt: row.created_at as string,
@@ -217,7 +265,7 @@ export const listTenantConfigurationVersions = createServerFn({ method: "GET" })
 export const getTenantConfigurationVersion = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .inputValidator(z.object({ id: z.string().uuid() }).strict())
-  .handler(async ({ context, data }) => {
+  .handler(async ({ context, data }): Promise<TenantConfigurationVersionDto> => {
     const { tenantId } = await authorizeTenantConfigurationOperation(trusted(context), "visualizar");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const result = await (supabaseAdmin as any)
@@ -235,7 +283,7 @@ export const getTenantConfigurationVersion = createServerFn({ method: "GET" })
       revision: Number(result.data.revision),
       basedOnRevision: result.data.based_on_revision == null ? null : Number(result.data.based_on_revision),
       status: result.data.status as "draft" | "published" | "archived",
-      snapshot: normalizeConfigurationSnapshot(result.data.value),
+      snapshot: toSerializableSnapshot(result.data.value),
       notes: result.data.notes ?? null,
       createdBy: result.data.created_by ?? null,
       createdAt: result.data.created_at as string,
@@ -246,10 +294,7 @@ export const getTenantConfigurationVersion = createServerFn({ method: "GET" })
 
 export const rollbackTenantConfiguration = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator(z.object({
-    versionId: z.string().uuid(),
-    expectedRevision: revisionSchema,
-  }).strict())
+  .inputValidator(z.object({ versionId: z.string().uuid(), expectedRevision: revisionSchema }).strict())
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantConfigurationOperation(trusted(context), "publicar");
     return executeTenantConfigurationRpc<{
@@ -272,7 +317,7 @@ export const getTenantConfigurationDiagnostics = createServerFn({ method: "GET" 
   .handler(async ({ context }) => {
     const state = await loadTenantConfigurationState(trusted(context), "visualizar");
     const validation = validateConfigurationSnapshot(state.effectiveSnapshot);
-    const errors = validation.valid ? [] : validation.errors;
+    const errors: string[] = validation.valid ? [] : [...validation.errors];
     if (validation.valid) {
       try {
         await assertConfigurationMediaReferences(state.tenantId, validation.snapshot);
