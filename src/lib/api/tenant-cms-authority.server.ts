@@ -13,6 +13,7 @@ export const TENANT_CMS_MODULES = [
   "cms.campanhas",
   "cms.midias",
   "cms.menu",
+  "cms.branding",
   "cms.versoes",
   "cms.configuracoes",
 ] as const;
