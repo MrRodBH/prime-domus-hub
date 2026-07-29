@@ -11,6 +11,7 @@ import {
   TrackingConsentConfigurationSchema,
   TrackingEventBindingsSchema,
   assertNoArbitraryTrackingCode,
+  assertTrackingProviderPublishable,
   getTrackingProviderDefinition,
   validateTrackingIdentifier,
   type TrackingEventKey,
@@ -118,6 +119,7 @@ export const publishTenantTrackingConnector = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const auth = await authorizeTenantTrackingOperation(trusted(context), "publish");
     assertNoArbitraryTrackingCode(data.config);
+    assertTrackingProviderPublishable(data.config.providerKey);
     const connector = await loadTenantTrackingConnector(auth.tenantId, data.connectorId);
     if (connector.providerKey !== data.config.providerKey) throw new Error("tracking_connector_provider_mismatch");
     if (!data.config.providerIdentifier) throw new Error("tracking_provider_identifier_required");
@@ -208,7 +210,8 @@ export const validateTenantTrackingConfiguration = createServerFn({ method: "POS
       ? validateTrackingIdentifier(data.config.providerKey, data.config.providerIdentifier)
       : null;
     return {
-      valid: true as const,
+      valid: definition.availabilityState !== "csp_blocked",
+      state: definition.availabilityState,
       providerKey: definition.providerKey,
       identifierConfigured: Boolean(identifier),
       consentCategory: definition.consentCategory,
@@ -234,7 +237,11 @@ export const previewTenantTrackingRuntime = createServerFn({ method: "POST" })
     const bindings = await listTenantTrackingBindings(auth.tenantId, connector.id);
     const definition = getTrackingProviderDefinition(connector.providerKey);
     return {
-      state: connector.providerIdentifier ? "preview_ready" as const : "unconfigured" as const,
+      state: definition.availabilityState === "csp_blocked"
+        ? "csp_blocked" as const
+        : connector.providerIdentifier
+          ? "preview_ready" as const
+          : "unconfigured" as const,
       providerKey: connector.providerKey,
       identifierConfigured: Boolean(connector.providerIdentifier),
       enabledBindingCount: bindings.filter((binding) => binding.enabled).length,
@@ -343,6 +350,7 @@ export const getTenantTrackingHealth = createServerFn({ method: "GET" })
       configuredProviders: connectors.filter((connector) => Boolean(connector.providerIdentifier)).length,
       activeProviders: connectors.filter((connector) => connector.enabled && connector.availabilityState === "active").length,
       failedProviders: connectors.filter((connector) => connector.availabilityState === "failed" || connector.lastErrorCode).length,
+      cspBlockedProviders: connectors.filter((connector) => connector.availabilityState === "csp_blocked").length,
       consentPolicyRevision: consent.policyRevision,
       noticeEnabled: consent.noticeEnabled,
       arbitraryTenantJavaScript: false as const,
@@ -420,7 +428,11 @@ export const getPublicTrackingSnapshot = createServerFn({ method: "GET" }).handl
         providerIdentifier,
         schemaVersion: 1,
         consentCategory: definition.consentCategory,
-        availabilityState: row.availability_state === "active" ? "active" : "preview_ready",
+        availabilityState: definition.availabilityState === "csp_blocked"
+          ? "csp_blocked"
+          : row.availability_state === "active"
+            ? "active"
+            : "preview_ready",
         configurationVersion: Number(row.configuration_version),
         eventBindingVersion: Number(row.event_binding_version),
         bindings,
