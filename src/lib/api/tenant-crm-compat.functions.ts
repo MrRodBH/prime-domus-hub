@@ -1,3 +1,7 @@
+// PR-M2 — canonical Tenant CRM authority compatibility mappers.
+// Stable legacy export names delegate to the same server-only primitives;
+// no tenant, actor, role, scope or direct table mutation is accepted here.
+
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
