@@ -21,11 +21,10 @@ export interface SiteVersionRow {
   published_at: string | null;
 }
 
-function retiredMutation(): never {
+function retiredMutation<T>(): T {
   throw new Error("legacy_per_key_configuration_mutation_retired");
 }
 
-/** @deprecated Use saveTenantConfigurationDraft. */
 export const salvarRascunho = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(z.object({
@@ -33,27 +32,23 @@ export const salvarRascunho = createServerFn({ method: "POST" })
     value: z.record(z.string(), z.unknown()),
     notes: z.string().optional().nullable(),
   }).strict())
-  .handler(async () => retiredMutation());
+  .handler(async (): Promise<{ id: string; key: string; status: "draft" }> => retiredMutation());
 
-/** @deprecated Use discardTenantConfigurationDraft. */
 export const descartarRascunho = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(z.object({ key: legacyKeySchema }).strict())
-  .handler(async () => retiredMutation());
+  .handler(async (): Promise<{ ok: true }> => retiredMutation());
 
-/** @deprecated Use publishTenantConfiguration. */
 export const publicarRascunho = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(z.object({ key: legacyKeySchema }).strict())
-  .handler(async () => retiredMutation());
+  .handler(async (): Promise<{ ok: true; key: string }> => retiredMutation());
 
-/** @deprecated Use rollbackTenantConfiguration. */
 export const restaurarVersao = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(z.object({ id: z.string().uuid() }).strict())
-  .handler(async () => retiredMutation());
+  .handler(async (): Promise<{ ok: true; key: string }> => retiredMutation());
 
-/** Compatibility read only. Canonical history is whole-snapshot and key independent. */
 export const listarVersoes = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .inputValidator(z.object({ key: legacyKeySchema }).strict())
@@ -93,7 +88,6 @@ export const obterSiteSettingsPreview = createServerFn({ method: "GET" })
     return projectConfigurationToSiteSettings(state.tenantId, state.effectiveSnapshot);
   });
 
-/** @deprecated Use publishTenantConfiguration. */
 export const publicarTodosRascunhos = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .handler(async () => retiredMutation());
+  .handler(async (): Promise<{ count: number }> => retiredMutation());
