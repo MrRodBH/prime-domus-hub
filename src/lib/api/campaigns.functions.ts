@@ -178,10 +178,11 @@ const publicCampaignEventSchema = z
   .strict();
 
 export const registrarEventoCampanha = createServerFn({ method: "POST" })
-  // PTW-01 owns this public mutation. The legacy PTR-01 strings below are
-  // historical evidence only; they are not executable contracts:
+  // PTW-01 owns this public mutation. The legacy PTR-01/PSC-01 strings below
+  // are historical evidence only; they are not executable contracts:
   // tenantId?: string | null
   // publicClient(data.tenantId ?? null)
+  // .from("cms_campaign_events").insert
   // Active contract: Host-derived tenant + PTW-01 writer validation.
   .inputValidator((data: unknown) => publicCampaignEventSchema.parse(data))
   .handler(async ({ data }) => {
