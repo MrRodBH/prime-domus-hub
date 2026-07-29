@@ -37,7 +37,7 @@ const mutationResultSchema = z.object({
   id: z.string().uuid(),
   version: z.number().int().positive(),
   qualificationKey: z.string().optional(),
-}).passthrough();
+}).strict();
 
 async function crmRpc(
   context: { userId: string; tenant: Parameters<typeof trustedTenantCrmContext>[0]["tenant"] },
