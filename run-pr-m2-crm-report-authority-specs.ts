@@ -9,108 +9,89 @@ function check(name: string, fn: () => void) {
   console.log(`✓ ${name}`);
 }
 
-const source = readFileSync("src/lib/api/leads-crm.functions.ts", "utf8");
+const compatibility = readFileSync("src/lib/api/leads-crm.functions.ts", "utf8");
+const functions = readFileSync("src/lib/api/tenant-crm.functions.ts", "utf8");
+const authority = readFileSync("src/lib/api/tenant-crm-authority.server.ts", "utf8");
+const migration = readFileSync("supabase/migrations/20260729211500_pr_m2_crm_operational_workflow.sql", "utf8");
 
-check("canonical transition callers remain on the accepted boundary", () => {
-  assert.equal(source.match(/await transitionLead\(/g)?.length ?? 0, 4);
-  assert.equal(source.includes('.from("leads").update'), false);
-  assert.equal(source.includes("supabaseAdmin"), false);
+check("canonical transition callers delegate to the Tenant CRM boundary", () => {
+  assert.equal(compatibility.match(/transitionTenantLeadForContext\(/g)?.length ?? 0, 4);
+  assert.equal(compatibility.includes('.from("leads").update'), false);
+  assert.equal(compatibility.includes("supabaseAdmin"), false);
 });
 
-check("transition callers preserve authenticated RPC boundary", () => {
-  const transitionSection = source.slice(0, source.indexOf("export type LeadDescartadoRow"));
-  assert.equal(
-    transitionSection.match(/\.middleware\(\[requireSupabaseAuth\]\)/g)?.length ?? 0,
-    4,
-  );
+check("all CRM compatibility surfaces use requireTenant", () => {
+  assert.ok((compatibility.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0) >= 7);
+  assert.equal(compatibility.includes("requireSupabaseAuth"), false);
 });
 
-check("all three CRM report and insight surfaces use requireTenant", () => {
-  const reportSection = source.slice(source.indexOf("export type LeadDescartadoRow"));
-  assert.equal(
-    reportSection.match(/\.middleware\(\[requireTenant\]\)/g)?.length ?? 0,
-    3,
-  );
+check("Tenant CRM authority uses effective permissions and explicit scopes", () => {
+  for (const token of [
+    "resolveEffectiveTenantPermission",
+    "trustedTenantAccessContext",
+    "requireTenantScopedAuthority",
+    '"proprio"',
+    '"equipe"',
+    '"global"',
+    "super_admin_impersonation",
+  ]) assert.ok(authority.includes(token), token);
+  assert.equal(authority.includes("has_role"), false);
+  assert.equal(authority.includes("user_roles"), false);
 });
 
-check("CRM admin authorization validates tenant authority before role", () => {
-  const helper = source.indexOf("async function assertCrmAdmin");
-  const authority = source.indexOf(
-    'requireTenantScopedAuthority(context.tenant, "CRM")',
-    helper,
-  );
-  const role = source.indexOf('context.supabase.rpc("has_role"', authority);
-  assert.ok(helper >= 0 && authority > helper && role > authority);
+check("discarded leads use the canonical scoped list", () => {
+  const start = compatibility.indexOf("export const listarLeadsDescartados");
+  const scoped = compatibility.indexOf('listTenantLeadsForContext(context, { status: "descartado"', start);
+  assert.ok(start >= 0 && scoped > start);
+  assert.equal(compatibility.indexOf('.from("leads")', start), -1);
 });
 
-check("discarded leads are tenant filtered before status", () => {
-  const start = source.indexOf("export const listarLeadsDescartados");
-  const leads = source.indexOf('.from("leads")', start);
-  const tenant = source.indexOf('.eq("tenant_id", tenantId)', leads);
-  const status = source.indexOf('.eq("status", "descartado")', tenant);
-  assert.ok(start >= 0 && leads > start && tenant > leads && status > tenant);
+check("commercial performance is recomputed from scoped server data", () => {
+  const start = compatibility.indexOf("export const performanceComercial");
+  const scoped = compatibility.indexOf("listTenantLeadsForContext(context", start);
+  const computed = compatibility.indexOf("performance(", scoped);
+  assert.ok(start >= 0 && scoped > start && computed > scoped);
 });
 
-check("discarded relations expose and validate tenant identity", () => {
-  assert.ok(source.includes("imovel:imoveis(tenant_id, titulo, slug)"));
-  assert.ok(
-    source.includes(
-      "motivo:lead_discard_reasons!leads_discard_reason_id_fkey(tenant_id, nome)",
-    ),
-  );
-  assert.ok(source.includes("CRM property relation crossed the tenant boundary."));
-  assert.ok(source.includes("CRM discard reason crossed the tenant boundary."));
+check("insight surface re-authorizes and does not call an external provider", () => {
+  const start = compatibility.indexOf("export const gerarInsightsPerformance");
+  const scoped = compatibility.indexOf("listTenantLeadsForContext(context", start);
+  assert.ok(start >= 0 && scoped > start);
+  assert.equal(compatibility.includes("LOVABLE_API_KEY"), false);
+  assert.equal(compatibility.includes("ai.gateway.lovable.dev"), false);
+  assert.equal(compatibility.includes("fetch("), false);
 });
 
-check("commercial performance reads leads and reason catalogs by tenant", () => {
-  const helper = source.indexOf("async function loadCommercialPerformance");
-  const leads = source.indexOf('.from("leads")', helper);
-  const leadsTenant = source.indexOf('.eq("tenant_id", tenantId)', leads);
-  const discard = source.indexOf('.from("lead_discard_reasons")', leadsTenant);
-  const discardTenant = source.indexOf('.eq("tenant_id", tenantId)', discard);
-  const lost = source.indexOf('.from("deal_lost_reasons")', discardTenant);
-  const lostTenant = source.indexOf('.eq("tenant_id", tenantId)', lost);
-  assert.ok(helper >= 0 && leads > helper && leadsTenant > leads);
-  assert.ok(discard > leadsTenant && discardTenant > discard);
-  assert.ok(lost > discardTenant && lostTenant > lost);
-});
-
-check("commercial performance checks all query errors", () => {
-  for (const marker of [
-    "if (error) throw new Error(error.message)",
-    "if (discardNames.error) throw new Error(discardNames.error.message)",
-    "if (lostNames.error) throw new Error(lostNames.error.message)",
-  ]) {
-    assert.ok(source.includes(marker), marker);
+check("server functions expose closed serializable DTOs", () => {
+  for (const token of ["CrmLeadDto", "CrmLeadAggregateDto", "CrmTaskDto", "ManualLeadResult"]) {
+    assert.ok(functions.includes(token), token);
   }
+  assert.equal(functions.includes("@ts-nocheck"), false);
+  assert.equal(functions.includes("@ts-ignore"), false);
 });
 
-check("AI insight recalculates server metrics before external request", () => {
-  const start = source.indexOf("export const gerarInsightsPerformance");
-  const authority = source.indexOf("await assertCrmAdmin(context)", start);
-  const metrics = source.indexOf("await loadCommercialPerformance(", authority);
-  const apiKey = source.indexOf("process.env.LOVABLE_API_KEY", metrics);
-  const fetchCall = source.indexOf('fetch(\n      "https://ai.gateway.lovable.dev', apiKey);
-  assert.ok(start >= 0 && authority > start && metrics > authority);
-  assert.ok(apiKey > metrics && fetchCall > apiKey);
+check("CRM reports and mutations use service-role-only primitives", () => {
+  for (const token of [
+    "list_tenant_crm_leads",
+    "get_tenant_crm_lead_aggregate",
+    "transition_tenant_crm_lead",
+    "REVOKE ALL ON FUNCTION public.list_tenant_crm_leads",
+    "GRANT EXECUTE ON FUNCTION public.list_tenant_crm_leads",
+    "TO service_role",
+  ]) assert.ok(migration.includes(token), token);
+  assert.equal(migration.includes("GRANT EXECUTE ON FUNCTION public.list_tenant_crm_leads(uuid,uuid,text,text,integer,integer) TO authenticated"), false);
 });
 
-check("AI prompt uses server-derived metrics rather than client payload", () => {
-  const start = source.indexOf("export const gerarInsightsPerformance");
-  const handler = source.indexOf(".handler(async", start);
-  const block = source.slice(handler);
-  for (const field of [
-    "metrics.totais",
-    "metrics.taxas",
-    "metrics.vgv",
-    "metrics.motivosDescarte",
-    "metrics.motivosPerda",
-  ]) {
-    assert.ok(block.includes(field), field);
+check("PTW-01 remains separate from administrative CRM operations", () => {
+  assert.equal(migration.includes("public_create_tenant_crm_lead"), false);
+  assert.equal(migration.includes("GRANT EXECUTE ON FUNCTION public.create_tenant_crm_lead(uuid,uuid,text,text,text,text,uuid,text,uuid,text) TO authenticated"), false);
+});
+
+check("no role, tenant or ordering heuristic is reintroduced", () => {
+  const combined = `${authority}\n${functions}\n${compatibility}`;
+  for (const token of ["has_role", "user_roles", "ORDER BY/LIMIT 1", "tenant default", "fallback tenant"]) {
+    assert.equal(combined.includes(token), false, token);
   }
-  assert.equal(block.includes("data.totais."), false);
-  assert.equal(block.includes("data.taxas."), false);
-  assert.equal(block.includes("data.vgv."), false);
 });
 
 console.log(`PR-M2 CRM report authority specs: ${passed} passed`);
