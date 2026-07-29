@@ -61,6 +61,7 @@ run("PR-M2 — Configuration Center specifications", "bun", ["run", "test:pr-m2:
 run("PR-M2 — Portal functional completion specifications", "bun", ["run", "test:pr-m2:portal-functional-completion"]);
 run("PR-M2 — CMS workflow functional completion specifications", "bun", ["run", "test:pr-m2:cms-workflow-functional-completion"]);
 run("PR-M2 — CRM operational workflow functional completion specifications", "bun", ["run", "test:pr-m2:crm-operational-workflow-functional-completion"]);
+run("PR-M2 — Marketing channels and lead ingestion functional completion specifications", "bun", ["run", "test:pr-m2:marketing-channels-lead-ingestion-functional-completion"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -106,6 +107,7 @@ console.log(JSON.stringify({
   prM2PortalFunctionalCompletionSpecsPassed: true,
   prM2CmsWorkflowFunctionalCompletionSpecsPassed: true,
   prM2CrmOperationalWorkflowFunctionalCompletionSpecsPassed: true,
+  prM2MarketingChannelsLeadIngestionFunctionalCompletionSpecsPassed: true,
   leadAuthorizationUnitSpecsPassed: true,
   leadRuntimeOperationSpecsPassed: true,
   leadStructuralSpecsPassed: true,
