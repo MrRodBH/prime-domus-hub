@@ -4,7 +4,8 @@ import {
   TRACKING_AVAILABILITY_STATES, TRACKING_CONSENT_CATEGORIES, TRACKING_EVENT_KEYS,
   TRACKING_EVENT_REGISTRY, TRACKING_PROVIDER_KEYS, TRACKING_PROVIDER_REGISTRY,
   TrackingConnectorDraftSchema, TrackingConsentConfigurationSchema, TrackingEventBindingsSchema,
-  assertNoArbitraryTrackingCode, getTrackingEventDefinition, getTrackingProviderDefinition,
+  assertNoArbitraryTrackingCode, assertTrackingProviderPublishable,
+  getTrackingEventDefinition, getTrackingProviderDefinition,
   parseTrackingEventPayload, validateTrackingIdentifier,
 } from "./src/lib/tracking/tracking-registry";
 import { trackingConsentAllows } from "./src/lib/tracking/tracking-consent";
@@ -28,7 +29,7 @@ const files = {
   packageJson: read("package.json"), release: read("scripts/verify-release.mjs"),
 };
 
-// Closed registries.
+// Closed registries and provider governance.
 equal(TRACKING_PROVIDER_KEYS.length, 3, "providers");
 equal(TRACKING_PROVIDER_REGISTRY.length, 3, "provider registry");
 equal(TRACKING_CONSENT_CATEGORIES.length, 2, "consent categories");
@@ -50,6 +51,10 @@ for (const key of TRACKING_PROVIDER_KEYS) {
 equal(getTrackingProviderDefinition("META_PIXEL").capabilityClass, "required", "Meta required");
 equal(getTrackingProviderDefinition("GOOGLE_ANALYTICS").capabilityClass, "extensible", "GA extensible");
 equal(getTrackingProviderDefinition("GOOGLE_TAG_MANAGER").capabilityClass, "extensible", "GTM extensible");
+equal(getTrackingProviderDefinition("GOOGLE_TAG_MANAGER").availabilityState, "csp_blocked", "GTM governance blocked");
+assertTrackingProviderPublishable("META_PIXEL"); assertions += 1;
+assertTrackingProviderPublishable("GOOGLE_ANALYTICS"); assertions += 1;
+throws(() => assertTrackingProviderPublishable("GOOGLE_TAG_MANAGER"), "tracking_csp_blocked");
 throws(() => getTrackingProviderDefinition("UNKNOWN"), "tracking_provider_not_cataloged");
 
 // Identifier and client input boundaries.
@@ -59,6 +64,8 @@ equal(validateTrackingIdentifier("GOOGLE_TAG_MANAGER", "gtm-abcd1234"), "GTM-ABC
 for (const [key, value] of [["META_PIXEL", "pixel"], ["GOOGLE_ANALYTICS", "UA-1"], ["GOOGLE_TAG_MANAGER", "G-1"]] as const) throws(() => validateTrackingIdentifier(key, value), "tracking_provider_identifier_invalid");
 const draft = { providerKey: "META_PIXEL" as const, providerIdentifier: "123456789", schemaVersion: 1 as const, enabled: false, consentCategory: "MARKETING" as const };
 equal(TrackingConnectorDraftSchema.safeParse(draft).success, true, "valid draft");
+equal(TrackingConnectorDraftSchema.safeParse({ providerKey: "GOOGLE_TAG_MANAGER", providerIdentifier: "GTM-ABCD1234", schemaVersion: 1, enabled: false, consentCategory: "ANALYTICS" }).success, true, "GTM configurable draft");
+equal(TrackingConnectorDraftSchema.safeParse({ providerKey: "GOOGLE_TAG_MANAGER", providerIdentifier: "GTM-ABCD1234", schemaVersion: 1, enabled: true, consentCategory: "ANALYTICS" }).success, false, "GTM activation denied");
 for (const field of [{ tenantId: "x" }, { tenant_id: "x" }, { actorUserId: "x" }, { role: "admin" }, { scope: "global" }, { script: "x" }, { html: "x" }, { endpoint: "x" }, { consentCategory: "ANALYTICS" }]) equal(TrackingConnectorDraftSchema.safeParse({ ...draft, ...field }).success, false, "strict client schema");
 for (const value of [{ script: "alert(1)" }, { html: "<script>x</script>" }, { javascript: "document.write('x')" }, { modulePath: "./x" }, { endpoint: "https://evil.invalid" }, { safe: "javascript:x" }, { safe: "new Function('x')" }, { safe: "eval('x')" }]) throws(() => assertNoArbitraryTrackingCode(value), "tracking_arbitrary_code_prohibited");
 assertNoArbitraryTrackingCode({ providerKey: "META_PIXEL", providerIdentifier: "123456789" }); assertions += 1;
@@ -90,8 +97,8 @@ const selected = { status: "granted_or_restricted", choice: { schemaVersion: 1, 
 equal(trackingConsentAllows(selected, "ANALYTICS"), true, "analytics granted"); equal(trackingConsentAllows(selected, "MARKETING"), false, "marketing denied");
 
 // Runtime and public cutover.
-for (const token of ["appendExternalScript", "tracking_script_origin_not_allowed", "__rmPrimeTrackingLoaded", "tracking_duplicate_provider_configuration", "dispatchCataloguedTrackingEvent", "trackingConsentAllows", "externalDeliveryProved: false", "removeAllTrackingProviderRuntimes", "https://connect.facebook.net/en_US/fbevents.js", "https://www.googletagmanager.com/gtag/js"]) has(files.runtime, token);
-for (const token of ["eval(", "new Function", "document.write", "dangerouslySetInnerHTML", "fetch(", "tenantId", "actorUserId", "email", "phone"]) lacks(files.runtime, token);
+for (const token of ["appendExternalScript", "tracking_script_origin_not_allowed", "__rmPrimeTrackingLoaded", "tracking_duplicate_provider_configuration", "dispatchCataloguedTrackingEvent", "trackingConsentAllows", "externalDeliveryProved: false", "removeAllTrackingProviderRuntimes", "assertTrackingProviderPublishable", "tracking_csp_blocked", "https://connect.facebook.net/en_US/fbevents.js", "https://www.googletagmanager.com/gtag/js"]) has(files.runtime, token);
+for (const token of ["gtm.js?id=", "loadGoogleTagManager", "eval(", "new Function", "document.write", "dangerouslySetInnerHTML", "fetch(", "tenantId", "actorUserId", "email", "phone"]) lacks(files.runtime, token);
 for (const token of ["TRACKING_CONSENT_STORAGE_KEY", "policyRevision", "analytics", "marketing", "user_choice", "TRACKING_CONSENT_EVENT"]) has(files.consent, token);
 for (const token of ["email", "phone", "name", "tenantId", "actorUserId", "leadId"]) lacks(files.consent, token);
 for (const token of ["getPublicTrackingSnapshot", "PublicTrackingRuntime", "loaderData.tracking", "captureAttribution"]) has(files.root, token);
@@ -100,9 +107,9 @@ equal((files.root.match(/<PublicTrackingRuntime/g) ?? []).length, 1, "single run
 for (const token of ["Somente essenciais", "Aceitar analytics e marketing", "removeAllTrackingProviderRuntimes", "TRACKING_CONSENT_EVENT"]) has(files.component + files.consent, token);
 
 // Authority, snapshot and CSP.
-for (const token of ["requireTenantScopedAuthority", "resolveEffectiveTenantPermission", "cms.configuracoes", "decision.scope !== \"global\"", "super_admin_impersonation", "tenant_owner"]) has(files.authority, token);
+for (const token of ["requireTenantScopedAuthority", "resolveEffectiveTenantPermission", "cms.configuracoes", "decision.scope !== \"global\"", "super_admin_impersonation", "tenant_owner", "registryBlocked", "availabilityState: registryBlocked ? \"csp_blocked\"", "enabled: registryBlocked ? false"]) has(files.authority, token);
 for (const token of [".rpc(\"has_role\"", ".from(\"user_roles\")", "ORDER BY", "LIMIT 1"]) lacks(files.authority, token);
-for (const token of ["middleware([requireTenant])", "authorizeTenantTrackingOperation", "listTenantTrackingProviders", "saveTenantTrackingConnectorDraft", "publishTenantTrackingConnector", "disableTenantTrackingConnector", "saveTenantTrackingEventBindings", "previewTenantTrackingRuntime", "saveTenantTrackingConsentConfiguration", "listTenantTrackingDiagnostics", "getTenantTrackingHealth", "getPublicTrackingSnapshot", "requirePublicTenantFromRequest", ".eq(\"tenant_id\", tenant.id)", "public_tracking_provider_configuration_ambiguous", "fakeProviderDelivery: false"]) has(files.functions, token);
+for (const token of ["middleware([requireTenant])", "authorizeTenantTrackingOperation", "listTenantTrackingProviders", "saveTenantTrackingConnectorDraft", "publishTenantTrackingConnector", "assertTrackingProviderPublishable", "disableTenantTrackingConnector", "saveTenantTrackingEventBindings", "previewTenantTrackingRuntime", "saveTenantTrackingConsentConfiguration", "listTenantTrackingDiagnostics", "getTenantTrackingHealth", "getPublicTrackingSnapshot", "requirePublicTenantFromRequest", ".eq(\"tenant_id\", tenant.id)", "public_tracking_provider_configuration_ambiguous", "definition.availabilityState === \"csp_blocked\"", "fakeProviderDelivery: false"]) has(files.functions, token);
 for (const token of ["tenantId: z.string", "tenant_id: z.string", "actorUserId: z.string", "actor_user_id: z.string", "fetch(", "event_delivered", "conversion_received", "provider_verified"]) lacks(files.functions, token);
 for (const token of ["content-security-policy", "script-src 'self' 'unsafe-inline'", "https://connect.facebook.net", "https://www.googletagmanager.com", "https://www.google-analytics.com", "strict-origin-when-cross-origin", "x-content-type-options", "frame-ancestors 'none'"]) has(files.server, token);
 for (const token of ["unsafe-eval", "https://*", "http://*", "script-src *", "connect-src *", "img-src *"]) lacks(files.server, token);
@@ -127,6 +134,6 @@ for (const token of ["tenant_marketing_connectors", "public.create_tenant_crm_le
 for (const token of ["test:pr-m2:analytics-tracking-conversion-events-functional-completion", "run-pr-m2-analytics-tracking-conversion-events-functional-completion-specs.ts"]) has(files.packageJson, token);
 for (const token of ["PR-M2 — Analytics, tracking and conversion events functional completion specifications", "test:pr-m2:analytics-tracking-conversion-events-functional-completion", "prM2AnalyticsTrackingConversionEventsFunctionalCompletionSpecsPassed"]) has(files.release, token);
 
-ok(assertions >= 230, `expected broad deterministic coverage, got ${assertions}`);
+ok(assertions >= 240, `expected broad deterministic coverage, got ${assertions}`);
 console.log(`PR_M2_ANALYTICS_TRACKING_CONVERSION_EVENTS_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_ANALYTICS_TRACKING_CONVERSION_EVENTS_SPECS=PASS");
