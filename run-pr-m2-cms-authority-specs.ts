@@ -44,27 +44,31 @@ const validHybridConfig = {
   operation_mode: "HYBRID" as const,
   automated_method: "JSON_API" as const,
   manual_method: "CSV" as const,
-  configuration_schema_version: 1,
-  credential_reference: "vault://tenant/portal/credentials",
+  configuration_schema_version: 1 as const,
+  credential_reference: "credential://tenant/portal/credentials",
   mapping_profile: "default-v1",
-  publication_rules: { only_published: true },
+  mapping_version: 1,
+  publication_rules: { only_published: true as const },
   retry_policy: { max_attempts: 5, initial_delay_seconds: 30, max_delay_seconds: 3600 },
 };
 
 check("portal hybrid configuration is deterministic and closed", () => {
   assert.deepEqual(parsePortalHybridConfig(validHybridConfig), validHybridConfig);
   assert.throws(() => parsePortalHybridConfig({ ...validHybridConfig, operation_mode: "AUTOMATED" }));
-  assert.throws(() => parsePortalHybridConfig({ ...validHybridConfig, api_token: "raw-secret" }), /inline secret is prohibited/);
+  assert.throws(
+    () => parsePortalHybridConfig({ ...validHybridConfig, api_token: "raw-secret" }),
+    /portal_inline_secret_prohibited/,
+  );
 });
 
-check("portal connector DTO removes persisted secrets", () => {
+check("portal connector DTO removes persisted secrets and exposes explicit states", () => {
   const safe = sanitizePortalConnector({
     id: "11111111-1111-4111-8111-111111111119",
     tenant_id: tenantA,
     portal_nome: "Portal Teste",
     portal_slug: "portal-teste",
-    ativo: true,
-    status: "ativo",
+    ativo: false,
+    status: "inativo",
     feed_url: "https://example.test/feed",
     webhook_url: null,
     config: validHybridConfig,
@@ -72,13 +76,18 @@ check("portal connector DTO removes persisted secrets", () => {
     ultimo_erro: null,
     created_at: "2026-07-28T00:00:00.000Z",
     updated_at: "2026-07-28T00:00:00.000Z",
-    feed_token: "feed-secret",
-    webhook_secret: "webhook-secret",
+    credential_version: 1,
+    credential_state: "credential_provisioning_required",
+    last_rotated_at: null,
+    rotation_required: false,
+    row_version: 2,
   });
   assert.equal("feed_token" in safe, false);
   assert.equal("webhook_secret" in safe, false);
-  assert.equal(safe.operation_mode, "HYBRID");
-  assert.equal(safe.configuration_state, "ready");
+  assert.equal(safe.operationMode, "HYBRID");
+  assert.equal(safe.configurationState, "adapter_not_implemented");
+  assert.equal(safe.credentialState, "credential_provisioning_required");
+  assert.equal(safe.rowVersion, 2);
 });
 
 const files = {
@@ -90,30 +99,36 @@ const files = {
   configurationAuthority: source("src/lib/api/tenant-configuration-authority.server.ts"),
   configurationMigration: source("supabase/migrations/20260728233000_pr_m2_configuration_center.sql"),
   media: source("src/lib/api/media.functions.ts"),
-  portals: source("src/lib/api/portals.functions.ts"),
+  portalBarrel: source("src/lib/api/portals.functions.ts"),
+  portalFunctions: source("src/lib/api/tenant-portal.functions.ts"),
+  portalAuthority: source("src/lib/api/tenant-portal-authority.server.ts"),
+  portalMigration: source("supabase/migrations/20260729103000_pr_m2_portal_functional_completion.sql"),
   portalRegistry: source("src/lib/portals/portal-connector-registry.ts"),
   cms: source("src/lib/api/_cms.ts"),
 };
 
 check("all migrated administrative surfaces use requireTenant", () => {
-  const expected = { pages: 4, forms: 6, campaigns: 5, versions: 8, media: 7, portals: 6 } as const;
+  const expected = { pages: 4, forms: 6, campaigns: 5, versions: 8, media: 7 } as const;
   for (const [key, total] of Object.entries(expected)) {
     const text = files[key as keyof typeof expected];
     assert.equal(count(text, /\.middleware\(\[requireTenant\]\)/g), total, key);
     assert.equal(text.includes("requireSupabaseAuth"), false, key);
   }
   assert.ok(count(files.configurationFunctions, /\.middleware\(\[requireTenant\]\)/g) >= 10, "configurationFunctions");
-  assert.equal(files.configurationFunctions.includes("requireSupabaseAuth"), false, "configurationFunctions");
+  assert.ok(count(files.portalFunctions, /\.middleware\(\[requireTenant\]\)/g) >= 15, "portalFunctions");
+  assert.equal(files.portalFunctions.includes("requireSupabaseAuth"), false, "portalFunctions");
 });
 
 check("migrated table operations contain explicit tenant filters", () => {
-  const minimum = { pages: 6, forms: 12, campaigns: 8, media: 11, portals: 13 } as const;
+  const minimum = { pages: 6, forms: 12, campaigns: 8, media: 11 } as const;
   for (const [key, total] of Object.entries(minimum)) {
     const text = files[key as keyof typeof minimum];
     assert.ok(count(text, /\.eq\("tenant_id", tenantId\)/g) >= total, key);
   }
   assert.ok(count(files.configurationAuthority, /\.eq\("tenant_id", tenantId\)/g) >= 2, "configuration authority");
   assert.ok(count(files.configurationFunctions, /\.eq\("tenant_id", tenantId\)/g) >= 2, "configuration functions");
+  assert.ok(count(files.portalAuthority, /\.eq\("tenant_id", tenantId\)/g) >= 2, "portal authority");
+  assert.ok(count(files.portalFunctions, /\.eq\("tenant_id", auth\.tenantId\)/g) >= 8, "portal functions");
   assert.ok(files.versions.includes("legacy_per_key_configuration_mutation_retired"), "legacy versions fail closed");
 });
 
@@ -123,7 +138,9 @@ check("tenant ids are persisted or transported only from server authority", () =
   assert.ok(files.campaigns.includes("tenant_id: tenantId"));
   assert.ok(count(files.media, /tenant_id: tenantId/g) >= 2);
   assert.ok(count(files.configurationFunctions, /_tenant_id: auth\.tenantId/g) >= 4);
+  assert.ok(count(files.portalFunctions, /_tenant_id: auth\.tenantId/g) >= 8);
   assert.ok(files.configurationAuthority.includes("requireTenantScopedAuthority(context.tenant"));
+  assert.ok(files.portalAuthority.includes("requireTenantScopedAuthority(context.tenant"));
 });
 
 check("canonical configuration mutations are specialized service-role RPCs", () => {
@@ -140,6 +157,25 @@ check("canonical configuration mutations are specialized service-role RPCs", () 
   }
   assert.equal(files.configurationFunctions.includes('.from("site_settings").upsert'), false);
   assert.equal(files.configurationFunctions.includes('.from("site_settings_versions").insert'), false);
+});
+
+check("canonical portal mutations are specialized service-role RPCs", () => {
+  for (const rpc of [
+    "save_tenant_portal_connector",
+    "set_tenant_portal_connector_state",
+    "rotate_tenant_portal_credential_reference",
+    "save_tenant_portal_mapping",
+    "enqueue_tenant_portal_publication",
+    "schedule_tenant_portal_retry",
+    "cancel_tenant_portal_job",
+    "reconcile_tenant_portal_state",
+    "record_tenant_portal_export",
+  ]) {
+    assert.ok(files.portalFunctions.includes(`\"${rpc}\"`), rpc);
+    assert.ok(files.portalMigration.includes(`CREATE OR REPLACE FUNCTION public.${rpc}`), rpc);
+  }
+  assert.equal(/\.from\("portal_connectors"\)[\s\S]{0,500}\.(insert|update|upsert|delete)/.test(files.portalFunctions), false);
+  assert.equal(/\.from\("tenant_portal_jobs"\)[\s\S]{0,500}\.(insert|update|upsert|delete)/.test(files.portalFunctions), false);
 });
 
 check("form fields prove parent form ownership before replacement", () => {
@@ -188,31 +224,41 @@ check("media usage proves parent ownership before write and read", () => {
   assert.ok(listParent > list && usageRead > listParent);
 });
 
-check("portal activation validates hybrid configuration before mutation", () => {
-  const start = files.portals.indexOf("export const atualizarPortal");
-  const current = files.portals.indexOf('.from("portal_connectors")', start);
-  const parse = files.portals.indexOf("parsePortalHybridConfig", current);
-  const active = files.portals.indexOf("if (nextActive)", parse);
-  const transport = files.portals.indexOf("assertPortalTransport", active);
-  const update = files.portals.indexOf('.update(patch as never)', transport);
-  assert.ok(start >= 0 && current > start && parse > current);
-  assert.ok(active > parse && transport > active && update > transport);
+check("portal runtime has one canonical barrel and no legacy mutation implementation", () => {
+  assert.ok(files.portalBarrel.includes("Read-only compatibility aliases"));
+  assert.ok(files.portalBarrel.includes("saveTenantPortalConnector"));
+  assert.equal(files.portalBarrel.includes("randomBytes"), false);
+  assert.equal(files.portalBarrel.includes("has_role"), false);
+  assert.equal(files.portalBarrel.includes("rotacionarToken"), false);
+  assert.equal(files.portalBarrel.includes("atualizarPortal"), false);
+  assert.equal(files.portalBarrel.includes('.update('), false);
 });
 
-check("portal list never selects persisted tokens or secrets", () => {
-  const start = files.portals.indexOf("export const listarPortais");
-  const end = files.portals.indexOf("export const atualizarPortal");
-  const block = files.portals.slice(start, end);
-  assert.equal(block.includes("feed_token"), false);
-  assert.equal(block.includes("webhook_secret"), false);
-  assert.ok(block.includes("sanitizePortalConnector"));
+check("portal authority uses effective Tenant Access Control and explicit impersonation boundary", () => {
+  assert.ok(files.portalAuthority.includes("resolveEffectiveTenantPermission"));
+  assert.ok(files.portalAuthority.includes('"portals"'));
+  assert.ok(files.portalAuthority.includes('decision.scope !== "global"'));
+  assert.ok(files.portalAuthority.includes("requireTenantScopedAuthority"));
+  assert.equal(files.portalAuthority.includes("has_role"), false);
+  assert.equal(files.portalAuthority.includes("user_roles"), false);
 });
 
-check("portal registry enumerates all hybrid methods and UI states", () => {
+check("portal registry enumerates hybrid methods, states and fail-closed adapters", () => {
   for (const method of ["JSON_API", "XML_FEED", "WEBHOOK", "CUSTOM_ADAPTER", "XLSX", "CSV", "MANUAL_EXPORT"]) {
     assert.ok(files.portalRegistry.includes(`\"${method}\"`), method);
   }
-  for (const field of ["operation_mode", "credential_reference", "mapping_profile", "publication_rules", "retry_policy", "configuration_required"]) {
+  for (const field of [
+    "operation_mode",
+    "credential_reference",
+    "mapping_profile",
+    "mapping_version",
+    "publication_rules",
+    "retry_policy",
+    "configuration_required",
+    "credential_provisioning_required",
+    "adapter_not_implemented",
+    "failed_terminal",
+  ]) {
     assert.ok(files.portalRegistry.includes(field), field);
   }
 });
@@ -236,4 +282,4 @@ check("public boundaries remain request-derived and tenant-filtered", () => {
   assert.ok(files.configurationFunctions.includes("loadPublishedConfigurationForTenant(tenant.id)"));
 });
 
-console.log(`PR-M2 tenant authority and hybrid registry specs: ${passed} passed`);
+console.log(`PR-M2 tenant authority, Configuration Center and portal registry specs: ${passed} passed`);
