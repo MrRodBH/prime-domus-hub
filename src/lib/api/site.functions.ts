@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import {
@@ -10,13 +11,8 @@ import {
   SIGNED_URL_TTL_PREVIEW_SECONDS,
   validateTenantSignRequest,
 } from "@/lib/storage/signed-url";
-import {
-  loadPublishedConfigurationForTenant,
-} from "@/lib/api/tenant-configuration-authority.server";
-import {
-  normalizeConfigurationSnapshot,
-  type ConfigurationSnapshot,
-} from "@/lib/api/configuration-registry";
+import { loadPublishedConfigurationForTenant } from "@/lib/api/tenant-configuration-authority.server";
+import { normalizeConfigurationSnapshot } from "@/lib/api/configuration-registry";
 
 export interface SiteSettings {
   branding: {
@@ -64,8 +60,25 @@ export interface SiteSettings {
     keywords?: string;
     twitter_handle?: string;
   };
-  home_hero: Record<string, unknown> & { image_path?: string | null; image_url?: string | null };
-  home_secoes: Record<string, unknown>;
+  home_hero: {
+    eyebrow?: string;
+    title_lines?: string[];
+    subtitle?: string;
+    cta_primary?: string;
+    cta_secondary?: string;
+    image_path?: string | null;
+    image_url?: string | null;
+    search_tipos?: string[];
+  };
+  home_secoes: {
+    destaques_eyebrow?: string;
+    destaques_titulo?: string;
+    destaques_qtd?: number;
+    bairros_eyebrow?: string;
+    bairros_titulo?: string;
+    bairros_descricao?: string;
+    bairros_qtd?: number;
+  };
   contato: {
     telefone?: string;
     whatsapp?: string;
@@ -77,38 +90,93 @@ export interface SiteSettings {
     creci?: string;
     localizacao?: string;
   };
-  pagina_lancamentos: Record<string, unknown> & { image_path?: string | null; image_url?: string | null };
-  home_diferenciais: Record<string, unknown>;
-  home_depoimentos: Record<string, unknown>;
-  pagina_sobre: Record<string, unknown> & { hero_image_path?: string | null; hero_image_url?: string | null; cta_url?: string };
-  pagina_contato: Record<string, unknown> & { mapa_url?: string };
-  pagina_anuncie: Record<string, unknown> & { hero_image_path?: string | null; hero_image_url?: string | null };
+  pagina_lancamentos: {
+    eyebrow?: string;
+    title_lines?: string[];
+    subtitle?: string;
+    cta_primary?: string;
+    cta_secondary?: string;
+    image_path?: string | null;
+    image_url?: string | null;
+    empty_message?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
+  home_diferenciais: {
+    eyebrow?: string;
+    titulo?: string;
+    itens?: { n: string; title: string; desc: string }[];
+  };
+  home_depoimentos: {
+    eyebrow?: string;
+    titulo?: string;
+    itens?: { quote: string; name: string; role: string }[];
+  };
+  pagina_sobre: {
+    hero_eyebrow?: string;
+    hero_titulo?: string;
+    hero_subtitle?: string;
+    hero_image_path?: string | null;
+    hero_image_url?: string | null;
+    blocos?: { titulo?: string; texto: string }[];
+    stats?: { valor: string; label: string }[];
+    cta_titulo?: string;
+    cta_texto?: string;
+    cta_label?: string;
+    cta_url?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
+  pagina_contato: {
+    hero_eyebrow?: string;
+    hero_titulo?: string;
+    hero_subtitle?: string;
+    form_titulo?: string;
+    form_texto?: string;
+    form_botao?: string;
+    mapa_url?: string;
+    horario_atendimento?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
+  pagina_anuncie: {
+    hero_eyebrow?: string;
+    hero_titulo?: string;
+    hero_subtitle?: string;
+    hero_image_path?: string | null;
+    hero_image_url?: string | null;
+    beneficios_eyebrow?: string;
+    beneficios_titulo?: string;
+    beneficios?: { titulo: string; desc: string }[];
+    form_titulo?: string;
+    form_texto?: string;
+    form_botao?: string;
+    meta_title?: string;
+    meta_description?: string;
+  };
 }
 
+type SnapshotRecord = Record<string, unknown>;
 type ResolvedMedia = { id: string; path: string; url: string };
+type MediaRow = { id: string; tenant_id: string; arquivo: string };
 
-function stringValue(snapshot: ConfigurationSnapshot, key: keyof ConfigurationSnapshot): string | undefined {
+function stringValue(snapshot: SnapshotRecord, key: string): string | undefined {
   const value = snapshot[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function objectValue(snapshot: ConfigurationSnapshot, key: keyof ConfigurationSnapshot): Record<string, unknown> {
+function objectValue<T extends object>(snapshot: SnapshotRecord, key: string): T {
   const value = snapshot[key];
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? structuredClone(value as Record<string, unknown>)
-    : {};
+  return (typeof value === "object" && value !== null && !Array.isArray(value)
+    ? structuredClone(value)
+    : {}) as T;
 }
 
 async function resolveConfigurationMedia(
   tenantId: string,
-  snapshot: ConfigurationSnapshot,
+  snapshot: SnapshotRecord,
 ): Promise<Map<string, ResolvedMedia>> {
-  const keys = [
-    "primary_logo",
-    "secondary_logo",
-    "favicon",
-    "default_og_image",
-  ] as const;
+  const keys = ["primary_logo", "secondary_logo", "favicon", "default_og_image"] as const;
   const requested = keys.flatMap((key) => {
     const value = snapshot[key];
     return typeof value === "string" && value.length > 0 ? [{ key, id: value }] : [];
@@ -123,18 +191,15 @@ async function resolveConfigurationMedia(
     .eq("tenant_id", tenantId)
     .in("id", ids);
   if (error) throw new Error("public_configuration_media_read_failed");
-  if ((data ?? []).length !== ids.length) throw new Error("public_configuration_media_missing");
+  const rows = (data ?? []) as MediaRow[];
+  if (rows.length !== ids.length) throw new Error("public_configuration_media_missing");
 
-  const rowById = new Map((data ?? []).map((row: any) => [row.id as string, row]));
+  const rowById = new Map<string, MediaRow>(rows.map((row) => [row.id, row]));
   const resolved = new Map<string, ResolvedMedia>();
   for (const request of requested) {
     const row = rowById.get(request.id);
     if (!row || row.tenant_id !== tenantId) throw new Error("public_configuration_media_cross_tenant");
-    const target = validateTenantSignRequest({
-      bucket: "site",
-      path: row.arquivo as string,
-      tenantId,
-    });
+    const target = validateTenantSignRequest({ bucket: "site", path: row.arquivo, tenantId });
     const signed = await supabaseAdmin.storage
       .from(target.bucket)
       .createSignedUrl(target.path, SIGNED_URL_TTL_PREVIEW_SECONDS);
@@ -148,8 +213,9 @@ function normalizeLinkArray(value: unknown): { label: string; url: string }[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry) => {
     if (typeof entry !== "object" || entry === null) return [];
-    const label = typeof (entry as any).label === "string" ? (entry as any).label : "";
-    const rawUrl = typeof (entry as any).url === "string" ? (entry as any).url : "";
+    const record = entry as Record<string, unknown>;
+    const label = typeof record.label === "string" ? record.label : "";
+    const rawUrl = typeof record.url === "string" ? record.url : "";
     const url = normalizePublicNavigationUrl(rawUrl, "contact");
     return label && url ? [{ label, url }] : [];
   });
@@ -159,24 +225,23 @@ export async function projectConfigurationToSiteSettings(
   tenantId: string,
   snapshotInput: unknown,
 ): Promise<SiteSettings> {
-  const snapshot = normalizeConfigurationSnapshot(snapshotInput);
+  const snapshot = normalizeConfigurationSnapshot(snapshotInput) as unknown as SnapshotRecord;
   const media = await resolveConfigurationMedia(tenantId, snapshot);
   const footerColumns = Array.isArray(snapshot.footer_columns) ? snapshot.footer_columns : [];
   const firstColumn = footerColumns[0] as Record<string, unknown> | undefined;
   const secondColumn = footerColumns[1] as Record<string, unknown> | undefined;
 
-  const paginaSobre = objectValue(snapshot, "pagina_sobre");
-  const paginaContato = objectValue(snapshot, "pagina_contato");
-  const paginaAnuncie = objectValue(snapshot, "pagina_anuncie");
-  const paginaLancamentos = objectValue(snapshot, "pagina_lancamentos");
-  const homeHero = objectValue(snapshot, "home_hero");
+  const homeHero = objectValue<SiteSettings["home_hero"]>(snapshot, "home_hero");
+  const homeSecoes = objectValue<SiteSettings["home_secoes"]>(snapshot, "home_secoes");
+  const paginaLancamentos = objectValue<SiteSettings["pagina_lancamentos"]>(snapshot, "pagina_lancamentos");
+  const diferenciais = objectValue<SiteSettings["home_diferenciais"]>(snapshot, "home_diferenciais");
+  const depoimentos = objectValue<SiteSettings["home_depoimentos"]>(snapshot, "home_depoimentos");
+  const paginaSobre = objectValue<SiteSettings["pagina_sobre"]>(snapshot, "pagina_sobre");
+  const paginaContato = objectValue<SiteSettings["pagina_contato"]>(snapshot, "pagina_contato");
+  const paginaAnuncie = objectValue<SiteSettings["pagina_anuncie"]>(snapshot, "pagina_anuncie");
 
-  if (typeof paginaSobre.cta_url === "string") {
-    paginaSobre.cta_url = normalizePublicNavigationUrl(paginaSobre.cta_url, "contact") ?? "";
-  }
-  if (typeof paginaContato.mapa_url === "string") {
-    paginaContato.mapa_url = normalizePublicEmbedUrl(paginaContato.mapa_url) ?? "";
-  }
+  if (paginaSobre.cta_url) paginaSobre.cta_url = normalizePublicNavigationUrl(paginaSobre.cta_url, "contact") ?? "";
+  if (paginaContato.mapa_url) paginaContato.mapa_url = normalizePublicEmbedUrl(paginaContato.mapa_url) ?? "";
 
   const primaryLogo = media.get("primary_logo");
   const secondaryLogo = media.get("secondary_logo");
@@ -230,7 +295,7 @@ export async function projectConfigurationToSiteSettings(
       twitter_handle: stringValue(snapshot, "x_twitter_handle"),
     },
     home_hero: homeHero,
-    home_secoes: objectValue(snapshot, "home_secoes"),
+    home_secoes: homeSecoes,
     contato: {
       telefone: stringValue(snapshot, "primary_phone"),
       whatsapp: stringValue(snapshot, "whatsapp"),
@@ -243,23 +308,20 @@ export async function projectConfigurationToSiteSettings(
       localizacao: stringValue(snapshot, "location_description"),
     },
     pagina_lancamentos: paginaLancamentos,
-    home_diferenciais: objectValue(snapshot, "home_diferenciais"),
-    home_depoimentos: objectValue(snapshot, "home_depoimentos"),
+    home_diferenciais: diferenciais,
+    home_depoimentos: depoimentos,
     pagina_sobre: paginaSobre,
     pagina_contato: paginaContato,
     pagina_anuncie: paginaAnuncie,
   };
 }
 
-/** Compatibilidade de leitura para consumidores públicos existentes. */
 export async function hydrateSiteSettings(
-  input: { key: string; value: unknown }[] | ConfigurationSnapshot | Record<string, unknown>,
+  input: { key: string; value: Json }[] | Record<string, Json>,
   tenantId?: string,
 ): Promise<SiteSettings> {
   if (!tenantId) throw new Error("canonical_configuration_tenant_required");
-  const snapshot = Array.isArray(input)
-    ? Object.fromEntries(input.map(({ key, value }) => [key, value]))
-    : input;
+  const snapshot = Array.isArray(input) ? Object.fromEntries(input.map(({ key, value }) => [key, value])) : input;
   return projectConfigurationToSiteSettings(tenantId, snapshot);
 }
 
@@ -269,13 +331,9 @@ export const obterSiteSettings = createServerFn({ method: "GET" }).handler(async
   return projectConfigurationToSiteSettings(tenant.id, published.snapshot);
 });
 
-/**
- * Caminho legado deliberadamente encerrado. A mutation canônica é
- * saveTenantConfigurationDraft → publishTenantConfiguration.
- */
 export const atualizarSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(z.object({ key: z.string(), value: z.record(z.string(), z.unknown()) }).strict())
-  .handler(async () => {
+  .handler(async (): Promise<{ ok: false }> => {
     throw new Error("legacy_site_settings_mutation_retired");
   });
