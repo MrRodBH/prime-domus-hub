@@ -203,7 +203,7 @@ function projectSeo(snapshot: Record<string, unknown>, mediaUrls: ReadonlyMap<st
 }
 
 export const obterPaginaPublica = createServerFn({ method: "GET" })
-  .inputValidator((data: { slug: string }) => z.object({ slug: z.string().min(1).max(180) }).strict().parse(data))
+  .inputValidator((d: { slug: string }) => z.object({ slug: z.string().min(1).max(180) }).strict().parse(d))
   .handler(async ({ data }) =>
     loadPublicPageForRequest(requirePublicTenantFromRequest, async (tenant) => {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
