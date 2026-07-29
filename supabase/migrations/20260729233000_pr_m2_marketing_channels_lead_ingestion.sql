@@ -3,8 +3,13 @@
 
 BEGIN;
 
+CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 SET LOCAL search_path = public, extensions, pg_temp;
+
+-- Composite tenant references are enforced even when the service role writes.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_leads_id_tenant
+  ON public.leads (id, tenant_id);
 
 -- ---------------------------------------------------------------------------
 -- 1. Tenant-owned connector catalog. Channel keys are closed in application code.
@@ -55,10 +60,7 @@ SELECT
   t.id,
   channel.channel_key,
   CASE WHEN channel.channel_key IN ('META_ADS','GOOGLE_ADS') THEN 'credential_required' ELSE 'not_required' END,
-  CASE
-    WHEN channel.channel_key IN ('META_ADS','GOOGLE_ADS') THEN 'adapter_not_implemented'
-    ELSE 'not_required'
-  END,
+  CASE WHEN channel.channel_key IN ('META_ADS','GOOGLE_ADS') THEN 'adapter_not_implemented' ELSE 'not_required' END,
   CASE
     WHEN channel.channel_key IN ('META_ADS','GOOGLE_ADS') THEN 'adapter_not_implemented'
     WHEN channel.channel_key = 'MANUAL_IMPORT' THEN 'manual_ready'
@@ -83,7 +85,7 @@ ON CONFLICT (tenant_id, channel_key) DO NOTHING;
 CREATE TABLE IF NOT EXISTS public.tenant_marketing_connector_versions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  connector_id uuid NOT NULL REFERENCES public.tenant_marketing_connectors(id) ON DELETE CASCADE,
+  connector_id uuid NOT NULL,
   version integer NOT NULL CHECK (version >= 1),
   config jsonb NOT NULL CHECK (jsonb_typeof(config) = 'object'),
   provider_account_reference text,
@@ -91,7 +93,9 @@ CREATE TABLE IF NOT EXISTS public.tenant_marketing_connector_versions (
   availability_state text NOT NULL,
   created_by uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (tenant_id, connector_id, version)
+  UNIQUE (tenant_id, connector_id, version),
+  FOREIGN KEY (connector_id, tenant_id)
+    REFERENCES public.tenant_marketing_connectors(id, tenant_id) ON DELETE CASCADE
 );
 
 INSERT INTO public.tenant_marketing_connector_versions (
@@ -110,7 +114,7 @@ ON CONFLICT (tenant_id, connector_id, version) DO NOTHING;
 CREATE TABLE IF NOT EXISTS public.tenant_marketing_field_mappings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  connector_id uuid NOT NULL REFERENCES public.tenant_marketing_connectors(id) ON DELETE CASCADE,
+  connector_id uuid NOT NULL,
   version integer NOT NULL CHECK (version >= 1),
   mapping jsonb NOT NULL CHECK (jsonb_typeof(mapping) = 'object'),
   is_current boolean NOT NULL DEFAULT true,
@@ -118,7 +122,9 @@ CREATE TABLE IF NOT EXISTS public.tenant_marketing_field_mappings (
   created_at timestamptz NOT NULL DEFAULT now(),
   archived_at timestamptz,
   CHECK (NOT is_current OR archived_at IS NULL),
-  UNIQUE (tenant_id, connector_id, version)
+  UNIQUE (tenant_id, connector_id, version),
+  FOREIGN KEY (connector_id, tenant_id)
+    REFERENCES public.tenant_marketing_connectors(id, tenant_id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tenant_marketing_mapping_current
@@ -160,7 +166,7 @@ WHERE NOT EXISTS (
 CREATE TABLE IF NOT EXISTS public.tenant_marketing_ingestion_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  connector_id uuid NOT NULL REFERENCES public.tenant_marketing_connectors(id) ON DELETE RESTRICT,
+  connector_id uuid NOT NULL,
   channel_key text NOT NULL CHECK (channel_key IN ('META_ADS','GOOGLE_ADS','MANUAL_IMPORT','WEBSITE_FORM')),
   provider_payload_id text NOT NULL CHECK (length(provider_payload_id) BETWEEN 1 AND 300),
   provider_account_reference text,
@@ -181,7 +187,7 @@ CREATE TABLE IF NOT EXISTS public.tenant_marketing_ingestion_events (
     'received','verification_failed','verified','mapping_failed','normalized','duplicate_detected',
     'lead_created','lead_linked','rejected','retryable_failed','terminal_failed'
   )),
-  lead_id uuid REFERENCES public.leads(id) ON DELETE SET NULL,
+  lead_id uuid,
   duplicate_candidate_ids uuid[] NOT NULL DEFAULT ARRAY[]::uuid[],
   error_code text,
   retry_count integer NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
@@ -191,7 +197,11 @@ CREATE TABLE IF NOT EXISTS public.tenant_marketing_ingestion_events (
   row_version bigint NOT NULL DEFAULT 1 CHECK (row_version >= 1),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (connector_id, provider_payload_id)
+  UNIQUE (connector_id, provider_payload_id),
+  FOREIGN KEY (connector_id, tenant_id)
+    REFERENCES public.tenant_marketing_connectors(id, tenant_id) ON DELETE RESTRICT,
+  FOREIGN KEY (lead_id, tenant_id)
+    REFERENCES public.leads(id, tenant_id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_tenant_marketing_ingestion_tenant_state
@@ -204,7 +214,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_tenant_marketing_ingestion_id_tenant
 CREATE TABLE IF NOT EXISTS public.tenant_marketing_ingestion_attempts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  ingestion_event_id uuid NOT NULL REFERENCES public.tenant_marketing_ingestion_events(id) ON DELETE CASCADE,
+  ingestion_event_id uuid NOT NULL,
   attempt_number integer NOT NULL CHECK (attempt_number >= 1),
   attempt_kind text NOT NULL CHECK (attempt_kind IN ('verification','mapping','ingestion','retry')),
   outcome text NOT NULL CHECK (outcome IN (
@@ -214,7 +224,9 @@ CREATE TABLE IF NOT EXISTS public.tenant_marketing_ingestion_attempts (
   error_code text,
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(metadata) = 'object'),
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (tenant_id, ingestion_event_id, attempt_number)
+  UNIQUE (tenant_id, ingestion_event_id, attempt_number),
+  FOREIGN KEY (ingestion_event_id, tenant_id)
+    REFERENCES public.tenant_marketing_ingestion_events(id, tenant_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS ix_tenant_marketing_attempts_event
@@ -242,8 +254,8 @@ FOR EACH ROW EXECUTE FUNCTION public.prevent_marketing_attempt_mutation();
 CREATE TABLE IF NOT EXISTS public.tenant_marketing_manual_imports (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  connector_id uuid NOT NULL REFERENCES public.tenant_marketing_connectors(id) ON DELETE RESTRICT,
-  mapping_id uuid NOT NULL REFERENCES public.tenant_marketing_field_mappings(id) ON DELETE RESTRICT,
+  connector_id uuid NOT NULL,
+  mapping_id uuid NOT NULL,
   format text NOT NULL CHECK (format IN ('CSV','XLSX','MANUAL_ROW')),
   file_name text NOT NULL CHECK (length(file_name) BETWEEN 1 AND 255),
   source_hash text NOT NULL CHECK (source_hash ~ '^[0-9a-f]{64}$'),
@@ -264,7 +276,11 @@ CREATE TABLE IF NOT EXISTS public.tenant_marketing_manual_imports (
   completed_at timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, idempotency_key),
-  UNIQUE (tenant_id, connector_id, source_hash)
+  UNIQUE (tenant_id, connector_id, source_hash),
+  FOREIGN KEY (connector_id, tenant_id)
+    REFERENCES public.tenant_marketing_connectors(id, tenant_id) ON DELETE RESTRICT,
+  FOREIGN KEY (mapping_id, tenant_id, connector_id)
+    REFERENCES public.tenant_marketing_field_mappings(id, tenant_id, connector_id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS ix_tenant_marketing_imports_tenant_state
@@ -275,28 +291,34 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_tenant_marketing_imports_id_tenant
 CREATE TABLE IF NOT EXISTS public.tenant_marketing_manual_import_rows (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  import_id uuid NOT NULL REFERENCES public.tenant_marketing_manual_imports(id) ON DELETE CASCADE,
+  import_id uuid NOT NULL,
   row_number integer NOT NULL CHECK (row_number >= 1),
   source_row_hash text NOT NULL CHECK (source_row_hash ~ '^[0-9a-f]{64}$'),
   payload_sanitized jsonb NOT NULL CHECK (jsonb_typeof(payload_sanitized) = 'object'),
   state text NOT NULL DEFAULT 'received' CHECK (state IN (
     'received','valid','invalid','duplicate_detected','lead_created','failed'
   )),
-  lead_id uuid REFERENCES public.leads(id) ON DELETE SET NULL,
-  ingestion_event_id uuid REFERENCES public.tenant_marketing_ingestion_events(id) ON DELETE SET NULL,
+  lead_id uuid,
+  ingestion_event_id uuid,
   duplicate_candidate_ids uuid[] NOT NULL DEFAULT ARRAY[]::uuid[],
   error_code text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, import_id, row_number),
-  UNIQUE (tenant_id, import_id, source_row_hash)
+  UNIQUE (tenant_id, import_id, source_row_hash),
+  FOREIGN KEY (import_id, tenant_id)
+    REFERENCES public.tenant_marketing_manual_imports(id, tenant_id) ON DELETE CASCADE,
+  FOREIGN KEY (lead_id, tenant_id)
+    REFERENCES public.leads(id, tenant_id) ON DELETE SET NULL,
+  FOREIGN KEY (ingestion_event_id, tenant_id)
+    REFERENCES public.tenant_marketing_ingestion_events(id, tenant_id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_tenant_marketing_import_rows_import_state
   ON public.tenant_marketing_manual_import_rows (tenant_id, import_id, state, row_number);
 
 -- ---------------------------------------------------------------------------
--- 5. Shared tenant authority. CRM module is the accepted commercial-lead domain.
+-- 5. Shared tenant authority. CRM is the accepted commercial-lead domain.
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.assert_tenant_marketing_authority(
@@ -369,6 +391,13 @@ BEGIN
   PERFORM public.assert_tenant_marketing_authority(_actor_user_id,_tenant_id,_tenant_origin,'gerenciar');
   IF jsonb_typeof(_config) <> 'object' THEN RAISE EXCEPTION 'marketing_config_invalid'; END IF;
   IF public.marketing_config_contains_secret(_config) THEN RAISE EXCEPTION 'marketing_inline_secret_prohibited'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM jsonb_object_keys(_config) key
+    WHERE key NOT IN (
+      'channelKey','operationMode','configurationVersion','providerAccountReference',
+      'providerFormReference','credentialReference','mappingVersion'
+    )
+  ) THEN RAISE EXCEPTION 'marketing_config_unknown_field'; END IF;
 
   SELECT * INTO v_connector
   FROM public.tenant_marketing_connectors
@@ -382,8 +411,18 @@ BEGIN
     RAISE EXCEPTION 'marketing_connector_channel_immutable';
   END IF;
   IF _config->>'operationMode' <> 'HYBRID'
-     OR COALESCE((_config->>'configurationVersion')::integer,0) <> 1 THEN
+     OR COALESCE((_config->>'configurationVersion')::integer,0) <> 1
+     OR COALESCE((_config->>'mappingVersion')::integer,0) <> v_connector.mapping_version THEN
     RAISE EXCEPTION 'marketing_config_invalid';
+  END IF;
+  IF NULLIF(btrim(COALESCE(_config->>'providerAccountReference','')),'')
+       IS DISTINCT FROM NULLIF(btrim(COALESCE(_provider_account_reference,'')),'')
+     OR NULLIF(btrim(COALESCE(_config->>'providerFormReference','')),'')
+       IS DISTINCT FROM NULLIF(btrim(COALESCE(_provider_form_reference,'')),'') THEN
+    RAISE EXCEPTION 'marketing_config_reference_mismatch';
+  END IF;
+  IF (_config->>'credentialReference') IS DISTINCT FROM v_connector.credential_reference THEN
+    RAISE EXCEPTION 'marketing_credential_reference_requires_versioned_operation';
   END IF;
   IF v_connector.channel_key IN ('META_ADS','GOOGLE_ADS')
      AND NULLIF(btrim(COALESCE(_provider_account_reference,'')),'') IS NULL THEN
@@ -509,6 +548,7 @@ BEGIN
   IF v_connector.channel_key IN ('MANUAL_IMPORT','WEBSITE_FORM') THEN RAISE EXCEPTION 'marketing_credential_not_allowed'; END IF;
   UPDATE public.tenant_marketing_connectors
   SET credential_reference=_credential_reference,
+      config=config || jsonb_build_object('credentialReference',_credential_reference),
       credential_version=credential_version+1,
       credential_state='verification_pending',
       verification_state='adapter_not_implemented',
@@ -547,6 +587,24 @@ BEGIN
   IF jsonb_typeof(_mapping) <> 'object' OR NULLIF(btrim(_mapping->>'name'),'') IS NULL THEN
     RAISE EXCEPTION 'marketing_mapping_invalid';
   END IF;
+  IF EXISTS (
+    SELECT 1 FROM jsonb_object_keys(_mapping) key
+    WHERE key NOT IN (
+      'name','email','phone','message','property_reference','source',
+      'campaign_id','campaign_name','adset_id','adset_name','ad_id','ad_name',
+      'utm_source','utm_medium','utm_campaign','utm_content','utm_term',
+      'gclid','fbclid','landing_url','referrer','provider_payload_id'
+    )
+  ) THEN RAISE EXCEPTION 'marketing_mapping_unknown_field'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM jsonb_each(_mapping) item
+    WHERE item.value <> 'null'::jsonb
+      AND (
+        jsonb_typeof(item.value) <> 'string'
+        OR length(item.value #>> '{}') NOT BETWEEN 1 AND 120
+        OR (item.value #>> '{}') !~ '^[A-Za-z0-9_.-]+$'
+      )
+  ) THEN RAISE EXCEPTION 'marketing_mapping_path_invalid'; END IF;
   IF _mapping ?| ARRAY['tenant_id','tenantId','actor_user_id','actorUserId','assigned_to','pipeline_id','stage_id'] THEN
     RAISE EXCEPTION 'marketing_mapping_authority_field_prohibited';
   END IF;
@@ -594,7 +652,10 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $fn$
-DECLARE v_connector public.tenant_marketing_connectors%ROWTYPE; v_event public.tenant_marketing_ingestion_events%ROWTYPE;
+DECLARE
+  v_connector public.tenant_marketing_connectors%ROWTYPE;
+  v_event public.tenant_marketing_ingestion_events%ROWTYPE;
+  v_mapping_count integer;
 BEGIN
   IF NULLIF(btrim(_provider_payload_id),'') IS NULL OR length(_provider_payload_id) > 300 THEN
     RAISE EXCEPTION 'marketing_provider_payload_id_invalid';
@@ -607,12 +668,19 @@ BEGIN
   SELECT * INTO v_connector FROM public.tenant_marketing_connectors
    WHERE id=_connector_id FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'tenant_marketing_connector_not_found'; END IF;
-  IF v_connector.channel_key IN ('META_ADS','GOOGLE_ADS') THEN
-    RAISE EXCEPTION 'marketing_adapter_not_implemented';
-  END IF;
   IF v_connector.channel_key = 'WEBSITE_FORM' THEN
     RAISE EXCEPTION 'marketing_parallel_public_writer_prohibited';
   END IF;
+  IF v_connector.channel_key = 'MANUAL_IMPORT' THEN
+    RAISE EXCEPTION 'marketing_provider_endpoint_not_applicable';
+  END IF;
+  IF v_connector.active IS NOT TRUE OR v_connector.availability_state <> 'automated_ready' THEN
+    RAISE EXCEPTION 'marketing_adapter_not_implemented';
+  END IF;
+  SELECT count(*) INTO v_mapping_count FROM public.tenant_marketing_field_mappings
+   WHERE tenant_id=v_connector.tenant_id AND connector_id=v_connector.id
+     AND is_current AND version=v_connector.mapping_version;
+  IF v_mapping_count <> 1 THEN RAISE EXCEPTION 'marketing_mapping_required'; END IF;
 
   PERFORM pg_advisory_xact_lock(hashtextextended(_connector_id::text || ':' || _provider_payload_id, 0));
   SELECT * INTO v_event FROM public.tenant_marketing_ingestion_events
@@ -660,6 +728,13 @@ BEGIN
   SELECT * INTO v_event FROM public.tenant_marketing_ingestion_events WHERE id=_event_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'marketing_ingestion_event_not_found'; END IF;
   IF v_event.row_version <> _expected_row_version THEN RAISE EXCEPTION 'marketing_revision_conflict'; END IF;
+  IF NOT (
+    (v_event.ingestion_state='received' AND _to_state IN ('verification_failed','verified','rejected','retryable_failed','terminal_failed')) OR
+    (v_event.ingestion_state='verified' AND _to_state IN ('mapping_failed','normalized','rejected','retryable_failed','terminal_failed')) OR
+    (v_event.ingestion_state='normalized' AND _to_state IN ('duplicate_detected','lead_created','lead_linked','retryable_failed','terminal_failed')) OR
+    (v_event.ingestion_state='retryable_failed' AND _to_state IN ('received','terminal_failed')) OR
+    (v_event.ingestion_state='lead_created' AND _to_state='lead_linked')
+  ) THEN RAISE EXCEPTION 'marketing_ingestion_transition_invalid'; END IF;
   IF _lead_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM public.leads WHERE id=_lead_id AND tenant_id=v_event.tenant_id
   ) THEN RAISE EXCEPTION 'marketing_cross_tenant_lead'; END IF;
@@ -737,8 +812,10 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'tenant_marketing_connector_not_found'; END IF;
   IF v_connector.channel_key='WEBSITE_FORM' THEN RAISE EXCEPTION 'marketing_manual_import_channel_invalid'; END IF;
   SELECT * INTO v_mapping FROM public.tenant_marketing_field_mappings
-   WHERE tenant_id=_tenant_id AND connector_id=_connector_id AND is_current;
+   WHERE tenant_id=_tenant_id AND connector_id=_connector_id
+     AND is_current AND version=v_connector.mapping_version;
   IF NOT FOUND THEN RAISE EXCEPTION 'marketing_mapping_required'; END IF;
+
   PERFORM pg_advisory_xact_lock(hashtextextended(_tenant_id::text || ':' || _idempotency_key,0));
   SELECT * INTO v_import FROM public.tenant_marketing_manual_imports
    WHERE tenant_id=_tenant_id AND idempotency_key=_idempotency_key FOR UPDATE;
@@ -746,6 +823,11 @@ BEGIN
     IF v_import.source_hash <> _source_hash OR v_import.connector_id <> _connector_id THEN
       RAISE EXCEPTION 'marketing_payload_idempotency_conflict';
     END IF;
+    RETURN jsonb_build_object('importId',v_import.id,'state',v_import.state,'totalRows',v_import.total_rows,'idempotentReplay',true,'rowVersion',v_import.row_version);
+  END IF;
+  SELECT * INTO v_import FROM public.tenant_marketing_manual_imports
+   WHERE tenant_id=_tenant_id AND connector_id=_connector_id AND source_hash=_source_hash FOR UPDATE;
+  IF FOUND THEN
     RETURN jsonb_build_object('importId',v_import.id,'state',v_import.state,'totalRows',v_import.total_rows,'idempotentReplay',true,'rowVersion',v_import.row_version);
   END IF;
 
@@ -759,10 +841,21 @@ BEGIN
 
   FOR v_index IN 0..v_count-1 LOOP
     v_row := _prepared_rows->v_index;
-    IF jsonb_typeof(v_row) <> 'object' OR public.marketing_config_contains_secret(v_row) THEN
+    IF jsonb_typeof(v_row) <> 'object'
+       OR public.marketing_config_contains_secret(v_row)
+       OR jsonb_typeof(v_row->'attribution') <> 'object'
+       OR NULLIF(btrim(v_row->>'name'),'') IS NULL
+       OR v_row ?| ARRAY['tenantId','tenant_id','actorUserId','actor_user_id','assignedTo','assigned_to','pipelineId','pipeline_id','stageId','stage_id']
+       OR EXISTS (
+         SELECT 1 FROM jsonb_object_keys(v_row) key
+         WHERE key NOT IN (
+           'name','email','phone','message','propertyReference','source','attribution',
+           'normalizedEmail','normalizedPhone'
+         )
+       ) THEN
       RAISE EXCEPTION 'marketing_import_row_payload_invalid:%',v_index+1;
     END IF;
-    v_hash := encode(digest(v_row::text,'sha256'),'hex');
+    v_hash := encode(extensions.digest(convert_to(v_row::text,'UTF8'),'sha256'),'hex');
     INSERT INTO public.tenant_marketing_manual_import_rows (
       tenant_id,import_id,row_number,source_row_hash,payload_sanitized,state
     ) VALUES (_tenant_id,v_import.id,v_index+1,v_hash,v_row,'valid');
@@ -791,9 +884,11 @@ DECLARE
   v_connector public.tenant_marketing_connectors%ROWTYPE;
   v_row public.tenant_marketing_manual_import_rows%ROWTYPE;
   v_payload jsonb; v_attribution jsonb; v_candidates uuid[]; v_candidate_count integer;
-  v_property_id uuid; v_property_count integer; v_created jsonb; v_lead_id uuid;
-  v_event_id uuid; v_provider_payload_id text; v_created_count integer := 0;
-  v_duplicate_count integer := 0; v_failed_count integer := 0; v_final_state text;
+  v_property_ids uuid[]; v_property_id uuid; v_property_count integer;
+  v_created jsonb; v_lead_id uuid; v_lead_version bigint;
+  v_event_id uuid; v_provider_payload_id text; v_attempt integer;
+  v_created_count integer := 0; v_duplicate_count integer := 0;
+  v_failed_count integer := 0; v_final_state text;
 BEGIN
   PERFORM public.assert_tenant_marketing_authority(_actor_user_id,_tenant_id,_tenant_origin,'criar');
   SELECT * INTO v_import FROM public.tenant_marketing_manual_imports
@@ -824,6 +919,7 @@ BEGIN
      FOR UPDATE
   LOOP
     BEGIN
+      v_event_id := NULL;
       v_payload := v_row.payload_sanitized;
       v_attribution := v_payload->'attribution';
       IF jsonb_typeof(v_attribution) <> 'object' THEN RAISE EXCEPTION 'marketing_attribution_invalid'; END IF;
@@ -859,24 +955,30 @@ BEGIN
           WHERE tenant_marketing_ingestion_events.payload_hash=EXCLUDED.payload_hash
         RETURNING id INTO v_event_id;
         IF v_event_id IS NULL THEN RAISE EXCEPTION 'marketing_payload_idempotency_conflict'; END IF;
+        SELECT COALESCE(max(attempt_number),0)+1 INTO v_attempt
+          FROM public.tenant_marketing_ingestion_attempts WHERE ingestion_event_id=v_event_id;
+        INSERT INTO public.tenant_marketing_ingestion_attempts (
+          tenant_id,ingestion_event_id,attempt_number,attempt_kind,outcome,metadata
+        ) VALUES (_tenant_id,v_event_id,v_attempt,'ingestion','duplicate_detected',
+          jsonb_build_object('import_id',v_import.id,'row_number',v_row.row_number));
         UPDATE public.tenant_marketing_manual_import_rows
            SET state='duplicate_detected',duplicate_candidate_ids=v_candidates,
                ingestion_event_id=v_event_id,error_code='marketing_duplicate_detected',updated_at=now()
          WHERE id=v_row.id;
-        v_duplicate_count := v_duplicate_count + 1;
         CONTINUE;
       END IF;
 
       v_property_id := NULL;
       IF NULLIF(v_payload->>'propertyReference','') IS NOT NULL THEN
         IF v_payload->>'propertyReference' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
-          SELECT count(*),min(id) INTO v_property_count,v_property_id
+          SELECT COALESCE(array_agg(id),ARRAY[]::uuid[]),count(*) INTO v_property_ids,v_property_count
           FROM public.imoveis WHERE tenant_id=_tenant_id AND id=(v_payload->>'propertyReference')::uuid;
         ELSE
-          SELECT count(*),min(id) INTO v_property_count,v_property_id
+          SELECT COALESCE(array_agg(id),ARRAY[]::uuid[]),count(*) INTO v_property_ids,v_property_count
           FROM public.imoveis WHERE tenant_id=_tenant_id AND codigo=v_payload->>'propertyReference';
         END IF;
         IF v_property_count <> 1 THEN RAISE EXCEPTION 'marketing_property_reference_ambiguous_or_missing'; END IF;
+        v_property_id := v_property_ids[1];
       END IF;
 
       v_created := public.create_tenant_crm_lead(
@@ -900,8 +1002,23 @@ BEGIN
              fbclid=NULLIF(v_attribution->>'fbclid',''),
              landing_url=NULLIF(v_attribution->>'landingUrl',''),
              referrer=NULLIF(v_attribution->>'referrer',''),
+             version=version+1,
              updated_at=now()
-       WHERE id=v_lead_id AND tenant_id=_tenant_id;
+       WHERE id=v_lead_id AND tenant_id=_tenant_id
+       RETURNING version INTO v_lead_version;
+      IF v_lead_version IS NULL THEN RAISE EXCEPTION 'marketing_lead_attribution_update_failed'; END IF;
+
+      INSERT INTO public.crm_lead_events (
+        tenant_id,lead_id,actor_user_id,event_type,payload
+      ) VALUES (
+        _tenant_id,v_lead_id,_actor_user_id,'source_corrected',
+        jsonb_build_object(
+          'source','marketing_ingestion','connector_id',v_connector.id,
+          'channel_key',v_connector.channel_key,'import_id',v_import.id,
+          'row_number',v_row.row_number,'attribution',v_attribution,
+          'version',v_lead_version
+        )
+      );
 
       INSERT INTO public.tenant_marketing_ingestion_events (
         tenant_id,connector_id,channel_key,provider_payload_id,provider_account_reference,
@@ -920,23 +1037,27 @@ BEGIN
       RETURNING id INTO v_event_id;
       IF v_event_id IS NULL THEN RAISE EXCEPTION 'marketing_payload_idempotency_conflict'; END IF;
 
+      SELECT COALESCE(max(attempt_number),0)+1 INTO v_attempt
+        FROM public.tenant_marketing_ingestion_attempts WHERE ingestion_event_id=v_event_id;
       INSERT INTO public.tenant_marketing_ingestion_attempts (
         tenant_id,ingestion_event_id,attempt_number,attempt_kind,outcome,metadata
-      ) VALUES (_tenant_id,v_event_id,1,'ingestion','success',jsonb_build_object('lead_id',v_lead_id,'import_id',v_import.id,'row_number',v_row.row_number))
-      ON CONFLICT (tenant_id,ingestion_event_id,attempt_number) DO NOTHING;
+      ) VALUES (_tenant_id,v_event_id,v_attempt,'ingestion','success',
+        jsonb_build_object('lead_id',v_lead_id,'import_id',v_import.id,'row_number',v_row.row_number));
 
       UPDATE public.tenant_marketing_manual_import_rows
          SET state='lead_created',lead_id=v_lead_id,ingestion_event_id=v_event_id,error_code=NULL,updated_at=now()
        WHERE id=v_row.id;
       INSERT INTO public.audit_log (tenant_id,user_id,action,entity,entity_id,after)
       VALUES (_tenant_id,_actor_user_id,'marketing.lead_ingested','lead',v_lead_id,
-        jsonb_build_object('connector_id',v_connector.id,'channel_key',v_connector.channel_key,'import_id',v_import.id,'row_number',v_row.row_number,'ingestion_event_id',v_event_id));
-      v_created_count := v_created_count + 1;
+        jsonb_build_object(
+          'connector_id',v_connector.id,'channel_key',v_connector.channel_key,
+          'import_id',v_import.id,'row_number',v_row.row_number,
+          'ingestion_event_id',v_event_id,'lead_version',v_lead_version
+        ));
     EXCEPTION WHEN OTHERS THEN
       UPDATE public.tenant_marketing_manual_import_rows
-         SET state='failed',error_code=left(SQLERRM,200),updated_at=now()
+         SET state='failed',error_code=left(SQLSTATE || ':' || SQLERRM,200),updated_at=now()
        WHERE id=v_row.id;
-      v_failed_count := v_failed_count + 1;
     END;
   END LOOP;
 
