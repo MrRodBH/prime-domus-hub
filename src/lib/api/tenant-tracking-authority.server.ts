@@ -117,6 +117,7 @@ export function sanitizeTrackingConnector(row: TrackingConnectorRow): TrackingCo
   if (row.consent_category !== definition.consentCategory) {
     throw new Error("tracking_consent_category_mismatch");
   }
+  const registryBlocked = definition.availabilityState === "csp_blocked";
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -126,14 +127,14 @@ export function sanitizeTrackingConnector(row: TrackingConnectorRow): TrackingCo
     providerIdentifier,
     identifierType: definition.identifierType,
     schemaVersion: 1,
-    enabled: row.enabled === true,
+    enabled: registryBlocked ? false : row.enabled === true,
     consentCategory: row.consent_category,
     configurationVersion: Math.max(1, Number(row.configuration_version ?? 1)),
     eventBindingVersion: Math.max(1, Number(row.event_binding_version ?? 1)),
-    availabilityState: safeAvailability(row.availability_state),
+    availabilityState: registryBlocked ? "csp_blocked" : safeAvailability(row.availability_state),
     rowVersion: Math.max(1, Number(row.row_version ?? 1)),
     lastDiagnosticAt: row.last_diagnostic_at,
-    lastErrorCode: row.last_error_code,
+    lastErrorCode: registryBlocked ? "tracking_csp_blocked" : row.last_error_code,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -266,6 +267,7 @@ export function safeTenantTrackingError(error: unknown): Error {
     ["tracking_event_not_cataloged", "Evento de conversão não catalogado."],
     ["tracking_provider_identifier_invalid", "Identificador do provider inválido."],
     ["tracking_provider_identifier_required", "Identificador válido obrigatório para ativação."],
+    ["tracking_csp_blocked", "Provider bloqueado pelo contrato CSP e pela governança de tags."],
     ["tracking_revision_conflict", "O connector foi alterado; recarregue antes de continuar."],
     ["tracking_binding_revision_conflict", "Os event bindings foram alterados; recarregue antes de continuar."],
     ["tracking_consent_revision_conflict", "A configuração de consentimento foi alterada; recarregue."],
