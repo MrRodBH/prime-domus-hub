@@ -63,7 +63,7 @@ export interface TrackingProviderDefinition {
   cspContract: "external_origin_allowlist_no_inline_provider_script";
   nonceContract: "not_required_for_external_loader_module";
   diagnosticsContract: "sanitized_local_state_only";
-  availabilityState: "preview_ready";
+  availabilityState: "preview_ready" | "csp_blocked";
   rollbackContract: "disable_connector_remove_runtime_and_stop_future_dispatch";
 }
 
@@ -136,7 +136,7 @@ export const TRACKING_PROVIDER_REGISTRY = [
     cspContract: "external_origin_allowlist_no_inline_provider_script",
     nonceContract: "not_required_for_external_loader_module",
     diagnosticsContract: "sanitized_local_state_only",
-    availabilityState: "preview_ready",
+    availabilityState: "csp_blocked",
     rollbackContract: "disable_connector_remove_runtime_and_stop_future_dispatch",
   },
 ] as const satisfies readonly TrackingProviderDefinition[];
@@ -241,6 +241,12 @@ export function getTrackingEventDefinition(key: string): TrackingEventDefinition
   return definition;
 }
 
+export function assertTrackingProviderPublishable(providerKey: TrackingProviderKey): void {
+  if (getTrackingProviderDefinition(providerKey).availabilityState === "csp_blocked") {
+    throw new Error("tracking_csp_blocked");
+  }
+}
+
 export function validateTrackingIdentifier(providerKey: TrackingProviderKey, value: string): string {
   const normalized = value.trim().toUpperCase();
   const definition = getTrackingProviderDefinition(providerKey);
@@ -326,6 +332,9 @@ export const TrackingConnectorDraftSchema = z.object({
   }
   if (value.enabled && !value.providerIdentifier) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "tracking_provider_identifier_required" });
+  }
+  if (value.enabled && definition.availabilityState === "csp_blocked") {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "tracking_csp_blocked" });
   }
 });
 
