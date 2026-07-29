@@ -10,6 +10,7 @@ import type { Lead, Status } from "@/adapters/pipeline-legacy";
 import { ValorEstimadoEditor, DescarteDialog, PerdaDialog, formatBRL } from "@/adapters/pipeline-legacy";
 import { reabrirLead, transicionarLead } from "@/lib/api/leads-crm.functions";
 import { LeadHistoricoDialog } from "@/components/admin/LeadHistoricoDialog";
+import { CrmOperationsPanel } from "@/components/pipeline/CrmOperationsPanel";
 
 const STATUS_STYLES: Record<string, string> = {
   novo: "bg-red-500/15 text-red-600 dark:text-red-400",
@@ -165,6 +166,7 @@ export function LeadDetail({ lead, onClose }: { lead: Lead; onClose?: () => void
             {lead.mensagem || "—"}
           </p>
         </div>
+        <CrmOperationsPanel leadId={lead.id} />
       </div>
 
       <LeadHistoricoDialog
