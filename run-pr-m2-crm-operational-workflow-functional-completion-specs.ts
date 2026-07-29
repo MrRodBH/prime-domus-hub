@@ -45,6 +45,7 @@ const files = {
   registry: readFileSync("src/lib/crm/crm-registry.ts", "utf8"),
   authority: readFileSync("src/lib/api/tenant-crm-authority.server.ts", "utf8"),
   functions: readFileSync("src/lib/api/tenant-crm.functions.ts", "utf8"),
+  management: readFileSync("src/lib/api/tenant-crm-management.functions.ts", "utf8"),
   compatibility: readFileSync("src/lib/api/tenant-crm-compat.functions.ts", "utf8"),
   legacyCompatibility: readFileSync("src/lib/api/leads-crm.functions.ts", "utf8"),
   adminBarrel: readFileSync("src/lib/api/admin.functions.ts", "utf8"),
@@ -78,7 +79,9 @@ for (const key of TASK_STATUS_KEYS) {
   equal(TASK_STATUS_REGISTRY[key].key, key, `${key}:stable task status`);
   ok(Array.isArray(TASK_STATUS_REGISTRY[key].allowedTargets), `${key}:targets`);
 }
-for (const key of QUALIFICATION_KEYS) equal(QUALIFICATION_REGISTRY[key].key, key, `${key}:stable qualification`);
+for (const key of QUALIFICATION_KEYS) {
+  equal(QUALIFICATION_REGISTRY[key].key, key, `${key}:stable qualification`);
+}
 for (const key of ASSIGNMENT_STRATEGY_KEYS) {
   equal(ASSIGNMENT_STRATEGY_REGISTRY[key].key, key, `${key}:stable assignment strategy`);
   equal(ASSIGNMENT_STRATEGY_REGISTRY[key].automation, false, `${key}:no heuristic automation`);
@@ -143,7 +146,11 @@ equal(leadTagsIntentSchema.safeParse({ leadId: uuid, tagIds: [uuid2, uuid3], exp
 equal(leadTagsIntentSchema.safeParse({ leadId: uuid, tagIds: ["bad"], expectedVersion: 1, idempotencyKey: "tag-key-1" }).success, false, "invalid tag id");
 
 // Canonical authorization and server wrappers.
-for (const token of ["resolveEffectiveTenantPermission", "trustedTenantAccessContext", "requireTenantScopedAuthority", "CRM_MODULE_CODE", '"proprio"', '"equipe"', '"global"', "super_admin_impersonation", "tenant_owner"]) has(files.authority, token);
+for (const token of [
+  "resolveEffectiveTenantPermission", "trustedTenantAccessContext", "requireTenantScopedAuthority",
+  "CRM_MODULE_CODE", '"proprio"', '"equipe"', '"global"', "super_admin_impersonation",
+  "tenant_owner", '"tag.manage"', '"pipeline.manage"',
+]) has(files.authority, token);
 lacks(files.authority, '.rpc("has_role"', "legacy role RPC");
 lacks(files.authority, '.from("user_roles")', "global role table authority");
 lacks(files.authority, "ORDER BY", "ordering authority");
@@ -164,6 +171,13 @@ lacks(files.functions, '.from("user_roles")', "global role authority");
 lacks(files.functions, "@ts-ignore", "ts-ignore");
 lacks(files.functions, "@ts-nocheck", "ts-nocheck");
 
+for (const token of [
+  "listTenantCrmTags", "createTenantCrmTag", "setTenantCrmPipelineState",
+  "create_tenant_crm_tag", "set_tenant_crm_pipeline_state", "scope !== \"global\"",
+]) has(files.management, token);
+lacks(files.management, '.from("crm_tags").insert', "direct tag mutation");
+lacks(files.management, '.from("crm_pipelines").update', "direct pipeline mutation");
+
 // Narrow compatibility and active barrel cutover.
 for (const token of ["canonical Tenant CRM authority", "get_tenant_crm_lead_aggregate", "update_tenant_crm_lead", "create_tenant_crm_lead", "row_version"]) has(files.compatibility, token);
 lacks(files.compatibility, '.from("leads").update', "compat direct update");
@@ -175,27 +189,33 @@ lacks(files.legacyCompatibility, "generateObject", "generated external insight")
 lacks(files.legacyCompatibility, '.from("leads")', "legacy direct Lead table access");
 for (const token of ['from "./tenant-crm-compat.functions"', "adminListarLeads", "adminListarLeadAssignees", "adminListarImoveisLite", "adminAtualizarLead", "criarLeadManual"]) has(files.adminBarrel, token);
 
-// Schema, OCC, scopes, timeline, idempotency and ACL.
+// Schema, default pipeline binding, OCC, scopes, timeline, idempotency and ACL.
 for (const token of [
   "crm_pipelines", "crm_pipeline_stages", "crm_lead_events", "crm_lead_assignments",
   "crm_lead_tasks", "crm_tags", "crm_lead_tags", "crm_idempotency",
   "pipeline_id", "stage_id", "assigned_team_id", "qualification_key", "normalized_email",
   "normalized_phone", "original_attribution", "latest_attribution", "merge_state",
   "ux_crm_pipelines_one_default", "ux_crm_pipeline_stages_status", "ux_crm_pipeline_stages_position",
-  "crm_pipeline_backfill_incomplete",
+  "crm_pipeline_backfill_incomplete", "crm_bind_lead_pipeline", "crm_bind_lead_pipeline_trigger",
+  "ALTER COLUMN pipeline_id SET NOT NULL", "ALTER COLUMN stage_id SET NOT NULL",
 ]) has(files.migration, token);
 for (const token of [
-  "crm_resolve_scope", "crm_scope_allows_lead", "crm_idempotent_response",
+  "crm_resolve_scope", "crm_scope_allows_lead", "crm_scope_allows_user_target",
+  "crm_scope_allows_team_target", "crm_idempotent_response", "pg_advisory_xact_lock",
   "list_tenant_crm_leads", "get_tenant_crm_lead_aggregate", "create_tenant_crm_lead",
   "update_tenant_crm_lead", "transition_tenant_crm_lead", "assign_tenant_crm_lead",
   "create_tenant_crm_task", "transition_tenant_crm_task", "add_tenant_crm_note",
-  "set_tenant_crm_tags", "find_tenant_crm_duplicates", "get_tenant_crm_diagnostics",
+  "set_tenant_crm_tags", "find_tenant_crm_duplicates", "set_tenant_crm_pipeline_state",
+  "create_tenant_crm_tag", "get_tenant_crm_diagnostics",
 ]) has(files.migration, token);
 for (const token of [
   "FOR UPDATE", "crm_version_conflict", "crm_idempotency_conflict", "crm_invalid_transition",
   "crm_invalid_task_transition", "crm_scope_denied", "crm_cross_tenant_reference",
   "membership_status = 'active'", "team_members", "assigned_to = _actor_user_id",
-  "INSERT INTO public.audit_log", "INSERT INTO public.crm_lead_events", "crm_append_only_violation",
+  "v_from_user := v_lead.assigned_to", "v_from_team := v_lead.assigned_team_id",
+  "from_user_id, to_user_id", "from_team_id, to_team_id",
+  "INSERT INTO public.audit_log", "INSERT INTO public.crm_lead_events",
+  "crm_append_only_violation", "crm_assignee_required",
 ]) has(files.migration, token);
 for (const token of [
   "ENABLE ROW LEVEL SECURITY", "REVOKE ALL ON TABLE", "FROM PUBLIC, anon, authenticated",
@@ -222,10 +242,11 @@ lacks(files.pipelineHook, '.from("leads")', "client Lead access");
 lacks(files.pipelinePage, '.from("leads")', "pipeline direct mutation");
 lacks(files.leadDetail, '.from("leads")', "detail direct mutation");
 
-// PTW-01 remains the single public authority.
+// PTW-01 remains the single public authority; trigger performs exact 1-of-1 binding.
 for (const token of ["requirePublicTenantFromRequest", "requirePublicWriterTenantFromRequest", "public_tenant_unresolved", "resource_ambiguous", "resource_foreign_tenant"]) has(files.ptwAuthority, token);
 lacks(files.migration, "public_create_tenant_crm_lead", "second public writer");
+has(files.migration, "every new PTW-01 lead", "PTW pipeline binding contract");
 
-ok(assertions >= 240, `expected >= 240 assertions, got ${assertions}`);
+ok(assertions >= 260, `expected >= 260 assertions, got ${assertions}`);
 console.log(`PR_M2_CRM_OPERATIONAL_WORKFLOW_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_CRM_OPERATIONAL_WORKFLOW_SPECS=PASS");
