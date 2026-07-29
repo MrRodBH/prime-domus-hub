@@ -8,318 +8,82 @@ import {
   type PublicWriterTenantIdentity,
 } from "@/lib/public-writers/public-writer-authority.server";
 import { writePublicLead } from "@/lib/public-writers/public-lead-writer.server";
+import {
+  getTenantForm,
+  listTenantForms,
+} from "@/lib/api/tenant-cms.functions";
+import { authorizeTenantFormOperation } from "@/lib/api/tenant-cms-authority.server";
 
-// ============================================================================
-// ADMIN — CRUD de formulários com autoridade tenant-scoped explícita.
-// ============================================================================
-
-export const listarFormulariosAdmin = createServerFn({ method: "GET" })
-  .middleware([requireTenant])
-  .handler(async ({ context }) => {
-    const { assertCmsTenantPermission } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.formularios",
-      "visualizar",
-    );
-    const { data, error } = await context.supabase
-      .from("cms_forms")
-      .select("id, nome, slug, status, descricao, config, created_at, updated_at")
-      .eq("tenant_id", tenantId)
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
-
-export const obterFormularioAdmin = createServerFn({ method: "POST" })
-  .middleware([requireTenant])
-  .inputValidator((raw) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.formularios",
-      "visualizar",
-    );
-    const { data: form, error } = await context.supabase
-      .from("cms_forms")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!form) throw new Error("Formulário não encontrado");
-
-    const { data: fields, error: fieldsError } = await context.supabase
-      .from("cms_form_fields")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .eq("form_id", data.id)
-      .order("ordem", { ascending: true });
-    if (fieldsError) throw new Error(fieldsError.message);
-    return { form, fields: fields ?? [] };
-  });
-
-const formPayloadSchema = z.object({
-  id: z.string().uuid().optional(),
-  nome: z.string().min(1).max(200),
-  slug: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/, "Slug deve conter apenas letras minúsculas, números e hífens"),
-  status: z.enum(["draft", "published", "archived"]),
-  descricao: z.string().nullable().optional(),
-  config: z
-    .object({
-      success_message: z.string().optional(),
-      redirect_url: z.string().optional(),
-      submit_button_label: z.string().optional(),
-      notify_emails: z.array(z.string().email()).optional(),
-      criar_lead: z.boolean().optional(),
-      lead_origem_slug: z.string().optional(),
-      webhook_url: z.string().url().optional().or(z.literal("")),
-      map_nome: z.string().optional(),
-      map_email: z.string().optional(),
-      map_telefone: z.string().optional(),
-      map_mensagem: z.string().optional(),
-    })
-    .default({}),
-});
+/**
+ * Admin compatibility exports. Reads delegate to the canonical workflow;
+ * independent form/field mutations are retired fail-closed because the form
+ * definition is one atomic versioned snapshot.
+ */
+export const listarFormulariosAdmin = listTenantForms;
+export const obterFormularioAdmin = getTenantForm;
 
 export const salvarFormulario = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((raw) => formPayloadSchema.parse(raw))
-  .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
-    const { supabase, userId } = context;
-    const wantsPublish = data.status === "published";
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.formularios",
-      data.id ? "editar" : "criar",
-    );
-    if (wantsPublish) {
-      await assertCmsTenantPermission(context, "cms.formularios", "publicar");
-    }
+  .inputValidator(z.record(z.string(), z.unknown()))
+  .handler(async () => {
+    throw new Error("legacy_cms_form_mutation_retired");
+  });
 
-    if (data.id) {
-      const { data: before, error: beforeError } = await supabase
-        .from("cms_forms")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .eq("id", data.id)
-        .maybeSingle();
-      if (beforeError) throw new Error(beforeError.message);
-      if (!before) throw new Error("Formulário não encontrado");
-
-      const { data: row, error } = await supabase
-        .from("cms_forms")
-        .update({
-          nome: data.nome,
-          slug: data.slug,
-          status: data.status,
-          descricao: data.descricao ?? null,
-          config: data.config,
-        })
-        .eq("tenant_id", tenantId)
-        .eq("id", data.id)
-        .select("*")
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      if (!row) throw new Error("Formulário não encontrado");
-      await logCmsAudit(
-        context,
-        "cms_forms",
-        wantsPublish ? "cms.formulario.publicar" : "cms.formulario.editar",
-        data.id,
-        before,
-        row,
-      );
-      return { id: data.id };
-    }
-
-    const { data: row, error } = await supabase
-      .from("cms_forms")
-      .insert({
-        tenant_id: tenantId,
-        nome: data.nome,
-        slug: data.slug,
-        status: data.status,
-        descricao: data.descricao ?? null,
-        config: data.config,
-        created_by: userId,
-      })
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "cms_forms", "cms.formulario.criar", row.id as string, null, row);
-    return { id: row.id as string };
+export const salvarCampos = createServerFn({ method: "POST" })
+  .middleware([requireTenant])
+  .inputValidator(z.record(z.string(), z.unknown()))
+  .handler(async () => {
+    throw new Error("legacy_cms_form_fields_mutation_retired");
   });
 
 export const excluirFormulario = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((raw) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.formularios",
-      "excluir",
-    );
-    const { data: before, error: beforeError } = await context.supabase
-      .from("cms_forms")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (beforeError) throw new Error(beforeError.message);
-    if (!before) throw new Error("Formulário não encontrado");
-
-    const { error } = await context.supabase
-      .from("cms_forms")
-      .delete()
-      .eq("tenant_id", tenantId)
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "cms_forms", "cms.formulario.excluir", data.id, before, null);
-    return { ok: true };
+  .inputValidator(z.object({ id: z.string().uuid() }).strict())
+  .handler(async () => {
+    throw new Error("legacy_cms_form_delete_retired");
   });
-
-const fieldsPayloadSchema = z.object({
-  form_id: z.string().uuid(),
-  fields: z.array(
-    z.object({
-      id: z.string().uuid().optional(),
-      ordem: z.number().int().min(0),
-      tipo: z.enum(["text", "textarea", "email", "phone", "number", "date", "select", "radio", "checkbox", "file", "hidden"]),
-      nome: z.string().min(1).max(80).regex(/^[a-z0-9_]+$/, "Use apenas letras minúsculas, números e underscore"),
-      label: z.string().min(1).max(200),
-      placeholder: z.string().max(200).optional().nullable(),
-      ajuda: z.string().max(500).optional().nullable(),
-      obrigatorio: z.boolean(),
-      opcoes: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
-      validacao: z
-        .object({
-          min: z.number().optional(),
-          max: z.number().optional(),
-          minLength: z.number().optional(),
-          maxLength: z.number().optional(),
-          regex: z.string().optional(),
-          mascara: z.string().optional(),
-        })
-        .default({}),
-      valor_padrao: z.string().nullable().optional(),
-      largura: z.enum(["full", "half", "third"]).default("full"),
-    }),
-  ),
-});
-
-export const salvarCampos = createServerFn({ method: "POST" })
-  .middleware([requireTenant])
-  .inputValidator((raw) => fieldsPayloadSchema.parse(raw))
-  .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.formularios",
-      "editar",
-    );
-    const { supabase } = context;
-
-    const { data: form, error: formError } = await supabase
-      .from("cms_forms")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("id", data.form_id)
-      .maybeSingle();
-    if (formError) throw new Error(formError.message);
-    if (!form) throw new Error("Formulário não encontrado");
-
-    const { data: before, error: beforeError } = await supabase
-      .from("cms_form_fields")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .eq("form_id", data.form_id);
-    if (beforeError) throw new Error(beforeError.message);
-
-    const { error: e1 } = await supabase
-      .from("cms_form_fields")
-      .delete()
-      .eq("tenant_id", tenantId)
-      .eq("form_id", data.form_id);
-    if (e1) throw new Error(e1.message);
-
-    if (data.fields.length) {
-      const rows = data.fields.map((f) => ({
-        tenant_id: tenantId,
-        form_id: data.form_id,
-        ordem: f.ordem,
-        tipo: f.tipo,
-        nome: f.nome,
-        label: f.label,
-        placeholder: f.placeholder ?? null,
-        ajuda: f.ajuda ?? null,
-        obrigatorio: f.obrigatorio,
-        opcoes: f.opcoes,
-        validacao: f.validacao,
-        valor_padrao: f.valor_padrao ?? null,
-        largura: f.largura,
-      }));
-      const { error: e2 } = await supabase.from("cms_form_fields").insert(rows);
-      if (e2) throw new Error(e2.message);
-    }
-    await logCmsAudit(
-      context,
-      "cms_form_fields",
-      "cms.formulario.campos.editar",
-      data.form_id,
-      before,
-      data.fields,
-    );
-    return { ok: true };
-  });
-
-// ============================================================================
-// ADMIN — submissões
-// ============================================================================
 
 export const listarSubmissoes = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((raw) =>
-    z.object({ form_id: z.string().uuid().optional(), page: z.number().int().min(0).default(0), pageSize: z.number().int().min(1).max(100).default(50) }).parse(raw ?? {}),
+    z.object({
+      form_id: z.string().uuid().optional(),
+      page: z.number().int().min(0).default(0),
+      pageSize: z.number().int().min(1).max(100).default(50),
+    }).strict().parse(raw ?? {}),
   )
   .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.formularios",
-      "visualizar",
+    const auth = await authorizeTenantFormOperation(
+      { userId: context.userId, tenant: context.tenant },
+      "read",
     );
-    const from = data.page * data.pageSize;
-    const to = from + data.pageSize - 1;
-
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.form_id) {
-      const { data: form, error: formError } = await context.supabase
+      const { data: form, error } = await (supabaseAdmin as any)
         .from("cms_forms")
         .select("id")
-        .eq("tenant_id", tenantId)
+        .eq("tenant_id", auth.tenantId)
         .eq("id", data.form_id)
-        .maybeSingle();
-      if (formError) throw new Error(formError.message);
-      if (!form) throw new Error("Formulário não encontrado");
+        .limit(2);
+      if (error) throw new Error(error.message);
+      if (!Array.isArray(form) || form.length !== 1) throw new Error("cms_form_not_found");
     }
-
-    let q = context.supabase
+    const from = data.page * data.pageSize;
+    const to = from + data.pageSize - 1;
+    let query = (supabaseAdmin as any)
       .from("form_submissions")
       .select("*", { count: "exact" })
-      .eq("tenant_id", tenantId)
+      .eq("tenant_id", auth.tenantId)
       .order("created_at", { ascending: false });
-    if (data.form_id) q = q.eq("form_id", data.form_id);
-    const { data: rows, count, error } = await q.range(from, to);
+    if (data.form_id) query = query.eq("form_id", data.form_id);
+    const { data: rows, count, error } = await query.range(from, to);
     if (error) throw new Error(error.message);
     return { items: rows ?? [], total: count ?? 0 };
   });
 
-// ============================================================================
-// PUBLIC — leitura de form publicado + submissão anônima
-// ============================================================================
+// ---------------------------------------------------------------------------
+// Public form reader and writer — preserved Host-derived authority.
+// ---------------------------------------------------------------------------
 
 type PublicFormConfig = {
   success_message?: string;
@@ -333,6 +97,7 @@ type PublicFormConfig = {
   map_email?: string;
   map_telefone?: string;
   map_mensagem?: string;
+  consent_required?: boolean;
 };
 
 type PublicFieldValidation = {
@@ -353,6 +118,7 @@ type PublicFormRow = {
   slug: string;
   descricao?: string | null;
   status?: string;
+  published_version_id?: string | null;
   config: PublicFormConfig;
 };
 
@@ -378,17 +144,18 @@ async function loadPublishedForm(input: {
   allowZero: boolean;
 }): Promise<PublicFormRow | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from("cms_forms")
-    .select("id, tenant_id, nome, slug, descricao, status, config")
+    .select("id, tenant_id, nome, slug, descricao, status, config, published_version_id")
     .eq("tenant_id", input.tenant.id)
     .eq("slug", input.slug)
     .eq("status", "published")
+    .not("published_version_id", "is", null)
     .limit(2);
   if (error) throw new Error(error.message);
   return selectExactlyOneTenantScopedRow(
     input.tenant,
-    data as unknown as PublicFormRow[] | null,
+    data as PublicFormRow[] | null,
     {
       allowZero: input.allowZero,
       zeroMessage: "Formulário não encontrado ou não publicado.",
@@ -403,21 +170,18 @@ async function loadPublicFields(input: {
   projection: string;
 }): Promise<PublicFieldRow[]> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from("cms_form_fields")
     .select(input.projection)
     .eq("tenant_id", input.tenant.id)
     .eq("form_id", input.formId)
     .order("ordem", { ascending: true });
   if (error) throw new Error(error.message);
-  return assertTenantScopedCollection(
-    input.tenant,
-    data as unknown as PublicFieldRow[] | null,
-  );
+  return assertTenantScopedCollection(input.tenant, data as PublicFieldRow[] | null);
 }
 
 export const obterFormPublicoPorSlug = createServerFn({ method: "POST" })
-  .inputValidator((raw) => z.object({ slug: z.string().min(1) }).strict().parse(raw))
+  .inputValidator((raw) => z.object({ slug: z.string().min(1).max(120) }).strict().parse(raw))
   .handler(async ({ data }) => {
     const tenant = await requirePublicWriterTenantFromRequest();
     const form = await loadPublishedForm({ tenant, slug: data.slug, allowZero: true });
@@ -432,8 +196,11 @@ export const obterFormPublicoPorSlug = createServerFn({ method: "POST" })
 
 const submitSchema = z
   .object({
-    form_slug: z.string().min(1),
-    dados: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), z.null()])),
+    form_slug: z.string().min(1).max(120),
+    dados: z.record(
+      z.string(),
+      z.union([z.string().max(20_000), z.number(), z.boolean(), z.array(z.string().max(2_000)).max(100), z.null()]),
+    ).refine((value) => JSON.stringify(value).length <= 200_000, "Payload de formulário excede o limite."),
     consent_lgpd: z.literal(true, { errorMap: () => ({ message: "Aceite a Política de Privacidade." }) }),
     utm_source: z.string().max(200).optional(),
     utm_medium: z.string().max(200).optional(),
@@ -454,6 +221,9 @@ export const submeterFormulario = createServerFn({ method: "POST" })
     const tenant = await requirePublicWriterTenantFromRequest();
     const form = await loadPublishedForm({ tenant, slug: data.form_slug, allowZero: false });
     if (!form) throw new Error("Formulário não encontrado ou não publicado.");
+    if (form.config.consent_required && data.consent_lgpd !== true) {
+      throw new Error("Consentimento obrigatório não informado.");
+    }
     const fields = await loadPublicFields({
       tenant,
       formId: form.id,
@@ -466,8 +236,12 @@ export const submeterFormulario = createServerFn({ method: "POST" })
       if (field.obrigatorio && empty) throw new Error(`Campo obrigatório: ${field.nome}`);
       if (!empty && typeof value === "string") {
         const validation = field.validacao || {};
-        if (typeof validation.minLength === "number" && value.length < validation.minLength) throw new Error(`${field.nome}: mínimo ${validation.minLength} caracteres`);
-        if (typeof validation.maxLength === "number" && value.length > validation.maxLength) throw new Error(`${field.nome}: máximo ${validation.maxLength} caracteres`);
+        if (typeof validation.minLength === "number" && value.length < validation.minLength) {
+          throw new Error(`${field.nome}: mínimo ${validation.minLength} caracteres`);
+        }
+        if (typeof validation.maxLength === "number" && value.length > validation.maxLength) {
+          throw new Error(`${field.nome}: máximo ${validation.maxLength} caracteres`);
+        }
         if (typeof validation.regex === "string" && validation.regex) {
           let regex: RegExp;
           try {
@@ -477,7 +251,9 @@ export const submeterFormulario = createServerFn({ method: "POST" })
           }
           if (!regex.test(value)) throw new Error(`${field.nome}: formato inválido`);
         }
-        if (field.tipo === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new Error(`${field.nome}: e-mail inválido`);
+        if (field.tipo === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          throw new Error(`${field.nome}: e-mail inválido`);
+        }
       }
     }
 
@@ -558,17 +334,8 @@ export const submeterFormulario = createServerFn({ method: "POST" })
       }
     }
 
-    if (config.webhook_url) {
-      try {
-        void fetch(config.webhook_url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ form: form.slug, dados: data.dados, tenant_id: tenant.id, lead_id: leadId }),
-        }).catch(() => undefined);
-      } catch {
-        // Webhook transport is non-blocking after authority and persistence succeed.
-      }
-    }
-
+    // Webhook legado permanece explicitamente desativado no novo contrato: a
+    // futura integração deve ser job/credential-reference auditável, nunca URL
+    // arbitrária executada no request público.
     return { ok: true, message: config.success_message || "Mensagem enviada! Retornaremos em breve." };
   });
