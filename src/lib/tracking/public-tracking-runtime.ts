@@ -1,4 +1,5 @@
 import {
+  assertTrackingProviderPublishable,
   getTrackingEventDefinition,
   getTrackingProviderDefinition,
   parseTrackingEventPayload,
@@ -107,20 +108,13 @@ async function loadGoogleAnalytics(identifier: string): Promise<void> {
   gtag("config", identifier, { send_page_view: false, allow_google_signals: false });
 }
 
-async function loadGoogleTagManager(identifier: string): Promise<void> {
-  const target = trackingWindow();
-  target.dataLayer = target.dataLayer ?? [];
-  target.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
-  await appendExternalScript({
-    id: SCRIPT_ID.GOOGLE_TAG_MANAGER,
-    src: `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(identifier)}`,
-    allowedOrigin: "https://www.googletagmanager.com",
-  });
-}
-
 export async function ensureTrackingProviderLoaded(
   connector: PublicTrackingConnectorDto,
 ): Promise<"provider_runtime_loaded"> {
+  const definition = getTrackingProviderDefinition(connector.providerKey);
+  assertTrackingProviderPublishable(definition.providerKey);
+  if (connector.availabilityState === "csp_blocked") throw new Error("tracking_csp_blocked");
+
   const target = trackingWindow();
   target.__rmPrimeTrackingLoaded = target.__rmPrimeTrackingLoaded ?? {};
   const loadedIdentifier = target.__rmPrimeTrackingLoaded[connector.providerKey];
@@ -128,10 +122,9 @@ export async function ensureTrackingProviderLoaded(
   if (loadedIdentifier && loadedIdentifier !== connector.providerIdentifier) {
     throw new Error("tracking_duplicate_provider_configuration");
   }
-  getTrackingProviderDefinition(connector.providerKey);
   if (connector.providerKey === "META_PIXEL") await loadMetaPixel(connector.providerIdentifier);
   if (connector.providerKey === "GOOGLE_ANALYTICS") await loadGoogleAnalytics(connector.providerIdentifier);
-  if (connector.providerKey === "GOOGLE_TAG_MANAGER") await loadGoogleTagManager(connector.providerIdentifier);
+  if (connector.providerKey === "GOOGLE_TAG_MANAGER") throw new Error("tracking_csp_blocked");
   target.__rmPrimeTrackingLoaded[connector.providerKey] = connector.providerIdentifier;
   return "provider_runtime_loaded";
 }
@@ -155,8 +148,7 @@ function dispatchToProvider(
     target.gtag("event", providerEvent, payload);
     return;
   }
-  target.dataLayer = target.dataLayer ?? [];
-  target.dataLayer.push({ event: providerEvent, ...payload });
+  throw new Error("tracking_csp_blocked");
 }
 
 export async function dispatchCataloguedTrackingEvent(input: {
@@ -172,12 +164,17 @@ export async function dispatchCataloguedTrackingEvent(input: {
   for (const connector of input.snapshot.connectors) {
     const binding = connector.bindings.find((item) => item.eventKey === input.eventKey);
     if (!binding?.enabled || !definition.providerMappings[connector.providerKey]) continue;
-    if (!trackingConsentAllows(input.consent, connector.consentCategory)) {
-      providerResults.push({ providerKey: connector.providerKey, state: "consent_required", errorCode: null });
+    const providerDefinition = getTrackingProviderDefinition(connector.providerKey);
+    if (providerDefinition.availabilityState === "csp_blocked" || connector.availabilityState === "csp_blocked") {
+      providerResults.push({
+        providerKey: connector.providerKey,
+        state: "csp_blocked",
+        errorCode: "tracking_csp_blocked",
+      });
       continue;
     }
-    if (connector.availabilityState === "csp_blocked") {
-      providerResults.push({ providerKey: connector.providerKey, state: "csp_blocked", errorCode: "tracking_csp_blocked" });
+    if (!trackingConsentAllows(input.consent, connector.consentCategory)) {
+      providerResults.push({ providerKey: connector.providerKey, state: "consent_required", errorCode: null });
       continue;
     }
     if (connector.availabilityState !== "active" && connector.availabilityState !== "preview_ready") {
@@ -189,10 +186,11 @@ export async function dispatchCataloguedTrackingEvent(input: {
       dispatchToProvider(connector, input.eventKey, payload);
       providerResults.push({ providerKey: connector.providerKey, state: "dispatch_attempted", errorCode: null });
     } catch (error) {
+      const errorCode = error instanceof Error ? error.message.slice(0, 120) : "tracking_runtime_failed";
       providerResults.push({
         providerKey: connector.providerKey,
-        state: "failed",
-        errorCode: error instanceof Error ? error.message.slice(0, 120) : "tracking_runtime_failed",
+        state: errorCode === "tracking_csp_blocked" ? "csp_blocked" : "failed",
+        errorCode,
       });
     }
   }
