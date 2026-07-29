@@ -59,6 +59,7 @@ run("PR-M2 — tenant lifecycle specifications", "bun", ["run", "test:pr-m2:tena
 run("PR-M2 — tenant access control specifications", "bun", ["run", "test:pr-m2:tenant-access-control"]);
 run("PR-M2 — Configuration Center specifications", "bun", ["run", "test:pr-m2:configuration-center"]);
 run("PR-M2 — Portal functional completion specifications", "bun", ["run", "test:pr-m2:portal-functional-completion"]);
+run("PR-M2 — CMS workflow functional completion specifications", "bun", ["run", "test:pr-m2:cms-workflow-functional-completion"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -102,6 +103,7 @@ console.log(JSON.stringify({
   prM2TenantAccessControlSpecsPassed: true,
   prM2ConfigurationCenterSpecsPassed: true,
   prM2PortalFunctionalCompletionSpecsPassed: true,
+  prM2CmsWorkflowFunctionalCompletionSpecsPassed: true,
   leadAuthorizationUnitSpecsPassed: true,
   leadRuntimeOperationSpecsPassed: true,
   leadStructuralSpecsPassed: true,
