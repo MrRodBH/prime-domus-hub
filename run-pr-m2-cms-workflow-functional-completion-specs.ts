@@ -15,9 +15,13 @@ import {
   TEMPLATE_REGISTRY,
   campaignSnapshotSchema,
   formSnapshotSchema,
-  getCmsRegistrySnapshot,
   validateCmsPageSnapshot,
 } from "./src/lib/cms/cms-registry";
+import {
+  CMS_EXTENSION_CONTRACT_DIMENSIONS,
+  CMS_EXTENSION_CONTRACTS,
+  assertCompleteCmsExtensionContracts,
+} from "./src/lib/cms/cms-extension-contracts";
 
 let assertions = 0;
 function ok(value: unknown, message: string): void {
@@ -38,6 +42,7 @@ function lacks(source: string, token: string, message = token): void {
 const files = {
   migration: readFileSync("supabase/migrations/20260729183000_pr_m2_cms_workflow_functional_completion.sql", "utf8"),
   registry: readFileSync("src/lib/cms/cms-registry.ts", "utf8"),
+  extensionContracts: readFileSync("src/lib/cms/cms-extension-contracts.ts", "utf8"),
   authority: readFileSync("src/lib/api/tenant-cms-authority.server.ts", "utf8"),
   functions: readFileSync("src/lib/api/tenant-cms.functions.ts", "utf8"),
   pageAdapter: readFileSync("src/components/content/adapters/usePageAdapter.ts", "utf8"),
@@ -90,9 +95,33 @@ for (const key of EDITOR_CONTROL_KEYS) {
 for (const definition of Object.values(CONTENT_TYPE_REGISTRY)) {
   ok(definition.workflow.length >= 3, `${definition.key}:workflow`);
 }
-for (const contract of Object.values(getCmsRegistrySnapshot().extensionContracts)) {
-  ok(contract.length >= 7, "extension contract completeness");
+
+equal(assertCompleteCmsExtensionContracts(), true, "extension contracts are complete");
+for (const [key, contract] of Object.entries(CMS_EXTENSION_CONTRACTS)) {
+  equal(contract.key, key, `${key}:contract key`);
+  for (const dimension of CMS_EXTENSION_CONTRACT_DIMENSIONS) {
+    const value = contract[dimension];
+    ok(
+      typeof value === "string" ? value.trim().length > 0 : value.length > 0,
+      `${key}:${dimension}`,
+    );
+  }
 }
+for (const token of [
+  "NEW_PAGE_TYPE",
+  "NEW_SECTION_TYPE",
+  "NEW_LAYOUT",
+  "NEW_TEMPLATE",
+  "NEW_CONTENT_TYPE",
+  "NEW_EDITOR_CONTROL",
+  "NEW_TENANT_CONFIGURATION",
+  "authorization",
+  "persistence",
+  "rollback",
+  "compatibility",
+  "diagnostics",
+  "cardinality",
+]) has(files.extensionContracts, token, `extension contract ${token}`);
 
 // Closed snapshot validation.
 const ids = {
@@ -226,6 +255,6 @@ has(files.helper, "authorizeTenantCmsOperation");
 lacks(files.helper, '.rpc("has_role"', "role authority");
 lacks(files.helper, '.rpc("is_super_admin"', "global super admin authority");
 
-ok(assertions >= 180, `expected >= 180 assertions, got ${assertions}`);
+ok(assertions >= 280, `expected >= 280 assertions, got ${assertions}`);
 console.log(`PR_M2_CMS_WORKFLOW_FUNCTIONAL_COMPLETION_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_CMS_WORKFLOW_FUNCTIONAL_COMPLETION_SPECS=PASS");
