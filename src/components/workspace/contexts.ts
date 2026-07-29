@@ -90,8 +90,11 @@ export const CONTEXTS: WorkspaceContext[] = [
     label: "Distribuição",
     icon: Radio,
     root: "/admin/portais",
-    matches: ["/admin/portais"],
-    subs: [{ label: "Portais", to: "/admin/portais" }],
+    matches: ["/admin/portais", "/admin/marketing"],
+    subs: [
+      { label: "Portais", to: "/admin/portais" },
+      { label: "Marketing", to: "/admin/marketing" },
+    ],
   },
   {
     id: "administracao",
