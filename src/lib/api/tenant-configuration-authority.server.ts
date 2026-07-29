@@ -1,12 +1,14 @@
 import type { TenantContext } from "@/integrations/supabase/tenant-middleware";
+import type { Json } from "@/integrations/supabase/types";
 import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
 import { resolveEffectiveTenantPermission } from "@/lib/api/tenant-access-control-authority.server";
 import {
   CONFIGURATION_MEDIA_KEYS,
   normalizeConfigurationSnapshot,
   publicConfigurationSnapshot,
-  type ConfigurationSnapshot,
 } from "@/lib/api/configuration-registry";
+
+export type SerializableConfigurationSnapshot = Record<string, Json>;
 
 export type TrustedTenantConfigurationContext = {
   userId: string;
@@ -21,7 +23,7 @@ export type TenantConfigurationVersionDto = {
   revision: number;
   basedOnRevision: number | null;
   status: "draft" | "published" | "archived";
-  snapshot: ConfigurationSnapshot;
+  snapshot: SerializableConfigurationSnapshot;
   notes: string | null;
   createdBy: string | null;
   createdAt: string;
@@ -33,9 +35,13 @@ export type TenantConfigurationState = {
   tenantId: string;
   published: TenantConfigurationVersionDto | null;
   draft: TenantConfigurationVersionDto | null;
-  effectiveSnapshot: ConfigurationSnapshot;
+  effectiveSnapshot: SerializableConfigurationSnapshot;
   expectedRevision: number;
 };
+
+function asSerializableSnapshot(value: unknown): SerializableConfigurationSnapshot {
+  return normalizeConfigurationSnapshot(value) as unknown as SerializableConfigurationSnapshot;
+}
 
 function trustedPermissionContext(context: TrustedTenantConfigurationContext) {
   return { userId: context.userId, tenant: context.tenant };
@@ -72,7 +78,7 @@ function parseVersionRow(row: any): TenantConfigurationVersionDto {
     revision,
     basedOnRevision: row.based_on_revision == null ? null : Number(row.based_on_revision),
     status: row.status,
-    snapshot: normalizeConfigurationSnapshot(row.value),
+    snapshot: asSerializableSnapshot(row.value),
     notes: row.notes ?? null,
     createdBy: row.created_by ?? null,
     createdAt: row.created_at as string,
@@ -106,7 +112,7 @@ export async function loadTenantConfigurationState(
     querySingleConfigurationVersion(tenantId, "published"),
     querySingleConfigurationVersion(tenantId, "draft"),
   ]);
-  const effectiveSnapshot = draft?.snapshot ?? published?.snapshot ?? normalizeConfigurationSnapshot({});
+  const effectiveSnapshot = draft?.snapshot ?? published?.snapshot ?? asSerializableSnapshot({});
   return {
     tenantId,
     published,
@@ -116,7 +122,13 @@ export async function loadTenantConfigurationState(
   };
 }
 
-export async function loadPublishedConfigurationForTenant(tenantId: string) {
+export async function loadPublishedConfigurationForTenant(tenantId: string): Promise<{
+  id: string;
+  revision: number;
+  publishedAt: string | null;
+  snapshot: SerializableConfigurationSnapshot;
+  publicSnapshot: SerializableConfigurationSnapshot;
+}> {
   if (!tenantId) throw new Error("tenant_configuration_tenant_required");
   const published = await querySingleConfigurationVersion(tenantId, "published");
   if (!published) throw new Error("tenant_configuration_published_missing");
@@ -126,7 +138,7 @@ export async function loadPublishedConfigurationForTenant(tenantId: string) {
     revision: published.revision,
     publishedAt: published.publishedAt,
     snapshot: published.snapshot,
-    publicSnapshot: publicConfigurationSnapshot(published.snapshot),
+    publicSnapshot: publicConfigurationSnapshot(published.snapshot) as unknown as SerializableConfigurationSnapshot,
   };
 }
 
@@ -160,7 +172,7 @@ export async function executeTenantConfigurationRpc<T>(
     | "discard_tenant_configuration_draft"
     | "publish_tenant_configuration"
     | "rollback_tenant_configuration",
-  args: Record<string, unknown>,
+  args: Record<string, Json>,
 ): Promise<T> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin as any).rpc(name, args);
