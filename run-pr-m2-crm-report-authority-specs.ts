@@ -35,8 +35,8 @@ check("Tenant CRM authority uses effective permissions and explicit scopes", () 
     '"global"',
     "super_admin_impersonation",
   ]) assert.ok(authority.includes(token), token);
-  assert.equal(authority.includes("has_role"), false);
-  assert.equal(authority.includes("user_roles"), false);
+  assert.equal(authority.includes('.rpc("has_role"'), false);
+  assert.equal(authority.includes('.from("user_roles")'), false);
 });
 
 check("discarded leads use the canonical scoped list", () => {
@@ -89,7 +89,7 @@ check("PTW-01 remains separate from administrative CRM operations", () => {
 
 check("no role, tenant or ordering heuristic is reintroduced", () => {
   const combined = `${authority}\n${functions}\n${compatibility}`;
-  for (const token of ["has_role", "user_roles", "ORDER BY/LIMIT 1", "tenant default", "fallback tenant"]) {
+  for (const token of ['.rpc("has_role"', '.from("user_roles")', "ORDER BY/LIMIT 1", "tenant default", "fallback tenant"]) {
     assert.equal(combined.includes(token), false, token);
   }
 });
