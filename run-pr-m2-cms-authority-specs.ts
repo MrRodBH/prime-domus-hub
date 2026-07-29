@@ -94,6 +94,9 @@ const files = {
   pages: source("src/lib/api/pages.functions.ts"),
   forms: source("src/lib/api/forms.functions.ts"),
   campaigns: source("src/lib/api/campaigns.functions.ts"),
+  cmsFunctions: source("src/lib/api/tenant-cms.functions.ts"),
+  cmsAuthority: source("src/lib/api/tenant-cms-authority.server.ts"),
+  cmsMigration: source("supabase/migrations/20260729183000_pr_m2_cms_workflow_functional_completion.sql"),
   versions: source("src/lib/api/site-versions.functions.ts"),
   configurationFunctions: source("src/lib/api/tenant-configuration.functions.ts"),
   configurationAuthority: source("src/lib/api/tenant-configuration-authority.server.ts"),
@@ -107,24 +110,28 @@ const files = {
   cms: source("src/lib/api/_cms.ts"),
 };
 
-check("all migrated administrative surfaces use requireTenant", () => {
-  const expected = { pages: 4, forms: 6, campaigns: 5, versions: 8, media: 7 } as const;
-  for (const [key, total] of Object.entries(expected)) {
-    const text = files[key as keyof typeof expected];
+check("all administrative CMS boundaries use requireTenant after canonical cutover", () => {
+  const compatibilityExpected = { pages: 2, forms: 4, campaigns: 3, versions: 8, media: 7 } as const;
+  for (const [key, total] of Object.entries(compatibilityExpected)) {
+    const text = files[key as keyof typeof compatibilityExpected];
     assert.equal(count(text, /\.middleware\(\[requireTenant\]\)/g), total, key);
     assert.equal(text.includes("requireSupabaseAuth"), false, key);
   }
+  assert.ok(count(files.cmsFunctions, /\.middleware\(\[requireTenant\]\)/g) >= 25, "cmsFunctions");
   assert.ok(count(files.configurationFunctions, /\.middleware\(\[requireTenant\]\)/g) >= 10, "configurationFunctions");
   assert.ok(count(files.portalFunctions, /\.middleware\(\[requireTenant\]\)/g) >= 15, "portalFunctions");
+  assert.equal(files.cmsFunctions.includes("requireSupabaseAuth"), false, "cmsFunctions");
   assert.equal(files.portalFunctions.includes("requireSupabaseAuth"), false, "portalFunctions");
 });
 
-check("migrated table operations contain explicit tenant filters", () => {
-  const minimum = { pages: 6, forms: 12, campaigns: 8, media: 11 } as const;
-  for (const [key, total] of Object.entries(minimum)) {
-    const text = files[key as keyof typeof minimum];
-    assert.ok(count(text, /\.eq\("tenant_id", tenantId\)/g) >= total, key);
-  }
+check("canonical CMS operations contain explicit tenant filters and reference validation", () => {
+  assert.ok(count(files.cmsFunctions, /\.eq\("tenant_id", auth\.tenantId\)/g) >= 8, "cmsFunctions auth filters");
+  assert.ok(count(files.cmsFunctions, /\.eq\("tenant_id", tenantId\)/g) >= 6, "cmsFunctions helper filters");
+  assert.ok(files.cmsFunctions.includes("assertExactTenantReferenceSet"));
+  assert.ok(files.pages.includes('.eq("tenant_id", tenant.id)'));
+  assert.ok(files.forms.includes('.eq("tenant_id", input.tenant.id)'));
+  assert.ok(files.campaigns.includes('.eq("tenant_id", tenant.id)'));
+  assert.ok(count(files.media, /tenant_id: tenantId/g) >= 2, "media");
   assert.ok(count(files.configurationAuthority, /\.eq\("tenant_id", tenantId\)/g) >= 2, "configuration authority");
   assert.ok(count(files.configurationFunctions, /\.eq\("tenant_id", tenantId\)/g) >= 2, "configuration functions");
   assert.ok(count(files.portalAuthority, /\.eq\("tenant_id", tenantId\)/g) >= 2, "portal authority");
@@ -133,14 +140,37 @@ check("migrated table operations contain explicit tenant filters", () => {
 });
 
 check("tenant ids are persisted or transported only from server authority", () => {
-  assert.ok(files.pages.includes("tenant_id: tenantId"));
-  assert.ok(files.forms.includes("tenant_id: tenantId"));
-  assert.ok(files.campaigns.includes("tenant_id: tenantId"));
+  assert.ok(count(files.cmsFunctions, /_tenant_id: auth\.tenantId/g) >= 10);
+  assert.ok(files.forms.includes("tenant_id: tenant.id"));
   assert.ok(count(files.media, /tenant_id: tenantId/g) >= 2);
   assert.ok(count(files.configurationFunctions, /_tenant_id: auth\.tenantId/g) >= 4);
   assert.ok(count(files.portalFunctions, /_tenant_id: auth\.tenantId/g) >= 8);
+  assert.ok(files.cmsAuthority.includes("requireTenantScopedAuthority(context.tenant"));
   assert.ok(files.configurationAuthority.includes("requireTenantScopedAuthority(context.tenant"));
   assert.ok(files.portalAuthority.includes("requireTenantScopedAuthority(context.tenant"));
+});
+
+check("canonical CMS mutations are specialized service-role RPCs", () => {
+  for (const rpc of [
+    "save_tenant_page_draft",
+    "publish_tenant_page",
+    "unpublish_tenant_page",
+    "rollback_tenant_page",
+    "save_tenant_template_version",
+    "instantiate_tenant_template",
+    "save_tenant_form_definition",
+    "publish_tenant_form",
+    "save_tenant_campaign_definition",
+    "publish_tenant_campaign",
+  ]) {
+    assert.ok(files.cmsFunctions.includes(`\"${rpc}\"`), rpc);
+    assert.ok(files.cmsMigration.includes(`CREATE OR REPLACE FUNCTION public.${rpc}`), rpc);
+    assert.ok(files.cmsMigration.includes(`REVOKE ALL ON FUNCTION public.${rpc}`), rpc);
+    assert.ok(files.cmsMigration.includes(`GRANT EXECUTE ON FUNCTION public.${rpc}`), rpc);
+  }
+  assert.equal(/\.from\("cms_pages"\)[\s\S]{0,500}\.(insert|update|upsert|delete)/.test(files.cmsFunctions), false);
+  assert.equal(/\.from\("cms_forms"\)[\s\S]{0,500}\.(insert|update|upsert|delete)/.test(files.cmsFunctions), false);
+  assert.equal(/\.from\("cms_campaigns"\)[\s\S]{0,500}\.(insert|update|upsert|delete)/.test(files.cmsFunctions), false);
 });
 
 check("canonical configuration mutations are specialized service-role RPCs", () => {
@@ -178,11 +208,15 @@ check("canonical portal mutations are specialized service-role RPCs", () => {
   assert.equal(/\.from\("tenant_portal_jobs"\)[\s\S]{0,500}\.(insert|update|upsert|delete)/.test(files.portalFunctions), false);
 });
 
-check("form fields prove parent form ownership before replacement", () => {
-  const start = files.forms.indexOf("export const salvarCampos");
-  const parent = files.forms.indexOf('.from("cms_forms")', start);
-  const deletion = files.forms.indexOf('.from("cms_form_fields")', parent);
-  assert.ok(start >= 0 && parent > start && deletion > parent);
+check("form definition and fields publish atomically after parent ownership lock", () => {
+  const start = files.cmsMigration.indexOf("CREATE OR REPLACE FUNCTION public.publish_tenant_form");
+  const parent = files.cmsMigration.indexOf("FROM public.cms_forms", start);
+  const tenant = files.cmsMigration.indexOf("tenant_id = _tenant_id", parent);
+  const lock = files.cmsMigration.indexOf("FOR UPDATE", tenant);
+  const fieldsDelete = files.cmsMigration.indexOf("DELETE FROM public.cms_form_fields", lock);
+  const fieldsInsert = files.cmsMigration.indexOf("INSERT INTO public.cms_form_fields", fieldsDelete);
+  assert.ok(start >= 0 && parent > start && tenant > parent && lock > tenant && fieldsDelete > lock && fieldsInsert > fieldsDelete);
+  assert.ok(files.forms.includes("legacy_cms_form_fields_mutation_retired"));
 });
 
 check("campaign metrics prove campaign ownership before event reads", () => {
@@ -202,12 +236,12 @@ check("configuration rollback proves tenant plus version ownership before draft 
   assert.ok(start >= 0 && lock > start && sourceLookup > lock && tenant > sourceLookup && canonicalKey > tenant && insert > canonicalKey);
 });
 
-check("media deletion derives paths from the tenant row before Storage removal", () => {
+check("media deletion derives paths from tenant row before Storage removal", () => {
   const start = files.media.indexOf("export const excluirMidia");
   const row = files.media.indexOf('.from("media_library")', start);
   const paths = files.media.indexOf("const paths = [row.arquivo", row);
   const validate = files.media.indexOf("validateTenantSignRequest", paths);
-  const remove = files.media.indexOf('.remove(paths)', validate);
+  const remove = files.media.indexOf(".remove(paths)", validate);
   const metadataDelete = files.media.indexOf('.from("media_library")', remove);
   assert.ok(start >= 0 && row > start && paths > row && validate > paths);
   assert.ok(remove > validate && metadataDelete > remove);
@@ -231,7 +265,7 @@ check("portal runtime has one canonical barrel and no legacy mutation implementa
   assert.equal(files.portalBarrel.includes("has_role"), false);
   assert.equal(files.portalBarrel.includes("rotacionarToken"), false);
   assert.equal(files.portalBarrel.includes("atualizarPortal"), false);
-  assert.equal(files.portalBarrel.includes('.update('), false);
+  assert.equal(files.portalBarrel.includes(".update("), false);
 });
 
 check("portal authority uses effective Tenant Access Control and explicit impersonation boundary", () => {
@@ -241,6 +275,16 @@ check("portal authority uses effective Tenant Access Control and explicit impers
   assert.ok(files.portalAuthority.includes("requireTenantScopedAuthority"));
   assert.equal(files.portalAuthority.includes("has_role"), false);
   assert.equal(files.portalAuthority.includes("user_roles"), false);
+});
+
+check("CMS authority uses effective Tenant Access Control and explicit impersonation boundary", () => {
+  assert.ok(files.cmsAuthority.includes("resolveEffectiveTenantPermission"));
+  assert.ok(files.cmsAuthority.includes("trustedTenantAccessContext"));
+  assert.ok(files.cmsAuthority.includes('decision.scope !== "global"'));
+  assert.ok(files.cmsAuthority.includes("requireTenantScopedAuthority"));
+  assert.ok(files.cmsAuthority.includes("super_admin_impersonation"));
+  assert.equal(files.cmsAuthority.includes("has_role"), false);
+  assert.equal(files.cmsAuthority.includes("user_roles"), false);
 });
 
 check("portal registry enumerates hybrid methods, states and fail-closed adapters", () => {
@@ -259,27 +303,32 @@ check("portal registry enumerates hybrid methods, states and fail-closed adapter
     "adapter_not_implemented",
     "failed_terminal",
   ]) {
-    assert.ok(files.portalRegistry.includes(field), field);
+    assert.ok(files.portalRegistry.includes(`\"${field}\"`), field);
   }
 });
 
-check("strict CMS permission validates tenant authority before permission", () => {
+check("strict CMS compatibility helper delegates to canonical authority and retires role fallback", () => {
   const strict = files.cms.indexOf("export async function assertCmsTenantPermission");
-  const authority = files.cms.indexOf("requireCmsTenantAuthority(ctx.tenant)", strict);
-  const permission = files.cms.indexOf("await assertPermission(ctx, modulo, action)", strict);
-  assert.ok(strict >= 0 && authority > strict && permission > authority);
+  const authority = files.cms.indexOf("authorizeTenantCmsOperation", strict);
+  assert.ok(strict >= 0 && authority > strict);
+  assert.ok(files.cms.includes("legacy_cms_permission_boundary_retired"));
+  assert.equal(files.cms.includes('.rpc("has_role"'), false);
+  assert.equal(files.cms.includes('.rpc("is_super_admin"'), false);
 });
 
-check("public boundaries remain request-derived and tenant-filtered", () => {
+check("public boundaries remain request-derived, published-pointer-bound and tenant-filtered", () => {
   assert.ok(files.pages.includes("requirePublicTenantFromRequest"));
   assert.ok(files.pages.includes('.eq("tenant_id", tenant.id)'));
+  assert.ok(files.pages.includes("published_version_id"));
   assert.ok(files.forms.includes("requirePublicWriterTenantFromRequest"));
   assert.ok(files.forms.includes('.eq("tenant_id", input.tenant.id)'));
+  assert.ok(files.forms.includes("published_version_id"));
   assert.ok(files.campaigns.includes("requirePublicTenantFromRequest"));
   assert.ok(files.campaigns.includes("requirePublicWriterTenantFromRequest"));
   assert.ok(files.campaigns.includes('.eq("tenant_id", tenant.id)'));
+  assert.ok(files.campaigns.includes("published_version_id"));
   assert.ok(files.configurationFunctions.includes("requirePublicTenantFromRequest"));
   assert.ok(files.configurationFunctions.includes("loadPublishedConfigurationForTenant(tenant.id)"));
 });
 
-console.log(`PR-M2 tenant authority, Configuration Center and portal registry specs: ${passed} passed`);
+console.log(`PR-M2 tenant authority, Configuration Center, CMS workflow and portal registry specs: ${passed} passed`);
