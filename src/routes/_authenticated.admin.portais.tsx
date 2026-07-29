@@ -1,484 +1,469 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import {
-  listarPortais,
-  atualizarPortal,
-  rotacionarToken,
-  dashboardPortais,
-  obterContratoPortais,
-} from "@/lib/api/portals.functions";
+  DEFAULT_PORTAL_MAPPING,
+  cancelTenantPortalJob,
+  generateTenantPortalManualExport,
+  getPortalConnectorRegistry,
+  getTenantPortalDashboard,
+  getTenantPortalDiagnostics,
+  listTenantPortalConnectors,
+  listTenantPortalJobs,
+  listTenantPortalLogs,
+  listTenantPortalMappings,
+  retryTenantPortalJob,
+  rotateTenantPortalCredentialReference,
+  saveTenantPortalConnector,
+  saveTenantPortalMapping,
+  setTenantPortalConnectorState,
+} from "@/lib/api/tenant-portal.functions";
 import type {
+  PortalAutomatedMethod,
   PortalConnectorView,
-  PortalHybridConfig,
+  PortalManualMethod,
 } from "@/lib/portals/portal-connector-registry";
+import { AdminPageHeader, AdminStats } from "@/components/admin/ui";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, RefreshCw, Settings2, Radio, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { AdminPageHeader, AdminStats } from "@/components/admin/ui";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Download,
+  KeyRound,
+  RefreshCw,
+  Settings2,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/portais")({
   component: AdminPortais,
 });
 
+type ExportFormat = "CSV" | "XLSX" | "MANUAL_EXPORT";
+
 function AdminPortais() {
   const queryClient = useQueryClient();
-  const { data: portais = [] } = useQuery({
-    queryKey: ["admin", "portais"],
-    queryFn: () => listarPortais(),
+  const [editing, setEditing] = useState<PortalConnectorView | null>(null);
+  const [mappingConnector, setMappingConnector] = useState<PortalConnectorView | null>(null);
+  const [credentialConnector, setCredentialConnector] = useState<PortalConnectorView | null>(null);
+  const [exportConnectorId, setExportConnectorId] = useState("");
+  const [exportPropertyIds, setExportPropertyIds] = useState("");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("CSV");
+
+  const connectors = useQuery({
+    queryKey: ["tenant-portals", "connectors"],
+    queryFn: () => listTenantPortalConnectors(),
   });
-  const { data: contract } = useQuery({
-    queryKey: ["admin", "portais", "contract"],
-    queryFn: () => obterContratoPortais(),
+  const registry = useQuery({
+    queryKey: ["tenant-portals", "registry"],
+    queryFn: () => getPortalConnectorRegistry(),
   });
-  const { data: dashboard } = useQuery({
-    queryKey: ["admin", "portais", "dashboard"],
-    queryFn: () => dashboardPortais(),
+  const dashboard = useQuery({
+    queryKey: ["tenant-portals", "dashboard"],
+    queryFn: () => getTenantPortalDashboard(),
     refetchInterval: 30_000,
   });
-  const [editing, setEditing] = useState<PortalConnectorView | null>(null);
-  const [issuedToken, setIssuedToken] = useState<string | null>(null);
+  const diagnostics = useQuery({
+    queryKey: ["tenant-portals", "diagnostics"],
+    queryFn: () => getTenantPortalDiagnostics(),
+  });
+  const jobs = useQuery({
+    queryKey: ["tenant-portals", "jobs"],
+    queryFn: () => listTenantPortalJobs({ data: { limit: 100 } }),
+    refetchInterval: 15_000,
+  });
+  const logs = useQuery({
+    queryKey: ["tenant-portals", "logs"],
+    queryFn: () => listTenantPortalLogs({ data: { limit: 100 } }),
+  });
+
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["tenant-portals"] }),
+    ]);
+  };
 
   const toggle = useMutation({
-    mutationFn: (portal: PortalConnectorView) =>
-      atualizarPortal({ data: { id: portal.id, ativo: !portal.ativo } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "portais"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "portais", "dashboard"] });
-      toast.success("Portal atualizado.");
+    mutationFn: (connector: PortalConnectorView) =>
+      setTenantPortalConnectorState({
+        data: {
+          connectorId: connector.id,
+          expectedRowVersion: connector.rowVersion,
+          active: !connector.active,
+        },
+      }),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Estado do connector atualizado.");
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const rotate = useMutation({
-    mutationFn: (id: string) => rotacionarToken({ data: { id } }),
-    onSuccess: (result) => {
-      setIssuedToken(result.token);
-      toast.success("Novo token gerado. Copie agora; ele não será exibido novamente.");
+  const retry = useMutation({
+    mutationFn: (job: { id: string; revision: number }) =>
+      retryTenantPortalJob({ data: { jobId: job.id, expectedRevision: job.revision } }),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Retry agendado pelo servidor.");
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
-    toast.success("Copiado.");
+  const cancel = useMutation({
+    mutationFn: (job: { id: string; revision: number }) =>
+      cancelTenantPortalJob({ data: { jobId: job.id, expectedRevision: job.revision } }),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Job cancelado.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: () => {
+      const propertyIds = exportPropertyIds
+        .split(/[\s,;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (!exportConnectorId) throw new Error("Selecione um connector.");
+      return generateTenantPortalManualExport({
+        data: { connectorId: exportConnectorId, propertyIds, format: exportFormat },
+      });
+    },
+    onSuccess: async (result) => {
+      await invalidate();
+      window.open(result.signedUrl, "_blank", "noopener,noreferrer");
+      toast.success(`Export ${result.format} gerado com ${result.rowCount} registro(s).`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const loading = [connectors, registry, dashboard, diagnostics, jobs, logs].some(
+    (query) => query.isLoading,
+  );
+  const failed = [connectors, registry, dashboard, diagnostics, jobs, logs].find(
+    (query) => query.isError,
+  );
+  const connectorRows = connectors.data ?? [];
+  const jobRows = jobs.data ?? [];
+  const diagnostic = diagnostics.data;
+  const kpis = dashboard.data;
+
+  if (loading) {
+    return <StateCard icon={Clock3} title="loading" description="Carregando contratos tenant-scoped de portais." />;
   }
-
-  const kpis = dashboard?.kpis;
+  if (failed) {
+    return (
+      <StateCard
+        icon={XCircle}
+        title="permission_denied / error"
+        description={failed.error instanceof Error ? failed.error.message : "Falha segura ao carregar portais."}
+        action={<Button onClick={() => void invalidate()}>retry_available</Button>}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="Distribuição"
-        title="Portais Imobiliários"
-        description="Configure conectores híbridos, acompanhe publicações e monitore leads por tenant."
+        eyebrow="Distribuição HYBRID"
+        title="Portal Connector Center"
+        description="Registry fechado, mappings versionados, exports manuais, jobs idempotentes e diagnóstico sem secrets."
       />
+
+      <Alert>
+        <ShieldCheck className="size-4" />
+        <AlertTitle>Automação fail-closed</AlertTitle>
+        <AlertDescription>
+          Adapters automatizados estão em <strong>adapter_not_implemented</strong>. Nenhum sucesso externo é simulado.
+          CSV, XLSX e MANUAL_EXPORT permanecem disponíveis como entrega funcional auditável.
+        </AlertDescription>
+      </Alert>
 
       <AdminStats
         columns={4}
         items={[
-          { label: "Imóveis publicados", value: kpis?.imoveis_publicados ?? 0, icon: CheckCircle2, tone: "success" },
-          { label: "Pendentes", value: kpis?.imoveis_pendentes ?? 0, icon: Radio, tone: "warning" },
-          { label: "Com erro", value: kpis?.imoveis_erro ?? 0, icon: AlertTriangle, tone: "danger" },
-          { label: "Portais ativos", value: kpis?.portais_ativos ?? 0, icon: Settings2 },
-          { label: "Leads recebidos", value: kpis?.leads_total ?? 0, icon: Radio },
+          { label: "Connectors ativos", value: kpis?.connectorsActive ?? 0, icon: CheckCircle2, tone: "success" },
+          { label: "Jobs ativos", value: kpis?.activeJobs ?? 0, icon: RefreshCw, tone: "warning" },
+          { label: "Falhas terminais", value: kpis?.terminalFailures ?? 0, icon: AlertTriangle, tone: "danger" },
+          { label: "Reconciliação", value: kpis?.reconciliationRequired ?? 0, icon: ShieldCheck },
+          { label: "Exports", value: kpis?.exportsGenerated ?? 0, icon: Download },
+          { label: "Credenciais pendentes", value: kpis?.credentialsPending ?? 0, icon: KeyRound, tone: "warning" },
         ]}
       />
 
-      <Tabs defaultValue="conectores">
-        <TabsList>
-          <TabsTrigger value="conectores">Conectores</TabsTrigger>
-          <TabsTrigger value="portais">Leads por Portal</TabsTrigger>
+      <Tabs defaultValue="connectors">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="connectors">Connectors</TabsTrigger>
+          <TabsTrigger value="jobs">Jobs</TabsTrigger>
+          <TabsTrigger value="exports">Exports</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="conectores" className="space-y-3 pt-3">
-          {portais.map((portal) => (
-            <Card key={portal.id}>
-              <CardHeader className="flex flex-row items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base">{portal.portal_nome}</CardTitle>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <StatusBadge
-                      status={
-                        portal.configuration_state === "configuration_required"
-                          ? "configuration_required"
-                          : portal.ativo
-                            ? portal.status
-                            : "inativo"
-                      }
-                    />
+        <TabsContent value="connectors" className="space-y-3 pt-3">
+          {connectorRows.length === 0 ? (
+            <StateCard icon={Settings2} title="empty" description="Nenhuma instância persistida de connector foi encontrada para o tenant." />
+          ) : connectorRows.map((connector) => (
+            <Card key={connector.id}>
+              <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <CardTitle className="text-base">{connector.name}</CardTitle>
+                  <div className="flex flex-wrap gap-2">
+                    <StateBadge state={connector.active ? "ready" : "disabled"} />
+                    <StateBadge state={connector.configurationState} />
+                    <StateBadge state={connector.credentialState} />
+                    <StateBadge state={connector.adapterAvailability} />
                     <Badge variant="outline">HYBRID</Badge>
-                    {portal.hybrid_config ? (
-                      <>
-                        <Badge variant="secondary">Auto: {portal.hybrid_config.automated_method}</Badge>
-                        <Badge variant="secondary">Manual: {portal.hybrid_config.manual_method}</Badge>
-                      </>
-                    ) : null}
-                    {portal.ultimo_sync_at ? (
-                      <span className="text-xs text-muted-foreground">
-                        Último sync: {new Date(portal.ultimo_sync_at).toLocaleString("pt-BR")}
-                      </span>
-                    ) : null}
+                    <Badge variant="secondary">row v{connector.rowVersion}</Badge>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={portal.ativo}
-                    onCheckedChange={() => toggle.mutate(portal)}
-                    disabled={toggle.isPending}
-                  />
-                  <Button variant="outline" size="sm" onClick={() => setEditing(portal)}>
-                    <Settings2 className="size-4 mr-1" /> Configurar
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditing(connector)}>
+                    <Settings2 className="mr-1 size-4" /> Configurar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setMappingConnector(connector)}>
+                    Mapping
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setCredentialConnector(connector)}>
+                    <KeyRound className="mr-1 size-4" /> Referência
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => toggle.mutate(connector)}
+                    disabled={toggle.isPending || connector.configurationState !== "adapter_not_implemented" || connector.credentialState === "credential_provisioning_required" || connector.credentialState === "rotation_required"}
+                  >
+                    {connector.active ? "Desativar" : "Ativar"}
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="grid gap-3 text-sm">
-                <FieldCopy
-                  label="Feed/API configurado"
-                  value={portal.feed_url ?? "Não configurado"}
-                  onCopy={() => portal.feed_url && copyToClipboard(portal.feed_url)}
-                  copyDisabled={!portal.feed_url}
-                />
-                <FieldCopy
-                  label="Webhook configurado"
-                  value={portal.webhook_url ?? "Não configurado"}
-                  onCopy={() => portal.webhook_url && copyToClipboard(portal.webhook_url)}
-                  copyDisabled={!portal.webhook_url}
-                />
-                <div className="grid gap-1">
-                  <Label className="text-xs">Token de feed</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      O token não é exibido após a geração.
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => rotate.mutate(portal.id)}
-                      disabled={rotate.isPending}
-                    >
-                      <RefreshCw className="size-4 mr-1" /> Rotacionar
-                    </Button>
-                  </div>
-                </div>
-                {portal.ultimo_erro ? (
-                  <div className="text-xs text-destructive">Último erro: {portal.ultimo_erro}</div>
-                ) : null}
+              <CardContent className="grid gap-2 text-sm md:grid-cols-2">
+                <ReadOnly label="Slug persistido" value={connector.slug} />
+                <ReadOnly label="Automated method" value={connector.hybridConfig?.automated_method ?? "configuration_required"} />
+                <ReadOnly label="Manual method" value={connector.hybridConfig?.manual_method ?? "configuration_required"} />
+                <ReadOnly label="Mapping version" value={String(connector.hybridConfig?.mapping_version ?? 0)} />
+                <ReadOnly label="Last success" value={connector.lastSyncAt ?? "never"} />
+                <ReadOnly label="Last failure" value={connector.lastErrorCode ?? "none"} />
               </CardContent>
             </Card>
           ))}
         </TabsContent>
 
-        <TabsContent value="portais" className="pt-3">
+        <TabsContent value="jobs" className="pt-3">
           <Card>
-            <CardHeader><CardTitle className="text-base">Leads por Portal (últimos 500)</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader><CardTitle className="text-base">Publication jobs</CardTitle></CardHeader>
+            <CardContent className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow><TableHead>Portal</TableHead><TableHead className="text-right">Leads</TableHead></TableRow>
+                  <TableRow>
+                    <TableHead>Created</TableHead><TableHead>Operation</TableHead><TableHead>State</TableHead>
+                    <TableHead>Attempts</TableHead><TableHead>Next retry</TableHead><TableHead>Error</TableHead><TableHead>Actions</TableHead>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(dashboard?.leadsPorPortal ?? {}).map(([key, value]) => (
-                    <TableRow key={key}>
-                      <TableCell className="font-mono text-xs">{key}</TableCell>
-                      <TableCell className="text-right">{value}</TableCell>
+                  {jobRows.map((job) => (
+                    <TableRow key={job.id}>
+                      <TableCell className="text-xs">{formatDate(job.createdAt)}</TableCell>
+                      <TableCell>{job.operation}</TableCell>
+                      <TableCell><StateBadge state={job.currentState} /></TableCell>
+                      <TableCell>{job.attemptCount}/{job.maxAttempts}</TableCell>
+                      <TableCell className="text-xs">{job.nextAttemptAt ? formatDate(job.nextAttemptAt) : "-"}</TableCell>
+                      <TableCell className="max-w-48 truncate text-xs">{job.lastErrorCode ?? "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {job.currentState === "failed_retryable" ? (
+                            <Button size="sm" variant="outline" onClick={() => retry.mutate(job)} disabled={retry.isPending}>Retry</Button>
+                          ) : null}
+                          {["queued", "unpublish_queued", "retry_scheduled", "failed_retryable"].includes(job.currentState) ? (
+                            <Button size="sm" variant="outline" onClick={() => cancel.mutate(job)} disabled={cancel.isPending}>Cancel</Button>
+                          ) : null}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
-                  {Object.keys(dashboard?.leadsPorPortal ?? {}).length === 0 ? (
-                    <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-6">Nenhum lead registrado ainda.</TableCell></TableRow>
+                  {jobRows.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">empty — nenhum job registrado.</TableCell></TableRow>
                   ) : null}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="exports" className="pt-3">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Manual delivery</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <Field label="Connector">
+                <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={exportConnectorId} onChange={(event) => setExportConnectorId(event.target.value)}>
+                  <option value="">Selecione</option>
+                  {connectorRows.map((connector) => <option key={connector.id} value={connector.id}>{connector.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Format">
+                <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)}>
+                  <option value="CSV">CSV</option><option value="XLSX">XLSX</option><option value="MANUAL_EXPORT">MANUAL_EXPORT</option>
+                </select>
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="Property UUIDs — separados por vírgula, espaço ou linha; vazio gera export vazio explícito">
+                  <Input value={exportPropertyIds} onChange={(event) => setExportPropertyIds(event.target.value)} placeholder="uuid-1, uuid-2" />
+                </Field>
+              </div>
+              <div className="md:col-span-2">
+                <Button onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>
+                  <Download className="mr-1 size-4" /> {exportMutation.isPending ? "Gerando…" : "Gerar export tenant-scoped"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="logs" className="pt-3">
           <Card>
-            <CardHeader><CardTitle className="text-base">Últimas 50 operações</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader><CardTitle className="text-base">Sanitized logs</CardTitle></CardHeader>
+            <CardContent className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Portal</TableHead>
-                    <TableHead>Ação</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Erro</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Connector</TableHead><TableHead>Action</TableHead><TableHead>Status</TableHead><TableHead>Error code</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {(dashboard?.logs ?? []).map((log) => (
+                  {(logs.data ?? []).map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-xs">{new Date(log.created_at).toLocaleString("pt-BR")}</TableCell>
-                      <TableCell className="font-mono text-xs">{log.portal_slug}</TableCell>
-                      <TableCell className="text-xs">{log.acao}</TableCell>
-                      <TableCell><Badge variant={log.status === "ok" ? "secondary" : "destructive"}>{log.status}</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{log.erro ?? "-"}</TableCell>
+                      <TableCell className="text-xs">{formatDate(log.createdAt)}</TableCell>
+                      <TableCell className="font-mono text-xs">{log.connectorSlug}</TableCell>
+                      <TableCell>{log.action}</TableCell><TableCell><StateBadge state={log.status} /></TableCell>
+                      <TableCell className="text-xs">{log.errorCode ?? "-"}</TableCell>
                     </TableRow>
                   ))}
-                  {(dashboard?.logs ?? []).length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sem operações ainda.</TableCell></TableRow>
-                  ) : null}
+                  {(logs.data ?? []).length === 0 ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">empty</TableCell></TableRow> : null}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="diagnostics" className="grid gap-3 pt-3 md:grid-cols-2">
+          <Diagnostic label="Operation mode" value={diagnostic?.operationMode ?? "HYBRID"} />
+          <Diagnostic label="Automated state" value={diagnostic?.automatedState ?? "adapter_not_implemented"} />
+          <Diagnostic label="Registry" value={`${diagnostic?.registryCount ?? 0} cataloged`} />
+          <Diagnostic label="Adapters" value={`${diagnostic?.adapterImplementedCount ?? 0} implemented / ${diagnostic?.adapterNotImplementedCount ?? 0} pending`} />
+          <Diagnostic label="Inline secrets" value={diagnostic?.inlineSecretsAccepted ? "unsafe" : "prohibited"} />
+          <Diagnostic label="Plaintext credentials" value={diagnostic?.plaintextCredentialsAccepted ? "unsafe" : "prohibited"} />
+          <Diagnostic label="Direct client mutation" value={diagnostic?.directClientMutation ? "unsafe" : "false"} />
+          <Diagnostic label="Super Admin" value={diagnostic?.superAdminImpersonationRequired ? "impersonation required" : "invalid"} />
+          <Diagnostic label="Managed backend" value="migration not executed in this increment" />
+          <Diagnostic label="External portals" value="real publication not executed" />
+        </TabsContent>
       </Tabs>
 
-      <ConfigurePortalDialog
-        key={editing?.id ?? "portal-dialog"}
-        portal={editing}
-        automatedMethods={contract?.automated_methods ?? ["JSON_API", "XML_FEED", "WEBHOOK", "CUSTOM_ADAPTER"]}
-        manualMethods={contract?.manual_methods ?? ["XLSX", "CSV", "MANUAL_EXPORT"]}
-        onClose={() => setEditing(null)}
-      />
-
-      <Dialog open={issuedToken !== null} onOpenChange={(open) => !open && setIssuedToken(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Token gerado</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Copie o token agora. Por segurança, ele não será exibido novamente.
-          </p>
-          <div className="flex gap-2">
-            <Input value={issuedToken ?? ""} readOnly className="font-mono text-xs" />
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => issuedToken && copyToClipboard(issuedToken)}
-            >
-              <Copy className="size-4" />
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConnectorDialog connector={editing} registry={registry.data} onClose={() => setEditing(null)} onSaved={invalidate} />
+      <MappingDialog connector={mappingConnector} onClose={() => setMappingConnector(null)} onSaved={invalidate} />
+      <CredentialDialog connector={credentialConnector} onClose={() => setCredentialConnector(null)} onSaved={invalidate} />
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    ativo: { label: "Conectado", variant: "default" },
-    inativo: { label: "Inativo", variant: "secondary" },
-    erro: { label: "Erro", variant: "destructive" },
-    configuration_required: { label: "Configuração obrigatória", variant: "outline" },
-  };
-  const info = map[status] ?? { label: status, variant: "outline" as const };
-  return <Badge variant={info.variant}>{info.label}</Badge>;
-}
-
-function FieldCopy({
-  label,
-  value,
-  onCopy,
-  copyDisabled = false,
-}: {
-  label: string;
-  value: string;
-  onCopy: () => void;
-  copyDisabled?: boolean;
-}) {
-  return (
-    <div className="grid gap-1">
-      <Label className="text-xs">{label}</Label>
-      <div className="flex gap-2">
-        <Input value={value} readOnly className="font-mono text-xs" />
-        <Button size="icon" variant="outline" onClick={onCopy} disabled={copyDisabled}>
-          <Copy className="size-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-type AutomatedMethod = PortalHybridConfig["automated_method"];
-type ManualMethod = PortalHybridConfig["manual_method"];
-
-function ConfigurePortalDialog({
-  portal,
-  automatedMethods,
-  manualMethods,
-  onClose,
-}: {
-  portal: PortalConnectorView | null;
-  automatedMethods: readonly string[];
-  manualMethods: readonly string[];
+function ConnectorDialog({ connector, registry, onClose, onSaved }: {
+  connector: PortalConnectorView | null;
+  registry: Awaited<ReturnType<typeof getPortalConnectorRegistry>> | undefined;
   onClose: () => void;
+  onSaved: () => Promise<void>;
 }) {
-  const queryClient = useQueryClient();
-  const current = portal?.hybrid_config;
-  const [automatedMethod, setAutomatedMethod] = useState<AutomatedMethod>(
-    current?.automated_method ?? "JSON_API",
-  );
-  const [manualMethod, setManualMethod] = useState<ManualMethod>(
-    current?.manual_method ?? "CSV",
-  );
-  const [feedUrl, setFeedUrl] = useState(portal?.feed_url ?? "");
-  const [webhookUrl, setWebhookUrl] = useState(portal?.webhook_url ?? "");
-  const [credentialReference, setCredentialReference] = useState(
-    current?.credential_reference ?? "",
-  );
-  const [mappingProfile, setMappingProfile] = useState(
-    current?.mapping_profile ?? "default-v1",
-  );
-  const [schemaVersion, setSchemaVersion] = useState(
-    current?.configuration_schema_version ?? 1,
-  );
-  const [onlyPublished, setOnlyPublished] = useState(
-    current?.publication_rules.only_published ?? true,
-  );
-  const [maxAttempts, setMaxAttempts] = useState(
-    current?.retry_policy.max_attempts ?? 5,
-  );
-  const [initialDelay, setInitialDelay] = useState(
-    current?.retry_policy.initial_delay_seconds ?? 30,
-  );
-  const [maxDelay, setMaxDelay] = useState(
-    current?.retry_policy.max_delay_seconds ?? 3600,
-  );
-
-  const save = useMutation({
+  const current = connector?.hybridConfig;
+  const [automatedMethod, setAutomatedMethod] = useState<PortalAutomatedMethod>(current?.automated_method ?? "JSON_API");
+  const [manualMethod, setManualMethod] = useState<PortalManualMethod>(current?.manual_method ?? "CSV");
+  const [mappingProfile, setMappingProfile] = useState(current?.mapping_profile ?? "default-v1");
+  const [feedUrl, setFeedUrl] = useState(connector?.feedUrl ?? "");
+  const [webhookUrl, setWebhookUrl] = useState(connector?.webhookUrl ?? "");
+  const [maxAttempts, setMaxAttempts] = useState(current?.retry_policy.max_attempts ?? 5);
+  const mutation = useMutation({
     mutationFn: () => {
-      const hybridConfig: PortalHybridConfig = {
-        operation_mode: "HYBRID",
-        automated_method: automatedMethod,
-        manual_method: manualMethod,
-        configuration_schema_version: schemaVersion,
-        credential_reference: credentialReference || null,
-        mapping_profile: mappingProfile,
-        publication_rules: { only_published: onlyPublished },
-        retry_policy: {
-          max_attempts: maxAttempts,
-          initial_delay_seconds: initialDelay,
-          max_delay_seconds: maxDelay,
+      if (!connector) throw new Error("Connector ausente.");
+      return saveTenantPortalConnector({ data: {
+        connectorId: connector.id,
+        expectedRowVersion: connector.rowVersion,
+        feedUrl: feedUrl || null,
+        webhookUrl: webhookUrl || null,
+        config: {
+          operation_mode: "HYBRID",
+          automated_method: automatedMethod,
+          manual_method: manualMethod,
+          configuration_schema_version: 1,
+          credential_reference: current?.credential_reference ?? null,
+          mapping_profile: mappingProfile,
+          mapping_version: current?.mapping_version ?? 1,
+          publication_rules: { only_published: true, include_statuses: ["publicado"], batch_size: 100 },
+          retry_policy: { max_attempts: maxAttempts, initial_delay_seconds: 30, max_delay_seconds: 3600 },
         },
-      };
-      return atualizarPortal({
-        data: {
-          id: portal!.id,
-          feed_url: feedUrl || null,
-          webhook_url: webhookUrl || null,
-          hybrid_config: hybridConfig,
-        },
-      });
+      } });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "portais"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "portais", "dashboard"] });
-      toast.success("Configuração híbrida salva.");
-      onClose();
-    },
+    onSuccess: async () => { await onSaved(); toast.success("Configuração salva; connector desativado até validação completa."); onClose(); },
     onError: (error: Error) => toast.error(error.message),
   });
-
-  if (!portal) return null;
-
+  const definitions = registry?.definitions ?? [];
   return (
-    <Dialog open={Boolean(portal)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Configurar {portal.portal_nome}</DialogTitle></DialogHeader>
-        <div className="grid gap-4">
-          <div className="grid gap-1">
-            <Label>Modo de operação</Label>
-            <Input value="HYBRID" readOnly />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-1">
-              <Label>Método automatizado</Label>
-              <Select value={automatedMethod} onValueChange={(value) => setAutomatedMethod(value as AutomatedMethod)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {automatedMethods.map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1">
-              <Label>Método manual</Label>
-              <Select value={manualMethod} onValueChange={(value) => setManualMethod(value as ManualMethod)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {manualMethods.map((method) => <SelectItem key={method} value={method}>{method}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-1">
-            <Label>URL de Feed/API</Label>
-            <Input value={feedUrl} onChange={(event) => setFeedUrl(event.target.value)} placeholder="https://..." />
-          </div>
-          <div className="grid gap-1">
-            <Label>URL de Webhook</Label>
-            <Input value={webhookUrl} onChange={(event) => setWebhookUrl(event.target.value)} placeholder="https://..." />
-          </div>
-          <div className="grid gap-1">
-            <Label>Referência segura de credencial</Label>
-            <Input
-              value={credentialReference}
-              onChange={(event) => setCredentialReference(event.target.value)}
-              placeholder="vault://tenant/portal/credentials"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-1">
-              <Label>Mapping profile</Label>
-              <Input value={mappingProfile} onChange={(event) => setMappingProfile(event.target.value)} />
-            </div>
-            <div className="grid gap-1">
-              <Label>Versão do schema</Label>
-              <Input
-                type="number"
-                min={1}
-                value={schemaVersion}
-                onChange={(event) => setSchemaVersion(Number(event.target.value))}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between rounded-md border p-3">
-            <div>
-              <Label>Publicar somente imóveis publicados</Label>
-              <p className="text-xs text-muted-foreground">Regra aplicada aos caminhos manual e automatizado.</p>
-            </div>
-            <Switch checked={onlyPublished} onCheckedChange={setOnlyPublished} />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="grid gap-1">
-              <Label>Máx. tentativas</Label>
-              <Input type="number" min={1} max={20} value={maxAttempts} onChange={(event) => setMaxAttempts(Number(event.target.value))} />
-            </div>
-            <div className="grid gap-1">
-              <Label>Delay inicial (s)</Label>
-              <Input type="number" min={1} value={initialDelay} onChange={(event) => setInitialDelay(Number(event.target.value))} />
-            </div>
-            <div className="grid gap-1">
-              <Label>Delay máximo (s)</Label>
-              <Input type="number" min={1} value={maxDelay} onChange={(event) => setMaxDelay(Number(event.target.value))} />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={() => save.mutate()} disabled={save.isPending || !mappingProfile.trim()}>
-              Salvar configuração híbrida
-            </Button>
-          </div>
+    <Dialog open={connector !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Configurar {connector?.name}</DialogTitle></DialogHeader>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Automated method"><select className="h-10 w-full rounded-md border bg-background px-3" value={automatedMethod} onChange={(event) => setAutomatedMethod(event.target.value as PortalAutomatedMethod)}>{definitions.map((item) => <option key={item.connectorKey} value={item.connectorKey}>{item.displayName} — {item.availabilityState}</option>)}</select></Field>
+          <Field label="Manual method"><select className="h-10 w-full rounded-md border bg-background px-3" value={manualMethod} onChange={(event) => setManualMethod(event.target.value as PortalManualMethod)}><option>CSV</option><option>XLSX</option><option>MANUAL_EXPORT</option></select></Field>
+          <Field label="Mapping profile"><Input value={mappingProfile} onChange={(event) => setMappingProfile(event.target.value)} /></Field>
+          <Field label="Max attempts"><Input type="number" min={1} max={20} value={maxAttempts} onChange={(event) => setMaxAttempts(Number(event.target.value))} /></Field>
+          <Field label="Feed/API HTTPS"><Input value={feedUrl} onChange={(event) => setFeedUrl(event.target.value)} placeholder="https://…" /></Field>
+          <Field label="Webhook HTTPS"><Input value={webhookUrl} onChange={(event) => setWebhookUrl(event.target.value)} placeholder="https://…" /></Field>
         </div>
+        <Alert><AlertTriangle className="size-4" /><AlertDescription>Salvar não ativa o adapter nem confirma publicação externa. O estado automatizado permanece adapter_not_implemented.</AlertDescription></Alert>
+        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Salvar contrato fechado</Button>
       </DialogContent>
     </Dialog>
   );
 }
+
+function MappingDialog({ connector, onClose, onSaved }: { connector: PortalConnectorView | null; onClose: () => void; onSaved: () => Promise<void> }) {
+  const mappings = useQuery({
+    queryKey: ["tenant-portals", "mappings", connector?.id],
+    queryFn: () => listTenantPortalMappings({ data: { connectorId: connector!.id } }),
+    enabled: connector !== null,
+  });
+  const currentVersion = mappings.data?.find((item) => item.current)?.version ?? 0;
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (!connector) throw new Error("Connector ausente.");
+      return saveTenantPortalMapping({ data: { connectorId: connector.id, expectedVersion: currentVersion, mapping: DEFAULT_PORTAL_MAPPING } });
+    },
+    onSuccess: async () => { await onSaved(); toast.success("Mapping fechado versionado."); onClose(); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  return <Dialog open={connector !== null} onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>Mapping — {connector?.name}</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">Versão atual: {currentVersion}. O mapping fechado cobre campos públicos de imóveis e mídia tenant-scoped.</p><Button onClick={() => mutation.mutate()} disabled={mutation.isPending || mappings.isLoading}>Criar próxima versão canônica</Button></DialogContent></Dialog>;
+}
+
+function CredentialDialog({ connector, onClose, onSaved }: { connector: PortalConnectorView | null; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [reference, setReference] = useState("credential://tenant/portal/provider");
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (!connector) throw new Error("Connector ausente.");
+      return rotateTenantPortalCredentialReference({ data: { connectorId: connector.id, expectedRowVersion: connector.rowVersion, credentialReference: reference } });
+    },
+    onSuccess: async () => { await onSaved(); toast.success("Referência rotacionada; provisionamento externo ainda é obrigatório."); onClose(); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  return <Dialog open={connector !== null} onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>Credential reference — {connector?.name}</DialogTitle></DialogHeader><Field label="Reference only — nenhum secret"><Input value={reference} onChange={(event) => setReference(event.target.value)} /></Field><p className="text-sm text-muted-foreground">A operação não cria vault fictício e não recebe token, password ou client secret.</p><Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Rotacionar referência</Button></DialogContent></Dialog>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <div className="grid gap-1.5"><Label>{label}</Label>{children}</div>; }
+function ReadOnly({ label, value }: { label: string; value: string }) { return <div><span className="text-xs text-muted-foreground">{label}</span><div className="font-mono text-xs break-all">{value}</div></div>; }
+function Diagnostic({ label, value }: { label: string; value: string }) { return <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 font-mono text-sm">{value}</div></CardContent></Card>; }
+function StateBadge({ state }: { state: string }) { const danger = state.includes("failed") || state === "error" || state === "permission_denied"; const warning = state.includes("required") || state.includes("queued") || state.includes("retry") || state === "adapter_not_implemented"; return <Badge variant={danger ? "destructive" : warning ? "outline" : "secondary"}>{state}</Badge>; }
+function formatDate(value: string) { return new Date(value).toLocaleString("pt-BR"); }
+function StateCard({ icon: Icon, title, description, action }: { icon: typeof Clock3; title: string; description: string; action?: React.ReactNode }) { return <Card><CardContent className="flex min-h-56 flex-col items-center justify-center gap-3 text-center"><Icon className="size-8 text-muted-foreground" /><div><div className="font-medium">{title}</div><p className="text-sm text-muted-foreground">{description}</p></div>{action}</CardContent></Card>; }
