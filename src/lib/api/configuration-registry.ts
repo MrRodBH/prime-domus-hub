@@ -69,6 +69,7 @@ export interface ConfigurationDefinition {
   maxLength?: number;
 }
 
+const hasOwn = (value: object, key: PropertyKey) => Object.prototype.hasOwnProperty.call(value, key);
 const define = <T extends ConfigurationDefinition>(definition: T): T => definition;
 const text = (
   key: string,
@@ -81,7 +82,7 @@ const text = (
   label,
   description: options.description ?? label,
   valueKind: options.valueKind ?? "string",
-  defaultValue: options.defaultValue ?? "",
+  defaultValue: hasOwn(options, "defaultValue") ? options.defaultValue : "",
   nullable: options.nullable ?? false,
   visibility: options.visibility ?? "public",
   editAuthority: options.editAuthority ?? "configuration_manager",
@@ -295,9 +296,7 @@ const SECRET_KEY_RE = /(secret|password|private[_-]?key|refresh[_-]?token|client
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-function stable(value: unknown) {
-  return JSON.stringify(value);
-}
+function stable(value: unknown) { return JSON.stringify(value); }
 function validateUrl(key: string, value: string) {
   if (value === "" || value.startsWith("/")) return;
   let parsed: URL;
@@ -426,9 +425,7 @@ export function mergeConfigurationDomain(
   for (const [key, value] of Object.entries(patch)) {
     const definition = definitions.get(key);
     if (!definition) throw new Error(`configuration_domain_key_mismatch:${domain}:${key}`);
-    if (definition.editAuthority === "system" && stable(value) !== stable(current[key as ConfigurationKey])) {
-      throw new Error(`configuration_system_key_immutable:${key}`);
-    }
+    if (definition.editAuthority === "system" && stable(value) !== stable(current[key as ConfigurationKey])) throw new Error(`configuration_system_key_immutable:${key}`);
   }
   return normalizeConfigurationSnapshot({ ...current, ...patch });
 }
