@@ -301,8 +301,8 @@ export type EditorControlDefinition = {
   readonly publicSanitization: "required" | "not_applicable";
 };
 
-const ALL_PAGE_TYPES = [...PAGE_TYPE_KEYS];
-const ALL_SECTIONS = [...SECTION_TYPE_KEYS];
+const ALL_PAGE_TYPES: readonly PageTypeKey[] = [...PAGE_TYPE_KEYS];
+const ALL_SECTIONS: readonly SectionTypeKey[] = [...SECTION_TYPE_KEYS];
 
 export const PAGE_TYPE_REGISTRY: Record<PageTypeKey, PageTypeDefinition> = {
   standard: {
@@ -325,7 +325,7 @@ export const PAGE_TYPE_REGISTRY: Record<PageTypeKey, PageTypeDefinition> = {
     description: "Página de campanha com CTA e captura de lead.",
     schemaVersion: CMS_SCHEMA_VERSION,
     allowedLayouts: ["single_column", "full_width"],
-    allowedSections: ["hero", "richtext", "image", "gallery", "video", "cta", "form", "features", "faq", "spacer"],
+    allowedSections: ALL_SECTIONS,
     requiredSections: ["hero", "cta"],
     seoContract: "standard",
     publicationContract: "atomic_snapshot",
@@ -455,19 +455,34 @@ export const CONTENT_TYPE_REGISTRY: Record<ContentTypeKey, { key: ContentTypeKey
   campaign: { key: "campaign", schemaVersion: CMS_SCHEMA_VERSION, workflow: ["draft", "active", "paused", "archived"] },
 };
 
-export const EDITOR_CONTROL_REGISTRY: Record<EditorControlKey, EditorControlDefinition> = Object.fromEntries(
-  EDITOR_CONTROL_KEYS.map((key) => [
-    key,
-    {
-      key,
-      valueKind: key,
-      serializationContract: "json" as const,
-      validationContract: "zod_build_time" as const,
-      allowedSectionTypes: ALL_SECTIONS,
-      publicSanitization: key === "sanitized_richtext" || key === "navigation_reference" ? "required" as const : "not_applicable" as const,
-    },
-  ]),
-) as Record<EditorControlKey, EditorControlDefinition>;
+const editorControlDefinition = (
+  key: EditorControlKey,
+  publicSanitization: EditorControlDefinition["publicSanitization"] = "not_applicable",
+): EditorControlDefinition => ({
+  key,
+  valueKind: key,
+  serializationContract: "json",
+  validationContract: "zod_build_time",
+  allowedSectionTypes: ALL_SECTIONS,
+  publicSanitization,
+});
+
+/**
+ * Explicit object literal is intentional: `satisfies` proves every catalogued
+ * key is present and rejects missing, misspelled or incompatible definitions.
+ */
+export const EDITOR_CONTROL_REGISTRY = {
+  text: editorControlDefinition("text"),
+  textarea: editorControlDefinition("textarea"),
+  sanitized_richtext: editorControlDefinition("sanitized_richtext", "required"),
+  media_reference: editorControlDefinition("media_reference"),
+  navigation_reference: editorControlDefinition("navigation_reference", "required"),
+  form_reference: editorControlDefinition("form_reference"),
+  select: editorControlDefinition("select"),
+  repeatable_group: editorControlDefinition("repeatable_group"),
+  number: editorControlDefinition("number"),
+  boolean: editorControlDefinition("boolean"),
+} satisfies Record<EditorControlKey, EditorControlDefinition>;
 
 const sectionEnvelopeSchema = z
   .object({
@@ -532,7 +547,6 @@ function collectSectionMedia(section: z.infer<typeof sectionEnvelopeSchema>): st
   const data = section.data as Record<string, unknown>;
   switch (section.type) {
     case "hero":
-      return typeof data.media_id === "string" ? [data.media_id] : [];
     case "image":
       return typeof data.media_id === "string" ? [data.media_id] : [];
     case "gallery":
@@ -664,7 +678,17 @@ const formFieldSchema = z
     obrigatorio: z.boolean(),
     consentimento: z.boolean().default(false),
     opcoes: z.array(z.object({ label: shortText, value: shortText }).strict()).max(100).default([]),
-    validacao: z.object({ min: z.number().optional(), max: z.number().optional(), minLength: z.number().int().optional(), maxLength: z.number().int().optional(), regex: z.string().max(500).optional(), mascara: z.string().max(100).optional() }).strict().default({}),
+    validacao: z
+      .object({
+        min: z.number().optional(),
+        max: z.number().optional(),
+        minLength: z.number().int().optional(),
+        maxLength: z.number().int().optional(),
+        regex: z.string().max(500).optional(),
+        mascara: z.string().max(100).optional(),
+      })
+      .strict()
+      .default({}),
     valor_padrao: z.string().max(5_000).nullable().optional(),
     largura: z.enum(["full", "half", "third"]).default("full"),
   })
@@ -722,7 +746,10 @@ export const campaignSnapshotSchema = z
       })
       .strict(),
     frequencia: z
-      .object({ max_por_sessao: z.number().int().min(0).max(100).default(1), cooldown_horas: z.number().int().min(0).max(8_760).default(24) })
+      .object({
+        max_por_sessao: z.number().int().min(0).max(100).default(1),
+        cooldown_horas: z.number().int().min(0).max(8_760).default(24),
+      })
       .strict(),
     start_at: z.string().datetime().nullable().optional(),
     end_at: z.string().datetime().nullable().optional(),
