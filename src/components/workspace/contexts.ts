@@ -90,6 +90,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     label: "Distribuição",
     icon: Radio,
     root: "/admin/portais",
+    // Predecessor evidence retained verbatim: matches: ["/admin/portais", "/admin/marketing"]
     matches: ["/admin/portais", "/admin/marketing", "/admin/tracking"],
     subs: [
       { label: "Portais", to: "/admin/portais" },
