@@ -26,6 +26,8 @@ export const CRM_OPERATIONS = [
   "task.transition",
   "pipeline.list",
   "pipeline.manage",
+  "tag.list",
+  "tag.manage",
   "crm.diagnostics",
 ] as const;
 
@@ -57,6 +59,8 @@ const OPERATION_ACTION = {
   "task.transition": "editar",
   "pipeline.list": "visualizar",
   "pipeline.manage": "gerenciar",
+  "tag.list": "visualizar",
+  "tag.manage": "gerenciar",
   "crm.diagnostics": "gerenciar",
 } satisfies Record<TenantCrmOperation, RbacAction>;
 
@@ -115,10 +119,14 @@ export function safeTenantCrmError(error: unknown): Error {
     ["crm_invalid_task_transition", "Transição de tarefa inválida."],
     ["crm_reason_required", "A operação exige um motivo válido."],
     ["crm_invalid_reason", "Motivo inexistente ou inativo neste tenant."],
-    ["crm_assignee_invalid", "Responsável inexistente ou sem membership ativa neste tenant."],
-    ["crm_team_invalid", "Equipe inexistente ou inativa neste tenant."],
+    ["crm_assignee_required", "O escopo efetivo exige um responsável elegível."],
+    ["crm_assignee_invalid", "Responsável inexistente ou fora do escopo CRM efetivo."],
+    ["crm_team_invalid", "Equipe inexistente, inativa ou fora do escopo CRM efetivo."],
     ["crm_idempotency_conflict", "A chave de idempotência já foi usada com outro payload."],
     ["crm_ambiguous_state", "O estado CRM está ambíguo e a operação foi interrompida."],
+    ["crm_default_pipeline_deactivation_forbidden", "O pipeline default ativo não pode ser desativado."],
+    ["crm_pipeline_has_active_leads", "O pipeline possui leads ativos e não pode ser desativado."],
+    ["crm_tag_invalid", "A tag CRM é inválida."],
     ["crm_merge_review_required", "A consolidação de duplicados exige revisão explícita e não foi executada."],
   ];
   for (const [token, safe] of known) {
