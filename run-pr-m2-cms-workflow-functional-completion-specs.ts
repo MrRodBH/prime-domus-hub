@@ -53,6 +53,9 @@ const files = {
   forms: readFileSync("src/lib/api/forms.functions.ts", "utf8"),
   campaigns: readFileSync("src/lib/api/campaigns.functions.ts", "utf8"),
   helper: readFileSync("src/lib/api/_cms.ts", "utf8"),
+  renderer: readFileSync("src/components/site/CmsPageRenderer.tsx", "utf8"),
+  commandPalette: readFileSync("src/components/workspace/CommandPalette.tsx", "utf8"),
+  legacyAdapter: readFileSync("src/adapters/cms-legacy/index.ts", "utf8"),
 };
 
 // Closed build-time registries.
@@ -62,6 +65,7 @@ equal(SECTION_TYPE_KEYS.length, 10, "section type count");
 equal(LAYOUT_TYPE_KEYS.length, 3, "layout count");
 equal(TEMPLATE_KEYS.length, 3, "template count");
 equal(EDITOR_CONTROL_KEYS.length, 10, "editor control count");
+equal(Object.keys(EDITOR_CONTROL_REGISTRY).length, EDITOR_CONTROL_KEYS.length, "editor registry total key count");
 
 for (const key of PAGE_TYPE_KEYS) {
   equal(PAGE_TYPE_REGISTRY[key].key, key, `${key}:stable`);
@@ -96,6 +100,17 @@ for (const definition of Object.values(CONTENT_TYPE_REGISTRY)) {
   ok(definition.workflow.length >= 3, `${definition.key}:workflow`);
 }
 
+has(files.registry, "satisfies Record<EditorControlKey, EditorControlDefinition>", "compile-time total editor registry");
+lacks(files.registry, "Object.fromEntries(", "partial editor registry construction");
+has(files.pages, "export type CmsBlock =", "single canonical CmsBlock DTO");
+has(files.legacyAdapter, "export type { CmsBlock } from \"@/lib/api/pages.functions\"", "legacy barrel type-only re-export");
+has(files.renderer, "import type { CmsBlock } from \"@/lib/api/pages.functions\"", "renderer canonical block import");
+lacks(files.renderer, ": any", "renderer explicit any");
+has(files.commandPalette, "p.title", "canonical page title DTO");
+lacks(files.commandPalette, "p.titulo", "legacy page title DTO");
+lacks(files.functions, "Record<string, unknown>", "unknown outward CMS DTO");
+
+// Complete extension contracts.
 equal(assertCompleteCmsExtensionContracts(), true, "extension contracts are complete");
 for (const [key, contract] of Object.entries(CMS_EXTENSION_CONTRACTS)) {
   equal(contract.key, key, `${key}:contract key`);
@@ -255,6 +270,6 @@ has(files.helper, "authorizeTenantCmsOperation");
 lacks(files.helper, '.rpc("has_role"', "role authority");
 lacks(files.helper, '.rpc("is_super_admin"', "global super admin authority");
 
-ok(assertions >= 280, `expected >= 280 assertions, got ${assertions}`);
+ok(assertions >= 289, `expected >= 289 assertions, got ${assertions}`);
 console.log(`PR_M2_CMS_WORKFLOW_FUNCTIONAL_COMPLETION_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_CMS_WORKFLOW_FUNCTIONAL_COMPLETION_SPECS=PASS");
