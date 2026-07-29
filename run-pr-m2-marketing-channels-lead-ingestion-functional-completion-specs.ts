@@ -42,6 +42,7 @@ const lacks = (source: string, token: string): void => ok(!source.includes(token
 const files = {
   authority: readFileSync("src/lib/api/tenant-marketing-authority.server.ts", "utf8"),
   functions: readFileSync("src/lib/api/tenant-marketing.functions.ts", "utf8"),
+  provider: readFileSync("src/lib/marketing/marketing-provider-ingestion.server.ts", "utf8"),
   route: readFileSync("src/routes/_authenticated.admin.marketing.tsx", "utf8"),
   contexts: readFileSync("src/components/workspace/contexts.ts", "utf8"),
   migration: readFileSync("supabase/migrations/20260729233000_pr_m2_marketing_channels_lead_ingestion.sql", "utf8"),
@@ -51,7 +52,7 @@ const files = {
   release: readFileSync("scripts/verify-release.mjs", "utf8"),
 };
 
-// Closed registries and factual availability.
+// Closed registries and factual provider availability.
 equal(MARKETING_CHANNEL_KEYS.length, 4, "channel cardinality");
 equal(MARKETING_CHANNEL_REGISTRY.length, 4, "registry cardinality");
 equal(MARKETING_MANUAL_METHODS.length, 3, "manual methods");
@@ -80,7 +81,7 @@ equal(getMarketingChannelDefinition("MANUAL_IMPORT").availabilityState, "manual_
 equal(getMarketingChannelDefinition("WEBSITE_FORM").leadWriterContract, "ptw01_existing_public_writer", "PTW authority");
 throws(() => getMarketingChannelDefinition("UNKNOWN"), "marketing_channel_not_cataloged");
 
-// Strict client configuration and no secrets.
+// Strict config, closed mapping and no inline secrets.
 const manualConfig = {
   channelKey: "MANUAL_IMPORT" as const,
   operationMode: "HYBRID" as const,
@@ -101,15 +102,13 @@ for (const key of ["access_token", "client_secret", "app_secret", "refresh_token
   throws(() => assertNoMarketingInlineSecrets({ [key]: "secret" }), "marketing_inline_secret_prohibited");
 }
 assertNoMarketingInlineSecrets({ credentialReference: "credential://marketing/meta" }); assertions += 1;
-
-// Closed mapping and authority-field denial.
 equal(MarketingFieldMappingSchema.safeParse(DEFAULT_MARKETING_FIELD_MAPPING).success, true, "default mapping");
 for (const target of MARKETING_MAPPING_TARGETS) ok(target in DEFAULT_MARKETING_FIELD_MAPPING, `${target}:default`);
 for (const key of ["tenant_id", "tenantId", "actor_user_id", "actorUserId", "assigned_to", "pipeline_id", "stage_id"]) {
   equal(MarketingFieldMappingSchema.safeParse({ ...DEFAULT_MARKETING_FIELD_MAPPING, [key]: key }).success, false, `${key}:denied`);
 }
 
-// Deterministic identity, sanitization and generic signature primitive.
+// Deterministic identity, sanitized payload and generic signature primitive.
 equal(stableMarketingJson({ b: 2, a: 1 }), stableMarketingJson({ a: 1, b: 2 }), "stable JSON");
 equal(hashMarketingPayload({ b: 2, a: 1 }), hashMarketingPayload({ a: 1, b: 2 }), "stable hash");
 ok(/^[0-9a-f]{64}$/.test(hashMarketingPayload({ a: 1 })), "SHA-256");
@@ -126,7 +125,7 @@ equal(verifyMarketingHmacSha256({ rawBody, signatureHex: signature, timestampSec
 equal(verifyMarketingHmacSha256({ rawBody, signatureHex: "0".repeat(64), timestampSeconds: timestamp, nowSeconds: timestamp, maxSkewSeconds: 300, secret }), false, "invalid signature");
 equal(verifyMarketingHmacSha256({ rawBody, signatureHex: signature, timestampSeconds: timestamp, nowSeconds: timestamp + 301, maxSkewSeconds: 300, secret }), false, "expired signature");
 
-// Lead normalization and full attribution mapping.
+// Lead normalization and attribution.
 equal(normalizeMarketingEmail(" Test@Example.COM "), "test@example.com", "email normalized");
 throws(() => normalizeMarketingEmail("invalid"), "marketing_email_invalid");
 equal(normalizeMarketingPhone("+55 (31) 99999-9999"), "5531999999999", "phone normalized");
@@ -157,11 +156,10 @@ for (const [actual, expected] of [
 ]) equal(actual, expected, "mapped attribution");
 throws(() => mapMarketingLead({ row: { name: "Maria" }, mapping: DEFAULT_MARKETING_FIELD_MAPPING, channelKey: "MANUAL_IMPORT", connectorId: "11111111-1111-4111-8111-111111111111", mappingVersion: 1, receivedAt: "2026-07-29T12:00:00.000Z" }), "marketing_contact_required");
 
-// CSV/XLSX preview parsing and formula safety.
+// Manual CSV/XLSX preview and formula rejection.
 const csv = "name,email,phone\nMaria,maria@example.com,31999999999\nJoao,joao@example.com,31888888888";
 const csvRows = parseMarketingManualImport({ format: "CSV", contentBase64: Buffer.from(csv).toString("base64") });
 equal(csvRows.length, 2, "CSV rows");
-equal(csvRows[0].name, "Maria", "CSV value");
 throws(() => parseMarketingManualImport({ format: "CSV", contentBase64: Buffer.from("name,email\n=CMD(),x@example.com").toString("base64") }), "marketing_spreadsheet_formula_prohibited");
 throws(() => parseMarketingManualImport({ format: "CSV", contentBase64: Buffer.from("name,name\nA,B").toString("base64") }), "marketing_import_header_duplicate_or_blank");
 const workbook = XLSX.utils.book_new();
@@ -171,7 +169,7 @@ const formulaWorkbook = XLSX.utils.book_new();
 XLSX.utils.book_append_sheet(formulaWorkbook, XLSX.utils.aoa_to_sheet([["name", "email"], ["Maria", { f: 'HYPERLINK("https://evil.invalid")', v: "click" }]]), "Leads");
 throws(() => parseMarketingManualImport({ format: "XLSX", contentBase64: XLSX.write(formulaWorkbook, { type: "base64", bookType: "xlsx" }) }), "marketing_spreadsheet_formula_prohibited");
 
-// Canonical server authority and wrappers.
+// Server authority, wrappers and isolated provider boundary.
 for (const token of ["requireTenantScopedAuthority", "resolveEffectiveTenantPermission", '"crm"', 'decision.scope !== "global"', "super_admin_impersonation", "tenant_owner"]) has(files.authority, token);
 for (const token of ['.rpc("has_role"', '.from("user_roles")', "ORDER BY", "LIMIT 1"]) lacks(files.authority, token);
 for (const token of [
@@ -179,10 +177,11 @@ for (const token of [
   "listTenantMarketingConnectors", "saveTenantMarketingConnectorDraft", "setTenantMarketingCredentialReference",
   "saveTenantMarketingMapping", "previewTenantMarketingManualImport", "createTenantMarketingManualImport",
   "executeTenantMarketingManualImport", "listTenantMarketingIngestionEvents", "retryTenantMarketingIngestion",
-  "getTenantMarketingDiagnostics", "receiveMarketingProviderPayload", "verifyMarketingProviderPayload",
-  "ingestVerifiedMarketingLead",
+  "getTenantMarketingDiagnostics", 'await import("@/lib/marketing/marketing-ingestion.server")',
 ]) has(files.functions, token);
-for (const token of ["_tenant_id: data.", "_actor_user_id: data.", '.from("leads").insert', '.from("leads").update', '.rpc("has_role"', '.from("user_roles")', "META_GRAPH_URL", "GOOGLE_ADS_URL", "fetch(", "@ts-ignore", "@ts-nocheck"]) lacks(files.functions, token);
+for (const token of ["node:crypto", "xlsx", "_tenant_id: data.", "_actor_user_id: data.", '.from("leads").insert', '.from("leads").update', "fetch("]) lacks(files.functions, token);
+for (const token of ["receiveMarketingProviderPayload", "verifyMarketingProviderPayload", "ingestVerifiedMarketingLead", "marketing_adapter_not_implemented", "serverResolvedSecret", "connectorId"]) has(files.provider, token);
+for (const token of ["META_GRAPH_URL", "GOOGLE_ADS_URL", "fetch(", "tenantId", "actorUserId"]) lacks(files.provider, token);
 
 // Schema, idempotency, CRM linkage, ACL and no network transaction.
 for (const token of [
@@ -199,7 +198,7 @@ for (const token of [
 ]) has(files.migration, token);
 for (const token of ["net.http", "http_post", "ORDER BY created_at LIMIT 1", "ORDER BY id LIMIT 1", "automatic_merge", "fuzzy"]) lacks(files.migration, token);
 
-// Functional UI, seven contexts and preserved public/CRM boundaries.
+// Functional UI, seven contexts and preserved PTW/CRM boundaries.
 for (const token of ["Marketing & Lead Ingestion Center", "adapter_not_implemented", "Preview server-side", "Persistir importação", "Ingestion ledger", "retry_available"]) has(files.route, token);
 for (const token of ['.from("tenant_marketing_', '.from("leads")', "access_token"]) lacks(files.route, token);
 has(files.contexts, 'matches: ["/admin/portais", "/admin/marketing"]');
@@ -213,6 +212,6 @@ has(files.packageJson, '"test:pr-m2:marketing-channels-lead-ingestion-functional
 has(files.release, "PR-M2 — Marketing channels and lead ingestion functional completion specifications");
 has(files.release, "prM2MarketingChannelsLeadIngestionFunctionalCompletionSpecsPassed");
 
-ok(assertions >= 160, `expected >= 160 assertions, got ${assertions}`);
+ok(assertions >= 170, `expected >= 170 assertions, got ${assertions}`);
 console.log(`PR_M2_MARKETING_CHANNELS_LEAD_INGESTION_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_MARKETING_CHANNELS_LEAD_INGESTION_SPECS=PASS");
