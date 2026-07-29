@@ -263,7 +263,7 @@ includesAll(route, [
   "credential_provisioning_required",
   "retry_available",
   "failed_retryable",
-  "failed_terminal",
+  "terminalFailures",
   "reconciliationRequired",
   "CSV",
   "XLSX",
