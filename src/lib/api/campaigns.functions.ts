@@ -1,6 +1,8 @@
 /**
- * CMS — Campanhas (banners e popups).
- * Admin: CRUD tenant-scoped. Público: listar ativas + registrar eventos.
+ * CMS Campaign compatibility surface.
+ * Admin reads delegate to PR-M2 canonical workflow. Legacy direct mutations
+ * are retired. Public reads require Host-derived tenant and a valid published
+ * version pointer; public event writes remain owned by PTW-01.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -9,6 +11,15 @@ import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
 import { requirePublicWriterTenantFromRequest } from "@/lib/public-writers/public-writer-authority.server";
 import { recordPublicCampaignEvent } from "@/lib/public-writers/public-campaign-writer.server";
+import {
+  getTenantCampaign,
+  listTenantCampaigns,
+} from "@/lib/api/tenant-cms.functions";
+import { authorizeTenantCampaignOperation } from "@/lib/api/tenant-cms-authority.server";
+import {
+  SIGNED_URL_TTL_PREVIEW_SECONDS,
+  validateTenantSignRequest,
+} from "@/lib/storage/signed-url";
 
 export type CampaignConteudo = {
   titulo?: string;
@@ -46,205 +57,55 @@ export type Campaign = {
   updated_at: string;
 };
 
-// ============================================================================
-// ADMIN — autoridade tenant-scoped derivada exclusivamente por requireTenant.
-// ============================================================================
-
-export const listarCampanhas = createServerFn({ method: "GET" })
-  .middleware([requireTenant])
-  .handler(async ({ context }) => {
-    const { assertCmsTenantPermission } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.campanhas",
-      "visualizar",
-    );
-    const { data, error } = await context.supabase
-      .from("cms_campaigns")
-      .select("id, nome, tipo, status, prioridade, start_at, end_at, updated_at")
-      .eq("tenant_id", tenantId)
-      .order("updated_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
-
-export const obterCampanha = createServerFn({ method: "GET" })
-  .middleware([requireTenant])
-  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.campanhas",
-      "visualizar",
-    );
-    const { data: row, error } = await context.supabase
-      .from("cms_campaigns")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!row) throw new Error("Campanha não encontrada");
-    return row as unknown as Campaign;
-  });
-
-const upsertSchema = z.object({
-  id: z.string().uuid().optional(),
-  nome: z.string().min(1),
-  tipo: z.enum(["banner_top", "banner_bottom", "popup_center", "modal", "floating"]),
-  status: z.enum(["draft", "active", "paused", "archived"]),
-  prioridade: z.number().int().default(0),
-  conteudo: z.record(z.string(), z.any()).default({}),
-  segmentacao: z
-    .object({
-      rotas_incluir: z.array(z.string()).default([]),
-      rotas_excluir: z.array(z.string()).default([]),
-      dispositivo: z.enum(["all", "desktop", "mobile"]).default("all"),
-    })
-    .default({ rotas_incluir: [], rotas_excluir: [], dispositivo: "all" }),
-  frequencia: z
-    .object({
-      max_por_sessao: z.number().int().min(0).default(1),
-      cooldown_horas: z.number().int().min(0).default(24),
-    })
-    .default({ max_por_sessao: 1, cooldown_horas: 24 }),
-  start_at: z.string().nullable().optional(),
-  end_at: z.string().nullable().optional(),
-});
+export const listarCampanhas = listTenantCampaigns;
+export const obterCampanha = getTenantCampaign;
 
 export const salvarCampanha = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((d: unknown) => upsertSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
-    const isActivating = data.status === "active";
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.campanhas",
-      data.id ? "editar" : "criar",
-    );
-    if (isActivating) {
-      await assertCmsTenantPermission(context, "cms.campanhas", "publicar");
-    }
-    const payload = {
-      nome: data.nome,
-      tipo: data.tipo,
-      status: data.status,
-      prioridade: data.prioridade,
-      conteudo: data.conteudo,
-      segmentacao: data.segmentacao,
-      frequencia: data.frequencia,
-      start_at: data.start_at ?? null,
-      end_at: data.end_at ?? null,
-    };
-
-    if (data.id) {
-      const { data: before, error: beforeError } = await context.supabase
-        .from("cms_campaigns")
-        .select("*")
-        .eq("tenant_id", tenantId)
-        .eq("id", data.id)
-        .maybeSingle();
-      if (beforeError) throw new Error(beforeError.message);
-      if (!before) throw new Error("Campanha não encontrada");
-
-      const { data: row, error } = await context.supabase
-        .from("cms_campaigns")
-        .update(payload)
-        .eq("tenant_id", tenantId)
-        .eq("id", data.id)
-        .select("*")
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      if (!row) throw new Error("Campanha não encontrada");
-      await logCmsAudit(
-        context,
-        "cms_campaigns",
-        isActivating ? "cms.campanha.publicar" : "cms.campanha.editar",
-        data.id,
-        before,
-        row,
-      );
-      return { id: row.id };
-    }
-
-    const { data: row, error } = await context.supabase
-      .from("cms_campaigns")
-      .insert({ ...payload, tenant_id: tenantId, created_by: context.userId })
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "cms_campaigns", "cms.campanha.criar", row.id, null, row);
-    return { id: row.id };
+  .inputValidator(z.record(z.string(), z.unknown()))
+  .handler(async () => {
+    throw new Error("legacy_cms_campaign_mutation_retired");
   });
 
 export const excluirCampanha = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.campanhas",
-      "excluir",
-    );
-    const { data: before, error: beforeError } = await context.supabase
-      .from("cms_campaigns")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .eq("id", data.id)
-      .maybeSingle();
-    if (beforeError) throw new Error(beforeError.message);
-    if (!before) throw new Error("Campanha não encontrada");
-
-    const { error } = await context.supabase
-      .from("cms_campaigns")
-      .delete()
-      .eq("tenant_id", tenantId)
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "cms_campaigns", "cms.campanha.excluir", data.id, before, null);
-    return { ok: true };
+  .inputValidator(z.object({ id: z.string().uuid() }).strict())
+  .handler(async () => {
+    throw new Error("legacy_cms_campaign_delete_retired");
   });
 
 export const metricasCampanha = createServerFn({ method: "GET" })
   .middleware([requireTenant])
-  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).strict().parse(data))
   .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.campanhas",
-      "visualizar",
+    const auth = await authorizeTenantCampaignOperation(
+      { userId: context.userId, tenant: context.tenant },
+      "read",
     );
-
-    const { data: campaign, error: campaignError } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const campaignResult = await (supabaseAdmin as any)
       .from("cms_campaigns")
       .select("id")
-      .eq("tenant_id", tenantId)
+      .eq("tenant_id", auth.tenantId)
       .eq("id", data.id)
-      .maybeSingle();
-    if (campaignError) throw new Error(campaignError.message);
-    if (!campaign) throw new Error("Campanha não encontrada");
-
-    const { data: rows, error } = await context.supabase
+      .limit(2);
+    if (campaignResult.error) throw new Error(campaignResult.error.message);
+    if (!Array.isArray(campaignResult.data) || campaignResult.data.length !== 1) {
+      throw new Error("cms_campaign_not_found");
+    }
+    const { data: rows, error } = await (supabaseAdmin as any)
       .from("cms_campaign_events")
       .select("tipo")
-      .eq("tenant_id", tenantId)
+      .eq("tenant_id", auth.tenantId)
       .eq("campaign_id", data.id);
     if (error) throw new Error(error.message);
-    const totais = { impression: 0, click: 0, dismiss: 0 };
-    for (const r of rows ?? []) {
-      const t = (r as { tipo: keyof typeof totais }).tipo;
-      if (t in totais) totais[t]++;
+    const totals = { impression: 0, click: 0, dismiss: 0 };
+    for (const row of rows ?? []) {
+      const type = (row as { tipo: keyof typeof totals }).tipo;
+      if (type in totals) totals[type] += 1;
     }
-    return totais;
+    return totals;
   });
-
-// ============================================================================
-// PÚBLICO
-// ============================================================================
 
 type PublicCampaignRow = {
   tenant_id: string;
@@ -252,29 +113,59 @@ type PublicCampaignRow = {
   nome: string;
   tipo: Campaign["tipo"];
   prioridade: number;
-  conteudo: CampaignConteudo;
+  conteudo: CampaignConteudo & { media_id?: string };
   segmentacao: CampaignSegmentacao;
   frequencia: CampaignFrequencia;
   start_at: string | null;
   end_at: string | null;
+  published_version_id?: string | null;
 };
 
+async function campaignMediaUrl(tenantId: string, mediaId: string): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await (supabaseAdmin as any)
+    .from("media_library")
+    .select("id, arquivo, arquivo_medium, arquivo_thumbnail")
+    .eq("tenant_id", tenantId)
+    .eq("id", mediaId)
+    .limit(2);
+  if (error || !Array.isArray(data) || data.length !== 1) {
+    throw new Error("public_campaign_media_reference_invalid");
+  }
+  const row = data[0] as Record<string, unknown>;
+  const rawPath = (row.arquivo_medium ?? row.arquivo_thumbnail ?? row.arquivo) as string | null;
+  if (!rawPath) throw new Error("public_campaign_media_reference_invalid");
+  const { bucket, path } = validateTenantSignRequest({ bucket: "site", path: rawPath, tenantId });
+  const signed = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, SIGNED_URL_TTL_PREVIEW_SECONDS);
+  if (signed.error || !signed.data?.signedUrl) throw new Error("public_campaign_media_sign_failed");
+  return signed.data.signedUrl;
+}
+
 export const listarCampanhasAtivas = createServerFn({ method: "GET" })
-  .inputValidator((d: Record<string, never> | undefined) => z.object({}).strict().parse(d ?? {}))
+  .inputValidator((data: Record<string, never> | undefined) => z.object({}).strict().parse(data ?? {}))
   .handler(async () => {
     const tenant = await requirePublicTenantFromRequest();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    const { data: rows, error } = await (supabaseAdmin as any)
       .from("cms_campaigns")
-      .select("tenant_id, id, nome, tipo, prioridade, conteudo, segmentacao, frequencia, start_at, end_at")
+      .select("tenant_id, id, nome, tipo, prioridade, conteudo, segmentacao, frequencia, start_at, end_at, published_version_id")
       .eq("tenant_id", tenant.id)
       .eq("status", "active")
+      .not("published_version_id", "is", null)
       .order("prioridade", { ascending: false });
     if (error) throw new Error(error.message);
-    return assertTenantScopedRows(
+    const scoped = assertTenantScopedRows(
       tenant.id,
-      rows as unknown as PublicCampaignRow[] | null,
-    ).map((row) => withoutTenantId(row) as unknown as Campaign);
+      rows as PublicCampaignRow[] | null,
+    );
+    const projected = await Promise.all(scoped.map(async (row) => {
+      const content = { ...row.conteudo };
+      const mediaId = content.media_id;
+      delete content.media_id;
+      if (mediaId) content.imagem_url = await campaignMediaUrl(tenant.id, mediaId);
+      return withoutTenantId({ ...row, conteudo: content }) as unknown as Campaign;
+    }));
+    return projected;
   });
 
 const publicCampaignEventSchema = z
@@ -287,10 +178,8 @@ const publicCampaignEventSchema = z
   .strict();
 
 export const registrarEventoCampanha = createServerFn({ method: "POST" })
-  // PTW-01 owns this public mutation.
-  // Historical PTR-01 compatibility marker only; removed contract: tenantId?: string | null
-  // Historical PTR-01 compatibility marker only; removed transport: publicClient(data.tenantId ?? null)
-  // Historical PSC-01 compatibility marker only; removed mutation: .from("cms_campaign_events").insert
+  // PTW-01 owns this public mutation. Tenant is Host-derived and the writer
+  // validates campaign ownership/activity before persistence.
   .inputValidator((data: unknown) => publicCampaignEventSchema.parse(data))
   .handler(async ({ data }) => {
     const tenant = await requirePublicWriterTenantFromRequest();
