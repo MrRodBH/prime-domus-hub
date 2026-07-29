@@ -215,10 +215,8 @@ export function getPortalAdapter(connectorKey: PortalAutomatedMethod): PortalAda
       if (definition.availabilityState !== "adapter_not_implemented") {
         throw new Error("portal_adapter_registry_inconsistent");
       }
-      const endpoint = connectorKey === "WEBHOOK" ? null : null;
-      validatePortalEndpoint(endpoint);
     },
-    buildPublicationPayload,
+    buildPublicationPayload: buildPortalPublicationPayload,
     async publish() {
       return notImplementedResult(connectorKey);
     },
