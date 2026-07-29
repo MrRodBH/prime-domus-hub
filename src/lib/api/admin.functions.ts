@@ -33,11 +33,11 @@ export {
 } from "./tenant-access-control.functions";
 
 // PR-M2 — CRM operational workflow cutover. Stable legacy export names are
-// overridden explicitly and delegate to the canonical Tenant CRM authority.
+// narrow mappers over the canonical Tenant CRM authority and primitives.
 export {
-  listTenantLeads as adminListarLeads,
-  listTenantLeadAssignees as adminListarLeadAssignees,
-  listTenantLeadProperties as adminListarImoveisLite,
-  updateTenantLead as adminAtualizarLead,
-  createTenantLead as criarLeadManual,
-} from "./tenant-crm.functions";
+  adminListarLeads,
+  adminListarLeadAssignees,
+  adminListarImoveisLite,
+  adminAtualizarLead,
+  criarLeadManual,
+} from "./tenant-crm-compat.functions";
