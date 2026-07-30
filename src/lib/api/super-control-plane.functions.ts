@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
@@ -10,6 +11,94 @@ import {
 } from "@/lib/super-admin/platform-operations-registry";
 
 const uuid = z.string().uuid();
+
+type CountMap = Record<string, number>;
+type ControlPlaneRecord = Record<string, Json | undefined>;
+
+export type SuperControlPlaneSnapshot = {
+  contract: typeof SUPER_CONTROL_PLANE_CONTRACT;
+  generatedAt: string;
+  globalExecutiveDashboard: {
+    tenantCount: number;
+    activeTenantCount: number;
+    trialTenantCount: number;
+    distinctMembershipUsers: number;
+    membershipCount: number;
+    globalRoleAssignments: number;
+    auditEvents24h: number;
+    openIncidentCount: number;
+    openSupportCount: number;
+  };
+  tenants: Array<{
+    id: string;
+    slug: string;
+    nome: string;
+    status: string;
+    dominio_principal: string | null;
+    plano_codigo: string | null;
+    owner_user_id: string | null;
+    created_at: string;
+    membershipSummary: { memberships: number; owners: number };
+    domainActivationState: string;
+    billingActivationState: "pending_BCA01";
+  }>;
+  usersAndMemberships: {
+    distinctUsers: number;
+    membershipStatusCounts: CountMap;
+    tenantRoleCounts: CountMap;
+    globalRoleCounts: CountMap;
+  };
+  commercialVisibility: {
+    sourceContract: "accepted_phase_4_commercial_models_read_only";
+    plans: Json[];
+    entitlementDefinitions: Json[];
+    planEntitlementRelationships: number;
+    billingProviderMappings: number;
+    billingEvents7d: number;
+    providerMutationAvailable: false;
+    activationState: "pending_BCA01";
+    realizedMrrProved: false;
+  };
+  domainVisibility: {
+    configuredTenantDomains: number;
+    activationAvailable: false;
+    activationState: "pending_DCA01";
+  };
+  integrations: {
+    portalConnectorCount: number;
+    portalJobStates: CountMap;
+    marketingConnectorStates: CountMap;
+    marketingVerificationStates: CountMap;
+    marketingIngestionStates7d: CountMap;
+    trackingProviderStates: CountMap;
+    trackingDiagnosticStates7d: CountMap;
+  };
+  operations: {
+    registry: Array<{
+      key: string;
+      category: string;
+      executionState: string;
+      authority: string;
+    }>;
+    queues: { portalJobs: number; marketingEvents7d: number; cmsSchedules: number };
+    webhooks: {
+      marketingAdaptersImplemented: true;
+      billingWebhooks: "pending_BCA01";
+      externalDeliveryProved: false;
+    };
+    cronInventory: Array<{ key: string; state: string }>;
+    health: {
+      openCrmAlerts: number;
+      activeCmsSchedules: number;
+      dataCompleteness: "complete";
+    };
+  };
+  incidents: ControlPlaneRecord[];
+  support: ControlPlaneRecord[];
+  audit: ControlPlaneRecord[];
+  reports: Record<string, string>;
+  mutationBoundaries: Record<string, string>;
+};
 
 async function assertGlobalSuperAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase
@@ -31,19 +120,29 @@ function assertQuery(result: { error?: { message?: string } | null }, source: st
   if (result.error) throw new Error(`super_control_plane_partial_data:${source}`);
 }
 
-function stripSensitiveKeys(value: unknown): unknown {
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json;
+}
+
+function toJsonArray(value: unknown): Json[] {
+  const parsed = toJson(value ?? []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function stripSensitiveKeys(value: unknown): Json {
   if (Array.isArray(value)) return value.map(stripSensitiveKeys);
-  if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>)
-      .filter(([key]) => !/(secret|token|password|private_key|api_key|credential)/i.test(key))
-      .map(([key, child]) => [key, stripSensitiveKeys(child)]),
-  );
+  if (!value || typeof value !== "object") return value as Json;
+  const output: Record<string, Json | undefined> = {};
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (/(secret|token|password|private_key|api_key|credential)/i.test(key)) continue;
+    output[key] = stripSensitiveKeys(child);
+  }
+  return output;
 }
 
 export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .handler(async ({ context }): Promise<SuperControlPlaneSnapshot> => {
     await assertGlobalSuperAdmin(context);
     const admin = await adminClient();
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -94,38 +193,86 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
     ]);
 
     for (const [source, result] of Object.entries({
-      tenants, memberships, globalRoles, plans, entitlementDefinitions, planEntitlements,
-      billingMappings, billingEvents, portalConnectors, portalJobs, marketingConnectors,
-      marketingEvents, trackingConnectors, trackingDiagnostics, audit24h, recentAudit,
-      incidents, supportCases, crmAlerts, cmsSchedules,
-    })) assertQuery(result as any, source);
+      tenants,
+      memberships,
+      globalRoles,
+      plans,
+      entitlementDefinitions,
+      planEntitlements,
+      billingMappings,
+      billingEvents,
+      portalConnectors,
+      portalJobs,
+      marketingConnectors,
+      marketingEvents,
+      trackingConnectors,
+      trackingDiagnostics,
+      audit24h,
+      recentAudit,
+      incidents,
+      supportCases,
+      crmAlerts,
+      cmsSchedules,
+    })) {
+      assertQuery(result as any, source);
+    }
 
-    const tenantRows = tenants.data ?? [];
-    const memberRows = memberships.data ?? [];
-    const distinctUsers = new Set(memberRows.map((row: { user_id: string }) => row.user_id));
+    const tenantRows = (tenants.data ?? []) as Array<{
+      id: string;
+      slug: string;
+      nome: string;
+      status: string;
+      dominio_principal: string | null;
+      plano_codigo: string | null;
+      owner_user_id: string | null;
+      created_at: string;
+    }>;
+    const memberRows = (memberships.data ?? []) as Array<{
+      tenant_id: string;
+      user_id: string;
+      membership_status: string;
+      tenant_role: string;
+      is_owner: boolean;
+    }>;
+    const distinctUsers = new Set<string>(memberRows.map((row) => row.user_id));
     const countsByTenant: Record<string, { memberships: number; owners: number }> = {};
-    for (const row of memberRows as Array<{ tenant_id: string; is_owner: boolean }>) {
+    for (const row of memberRows) {
       countsByTenant[row.tenant_id] ??= { memberships: 0, owners: 0 };
       countsByTenant[row.tenant_id].memberships += 1;
       if (row.is_owner) countsByTenant[row.tenant_id].owners += 1;
     }
 
-    const groupCount = (rows: unknown[], key: string) => {
-      const result: Record<string, number> = {};
-      for (const row of rows as Record<string, unknown>[]) {
+    const groupCount = (rows: Array<Record<string, unknown>>, key: string): CountMap => {
+      const result: CountMap = {};
+      for (const row of rows) {
         const value = String(row[key] ?? "unknown");
         result[value] = (result[value] ?? 0) + 1;
       }
       return result;
     };
 
+    const operationRegistry = PLATFORM_OPERATION_KEYS.map((key) => {
+      const definition = PLATFORM_OPERATIONS_REGISTRY[key] as {
+        key: string;
+        category: string;
+        executionState: string;
+        authority: string;
+      };
+      return {
+        key: definition.key,
+        category: definition.category,
+        executionState: definition.executionState,
+        authority: definition.authority,
+      };
+    });
+
     return {
       contract: SUPER_CONTROL_PLANE_CONTRACT,
       generatedAt: new Date().toISOString(),
       globalExecutiveDashboard: {
         tenantCount: tenantRows.length,
-        activeTenantCount: tenantRows.filter((row: { status: string }) => row.status === "ativo").length,
-        trialTenantCount: tenantRows.filter((row: { status: string }) => row.status === "trial").length,
+        activeTenantCount: tenantRows.filter((row) => row.status === "ativo").length,
+        trialTenantCount: tenantRows.filter((row) => row.status === "trial").length,
         distinctMembershipUsers: distinctUsers.size,
         membershipCount: memberRows.length,
         globalRoleAssignments: (globalRoles.data ?? []).length,
@@ -133,22 +280,24 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
         openIncidentCount: (incidents.data ?? []).filter((row: { status: string }) => !["resolved", "closed"].includes(row.status)).length,
         openSupportCount: (supportCases.data ?? []).filter((row: { status: string }) => !["resolved", "closed"].includes(row.status)).length,
       },
-      tenants: tenantRows.map((tenant: Record<string, unknown>) => ({
+      tenants: tenantRows.map((tenant) => ({
         ...tenant,
-        membershipSummary: countsByTenant[String(tenant.id)] ?? { memberships: 0, owners: 0 },
-        domainActivationState: tenant.dominio_principal ? "configured_pending_DCA01_validation" : "pending_DCA01",
-        billingActivationState: "pending_BCA01",
+        membershipSummary: countsByTenant[tenant.id] ?? { memberships: 0, owners: 0 },
+        domainActivationState: tenant.dominio_principal
+          ? "configured_pending_DCA01_validation"
+          : "pending_DCA01",
+        billingActivationState: "pending_BCA01" as const,
       })),
       usersAndMemberships: {
         distinctUsers: distinctUsers.size,
         membershipStatusCounts: groupCount(memberRows, "membership_status"),
         tenantRoleCounts: groupCount(memberRows, "tenant_role"),
-        globalRoleCounts: groupCount(globalRoles.data ?? [], "role"),
+        globalRoleCounts: groupCount((globalRoles.data ?? []) as Array<Record<string, unknown>>, "role"),
       },
       commercialVisibility: {
         sourceContract: "accepted_phase_4_commercial_models_read_only",
-        plans: stripSensitiveKeys(plans.data ?? []),
-        entitlementDefinitions: stripSensitiveKeys(entitlementDefinitions.data ?? []),
+        plans: toJsonArray(stripSensitiveKeys(plans.data ?? [])),
+        entitlementDefinitions: toJsonArray(stripSensitiveKeys(entitlementDefinitions.data ?? [])),
         planEntitlementRelationships: planEntitlements.count ?? 0,
         billingProviderMappings: billingMappings.count ?? 0,
         billingEvents7d: billingEvents.count ?? 0,
@@ -157,21 +306,21 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
         realizedMrrProved: false,
       },
       domainVisibility: {
-        configuredTenantDomains: tenantRows.filter((row: { dominio_principal: string | null }) => Boolean(row.dominio_principal)).length,
+        configuredTenantDomains: tenantRows.filter((row) => Boolean(row.dominio_principal)).length,
         activationAvailable: false,
         activationState: "pending_DCA01",
       },
       integrations: {
         portalConnectorCount: portalConnectors.count ?? 0,
-        portalJobStates: groupCount(portalJobs.data ?? [], "current_state"),
-        marketingConnectorStates: groupCount(marketingConnectors.data ?? [], "availability_state"),
-        marketingVerificationStates: groupCount(marketingConnectors.data ?? [], "verification_state"),
-        marketingIngestionStates7d: groupCount(marketingEvents.data ?? [], "ingestion_state"),
-        trackingProviderStates: groupCount(trackingConnectors.data ?? [], "availability_state"),
-        trackingDiagnosticStates7d: groupCount(trackingDiagnostics.data ?? [], "state"),
+        portalJobStates: groupCount((portalJobs.data ?? []) as Array<Record<string, unknown>>, "current_state"),
+        marketingConnectorStates: groupCount((marketingConnectors.data ?? []) as Array<Record<string, unknown>>, "availability_state"),
+        marketingVerificationStates: groupCount((marketingConnectors.data ?? []) as Array<Record<string, unknown>>, "verification_state"),
+        marketingIngestionStates7d: groupCount((marketingEvents.data ?? []) as Array<Record<string, unknown>>, "ingestion_state"),
+        trackingProviderStates: groupCount((trackingConnectors.data ?? []) as Array<Record<string, unknown>>, "availability_state"),
+        trackingDiagnosticStates7d: groupCount((trackingDiagnostics.data ?? []) as Array<Record<string, unknown>>, "state"),
       },
       operations: {
-        registry: PLATFORM_OPERATION_KEYS.map((key) => PLATFORM_OPERATIONS_REGISTRY[key]),
+        registry: operationRegistry,
         queues: {
           portalJobs: portalJobs.count ?? (portalJobs.data ?? []).length,
           marketingEvents7d: marketingEvents.count ?? (marketingEvents.data ?? []).length,
@@ -193,9 +342,9 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
           dataCompleteness: "complete",
         },
       },
-      incidents: incidents.data ?? [],
-      support: supportCases.data ?? [],
-      audit: recentAudit.data ?? [],
+      incidents: toJsonArray(incidents.data ?? []) as ControlPlaneRecord[],
+      support: toJsonArray(supportCases.data ?? []) as ControlPlaneRecord[],
+      audit: toJsonArray(recentAudit.data ?? []) as ControlPlaneRecord[],
       reports: {
         globalTenantLifecycle: "available",
         commercialVisibility: "available_read_only",
@@ -214,8 +363,15 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
 export const getSuperTenantScopedOperationalView = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }) => {
-    const tenantId = requireTenantScopedAuthority(context.tenant, "Super Admin Tenant Operational View");
-    if (!context.tenant.isSuperAdmin || !context.tenant.impersonation || context.tenant.origin !== "impersonation") {
+    const tenantId = requireTenantScopedAuthority(
+      context.tenant,
+      "Super Admin Tenant Operational View",
+    );
+    if (
+      !context.tenant.isSuperAdmin ||
+      !context.tenant.impersonation ||
+      context.tenant.origin !== "impersonation"
+    ) {
       throw new Error("super_admin_explicit_impersonation_required");
     }
     const admin = await adminClient();
@@ -227,12 +383,19 @@ export const getSuperTenantScopedOperationalView = createServerFn({ method: "GET
       admin.from("tenant_marketing_ingestion_events").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId),
       admin.from("crm_alerts").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("state", "open"),
     ]);
-    for (const [source, result] of Object.entries({ leads, properties, members, portalJobs, marketingEvents, crmAlerts })) {
+    for (const [source, result] of Object.entries({
+      leads,
+      properties,
+      members,
+      portalJobs,
+      marketingEvents,
+      crmAlerts,
+    })) {
       assertQuery(result as any, source);
     }
     return {
       tenantId,
-      authority: "explicit_super_admin_impersonation",
+      authority: "explicit_super_admin_impersonation" as const,
       counts: {
         leads: leads.count ?? 0,
         properties: properties.count ?? 0,
@@ -260,7 +423,7 @@ const incidentInput = z.object({
 export const mutatePlatformIncident = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => incidentInput.parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<Json> => {
     await assertGlobalSuperAdmin(context);
     const admin = await adminClient();
     const { data: result, error } = await admin.rpc("mutate_platform_incident", {
@@ -277,7 +440,7 @@ export const mutatePlatformIncident = createServerFn({ method: "POST" })
       _source: data.source,
     });
     if (error) throw new Error("platform_incident_mutation_failed");
-    return result;
+    return toJson(result);
   });
 
 const supportInput = z.object({
@@ -297,7 +460,7 @@ const supportInput = z.object({
 export const mutatePlatformSupportCase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => supportInput.parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<Json> => {
     await assertGlobalSuperAdmin(context);
     const admin = await adminClient();
     const { data: result, error } = await admin.rpc("mutate_platform_support_case", {
@@ -315,5 +478,5 @@ export const mutatePlatformSupportCase = createServerFn({ method: "POST" })
       _assigned_user_id: data.assignedUserId ?? null,
     });
     if (error) throw new Error("platform_support_mutation_failed");
-    return result;
+    return toJson(result);
   });
