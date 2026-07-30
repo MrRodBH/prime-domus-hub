@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { Json } from "@/integrations/supabase/types";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
   authorizeTenantCmsOperation,
@@ -19,6 +20,10 @@ async function adminClient() {
   return supabaseAdmin as any;
 }
 
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json;
+}
+
 export const getTenantCmsFunctionalInventory = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }) => {
@@ -35,7 +40,12 @@ export const validateTenantCmsFunctionalComponent = createServerFn({ method: "PO
   .inputValidator((input: unknown) =>
     z.object({ key: z.enum(CMS_FUNCTIONAL_COMPONENT_KEYS), value: z.unknown() }).strict().parse(input),
   )
-  .handler(async ({ context, data }) => {
+  .handler(async ({ context, data }): Promise<{
+    valid: true;
+    key: CmsFunctionalComponentKey;
+    schemaVersion: number;
+    value: Json;
+  }> => {
     const definition = CMS_FUNCTIONAL_COMPONENT_REGISTRY[data.key];
     await authorizeTenantCmsOperation(
       context,
@@ -44,7 +54,12 @@ export const validateTenantCmsFunctionalComponent = createServerFn({ method: "PO
     );
     const parsed = CMS_FUNCTIONAL_COMPONENT_SCHEMAS[data.key].parse(data.value);
     await validateReferences(context, data.key, parsed);
-    return { valid: true, key: data.key, schemaVersion: definition.schemaVersion, value: parsed };
+    return {
+      valid: true,
+      key: data.key,
+      schemaVersion: definition.schemaVersion,
+      value: toJson(parsed),
+    };
   });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,7 +221,7 @@ export const saveTenantCmsReusableBlock = createServerFn({ method: "POST" })
         schema_version: 2,
         revision: data.revision,
         status: data.status,
-        content: data.content,
+        content: toJson(data.content),
         content_hash: contentHash,
         created_by: auth.actorUserId,
       })
