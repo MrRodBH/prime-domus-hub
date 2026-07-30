@@ -26,12 +26,20 @@ function gitBlobSha1(content: Buffer) {
   const header = Buffer.from(`blob ${content.length}\0`);
   return createHash("sha1").update(Buffer.concat([header, content])).digest("hex");
 }
+function between(text: string, start: string, end: string): string {
+  const from = text.indexOf(start);
+  assert.ok(from >= 0, `start marker missing: ${start}`);
+  const to = text.indexOf(end, from + start.length);
+  assert.ok(to > from, `end marker missing: ${end}`);
+  return text.slice(from, to);
+}
 
 const packageJson = JSON.parse(source("package.json"));
 const bunLock = readFileSync("bun.lock");
 const apiFiles = sourceFiles("src/lib/api");
 const applicationFiles = sourceFiles("src");
 const activeApplication = applicationFiles.filter((path) => path !== "src/lib/api/admin.functions.legacy.ts");
+const uiFiles = activeApplication.filter((path) => path.startsWith("src/components/") || path.startsWith("src/routes/"));
 
 const dashboard = source("src/lib/api/dashboard.functions.ts");
 const property = source("src/lib/api/property-admin.functions.ts");
@@ -52,12 +60,27 @@ const superFunctions = source("src/lib/api/super-control-plane.functions.ts");
 const superRoute = source("src/routes/_authenticated.super.control-plane.tsx");
 const contexts = source("src/components/workspace/contexts.ts");
 
+const postForm = source("src/components/admin/PostForm.tsx");
+const launchForm = source("src/components/admin/LancamentoForm.tsx");
+const launchGallery = source("src/components/admin/GaleriaLancamento.tsx");
+const launchPdfs = source("src/components/admin/PdfsLancamento.tsx");
+const instagramManager = source("src/components/admin/InstagramPostManager.tsx");
+const instagramFunctions = source("src/lib/api/instagram.functions.ts");
+const deterministicContent = source("src/lib/api/ia.functions.ts");
+const contentMedia = source("src/lib/api/content-media.functions.ts");
+const launchCatalog = source("src/lib/api/tenant-launch-catalog.functions.ts");
+const cmsTransfer = source("src/lib/api/cms-transfer.functions.ts");
+const cmsTransferRoute = source("src/routes/_authenticated.admin.cms-transferencia.tsx");
+const contentConsumerMigrationPath = "supabase/migrations/20260730100000_pr_m2_content_upload_target_consumers.sql";
+const contentConsumerMigration = source(contentConsumerMigrationPath);
+
 const correctiveMigrations = [
   "supabase/migrations/20260730043000_pr_m2_consolidated_final_corrective.sql",
   "supabase/migrations/20260730050000_pr_m2_cms_functional_inventory.sql",
   "supabase/migrations/20260730051500_pr_m2_marketing_adapter_activation.sql",
   "supabase/migrations/20260730053000_pr_m2_marketing_and_cms_corrective_hardening.sql",
   "supabase/migrations/20260730060000_pr_m2_super_control_plane.sql",
+  contentConsumerMigrationPath,
 ];
 const migrationSource = correctiveMigrations.map(source).join("\n");
 
@@ -170,7 +193,8 @@ check("CMS functional inventory is closed, persisted and exposed", () => {
 check("required Meta and Google adapters are implemented without external execution claims", () => {
   for (const key of ["META_ADS", "GOOGLE_ADS"]) {
     const marker = marketingRegistry.indexOf(`channelKey: "${key}"`);
-    const block = marketingRegistry.slice(marker, marketingRegistry.indexOf("channelKey:", marker + 20) > 0 ? marketingRegistry.indexOf("channelKey:", marker + 20) : undefined);
+    const next = marketingRegistry.indexOf("channelKey:", marker + 20);
+    const block = marketingRegistry.slice(marker, next > 0 ? next : undefined);
     assert.ok(block.includes('adapterImplementationState: "implemented"'), key);
     assert.ok(block.includes('externalVerificationState: "not_live_verified"'), key);
     assert.ok(block.includes('availabilityState: "credential_required"'), key);
@@ -229,6 +253,118 @@ check("no final closure evidence is created by the corrective", () => {
   assert.equal(existsSync("docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m2-final-consolidated-closure-and-merge-readiness.md"), false);
 });
 
-assert.ok(assertions >= 13);
+check("Blog cover uses target consumption and persisted-path signing only", () => {
+  assert.equal(postForm.includes("adminAssinarUrl"), false);
+  assert.ok(postForm.includes("coverUploadTargetId: coverTargetId"));
+  assert.ok(postForm.includes("target.targetId"));
+  const blogSchema = between(contentMedia, "const blogSaveSchema", "export const saveTenantBlogPost");
+  assert.equal(blogSchema.includes("imagem_capa"), false);
+  assert.ok(blogSchema.includes("coverUploadTargetId"));
+  assert.ok(contentMedia.includes('admin.rpc("save_tenant_blog_post"'));
+  assert.ok(contentMedia.includes("signTenantBlogCover"));
+  assert.ok(contentMedia.includes('.eq("id", data.postId)'));
+});
+
+check("Launch UI has no raw-path mutation or property signer reuse", () => {
+  for (const [name, file] of [["form", launchForm], ["gallery", launchGallery], ["pdf", launchPdfs]]) {
+    assert.equal(file.includes("adminAssinarUrl"), false, name);
+    assert.equal(file.includes("storage_path: target.path"), false, name);
+  }
+  const saveCall = between(launchForm, "mutationFn: () => saveTenantLaunchProject", "onSuccess:");
+  assert.equal(saveCall.includes("imagem_capa"), false);
+  assert.ok(launchForm.includes("consumeTenantLaunchCover"));
+  assert.ok(launchGallery.includes("consumeTenantLaunchGalleryImage"));
+  assert.ok(launchGallery.includes("setTenantLaunchCoverFromImage"));
+  assert.ok(launchPdfs.includes("consumeTenantLaunchPdf"));
+  assert.ok(launchGallery.includes("targetId: target.targetId"));
+  assert.ok(launchPdfs.includes("targetId: target.targetId"));
+  const legacyUiOffenders = uiFiles.filter((path) => {
+    const text = source(path);
+    return text.includes("adminSalvarLancamento")
+      || text.includes("adminAdicionarImagemLancamento")
+      || text.includes("adminAdicionarPdfLancamento");
+  });
+  assert.deepEqual(legacyUiOffenders, []);
+});
+
+check("canonical Launch boundary accepts IDs and persisted references, never caller paths", () => {
+  const launchSchema = between(contentMedia, "const launchProjectSchema", "async function requireTenantReference");
+  assert.equal(launchSchema.includes("imagem_capa"), false);
+  assert.ok(contentMedia.includes("consumeTenantLaunchCover"));
+  assert.ok(contentMedia.includes("consumeTenantLaunchGalleryImage"));
+  assert.ok(contentMedia.includes("consumeTenantLaunchPdf"));
+  assert.ok(contentMedia.includes("setTenantLaunchCoverFromImage"));
+  assert.ok(contentMedia.includes("signTenantLaunchMedia"));
+  assert.ok(contentMedia.includes('.eq("id", data.resourceId)'));
+  assert.equal(contentMedia.includes("bucket: z."), false);
+});
+
+check("content target consumers lock, validate and consume atomically", () => {
+  assert.equal((contentConsumerMigration.match(/CREATE OR REPLACE FUNCTION public\.save_tenant_blog_post/g) ?? []).length, 1);
+  assert.equal((contentConsumerMigration.match(/CREATE OR REPLACE FUNCTION public\.consume_tenant_launch_upload_target/g) ?? []).length, 1);
+  const blogSql = between(contentConsumerMigration, "CREATE OR REPLACE FUNCTION public.save_tenant_blog_post", "CREATE OR REPLACE FUNCTION public.consume_tenant_launch_upload_target");
+  const launchSql = contentConsumerMigration.slice(contentConsumerMigration.indexOf("CREATE OR REPLACE FUNCTION public.consume_tenant_launch_upload_target"));
+  assert.ok(blogSql.indexOf("FOR UPDATE") < blogSql.indexOf("v_decision := public.resolve_tenant_permission"));
+  assert.ok(launchSql.indexOf("FOR UPDATE") < launchSql.indexOf("v_decision := public.resolve_tenant_permission"));
+  for (const token of [
+    "upload_target_not_pending", "upload_target_expired", "upload_target_actor_mismatch",
+    "blog_cover_target_mismatch", "launch_upload_target_mismatch", "upload_target_object_not_found",
+    "upload_target_concurrent_consumption", "storage.objects", "audit_log",
+  ]) assert.ok(contentConsumerMigration.includes(token), token);
+  assert.ok(contentConsumerMigration.includes("left(v_target.path, length(v_required_prefix))"));
+  assert.ok(contentConsumerMigration.includes("FROM PUBLIC, anon, authenticated"));
+  assert.ok(contentConsumerMigration.includes("TO service_role"));
+  assert.equal(/GRANT\s+EXECUTE[\s\S]{0,180}\s+TO\s+(anon|authenticated)/i.test(contentConsumerMigration), false);
+  for (const token of ["net.http", "http_post", "http_get", "fetch("]) {
+    assert.equal(contentConsumerMigration.includes(token), false, token);
+  }
+});
+
+check("Instagram remains a manual tenant draft surface", () => {
+  assert.ok(instagramFunctions.includes("instagram_copy_ai_adapter_not_implemented"));
+  assert.equal(instagramManager.includes("igGerarPost"), false);
+  assert.equal(instagramManager.includes("Gerar com IA"), false);
+  assert.ok(instagramManager.includes("modelo_ia: null"));
+  assert.ok(instagramManager.includes("drafts manuais") || instagramManager.includes("preenchidas manualmente"));
+  assert.equal(instagramManager.includes("adminAssinarUrl"), false);
+});
+
+check("active content helpers are deterministic and provider-free", () => {
+  for (const token of ["LOVABLE_API_KEY", "ai.gateway.lovable.dev", '.rpc("has_role"', "requireSupabaseAuth", "fetch("]) {
+    assert.equal(deterministicContent.includes(token), false, token);
+  }
+  assert.ok(deterministicContent.includes("requireTenant"));
+  assert.ok(deterministicContent.includes('generationMode: "deterministic_local"'));
+  assert.ok(deterministicContent.includes("externalProviderExecuted: false"));
+  assert.equal(propertyForm.includes("Gerar com IA"), false);
+  assert.ok(propertyForm.includes("Gerar rascunho local"));
+  assert.equal(launchForm.includes("Gerar com IA"), false);
+});
+
+check("CMS transfer exposes read-only export and no active retired actions", () => {
+  assert.ok(cmsTransfer.includes("exportarCms"));
+  assert.ok(cmsTransfer.includes("cms_transfer_import_retired_transactional_primitive_required"));
+  assert.ok(cmsTransfer.includes("cms_snapshot_restore_retired_transactional_primitive_required"));
+  assert.ok(cmsTransferRoute.includes('redirect({ to: "/admin/auditoria"'));
+  assert.equal(cmsTransferRoute.includes("importarCms"), false);
+  assert.equal(cmsTransferRoute.includes("restaurarSnapshot"), false);
+  const routeOffenders = uiFiles.filter((path) => {
+    const text = source(path);
+    return text.includes("importarCms(") || text.includes("restaurarSnapshot(");
+  });
+  assert.deepEqual(routeOffenders, []);
+});
+
+check("administrative Launch catalogs are tenant-scoped", () => {
+  assert.ok(launchCatalog.includes("requireTenant"));
+  assert.ok(launchCatalog.includes("authorizeTenantCmsOperation"));
+  assert.ok(launchCatalog.includes('.eq("tenant_id", authorization.tenantId)'));
+  assert.equal(launchForm.includes("listarStatusLancamento"), false);
+  assert.equal(propertyForm.includes("listarAmenities"), false);
+  assert.ok(launchForm.includes("listarTenantLaunchStatuses"));
+  assert.ok(propertyForm.includes("listarTenantLaunchAmenities"));
+});
+
+assert.ok(assertions >= 21);
 console.log(`PR_M2_CONSOLIDATED_FINAL_CORRECTIVE_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_CONSOLIDATED_FINAL_CORRECTIVE_SPECS=PASS");
