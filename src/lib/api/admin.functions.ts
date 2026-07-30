@@ -51,6 +51,7 @@ export { meusPapeis } from "./tenant-ui-permission-compat.functions";
 export {
   adminListarCidades,
   adminSalvarCidade,
+  adminExcluirCidade,
   adminListarBairros,
   adminSalvarBairro,
   adminExcluirBairro,
