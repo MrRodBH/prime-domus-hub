@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
   getTenantLeadAggregateForContext,
+  listTenantLeadsForContext,
 } from "@/lib/api/tenant-crm.functions";
 import {
   authorizeTenantCrmOperation,
@@ -95,6 +96,18 @@ export const listarHistorico = createServerFn({ method: "GET" })
           }
         : null,
     };
+  });
+
+/** Scoped count derived from the same canonical CRM list authority used by the pipeline. */
+export const adminContarDescartes = createServerFn({ method: "GET" })
+  .middleware([requireTenant])
+  .handler(async ({ context }) => {
+    const rows = await listTenantLeadsForContext(context, {
+      status: "descartado",
+      limit: 1000,
+      offset: 0,
+    });
+    return { total: rows.length };
   });
 
 export const criarAtividade = createServerFn({ method: "POST" })
