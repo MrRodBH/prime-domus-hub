@@ -1,10 +1,9 @@
 // WorkspaceShell — o AppShell permanente da Fase 6 (Doc 00 §1, Doc 05 §2).
 // Monta uma única vez para toda a sessão autenticada.
 // Estrutura: Header (56) + Rail (240/64) + Content (com ContextTabs opcional).
-import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { meusPapeis } from "@/lib/api/admin.functions";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { meuTenantId } from "@/lib/api/tenant.functions";
 import { setCurrentTenantId } from "@/lib/tenant-cache";
@@ -16,7 +15,6 @@ import { AiDrawer } from "./AiDrawer";
 import { ContextTabs } from "./ContextTabs";
 import { DetailPanelProvider } from "./DetailPanel";
 import { CONTEXTS, contextFromPath } from "./contexts";
-import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
@@ -30,9 +28,16 @@ export function WorkspaceShell() {
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const { data: papeis } = useQuery({ queryKey: ["meus-papeis"], queryFn: () => meusPapeis(), staleTime: 60_000 });
-  const { data: isSuper } = useQuery({ queryKey: ["is-super-admin"], queryFn: () => meuAcessoSuperAdmin(), staleTime: 60_000 });
-  const { data: tenantId } = useQuery({ queryKey: ["meu-tenant-id"], queryFn: () => meuTenantId(), staleTime: 5 * 60_000 });
+  const { data: isSuper } = useQuery({
+    queryKey: ["is-super-admin"],
+    queryFn: () => meuAcessoSuperAdmin(),
+    staleTime: 60_000,
+  });
+  const { data: tenantId } = useQuery({
+    queryKey: ["meu-tenant-id"],
+    queryFn: () => meuTenantId(),
+    staleTime: 5 * 60_000,
+  });
 
   useEffect(() => {
     setCurrentTenantId((tenantId as string | null) ?? null);
@@ -77,8 +82,6 @@ export function WorkspaceShell() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  void papeis;
-
   const active = contextFromPath(path);
   const visibleContexts = CONTEXTS.filter((context) => !context.superOnly || isSuper);
   const isInvitationRoute = path === "/invitations";
@@ -93,11 +96,11 @@ export function WorkspaceShell() {
     <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>
       <DetailPanelProvider>
         <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
-          <NavigationRail isSuper={!!isSuper} />
+          <NavigationRail isSuper={Boolean(isSuper)} />
 
           <div className="flex-1 min-w-0 flex flex-col">
             <AppHeader
-              isSuper={!!isSuper}
+              isSuper={Boolean(isSuper)}
               impersonating={impersonating}
               onOpenMobileNav={() => setMobileNavOpen(true)}
             />
@@ -107,7 +110,7 @@ export function WorkspaceShell() {
                 {isInvitationRoute ? (
                   <Outlet />
                 ) : (
-                  <TenantSelectionGate isSuper={!!isSuper}>
+                  <TenantSelectionGate isSuper={Boolean(isSuper)}>
                     <Outlet />
                   </TenantSelectionGate>
                 )}
@@ -115,14 +118,12 @@ export function WorkspaceShell() {
             </main>
           </div>
 
-          <CommandPalette isSuper={!!isSuper} />
+          <CommandPalette isSuper={Boolean(isSuper)} />
           <AiDrawer />
 
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetContent side="left" className="w-[260px] p-0">
-              <VisuallyHidden>
-                <SheetTitle>Navegação</SheetTitle>
-              </VisuallyHidden>
+              <VisuallyHidden><SheetTitle>Navegação</SheetTitle></VisuallyHidden>
               <div className="h-14 px-4 flex items-center border-b text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 Workspace
               </div>
