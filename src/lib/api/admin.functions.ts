@@ -46,6 +46,8 @@ export {
   listarAuditoria,
 } from "./tenant-access-control.functions";
 
+export { meusPapeis } from "./tenant-ui-permission-compat.functions";
+
 export {
   adminListarCidades,
   adminSalvarCidade,
