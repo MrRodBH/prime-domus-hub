@@ -77,6 +77,40 @@ export const adminSalvarCidade = createServerFn({ method: "POST" })
     return { ok: true, id: row.id as string };
   });
 
+export const adminExcluirCidade = createServerFn({ method: "POST" })
+  .middleware([requireTenant])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).strict().parse(input))
+  .handler(async ({ data, context }) => {
+    const tenantId = await authorizeCatalog(context, "excluir");
+    const [{ count: neighborhoodCount, error: neighborhoodError }, { count: propertyCount, error: propertyError }] = await Promise.all([
+      context.supabase
+        .from("bairros")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("cidade_id", data.id),
+      context.supabase
+        .from("imoveis")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId)
+        .eq("cidade", data.id),
+    ]);
+    if (neighborhoodError) throw new Error(neighborhoodError.message);
+    if (propertyError) throw new Error(propertyError.message);
+    if ((neighborhoodCount ?? 0) > 0 || (propertyCount ?? 0) > 0) {
+      throw new Error("Cidade possui bairros ou imóveis e não pode ser excluída.");
+    }
+    const { data: row, error } = await context.supabase
+      .from("cidades")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Cidade não encontrada neste tenant.");
+    return { ok: true };
+  });
+
 export const adminListarBairros = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }) => {
