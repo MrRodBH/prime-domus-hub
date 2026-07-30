@@ -72,7 +72,9 @@ const launchCatalog = source("src/lib/api/tenant-launch-catalog.functions.ts");
 const cmsTransfer = source("src/lib/api/cms-transfer.functions.ts");
 const cmsTransferRoute = source("src/routes/_authenticated.admin.cms-transferencia.tsx");
 const contentConsumerMigrationPath = "supabase/migrations/20260730100000_pr_m2_content_upload_target_consumers.sql";
+const launchSaveMigrationPath = "supabase/migrations/20260730101000_pr_m2_launch_project_transactional_save.sql";
 const contentConsumerMigration = source(contentConsumerMigrationPath);
+const launchSaveMigration = source(launchSaveMigrationPath);
 
 const correctiveMigrations = [
   "supabase/migrations/20260730043000_pr_m2_consolidated_final_corrective.sql",
@@ -81,6 +83,7 @@ const correctiveMigrations = [
   "supabase/migrations/20260730053000_pr_m2_marketing_and_cms_corrective_hardening.sql",
   "supabase/migrations/20260730060000_pr_m2_super_control_plane.sql",
   contentConsumerMigrationPath,
+  launchSaveMigrationPath,
 ];
 const migrationSource = correctiveMigrations.map(source).join("\n");
 
@@ -288,8 +291,13 @@ check("Launch UI has no raw-path mutation or property signer reuse", () => {
 });
 
 check("canonical Launch boundary accepts IDs and persisted references, never caller paths", () => {
-  const launchSchema = between(contentMedia, "const launchProjectSchema", "async function requireTenantReference");
+  const launchSchema = between(contentMedia, "const launchProjectSchema", "export const saveTenantLaunchProject");
   assert.equal(launchSchema.includes("imagem_capa"), false);
+  assert.equal(launchSchema.includes("og_image"), false);
+  assert.ok(contentMedia.includes('admin.rpc("save_tenant_launch_project"'));
+  const launchSaveBlock = between(contentMedia, "export const saveTenantLaunchProject", "const launchConsumerResult");
+  assert.equal(launchSaveBlock.includes('.from("launch_projects")'), false);
+  assert.equal(launchSaveBlock.includes('.from("launch_project_amenities")'), false);
   assert.ok(contentMedia.includes("consumeTenantLaunchCover"));
   assert.ok(contentMedia.includes("consumeTenantLaunchGalleryImage"));
   assert.ok(contentMedia.includes("consumeTenantLaunchPdf"));
@@ -315,9 +323,23 @@ check("content target consumers lock, validate and consume atomically", () => {
   assert.ok(contentConsumerMigration.includes("FROM PUBLIC, anon, authenticated"));
   assert.ok(contentConsumerMigration.includes("TO service_role"));
   assert.equal(/GRANT\s+EXECUTE[\s\S]{0,180}\s+TO\s+(anon|authenticated)/i.test(contentConsumerMigration), false);
-  for (const token of ["net.http", "http_post", "http_get", "fetch("]) {
-    assert.equal(contentConsumerMigration.includes(token), false, token);
-  }
+  for (const token of ["net.http", "http_post", "http_get", "fetch("]) assert.equal(contentConsumerMigration.includes(token), false, token);
+});
+
+check("Launch project and amenities save is one closed transaction", () => {
+  assert.equal((launchSaveMigration.match(/CREATE OR REPLACE FUNCTION public\.save_tenant_launch_project/g) ?? []).length, 1);
+  for (const token of [
+    "launch_save_payload_key_not_allowed", "launch_save_permission_denied",
+    "launch_status_cross_tenant_or_missing", "launch_amenity_cross_tenant_or_missing",
+    "DELETE FROM public.launch_project_amenities", "INSERT INTO public.launch_project_amenities",
+    "launch.project.save", "'transactional', true",
+  ]) assert.ok(launchSaveMigration.includes(token), token);
+  assert.equal(launchSaveMigration.includes("imagem_capa"), false);
+  assert.equal(launchSaveMigration.includes("og_image"), false);
+  assert.ok(launchSaveMigration.includes("FROM PUBLIC, anon, authenticated"));
+  assert.ok(launchSaveMigration.includes("TO service_role"));
+  assert.equal(/GRANT\s+EXECUTE[\s\S]{0,180}\s+TO\s+(anon|authenticated)/i.test(launchSaveMigration), false);
+  for (const token of ["net.http", "http_post", "http_get"]) assert.equal(launchSaveMigration.includes(token), false, token);
 });
 
 check("Instagram remains a manual tenant draft surface", () => {
@@ -365,6 +387,6 @@ check("administrative Launch catalogs are tenant-scoped", () => {
   assert.ok(propertyForm.includes("listarTenantLaunchAmenities"));
 });
 
-assert.ok(assertions >= 21);
+assert.ok(assertions >= 23);
 console.log(`PR_M2_CONSOLIDATED_FINAL_CORRECTIVE_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_CONSOLIDATED_FINAL_CORRECTIVE_SPECS=PASS");
