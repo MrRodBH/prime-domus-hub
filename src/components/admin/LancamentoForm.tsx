@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Upload, Sparkles } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { GaleriaLancamento } from "@/components/admin/GaleriaLancamento";
 import { UnidadesLancamento } from "@/components/admin/UnidadesLancamento";
@@ -18,14 +17,16 @@ import { InstagramPostManager } from "@/components/admin/InstagramPostManager";
 import { supabase } from "@/integrations/supabase/client";
 import { createUploadTarget } from "@/lib/api/uploads.functions";
 import {
-  adminObterLancamento,
-  adminSalvarLancamento,
-  listarAmenities,
-  listarStatusLancamento,
+  consumeTenantLaunchCover,
+  saveTenantLaunchProject,
+  signTenantLaunchMedia,
+} from "@/lib/api/content-media.functions";
+import {
   adminListarImagensLancamento,
+  adminObterLancamento,
 } from "@/lib/api/lancamentos.functions";
-import { adminListarCorretores, adminAssinarUrl } from "@/lib/api/admin.functions";
-import { gerarDescricaoImovel, gerarSeoLancamento } from "@/lib/api/ia.functions";
+import { listarTenantLaunchStatuses } from "@/lib/api/tenant-launch-catalog.functions";
+import { adminListarCorretores } from "@/lib/api/admin.functions";
 
 type Props = { id?: string };
 
@@ -36,7 +37,7 @@ type FormState = {
   descricao: string;
   status_id: string | null;
   construtora: string;
-  entrega: string; // YYYY-MM
+  entrega: string;
   endereco: string;
   arquitetura: string;
   quartos: string;
@@ -58,132 +59,187 @@ type FormState = {
   amenity_ids: string[];
 };
 
-const empty: FormState = {
-  nome: "", slug: "", descricao: "", status_id: null,
-  construtora: "", entrega: "", endereco: "", arquitetura: "",
-  quartos: "", suites: "", vagas: "", area_apartamentos: "",
-  numero_unidades: "", numero_torres: "", unidades_por_andar: "",
-  numero_andares: "", elevadores: "",
-  corretor_id: null, imagem_capa: null, video_url: "",
-  publicado: false, destaque: false,
-  meta_title: "", meta_description: "",
+type LaunchImage = {
+  id: string;
+  storage_path: string;
+  legenda: string | null;
+  ordem: number;
+};
+
+const EMPTY: FormState = {
+  nome: "",
+  slug: "",
+  descricao: "",
+  status_id: null,
+  construtora: "",
+  entrega: "",
+  endereco: "",
+  arquitetura: "",
+  quartos: "",
+  suites: "",
+  vagas: "",
+  area_apartamentos: "",
+  numero_unidades: "",
+  numero_torres: "",
+  unidades_por_andar: "",
+  numero_andares: "",
+  elevadores: "",
+  corretor_id: null,
+  imagem_capa: null,
+  video_url: "",
+  publicado: false,
+  destaque: false,
+  meta_title: "",
+  meta_description: "",
   amenity_ids: [],
 };
 
-function slugify(s: string) {
-  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
-function num(s: string): number | null { const n = Number(s); return Number.isFinite(n) && s !== "" ? n : null; }
+function optionalNumber(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 export function LancamentoForm({ id }: Props) {
-  const nav = useNavigate();
-  const [form, setForm] = useState<FormState>(empty);
-  const [capaPreview, setCapaPreview] = useState<string | null>(null);
-  const [uploadingCapa, setUploadingCapa] = useState(false);
-  const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
+  const navigate = useNavigate();
+  const [form, setForm] = useState<FormState>(EMPTY);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
-  const { data: statuses } = useQuery({ queryKey: ["launch-statuses"], queryFn: () => listarStatusLancamento() });
-  // amenities são buscadas dentro do LazerPicker
-  const { data: corretores } = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
-  const { data: existing } = useQuery({
+  const statuses = useQuery({
+    queryKey: ["tenant-launch-statuses"],
+    queryFn: () => listarTenantLaunchStatuses(),
+  });
+  const brokers = useQuery({
+    queryKey: ["admin", "corretores"],
+    queryFn: () => adminListarCorretores(),
+  });
+  const existing = useQuery({
     queryKey: ["admin", "lancamento", id],
     queryFn: () => adminObterLancamento({ data: { id: id! } }),
-    enabled: !!id,
+    enabled: Boolean(id),
   });
-  const { data: imagensRaw } = useQuery({
+  const images = useQuery<LaunchImage[]>({
     queryKey: ["admin", "lancamento-imagens", form.id],
     queryFn: () => adminListarImagensLancamento({ data: { project_id: form.id! } }),
-    enabled: !!form.id,
+    enabled: Boolean(form.id),
   });
-  const imagensIG = useMemo(
-    () => (imagensRaw ?? []).map((i) => ({ id: i.id, url: i.storage_path, alt: i.legenda, ordem: i.ordem })),
-    [imagensRaw],
+
+  const instagramImages = useMemo(
+    () => (images.data ?? []).map((image) => ({
+      id: image.id,
+      url: image.storage_path,
+      alt: image.legenda,
+      ordem: image.ordem,
+    })),
+    [images.data],
   );
-  const [igSignedUrls, setIgSignedUrls] = useState<Record<string, string>>({});
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      const map: Record<string, string> = {};
-      for (const img of imagensIG) {
-        try {
-          const { url } = await adminAssinarUrl({ data: { bucket: "lancamentos", path: img.url, width: 400, quality: 65 } });
-          map[img.id] = url;
-        } catch { /* ignore */ }
-      }
-      if (!cancel) setIgSignedUrls(map);
-    })();
-    return () => { cancel = true; };
-  }, [imagensIG]);
+  const [instagramSignedUrls, setInstagramSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!existing) return;
+    const row = existing.data as any;
+    if (!row) return;
     setForm({
-      id: existing.id,
-      nome: existing.nome ?? "",
-      slug: existing.slug ?? "",
-      descricao: existing.descricao ?? "",
-      status_id: existing.status_id,
-      construtora: existing.construtora ?? "",
-      entrega: existing.entrega ? String(existing.entrega).slice(0, 7) : "",
-      endereco: existing.endereco ?? "",
-      arquitetura: existing.arquitetura ?? "",
-      quartos: existing.quartos?.toString() ?? "",
-      suites: existing.suites?.toString() ?? "",
-      vagas: existing.vagas?.toString() ?? "",
-      area_apartamentos: existing.area_apartamentos?.toString() ?? "",
-      numero_unidades: existing.numero_unidades?.toString() ?? "",
-      numero_torres: existing.numero_torres?.toString() ?? "",
-      unidades_por_andar: existing.unidades_por_andar?.toString() ?? "",
-      numero_andares: existing.numero_andares?.toString() ?? "",
-      elevadores: existing.elevadores?.toString() ?? "",
-      corretor_id: existing.corretor_id,
-      imagem_capa: existing.imagem_capa,
-      video_url: existing.video_url ?? "",
-      publicado: !!existing.publicado,
-      destaque: !!existing.destaque,
-      meta_title: existing.meta_title ?? "",
-      meta_description: existing.meta_description ?? "",
-      amenity_ids: existing.amenity_ids ?? [],
+      id: row.id,
+      nome: row.nome ?? "",
+      slug: row.slug ?? "",
+      descricao: row.descricao ?? "",
+      status_id: row.status_id ?? null,
+      construtora: row.construtora ?? "",
+      entrega: row.entrega ? String(row.entrega).slice(0, 7) : "",
+      endereco: row.endereco ?? "",
+      arquitetura: row.arquitetura ?? "",
+      quartos: row.quartos?.toString() ?? "",
+      suites: row.suites?.toString() ?? "",
+      vagas: row.vagas?.toString() ?? "",
+      area_apartamentos: row.area_apartamentos?.toString() ?? "",
+      numero_unidades: row.numero_unidades?.toString() ?? "",
+      numero_torres: row.numero_torres?.toString() ?? "",
+      unidades_por_andar: row.unidades_por_andar?.toString() ?? "",
+      numero_andares: row.numero_andares?.toString() ?? "",
+      elevadores: row.elevadores?.toString() ?? "",
+      corretor_id: row.corretor_id ?? null,
+      imagem_capa: row.imagem_capa ?? null,
+      video_url: row.video_url ?? "",
+      publicado: Boolean(row.publicado),
+      destaque: Boolean(row.destaque),
+      meta_title: row.meta_title ?? "",
+      meta_description: row.meta_description ?? "",
+      amenity_ids: row.amenity_ids ?? [],
     });
-  }, [existing]);
+  }, [existing.data]);
 
   useEffect(() => {
-    let cancel = false;
-    async function loadCapa() {
-      if (!form.imagem_capa) { setCapaPreview(null); return; }
-      if (form.imagem_capa.startsWith("http")) { setCapaPreview(form.imagem_capa); return; }
-      try {
-        const { url } = await adminAssinarUrl({ data: { bucket: "lancamentos", path: form.imagem_capa, width: 800, quality: 70 } });
-        if (!cancel) setCapaPreview(url);
-      } catch { /* ignore */ }
+    let active = true;
+    if (!form.id || !form.imagem_capa) {
+      setCoverPreview(null);
+      return;
     }
-    loadCapa();
-    return () => { cancel = true; };
-  }, [form.imagem_capa]);
+    signTenantLaunchMedia({
+      data: { projectId: form.id, resource: "cover", width: 800, quality: 70 },
+    })
+      .then((result) => { if (active) setCoverPreview(result.url); })
+      .catch(() => { if (active) setCoverPreview(null); });
+    return () => { active = false; };
+  }, [form.id, form.imagem_capa]);
 
-  const salvar = useMutation({
-    mutationFn: () => adminSalvarLancamento({
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      if (!form.id) return;
+      const next: Record<string, string> = {};
+      for (const image of images.data ?? []) {
+        try {
+          const result = await signTenantLaunchMedia({
+            data: {
+              projectId: form.id,
+              resource: "gallery",
+              resourceId: image.id,
+              width: 400,
+              quality: 65,
+            },
+          });
+          if (result.url) next[image.id] = result.url;
+        } catch {
+          // Presentation-only preview; persisted metadata remains authoritative.
+        }
+      }
+      if (active) setInstagramSignedUrls(next);
+    })();
+    return () => { active = false; };
+  }, [form.id, images.data]);
+
+  const saveMutation = useMutation({
+    mutationFn: () => saveTenantLaunchProject({
       data: {
         id: form.id,
         slug: form.slug || slugify(form.nome),
         nome: form.nome,
         descricao: form.descricao || null,
         status_id: form.status_id,
-        quartos: num(form.quartos), suites: num(form.suites), vagas: num(form.vagas),
-        area_apartamentos: num(form.area_apartamentos),
+        quartos: optionalNumber(form.quartos),
+        suites: optionalNumber(form.suites),
+        vagas: optionalNumber(form.vagas),
+        area_apartamentos: optionalNumber(form.area_apartamentos),
         construtora: form.construtora || null,
         entrega: form.entrega ? `${form.entrega}-01` : null,
         endereco: form.endereco || null,
         arquitetura: form.arquitetura || null,
-        numero_unidades: num(form.numero_unidades),
-        numero_torres: num(form.numero_torres),
-        unidades_por_andar: num(form.unidades_por_andar),
-        numero_andares: num(form.numero_andares),
-        elevadores: num(form.elevadores),
+        numero_unidades: optionalNumber(form.numero_unidades),
+        numero_torres: optionalNumber(form.numero_torres),
+        unidades_por_andar: optionalNumber(form.unidades_por_andar),
+        numero_andares: optionalNumber(form.numero_andares),
+        elevadores: optionalNumber(form.elevadores),
         corretor_id: form.corretor_id,
-        imagem_capa: form.imagem_capa,
         video_url: form.video_url || null,
         publicado: form.publicado,
         destaque: form.destaque,
@@ -192,20 +248,24 @@ export function LancamentoForm({ id }: Props) {
         amenity_ids: form.amenity_ids,
       },
     }),
-    onSuccess: (r) => {
-      toast.success("Empreendimento salvo");
-      if (!form.id && r.id) nav({ to: "/admin/lancamentos/$id", params: { id: r.id } });
+    onSuccess: (result) => {
+      setForm((current) => ({ ...current, id: result.id }));
+      toast.success("Empreendimento salvo.");
+      if (!id) navigate({ to: "/admin/lancamentos/$id", params: { id: result.id } });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
-  async function uploadCapa(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function uploadCover(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
-    setUploadingCapa(true);
+    if (!form.id) {
+      toast.error("Salve o lançamento antes de enviar a capa.");
+      return;
+    }
+    setUploadingCover(true);
     try {
-      // M3.2 — servidor resolve tenant e valida ownership do lançamento (entityId obrigatório).
-      if (!form.id) throw new Error("Salve o lançamento antes de enviar a capa.");
       const target = await createUploadTarget({
         data: {
           domain: "lancamento-capa",
@@ -217,87 +277,27 @@ export function LancamentoForm({ id }: Props) {
       });
       const { error } = await supabase.storage
         .from(target.bucket)
-        .upload(target.path, file, { upsert: false });
+        .upload(target.path, file, { upsert: false, contentType: file.type });
       if (error) throw error;
-      setForm((f) => ({ ...f, imagem_capa: target.path }));
-      toast.success("Imagem enviada");
-    } catch (err) {
-      toast.error((err as Error).message);
+      const consumed = await consumeTenantLaunchCover({
+        data: { projectId: form.id, targetId: target.targetId },
+      });
+      setForm((current) => ({ ...current, imagem_capa: consumed.path }));
+      const preview = await signTenantLaunchMedia({
+        data: { projectId: form.id!, resource: "cover", width: 800, quality: 70 },
+      });
+      setCoverPreview(preview.url);
+      toast.success("Capa registrada por provenance.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha no upload da capa.");
     } finally {
-      setUploadingCapa(false);
-      e.target.value = "";
+      setUploadingCover(false);
     }
   }
 
-  const gerarIA = useMutation({
-    mutationFn: async () => {
-      // Coleta nomes dos amenities selecionados
-      const ams = await listarAmenities();
-      const sel = new Set(form.amenity_ids);
-      const lazer = ams.filter((a) => sel.has(a.id)).map((a) => a.nome);
-      const descricao = await gerarDescricaoImovel({
-        data: {
-          titulo: form.nome,
-          tipo: "Lançamento (Empreendimento)",
-          finalidade: "lancamento",
-          bairro: "",
-          endereco: form.endereco,
-          quartos: num(form.quartos),
-          suites: num(form.suites),
-          banheiros: null,
-          vagas: num(form.vagas),
-          area_util: num(form.area_apartamentos),
-          area_total: null,
-          preco: null,
-          preco_sob_consulta: true,
-          caracteristicas: [
-            form.construtora && `Construtora: ${form.construtora}`,
-            form.arquitetura && `Arquitetura: ${form.arquitetura}`,
-            form.entrega && `Entrega: ${form.entrega}`,
-            form.numero_unidades && `${form.numero_unidades} unidades`,
-            form.numero_torres && `${form.numero_torres} torres`,
-            form.numero_andares && `${form.numero_andares} andares`,
-            ...lazer,
-          ].filter(Boolean) as string[],
-          tom: tomIA,
-        },
-      });
-      const seo = await gerarSeoLancamento({
-        data: {
-          nome: form.nome,
-          descricao: descricao.descricao,
-          construtora: form.construtora,
-          endereco: form.endereco,
-          quartos: num(form.quartos),
-          suites: num(form.suites),
-          vagas: num(form.vagas),
-          area_apartamentos: num(form.area_apartamentos),
-          entrega: form.entrega,
-          amenidades: lazer,
-        },
-      });
-      return { ...descricao, ...seo };
-    },
-    onSuccess: (r) => {
-      // Converte parágrafos em HTML para o RichTextEditor
-      const html = r.descricao
-        .split(/\n{2,}/)
-        .map((p) => `<p>${p.trim().replace(/\n/g, "<br>")}</p>`)
-        .join("");
-      setForm((f) => ({
-        ...f,
-        descricao: html,
-        meta_title: r.meta_title || f.meta_title,
-        meta_description: r.meta_description || f.meta_description,
-      }));
-      toast.success("Descrição e SEO gerados com IA");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); salvar.mutate(); }}
+      onSubmit={(event) => { event.preventDefault(); saveMutation.mutate(); }}
       className="max-w-5xl space-y-8"
     >
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -306,213 +306,162 @@ export function LancamentoForm({ id }: Props) {
           <p className="text-sm text-muted-foreground mt-1">Empreendimento — dados gerais</p>
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={() => nav({ to: "/admin/lancamentos" })}>Voltar</Button>
-          <Button type="submit" disabled={salvar.isPending}>
-            {salvar.isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
+          <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/lancamentos" })}>Voltar</Button>
+          <Button type="submit" disabled={saveMutation.isPending}>
+            {saveMutation.isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
             Salvar
           </Button>
         </div>
       </div>
 
-      {/* Identidade */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-medium">Identidade</h2>
         <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Nome do empreendimento *</Label>
-            <Input value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value, slug: f.slug || slugify(e.target.value) }))} required />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Slug (URL) *</Label>
-            <Input value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: slugify(e.target.value) }))} required />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Construtora</Label>
-            <Input value={form.construtora} onChange={(e) => setForm((f) => ({ ...f, construtora: e.target.value }))} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Arquitetura</Label>
-            <Input value={form.arquitetura} onChange={(e) => setForm((f) => ({ ...f, arquitetura: e.target.value }))} />
-          </div>
+          <Field label="Nome do empreendimento" required value={form.nome} onChange={(value) => setForm((current) => ({ ...current, nome: value, slug: current.slug || slugify(value) }))} />
+          <Field label="Slug (URL)" required value={form.slug} onChange={(value) => setForm((current) => ({ ...current, slug: slugify(value) }))} />
+          <Field label="Construtora" value={form.construtora} onChange={(value) => setForm((current) => ({ ...current, construtora: value }))} />
+          <Field label="Arquitetura" value={form.arquitetura} onChange={(value) => setForm((current) => ({ ...current, arquitetura: value }))} />
           <div className="space-y-1.5">
             <Label>Status</Label>
-            <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={form.status_id ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, status_id: e.target.value || null }))}>
+              onChange={(event) => setForm((current) => ({ ...current, status_id: event.target.value || null }))}
+            >
               <option value="">— Selecione —</option>
-              {statuses?.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+              {(statuses.data ?? []).map((status) => <option key={status.id} value={status.id}>{status.nome}</option>)}
             </select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Entrega (mês/ano)</Label>
-            <Input type="month" value={form.entrega} onChange={(e) => setForm((f) => ({ ...f, entrega: e.target.value }))} />
-          </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <Label>Endereço</Label>
-            <Input value={form.endereco} onChange={(e) => setForm((f) => ({ ...f, endereco: e.target.value }))} />
-          </div>
+          <div className="space-y-1.5"><Label>Entrega (mês/ano)</Label><Input type="month" value={form.entrega} onChange={(event) => setForm((current) => ({ ...current, entrega: event.target.value }))} /></div>
+          <div className="md:col-span-2"><Field label="Endereço" value={form.endereco} onChange={(value) => setForm((current) => ({ ...current, endereco: value }))} /></div>
           <div className="space-y-1.5">
             <Label>Corretor responsável</Label>
-            <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={form.corretor_id ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, corretor_id: e.target.value || null }))}>
+              onChange={(event) => setForm((current) => ({ ...current, corretor_id: event.target.value || null }))}
+            >
               <option value="">— Selecione —</option>
-              {corretores?.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              {(brokers.data ?? []).map((broker: any) => <option key={broker.id} value={broker.id}>{broker.nome}</option>)}
             </select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Vídeo (URL YouTube/Vimeo)</Label>
-            <Input value={form.video_url} onChange={(e) => setForm((f) => ({ ...f, video_url: e.target.value }))} />
-          </div>
+          <Field label="Vídeo (URL HTTPS)" value={form.video_url} onChange={(value) => setForm((current) => ({ ...current, video_url: value }))} />
         </div>
       </section>
 
-      {/* Dados de tipologia */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-medium">Tipologia / Características gerais</h2>
         <div className="grid md:grid-cols-4 gap-4">
-          <div className="space-y-1.5"><Label>Quartos</Label><Input type="number" value={form.quartos} onChange={(e) => setForm((f) => ({ ...f, quartos: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Suítes</Label><Input type="number" value={form.suites} onChange={(e) => setForm((f) => ({ ...f, suites: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Vagas</Label><Input type="number" value={form.vagas} onChange={(e) => setForm((f) => ({ ...f, vagas: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Área (m²)</Label><Input type="number" step="0.01" value={form.area_apartamentos} onChange={(e) => setForm((f) => ({ ...f, area_apartamentos: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Nº unidades</Label><Input type="number" value={form.numero_unidades} onChange={(e) => setForm((f) => ({ ...f, numero_unidades: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Nº torres</Label><Input type="number" value={form.numero_torres} onChange={(e) => setForm((f) => ({ ...f, numero_torres: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Unid./andar</Label><Input type="number" value={form.unidades_por_andar} onChange={(e) => setForm((f) => ({ ...f, unidades_por_andar: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Nº andares</Label><Input type="number" value={form.numero_andares} onChange={(e) => setForm((f) => ({ ...f, numero_andares: e.target.value }))} /></div>
-          <div className="space-y-1.5"><Label>Elevadores</Label><Input type="number" value={form.elevadores} onChange={(e) => setForm((f) => ({ ...f, elevadores: e.target.value }))} /></div>
+          <NumberField label="Quartos" value={form.quartos} onChange={(value) => setForm((current) => ({ ...current, quartos: value }))} />
+          <NumberField label="Suítes" value={form.suites} onChange={(value) => setForm((current) => ({ ...current, suites: value }))} />
+          <NumberField label="Vagas" value={form.vagas} onChange={(value) => setForm((current) => ({ ...current, vagas: value }))} />
+          <NumberField label="Área (m²)" value={form.area_apartamentos} onChange={(value) => setForm((current) => ({ ...current, area_apartamentos: value }))} />
+          <NumberField label="Nº unidades" value={form.numero_unidades} onChange={(value) => setForm((current) => ({ ...current, numero_unidades: value }))} />
+          <NumberField label="Nº torres" value={form.numero_torres} onChange={(value) => setForm((current) => ({ ...current, numero_torres: value }))} />
+          <NumberField label="Unid./andar" value={form.unidades_por_andar} onChange={(value) => setForm((current) => ({ ...current, unidades_por_andar: value }))} />
+          <NumberField label="Nº andares" value={form.numero_andares} onChange={(value) => setForm((current) => ({ ...current, numero_andares: value }))} />
+          <NumberField label="Elevadores" value={form.elevadores} onChange={(value) => setForm((current) => ({ ...current, elevadores: value }))} />
         </div>
       </section>
 
-      {/* Imagem de capa */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-medium">Imagem de capa</h2>
         <div className="flex items-center gap-4">
-          {capaPreview ? (
-            <img src={capaPreview} alt="" className="w-48 h-32 object-cover rounded border border-foreground/10" />
-          ) : (
-            <div className="w-48 h-32 rounded border border-dashed border-foreground/20 flex items-center justify-center text-xs text-muted-foreground">Sem imagem</div>
-          )}
+          {coverPreview
+            ? <img src={coverPreview} alt="Capa do empreendimento" className="w-48 h-32 object-cover rounded border border-foreground/10" />
+            : <div className="w-48 h-32 rounded border border-dashed border-foreground/20 flex items-center justify-center text-xs text-muted-foreground">Sem imagem</div>}
           <label className="inline-flex items-center gap-2 px-3 py-2 rounded border border-foreground/10 text-sm cursor-pointer hover:bg-foreground/5">
-            {uploadingCapa ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+            {uploadingCover ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
             Enviar imagem
-            <input type="file" accept="image/*" className="hidden" onChange={uploadCapa} disabled={uploadingCapa} />
+            <input type="file" accept="image/*" className="hidden" onChange={uploadCover} disabled={uploadingCover || !form.id} />
           </label>
-          {form.imagem_capa && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => setForm((f) => ({ ...f, imagem_capa: null }))}>Remover</Button>
-          )}
         </div>
+        <p className="text-xs text-muted-foreground">O path é transporte; a capa é persistida somente após consumo atômico do upload target.</p>
       </section>
 
-      {/* Galeria — só após salvar (precisa de id) */}
       {form.id ? (
         <GaleriaLancamento
           projectId={form.id}
-          slug={form.slug}
-          imagemCapa={form.imagem_capa}
-          onCapaChange={(p) => setForm((f) => ({ ...f, imagem_capa: p }))}
+          currentCoverPath={form.imagem_capa}
+          onCoverChange={(path) => setForm((current) => ({ ...current, imagem_capa: path }))}
         />
       ) : (
-        <section className="bg-card border border-dashed border-foreground/15 rounded-lg p-6 text-sm text-muted-foreground">
-          Salve o empreendimento para liberar o upload da galeria de fotos.
-        </section>
+        <section className="bg-card border border-dashed border-foreground/15 rounded-lg p-6 text-sm text-muted-foreground">Salve o empreendimento para liberar a mídia.</section>
       )}
 
-      {/* Unidades — só após salvar */}
       {form.id && <UnidadesLancamento projectId={form.id} />}
       {form.id && <CondicoesPagamento projectId={form.id} />}
-      {form.id && <PdfsLancamento projectId={form.id} slug={form.slug} />}
+      {form.id && <PdfsLancamento projectId={form.id} />}
 
-
-
-
-      {/* Descrição rica */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <h2 className="font-medium">Descrição do empreendimento</h2>
-          <div className="flex items-center gap-2">
-            <Select value={tomIA} onValueChange={(v) => setTomIA(v as typeof tomIA)}>
-              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sofisticado">Tom sofisticado</SelectItem>
-                <SelectItem value="objetivo">Tom objetivo</SelectItem>
-                <SelectItem value="acolhedor">Tom acolhedor</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button type="button" size="sm" variant="outline" onClick={() => gerarIA.mutate()} disabled={gerarIA.isPending}>
-              <Sparkles className="size-3.5 mr-1.5" />
-              {gerarIA.isPending ? "Gerando…" : "Gerar com IA"}
-            </Button>
-          </div>
-        </div>
-        <RichTextEditor value={form.descricao} onChange={(html) => setForm((f) => ({ ...f, descricao: html }))} />
-        <p className="text-xs text-muted-foreground">A IA usa nome, tipologia, lazer selecionado e demais campos preenchidos acima.</p>
+        <h2 className="font-medium">Descrição do empreendimento</h2>
+        <RichTextEditor value={form.descricao} onChange={(descricao) => setForm((current) => ({ ...current, descricao }))} />
+        <p className="text-xs text-muted-foreground">Edição manual; nenhum provider externo é executado nesta etapa.</p>
       </section>
 
-      {/* Lazer */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-medium">Lazer</h2>
         <LazerPicker
           by="id"
           value={form.amenity_ids}
-          onChange={(ids) => setForm((f) => ({ ...f, amenity_ids: ids }))}
+          onChange={(amenity_ids) => setForm((current) => ({ ...current, amenity_ids }))}
           label="Selecionar itens de lazer"
         />
       </section>
 
-      {/* Instagram — só após salvar */}
       {form.id && (
         <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-3">
           <h2 className="font-medium">Instagram</h2>
-          <p className="text-sm text-muted-foreground">
-            Gere legenda + hashtags com IA, edite e baixe um ZIP com as fotos do empreendimento prontas para postar.
-          </p>
+          <p className="text-sm text-muted-foreground">Crie e salve drafts manuais; geração externa de copy não possui adapter factual.</p>
           <InstagramPostManager
             launchProjectId={form.id}
             titulo={form.nome}
-            imagens={imagensIG}
-            signedUrls={igSignedUrls}
-            bucket="lancamentos"
+            imagens={instagramImages}
+            signedUrls={instagramSignedUrls}
           />
         </section>
       )}
 
-      {/* SEO */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-medium">SEO</h2>
         <div className="grid gap-4">
-          <div className="space-y-1.5">
-            <Label>Meta title</Label>
-            <Input value={form.meta_title} onChange={(e) => setForm((f) => ({ ...f, meta_title: e.target.value }))} placeholder={form.nome ? `${form.nome} — RM Prime Imóveis` : ""} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Meta description</Label>
-            <Input value={form.meta_description} onChange={(e) => setForm((f) => ({ ...f, meta_description: e.target.value }))} />
-          </div>
+          <Field label="Meta title" value={form.meta_title} onChange={(value) => setForm((current) => ({ ...current, meta_title: value }))} />
+          <Field label="Meta description" value={form.meta_description} onChange={(value) => setForm((current) => ({ ...current, meta_description: value }))} />
         </div>
       </section>
 
-      {/* Publicação */}
       <section className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
         <h2 className="font-medium">Publicação</h2>
         <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2">
-            <Switch checked={form.publicado} onCheckedChange={(v) => setForm((f) => ({ ...f, publicado: v }))} />
-            <Label>Publicado</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch checked={form.destaque} onCheckedChange={(v) => setForm((f) => ({ ...f, destaque: v }))} />
-            <Label>Destaque na home</Label>
-          </div>
+          <div className="flex items-center gap-2"><Switch checked={form.publicado} onCheckedChange={(publicado) => setForm((current) => ({ ...current, publicado }))} /><Label>Publicado</Label></div>
+          <div className="flex items-center gap-2"><Switch checked={form.destaque} onCheckedChange={(destaque) => setForm((current) => ({ ...current, destaque }))} /><Label>Destaque na home</Label></div>
         </div>
       </section>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => nav({ to: "/admin/lancamentos" })}>Cancelar</Button>
-        <Button type="submit" disabled={salvar.isPending}>
-          {salvar.isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
+        <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/lancamentos" })}>Cancelar</Button>
+        <Button type="submit" disabled={saveMutation.isPending}>
+          {saveMutation.isPending && <Loader2 className="size-4 mr-1 animate-spin" />}
           Salvar empreendimento
         </Button>
       </div>
     </form>
   );
+}
+
+function Field({ label, value, onChange, required = false }: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+}) {
+  return <div className="space-y-1.5"><Label>{label}</Label><Input required={required} value={value} onChange={(event) => onChange(event.target.value)} /></div>;
+}
+
+function NumberField({ label, value, onChange }: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return <div className="space-y-1.5"><Label>{label}</Label><Input type="number" step="any" value={value} onChange={(event) => onChange(event.target.value)} /></div>;
 }
