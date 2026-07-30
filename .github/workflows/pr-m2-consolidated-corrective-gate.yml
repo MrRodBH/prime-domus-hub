@@ -1,0 +1,122 @@
+name: PR-M2 Consolidated Corrective Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact PR branch SHA to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-m2-consolidated-corrective-${{ github.event.pull_request.number || github.event.inputs.expected_sha }}
+  cancel-in-progress: false
+
+jobs:
+  exact-head-corrective-gate:
+    name: Consolidated corrective exact-head Release Gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
+      CRON_SECRET: ci-placeholder-secret
+    steps:
+      - name: Resolve exact expected head
+        id: expected
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            sha="${{ github.event.pull_request.head.sha }}"
+          else
+            sha="${{ github.event.inputs.expected_sha }}"
+          fi
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid expected SHA: $sha" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.expected.outputs.sha }}
+          fetch-depth: 1
+
+      - name: Verify exact detached head and prohibit merge ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ steps.expected.outputs.sha }}"
+          checked_out="$(git rev-parse HEAD)"
+          symbolic_ref="$(git symbolic-ref -q HEAD || true)"
+          if [[ "$checked_out" != "$expected" ]]; then
+            echo "Exact-head mismatch: expected=$expected checked_out=$checked_out" >&2
+            exit 1
+          fi
+          if [[ -n "$symbolic_ref" ]]; then
+            echo "Expected detached HEAD, got $symbolic_ref" >&2
+            exit 1
+          fi
+          if git show-ref --verify --quiet refs/pull/${{ github.event.pull_request.number || '0' }}/merge; then
+            echo "Pull-request merge ref is present and prohibited" >&2
+            exit 1
+          fi
+          printf 'EXPECTED_SHA=%s\nCHECKED_OUT_SHA=%s\nEXACT_HEAD_MATCH=true\nMERGE_REF_USED=false\n' \
+            "$expected" "$checked_out" | tee exact-head-metadata.txt
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.5
+
+      - name: Install frozen dependencies
+        run: bun install --frozen-lockfile
+
+      - name: PR-M2 consolidated corrective specifications
+        run: bun run test:pr-m2:consolidated-final-corrective
+
+      - name: Full composite Release Gate
+        run: bun run verify:release
+
+      - name: Materialize exact-head artifact metadata
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="${{ steps.expected.outputs.sha }}"
+          cat > pr-m2-consolidated-corrective-gate.json <<JSON
+          {
+            "workflow": "PR-M2 Consolidated Corrective Gate",
+            "expectedSha": "$sha",
+            "checkedOutSha": "$(git rev-parse HEAD)",
+            "exactHeadMatch": $([[ "$(git rev-parse HEAD)" == "$sha" ]] && echo true || echo false),
+            "mergeRefUsed": false,
+            "event": "${{ github.event_name }}",
+            "pullRequest": "${{ github.event.pull_request.number || 'manual' }}",
+            "repository": "${{ github.repository }}",
+            "runId": "${{ github.run_id }}",
+            "job": "${{ github.job }}"
+          }
+          JSON
+
+      - name: Upload exact-head corrective evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-m2-consolidated-corrective-${{ steps.expected.outputs.sha }}
+          path: |
+            exact-head-metadata.txt
+            pr-m2-consolidated-corrective-gate.json
+            release-gate-evidence.json
+          if-no-files-found: error
+          retention-days: 14
