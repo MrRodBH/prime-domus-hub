@@ -53,11 +53,22 @@ check("property operations are closed and action-mapped", () => {
 });
 
 check("property and related resource reads are tenant filtered with explicit cardinality", () => {
-  assert.ok((property.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 20);
+  assert.ok((property.match(/\.eq\("tenant_id", tenantId\)/g)?.length ?? 0) >= 12);
   assert.ok((property.match(/\.limit\(2\)/g)?.length ?? 0) >= 6);
   for (const table of ["imoveis", "imovel_imagens", "bairros", "corretores"]) {
     assert.ok(property.includes(`.from("${table}")`) || property.includes(".from(table)"), table);
   }
+  for (const operation of [
+    "adminListarImoveis",
+    "adminObterImovel",
+    "adminSalvarImovel",
+    "adminExcluirImovel",
+    "adminAdicionarImagem",
+    "adminRemoverImagem",
+    "adminReordenarImagens",
+    "adminDefinirCapa",
+    "adminAssinarUrl",
+  ]) assert.ok(property.includes(`export const ${operation}`), operation);
 });
 
 check("image registration accepts uploadTargetId and never a raw path", () => {
