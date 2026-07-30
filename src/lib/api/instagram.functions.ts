@@ -10,11 +10,18 @@ const targetSchema = z.object({
   message: "Informe imovel_id OU launch_project_id.",
 });
 
-async function authorize(context: Parameters<typeof authorizeTenantMarketingOperation>[0], operation: "view" | "configure") {
+async function authorize(
+  context: Parameters<typeof authorizeTenantMarketingOperation>[0],
+  operation: "view" | "configure",
+) {
   return authorizeTenantMarketingOperation(context, operation);
 }
 
-async function requireTarget(context: any, tenantId: string, input: z.infer<typeof targetSchema>) {
+async function requireTarget(
+  context: any,
+  tenantId: string,
+  input: z.infer<typeof targetSchema>,
+) {
   const table = input.imovel_id ? "imoveis" : "launch_projects";
   const id = input.imovel_id ?? input.launch_project_id!;
   const { data, error } = await context.supabase
@@ -33,11 +40,17 @@ const generateInput = targetSchema.and(z.object({
   formato: z.enum(["feed", "story", "reels"]).default("feed"),
 }).strict());
 
+type InstagramGeneratedPostDto = {
+  legenda: string;
+  hashtags: string;
+  modelo: string;
+};
+
 /** External social-copy generation has no factual provider adapter in PR-M2. */
 export const igGerarPost = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((input: unknown) => generateInput.parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<InstagramGeneratedPostDto> => {
     const decision = await authorize(context, "configure");
     await requireTarget(context, decision.tenantId, data);
     throw new Error("instagram_copy_ai_adapter_not_implemented");
@@ -50,9 +63,10 @@ const saveInput = targetSchema.and(z.object({
   imagem_ids: z.array(z.string().uuid()).max(20).default([]),
   status: z.enum(["rascunho", "aprovado", "publicado"]).default("rascunho"),
   modelo_ia: z.string().max(200).optional().nullable(),
-}).strict()).refine((value) => Boolean(value.id) || Boolean(value.imovel_id) !== Boolean(value.launch_project_id), {
-  message: "Informe imovel_id OU launch_project_id para novo post.",
-});
+}).strict()).refine(
+  (value) => Boolean(value.id) || Boolean(value.imovel_id) !== Boolean(value.launch_project_id),
+  { message: "Informe imovel_id OU launch_project_id para novo post." },
+);
 
 export const igSalvarPost = createServerFn({ method: "POST" })
   .middleware([requireTenant])
