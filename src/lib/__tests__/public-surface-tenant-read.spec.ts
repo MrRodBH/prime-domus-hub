@@ -44,7 +44,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       const detail = section(source, "export const obterPostPublico", "export const listarCategoriasPublicas");
       tenantBound(detail, "blog detail");
       assert(detail.includes(".limit(2)") && !detail.includes(".maybeSingle()"), "blog detail cardinality is implicit");
-      tenantBound(section(source, "export const listarCategoriasPublicas", "// ============ ADMIN"), "blog categories");
+      tenantBound(section(source, "export const listarCategoriasPublicas", "export const adminListarCategorias"), "blog categories");
       assert(source.includes("blog_categorias(tenant_id") && source.includes("corretores(tenant_id"), "blog nested tenant compatibility missing");
     },
   },
@@ -72,8 +72,8 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "public launch collections and detail are tenant plus parent bound",
     run: async () => {
       const source = read("src/lib/api/lancamentos.functions.ts");
-      tenantBound(section(source, "export const listarStatusLancamento", "// ===== Amenities"), "launch statuses");
-      tenantBound(section(source, "export const listarAmenities", "// ===== Listar empreendimentos"), "launch amenities");
+      tenantBound(section(source, "export const listarStatusLancamento", "export const listarAmenities"), "launch statuses");
+      tenantBound(section(source, "export const listarAmenities", "export const adminListarLancamentos"), "launch amenities");
       tenantBound(section(source, "export const listarLancamentosPublico", "export const obterLancamentoPublico"), "launch list");
       const detail = section(source, "export const obterLancamentoPublico");
       tenantBound(detail, "launch detail");
