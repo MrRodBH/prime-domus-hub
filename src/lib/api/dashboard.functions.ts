@@ -21,7 +21,11 @@ const filterSchema = z.object({
   origem: z.string().trim().min(1).max(200).nullable().optional(),
 }).strict().superRefine((data, context) => {
   if (new Date(data.fim).getTime() < new Date(data.inicio).getTime()) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ["fim"], message: "O fim do período deve ser posterior ao início." });
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["fim"],
+      message: "O fim do período deve ser posterior ao início.",
+    });
   }
 });
 
@@ -29,18 +33,41 @@ const drillDownSchema = z.object({
   inicio: z.string().datetime().optional(),
   fim: z.string().datetime().optional(),
   timezone: z.literal(DASHBOARD_TIMEZONE).optional().default(DASHBOARD_TIMEZONE),
-  status: z.array(z.enum(["novo", "conversando", "visita", "proposta", "ganho", "perdido", "descartado"])).max(20).optional(),
-  alerta: z.enum(["sem_atendimento", "sem_followup", "visitas_sem_feedback", "propostas_paradas"]).optional(),
+  status: z.array(z.enum([
+    "novo",
+    "conversando",
+    "visita",
+    "proposta",
+    "ganho",
+    "perdido",
+    "descartado",
+  ])).max(20).optional(),
+  alerta: z.enum([
+    "sem_atendimento",
+    "sem_followup",
+    "visitas_sem_feedback",
+    "propostas_paradas",
+  ]).optional(),
   corretor_id: z.string().uuid().nullable().optional(),
 }).strict().superRefine((data, context) => {
-  if (data.inicio && data.fim && new Date(data.fim).getTime() < new Date(data.inicio).getTime()) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ["fim"], message: "O fim do período deve ser posterior ao início." });
+  if (
+    data.inicio &&
+    data.fim &&
+    new Date(data.fim).getTime() < new Date(data.inicio).getTime()
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["fim"],
+      message: "O fim do período deve ser posterior ao início.",
+    });
   }
 });
 
 const STATUS_ORDER = ["novo", "conversando", "visita", "proposta", "ganho"] as const;
 type ActiveStatus = (typeof STATUS_ORDER)[number];
-const STATUS_INDEX = new Map<string, number>(STATUS_ORDER.map((status, index) => [status, index]));
+const STATUS_INDEX = new Map<string, number>(
+  STATUS_ORDER.map((status, index) => [status, index]),
+);
 
 type DashboardScope = "own" | "team" | "global";
 type LeadRow = {
@@ -48,7 +75,7 @@ type LeadRow = {
   status: string;
   origem: string | null;
   corretor_id: string | null;
-  assigned_to?: string | null;
+  assigned_to: string | null;
   valor_estimado: number | null;
   created_at: string;
   updated_at: string;
@@ -73,7 +100,7 @@ function normalizeScope(scope: RbacScope | null): DashboardScope {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function exactlyOneBroker(admin: any, tenantId: string, userId: string): Promise<string | null> {
+async function exactlyOneBroker(admin: any, tenantId: string, userId: string) {
   const { data, error } = await admin
     .from("corretores")
     .select("id")
@@ -82,9 +109,10 @@ async function exactlyOneBroker(admin: any, tenantId: string, userId: string): P
     .eq("ativo", true)
     .limit(2);
   if (error) throw new Error("Falha ao resolver o corretor do dashboard.");
-  if ((data ?? []).length === 0) return null;
-  if ((data ?? []).length !== 1) throw new Error("Dashboard broker authority is ambiguous.");
-  return String(data[0].id);
+  const rows = (data ?? []) as Array<{ id: string }>;
+  if (rows.length === 0) return null;
+  if (rows.length !== 1) throw new Error("Dashboard broker authority is ambiguous.");
+  return rows[0].id;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,7 +123,9 @@ async function resolveTeamBrokerIds(admin: any, tenantId: string, actorUserId: s
     .eq("tenant_id", tenantId)
     .eq("user_id", actorUserId);
   if (membershipError) throw new Error("Falha ao resolver equipes do dashboard.");
-  const teamIds = [...new Set((memberships ?? []).map((row: { team_id: string }) => row.team_id))];
+  const teamIds = Array.from(new Set<string>(
+    ((memberships ?? []) as Array<{ team_id: string }>).map((row) => row.team_id),
+  ));
   if (teamIds.length === 0) return [];
 
   const { data: memberRows, error: memberError } = await admin
@@ -104,7 +134,9 @@ async function resolveTeamBrokerIds(admin: any, tenantId: string, actorUserId: s
     .eq("tenant_id", tenantId)
     .in("team_id", teamIds);
   if (memberError) throw new Error("Falha ao resolver membros das equipes.");
-  const userIds = [...new Set((memberRows ?? []).map((row: { user_id: string }) => row.user_id))];
+  const userIds = Array.from(new Set<string>(
+    ((memberRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id),
+  ));
   if (userIds.length === 0) return [];
 
   const { data: brokers, error: brokerError } = await admin
@@ -114,12 +146,17 @@ async function resolveTeamBrokerIds(admin: any, tenantId: string, actorUserId: s
     .eq("ativo", true)
     .in("user_id", userIds);
   if (brokerError) throw new Error("Falha ao resolver corretores das equipes.");
-  return [...new Set((brokers ?? []).map((row: { id: string }) => row.id))];
+  return Array.from(new Set<string>(
+    ((brokers ?? []) as Array<{ id: string }>).map((row) => row.id),
+  ));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveDashboardAccess(context: any): Promise<DashboardAccess> {
-  const tenantId = requireTenantScopedAuthority(context.tenant, "Dashboard Functional Authority");
+  const tenantId = requireTenantScopedAuthority(
+    context.tenant,
+    "Dashboard Functional Authority",
+  );
   const decision = await resolveEffectiveTenantPermission(
     trustedTenantAccessContext(context),
     "crm",
@@ -135,41 +172,64 @@ async function resolveDashboardAccess(context: any): Promise<DashboardAccess> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const admin = supabaseAdmin as any;
   if (scope === "global") {
-    return { tenantId, scope, actorBrokerId: null, allowedBrokerIds: null, actorKind };
+    return {
+      tenantId,
+      scope,
+      actorBrokerId: null,
+      allowedBrokerIds: null,
+      actorKind,
+    };
   }
   const actorBrokerId = await exactlyOneBroker(admin, tenantId, context.userId);
   if (!actorBrokerId) throw new Error("dashboard_broker_binding_required");
   if (scope === "own") {
-    return { tenantId, scope, actorBrokerId, allowedBrokerIds: [actorBrokerId], actorKind };
+    return {
+      tenantId,
+      scope,
+      actorBrokerId,
+      allowedBrokerIds: [actorBrokerId],
+      actorKind,
+    };
   }
   const teamBrokerIds = await resolveTeamBrokerIds(admin, tenantId, context.userId);
-  const allowedBrokerIds = [...new Set([actorBrokerId, ...teamBrokerIds])];
+  const allowedBrokerIds = Array.from(new Set<string>([actorBrokerId, ...teamBrokerIds]));
   return { tenantId, scope, actorBrokerId, allowedBrokerIds, actorKind };
 }
 
-function assertBrokerFilter(access: DashboardAccess, requested: string | null | undefined): string | null {
+function assertBrokerFilter(
+  access: DashboardAccess,
+  requested: string | null | undefined,
+): string | null {
   if (!requested) return access.scope === "own" ? access.actorBrokerId : null;
   if (access.scope === "global") return requested;
-  if (!access.allowedBrokerIds?.includes(requested)) throw new Error("dashboard_broker_filter_denied");
+  if (!access.allowedBrokerIds?.includes(requested)) {
+    throw new Error("dashboard_broker_filter_denied");
+  }
   return requested;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function assertTenantBroker(admin: any, tenantId: string, brokerId: string): Promise<string> {
+async function assertTenantBroker(admin: any, access: DashboardAccess, brokerId: string) {
   const { data, error } = await admin
     .from("corretores")
     .select("id")
-    .eq("tenant_id", tenantId)
+    .eq("tenant_id", access.tenantId)
     .eq("id", brokerId)
     .eq("ativo", true)
     .limit(2);
   if (error) throw new Error("Falha ao validar corretor.");
-  if ((data ?? []).length !== 1) throw new Error("Corretor inexistente ou ambíguo no tenant.");
+  if (((data ?? []) as unknown[]).length !== 1) {
+    throw new Error("Corretor inexistente ou ambíguo no tenant.");
+  }
   return brokerId;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function assertTeamFilter(admin: any, access: DashboardAccess, teamId: string | null | undefined): Promise<string[] | null> {
+async function assertTeamFilter(
+  admin: any,
+  access: DashboardAccess,
+  teamId: string | null | undefined,
+): Promise<string[] | null> {
   if (!teamId) return access.scope === "team" ? access.allowedBrokerIds : null;
   const { data: teamRows, error: teamError } = await admin
     .from("teams")
@@ -179,16 +239,22 @@ async function assertTeamFilter(admin: any, access: DashboardAccess, teamId: str
     .eq("ativo", true)
     .limit(2);
   if (teamError) throw new Error("Falha ao validar equipe.");
-  if ((teamRows ?? []).length !== 1) throw new Error("Equipe inexistente ou ambígua no tenant.");
+  if (((teamRows ?? []) as unknown[]).length !== 1) {
+    throw new Error("Equipe inexistente ou ambígua no tenant.");
+  }
   if (access.scope === "own") throw new Error("dashboard_team_filter_denied");
+
   const { data: memberRows, error: memberError } = await admin
     .from("team_members")
     .select("user_id")
     .eq("tenant_id", access.tenantId)
     .eq("team_id", teamId);
   if (memberError) throw new Error("Falha ao carregar membros da equipe.");
-  const userIds = [...new Set((memberRows ?? []).map((row: { user_id: string }) => row.user_id))];
+  const userIds = Array.from(new Set<string>(
+    ((memberRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id),
+  ));
   if (userIds.length === 0) return [];
+
   const { data: brokerRows, error: brokerError } = await admin
     .from("corretores")
     .select("id")
@@ -196,8 +262,13 @@ async function assertTeamFilter(admin: any, access: DashboardAccess, teamId: str
     .eq("ativo", true)
     .in("user_id", userIds);
   if (brokerError) throw new Error("Falha ao carregar corretores da equipe.");
-  const ids = [...new Set((brokerRows ?? []).map((row: { id: string }) => row.id))];
-  if (access.scope === "team" && ids.some((id) => !access.allowedBrokerIds?.includes(id))) {
+  const ids = Array.from(new Set<string>(
+    ((brokerRows ?? []) as Array<{ id: string }>).map((row) => row.id),
+  ));
+  if (
+    access.scope === "team" &&
+    ids.some((id) => !access.allowedBrokerIds?.includes(id))
+  ) {
     throw new Error("dashboard_team_filter_denied");
   }
   return ids;
@@ -225,11 +296,19 @@ function countAtLeast(rows: LeadRow[], status: ActiveStatus) {
   }).length;
 }
 
-function applyBrokerScope(query: any, access: DashboardAccess, selectedBrokerId: string | null, teamBrokerIds: string[] | null) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyBrokerScope(
+  query: any,
+  access: DashboardAccess,
+  selectedBrokerId: string | null,
+  teamBrokerIds: string[] | null,
+) {
   if (selectedBrokerId) return query.eq("corretor_id", selectedBrokerId);
   const allowed = teamBrokerIds ?? access.allowedBrokerIds;
   if (allowed === null) return query;
-  if (allowed.length === 0) return query.eq("corretor_id", "00000000-0000-0000-0000-000000000000");
+  if (allowed.length === 0) {
+    return query.eq("corretor_id", "00000000-0000-0000-0000-000000000000");
+  }
   return query.in("corretor_id", allowed);
 }
 
@@ -241,7 +320,9 @@ export const dashboardStats = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as any;
     let selectedBrokerId = assertBrokerFilter(access, data.corretor_id);
-    if (selectedBrokerId) selectedBrokerId = await assertTenantBroker(admin, access.tenantId, selectedBrokerId);
+    if (selectedBrokerId) {
+      selectedBrokerId = await assertTenantBroker(admin, access, selectedBrokerId);
+    }
     const teamBrokerIds = await assertTeamFilter(admin, access, data.team_id);
 
     const start = new Date(data.inicio);
@@ -275,13 +356,6 @@ export const dashboardStats = createServerFn({ method: "POST" })
       .filter((row) => row.status === "ganho")
       .reduce((sum, row) => sum + (Number(row.valor_estimado) || 0), 0);
 
-    const summary = {
-      leads: { atual: leadCount, anterior: previousLeadCount, deltaPct: percent(leadCount, previousLeadCount) },
-      visitas: { atual: visits, conversao: leadCount ? Math.round((visits / leadCount) * 1000) / 10 : 0 },
-      propostas: { atual: proposals, conversao: visits ? Math.round((proposals / visits) * 1000) / 10 : 0 },
-      vendas: { atual: won, perdidas: lost, descartadas: discarded, vgv: wonValue },
-    };
-
     const contacted = countAtLeast(current, "conversando");
     const funnel = [
       { etapa: "Novo", quantidade: leadCount, conversao: 100, perda: 0 },
@@ -296,7 +370,7 @@ export const dashboardStats = createServerFn({ method: "POST" })
 
     let activeQuery = admin
       .from("leads")
-      .select("id, status, corretor_id, created_at, updated_at, nome")
+      .select("id, status, corretor_id, assigned_to, valor_estimado, created_at, updated_at, nome, email, telefone, origem")
       .eq("tenant_id", access.tenantId)
       .not("status", "in", '("ganho","perdido","descartado")');
     activeQuery = applyBrokerScope(activeQuery, access, selectedBrokerId, teamBrokerIds);
@@ -314,10 +388,14 @@ export const dashboardStats = createServerFn({ method: "POST" })
     };
 
     const dayCount = Math.max(1, Math.ceil((end.getTime() - start.getTime() + 1) / 86_400_000));
-    const series = Array.from({ length: dayCount }, (_, index) => {
-      const date = new Date(start.getTime() + index * 86_400_000).toISOString().slice(0, 10);
-      return { data: date, leads: 0, visitas: 0, propostas: 0, vendas: 0, vgv: 0 };
-    });
+    const series = Array.from({ length: dayCount }, (_, index) => ({
+      data: new Date(start.getTime() + index * 86_400_000).toISOString().slice(0, 10),
+      leads: 0,
+      visitas: 0,
+      propostas: 0,
+      vendas: 0,
+      vgv: 0,
+    }));
     const dayIndex = new Map(series.map((row, index) => [row.data, index]));
     for (const lead of current) {
       const index = dayIndex.get(lead.created_at.slice(0, 10));
@@ -339,12 +417,14 @@ export const dashboardStats = createServerFn({ method: "POST" })
       if (lead.status === "ganho") value.won += 1;
       sourceMap.set(source, value);
     }
-    const sources = [...sourceMap.entries()].map(([nome, value]) => ({
-      nome,
-      quantidade: value.total,
-      percentual: leadCount ? Math.round((value.total / leadCount) * 1000) / 10 : 0,
-      conversao: value.total ? Math.round((value.won / value.total) * 1000) / 10 : 0,
-    })).sort((left, right) => right.quantidade - left.quantidade);
+    const sources = [...sourceMap.entries()]
+      .map(([nome, value]) => ({
+        nome,
+        quantidade: value.total,
+        percentual: leadCount ? Math.round((value.total / leadCount) * 1000) / 10 : 0,
+        conversao: value.total ? Math.round((value.won / value.total) * 1000) / 10 : 0,
+      }))
+      .sort((left, right) => right.quantidade - left.quantidade);
 
     const rates = [
       { label: "Lead → Contato", atual: leadCount ? Math.round((contacted / leadCount) * 1000) / 10 : 0, meta: 80 },
@@ -355,33 +435,54 @@ export const dashboardStats = createServerFn({ method: "POST" })
     ];
 
     const { data: brokerRows, error: brokerError } = access.scope === "global"
-      ? await admin.from("corretores").select("id, user_id, nome, sobrenome").eq("tenant_id", access.tenantId).eq("ativo", true)
+      ? await admin
+          .from("corretores")
+          .select("id, user_id, nome, sobrenome")
+          .eq("tenant_id", access.tenantId)
+          .eq("ativo", true)
       : { data: [], error: null };
     if (brokerError) throw new Error("Falha ao carregar ranking.");
-    const ranking = ((brokerRows ?? []) as Array<{ id: string; user_id: string | null; nome: string; sobrenome: string | null }>).map((broker) => {
-      const own = current.filter((lead) => lead.corretor_id === broker.id);
-      const ownWon = countStatus(own, "ganho");
-      return {
-        corretor_id: broker.id,
-        user_id: broker.user_id,
-        nome: [broker.nome, broker.sobrenome].filter(Boolean).join(" "),
-        leads: own.length,
-        visitas: countAtLeast(own, "visita"),
-        propostas: countAtLeast(own, "proposta"),
-        vendas: ownWon,
-        conversao: own.length ? Math.round((ownWon / own.length) * 1000) / 10 : 0,
-        vgv: own.filter((lead) => lead.status === "ganho").reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0),
-      };
-    }).filter((row) => row.leads > 0 || row.vendas > 0).sort((left, right) => right.vgv - left.vgv).slice(0, 10);
+    const ranking = ((brokerRows ?? []) as Array<{
+      id: string;
+      user_id: string | null;
+      nome: string;
+      sobrenome: string | null;
+    }>)
+      .map((broker) => {
+        const own = current.filter((lead) => lead.corretor_id === broker.id);
+        const ownWon = countStatus(own, "ganho");
+        return {
+          corretor_id: broker.id,
+          user_id: broker.user_id,
+          nome: [broker.nome, broker.sobrenome].filter(Boolean).join(" "),
+          leads: own.length,
+          visitas: countAtLeast(own, "visita"),
+          propostas: countAtLeast(own, "proposta"),
+          vendas: ownWon,
+          conversao: own.length ? Math.round((ownWon / own.length) * 1000) / 10 : 0,
+          vgv: own
+            .filter((lead) => lead.status === "ganho")
+            .reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0),
+        };
+      })
+      .filter((row) => row.leads > 0 || row.vendas > 0)
+      .sort((left, right) => right.vgv - left.vgv)
+      .slice(0, 10);
 
-    const ownRows = access.actorBrokerId ? current.filter((row) => row.corretor_id === access.actorBrokerId) : [];
-    const performance = access.actorBrokerId ? {
-      leads: ownRows.length,
-      visitas: countAtLeast(ownRows, "visita"),
-      propostas: countAtLeast(ownRows, "proposta"),
-      vendas: countStatus(ownRows, "ganho"),
-      vgv: ownRows.filter((row) => row.status === "ganho").reduce((sum, row) => sum + (Number(row.valor_estimado) || 0), 0),
-    } : null;
+    const ownRows = access.actorBrokerId
+      ? current.filter((row) => row.corretor_id === access.actorBrokerId)
+      : [];
+    const performance = access.actorBrokerId
+      ? {
+          leads: ownRows.length,
+          visitas: countAtLeast(ownRows, "visita"),
+          propostas: countAtLeast(ownRows, "proposta"),
+          vendas: countStatus(ownRows, "ganho"),
+          vgv: ownRows
+            .filter((row) => row.status === "ganho")
+            .reduce((sum, row) => sum + (Number(row.valor_estimado) || 0), 0),
+        }
+      : null;
 
     const [propertyResult, marketingResult, portalResult, alertResult] = await Promise.all([
       admin.from("imoveis").select("id, status, publicado_em").eq("tenant_id", access.tenantId),
@@ -392,7 +493,11 @@ export const dashboardStats = createServerFn({ method: "POST" })
     if (propertyResult.error || marketingResult.error || portalResult.error || alertResult.error) {
       throw new Error("Dashboard partial-data error: uma fonte obrigatória falhou.");
     }
-    const properties = (propertyResult.data ?? []) as Array<{ id: string; status: string; publicado_em: string | null }>;
+    const properties = (propertyResult.data ?? []) as Array<{
+      id: string;
+      status: string;
+      publicado_em: string | null;
+    }>;
     const openAlertCounts = new Map<string, number>();
     for (const row of (alertResult.data ?? []) as Array<{ alert_key: string }>) {
       openAlertCounts.set(row.alert_key, (openAlertCounts.get(row.alert_key) ?? 0) + 1);
@@ -405,19 +510,58 @@ export const dashboardStats = createServerFn({ method: "POST" })
       crmAlerts: Object.fromEntries(openAlertCounts),
     };
 
-    const insights: Array<{ tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao"; mensagem: string }> = [];
+    const insights: Array<{
+      tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao";
+      mensagem: string;
+    }> = [];
     if (previousLeadCount > 0) {
       const delta = percent(leadCount, previousLeadCount);
-      insights.push({ tipo: "performance", mensagem: delta >= 0 ? `Você recebeu ${delta}% mais leads que no período anterior.` : `Volume de leads caiu ${Math.abs(delta)}% em relação ao período anterior.` });
+      insights.push({
+        tipo: "performance",
+        mensagem: delta >= 0
+          ? `Você recebeu ${delta}% mais leads que no período anterior.`
+          : `Volume de leads caiu ${Math.abs(delta)}% em relação ao período anterior.`,
+      });
     }
-    if (wonValue > 0) insights.push({ tipo: "performance", mensagem: `VGV do período: ${wonValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.` });
-    if (alerts.semAtendimento > 0) insights.push({ tipo: "alerta", mensagem: `${alerts.semAtendimento} lead(s) sem atendimento há mais de 48 horas.` });
-    if (alerts.propostasParadas > 0) insights.push({ tipo: "alerta", mensagem: `${alerts.propostasParadas} proposta(s) sem atualização há mais de 7 dias.` });
-    if (proposals > 0) insights.push({ tipo: "oportunidade", mensagem: `${proposals} lead(s) alcançaram proposta no período.` });
-    if (won > 0 && dayCount > 0) insights.push({ tipo: "previsao", mensagem: `Projeção linear de VGV para 30 dias: ${Math.round((wonValue / dayCount) * 30).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.` });
+    if (wonValue > 0) {
+      insights.push({
+        tipo: "performance",
+        mensagem: `VGV do período: ${wonValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
+      });
+    }
+    if (alerts.semAtendimento > 0) {
+      insights.push({ tipo: "alerta", mensagem: `${alerts.semAtendimento} lead(s) sem atendimento há mais de 48 horas.` });
+    }
+    if (alerts.propostasParadas > 0) {
+      insights.push({ tipo: "alerta", mensagem: `${alerts.propostasParadas} proposta(s) sem atualização há mais de 7 dias.` });
+    }
+    if (proposals > 0) {
+      insights.push({ tipo: "oportunidade", mensagem: `${proposals} lead(s) alcançaram proposta no período.` });
+    }
+    if (won > 0 && dayCount > 0) {
+      insights.push({
+        tipo: "previsao",
+        mensagem: `Projeção linear de VGV para 30 dias: ${Math.round((wonValue / dayCount) * 30).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
+      });
+    }
 
     return {
-      resumo: summary,
+      resumo: {
+        leads: {
+          atual: leadCount,
+          anterior: previousLeadCount,
+          deltaPct: percent(leadCount, previousLeadCount),
+        },
+        visitas: {
+          atual: visits,
+          conversao: leadCount ? Math.round((visits / leadCount) * 1000) / 10 : 0,
+        },
+        propostas: {
+          atual: proposals,
+          conversao: visits ? Math.round((proposals / visits) * 1000) / 10 : 0,
+        },
+        vendas: { atual: won, perdidas: lost, descartadas: discarded, vgv: wonValue },
+      },
       funil: funnel,
       alertas: alerts,
       serie: series,
@@ -444,7 +588,9 @@ export const dashboardLeadsFiltrados = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as any;
     let selectedBrokerId = assertBrokerFilter(access, data.corretor_id);
-    if (selectedBrokerId) selectedBrokerId = await assertTenantBroker(admin, access.tenantId, selectedBrokerId);
+    if (selectedBrokerId) {
+      selectedBrokerId = await assertTenantBroker(admin, access, selectedBrokerId);
+    }
 
     let query = admin
       .from("leads")
@@ -457,15 +603,27 @@ export const dashboardLeadsFiltrados = createServerFn({ method: "POST" })
     if (data.fim) query = query.lte("created_at", data.fim);
     if (data.status?.length) query = query.in("status", data.status);
     if (data.alerta === "sem_atendimento") {
-      query = query.eq("status", "novo").lt("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
+      query = query
+        .eq("status", "novo")
+        .lt("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
     } else if (data.alerta === "sem_followup") {
-      query = query.eq("status", "conversando").lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      query = query
+        .eq("status", "conversando")
+        .lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
     } else if (data.alerta === "visitas_sem_feedback") {
-      query = query.eq("status", "visita").lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      query = query
+        .eq("status", "visita")
+        .lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
     } else if (data.alerta === "propostas_paradas") {
-      query = query.eq("status", "proposta").lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      query = query
+        .eq("status", "proposta")
+        .lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
     }
     const { data: rows, error } = await query;
     if (error) throw new Error("Falha ao carregar o drill-down tenant-scoped.");
-    return { rows: rows ?? [], effectiveScope: access.scope, timezone: data.timezone };
+    return {
+      rows: (rows ?? []) as LeadRow[],
+      effectiveScope: access.scope,
+      timezone: data.timezone,
+    };
   });
