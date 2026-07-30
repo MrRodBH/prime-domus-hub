@@ -20,7 +20,7 @@ import {
 } from "@/lib/api/admin.functions";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
-import { listarAmenities } from "@/lib/api/lancamentos.functions";
+import { listarTenantLaunchAmenities } from "@/lib/api/tenant-launch-catalog.functions";
 import { createUploadTarget } from "@/lib/api/uploads.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -76,12 +76,7 @@ type PropertyFormState = {
   mostrar_endereco_completo: boolean;
 };
 
-type Props = {
-  // Existing route loaders provide a repository DTO whose optional fields are
-  // normalized below. Keeping this boundary tolerant does not grant authority.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initial?: any;
-};
+type Props = { initial?: any };
 
 function optionalNumber(value: string): number | null {
   if (value.trim() === "") return null;
@@ -148,7 +143,7 @@ export function ImovelForm({ initial }: Props) {
   const neighborhoods = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
   const cities = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
   const brokers = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
-  const amenities = useQuery({ queryKey: ["launch-amenities"], queryFn: () => listarAmenities() });
+  const amenities = useQuery({ queryKey: ["tenant-launch-amenities"], queryFn: () => listarTenantLaunchAmenities() });
 
   const availableFeatures = useMemo(
     () => [...new Set((amenities.data ?? []).map((item) => item.nome))].sort(),
@@ -156,28 +151,32 @@ export function ImovelForm({ initial }: Props) {
   );
 
   useEffect(() => {
-    setOrders((current) => Object.fromEntries(images.map((image) => [image.id, current[image.id] ?? (image.ordem > 0 ? String(image.ordem) : "0")])));
+    setOrders((current) => Object.fromEntries(
+      images.map((image) => [image.id, current[image.id] ?? (image.ordem > 0 ? String(image.ordem) : "0")]),
+    ));
   }, [images]);
 
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
     void (async () => {
       const next: Record<string, string> = {};
       for (const image of images) {
-        if (image.url.startsWith("http")) {
+        if (image.url.startsWith("https://")) {
           next[image.id] = image.url;
           continue;
         }
         try {
-          const result = await adminAssinarUrl({ data: { bucket: "imoveis", path: image.url, width: 500, quality: 70 } });
+          const result = await adminAssinarUrl({
+            data: { bucket: "imoveis", path: image.url, width: 500, quality: 70 },
+          });
           next[image.id] = result.url;
         } catch {
-          // A failed preview signature must not weaken the persisted authority.
+          // Preview failure does not weaken the persisted property-image authority.
         }
       }
-      if (!cancelled) setSignedUrls(next);
+      if (active) setSignedUrls(next);
     })();
-    return () => { cancelled = true; };
+    return () => { active = false; };
   }, [images]);
 
   const saveProperty = useMutation({
@@ -207,7 +206,7 @@ export function ImovelForm({ initial }: Props) {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const generateDescription = useMutation({
+  const generateLocalDraft = useMutation({
     mutationFn: () => gerarDescricaoImovel({
       data: {
         titulo: form.titulo,
@@ -227,7 +226,10 @@ export function ImovelForm({ initial }: Props) {
         tom: tone,
       },
     }),
-    onSuccess: (result) => setForm((current) => ({ ...current, descricao: result.descricao })),
+    onSuccess: (result) => {
+      setForm((current) => ({ ...current, descricao: result.descricao }));
+      toast.success("Rascunho local gerado. Revise antes de publicar.");
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -243,7 +245,6 @@ export function ImovelForm({ initial }: Props) {
       toast.error(`Limite de ${MAX_IMAGES} imagens atingido.`);
       return;
     }
-
     setUploading(true);
     try {
       for (const file of allowed) {
@@ -256,11 +257,10 @@ export function ImovelForm({ initial }: Props) {
             size: file.size,
           },
         });
-        const { error: uploadError } = await supabase.storage
+        const { error } = await supabase.storage
           .from(target.bucket)
-          .upload(target.path, file, { upsert: false });
-        if (uploadError) throw uploadError;
-
+          .upload(target.path, file, { upsert: false, contentType: file.type });
+        if (error) throw error;
         const result = await adminAdicionarImagem({
           data: {
             imovel_id: form.id,
@@ -293,15 +293,14 @@ export function ImovelForm({ initial }: Props) {
   async function persistOrder() {
     if (!form.id || images.length === 0) return;
     const ordered = images.map((image) => ({ image, ordem: Number(orders[image.id]) }));
-    const numbers = ordered.map((item) => item.ordem);
-    const validSequence = numbers.every((value) => Number.isInteger(value) && value >= 1 && value <= images.length)
-      && new Set(numbers).size === images.length
-      && numbers.includes(1);
-    if (!validSequence) {
+    const values = ordered.map((item) => item.ordem);
+    const valid = values.every((value) => Number.isInteger(value) && value >= 1 && value <= images.length)
+      && new Set(values).size === images.length
+      && values.includes(1);
+    if (!valid) {
       toast.error(`Utilize cada número de 1 a ${images.length} exatamente uma vez.`);
       return;
     }
-
     setSavingOrder(true);
     try {
       const result = await adminReordenarImagens({
@@ -335,13 +334,7 @@ export function ImovelForm({ initial }: Props) {
     setForm((current) => ({ ...current, [key]: optionalNumber(value) }));
 
   return (
-    <form
-      className="mx-auto max-w-6xl space-y-6"
-      onSubmit={(event) => {
-        event.preventDefault();
-        saveProperty.mutate();
-      }}
-    >
+    <form className="mx-auto max-w-6xl space-y-6" onSubmit={(event) => { event.preventDefault(); saveProperty.mutate(); }}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{form.id ? "Editar imóvel" : "Novo imóvel"}</h1>
@@ -349,22 +342,19 @@ export function ImovelForm({ initial }: Props) {
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/imoveis" })}>Cancelar</Button>
-          <Button type="submit" disabled={saveProperty.isPending}>
-            {saveProperty.isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-            Salvar
-          </Button>
+          <Button type="submit" disabled={saveProperty.isPending}>{saveProperty.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}Salvar</Button>
         </div>
       </header>
 
       <Section title="Informações principais">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Código" required value={form.codigo} onChange={(value) => setForm((current) => ({ ...current, codigo: value }))} />
-          <Field label="Slug" required value={form.slug} onChange={(value) => setForm((current) => ({ ...current, slug: value }))} />
-          <div className="md:col-span-2"><Field label="Título" required value={form.titulo} onChange={(value) => setForm((current) => ({ ...current, titulo: value }))} /></div>
+          <Field label="Código" required value={form.codigo} onChange={(codigo) => setForm((current) => ({ ...current, codigo }))} />
+          <Field label="Slug" required value={form.slug} onChange={(slug) => setForm((current) => ({ ...current, slug }))} />
+          <div className="md:col-span-2"><Field label="Título" required value={form.titulo} onChange={(titulo) => setForm((current) => ({ ...current, titulo }))} /></div>
           <SelectField label="Finalidade" value={form.finalidade} options={PURPOSES} onChange={(value) => setForm((current) => ({ ...current, finalidade: value as PropertyFormState["finalidade"] }))} />
           <SelectField label="Tipo" value={form.tipo} options={PROPERTY_TYPES} onChange={(value) => setForm((current) => ({ ...current, tipo: value as PropertyFormState["tipo"] }))} />
           <SelectField label="Status" value={form.status} options={STATUSES} onChange={(value) => setForm((current) => ({ ...current, status: value as PropertyFormState["status"] }))} />
-          <Field label="Badge" value={form.badge} onChange={(value) => setForm((current) => ({ ...current, badge: value }))} />
+          <Field label="Badge" value={form.badge} onChange={(badge) => setForm((current) => ({ ...current, badge }))} />
         </div>
         <div className="mt-4 space-y-2">
           <div className="flex flex-wrap items-end justify-between gap-2">
@@ -372,18 +362,15 @@ export function ImovelForm({ initial }: Props) {
             <div className="flex gap-2">
               <Select value={tone} onValueChange={(value) => setTone(value as typeof tone)}>
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sofisticado">Sofisticado</SelectItem>
-                  <SelectItem value="objetivo">Objetivo</SelectItem>
-                  <SelectItem value="acolhedor">Acolhedor</SelectItem>
-                </SelectContent>
+                <SelectContent><SelectItem value="sofisticado">Sofisticado</SelectItem><SelectItem value="objetivo">Objetivo</SelectItem><SelectItem value="acolhedor">Acolhedor</SelectItem></SelectContent>
               </Select>
-              <Button type="button" variant="outline" disabled={generateDescription.isPending} onClick={() => generateDescription.mutate()}>
-                <Sparkles className="mr-2 size-4" />Gerar com IA
+              <Button type="button" variant="outline" disabled={generateLocalDraft.isPending} onClick={() => generateLocalDraft.mutate()}>
+                <Sparkles className="mr-2 size-4" />Gerar rascunho local
               </Button>
             </div>
           </div>
           <Textarea rows={7} value={form.descricao} onChange={(event) => setForm((current) => ({ ...current, descricao: event.target.value }))} />
+          <p className="text-xs text-muted-foreground">Geração determinística local; nenhum provider externo ou credencial é executado.</p>
         </div>
       </Section>
 
@@ -400,26 +387,16 @@ export function ImovelForm({ initial }: Props) {
           <NumberField label="Vagas" value={form.vagas} onChange={(value) => setNumber("vagas", value)} />
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <Toggle label="Preço sob consulta" checked={form.preco_sob_consulta} onChange={(checked) => setForm((current) => ({ ...current, preco_sob_consulta: checked }))} />
-          <Toggle label="Destaque" checked={form.destaque} onChange={(checked) => setForm((current) => ({ ...current, destaque: checked }))} />
-          <Toggle label="Exclusivo" checked={form.exclusivo} onChange={(checked) => setForm((current) => ({ ...current, exclusivo: checked }))} />
+          <Toggle label="Preço sob consulta" checked={form.preco_sob_consulta} onChange={(preco_sob_consulta) => setForm((current) => ({ ...current, preco_sob_consulta }))} />
+          <Toggle label="Destaque" checked={form.destaque} onChange={(destaque) => setForm((current) => ({ ...current, destaque }))} />
+          <Toggle label="Exclusivo" checked={form.exclusivo} onChange={(exclusivo) => setForm((current) => ({ ...current, exclusivo }))} />
         </div>
         <div className="mt-4">
           <Label>Características</Label>
           <div className="mt-2 flex flex-wrap gap-2">
             {availableFeatures.map((feature) => {
               const selected = manualFeatures.includes(feature);
-              return (
-                <Button
-                  key={feature}
-                  type="button"
-                  size="sm"
-                  variant={selected ? "default" : "outline"}
-                  onClick={() => setManualFeatures((current) => selected ? current.filter((item) => item !== feature) : [...current, feature])}
-                >
-                  {feature}
-                </Button>
-              );
+              return <Button key={feature} type="button" size="sm" variant={selected ? "default" : "outline"} onClick={() => setManualFeatures((current) => selected ? current.filter((item) => item !== feature) : [...current, feature])}>{feature}</Button>;
             })}
           </div>
         </div>
@@ -427,87 +404,46 @@ export function ImovelForm({ initial }: Props) {
 
       <Section title="Localização e responsável">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <SelectField
-            label="Bairro"
-            value={form.bairro_id ?? "none"}
-            options={["none", ...(neighborhoods.data ?? []).map((item) => item.id)]}
-            labels={Object.fromEntries((neighborhoods.data ?? []).map((item) => [item.id, item.nome]))}
-            onChange={(value) => setForm((current) => ({ ...current, bairro_id: value === "none" ? null : value }))}
-          />
-          <SelectField
-            label="Corretor"
-            value={form.corretor_id ?? "none"}
-            options={["none", ...(brokers.data ?? []).map((item) => item.id)]}
-            labels={Object.fromEntries((brokers.data ?? []).map((item) => [item.id, item.nome]))}
-            onChange={(value) => setForm((current) => ({ ...current, corretor_id: value === "none" ? null : value }))}
-          />
-          <SelectField
-            label="Cidade de referência"
-            value={cities.data?.find((item) => item.nome === form.cidade)?.id ?? "none"}
-            options={["none", ...(cities.data ?? []).map((item) => item.id)]}
-            labels={Object.fromEntries((cities.data ?? []).map((item) => [item.id, `${item.nome}/${item.estado}`]))}
-            onChange={(value) => {
-              const city = cities.data?.find((item) => item.id === value);
-              setForm((current) => ({ ...current, cidade: city?.nome ?? "", estado: city?.estado ?? "" }));
-            }}
-          />
-          <Field label="Rua" value={form.rua} onChange={(value) => setForm((current) => ({ ...current, rua: value, endereco: value }))} />
-          <Field label="Número" value={form.numero} onChange={(value) => setForm((current) => ({ ...current, numero: value }))} />
-          <Field label="Complemento" value={form.complemento} onChange={(value) => setForm((current) => ({ ...current, complemento: value }))} />
-          <Field label="CEP" value={form.cep} onChange={(value) => setForm((current) => ({ ...current, cep: value }))} />
+          <SelectField label="Bairro" value={form.bairro_id ?? "none"} options={["none", ...(neighborhoods.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((neighborhoods.data ?? []).map((item) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, bairro_id: value === "none" ? null : value }))} />
+          <SelectField label="Corretor" value={form.corretor_id ?? "none"} options={["none", ...(brokers.data ?? []).map((item: any) => item.id)]} labels={Object.fromEntries((brokers.data ?? []).map((item: any) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, corretor_id: value === "none" ? null : value }))} />
+          <SelectField label="Cidade de referência" value={cities.data?.find((item) => item.nome === form.cidade)?.id ?? "none"} options={["none", ...(cities.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((cities.data ?? []).map((item) => [item.id, `${item.nome}/${item.estado}`]))} onChange={(value) => { const city = cities.data?.find((item) => item.id === value); setForm((current) => ({ ...current, cidade: city?.nome ?? "", estado: city?.estado ?? "" })); }} />
+          <Field label="Rua" value={form.rua} onChange={(rua) => setForm((current) => ({ ...current, rua, endereco: rua }))} />
+          <Field label="Número" value={form.numero} onChange={(numero) => setForm((current) => ({ ...current, numero }))} />
+          <Field label="Complemento" value={form.complemento} onChange={(complemento) => setForm((current) => ({ ...current, complemento }))} />
+          <Field label="CEP" value={form.cep} onChange={(cep) => setForm((current) => ({ ...current, cep }))} />
           <NumberField label="Latitude" value={form.latitude} onChange={(value) => setNumber("latitude", value)} />
           <NumberField label="Longitude" value={form.longitude} onChange={(value) => setNumber("longitude", value)} />
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Toggle label="Mostrar rua" checked={form.mostrar_rua} onChange={(checked) => setForm((current) => ({ ...current, mostrar_rua: checked }))} />
-          <Toggle label="Mostrar endereço completo" checked={form.mostrar_endereco_completo} onChange={(checked) => setForm((current) => ({ ...current, mostrar_endereco_completo: checked }))} />
+          <Toggle label="Mostrar rua" checked={form.mostrar_rua} onChange={(mostrar_rua) => setForm((current) => ({ ...current, mostrar_rua }))} />
+          <Toggle label="Mostrar endereço completo" checked={form.mostrar_endereco_completo} onChange={(mostrar_endereco_completo) => setForm((current) => ({ ...current, mostrar_endereco_completo }))} />
         </div>
       </Section>
 
       <Section title="Mídia e tours">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Vídeo HTTPS" value={form.video_url} onChange={(value) => setForm((current) => ({ ...current, video_url: value }))} />
-          <Field label="Tour HTTPS" value={form.tour_url} onChange={(value) => setForm((current) => ({ ...current, tour_url: value }))} />
+          <Field label="Vídeo HTTPS" value={form.video_url} onChange={(video_url) => setForm((current) => ({ ...current, video_url }))} />
+          <Field label="Tour HTTPS" value={form.tour_url} onChange={(tour_url) => setForm((current) => ({ ...current, tour_url }))} />
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button type="button" variant="outline" asChild disabled={!form.id || uploading || images.length >= MAX_IMAGES}>
-            <label className="cursor-pointer">
-              {uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-              Enviar imagens
-              <input className="hidden" type="file" accept="image/*" multiple onChange={uploadImages} />
-            </label>
+            <label className="cursor-pointer">{uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}Enviar imagens<input className="hidden" type="file" accept="image/*" multiple onChange={uploadImages} /></label>
           </Button>
-          <span className="text-xs text-muted-foreground">{images.length}/{MAX_IMAGES} · o path é transporte; o registro usa uploadTargetId.</span>
+          <span className="text-xs text-muted-foreground">{images.length}/{MAX_IMAGES} · o registro final usa uploadTargetId.</span>
         </div>
-
-        {images.length > 0 ? (
+        {images.length > 0 && (
           <div className="mt-5 space-y-3">
             {images.map((image) => (
               <div key={image.id} className="grid items-center gap-3 rounded-lg border p-3 sm:grid-cols-[96px_1fr_100px_auto]">
-                <div className="aspect-square overflow-hidden rounded bg-muted">
-                  {signedUrls[image.id] ? <img className="h-full w-full object-cover" src={signedUrls[image.id]} alt={image.alt ?? form.titulo} /> : null}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{image.alt || "Imagem do imóvel"}</div>
-                  <div className="truncate font-mono text-xs text-muted-foreground">{image.url}</div>
-                  {form.imagem_capa === image.url ? <div className="mt-1 inline-flex items-center gap-1 text-xs"><Crown className="size-3" />Capa atual</div> : null}
-                </div>
-                <div>
-                  <Label className="text-xs">Ordem</Label>
-                  <Input type="number" min={1} max={images.length} value={orders[image.id] ?? "0"} onChange={(event) => setOrders((current) => ({ ...current, [image.id]: event.target.value }))} />
-                </div>
-                <div className="flex gap-2 sm:justify-end">
-                  <Button type="button" size="icon" variant="outline" aria-label="Definir capa" onClick={() => void setCover(image)}><Crown className="size-4" /></Button>
-                  <Button type="button" size="icon" variant="destructive" aria-label="Remover imagem" onClick={() => void removeImage(image)}><Trash2 className="size-4" /></Button>
-                </div>
+                <div className="aspect-square overflow-hidden rounded bg-muted">{signedUrls[image.id] && <img className="h-full w-full object-cover" src={signedUrls[image.id]} alt={image.alt ?? form.titulo} />}</div>
+                <div className="min-w-0"><div className="truncate text-sm font-medium">{image.alt || "Imagem do imóvel"}</div><div className="truncate font-mono text-xs text-muted-foreground">{image.url}</div>{form.imagem_capa === image.url && <div className="mt-1 inline-flex items-center gap-1 text-xs"><Crown className="size-3" />Capa atual</div>}</div>
+                <div><Label className="text-xs">Ordem</Label><Input type="number" min={1} max={images.length} value={orders[image.id] ?? "0"} onChange={(event) => setOrders((current) => ({ ...current, [image.id]: event.target.value }))} /></div>
+                <div className="flex gap-2 sm:justify-end"><Button type="button" size="icon" variant="outline" aria-label="Definir capa" onClick={() => void setCover(image)}><Crown className="size-4" /></Button><Button type="button" size="icon" variant="destructive" aria-label="Remover imagem" onClick={() => void removeImage(image)}><Trash2 className="size-4" /></Button></div>
               </div>
             ))}
-            <Button type="button" variant="outline" disabled={savingOrder} onClick={() => void persistOrder()}>
-              {savingOrder ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-              Salvar ordem e capa nº 1
-            </Button>
+            <Button type="button" variant="outline" disabled={savingOrder} onClick={() => void persistOrder()}>{savingOrder && <Loader2 className="mr-2 size-4 animate-spin" />}Salvar ordem e capa nº 1</Button>
           </div>
-        ) : null}
+        )}
       </Section>
     </form>
   );
@@ -516,19 +452,15 @@ export function ImovelForm({ initial }: Props) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="rounded-lg border bg-card p-5"><h2 className="mb-4 text-lg font-medium">{title}</h2>{children}</section>;
 }
-
 function Field({ label, value, onChange, required = false }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
   return <div className="space-y-2"><Label>{label}</Label><Input required={required} value={value} onChange={(event) => onChange(event.target.value)} /></div>;
 }
-
 function NumberField({ label, value, onChange }: { label: string; value: number | null; onChange: (value: string) => void }) {
   return <div className="space-y-2"><Label>{label}</Label><Input type="number" step="any" value={value ?? ""} onChange={(event) => onChange(event.target.value)} /></div>;
 }
-
 function SelectField({ label, value, options, labels = {}, onChange }: { label: string; value: string; options: readonly string[]; labels?: Record<string, string>; onChange: (value: string) => void }) {
-  return <div className="space-y-2"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((option) => <SelectItem key={option} value={option}>{labels[option] ?? (option === "none" ? "Nenhum" : option)}</SelectItem>)}</SelectContent></Select></div>;
+  return <div className="space-y-2"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((option) => <SelectItem key={option} value={option}>{labels[option] ?? (option === "none" ? "— Nenhum —" : option.replaceAll("_", " "))}</SelectItem>)}</SelectContent></Select></div>;
 }
-
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  return <div className="flex items-center justify-between rounded-md border px-3 py-2"><Label>{label}</Label><Switch checked={checked} onCheckedChange={onChange} /></div>;
+  return <div className="flex items-center gap-2"><Switch checked={checked} onCheckedChange={onChange} /><Label>{label}</Label></div>;
 }
