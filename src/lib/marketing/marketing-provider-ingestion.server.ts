@@ -141,7 +141,11 @@ export function verifyGoogleLeadWebhookKey(input: {
   return constantTimeTextEqual(input.expectedWebhookKey, input.receivedWebhookKey);
 }
 
-function fieldMap(entries: Array<{ name: string; values?: Array<string | number | boolean>; column_name?: string; string_value?: string }>) {
+type ProviderFieldEntry =
+  | { name: string; values?: Array<string | number | boolean> }
+  | { column_name: string; string_value?: string; column_id?: string | null };
+
+function fieldMap(entries: ProviderFieldEntry[]) {
   const output: MarketingRawRow = {};
   for (const entry of entries) {
     const key = "name" in entry && entry.name ? entry.name : entry.column_name ?? "";
@@ -159,7 +163,9 @@ export function normalizeMetaLeadWebhook(rawBody: string): {
   row: MarketingRawRow;
 } {
   const parsed = MetaWebhookSchema.parse(JSON.parse(rawBody));
-  const changes = parsed.entry.flatMap((entry) => entry.changes.map((change) => ({ entryId: entry.id, ...change.value })));
+  const changes = parsed.entry.flatMap((entry) =>
+    entry.changes.map((change) => ({ entryId: entry.id, ...change.value })),
+  );
   if (changes.length !== 1) throw new Error("marketing_provider_payload_cardinality_invalid");
   const lead = changes[0];
   return {
@@ -200,7 +206,11 @@ export function normalizeGoogleLeadWebhook(rawBody: string): {
   };
 }
 
-async function loadCurrentMapping(tenantId: string, connectorId: string, expectedVersion: number): Promise<MarketingFieldMapping> {
+async function loadCurrentMapping(
+  tenantId: string,
+  connectorId: string,
+  expectedVersion: number,
+): Promise<MarketingFieldMapping> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await (supabaseAdmin as any)
     .from("tenant_marketing_field_mappings")
@@ -215,7 +225,10 @@ async function loadCurrentMapping(tenantId: string, connectorId: string, expecte
   return MarketingFieldMappingSchema.parse(data[0].mapping);
 }
 
-function verifyEnvelope(input: TrustedMarketingProviderEnvelope, channelKey: "META_ADS" | "GOOGLE_ADS") {
+function verifyEnvelope(
+  input: TrustedMarketingProviderEnvelope,
+  channelKey: "META_ADS" | "GOOGLE_ADS",
+) {
   if (input.verificationMaterial.channelKey !== channelKey) return false;
   return channelKey === "META_ADS"
     ? verifyMetaXHubSignature256({
@@ -245,25 +258,40 @@ export async function receiveMarketingProviderPayload(
     .eq("id", input.connectorId)
     .limit(2);
   if (connectorResult.error) throw safeTenantMarketingError(connectorResult.error);
-  if ((connectorResult.data ?? []).length !== 1) throw new Error("tenant_marketing_connector_not_found_or_ambiguous");
+  if ((connectorResult.data ?? []).length !== 1) {
+    throw new Error("tenant_marketing_connector_not_found_or_ambiguous");
+  }
   const connector = ConnectorRowSchema.parse(connectorResult.data[0]);
   const definition = getMarketingChannelDefinition(connector.channel_key);
   if (definition.adapterImplementationState !== "implemented" || connector.adapter_version !== 1) {
     throw new Error("marketing_adapter_contract_missing");
   }
-  if (!connector.active || connector.availability_state !== "automated_ready" || connector.verification_state !== "verified") {
+  if (
+    !connector.active ||
+    connector.availability_state !== "automated_ready" ||
+    connector.verification_state !== "verified"
+  ) {
     throw new Error("marketing_adapter_not_ready");
   }
   if (!connector.credential_reference) throw new Error("marketing_credential_required");
-  if (!verifyEnvelope(input, connector.channel_key)) throw new Error("marketing_provider_verification_failed");
+  if (!verifyEnvelope(input, connector.channel_key)) {
+    throw new Error("marketing_provider_verification_failed");
+  }
 
   const normalized = connector.channel_key === "META_ADS"
     ? normalizeMetaLeadWebhook(input.rawBody)
     : normalizeGoogleLeadWebhook(input.rawBody);
-  if (connector.provider_form_reference && normalized.providerFormReference !== connector.provider_form_reference) {
+  if (
+    connector.provider_form_reference &&
+    normalized.providerFormReference !== connector.provider_form_reference
+  ) {
     throw new Error("marketing_provider_form_reference_mismatch");
   }
-  const mapping = await loadCurrentMapping(connector.tenant_id, connector.id, connector.mapping_version);
+  const mapping = await loadCurrentMapping(
+    connector.tenant_id,
+    connector.id,
+    connector.mapping_version,
+  );
   const prepared = mapMarketingLead({
     row: normalized.row,
     mapping,
@@ -284,14 +312,19 @@ export async function receiveMarketingProviderPayload(
   });
   if (reserveResult.error) throw safeTenantMarketingError(reserveResult.error);
   const reservation = ReservationSchema.parse(reserveResult.data);
-  if (reservation.idempotentReplay && ["lead_created", "lead_linked", "duplicate_detected"].includes(reservation.state)) {
+  if (
+    reservation.idempotentReplay &&
+    ["lead_created", "lead_linked", "duplicate_detected"].includes(reservation.state)
+  ) {
     const { data: rows, error } = await (supabaseAdmin as any)
       .from("tenant_marketing_ingestion_events")
       .select("id, ingestion_state, lead_id, duplicate_candidate_ids, row_version")
       .eq("tenant_id", connector.tenant_id)
       .eq("id", reservation.eventId)
       .limit(2);
-    if (error || (rows ?? []).length !== 1) throw new Error("marketing_ingestion_event_not_found");
+    if (error || (rows ?? []).length !== 1) {
+      throw new Error("marketing_ingestion_event_not_found");
+    }
     return {
       eventId: rows[0].id,
       state: rows[0].ingestion_state,
