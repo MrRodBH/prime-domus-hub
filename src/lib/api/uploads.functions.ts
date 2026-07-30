@@ -12,7 +12,7 @@ import {
 } from "@/lib/storage/upload-contract";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PDF_KINDS = new Set(["pdfs", "book", "planta", "memorial"]);
+const PDF_KINDS = new Set(["tabela_precos", "manual"]);
 const PAGE_VARIANTS = new Set(["sobre", "anuncie"]);
 const TARGET_TTL_MS = 15 * 60 * 1000;
 
@@ -121,7 +121,7 @@ export const createUploadTarget = createServerFn({ method: "POST" })
         } else if (domain === "lancamento-galeria") {
           subPath = `${slug}/galeria/${storageFileName}`;
         } else {
-          const kind = (data.variant ?? "pdfs").toLowerCase();
+          const kind = (data.variant ?? "").toLowerCase();
           if (!PDF_KINDS.has(kind)) {
             throw new Error(`variant inválida para lancamento-pdf: ${kind}`);
           }
