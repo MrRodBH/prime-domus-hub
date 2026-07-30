@@ -141,18 +141,22 @@ export function verifyGoogleLeadWebhookKey(input: {
   return constantTimeTextEqual(input.expectedWebhookKey, input.receivedWebhookKey);
 }
 
-type ProviderFieldEntry =
-  | { name: string; values?: Array<string | number | boolean> }
-  | { column_name: string; string_value?: string; column_id?: string | null };
+type ProviderFieldEntry = {
+  name?: string;
+  values?: Array<string | number | boolean>;
+  column_name?: string;
+  string_value?: string;
+  column_id?: string | null;
+};
 
 function fieldMap(entries: ProviderFieldEntry[]) {
   const output: MarketingRawRow = {};
   for (const entry of entries) {
-    const key = "name" in entry && entry.name ? entry.name : entry.column_name ?? "";
+    const key = entry.name ?? entry.column_name ?? "";
     if (!key || Object.prototype.hasOwnProperty.call(output, key)) {
       throw new Error("marketing_provider_field_duplicate_or_invalid");
     }
-    output[key] = "values" in entry ? entry.values?.[0] ?? null : entry.string_value ?? null;
+    output[key] = entry.values?.[0] ?? entry.string_value ?? null;
   }
   return output;
 }
