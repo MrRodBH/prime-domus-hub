@@ -1,9 +1,7 @@
-// Compatibility barrel during PR-M2 incremental cutover.
-//
-// Non-migrated administrative domains remain provided by the preserved legacy
-// module. Canonical domain overrides below are the active authorities.
-
-export * from "./admin.functions.legacy";
+// PR-M2 consolidated corrective — explicit administrative authority barrel.
+// Historical wildcard export is prohibited. Every active export below is
+// backed by a tenant-scoped canonical boundary or an explicit fail-closed
+// compatibility alias in that canonical module.
 
 export {
   adminListarImoveis,
@@ -30,10 +28,32 @@ export {
   adminCriarUsuarioComLogin,
   adminAtualizarPapeis,
   adminAlterarSenhaUsuario,
+  meusModulos,
+  listarModulos,
+  listarPerfis,
+  obterPerfilComPermissoes,
+  salvarPerfil,
+  excluirPerfil,
+  togglePermissao,
+  atualizarEscopo,
+  setUserPerfis,
+  setUserPerfisCustom,
+  listarPerfisPorUsuario,
+  listarEquipes,
+  obterEquipe,
+  salvarEquipe,
+  excluirEquipe,
+  listarAuditoria,
 } from "./tenant-access-control.functions";
 
-// PR-M2 — CRM operational workflow cutover. Stable legacy export names are
-// narrow mappers over the canonical Tenant CRM authority and primitives.
+export {
+  adminListarCidades,
+  adminSalvarCidade,
+  adminListarBairros,
+  adminSalvarBairro,
+  adminExcluirBairro,
+} from "./tenant-catalog-admin.functions";
+
 export {
   adminListarLeads,
   adminListarLeadAssignees,
