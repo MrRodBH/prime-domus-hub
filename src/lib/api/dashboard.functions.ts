@@ -1,79 +1,54 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
+import {
+  resolveEffectiveTenantPermission,
+  trustedTenantAccessContext,
+  type RbacScope,
+} from "@/lib/api/tenant-access-control-authority.server";
 import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
+import {
+  DASHBOARD_TIMEZONE,
+  listDashboardMetricDefinitions,
+} from "@/lib/dashboard/dashboard-metric-registry";
 
-const filtroSchema = z
-  .object({
-    inicio: z.string().datetime(),
-    fim: z.string().datetime(),
-    corretor_id: z.string().uuid().nullable().optional(),
-    team_id: z.string().uuid().nullable().optional(),
-    origem: z.string().trim().min(1).max(200).nullable().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (new Date(data.fim).getTime() < new Date(data.inicio).getTime()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["fim"],
-        message: "O fim do período deve ser posterior ao início.",
-      });
-    }
-  });
+const filterSchema = z.object({
+  inicio: z.string().datetime(),
+  fim: z.string().datetime(),
+  timezone: z.literal(DASHBOARD_TIMEZONE).optional().default(DASHBOARD_TIMEZONE),
+  corretor_id: z.string().uuid().nullable().optional(),
+  team_id: z.string().uuid().nullable().optional(),
+  origem: z.string().trim().min(1).max(200).nullable().optional(),
+}).strict().superRefine((data, context) => {
+  if (new Date(data.fim).getTime() < new Date(data.inicio).getTime()) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["fim"], message: "O fim do período deve ser posterior ao início." });
+  }
+});
 
-const leadsFiltradosSchema = z
-  .object({
-    inicio: z.string().datetime().optional(),
-    fim: z.string().datetime().optional(),
-    status: z.array(z.string().min(1).max(80)).max(20).optional(),
-    alerta: z
-      .enum([
-        "sem_atendimento",
-        "sem_followup",
-        "visitas_sem_feedback",
-        "propostas_paradas",
-      ])
-      .optional(),
-    corretor_id: z.string().uuid().nullable().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (
-      data.inicio &&
-      data.fim &&
-      new Date(data.fim).getTime() < new Date(data.inicio).getTime()
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["fim"],
-        message: "O fim do período deve ser posterior ao início.",
-      });
-    }
-  });
+const drillDownSchema = z.object({
+  inicio: z.string().datetime().optional(),
+  fim: z.string().datetime().optional(),
+  timezone: z.literal(DASHBOARD_TIMEZONE).optional().default(DASHBOARD_TIMEZONE),
+  status: z.array(z.enum(["novo", "conversando", "visita", "proposta", "ganho", "perdido", "descartado"])).max(20).optional(),
+  alerta: z.enum(["sem_atendimento", "sem_followup", "visitas_sem_feedback", "propostas_paradas"]).optional(),
+  corretor_id: z.string().uuid().nullable().optional(),
+}).strict().superRefine((data, context) => {
+  if (data.inicio && data.fim && new Date(data.fim).getTime() < new Date(data.inicio).getTime()) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["fim"], message: "O fim do período deve ser posterior ao início." });
+  }
+});
 
-const STATUS_FUNIL = [
-  "novo",
-  "conversando",
-  "visita",
-  "proposta",
-  "ganho",
-  "perdido",
-] as const;
-type StatusFunil = (typeof STATUS_FUNIL)[number];
+const STATUS_ORDER = ["novo", "conversando", "visita", "proposta", "ganho"] as const;
+type ActiveStatus = (typeof STATUS_ORDER)[number];
+const STATUS_INDEX = new Map<string, number>(STATUS_ORDER.map((status, index) => [status, index]));
 
-const ETAPA_INDEX: Record<StatusFunil, number> = {
-  novo: 0,
-  conversando: 1,
-  visita: 2,
-  proposta: 3,
-  ganho: 4,
-  perdido: 5,
-};
-
-type Lead = {
+type DashboardScope = "own" | "team" | "global";
+type LeadRow = {
   id: string;
   status: string;
   origem: string | null;
   corretor_id: string | null;
+  assigned_to?: string | null;
   valor_estimado: number | null;
   created_at: string;
   updated_at: string;
@@ -84,650 +59,413 @@ type Lead = {
 
 type DashboardAccess = {
   tenantId: string;
-  isPrivileged: boolean;
-  brokerId: string | null;
+  scope: DashboardScope;
+  actorBrokerId: string | null;
+  allowedBrokerIds: string[] | null;
+  actorKind: "owner" | "super_admin" | "delegated";
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveDashboardAccess(context: any): Promise<DashboardAccess> {
-  const tenantId = requireTenantScopedAuthority(context.tenant, "Dashboard");
-
-  if (context.tenant.isSuperAdmin) {
-    return { tenantId, isPrivileged: true, brokerId: null };
-  }
-
-  const [admin, manager, secretary] = await Promise.all([
-    context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    }),
-    context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "gerente",
-    }),
-    context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "secretaria",
-    }),
-  ]);
-
-  for (const result of [admin, manager, secretary]) {
-    if (result.error) throw new Error("Falha ao validar autorização do dashboard.");
-  }
-
-  const isPrivileged =
-    admin.data === true || manager.data === true || secretary.data === true;
-  if (isPrivileged) return { tenantId, isPrivileged: true, brokerId: null };
-
-  const { data: brokers, error } = await context.supabase
-    .from("corretores")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("user_id", context.userId)
-    .limit(2);
-  if (error) throw new Error(error.message);
-  if ((brokers ?? []).length !== 1) {
-    throw new Error("Dashboard broker authority is unresolved or ambiguous.");
-  }
-
-  return {
-    tenantId,
-    isPrivileged: false,
-    brokerId: (brokers as Array<{ id: string }>)[0].id,
-  };
+function normalizeScope(scope: RbacScope | null): DashboardScope {
+  if (scope === "global") return "global";
+  if (scope === "equipe") return "team";
+  if (scope === "proprio") return "own";
+  throw new Error("dashboard_permission_scope_missing");
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function requireTenantBroker(context: any, tenantId: string, brokerId: string) {
-  const { data, error } = await context.supabase
+async function exactlyOneBroker(admin: any, tenantId: string, userId: string): Promise<string | null> {
+  const { data, error } = await admin
+    .from("corretores")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", userId)
+    .eq("ativo", true)
+    .limit(2);
+  if (error) throw new Error("Falha ao resolver o corretor do dashboard.");
+  if ((data ?? []).length === 0) return null;
+  if ((data ?? []).length !== 1) throw new Error("Dashboard broker authority is ambiguous.");
+  return String(data[0].id);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveTeamBrokerIds(admin: any, tenantId: string, actorUserId: string): Promise<string[]> {
+  const { data: memberships, error: membershipError } = await admin
+    .from("team_members")
+    .select("team_id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", actorUserId);
+  if (membershipError) throw new Error("Falha ao resolver equipes do dashboard.");
+  const teamIds = [...new Set((memberships ?? []).map((row: { team_id: string }) => row.team_id))];
+  if (teamIds.length === 0) return [];
+
+  const { data: memberRows, error: memberError } = await admin
+    .from("team_members")
+    .select("user_id")
+    .eq("tenant_id", tenantId)
+    .in("team_id", teamIds);
+  if (memberError) throw new Error("Falha ao resolver membros das equipes.");
+  const userIds = [...new Set((memberRows ?? []).map((row: { user_id: string }) => row.user_id))];
+  if (userIds.length === 0) return [];
+
+  const { data: brokers, error: brokerError } = await admin
+    .from("corretores")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("ativo", true)
+    .in("user_id", userIds);
+  if (brokerError) throw new Error("Falha ao resolver corretores das equipes.");
+  return [...new Set((brokers ?? []).map((row: { id: string }) => row.id))];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveDashboardAccess(context: any): Promise<DashboardAccess> {
+  const tenantId = requireTenantScopedAuthority(context.tenant, "Dashboard Functional Authority");
+  const decision = await resolveEffectiveTenantPermission(
+    trustedTenantAccessContext(context),
+    "crm",
+    "visualizar",
+  );
+  if (!decision.allowed) throw new Error("dashboard_permission_denied");
+  const scope = normalizeScope(decision.scope);
+  const actorKind = decision.source === "super_admin_impersonation"
+    ? "super_admin"
+    : decision.source === "tenant_owner"
+      ? "owner"
+      : "delegated";
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const admin = supabaseAdmin as any;
+  if (scope === "global") {
+    return { tenantId, scope, actorBrokerId: null, allowedBrokerIds: null, actorKind };
+  }
+  const actorBrokerId = await exactlyOneBroker(admin, tenantId, context.userId);
+  if (!actorBrokerId) throw new Error("dashboard_broker_binding_required");
+  if (scope === "own") {
+    return { tenantId, scope, actorBrokerId, allowedBrokerIds: [actorBrokerId], actorKind };
+  }
+  const teamBrokerIds = await resolveTeamBrokerIds(admin, tenantId, context.userId);
+  const allowedBrokerIds = [...new Set([actorBrokerId, ...teamBrokerIds])];
+  return { tenantId, scope, actorBrokerId, allowedBrokerIds, actorKind };
+}
+
+function assertBrokerFilter(access: DashboardAccess, requested: string | null | undefined): string | null {
+  if (!requested) return access.scope === "own" ? access.actorBrokerId : null;
+  if (access.scope === "global") return requested;
+  if (!access.allowedBrokerIds?.includes(requested)) throw new Error("dashboard_broker_filter_denied");
+  return requested;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function assertTenantBroker(admin: any, tenantId: string, brokerId: string): Promise<string> {
+  const { data, error } = await admin
     .from("corretores")
     .select("id")
     .eq("tenant_id", tenantId)
     .eq("id", brokerId)
+    .eq("ativo", true)
     .limit(2);
-  if (error) throw new Error(error.message);
-  if ((data ?? []).length !== 1) {
-    throw new Error("Corretor não encontrado no tenant atual.");
-  }
+  if (error) throw new Error("Falha ao validar corretor.");
+  if ((data ?? []).length !== 1) throw new Error("Corretor inexistente ou ambíguo no tenant.");
   return brokerId;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveTeamBrokerIds(
-  context: any,
-  tenantId: string,
-  teamId: string,
-): Promise<string[]> {
-  const { data: teams, error: teamError } = await context.supabase
+async function assertTeamFilter(admin: any, access: DashboardAccess, teamId: string | null | undefined): Promise<string[] | null> {
+  if (!teamId) return access.scope === "team" ? access.allowedBrokerIds : null;
+  const { data: teamRows, error: teamError } = await admin
     .from("teams")
     .select("id")
-    .eq("tenant_id", tenantId)
+    .eq("tenant_id", access.tenantId)
     .eq("id", teamId)
+    .eq("ativo", true)
     .limit(2);
-  if (teamError) throw new Error(teamError.message);
-  if ((teams ?? []).length !== 1) {
-    throw new Error("Equipe não encontrada no tenant atual.");
-  }
-
-  const { data: members, error: memberError } = await context.supabase
+  if (teamError) throw new Error("Falha ao validar equipe.");
+  if ((teamRows ?? []).length !== 1) throw new Error("Equipe inexistente ou ambígua no tenant.");
+  if (access.scope === "own") throw new Error("dashboard_team_filter_denied");
+  const { data: memberRows, error: memberError } = await admin
     .from("team_members")
     .select("user_id")
-    .eq("tenant_id", tenantId)
+    .eq("tenant_id", access.tenantId)
     .eq("team_id", teamId);
-  if (memberError) throw new Error(memberError.message);
-
-  const memberRows = (members ?? []) as Array<{ user_id: string }>;
-  const userIds: string[] = Array.from(
-    new Set(memberRows.map((member) => member.user_id).filter(Boolean)),
-  );
+  if (memberError) throw new Error("Falha ao carregar membros da equipe.");
+  const userIds = [...new Set((memberRows ?? []).map((row: { user_id: string }) => row.user_id))];
   if (userIds.length === 0) return [];
-
-  const { data: brokers, error: brokerError } = await context.supabase
+  const { data: brokerRows, error: brokerError } = await admin
     .from("corretores")
     .select("id")
-    .eq("tenant_id", tenantId)
+    .eq("tenant_id", access.tenantId)
+    .eq("ativo", true)
     .in("user_id", userIds);
-  if (brokerError) throw new Error(brokerError.message);
-  const brokerRows = (brokers ?? []) as Array<{ id: string }>;
-  return Array.from(new Set(brokerRows.map((broker) => broker.id)));
+  if (brokerError) throw new Error("Falha ao carregar corretores da equipe.");
+  const ids = [...new Set((brokerRows ?? []).map((row: { id: string }) => row.id))];
+  if (access.scope === "team" && ids.some((id) => !access.allowedBrokerIds?.includes(id))) {
+    throw new Error("dashboard_team_filter_denied");
+  }
+  return ids;
 }
 
-function diffPercent(current: number, previous: number): number {
+function inRange(value: string, start: Date, end: Date) {
+  const timestamp = new Date(value).getTime();
+  return timestamp >= start.getTime() && timestamp <= end.getTime();
+}
+
+function percent(current: number, previous: number) {
   if (previous === 0) return current === 0 ? 0 : 100;
   return Math.round(((current - previous) / previous) * 1000) / 10;
 }
 
-function inRange(date: string, start: Date, end: Date) {
-  const timestamp = new Date(date).getTime();
-  return timestamp >= start.getTime() && timestamp <= end.getTime();
+function countStatus(rows: LeadRow[], status: string) {
+  return rows.filter((row) => row.status === status).length;
+}
+
+function countAtLeast(rows: LeadRow[], status: ActiveStatus) {
+  const target = STATUS_INDEX.get(status) ?? 0;
+  return rows.filter((row) => {
+    const current = STATUS_INDEX.get(row.status);
+    return current !== undefined && current >= target;
+  }).length;
+}
+
+function applyBrokerScope(query: any, access: DashboardAccess, selectedBrokerId: string | null, teamBrokerIds: string[] | null) {
+  if (selectedBrokerId) return query.eq("corretor_id", selectedBrokerId);
+  const allowed = teamBrokerIds ?? access.allowedBrokerIds;
+  if (allowed === null) return query;
+  if (allowed.length === 0) return query.eq("corretor_id", "00000000-0000-0000-0000-000000000000");
+  return query.in("corretor_id", allowed);
 }
 
 export const dashboardStats = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((data: unknown) => filtroSchema.parse(data))
+  .inputValidator((input: unknown) => filterSchema.parse(input))
   .handler(async ({ data, context }) => {
     const access = await resolveDashboardAccess(context);
-    const { tenantId, isPrivileged } = access;
-    const { supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as any;
+    let selectedBrokerId = assertBrokerFilter(access, data.corretor_id);
+    if (selectedBrokerId) selectedBrokerId = await assertTenantBroker(admin, access.tenantId, selectedBrokerId);
+    const teamBrokerIds = await assertTeamFilter(admin, access, data.team_id);
 
-    if (!isPrivileged && data.team_id) {
-      throw new Error("Filtro de equipe não autorizado.");
-    }
-    if (
-      !isPrivileged &&
-      data.corretor_id &&
-      data.corretor_id !== access.brokerId
-    ) {
-      throw new Error("Filtro de corretor não autorizado.");
-    }
+    const start = new Date(data.inicio);
+    const end = new Date(data.fim);
+    const duration = Math.max(1, end.getTime() - start.getTime());
+    const previousStart = new Date(start.getTime() - duration - 1);
+    const previousEnd = new Date(start.getTime() - 1);
 
-    const selectedBrokerId = isPrivileged && data.corretor_id
-      ? await requireTenantBroker(context, tenantId, data.corretor_id)
-      : access.brokerId;
-    const teamBrokerIds = isPrivileged && data.team_id
-      ? await resolveTeamBrokerIds(context, tenantId, data.team_id)
-      : null;
-
-    const inicio = new Date(data.inicio);
-    const fim = new Date(data.fim);
-    const duracao = fim.getTime() - inicio.getTime();
-    const inicioAnterior = new Date(inicio.getTime() - duracao);
-    const fimAnterior = new Date(inicio.getTime() - 1);
-
-    let query = supabase
+    let leadQuery = admin
       .from("leads")
-      .select(
-        "id, status, origem, corretor_id, valor_estimado, created_at, updated_at, nome, email, telefone",
-      )
-      .eq("tenant_id", tenantId)
-      .gte("created_at", inicioAnterior.toISOString())
-      .lte("created_at", fim.toISOString());
+      .select("id, status, origem, corretor_id, assigned_to, valor_estimado, created_at, updated_at, nome, email, telefone")
+      .eq("tenant_id", access.tenantId)
+      .gte("created_at", previousStart.toISOString())
+      .lte("created_at", end.toISOString());
+    leadQuery = applyBrokerScope(leadQuery, access, selectedBrokerId, teamBrokerIds);
+    if (data.origem) leadQuery = leadQuery.eq("origem", data.origem);
+    const { data: leadRows, error: leadError } = await leadQuery;
+    if (leadError) throw new Error("Falha ao carregar dados completos do dashboard.");
+    const allLeads = (leadRows ?? []) as LeadRow[];
+    const current = allLeads.filter((row) => inRange(row.created_at, start, end));
+    const previous = allLeads.filter((row) => inRange(row.created_at, previousStart, previousEnd));
 
-    if (selectedBrokerId) query = query.eq("corretor_id", selectedBrokerId);
-    if (teamBrokerIds) {
-      query = teamBrokerIds.length === 0
-        ? query.eq("corretor_id", "00000000-0000-0000-0000-000000000000")
-        : query.in("corretor_id", teamBrokerIds);
-    }
-    if (data.origem) query = query.eq("origem", data.origem);
+    const leadCount = current.length;
+    const previousLeadCount = previous.length;
+    const visits = countAtLeast(current, "visita");
+    const proposals = countAtLeast(current, "proposta");
+    const won = countStatus(current, "ganho");
+    const lost = countStatus(current, "perdido");
+    const discarded = countStatus(current, "descartado");
+    const wonValue = current
+      .filter((row) => row.status === "ganho")
+      .reduce((sum, row) => sum + (Number(row.valor_estimado) || 0), 0);
 
-    const { data: leadsRaw, error } = await query;
-    if (error) throw new Error(error.message);
-    const leads = (leadsRaw ?? []) as Lead[];
-    const atuais = leads.filter((lead) => inRange(lead.created_at, inicio, fim));
-    const anteriores = leads.filter((lead) =>
-      inRange(lead.created_at, inicioAnterior, fimAnterior),
-    );
-
-    const countByStatus = (items: Lead[], status: StatusFunil) =>
-      items.filter((lead) => lead.status === status).length;
-    const countAtLeast = (items: Lead[], status: StatusFunil) =>
-      items.filter((lead) => {
-        const index = ETAPA_INDEX[lead.status as StatusFunil] ?? -1;
-        const target = ETAPA_INDEX[status];
-        return index >= target && index !== ETAPA_INDEX.perdido;
-      }).length;
-
-    const leadsTotal = atuais.length;
-    const leadsAnterior = anteriores.length;
-    const visitas = countAtLeast(atuais, "visita");
-    const propostas = countAtLeast(atuais, "proposta");
-    const vendas = countByStatus(atuais, "ganho");
-    const vgv = atuais
-      .filter((lead) => lead.status === "ganho")
-      .reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0);
-
-    const resumo = {
-      leads: {
-        atual: leadsTotal,
-        anterior: leadsAnterior,
-        deltaPct: diffPercent(leadsTotal, leadsAnterior),
-      },
-      visitas: {
-        atual: visitas,
-        conversao: leadsTotal > 0
-          ? Math.round((visitas / leadsTotal) * 1000) / 10
-          : 0,
-      },
-      propostas: {
-        atual: propostas,
-        conversao: visitas > 0
-          ? Math.round((propostas / visitas) * 1000) / 10
-          : 0,
-      },
-      vendas: { atual: vendas, vgv },
+    const summary = {
+      leads: { atual: leadCount, anterior: previousLeadCount, deltaPct: percent(leadCount, previousLeadCount) },
+      visitas: { atual: visits, conversao: leadCount ? Math.round((visits / leadCount) * 1000) / 10 : 0 },
+      propostas: { atual: proposals, conversao: visits ? Math.round((proposals / visits) * 1000) / 10 : 0 },
+      vendas: { atual: won, perdidas: lost, descartadas: discarded, vgv: wonValue },
     };
 
-    const captado = atuais.length;
-    const contato = atuais.filter((lead) => {
-      const index = ETAPA_INDEX[lead.status as StatusFunil] ?? -1;
-      return index >= 1 && lead.status !== "perdido";
-    }).length;
-    const qualificado = contato;
-    const visitaCount = countAtLeast(atuais, "visita");
-    const propostaCount = countAtLeast(atuais, "proposta");
-    const vendaCount = countByStatus(atuais, "ganho");
-    const descartadoCount = countByStatus(atuais, "perdido");
-
-    const funil = [
-      { etapa: "Novo", quantidade: captado, conversao: 100, perda: 0 },
-      {
-        etapa: "Contato Realizado",
-        quantidade: contato,
-        conversao: captado ? Math.round((contato / captado) * 1000) / 10 : 0,
-        perda: captado - contato,
-      },
-      {
-        etapa: "Qualificado",
-        quantidade: qualificado,
-        conversao: contato
-          ? Math.round((qualificado / contato) * 1000) / 10
-          : 0,
-        perda: contato - qualificado,
-      },
-      {
-        etapa: "Visita Agendada",
-        quantidade: visitaCount,
-        conversao: qualificado
-          ? Math.round((visitaCount / qualificado) * 1000) / 10
-          : 0,
-        perda: qualificado - visitaCount,
-      },
-      {
-        etapa: "Proposta",
-        quantidade: propostaCount,
-        conversao: visitaCount
-          ? Math.round((propostaCount / visitaCount) * 1000) / 10
-          : 0,
-        perda: visitaCount - propostaCount,
-      },
-      {
-        etapa: "Venda",
-        quantidade: vendaCount,
-        conversao: propostaCount
-          ? Math.round((vendaCount / propostaCount) * 1000) / 10
-          : 0,
-        perda: propostaCount - vendaCount,
-      },
-      {
-        etapa: "Descartados",
-        quantidade: descartadoCount,
-        conversao: 0,
-        perda: descartadoCount,
-      },
+    const contacted = countAtLeast(current, "conversando");
+    const funnel = [
+      { etapa: "Novo", quantidade: leadCount, conversao: 100, perda: 0 },
+      { etapa: "Contato Realizado", quantidade: contacted, conversao: leadCount ? Math.round((contacted / leadCount) * 1000) / 10 : 0, perda: Math.max(0, leadCount - contacted) },
+      { etapa: "Qualificado", quantidade: contacted, conversao: contacted ? 100 : 0, perda: 0 },
+      { etapa: "Visita Agendada", quantidade: visits, conversao: contacted ? Math.round((visits / contacted) * 1000) / 10 : 0, perda: Math.max(0, contacted - visits) },
+      { etapa: "Proposta", quantidade: proposals, conversao: visits ? Math.round((proposals / visits) * 1000) / 10 : 0, perda: Math.max(0, visits - proposals) },
+      { etapa: "Venda", quantidade: won, conversao: proposals ? Math.round((won / proposals) * 1000) / 10 : 0, perda: Math.max(0, proposals - won) },
+      { etapa: "Perdidos", quantidade: lost, conversao: 0, perda: lost },
+      { etapa: "Descartados", quantidade: discarded, conversao: 0, perda: discarded },
     ];
 
-    let activeQuery = supabase
+    let activeQuery = admin
       .from("leads")
       .select("id, status, corretor_id, created_at, updated_at, nome")
-      .eq("tenant_id", tenantId)
-      .not("status", "in", '("ganho","perdido")');
-    if (selectedBrokerId) activeQuery = activeQuery.eq("corretor_id", selectedBrokerId);
-    if (teamBrokerIds) {
-      activeQuery = teamBrokerIds.length === 0
-        ? activeQuery.eq("corretor_id", "00000000-0000-0000-0000-000000000000")
-        : activeQuery.in("corretor_id", teamBrokerIds);
-    }
+      .eq("tenant_id", access.tenantId)
+      .not("status", "in", '("ganho","perdido","descartado")');
+    activeQuery = applyBrokerScope(activeQuery, access, selectedBrokerId, teamBrokerIds);
     const { data: activeRows, error: activeError } = await activeQuery;
-    if (activeError) throw new Error(activeError.message);
-    const ativos = (activeRows ?? []) as Lead[];
-
-    const agora = Date.now();
-    const HORAS_48 = 48 * 60 * 60 * 1000;
-    const DIAS_7 = 7 * 24 * 60 * 60 * 1000;
-    const semAtendimento = ativos.filter(
-      (lead) =>
-        lead.status === "novo" &&
-        agora - new Date(lead.created_at).getTime() > HORAS_48,
-    ).length;
-    const semFollowup = ativos.filter(
-      (lead) =>
-        lead.status === "conversando" &&
-        agora - new Date(lead.updated_at).getTime() > DIAS_7,
-    ).length;
-    const visitasSemFeedback = ativos.filter(
-      (lead) =>
-        lead.status === "visita" &&
-        agora - new Date(lead.updated_at).getTime() > DIAS_7,
-    ).length;
-    const propostasParadas = ativos.filter(
-      (lead) =>
-        lead.status === "proposta" &&
-        agora - new Date(lead.updated_at).getTime() > DIAS_7,
-    ).length;
-    const alertas = {
-      semAtendimento,
-      semFollowup,
-      visitasSemFeedback,
-      propostasParadas,
+    if (activeError) throw new Error("Falha ao carregar alertas do dashboard.");
+    const active = (activeRows ?? []) as LeadRow[];
+    const now = Date.now();
+    const hours48 = 48 * 60 * 60 * 1000;
+    const days7 = 7 * 24 * 60 * 60 * 1000;
+    const alerts = {
+      semAtendimento: active.filter((row) => row.status === "novo" && now - new Date(row.created_at).getTime() > hours48).length,
+      semFollowup: active.filter((row) => row.status === "conversando" && now - new Date(row.updated_at).getTime() > days7).length,
+      visitasSemFeedback: active.filter((row) => row.status === "visita" && now - new Date(row.updated_at).getTime() > days7).length,
+      propostasParadas: active.filter((row) => row.status === "proposta" && now - new Date(row.updated_at).getTime() > days7).length,
     };
 
-    const dias = Math.max(1, Math.ceil(duracao / (24 * 60 * 60 * 1000)));
-    const serie: Array<{
-      data: string;
-      leads: number;
-      visitas: number;
-      propostas: number;
-      vendas: number;
-      vgv: number;
-    }> = [];
-    for (let index = 0; index < dias; index += 1) {
-      const date = new Date(inicio.getTime() + index * 24 * 60 * 60 * 1000);
-      serie.push({
-        data: date.toISOString().slice(0, 10),
-        leads: 0,
-        visitas: 0,
-        propostas: 0,
-        vendas: 0,
-        vgv: 0,
-      });
-    }
-    const indexByDay = new Map(serie.map((item, index) => [item.data, index]));
-    for (const lead of atuais) {
-      const index = indexByDay.get(lead.created_at.slice(0, 10));
+    const dayCount = Math.max(1, Math.ceil((end.getTime() - start.getTime() + 1) / 86_400_000));
+    const series = Array.from({ length: dayCount }, (_, index) => {
+      const date = new Date(start.getTime() + index * 86_400_000).toISOString().slice(0, 10);
+      return { data: date, leads: 0, visitas: 0, propostas: 0, vendas: 0, vgv: 0 };
+    });
+    const dayIndex = new Map(series.map((row, index) => [row.data, index]));
+    for (const lead of current) {
+      const index = dayIndex.get(lead.created_at.slice(0, 10));
       if (index === undefined) continue;
-      serie[index].leads += 1;
-      const stageIndex = ETAPA_INDEX[lead.status as StatusFunil] ?? -1;
-      if (stageIndex >= 2 && stageIndex !== ETAPA_INDEX.perdido) {
-        serie[index].visitas += 1;
-      }
-      if (stageIndex >= 3 && stageIndex !== ETAPA_INDEX.perdido) {
-        serie[index].propostas += 1;
-      }
+      series[index].leads += 1;
+      if ((STATUS_INDEX.get(lead.status) ?? -1) >= 2) series[index].visitas += 1;
+      if ((STATUS_INDEX.get(lead.status) ?? -1) >= 3) series[index].propostas += 1;
       if (lead.status === "ganho") {
-        serie[index].vendas += 1;
-        serie[index].vgv += Number(lead.valor_estimado) || 0;
+        series[index].vendas += 1;
+        series[index].vgv += Number(lead.valor_estimado) || 0;
       }
     }
 
-    const origensMap = new Map<string, { total: number; vendas: number }>();
-    for (const lead of atuais) {
-      const key = (lead.origem || "Outros").trim() || "Outros";
-      const current = origensMap.get(key) ?? { total: 0, vendas: 0 };
-      current.total += 1;
-      if (lead.status === "ganho") current.vendas += 1;
-      origensMap.set(key, current);
+    const sourceMap = new Map<string, { total: number; won: number }>();
+    for (const lead of current) {
+      const source = lead.origem?.trim() || "Outros";
+      const value = sourceMap.get(source) ?? { total: 0, won: 0 };
+      value.total += 1;
+      if (lead.status === "ganho") value.won += 1;
+      sourceMap.set(source, value);
     }
-    const origens = Array.from(origensMap.entries())
-      .map(([nome, values]) => ({
-        nome,
-        quantidade: values.total,
-        percentual: leadsTotal
-          ? Math.round((values.total / leadsTotal) * 1000) / 10
-          : 0,
-        conversao: values.total
-          ? Math.round((values.vendas / values.total) * 1000) / 10
-          : 0,
-      }))
-      .sort((left, right) => right.quantidade - left.quantidade);
+    const sources = [...sourceMap.entries()].map(([nome, value]) => ({
+      nome,
+      quantidade: value.total,
+      percentual: leadCount ? Math.round((value.total / leadCount) * 1000) / 10 : 0,
+      conversao: value.total ? Math.round((value.won / value.total) * 1000) / 10 : 0,
+    })).sort((left, right) => right.quantidade - left.quantidade);
 
-    const metas = {
-      leadContato: 80,
-      contatoVisita: 50,
-      visitaProposta: 50,
-      propostaVenda: 40,
-      leadVenda: 5,
+    const rates = [
+      { label: "Lead → Contato", atual: leadCount ? Math.round((contacted / leadCount) * 1000) / 10 : 0, meta: 80 },
+      { label: "Contato → Visita", atual: contacted ? Math.round((visits / contacted) * 1000) / 10 : 0, meta: 50 },
+      { label: "Visita → Proposta", atual: visits ? Math.round((proposals / visits) * 1000) / 10 : 0, meta: 50 },
+      { label: "Proposta → Venda", atual: proposals ? Math.round((won / proposals) * 1000) / 10 : 0, meta: 40 },
+      { label: "Lead → Venda", atual: leadCount ? Math.round((won / leadCount) * 1000) / 10 : 0, meta: 5 },
+    ];
+
+    const { data: brokerRows, error: brokerError } = access.scope === "global"
+      ? await admin.from("corretores").select("id, user_id, nome, sobrenome").eq("tenant_id", access.tenantId).eq("ativo", true)
+      : { data: [], error: null };
+    if (brokerError) throw new Error("Falha ao carregar ranking.");
+    const ranking = ((brokerRows ?? []) as Array<{ id: string; user_id: string | null; nome: string; sobrenome: string | null }>).map((broker) => {
+      const own = current.filter((lead) => lead.corretor_id === broker.id);
+      const ownWon = countStatus(own, "ganho");
+      return {
+        corretor_id: broker.id,
+        user_id: broker.user_id,
+        nome: [broker.nome, broker.sobrenome].filter(Boolean).join(" "),
+        leads: own.length,
+        visitas: countAtLeast(own, "visita"),
+        propostas: countAtLeast(own, "proposta"),
+        vendas: ownWon,
+        conversao: own.length ? Math.round((ownWon / own.length) * 1000) / 10 : 0,
+        vgv: own.filter((lead) => lead.status === "ganho").reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0),
+      };
+    }).filter((row) => row.leads > 0 || row.vendas > 0).sort((left, right) => right.vgv - left.vgv).slice(0, 10);
+
+    const ownRows = access.actorBrokerId ? current.filter((row) => row.corretor_id === access.actorBrokerId) : [];
+    const performance = access.actorBrokerId ? {
+      leads: ownRows.length,
+      visitas: countAtLeast(ownRows, "visita"),
+      propostas: countAtLeast(ownRows, "proposta"),
+      vendas: countStatus(ownRows, "ganho"),
+      vgv: ownRows.filter((row) => row.status === "ganho").reduce((sum, row) => sum + (Number(row.valor_estimado) || 0), 0),
+    } : null;
+
+    const [propertyResult, marketingResult, portalResult, alertResult] = await Promise.all([
+      admin.from("imoveis").select("id, status, publicado_em").eq("tenant_id", access.tenantId),
+      admin.from("tenant_marketing_ingestion_events").select("id", { count: "exact", head: true }).eq("tenant_id", access.tenantId).gte("received_at", start.toISOString()).lte("received_at", end.toISOString()),
+      admin.from("tenant_portal_jobs").select("id", { count: "exact", head: true }).eq("tenant_id", access.tenantId).eq("current_state", "published").gte("updated_at", start.toISOString()).lte("updated_at", end.toISOString()),
+      admin.from("crm_alerts").select("alert_key, state").eq("tenant_id", access.tenantId).eq("state", "open"),
+    ]);
+    if (propertyResult.error || marketingResult.error || portalResult.error || alertResult.error) {
+      throw new Error("Dashboard partial-data error: uma fonte obrigatória falhou.");
+    }
+    const properties = (propertyResult.data ?? []) as Array<{ id: string; status: string; publicado_em: string | null }>;
+    const openAlertCounts = new Map<string, number>();
+    for (const row of (alertResult.data ?? []) as Array<{ alert_key: string }>) {
+      openAlertCounts.set(row.alert_key, (openAlertCounts.get(row.alert_key) ?? 0) + 1);
+    }
+    const operationalMetrics = {
+      activeProperties: properties.filter((row) => row.status === "ativo" || row.status === "reservado").length,
+      publishedProperties: properties.filter((row) => row.status === "ativo" && row.publicado_em).length,
+      marketingIngestionEvents: marketingResult.count ?? 0,
+      portalPublications: portalResult.count ?? 0,
+      crmAlerts: Object.fromEntries(openAlertCounts),
     };
-    const taxas = [
-      {
-        label: "Lead → Contato",
-        atual: captado ? Math.round((contato / captado) * 1000) / 10 : 0,
-        meta: metas.leadContato,
-      },
-      {
-        label: "Contato → Visita",
-        atual: contato ? Math.round((visitaCount / contato) * 1000) / 10 : 0,
-        meta: metas.contatoVisita,
-      },
-      {
-        label: "Visita → Proposta",
-        atual: visitaCount
-          ? Math.round((propostaCount / visitaCount) * 1000) / 10
-          : 0,
-        meta: metas.visitaProposta,
-      },
-      {
-        label: "Proposta → Venda",
-        atual: propostaCount
-          ? Math.round((vendaCount / propostaCount) * 1000) / 10
-          : 0,
-        meta: metas.propostaVenda,
-      },
-      {
-        label: "Lead → Venda",
-        atual: captado ? Math.round((vendaCount / captado) * 1000) / 10 : 0,
-        meta: metas.leadVenda,
-      },
-    ];
 
-    const desempenho = access.brokerId
-      ? (() => {
-          const own = atuais.filter((lead) => lead.corretor_id === access.brokerId);
-          return {
-            leads: own.length,
-            visitas: countAtLeast(own, "visita"),
-            propostas: countAtLeast(own, "proposta"),
-            vendas: countByStatus(own, "ganho"),
-            vgv: own
-              .filter((lead) => lead.status === "ganho")
-              .reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0),
-          };
-        })()
-      : null;
-
-    let ranking: Array<{
-      corretor_id: string;
-      user_id: string | null;
-      nome: string;
-      leads: number;
-      visitas: number;
-      propostas: number;
-      vendas: number;
-      conversao: number;
-      vgv: number;
-    }> = [];
-    if (isPrivileged) {
-      const { data: brokerRows, error: brokerError } = await supabase
-        .from("corretores")
-        .select("id, user_id, nome, sobrenome")
-        .eq("tenant_id", tenantId);
-      if (brokerError) throw new Error(brokerError.message);
-      ranking = (brokerRows ?? [])
-        .map((broker) => {
-          const own = atuais.filter((lead) => lead.corretor_id === broker.id);
-          const won = countByStatus(own, "ganho");
-          return {
-            corretor_id: broker.id,
-            user_id: broker.user_id,
-            nome: [broker.nome, broker.sobrenome].filter(Boolean).join(" "),
-            leads: own.length,
-            visitas: countAtLeast(own, "visita"),
-            propostas: countAtLeast(own, "proposta"),
-            vendas: won,
-            conversao: own.length
-              ? Math.round((won / own.length) * 1000) / 10
-              : 0,
-            vgv: own
-              .filter((lead) => lead.status === "ganho")
-              .reduce((sum, lead) => sum + (Number(lead.valor_estimado) || 0), 0),
-          };
-        })
-        .filter((item) => item.leads > 0 || item.vendas > 0)
-        .sort((left, right) => right.vgv - left.vgv)
-        .slice(0, 10);
+    const insights: Array<{ tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao"; mensagem: string }> = [];
+    if (previousLeadCount > 0) {
+      const delta = percent(leadCount, previousLeadCount);
+      insights.push({ tipo: "performance", mensagem: delta >= 0 ? `Você recebeu ${delta}% mais leads que no período anterior.` : `Volume de leads caiu ${Math.abs(delta)}% em relação ao período anterior.` });
     }
-
-    const insights: Array<{
-      tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao";
-      mensagem: string;
-    }> = [];
-    if (leadsAnterior > 0) {
-      const delta = diffPercent(leadsTotal, leadsAnterior);
-      insights.push({
-        tipo: "performance",
-        mensagem: delta >= 0
-          ? `Você recebeu ${delta}% mais leads que no período anterior.`
-          : `Volume de leads caiu ${Math.abs(delta)}% em relação ao período anterior.`,
-      });
-    }
-    if (vendas > 0 && vgv > 0) {
-      insights.push({
-        tipo: "performance",
-        mensagem: `VGV do período: ${vgv.toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        })}.`,
-      });
-    }
-
-    const transitions = [
-      { nome: "Lead → Contato", value: captado ? contato / captado : 1 },
-      { nome: "Contato → Visita", value: contato ? visitaCount / contato : 1 },
-      {
-        nome: "Visita → Proposta",
-        value: visitaCount ? propostaCount / visitaCount : 1,
-      },
-      {
-        nome: "Proposta → Venda",
-        value: propostaCount ? vendaCount / propostaCount : 1,
-      },
-    ];
-    const worstTransition = transitions.reduce((left, right) =>
-      right.value < left.value ? right : left,
-    );
-    if (captado > 0) {
-      insights.push({
-        tipo: "gargalo",
-        mensagem: `O principal gargalo está na etapa ${worstTransition.nome} (${Math.round(worstTransition.value * 100)}% de conversão).`,
-      });
-    }
-
-    const propostasAbertas = ativos.filter((lead) => lead.status === "proposta").length;
-    if (propostasAbertas > 0) {
-      insights.push({
-        tipo: "oportunidade",
-        mensagem: `Existem ${propostasAbertas} proposta${
-          propostasAbertas > 1 ? "s" : ""
-        } aguardando retorno — alta chance de fechamento.`,
-      });
-    }
-    if (semAtendimento > 0) {
-      insights.push({
-        tipo: "alerta",
-        mensagem: `${semAtendimento} lead${
-          semAtendimento > 1 ? "s" : ""
-        } sem atendimento há mais de 48 horas.`,
-      });
-    }
-    if (propostasParadas > 0) {
-      insights.push({
-        tipo: "alerta",
-        mensagem: `${propostasParadas} proposta${
-          propostasParadas > 1 ? "s" : ""
-        } sem atualização há mais de 7 dias.`,
-      });
-    }
-    if (vendas > 0 && dias > 0) {
-      const previsao30 = Math.round((vgv / dias) * 30);
-      insights.push({
-        tipo: "previsao",
-        mensagem: `Previsão de VGV nos próximos 30 dias: ${previsao30.toLocaleString(
-          "pt-BR",
-          { style: "currency", currency: "BRL" },
-        )}.`,
-      });
-    }
+    if (wonValue > 0) insights.push({ tipo: "performance", mensagem: `VGV do período: ${wonValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.` });
+    if (alerts.semAtendimento > 0) insights.push({ tipo: "alerta", mensagem: `${alerts.semAtendimento} lead(s) sem atendimento há mais de 48 horas.` });
+    if (alerts.propostasParadas > 0) insights.push({ tipo: "alerta", mensagem: `${alerts.propostasParadas} proposta(s) sem atualização há mais de 7 dias.` });
+    if (proposals > 0) insights.push({ tipo: "oportunidade", mensagem: `${proposals} lead(s) alcançaram proposta no período.` });
+    if (won > 0 && dayCount > 0) insights.push({ tipo: "previsao", mensagem: `Projeção linear de VGV para 30 dias: ${Math.round((wonValue / dayCount) * 30).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.` });
 
     return {
-      resumo,
-      funil,
-      alertas,
-      serie,
-      origens,
-      taxas,
-      desempenho,
+      resumo: summary,
+      funil: funnel,
+      alertas: alerts,
+      serie: series,
+      origens: sources,
+      taxas: rates,
+      desempenho: performance,
       ranking,
       insights,
-      isPrivileged,
+      isPrivileged: access.scope === "global",
+      effectiveScope: access.scope,
+      actorKind: access.actorKind,
+      timezone: data.timezone,
+      metricRegistry: listDashboardMetricDefinitions(),
+      operationalMetrics,
+      dataCompleteness: "complete" as const,
     };
   });
 
 export const dashboardLeadsFiltrados = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((data: unknown) => leadsFiltradosSchema.parse(data))
+  .inputValidator((input: unknown) => drillDownSchema.parse(input))
   .handler(async ({ data, context }) => {
     const access = await resolveDashboardAccess(context);
-    const { tenantId, isPrivileged } = access;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as any;
+    let selectedBrokerId = assertBrokerFilter(access, data.corretor_id);
+    if (selectedBrokerId) selectedBrokerId = await assertTenantBroker(admin, access.tenantId, selectedBrokerId);
 
-    if (
-      !isPrivileged &&
-      data.corretor_id &&
-      data.corretor_id !== access.brokerId
-    ) {
-      throw new Error("Filtro de corretor não autorizado.");
-    }
-    const selectedBrokerId = isPrivileged && data.corretor_id
-      ? await requireTenantBroker(context, tenantId, data.corretor_id)
-      : access.brokerId;
-
-    let query = context.supabase
+    let query = admin
       .from("leads")
-      .select(
-        "id, nome, email, telefone, status, origem, valor_estimado, created_at, updated_at",
-      )
-      .eq("tenant_id", tenantId);
-    if (selectedBrokerId) query = query.eq("corretor_id", selectedBrokerId);
+      .select("id, nome, email, telefone, status, origem, corretor_id, assigned_to, created_at, updated_at, valor_estimado")
+      .eq("tenant_id", access.tenantId)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    query = applyBrokerScope(query, access, selectedBrokerId, null);
     if (data.inicio) query = query.gte("created_at", data.inicio);
     if (data.fim) query = query.lte("created_at", data.fim);
-    if (data.status && data.status.length > 0) {
-      query = query.in("status", data.status);
-    }
-
-    const { data: rows, error } = await query
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) throw new Error(error.message);
-
-    let result = (rows ?? []) as Array<{
-      id: string;
-      nome: string;
-      email: string | null;
-      telefone: string | null;
-      status: string;
-      origem: string | null;
-      valor_estimado: number | null;
-      created_at: string;
-      updated_at: string;
-    }>;
-    if (!data.alerta) return result;
-
-    const agora = Date.now();
-    const HORAS_48 = 48 * 60 * 60 * 1000;
-    const DIAS_7 = 7 * 24 * 60 * 60 * 1000;
+    if (data.status?.length) query = query.in("status", data.status);
     if (data.alerta === "sem_atendimento") {
-      result = result.filter(
-        (lead) =>
-          lead.status === "novo" &&
-          agora - new Date(lead.created_at).getTime() > HORAS_48,
-      );
+      query = query.eq("status", "novo").lt("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
     } else if (data.alerta === "sem_followup") {
-      result = result.filter(
-        (lead) =>
-          lead.status === "conversando" &&
-          agora - new Date(lead.updated_at).getTime() > DIAS_7,
-      );
+      query = query.eq("status", "conversando").lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
     } else if (data.alerta === "visitas_sem_feedback") {
-      result = result.filter(
-        (lead) =>
-          lead.status === "visita" &&
-          agora - new Date(lead.updated_at).getTime() > DIAS_7,
-      );
+      query = query.eq("status", "visita").lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
     } else if (data.alerta === "propostas_paradas") {
-      result = result.filter(
-        (lead) =>
-          lead.status === "proposta" &&
-          agora - new Date(lead.updated_at).getTime() > DIAS_7,
-      );
+      query = query.eq("status", "proposta").lt("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
     }
-    return result;
+    const { data: rows, error } = await query;
+    if (error) throw new Error("Falha ao carregar o drill-down tenant-scoped.");
+    return { rows: rows ?? [], effectiveScope: access.scope, timezone: data.timezone };
   });
