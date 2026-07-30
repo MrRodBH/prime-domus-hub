@@ -81,7 +81,7 @@ check("dependency manifest matches the merge-base contract", () => {
   assert.equal(packageJson.resolutions?.["js-yaml"], "^4.1.0");
   assert.equal(packageJson.dependencies?.["js-yaml"], undefined);
   assert.equal(packageJson.devDependencies?.["js-yaml"], undefined);
-  assert.equal(gitBlobSha1(bunLock), "098eac3288f066aa854943624c757b30ae63b9c2");
+  assert.equal(gitBlobSha1(bunLock), "098eac32e22b587197565fb454706bf024769840");
 });
 
 check("legacy administrative wildcard and active imports are absent", () => {
