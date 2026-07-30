@@ -3,9 +3,41 @@ import { z } from "zod";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
 import {
+  resolveEffectiveTenantPermission,
+  trustedTenantAccessContext,
+  type RbacAction,
+} from "@/lib/api/tenant-access-control-authority.server";
+import {
   SIGNED_URL_TTL_PREVIEW_SECONDS,
   validateTenantSignRequest,
 } from "@/lib/storage/signed-url";
+
+const PROPERTY_RECORD_MODULE = "cms.paginas" as const;
+const PROPERTY_MEDIA_MODULE = "cms.midias" as const;
+
+export const PROPERTY_ADMIN_OPERATIONS = [
+  "list",
+  "read",
+  "create",
+  "update",
+  "delete",
+  "media.manage",
+  "publish",
+] as const;
+export type PropertyAdminOperation = (typeof PROPERTY_ADMIN_OPERATIONS)[number];
+
+const propertyOperationContract: Record<
+  PropertyAdminOperation,
+  { module: typeof PROPERTY_RECORD_MODULE | typeof PROPERTY_MEDIA_MODULE; action: RbacAction }
+> = {
+  list: { module: PROPERTY_RECORD_MODULE, action: "visualizar" },
+  read: { module: PROPERTY_RECORD_MODULE, action: "visualizar" },
+  create: { module: PROPERTY_RECORD_MODULE, action: "criar" },
+  update: { module: PROPERTY_RECORD_MODULE, action: "editar" },
+  delete: { module: PROPERTY_RECORD_MODULE, action: "excluir" },
+  "media.manage": { module: PROPERTY_MEDIA_MODULE, action: "editar" },
+  publish: { module: PROPERTY_RECORD_MODULE, action: "publicar" },
+};
 
 const imovelSchema = z.object({
   id: z.string().uuid().optional(),
@@ -46,7 +78,7 @@ const imovelSchema = z.object({
   tour_url: z.string().url().nullable().optional().or(z.literal("")),
   mostrar_rua: z.boolean().default(false),
   mostrar_endereco_completo: z.boolean().default(false),
-});
+}).strict();
 
 type PropertyImageRow = {
   id: string;
@@ -58,16 +90,18 @@ type PropertyImageRow = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function assertPropertyAdmin(context: any): Promise<string> {
-  const tenantId = requireTenantScopedAuthority(context.tenant, "Property Admin");
-  if (context.tenant.isSuperAdmin) return tenantId;
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error("Falha ao validar autorização de imóveis.");
-  if (data !== true) throw new Error("Acesso negado: requer administrador.");
-  return tenantId;
+async function authorizePropertyOperation(context: any, operation: PropertyAdminOperation) {
+  const tenantId = requireTenantScopedAuthority(context.tenant, "Property Administration");
+  const contract = propertyOperationContract[operation];
+  const decision = await resolveEffectiveTenantPermission(
+    trustedTenantAccessContext(context),
+    contract.module,
+    contract.action,
+  );
+  if (!decision.allowed || decision.scope !== "global") {
+    throw new Error(`property_admin_permission_denied:${operation}`);
+  }
+  return { tenantId, decision, operation, contract };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,7 +160,7 @@ function validatePropertyImagePath(path: string, tenantId: string, propertyId: s
 export const adminListarImoveis = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "list");
     const { data, error } = await context.supabase
       .from("imoveis")
       .select("id, codigo, titulo, slug, finalidade, tipo, status, preco, destaque, updated_at, bairro:bairros(tenant_id, nome)")
@@ -138,18 +172,15 @@ export const adminListarImoveis = createServerFn({ method: "GET" })
       if (relation && relation.tenant_id !== tenantId) {
         throw new Error("Bairro relacionado cruzou o boundary do tenant.");
       }
-      return {
-        ...row,
-        bairro: relation ? { nome: relation.nome } : null,
-      };
+      return { ...row, bairro: relation ? { nome: relation.nome } : null };
     });
   });
 
 export const adminObterImovel = createServerFn({ method: "GET" })
   .middleware([requireTenant])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).strict().parse(input))
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "read");
     const { data: rows, error } = await context.supabase
       .from("imoveis")
       .select("*, imagens:imovel_imagens(id, tenant_id, imovel_id, url, alt, ordem)")
@@ -165,12 +196,7 @@ export const adminObterImovel = createServerFn({ method: "GET" })
       if (image.tenant_id !== tenantId || image.imovel_id !== data.id) {
         throw new Error("Imagem relacionada cruzou o boundary do tenant ou imóvel.");
       }
-      return {
-        id: image.id,
-        url: image.url,
-        alt: image.alt,
-        ordem: image.ordem,
-      };
+      return { id: image.id, url: image.url, alt: image.alt, ordem: image.ordem };
     });
     return { ...row, imagens };
   });
@@ -179,7 +205,9 @@ export const adminSalvarImovel = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((input: unknown) => imovelSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const baseOperation: PropertyAdminOperation = data.id ? "update" : "create";
+    const { tenantId } = await authorizePropertyOperation(context, baseOperation);
+    if (data.status === "ativo") await authorizePropertyOperation(context, "publish");
     await Promise.all([
       requireOptionalReference(context, tenantId, "bairros", data.bairro_id),
       requireOptionalReference(context, tenantId, "corretores", data.corretor_id),
@@ -238,9 +266,9 @@ export const adminSalvarImovel = createServerFn({ method: "POST" })
 
 export const adminExcluirImovel = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).strict().parse(input))
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "delete");
     await requireProperty(context, tenantId, data.id);
     const { data: images, error: imageError } = await context.supabase
       .from("imovel_imagens")
@@ -261,9 +289,7 @@ export const adminExcluirImovel = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (paths.length > 0) {
-      const { error: storageError } = await supabaseAdmin.storage
-        .from("imoveis")
-        .remove(paths);
+      const { error: storageError } = await supabaseAdmin.storage.from("imoveis").remove(paths);
       if (storageError) throw new Error(storageError.message);
     }
 
@@ -286,45 +312,58 @@ export const adminExcluirImovel = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const consumePropertyTargetResult = z.object({
+  imageId: z.string().uuid(),
+  uploadTargetId: z.string().uuid(),
+  path: z.string().min(1),
+  status: z.literal("consumed"),
+}).strict();
+
 export const adminAdicionarImagem = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((input: unknown) =>
     z.object({
       imovel_id: z.string().uuid(),
-      url: z.string().min(1).max(512),
+      uploadTargetId: z.string().uuid(),
       alt: z.string().max(300).optional(),
-      ordem: z.number().int().min(0).default(0),
-    }).parse(input),
+      ordem: z.number().int().min(0).max(10000).default(0),
+    }).strict().parse(input),
   )
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "media.manage");
     await requireProperty(context, tenantId, data.imovel_id);
-    const path = validatePropertyImagePath(data.url, tenantId, data.imovel_id);
-    const { data: inserted, error } = await context.supabase
-      .from("imovel_imagens")
-      .insert({
-        tenant_id: tenantId,
-        imovel_id: data.imovel_id,
-        url: path,
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: raw, error } = await supabaseAdmin.rpc(
+      "consume_tenant_property_upload_target" as never,
+      {
+        _actor_user_id: context.userId,
+        _tenant_id: tenantId,
+        _tenant_origin: context.tenant.origin,
+        _target_id: data.uploadTargetId,
+        _property_id: data.imovel_id,
+        _alt: data.alt ?? null,
+        _order: data.ordem,
+      } as never,
+    );
+    if (error) throw new Error("Falha segura ao consumir o target de upload.");
+    const consumed = consumePropertyTargetResult.parse(raw);
+    return {
+      ok: true,
+      image: {
+        id: consumed.imageId,
+        url: consumed.path,
         alt: data.alt ?? null,
         ordem: data.ordem,
-      })
-      .select("id, url, alt, ordem")
-      .single();
-    if (error) throw new Error(error.message);
-    return { ok: true, image: inserted };
+      },
+      uploadTargetId: consumed.uploadTargetId,
+    };
   });
 
 export const adminRemoverImagem = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((input: unknown) =>
-    z.object({
-      id: z.string().uuid(),
-      path: z.string().optional(),
-    }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).strict().parse(input))
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "media.manage");
     const { data: rows, error } = await context.supabase
       .from("imovel_imagens")
       .select("id, tenant_id, imovel_id, url")
@@ -341,9 +380,7 @@ export const adminRemoverImagem = createServerFn({ method: "POST" })
     if (!image.url.startsWith("http")) {
       const path = validatePropertyImagePath(image.url, tenantId, image.imovel_id);
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error: storageError } = await supabaseAdmin.storage
-        .from("imoveis")
-        .remove([path]);
+      const { error: storageError } = await supabaseAdmin.storage.from("imoveis").remove([path]);
       if (storageError) throw new Error(storageError.message);
     }
 
@@ -365,15 +402,11 @@ export const adminReordenarImagens = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({
       imovel_id: z.string().uuid(),
-      ordem: z.array(z.object({
-        id: z.string().uuid(),
-        ordem: z.number().int().positive(),
-      })).min(1).max(100),
-      imagem_capa: z.string().optional().nullable(),
-    }).parse(input),
+      ordem: z.array(z.object({ id: z.string().uuid(), ordem: z.number().int().positive() }).strict()).min(1).max(100),
+    }).strict().parse(input),
   )
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "media.manage");
     await requireProperty(context, tenantId, data.imovel_id);
 
     const ids = data.ordem.map((item) => item.id);
@@ -435,14 +468,9 @@ export const adminReordenarImagens = createServerFn({ method: "POST" })
 
 export const adminDefinirCapa = createServerFn({ method: "POST" })
   .middleware([requireTenant])
-  .inputValidator((input: unknown) =>
-    z.object({
-      imovel_id: z.string().uuid(),
-      imagem_id: z.string().uuid(),
-    }).parse(input),
-  )
+  .inputValidator((input: unknown) => z.object({ imovel_id: z.string().uuid(), imagem_id: z.string().uuid() }).strict().parse(input))
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "media.manage");
     await requireProperty(context, tenantId, data.imovel_id);
     const { data: rows, error } = await context.supabase
       .from("imovel_imagens")
@@ -474,10 +502,10 @@ export const adminAssinarUrl = createServerFn({ method: "POST" })
       path: z.string().min(1).max(512),
       width: z.number().int().positive().max(4000).optional(),
       quality: z.number().int().min(20).max(100).optional(),
-    }).parse(input),
+    }).strict().parse(input),
   )
   .handler(async ({ data, context }) => {
-    const tenantId = await assertPropertyAdmin(context);
+    const { tenantId } = await authorizePropertyOperation(context, "read");
     const { data: rows, error } = await context.supabase
       .from("imovel_imagens")
       .select("id, tenant_id, imovel_id, url")
@@ -492,13 +520,7 @@ export const adminAssinarUrl = createServerFn({ method: "POST" })
     await requireProperty(context, tenantId, image.imovel_id);
     const path = validatePropertyImagePath(image.url, tenantId, image.imovel_id);
     const options = data.width
-      ? {
-          transform: {
-            width: data.width,
-            quality: data.quality ?? 70,
-            resize: "contain" as const,
-          },
-        }
+      ? { transform: { width: data.width, quality: data.quality ?? 70, resize: "contain" as const } }
       : undefined;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error: signError } = await supabaseAdmin.storage
