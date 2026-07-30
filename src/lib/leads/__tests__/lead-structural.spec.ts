@@ -164,9 +164,22 @@ const cases: Case[] = [
     name: "CRM compatibility input cannot provide tenant, actor, role or scope",
     run: () => {
       const source = read(CRM_COMPAT_PATH);
-      for (const token of ["tenant_id:", "tenantId: z.string", "actorUserId: z.string", "role: z.", "scope: z."]) {
-        must(!source.includes(token), `caller authority field present: ${token}`);
+      const inputValidators = [...source.matchAll(
+        /\.inputValidator\(\(input: unknown\) => z\.object\(\{([\s\S]*?)\}\)\.strict\(\)\.parse\(input\)\)/g,
+      )].map((match) => match[1]).join("\n");
+      must(inputValidators.length > 0, "compatibility input validators not found");
+      for (const pattern of [
+        /\btenant_id\s*:/,
+        /\btenantId\s*:/,
+        /\bactorUserId\s*:/,
+        /\bactor_user_id\s*:/,
+        /\brole\s*:/,
+        /\bscope\s*:/,
+      ]) {
+        must(!pattern.test(inputValidators), `caller authority field present: ${pattern}`);
       }
+      must(source.includes("_tenant_id: decision.tenantId"), "server-derived tenant is not forwarded");
+      must(source.includes("_actor_user_id: decision.actorUserId"), "server-derived actor is not forwarded");
       must(source.includes("context.tenant.origin"), "trusted tenant origin is not forwarded");
     },
   },
