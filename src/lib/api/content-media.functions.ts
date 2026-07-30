@@ -145,27 +145,8 @@ const launchProjectSchema = z.object({
   destaque: z.boolean().default(false),
   meta_title: z.string().max(60).nullable().optional(),
   meta_description: z.string().max(160).nullable().optional(),
-  og_image: z.string().max(512).nullable().optional(),
   amenity_ids: z.array(uuid).max(100).default([]),
 }).strict();
-
-async function requireTenantReference(
-  context: any,
-  tenantId: string,
-  table: string,
-  id: string | null | undefined,
-) {
-  if (!id) return null;
-  const { data, error } = await context.supabase
-    .from(table)
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("id", id)
-    .limit(2);
-  if (error) throw safeTenantCmsError(error);
-  if ((data ?? []).length !== 1) throw new Error("launch_reference_cross_tenant_or_missing");
-  return id;
-}
 
 export const saveTenantLaunchProject = createServerFn({ method: "POST" })
   .middleware([requireTenant])
@@ -176,53 +157,24 @@ export const saveTenantLaunchProject = createServerFn({ method: "POST" })
       : data.id
         ? "save_draft"
         : "create_draft";
-    const auth = await authorizeTenantCmsOperation(context, "cms.paginas", operation);
-    await Promise.all([
-      requireTenantReference(context, auth.tenantId, "launch_statuses", data.status_id),
-      requireTenantReference(context, auth.tenantId, "cidades", data.cidade_id),
-      requireTenantReference(context, auth.tenantId, "bairros", data.bairro_id),
-      requireTenantReference(context, auth.tenantId, "corretores", data.corretor_id),
-      ...data.amenity_ids.map((id) =>
-        requireTenantReference(context, auth.tenantId, "launch_amenities", id),
-      ),
-    ]);
-    const { id, amenity_ids, ...fields } = data;
-    let projectId = id;
-    if (id) {
-      const { data: updated, error } = await context.supabase
-        .from("launch_projects")
-        .update(fields as never)
-        .eq("tenant_id", auth.tenantId)
-        .eq("id", id)
-        .select("id")
-        .maybeSingle();
-      if (error) throw safeTenantCmsError(error);
-      if (!updated) throw new Error("launch_project_cross_tenant_or_missing");
-    } else {
-      const { data: created, error } = await context.supabase
-        .from("launch_projects")
-        .insert({ ...fields, tenant_id: auth.tenantId } as never)
-        .select("id")
-        .single();
-      if (error) throw safeTenantCmsError(error);
-      projectId = created.id as string;
-    }
-    await context.supabase
-      .from("launch_project_amenities")
-      .delete()
-      .eq("tenant_id", auth.tenantId)
-      .eq("project_id", projectId!);
-    if (amenity_ids.length > 0) {
-      const { error } = await context.supabase
-        .from("launch_project_amenities")
-        .insert(amenity_ids.map((amenityId) => ({
-          tenant_id: auth.tenantId,
-          project_id: projectId!,
-          amenity_id: amenityId,
-        })) as never);
-      if (error) throw safeTenantCmsError(error);
-    }
-    return { ok: true, id: projectId! };
+    await authorizeTenantCmsOperation(context, "cms.paginas", operation);
+    const { id, amenity_ids, ...project } = data;
+    const admin = await adminClient();
+    const { data: raw, error } = await admin.rpc("save_tenant_launch_project", {
+      _actor_user_id: context.userId,
+      _tenant_id: context.tenant.tenantId,
+      _tenant_origin: context.tenant.origin,
+      _project_id: id ?? null,
+      _project: JSON.parse(JSON.stringify(project)),
+      _amenity_ids: amenity_ids,
+    });
+    if (error) throw safeTenantCmsError(error);
+    return z.object({
+      id: uuid,
+      ok: z.literal(true),
+      amenityCount: z.number().int().nonnegative(),
+      transactional: z.literal(true),
+    }).strict().parse(raw);
   });
 
 const launchConsumerResult = z.object({
