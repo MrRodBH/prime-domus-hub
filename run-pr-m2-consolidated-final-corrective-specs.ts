@@ -235,7 +235,7 @@ check("corrective migrations are unique, additive and service-role-only", () => 
     assert.ok(migrationSource.includes(token), token);
   }
   assert.equal(/GRANT\s+EXECUTE[\s\S]{0,180}\s+TO\s+(anon|authenticated)/i.test(migrationSource), false);
-  for (const token of ["net.http", "http_post", "http_get", "is_super_admin()", "auth.uid()"] ) {
+  for (const token of ["net.http", "http_post", "http_get", "is_super_admin()", "auth.uid()"]) {
     assert.equal(migrationSource.includes(token), false, token);
   }
 });
@@ -252,8 +252,17 @@ check("twelve canonical increment evidences exist and supersede historical claim
   }
 });
 
-check("no final closure evidence is created by the corrective", () => {
-  assert.equal(existsSync("docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m2-final-consolidated-closure-and-merge-readiness.md"), false);
+check("final closure evidence authorizes only the separate protected-merge audit", () => {
+  const path = "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m2-final-consolidated-closure-and-merge-readiness.md";
+  assert.ok(existsSync(path), path);
+  const text = source(path);
+  assert.ok(text.includes("PRM2_FINAL_CLOSURE_STATE = Accepted — Ready for Protected Merge Audit"));
+  assert.ok(text.includes("PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = true"));
+  assert.ok(text.includes("PRM2_MERGE_AUTHORIZED = false"));
+  assert.ok(text.includes("MERGE_EXECUTED = false"));
+  assert.ok(text.includes("CORRECTIVE_EVIDENCE_HEAD = 7e722a5f0b204aba0a9f486250cc3987c43230ba"));
+  assert.ok(text.includes("NEXT_AUTHORIZED_ACTION = PR-M2 — Protected Merge Audit"));
+  assert.equal(text.includes("PRM2_MERGE_AUTHORIZED = true"), false);
 });
 
 check("Blog cover uses target consumption and persisted-path signing only", () => {
