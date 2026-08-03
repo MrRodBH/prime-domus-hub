@@ -80,15 +80,15 @@ jobs:
           checked_out_sha="$(git rev-parse HEAD)"
           symbolic_ref="$(git symbolic-ref -q HEAD || true)"
 
-          if [[ "$checked_out_sha" != "$head_sha" ]]; then
+          [[ "$checked_out_sha" == "$head_sha" ]] || {
             echo "Exact-head mismatch: expected=$head_sha checked_out=$checked_out_sha" >&2
             exit 1
-          fi
+          }
 
-          if [[ -n "$symbolic_ref" ]]; then
+          [[ -z "$symbolic_ref" ]] || {
             echo "Expected detached HEAD, got $symbolic_ref" >&2
             exit 1
-          fi
+          }
 
           if [[ "$pr_number" != "manual" ]] &&
              git show-ref --verify --quiet "refs/pull/$pr_number/merge"; then
@@ -100,24 +100,24 @@ jobs:
           git cat-file -e "${head_sha}^{commit}"
 
           merge_base_sha="$(git merge-base "$base_sha" "$head_sha")"
-          if [[ "$merge_base_sha" != "$base_sha" ]]; then
+          [[ "$merge_base_sha" == "$base_sha" ]] || {
             echo "Merge-base mismatch: expected=$base_sha observed=$merge_base_sha" >&2
             exit 1
-          fi
+          }
 
-          if ! git merge-base --is-ancestor "$base_sha" "$head_sha"; then
+          git merge-base --is-ancestor "$base_sha" "$head_sha" || {
             echo "Head is not a descendant of base" >&2
             exit 1
-          fi
+          }
 
           read -r behind_by ahead_by < <(
             git rev-list --left-right --count "$base_sha...$head_sha"
           )
 
-          if [[ "$behind_by" != "0" ]]; then
+          [[ "$behind_by" == "0" ]] || {
             echo "PR branch is behind base: behind_by=$behind_by" >&2
             exit 1
-          fi
+          }
 
           commit_count="$(git rev-list --count "$base_sha..$head_sha")"
 
@@ -176,6 +176,7 @@ jobs:
           patch_file="$evidence_dir/pr-m2-full-index-binary.diff"
           reconstructed_file="$evidence_dir/pr-m2-full-index-binary.reconstructed.diff"
           bundle_file="$evidence_dir/pr-m2-commit-range.bundle"
+          bundle_ref="refs/tags/pr-m2-evidence-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
           rm -rf "$evidence_dir"
           mkdir -p "$chunks_dir"
@@ -202,9 +203,17 @@ jobs:
           git diff --name-only "$BASE_SHA..$HEAD_SHA" \
             > "$evidence_dir/changed-files.txt"
 
-          git bundle create "$bundle_file" "$HEAD_SHA" "^$BASE_SHA"
+          cleanup_bundle_ref() {
+            git update-ref -d "$bundle_ref" >/dev/null 2>&1 || true
+          }
+          trap cleanup_bundle_ref EXIT
+
+          git update-ref "$bundle_ref" "$HEAD_SHA"
+          git bundle create "$bundle_file" "$bundle_ref" "^$BASE_SHA"
           git bundle verify "$bundle_file" \
             > "$evidence_dir/bundle-verification.txt" 2>&1
+          cleanup_bundle_ref
+          trap - EXIT
 
           split \
             -b 8M \
@@ -217,24 +226,18 @@ jobs:
             > "$reconstructed_file"
 
           original_patch_sha256="$(sha256sum "$patch_file" | awk '{print $1}')"
-          reconstructed_patch_sha256="$(
-            sha256sum "$reconstructed_file" | awk '{print $1}'
-          )"
+          reconstructed_patch_sha256="$(sha256sum "$reconstructed_file" | awk '{print $1}')"
 
-          if [[ "$original_patch_sha256" != "$reconstructed_patch_sha256" ]]; then
+          [[ "$original_patch_sha256" == "$reconstructed_patch_sha256" ]] || {
             echo "Full-diff reconstruction mismatch" >&2
             exit 1
-          fi
+          }
 
           bundle_sha256="$(sha256sum "$bundle_file" | awk '{print $1}')"
           full_diff_byte_count="$(wc -c < "$patch_file" | tr -d ' ')"
           full_diff_line_count="$(wc -l < "$patch_file" | tr -d ' ')"
-          changed_file_count="$(
-            grep -c . "$evidence_dir/changed-files.txt" || true
-          )"
-          chunk_count="$(
-            find "$chunks_dir" -maxdepth 1 -type f | wc -l | tr -d ' '
-          )"
+          changed_file_count="$(grep -c . "$evidence_dir/changed-files.txt" || true)"
+          chunk_count="$(find "$chunks_dir" -maxdepth 1 -type f | wc -l | tr -d ' ')"
 
           read -r additions deletions < <(
             git diff --numstat "$BASE_SHA..$HEAD_SHA" |
@@ -292,8 +295,10 @@ jobs:
 
           chunks = []
           for path in sorted(chunks_dir.glob("pr-m2-full-index-binary.diff.part-*")):
-              digest = hashlib.sha256(path.read_bytes()).hexdigest()
-              chunks.append({"name": path.name, "sha256": digest})
+              chunks.append({
+                  "name": path.name,
+                  "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+              })
 
           manifest = {
               "repository": os.environ["GITHUB_REPOSITORY"],
@@ -329,12 +334,12 @@ jobs:
               "generatedAtUtc": datetime.now(timezone.utc).isoformat(),
           }
 
-          (evidence_dir / "evidence-manifest.json").write_text(
+          manifest_path = evidence_dir / "evidence-manifest.json"
+          manifest_path.write_text(
               json.dumps(manifest, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
           )
-
-          json.loads((evidence_dir / "evidence-manifest.json").read_text("utf-8"))
+          json.loads(manifest_path.read_text(encoding="utf-8"))
           PY
 
           cat > "$evidence_dir/reconstruction-verification.txt" <<EOF
@@ -371,8 +376,7 @@ jobs:
           }
           JSON
 
-          echo "artifact_name=pr-m2-full-diff-evidence-$HEAD_SHA" \
-            >> "$GITHUB_OUTPUT"
+          echo "artifact_name=pr-m2-full-diff-evidence-$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Upload complete exact-head diff evidence
         uses: actions/upload-artifact@v4
