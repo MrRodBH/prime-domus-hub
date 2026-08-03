@@ -177,11 +177,34 @@ jobs:
           reconstructed_file="$evidence_dir/pr-m2-full-index-binary.reconstructed.diff"
           bundle_file="$evidence_dir/pr-m2-commit-range.bundle"
           bundle_ref="refs/tags/pr-m2-evidence-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          diff_check_file="$evidence_dir/git-diff-check.txt"
 
           rm -rf "$evidence_dir"
           mkdir -p "$chunks_dir"
 
-          git diff --check "$BASE_SHA..$HEAD_SHA"
+          set +e
+          git diff --check "$BASE_SHA..$HEAD_SHA" \
+            > "$diff_check_file" 2>&1
+          diff_check_exit_code=$?
+          set -e
+
+          if [[ "$diff_check_exit_code" == "0" ]]; then
+            diff_check_passed=true
+          else
+            diff_check_passed=false
+          fi
+
+          if [[ -s "$diff_check_file" ]]; then
+            whitespace_findings_recorded=true
+          else
+            whitespace_findings_recorded=false
+          fi
+
+          cat > "$evidence_dir/git-diff-check-metadata.txt" <<EOF
+          DIFF_CHECK_EXIT_CODE=$diff_check_exit_code
+          DIFF_CHECK_PASSED=$diff_check_passed
+          WHITESPACE_FINDINGS_RECORDED=$whitespace_findings_recorded
+          EOF
 
           git diff \
             --binary \
@@ -282,6 +305,9 @@ jobs:
           export CHUNK_COUNT="$chunk_count"
           export ADDITIONS="$additions"
           export DELETIONS="$deletions"
+          export DIFF_CHECK_PASSED="$diff_check_passed"
+          export DIFF_CHECK_EXIT_CODE="$diff_check_exit_code"
+          export WHITESPACE_FINDINGS_RECORDED="$whitespace_findings_recorded"
 
           python - <<'PY'
           import hashlib
@@ -327,7 +353,11 @@ jobs:
               "chunks": chunks,
               "reconstructedDiffSha256": os.environ["RECONSTRUCTED_PATCH_SHA256"],
               "reconstructionMatch": True,
-              "diffCheckPassed": True,
+              "diffCheckPassed": os.environ["DIFF_CHECK_PASSED"].lower() == "true",
+              "diffCheckExitCode": int(os.environ["DIFF_CHECK_EXIT_CODE"]),
+              "whitespaceFindingsRecorded": (
+                  os.environ["WHITESPACE_FINDINGS_RECORDED"].lower() == "true"
+              ),
               "frozenInstallPassed": True,
               "consolidatedSpecsPassed": True,
               "verifyReleasePassed": True,
@@ -372,6 +402,9 @@ jobs:
             "repository": "${{ github.repository }}",
             "runId": "${{ github.run_id }}",
             "job": "${{ github.job }}",
+            "diffCheckPassed": $diff_check_passed,
+            "diffCheckExitCode": $diff_check_exit_code,
+            "whitespaceFindingsRecorded": $whitespace_findings_recorded,
             "fullDiffArtifact": "pr-m2-full-diff-evidence-$HEAD_SHA"
           }
           JSON
