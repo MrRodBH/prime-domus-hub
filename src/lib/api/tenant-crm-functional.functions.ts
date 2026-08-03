@@ -204,7 +204,15 @@ export const listTenantCrmAttachments = createServerFn({ method: "GET" })
       .eq("lead_id", data.leadId)
       .order("created_at", { ascending: false });
     if (error) throw safeTenantCrmError(error);
-    return rows ?? [];
+    return (rows ?? []) as Array<{
+      id: string;
+      lead_id: string;
+      display_name: string;
+      mime_type: string | null;
+      size: number | null;
+      created_at: string;
+      created_by: string | null;
+    }>;
   });
 
 export const getTenantCrmAttachmentDownloadUrl = createServerFn({ method: "POST" })
@@ -451,7 +459,10 @@ export const importTenantCrmContacts = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const auth = await authorize(context, "lead.create");
     const admin = await adminClient();
-    const outcomes: Array<Record<string, unknown>> = [];
+    const outcomes: Array<
+      | { state: "invalid"; error: string }
+      | { state: "created"; contactId: string }
+    > = [];
     for (const row of data.rows) {
       const { data: created, error } = await admin.from("crm_contacts").insert({
         tenant_id: auth.tenantId,
