@@ -76,6 +76,13 @@ export const CRM_FUNCTIONAL_INPUT_SCHEMAS = {
     validUntil: z.string().date().optional().nullable(), terms: z.record(z.string(), z.unknown()).default({}),
     expectedVersion: z.number().int().positive().optional(),
   }).strict(),
+  attachment: z.object({
+    leadId: uuid,
+    uploadTargetId: uuid,
+    displayName: z.string().trim().min(1).max(240),
+    mimeType: z.string().trim().max(200).optional().nullable(),
+    size: z.number().int().min(0),
+  }).strict(),
   automationRule: z.object({
     id: uuid.optional(), ruleKey: z.enum(CRM_AUTOMATION_RULE_KEYS), configuration: z.record(z.string(), z.unknown()).default({}),
     active: z.boolean().default(false), expectedVersion: z.number().int().positive().optional(),
@@ -106,6 +113,8 @@ export const CRM_FUNCTIONAL_CONTRACT = {
   idempotency: true,
   audit: "required",
   attachmentAuthority: "upload_target_id_only",
+  attachmentOperations: ["consume", "list", "signed_download", "delete"] as const,
+  attachmentRawPathInput: false,
   externalCommunication: "adapter_not_implemented_until_factual_adapter",
   automaticMerge: false,
   deterministicExport: true,

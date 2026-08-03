@@ -77,46 +77,25 @@ export const listarMidias = createServerFn({ method: "POST" })
   });
 
 /**
- * Registra mídia enviada para um target emitido server-side.
- * Os paths são revalidados contra o tenant efetivo e o domínio `media`.
+ * Registra mídia consumindo exclusivamente IDs de targets emitidos pelo servidor.
+ * Bucket, path e filename não integram o input final de persistência.
  */
-const uploadTargetSchema = z.object({
-  bucket: z.string().min(1),
-  path: z.string().min(1).max(512),
-  storageFileName: z.string().min(1).max(200),
-  domain: z.literal("media"),
-});
-
-const derivativeTargetSchema = z.object({
-  bucket: z.string().min(1),
-  path: z.string().min(1).max(512),
-});
-
-function assertMediaPathSafe(path: string, tenantId: string, bucket: string) {
-  if (bucket !== "site") {
-    throw new Error(`Bucket inválido para mídia: ${bucket}`);
-  }
-  if (path.includes("..") || path.startsWith("/") || path.includes("\\")) {
-    throw new Error("Path inválido (traversal ou absoluto).");
-  }
-  const expectedPrefix = `${tenantId}/media/`;
-  if (!path.startsWith(expectedPrefix)) {
-    throw new Error("Path fora do escopo do tenant/domínio permitido.");
-  }
-  const filename = path.slice(expectedPrefix.length);
-  if (!filename || filename.includes("/") || filename.startsWith(".")) {
-    throw new Error("Filename inválido.");
-  }
-}
+const mediaRegistrationResultSchema = z.object({
+  id: z.string().uuid(),
+  tenant_id: z.string().uuid(),
+  arquivo: z.string().min(1),
+  arquivo_medium: z.string().nullable(),
+  arquivo_thumbnail: z.string().nullable(),
+  status: z.literal("consumed"),
+}).strict();
 
 export const registrarMidia = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((raw) =>
     z
       .object({
-        uploadTarget: uploadTargetSchema,
-        arquivo_medium: derivativeTargetSchema.nullable().optional(),
-        arquivo_thumbnail: derivativeTargetSchema.nullable().optional(),
+        uploadTargetId: z.string().uuid(),
+        derivativeTargetIds: z.array(z.string().uuid()).max(2).optional().default([]),
         nome: z.string().min(1).max(300),
         originalFileName: z.string().min(1).max(300).optional(),
         tipo: z.enum(["image", "video", "pdf", "audio", "other"]),
@@ -124,50 +103,42 @@ export const registrarMidia = createServerFn({ method: "POST" })
         tamanho: z.number().int().min(0),
         width: z.number().int().min(0).nullable().optional(),
         height: z.number().int().min(0).nullable().optional(),
-        tags: z.array(z.string()).optional().default([]),
-        descricao: z.string().optional().nullable(),
+        tags: z.array(z.string()).max(100).optional().default([]),
+        descricao: z.string().max(5000).optional().nullable(),
+      })
+      .strict()
+      .superRefine((value, ctx) => {
+        const ids = [value.uploadTargetId, ...value.derivativeTargetIds];
+        if (new Set(ids).size !== ids.length) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Targets derivados duplicados." });
+        }
       })
       .parse(raw),
   )
   .handler(async ({ data, context }) => {
-    const { assertCmsTenantPermission, logCmsAudit } = await import("./_cms");
-    const tenantId = await assertCmsTenantPermission(
-      context,
-      "cms.midias",
-      "criar",
+    const { assertCmsTenantPermission } = await import("./_cms");
+    const tenantId = await assertCmsTenantPermission(context, "cms.midias", "criar");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rawRow, error } = await supabaseAdmin.rpc(
+      "consume_tenant_media_upload_target" as never,
+      {
+        _actor_user_id: context.userId,
+        _tenant_id: tenantId,
+        _tenant_origin: context.tenant.origin,
+        _target_id: data.uploadTargetId,
+        _derivative_target_ids: data.derivativeTargetIds,
+        _name: data.nome,
+        _type: data.tipo,
+        _mime_type: data.mime_type,
+        _size: data.tamanho,
+        _width: data.width ?? null,
+        _height: data.height ?? null,
+        _tags: data.tags,
+        _description: data.descricao ?? null,
+      } as never,
     );
-    const { supabase, userId } = context;
-
-    assertMediaPathSafe(data.uploadTarget.path, tenantId, data.uploadTarget.bucket);
-    if (data.arquivo_medium) {
-      assertMediaPathSafe(data.arquivo_medium.path, tenantId, data.arquivo_medium.bucket);
-    }
-    if (data.arquivo_thumbnail) {
-      assertMediaPathSafe(data.arquivo_thumbnail.path, tenantId, data.arquivo_thumbnail.bucket);
-    }
-
-    const { data: row, error } = await supabase
-      .from("media_library")
-      .insert({
-        tenant_id: tenantId,
-        nome: data.nome,
-        arquivo: data.uploadTarget.path,
-        arquivo_medium: data.arquivo_medium?.path ?? null,
-        arquivo_thumbnail: data.arquivo_thumbnail?.path ?? null,
-        tipo: data.tipo,
-        mime_type: data.mime_type,
-        tamanho: data.tamanho,
-        width: data.width ?? null,
-        height: data.height ?? null,
-        tags: data.tags,
-        descricao: data.descricao ?? null,
-        created_by: userId,
-      })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "media_library", "cms.midia.upload", row.id, null, row);
-    return row;
+    if (error) throw new Error("Falha segura ao consumir o target de mídia.");
+    return mediaRegistrationResultSchema.parse(rawRow);
   });
 
 export const atualizarMidia = createServerFn({ method: "POST" })

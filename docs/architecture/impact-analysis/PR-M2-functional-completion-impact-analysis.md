@@ -13,9 +13,9 @@ IMPLEMENTATION_BRANCH = agent/pr-m2-functional-completion
 PULL_REQUEST = 60
 
 AUDITED_MAIN_HEAD = ec05fd4edee94feabf8423a129154eb807c52a99
-CORRECTIVE_START_HEAD = 14901782b911f7607ca17be541aed1364c60862a
+CORRECTIVE_START_HEAD = be09b190996f512650331206898247a53004c8f8
 EXPECTED_MERGE_BASE = ec05fd4edee94feabf8423a129154eb807c52a99
-EXPECTED_AHEAD_BY = 347
+EXPECTED_AHEAD_BY = 348
 EXPECTED_BEHIND_BY = 0
 
 FINAL_PROTECTED_MERGE_AUDIT = Rejected
@@ -179,7 +179,7 @@ EXTERNAL_PROVIDER_CHANGED = false
 MANAGED_MIGRATION_EXECUTED = false
 ```
 
-A UI de corretores passará a consumir o target e persistir somente o path retornado pela autoridade server-side. O painel CRM receberá upload, listagem, download e exclusão de anexos, sempre por server functions tenant-scoped.
+A UI de corretores passa a consumir o target e persistir somente o path retornado pela autoridade server-side. O painel CRM recebe upload, listagem, download e exclusão de anexos, sempre por server functions tenant-scoped.
 
 ## 5. Compatibilidade e cutover
 
@@ -272,6 +272,16 @@ PR-M2 — Consolidated Protected Merge Blocking Correction
 Estado máximo desta execução:
 
 ```text
-PRM2_BLOCKING_CORRECTION_STATE = Corrected — Ready for Full Protected Merge Audit Rerun
-NEXT_AUTHORIZED_ACTION = PR-M2 — Full Protected Merge Audit Rerun
+BF01_RESOLVED = true
+BF02_RESOLVED = true
+BF03_RESOLVED = true
+STORAGE_PATH_NOT_CLIENT_AUTHORITY = true
+UPLOAD_TARGET_PROVENANCE = true
+BROKER_PHOTO_FUNCTIONAL = true
+CRM_ATTACHMENT_FUNCTIONAL = true
+RLS_AND_GRANTS_PRESERVED = true
+MULTI_TENANT_ISOLATION_PRESERVED = true
+PRM2_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
+FINAL_CORRECTIVE_HEAD = bound by exact-head Release Gate after materialization
+NEXT_AUTHORIZED_ACTION = exact-head validation; Full Protected Merge Audit Rerun only after all gates pass
 ```

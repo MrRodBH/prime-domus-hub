@@ -165,10 +165,25 @@ export const createUploadTarget = createServerFn({ method: "POST" })
         subPath = `${variant}/${storageFileName}`;
         break;
       }
-      case "corretor-foto":
+      case "corretor-foto": {
+        if (!data.entityId || !UUID_RE.test(data.entityId)) {
+          throw new Error("entityId (corretor) obrigatório e inválido");
+        }
+        const { data: rows, error } = await supabase
+          .from("corretores")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("id", data.entityId)
+          .limit(2);
+        if (error) throw new Error(error.message);
+        if ((rows ?? []).length !== 1) {
+          throw new Error("Corretor inexistente, ambíguo ou fora do tenant efetivo");
+        }
+        entityId = data.entityId;
         bucket = "site";
-        subPath = `corretores/${storageFileName}`;
+        subPath = `corretores/${entityId}/${storageFileName}`;
         break;
+      }
       case "media":
         bucket = "site";
         subPath = `media/${storageFileName}`;

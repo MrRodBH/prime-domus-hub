@@ -276,7 +276,6 @@ const postSchema = z.object({
   slug: z.string().trim().min(2).max(200),
   resumo: z.string().max(2000).optional().nullable(),
   conteudo: z.string().max(200000).default(""),
-  imagem_capa: z.string().max(512).optional().nullable(),
   categoria_id: z.string().uuid().optional().nullable(),
   autor_id: z.string().uuid().optional().nullable(),
   status: z.enum(["rascunho", "publicado"]).default("rascunho"),

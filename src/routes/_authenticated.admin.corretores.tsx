@@ -5,11 +5,11 @@ import {
   adminListarCorretores,
   adminSalvarCorretor,
   adminExcluirCorretor,
-  adminAssinarUrl,
 } from "@/lib/api/admin.functions";
 import { listarEquipes } from "@/lib/api/rbac.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { createUploadTarget } from "@/lib/api/uploads.functions";
+import { consumeTenantBrokerPhotoUploadTarget } from "@/lib/api/tenant-broker-directory.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,7 +72,6 @@ function brokerPayload(form: BrokerForm) {
     whatsapp: form.whatsapp || null,
     cargo: form.cargo || null,
     bio: form.bio || null,
-    foto_url: form.foto_url || null,
     ativo: form.ativo,
     status: form.status,
     team_id: form.team_id,
@@ -110,14 +109,19 @@ function BrokerDirectoryPage() {
   async function uploadPhoto(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file || !editing) return;
+    if (!editing.id) {
+      toast.error("Salve o registro profissional antes de enviar a foto.");
+      return;
+    }
     setUploading(true);
     try {
-      const target = await createUploadTarget({ data: { domain: "corretor-foto", originalFileName: file.name, mimeType: file.type, size: file.size } });
+      const target = await createUploadTarget({ data: { domain: "corretor-foto", entityId: editing.id, originalFileName: file.name, mimeType: file.type, size: file.size } });
       const { error } = await supabase.storage.from(target.bucket).upload(target.path, file, { upsert: false });
       if (error) throw error;
-      const signed = await adminAssinarUrl({ data: { bucket: target.bucket, path: target.path, width: 600, quality: 85 } });
-      setEditing({ ...editing, foto_url: signed.url });
-      toast.success("Foto enviada.");
+      const consumed = await consumeTenantBrokerPhotoUploadTarget({ data: { brokerId: editing.id, uploadTargetId: target.targetId } });
+      setEditing({ ...editing, foto_url: consumed.previewUrl ?? editing.foto_url });
+      void qc.invalidateQueries({ queryKey: ["admin", "corretores"] });
+      toast.success("Foto enviada e registrada.");
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -174,7 +178,7 @@ function BrokerDirectoryPage() {
                     <div className="mt-1 flex items-center gap-3">
                       {editing.foto_url ? <img src={editing.foto_url} alt="Foto do corretor" className="size-16 rounded-full border object-cover" /> : <div className="size-16 rounded-full border bg-muted" />}
                       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadPhoto} />
-                      <Button type="button" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>{uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />} Enviar foto</Button>
+                      <Button type="button" variant="outline" disabled={uploading || !editing.id} onClick={() => fileRef.current?.click()}>{uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />} Enviar foto</Button>
                     </div>
                   </div>
                   <Button type="submit" disabled={save.isPending || uploading}>Salvar registro</Button>
@@ -201,7 +205,7 @@ function BrokerDirectoryPage() {
                   <TableCell>{broker.creci ?? "—"}</TableCell>
                   <TableCell>{(teams.data ?? []).find((team) => team.id === broker.team_id)?.nome ?? "—"}</TableCell>
                   <TableCell><Badge variant={broker.ativo ? "default" : "secondary"}>{broker.status ?? (broker.ativo ? "ativo" : "inativo")}</Badge></TableCell>
-                  <TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={() => { setEditing({ ...emptyForm(), id: broker.id, nome: broker.nome ?? "", sobrenome: broker.sobrenome ?? "", cpf: broker.cpf ?? "", creci: broker.creci ?? "", email: broker.email ?? "", telefone: broker.telefone ?? "", whatsapp: broker.whatsapp ?? "", cargo: broker.cargo ?? "", bio: broker.bio ?? "", foto_url: broker.foto_url ?? "", ativo: Boolean(broker.ativo), status: broker.status ?? (broker.ativo ? "ativo" : "inativo"), team_id: broker.team_id ?? null, user_id: broker.user_id ?? null }); setOpen(true); }}><Pencil className="size-4" /></Button>{broker.ativo ? <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Arquivar o registro de ${broker.nome}? O login não será removido.`)) archive.mutate(broker.id); }}><Archive className="size-4 text-destructive" /></Button> : null}</div></TableCell>
+                  <TableCell><div className="flex justify-end gap-1"><Button size="icon" variant="ghost" onClick={() => { setEditing({ ...emptyForm(), id: broker.id, nome: broker.nome ?? "", sobrenome: broker.sobrenome ?? "", cpf: broker.cpf ?? "", creci: broker.creci ?? "", email: broker.email ?? "", telefone: broker.telefone ?? "", whatsapp: broker.whatsapp ?? "", cargo: broker.cargo ?? "", bio: broker.bio ?? "", foto_url: broker.foto_preview_url ?? "", ativo: Boolean(broker.ativo), status: broker.status ?? (broker.ativo ? "ativo" : "inativo"), team_id: broker.team_id ?? null, user_id: broker.user_id ?? null }); setOpen(true); }}><Pencil className="size-4" /></Button>{broker.ativo ? <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Arquivar o registro de ${broker.nome}? O login não será removido.`)) archive.mutate(broker.id); }}><Archive className="size-4 text-destructive" /></Button> : null}</div></TableCell>
                 </TableRow>
               ))}
               {!brokers.data?.length ? <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">Nenhum corretor cadastrado.</TableCell></TableRow> : null}

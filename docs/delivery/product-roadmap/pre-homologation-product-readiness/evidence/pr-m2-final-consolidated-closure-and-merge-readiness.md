@@ -1,3 +1,23 @@
+# Current authority override — PR-M2 Blocking Correction
+
+```text
+CURRENT_AUTHORITY_STATE = Blocking Correction Implemented — Exact-Head Gate Required
+CORRECTIVE_START_HEAD = be09b190996f512650331206898247a53004c8f8
+AUDITED_MAIN_HEAD = ec05fd4edee94feabf8423a129154eb807c52a99
+BF01_RESOLVED = true
+BF02_RESOLVED = true
+BF03_RESOLVED = true
+DIFF_CHECK_PASSED = pending_exact_head_gate
+REQUIRED_CHECKS_SUCCESS = pending_exact_head_gate
+FULL_DIFF_ARTIFACT_VALID = pending_exact_head_gate
+FINAL_CORRECTIVE_HEAD = bound externally after materialization
+PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = false
+PRM2_MERGE_AUTHORIZED = false
+MERGE_EXECUTED = false
+```
+
+The previous closure below is retained as historical evidence and was superseded by the rejected Full Protected Merge Audit.
+
 # PR-M2 — Final Consolidated Closure and Merge Readiness
 
 ## 1. Authority, scope and terminal state
@@ -11,8 +31,8 @@ BASE_BRANCH = main
 IMPLEMENTATION_BRANCH = agent/pr-m2-functional-completion
 PULL_REQUEST = 60
 
-PRM2_FINAL_CLOSURE_STATE = Accepted — Ready for Protected Merge Audit
-PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = true
+HISTORICAL_PRM2_FINAL_CLOSURE_STATE = Accepted — Ready for Protected Merge Audit — Superseded
+PRM2_HISTORICAL_PROTECTED_MERGE_AUDIT_AUTHORIZED = true — Superseded
 PRM2_MERGE_AUTHORIZED = false
 MERGE_EXECUTED = false
 AUTO_MERGE_ENABLED = false
@@ -22,7 +42,7 @@ EXTERNAL_PROVIDER_EXECUTED = false
 DCA01_START_AUTHORIZED = false
 BCA01_START_AUTHORIZED = false
 PRM3_START_AUTHORIZED = false
-NEXT_AUTHORIZED_ACTION = PR-M2 — Protected Merge Audit
+HISTORICAL_NEXT_ACTION = PR-M2 — Protected Merge Audit — Superseded
 ```
 
 This evidence closes only the PR-M2 implementation and merge-readiness audit boundary. It does not execute or authorize merge, auto-merge, deploy, managed-backend migration, real credentials, live provider execution, DCA-01, BCA-01, PR-M3, Release Candidate, homologation or production.
@@ -335,7 +355,7 @@ The final review did not treat a green gate as automatic acceptance. It directly
 CRITICAL_REVIEW_RESULT = approved
 UNRESOLVED_BLOCKER_COUNT = 0
 MERGE_READINESS = ready_for_separate_protected_merge_audit
-PROTECTED_MERGE_AUDIT_AUTHORIZED = true
+HISTORICAL_PROTECTED_MERGE_AUDIT_AUTHORIZED = true — Superseded
 MERGE_AUTHORIZED = false
 ```
 
@@ -378,8 +398,8 @@ No successor stage was started by this closure.
 ## 16. Terminal declaration
 
 ```text
-PRM2_FINAL_CLOSURE_STATE = Accepted — Ready for Protected Merge Audit
-PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = true
+HISTORICAL_PRM2_FINAL_CLOSURE_STATE = Accepted — Ready for Protected Merge Audit — Superseded
+PRM2_HISTORICAL_PROTECTED_MERGE_AUDIT_AUTHORIZED = true — Superseded
 PRM2_MERGE_AUTHORIZED = false
 MERGE_EXECUTED = false
 AUTO_MERGE_ENABLED = false
@@ -388,5 +408,5 @@ MANAGED_MIGRATION_EXECUTED = false
 DCA01_START_AUTHORIZED = false
 BCA01_START_AUTHORIZED = false
 PRM3_START_AUTHORIZED = false
-NEXT_AUTHORIZED_ACTION = PR-M2 — Protected Merge Audit
+HISTORICAL_NEXT_ACTION = PR-M2 — Protected Merge Audit — Superseded
 ```

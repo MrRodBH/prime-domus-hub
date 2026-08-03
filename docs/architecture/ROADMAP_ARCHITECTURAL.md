@@ -1,10 +1,10 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — PR-M2 Functional Completion corrigida e pronta para repetição da Protected Merge Audit; merge não autorizado  
-**Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
-**Main auditada:** `ec05fd4edee94feabf8423a129154eb807c52a99`  
-**Branch de implementação:** `agent/pr-m2-functional-completion`  
-**HEAD de entrada da correção premerge:** `ba737b82cd878d83f539a6142db5612962421e29`  
+**Status:** Ratificado — PR-M2 blocking correction implementada; exact-head gate obrigatório antes da Full Protected Merge Audit Rerun
+**Autoridade:** Single Source of Future Evolution do RM Prime SaaS
+**Main auditada:** `ec05fd4edee94feabf8423a129154eb807c52a99`
+**Branch de implementação:** `agent/pr-m2-functional-completion`
+**HEAD de início da blocking correction:** `be09b190996f512650331206898247a53004c8f8`
 **Executor:** ChatGPT GitHub-native
 
 ## 1. Estado vinculante atual
@@ -19,10 +19,13 @@ PULL_REQUEST = 60
 PRM2_IMPLEMENTATION_AUTHORIZED = true
 PRM2_IMPLEMENTATION_STARTED = true
 PRM2_IMPLEMENTATION_COMPLETED = true
-PRM2_FINAL_CLOSURE_STATE = Accepted — Ready for Protected Merge Audit
-PRM2_PREMERGE_CORRECTION_STATE = Corrected — Ready for Protected Merge Audit Rerun
+PRM2_FINAL_CLOSURE_STATE = Historical — Superseded by Rejected Full Protected Merge Audit
+PRM2_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
+BF01_RESOLVED = true
+BF02_RESOLVED = true
+BF03_RESOLVED = true
 
-PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = true
+PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = false
 PRM2_PROTECTED_MERGE_EXECUTION_AUTHORIZED = false
 PRM2_MERGE_AUTHORIZED = false
 PRM2_MERGED = false
@@ -37,7 +40,7 @@ BCA01_START_AUTHORIZED = false
 PRM3_START_AUTHORIZED = false
 ```
 
-A implementação funcional está tecnicamente concluída no PR #60. A primeira Protected Merge Audit não rejeitou a implementação, mas bloqueou o merge até a reconciliação das autoridades documentais e a materialização de evidência integral auditável do diff. Esta correção resolve exclusivamente esses dois bloqueios e não autoriza merge.
+A Full Protected Merge Audit rejeitou o estado anterior por três bloqueios materiais: raw client path authority, foto de corretor sem consumer atômico e CRM Attachments sem boundary funcional. A blocking correction materializa essas três correções e não autoriza merge. O exact-head Release Gate e o artifact integral permanecem predecessores obrigatórios da nova auditoria.
 
 ## 2. Proteção vinculante de `main`
 
@@ -105,7 +108,7 @@ O ruleset é predecessor obrigatório desta correção. Nenhuma nova criação, 
 | HRI-01 | Accepted / Closed |
 | RPD-01 | Accepted / Closed |
 | PR-M2 Pre-Principal Planning Gate | Accepted / Merged |
-| PR-M2 Functional Completion | Corrected — Ready for Protected Merge Audit Rerun |
+| PR-M2 Functional Completion | Blocking Correction Implemented — Exact-Head Gate Required |
 | DCA-01 | Planned — Blocked by protected merge of PR-M2 |
 | BCA-01 | Planned — Blocked by DCA-01 |
 | PR-M3 | Planned — Blocked by BCA-01 |
@@ -121,7 +124,7 @@ Estados `Accepted`, `Rejected`, `Superseded`, `Closed` ou históricos não recup
 ## 5. Caminho crítico executável
 
 ```text
-PR-M2 — Functional Completion
+PR-M2 — Blocking Correction exact-head gate
 → PR-M2 — Full Protected Merge Audit Rerun
 → protected merge somente após autorização separada
 → DCA-01 — Domain & Cloudflare Activation
@@ -135,7 +138,7 @@ PR-M2 — Functional Completion
 → Production
 ```
 
-A única próxima ação após o exact-head Release Gate desta correção é a repetição integral da Protected Merge Audit. O merge não é automático e permanece condicionado a autorização posterior do Product Owner.
+A única próxima ação após sucesso comprovado do exact-head Release Gate e validação do artifact integral é a repetição integral da Full Protected Merge Audit. O merge não é automático e permanece condicionado a autorização posterior do Product Owner.
 
 ## 6. PR-M2 — resultado corrente
 
@@ -195,10 +198,16 @@ Esse snapshot é evidência temporal, não autoridade vigente contra as decisõe
 ## 9. Estado máximo após esta correção
 
 ```text
-PRM2_PREMERGE_CORRECTION_STATE = Corrected — Ready for Protected Merge Audit Rerun
-PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = true
+PRM2_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
+BF01_RESOLVED = true
+BF02_RESOLVED = true
+BF03_RESOLVED = true
+DIFF_CHECK_PASSED = pending_exact_head_gate
+REQUIRED_CHECKS_SUCCESS = pending_exact_head_gate
+FULL_DIFF_ARTIFACT_VALID = pending_exact_head_gate
+PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = false
 PRM2_PROTECTED_MERGE_EXECUTION_AUTHORIZED = false
 PRM2_MERGE_AUTHORIZED = false
 MERGE_EXECUTED = false
-NEXT_AUTHORIZED_ACTION = PR-M2 — Full Protected Merge Audit Rerun
+NEXT_AUTHORIZED_ACTION = exact-head validation; authorize Full Protected Merge Audit Rerun only after all gates pass
 ```

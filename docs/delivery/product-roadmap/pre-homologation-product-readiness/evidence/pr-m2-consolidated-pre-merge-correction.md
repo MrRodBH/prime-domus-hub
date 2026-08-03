@@ -12,12 +12,12 @@ BASE_BRANCH = main
 IMPLEMENTATION_BRANCH = agent/pr-m2-functional-completion
 PULL_REQUEST = 60
 
-CORRECTION_START_HEAD = ba737b82cd878d83f539a6142db5612962421e29
+CORRECTION_START_HEAD = be09b190996f512650331206898247a53004c8f8
 AUDITED_MAIN_HEAD = ec05fd4edee94feabf8423a129154eb807c52a99
 EXPECTED_MERGE_BASE = ec05fd4edee94feabf8423a129154eb807c52a99
 
 CORRECTION_SCOPE =
-canonical_authority_reconciliation_and_full_diff_evidence
+storage_provenance_dual_path_retirement_broker_photo_crm_attachments_and_full_diff_evidence
 ```
 
 Não é registrado `FINAL_HEAD` autorreferencial. O HEAD final e os resultados do gate são vinculados externamente pelos runs do GitHub Actions.
@@ -62,9 +62,9 @@ PR_MERGED = false
 PR_MERGEABLE = true
 
 MAIN_HEAD = ec05fd4edee94feabf8423a129154eb807c52a99
-PR_HEAD = ba737b82cd878d83f539a6142db5612962421e29
+PR_HEAD_AT_CORRECTION_START = be09b190996f512650331206898247a53004c8f8
 MERGE_BASE = ec05fd4edee94feabf8423a129154eb807c52a99
-AHEAD_BY = 339
+AHEAD_BY_AT_CORRECTION_START = 348
 BEHIND_BY = 0
 LINEAR_ANCESTRY = true
 ```
@@ -81,13 +81,13 @@ docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m2-
 ```
 
 ```text
-RUNTIME_CHANGED = false
-FRONTEND_CHANGED = false
-MIGRATION_CHANGED = false
+RUNTIME_CHANGED = true
+FRONTEND_CHANGED = true
+MIGRATION_CHANGED = true
 HISTORICAL_MIGRATION_CHANGED = false
 RLS_CHANGED = false
 POLICY_CHANGED = false
-GRANT_CHANGED = false
+GRANT_CHANGED = true — service-role-only RPC ACLs
 DEPENDENCY_CHANGED = false
 LOCKFILE_CHANGED = false
 MANAGED_BACKEND_CHANGED = false
@@ -104,8 +104,11 @@ HISTORICAL_PLANNING_STATE_MARKED_SUPERSEDED = true
 PRM2_IMPLEMENTATION_AUTHORIZED_CURRENT = true
 PRM2_IMPLEMENTATION_EXECUTED_CURRENT = true
 PRM2_IMPLEMENTATION_COMPLETED_CURRENT = true
-PRM2_FINAL_CLOSURE_STATE = Accepted — Ready for Protected Merge Audit
-CURRENT_PREMERGE_STATE = Corrected — Ready for Protected Merge Audit Rerun
+PRM2_FINAL_CLOSURE_STATE = Historical — Superseded by Rejected Full Protected Merge Audit
+CURRENT_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
+BF01_RESOLVED = true
+BF02_RESOLVED = true
+BF03_RESOLVED = true
 ```
 
 A matriz original de 248 capacidades e os envelopes de planejamento são preservados integralmente no commit imutável `ba737b82cd878d83f539a6142db5612962421e29` e incorporados por referência, sem reclassificação retroativa.
@@ -194,11 +197,14 @@ PRM3_START_AUTHORIZED = false
 ## 9. Estado máximo
 
 ```text
-PRM2_PREMERGE_CORRECTION_STATE = Corrected — Ready for Protected Merge Audit Rerun
-PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = true
+PRM2_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
+DIFF_CHECK_PASSED = pending_exact_head_gate
+REQUIRED_CHECKS_SUCCESS = pending_exact_head_gate
+FULL_DIFF_ARTIFACT_VALID = pending_exact_head_gate
+PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = false
 PRM2_PROTECTED_MERGE_EXECUTION_AUTHORIZED = false
 PRM2_MERGE_AUTHORIZED = false
 MERGE_EXECUTED = false
-READY_FOR_PROTECTED_MERGE_AUDIT_RERUN = true
-NEXT_AUTHORIZED_ACTION = PR-M2 — Full Protected Merge Audit Rerun
+READY_FOR_PROTECTED_MERGE_AUDIT_RERUN = pending_exact_head_gate
+NEXT_AUTHORIZED_ACTION = exact-head validation; Full Protected Merge Audit Rerun remains gated
 ```

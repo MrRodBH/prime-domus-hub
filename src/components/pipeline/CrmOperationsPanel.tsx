@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Clock3, ListTodo, Loader2, Plus, RefreshCw, Save, Search, Tags, UserRound } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock3, Download, ListTodo, Loader2, Paperclip, Plus, RefreshCw, Save, Search, Tags, Trash2, Upload, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,14 @@ import {
   type CrmTaskDto,
 } from "@/lib/api/tenant-crm.functions";
 import { listTenantCrmTags } from "@/lib/api/tenant-crm-management.functions";
+import {
+  consumeTenantCrmAttachmentUploadTarget,
+  deleteTenantCrmAttachment,
+  getTenantCrmAttachmentDownloadUrl,
+  listTenantCrmAttachments,
+} from "@/lib/api/tenant-crm-functional.functions";
+import { createUploadTarget } from "@/lib/api/uploads.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { QUALIFICATION_KEYS, TASK_TYPE_KEYS, type QualificationKey, type TaskTypeKey } from "@/lib/crm/crm-registry";
 
 type OperationState =
@@ -88,6 +96,7 @@ export function CrmOperationsPanel({ leadId }: { leadId: string }) {
   const [note, setNote] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [duplicatesEnabled, setDuplicatesEnabled] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const aggregateQuery = useQuery({
     queryKey: ["crm", "lead-aggregate", leadId],
@@ -105,6 +114,10 @@ export function CrmOperationsPanel({ leadId }: { leadId: string }) {
     queryKey: ["crm", "duplicates", leadId],
     queryFn: () => findTenantLeadDuplicateCandidates({ data: { leadId } }),
     enabled: duplicatesEnabled,
+  });
+  const attachmentsQuery = useQuery({
+    queryKey: ["crm", "attachments", leadId],
+    queryFn: () => listTenantCrmAttachments({ data: { leadId } }),
   });
 
   const aggregate = aggregateQuery.data;
@@ -283,6 +296,54 @@ export function CrmOperationsPanel({ leadId }: { leadId: string }) {
     },
   });
 
+  const attachmentUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const target = await createUploadTarget({
+        data: {
+          domain: "crm-attachment",
+          entityId: leadId,
+          originalFileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          size: file.size,
+        },
+      });
+      const { error } = await supabase.storage.from(target.bucket).upload(target.path, file, { upsert: false });
+      if (error) throw error;
+      return consumeTenantCrmAttachmentUploadTarget({
+        data: {
+          leadId,
+          uploadTargetId: target.targetId,
+          displayName: file.name,
+          mimeType: file.type || null,
+          size: file.size,
+        },
+      });
+    },
+    onSuccess: async () => {
+      toast.success("Anexo registrado com provenance server-side.");
+      await queryClient.invalidateQueries({ queryKey: ["crm", "attachments", leadId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+    onSettled: () => {
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    },
+  });
+
+  const attachmentDownloadMutation = useMutation({
+    mutationFn: (attachmentId: string) => getTenantCrmAttachmentDownloadUrl({ data: { attachmentId } }),
+    onSuccess: ({ url }) => window.open(url, "_blank", "noopener,noreferrer"),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const attachmentDeleteMutation = useMutation({
+    mutationFn: (attachmentId: string) => deleteTenantCrmAttachment({ data: { attachmentId } }),
+    onSuccess: async () => {
+      toast.success("Anexo excluído.");
+      await queryClient.invalidateQueries({ queryKey: ["crm", "attachments", leadId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const overdueTaskIds = useMemo(() => new Set(
     (aggregate?.tasks ?? [])
       .filter((task) => task.due_at && ["open", "in_progress"].includes(task.status) && new Date(task.due_at).getTime() < Date.now())
@@ -311,7 +372,7 @@ export function CrmOperationsPanel({ leadId }: { leadId: string }) {
       <div className="flex items-center justify-between gap-3 border-b border-foreground/10 px-4 py-3">
         <div>
           <h3 className="text-sm font-semibold">Operação CRM</h3>
-          <p className="text-xs text-muted-foreground">Pipeline, assignment, tarefas, timeline, tags e diagnósticos.</p>
+          <p className="text-xs text-muted-foreground">Pipeline, assignment, tarefas, anexos, timeline, tags e diagnósticos.</p>
         </div>
         <span className="rounded-full bg-muted px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
           {stateLabel(operationState)}
@@ -401,6 +462,53 @@ export function CrmOperationsPanel({ leadId }: { leadId: string }) {
                           <Button size="sm" variant="outline" onClick={() => taskTransitionMutation.mutate({ task, status: "open" })}>Reabrir</Button>
                         )}
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </OperationBlock>
+
+          <OperationBlock title="Anexos" icon={<Paperclip className="h-4 w-4" />}>
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) attachmentUploadMutation.mutate(file);
+              }}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => attachmentInputRef.current?.click()}
+              disabled={attachmentUploadMutation.isPending}
+            >
+              {attachmentUploadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Enviar anexo
+            </Button>
+            {attachmentsQuery.isPending ? (
+              <p className="mt-2 text-xs text-muted-foreground">Carregando anexos…</p>
+            ) : attachmentsQuery.isError ? (
+              <p className="mt-2 text-xs text-destructive">Falha ao carregar anexos.</p>
+            ) : (attachmentsQuery.data ?? []).length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground" data-crm-state="empty">Nenhum anexo.</p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                {(attachmentsQuery.data ?? []).map((attachment) => (
+                  <div key={attachment.id} className="flex items-center justify-between gap-2 rounded-md border border-foreground/10 p-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-medium">{attachment.display_name}</div>
+                      <div className="text-[11px] text-muted-foreground">{attachment.mime_type ?? "arquivo"} · {Number(attachment.size ?? 0).toLocaleString("pt-BR")} bytes</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => attachmentDownloadMutation.mutate(attachment.id)} disabled={attachmentDownloadMutation.isPending}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => attachmentDeleteMutation.mutate(attachment.id)} disabled={attachmentDeleteMutation.isPending}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
                 ))}

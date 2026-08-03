@@ -10,7 +10,7 @@ export const UPLOAD_DOMAINS = [
   "blog-cover",         // bucket "site"         → {tid}/blog/{file}
   "blog-inline",        // bucket "site"         → {tid}/blog/inline/{file}
   "cms-page",           // bucket "site"         → {tid}/{pageVariant}/{file}
-  "corretor-foto",      // bucket "site"         → {tid}/corretores/{file}
+  "corretor-foto",      // bucket "site"         → {tid}/corretores/{brokerId}/{file}
   "media",              // bucket "site"         → {tid}/media/{file}
   "crm-attachment",     // bucket "site"         → {tid}/crm/{leadId}/{file}
 ] as const;
@@ -23,7 +23,7 @@ export type CreateUploadTargetInput = {
   originalFileName: string;
   mimeType?: string | null;
   size?: number | null;
-  /** Necessário para domínios ligados a uma entidade. */
+  /** Obrigatório para domínios ligados a uma entidade, inclusive broker e CRM. */
   entityId?: string | null;
   /** Sub-tipo controlado, como pdfKind ou pageVariant. */
   variant?: string | null;
@@ -32,6 +32,7 @@ export type CreateUploadTargetInput = {
 /**
  * Instrução controlada devolvida pelo servidor.
  * `targetId` é a única autoridade aceita no registro final de metadata.
+ * Bucket/path/filename nunca retornam ao boundary final de persistência.
  * `path` e `bucket` são dados de transporte para o upload, não autorização.
  */
 export type CreateUploadTargetResult = {

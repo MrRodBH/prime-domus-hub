@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requireTenantScopedAuthority } from "@/lib/api/tenant-scoped-authority";
+import { SIGNED_URL_TTL_PREVIEW_SECONDS, validateTenantSignRequest } from "@/lib/storage/signed-url";
 import {
   authorizeTenantAccessControlOperation,
   trustedTenantAccessContext,
@@ -20,6 +21,7 @@ export type BrokerDirectoryView = {
   telefone: string | null;
   whatsapp: string | null;
   foto_url: string | null;
+  foto_preview_url: string | null;
   status: "ativo" | "inativo" | "bloqueado" | "pendente";
   creci: string | null;
   cpf: string | null;
@@ -58,7 +60,6 @@ const brokerSchema = z.object({
   whatsapp: z.string().trim().max(40).optional().nullable(),
   cargo: z.string().trim().max(120).optional().nullable(),
   bio: z.string().trim().max(5000).optional().nullable(),
-  foto_url: z.string().trim().max(2000).optional().nullable(),
   ativo: z.boolean().optional().default(true),
   status: z.enum(["ativo", "inativo", "bloqueado", "pendente"]).optional().default("ativo"),
   team_id: z.string().uuid().optional().nullable(),
@@ -75,7 +76,19 @@ export const adminListarCorretores = createServerFn({ method: "GET" })
       .eq("tenant_id", tenantId)
       .order("nome", { ascending: true });
     if (error) throw new Error("Falha ao listar o diretório de corretores.");
-    return (data ?? []) as BrokerDirectoryView[];
+    const rows = (data ?? []) as Array<Omit<BrokerDirectoryView, "foto_preview_url">>;
+    return Promise.all(rows.map(async (row) => {
+      if (!row.foto_url) return { ...row, foto_preview_url: null };
+      try {
+        const { bucket, path } = validateTenantSignRequest({ bucket: "site", path: row.foto_url, tenantId });
+        const { data: signed, error: signError } = await supabaseAdmin.storage
+          .from(bucket)
+          .createSignedUrl(path, SIGNED_URL_TTL_PREVIEW_SECONDS);
+        return { ...row, foto_preview_url: signError ? null : signed?.signedUrl ?? null };
+      } catch {
+        return { ...row, foto_preview_url: null };
+      }
+    }));
   });
 
 export const adminSalvarCorretor = createServerFn({ method: "POST" })
@@ -111,7 +124,6 @@ export const adminSalvarCorretor = createServerFn({ method: "POST" })
       whatsapp: data.whatsapp ?? null,
       cargo: data.cargo ?? null,
       bio: data.bio ?? null,
-      foto_url: data.foto_url ?? null,
       ativo: data.ativo,
       status: data.status,
       team_id: data.team_id ?? null,
@@ -151,4 +163,36 @@ export const adminExcluirCorretor = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error("Falha ao arquivar o corretor.");
     return { ok: true, archived: true, authUserDeleted: false, membershipChanged: false };
+  });
+
+const brokerPhotoResultSchema = z.object({
+  brokerId: z.string().uuid(),
+  path: z.string().min(1),
+  status: z.literal("consumed"),
+}).strict();
+
+export const consumeTenantBrokerPhotoUploadTarget = createServerFn({ method: "POST" })
+  .middleware([requireTenant])
+  .inputValidator(z.object({ brokerId: z.string().uuid(), uploadTargetId: z.string().uuid() }).strict())
+  .handler(async ({ context, data }) => {
+    const tenantId = requireTenantScopedAuthority(context.tenant, "Broker Photo");
+    await authorizeTenantAccessControlOperation(trustedTenantAccessContext(context));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rawResult, error } = await supabaseAdmin.rpc(
+      "consume_tenant_broker_photo_upload_target" as never,
+      {
+        _actor_user_id: context.userId,
+        _tenant_id: tenantId,
+        _tenant_origin: context.tenant.origin,
+        _target_id: data.uploadTargetId,
+        _broker_id: data.brokerId,
+      } as never,
+    );
+    if (error) throw new Error("Falha segura ao consumir a foto do corretor.");
+    const result = brokerPhotoResultSchema.parse(rawResult);
+    const { bucket, path } = validateTenantSignRequest({ bucket: "site", path: result.path, tenantId });
+    const { data: signed, error: signError } = await supabaseAdmin.storage
+      .from(bucket)
+      .createSignedUrl(path, SIGNED_URL_TTL_PREVIEW_SECONDS);
+    return { ...result, previewUrl: signError ? null : signed?.signedUrl ?? null };
   });

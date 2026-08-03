@@ -100,9 +100,9 @@ const projectSchema = z.object({
   endereco: z.string().max(1000).nullable().optional(), cidade_id: z.string().uuid().nullable().optional(), bairro_id: z.string().uuid().nullable().optional(),
   arquitetura: z.string().max(300).nullable().optional(), numero_unidades: z.number().int().nullable().optional(), numero_torres: z.number().int().nullable().optional(),
   unidades_por_andar: z.number().int().nullable().optional(), numero_andares: z.number().int().nullable().optional(), elevadores: z.number().int().nullable().optional(),
-  corretor_id: z.string().uuid().nullable().optional(), imagem_capa: z.string().max(512).nullable().optional(), video_url: z.string().max(1000).nullable().optional(),
+  corretor_id: z.string().uuid().nullable().optional(), video_url: z.string().max(1000).nullable().optional(),
   publicado: z.boolean().default(false), destaque: z.boolean().default(false), meta_title: z.string().max(60).nullable().optional(),
-  meta_description: z.string().max(160).nullable().optional(), og_image: z.string().max(512).nullable().optional(),
+  meta_description: z.string().max(160).nullable().optional(),
   amenity_ids: z.array(z.string().uuid()).max(100).default([]),
 }).strict();
 
