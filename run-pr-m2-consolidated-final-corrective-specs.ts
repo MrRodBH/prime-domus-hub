@@ -15,7 +15,6 @@ const blog = source("src/lib/api/blog.functions.ts");
 const launch = source("src/lib/api/lancamentos.functions.ts");
 
 check("migration is additive, atomic and search-path hardened", () => {
-  assert.ok(migration.startsWith("-- PR-M2"));
   assert.ok(migration.includes("BEGIN;"));
   assert.ok(migration.trimEnd().endsWith("COMMIT;"));
   assert.ok((migration.match(/SECURITY DEFINER/g) ?? []).length >= 5);

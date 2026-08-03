@@ -21,7 +21,7 @@ check("all five attachment boundaries are materialized", () => {
     "consumeTenantCrmAttachmentUploadTarget", "listTenantCrmAttachments",
     "getTenantCrmAttachmentDownloadUrl", "deleteTenantCrmAttachment",
   ]) assert.ok(functions.includes(token), token);
-  for (const token of ["createUploadTarget", 'domain: "crm-attachment"', "uploadTargetId: target.targetId", "Baixar", "Excluir"]) assert.ok(panel.includes(token), token);
+  for (const token of ["createUploadTarget", 'domain: "crm-attachment"', "uploadTargetId: target.targetId", "Download", "Trash2"]) assert.ok(panel.includes(token), token);
 });
 
 check("CRM boundaries never accept caller bucket or path authority", () => {
