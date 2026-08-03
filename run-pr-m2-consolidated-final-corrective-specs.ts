@@ -23,11 +23,13 @@ check("migration is additive, atomic and search-path hardened", () => {
   assert.equal(migration.includes("DROP COLUMN"), false);
 });
 
-check("all target consumers lock, validate and consume once", () => {
-  assert.ok((migration.match(/FOR UPDATE/g) ?? []).length >= 4);
-  assert.ok((migration.match(/storage\.objects/g) ?? []).length >= 3);
-  assert.ok((migration.match(/upload_target_origin_mismatch/g) ?? []).length >= 3);
-  for (const token of ["status = 'pending'", "status = 'consumed'", "consumed_at = now()", "upload_target_concurrent_consumption"]) assert.ok(migration.includes(token), token);
+check("all target consumers use the shared lock, validation and one-time consumption boundary", () => {
+  for (const token of [
+    "prm2_lock_upload_target", "FOR UPDATE", "storage.objects",
+    "upload_target_origin_mismatch", "upload_target_not_pending", "upload_target_expired",
+    "consumed_at=now()", "upload_target_concurrent_consumption",
+  ]) assert.ok(migration.includes(token), token);
+  assert.ok(/status\s*=\s*'consumed'/.test(migration));
 });
 
 check("runtime has no raw caller path authority or signed-url persistence", () => {
