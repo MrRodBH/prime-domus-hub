@@ -10,6 +10,10 @@ on:
         description: Exact PR branch SHA to validate
         required: true
         type: string
+      expected_base_sha:
+        description: Exact base SHA and required merge base
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -29,50 +33,115 @@ jobs:
       VITE_SUPABASE_URL: https://example.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
       CRON_SECRET: ci-placeholder-secret
+
     steps:
-      - name: Resolve exact expected head
+      - name: Resolve exact expected refs
         id: expected
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            sha="${{ github.event.pull_request.head.sha }}"
-          else
-            sha="${{ github.event.inputs.expected_sha }}"
-          fi
-          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "Invalid expected SHA: $sha" >&2
-            exit 1
-          fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout exact pull request head
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            head_sha="${{ github.event.pull_request.head.sha }}"
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            pr_number="${{ github.event.pull_request.number }}"
+          else
+            head_sha="${{ github.event.inputs.expected_sha }}"
+            base_sha="${{ github.event.inputs.expected_base_sha }}"
+            pr_number="manual"
+          fi
+
+          for value in "$head_sha" "$base_sha"; do
+            if [[ ! "$value" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Invalid SHA: $value" >&2
+              exit 1
+            fi
+          done
+
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact pull request head with complete history
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.expected.outputs.sha }}
-          fetch-depth: 1
+          ref: ${{ steps.expected.outputs.head_sha }}
+          fetch-depth: 0
 
-      - name: Verify exact detached head and prohibit merge ref
+      - name: Verify exact detached head, ancestry and prohibit merge ref
+        id: ancestry
         shell: bash
         run: |
           set -euo pipefail
-          expected="${{ steps.expected.outputs.sha }}"
-          checked_out="$(git rev-parse HEAD)"
+
+          head_sha="${{ steps.expected.outputs.head_sha }}"
+          base_sha="${{ steps.expected.outputs.base_sha }}"
+          pr_number="${{ steps.expected.outputs.pr_number }}"
+          checked_out_sha="$(git rev-parse HEAD)"
           symbolic_ref="$(git symbolic-ref -q HEAD || true)"
-          if [[ "$checked_out" != "$expected" ]]; then
-            echo "Exact-head mismatch: expected=$expected checked_out=$checked_out" >&2
+
+          if [[ "$checked_out_sha" != "$head_sha" ]]; then
+            echo "Exact-head mismatch: expected=$head_sha checked_out=$checked_out_sha" >&2
             exit 1
           fi
+
           if [[ -n "$symbolic_ref" ]]; then
             echo "Expected detached HEAD, got $symbolic_ref" >&2
             exit 1
           fi
-          if git show-ref --verify --quiet refs/pull/${{ github.event.pull_request.number || '0' }}/merge; then
+
+          if [[ "$pr_number" != "manual" ]] &&
+             git show-ref --verify --quiet "refs/pull/$pr_number/merge"; then
             echo "Pull-request merge ref is present and prohibited" >&2
             exit 1
           fi
-          printf 'EXPECTED_SHA=%s\nCHECKED_OUT_SHA=%s\nEXACT_HEAD_MATCH=true\nMERGE_REF_USED=false\n' \
-            "$expected" "$checked_out" | tee exact-head-metadata.txt
+
+          git cat-file -e "${base_sha}^{commit}"
+          git cat-file -e "${head_sha}^{commit}"
+
+          merge_base_sha="$(git merge-base "$base_sha" "$head_sha")"
+          if [[ "$merge_base_sha" != "$base_sha" ]]; then
+            echo "Merge-base mismatch: expected=$base_sha observed=$merge_base_sha" >&2
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "$base_sha" "$head_sha"; then
+            echo "Head is not a descendant of base" >&2
+            exit 1
+          fi
+
+          read -r behind_by ahead_by < <(
+            git rev-list --left-right --count "$base_sha...$head_sha"
+          )
+
+          if [[ "$behind_by" != "0" ]]; then
+            echo "PR branch is behind base: behind_by=$behind_by" >&2
+            exit 1
+          fi
+
+          commit_count="$(git rev-list --count "$base_sha..$head_sha")"
+
+          {
+            echo "head_sha=$head_sha"
+            echo "base_sha=$base_sha"
+            echo "merge_base_sha=$merge_base_sha"
+            echo "ahead_by=$ahead_by"
+            echo "behind_by=$behind_by"
+            echo "commit_count=$commit_count"
+          } >> "$GITHUB_OUTPUT"
+
+          cat > exact-head-metadata.txt <<EOF
+          EXPECTED_HEAD_SHA=$head_sha
+          CHECKED_OUT_SHA=$checked_out_sha
+          BASE_SHA=$base_sha
+          MERGE_BASE_SHA=$merge_base_sha
+          EXACT_HEAD_MATCH=true
+          MERGE_REF_USED=false
+          HEAD_IS_DESCENDANT_OF_BASE=true
+          AHEAD_BY=$ahead_by
+          BEHIND_BY=$behind_by
+          COMMIT_COUNT=$commit_count
+          EOF
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -88,32 +157,236 @@ jobs:
       - name: Full composite Release Gate
         run: bun run verify:release
 
-      - name: Materialize exact-head artifact metadata
-        if: always()
+      - name: Materialize complete exact-head diff evidence
+        id: full_diff
         shell: bash
+        env:
+          HEAD_SHA: ${{ steps.ancestry.outputs.head_sha }}
+          BASE_SHA: ${{ steps.ancestry.outputs.base_sha }}
+          MERGE_BASE_SHA: ${{ steps.ancestry.outputs.merge_base_sha }}
+          AHEAD_BY: ${{ steps.ancestry.outputs.ahead_by }}
+          BEHIND_BY: ${{ steps.ancestry.outputs.behind_by }}
+          COMMIT_COUNT: ${{ steps.ancestry.outputs.commit_count }}
+          PR_NUMBER: ${{ steps.expected.outputs.pr_number }}
         run: |
           set -euo pipefail
-          sha="${{ steps.expected.outputs.sha }}"
+
+          evidence_dir="pr-m2-full-diff-evidence"
+          chunks_dir="$evidence_dir/chunks"
+          patch_file="$evidence_dir/pr-m2-full-index-binary.diff"
+          reconstructed_file="$evidence_dir/pr-m2-full-index-binary.reconstructed.diff"
+          bundle_file="$evidence_dir/pr-m2-commit-range.bundle"
+
+          rm -rf "$evidence_dir"
+          mkdir -p "$chunks_dir"
+
+          git diff --check "$BASE_SHA..$HEAD_SHA"
+
+          git diff \
+            --binary \
+            --full-index \
+            --find-renames \
+            --find-copies \
+            --no-ext-diff \
+            "$BASE_SHA..$HEAD_SHA" \
+            > "$patch_file"
+
+          git diff --stat "$BASE_SHA..$HEAD_SHA" \
+            > "$evidence_dir/diff-stat.txt"
+          git diff --name-status -z "$BASE_SHA..$HEAD_SHA" \
+            > "$evidence_dir/diff-name-status.z"
+          git diff --numstat -z "$BASE_SHA..$HEAD_SHA" \
+            > "$evidence_dir/diff-numstat.z"
+          git diff --raw -z "$BASE_SHA..$HEAD_SHA" \
+            > "$evidence_dir/diff-raw.z"
+          git diff --name-only "$BASE_SHA..$HEAD_SHA" \
+            > "$evidence_dir/changed-files.txt"
+
+          git bundle create "$bundle_file" "$HEAD_SHA" "^$BASE_SHA"
+          git bundle verify "$bundle_file" \
+            > "$evidence_dir/bundle-verification.txt" 2>&1
+
+          split \
+            -b 8M \
+            -d \
+            -a 3 \
+            "$patch_file" \
+            "$chunks_dir/pr-m2-full-index-binary.diff.part-"
+
+          cat "$chunks_dir"/pr-m2-full-index-binary.diff.part-* \
+            > "$reconstructed_file"
+
+          original_patch_sha256="$(sha256sum "$patch_file" | awk '{print $1}')"
+          reconstructed_patch_sha256="$(
+            sha256sum "$reconstructed_file" | awk '{print $1}'
+          )"
+
+          if [[ "$original_patch_sha256" != "$reconstructed_patch_sha256" ]]; then
+            echo "Full-diff reconstruction mismatch" >&2
+            exit 1
+          fi
+
+          bundle_sha256="$(sha256sum "$bundle_file" | awk '{print $1}')"
+          full_diff_byte_count="$(wc -c < "$patch_file" | tr -d ' ')"
+          full_diff_line_count="$(wc -l < "$patch_file" | tr -d ' ')"
+          changed_file_count="$(
+            grep -c . "$evidence_dir/changed-files.txt" || true
+          )"
+          chunk_count="$(
+            find "$chunks_dir" -maxdepth 1 -type f | wc -l | tr -d ' '
+          )"
+
+          read -r additions deletions < <(
+            git diff --numstat "$BASE_SHA..$HEAD_SHA" |
+              awk '
+                $1 ~ /^[0-9]+$/ { additions += $1 }
+                $2 ~ /^[0-9]+$/ { deletions += $2 }
+                END { print additions + 0, deletions + 0 }
+              '
+          )
+
+          cat > "$evidence_dir/exact-head-metadata.json" <<JSON
+          {
+            "expectedHeadSha": "$HEAD_SHA",
+            "checkedOutSha": "$(git rev-parse HEAD)",
+            "baseSha": "$BASE_SHA",
+            "mergeBaseSha": "$MERGE_BASE_SHA",
+            "exactHeadMatch": true,
+            "mergeRefUsed": false,
+            "headIsDescendantOfBase": true
+          }
+          JSON
+
+          cat > "$evidence_dir/compare-metadata.json" <<JSON
+          {
+            "aheadBy": $AHEAD_BY,
+            "behindBy": $BEHIND_BY,
+            "commitCount": $COMMIT_COUNT,
+            "changedFileCount": $changed_file_count,
+            "additions": $additions,
+            "deletions": $deletions
+          }
+          JSON
+
+          export EVIDENCE_DIR="$evidence_dir"
+          export CHUNKS_DIR="$chunks_dir"
+          export ORIGINAL_PATCH_SHA256="$original_patch_sha256"
+          export RECONSTRUCTED_PATCH_SHA256="$reconstructed_patch_sha256"
+          export BUNDLE_SHA256="$bundle_sha256"
+          export FULL_DIFF_BYTE_COUNT="$full_diff_byte_count"
+          export FULL_DIFF_LINE_COUNT="$full_diff_line_count"
+          export CHANGED_FILE_COUNT="$changed_file_count"
+          export CHUNK_COUNT="$chunk_count"
+          export ADDITIONS="$additions"
+          export DELETIONS="$deletions"
+
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          evidence_dir = Path(os.environ["EVIDENCE_DIR"])
+          chunks_dir = Path(os.environ["CHUNKS_DIR"])
+
+          chunks = []
+          for path in sorted(chunks_dir.glob("pr-m2-full-index-binary.diff.part-*")):
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              chunks.append({"name": path.name, "sha256": digest})
+
+          manifest = {
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "pullRequest": os.environ["PR_NUMBER"],
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "workflow": os.environ["GITHUB_WORKFLOW"],
+              "runId": os.environ["GITHUB_RUN_ID"],
+              "job": os.environ["GITHUB_JOB"],
+              "baseSha": os.environ["BASE_SHA"],
+              "headSha": os.environ["HEAD_SHA"],
+              "mergeBaseSha": os.environ["MERGE_BASE_SHA"],
+              "exactHeadMatch": True,
+              "mergeRefUsed": False,
+              "headIsDescendantOfBase": True,
+              "aheadBy": int(os.environ["AHEAD_BY"]),
+              "behindBy": int(os.environ["BEHIND_BY"]),
+              "commitCount": int(os.environ["COMMIT_COUNT"]),
+              "changedFileCount": int(os.environ["CHANGED_FILE_COUNT"]),
+              "additions": int(os.environ["ADDITIONS"]),
+              "deletions": int(os.environ["DELETIONS"]),
+              "fullDiffByteCount": int(os.environ["FULL_DIFF_BYTE_COUNT"]),
+              "fullDiffLineCount": int(os.environ["FULL_DIFF_LINE_COUNT"]),
+              "fullDiffSha256": os.environ["ORIGINAL_PATCH_SHA256"],
+              "bundleSha256": os.environ["BUNDLE_SHA256"],
+              "chunkCount": int(os.environ["CHUNK_COUNT"]),
+              "chunks": chunks,
+              "reconstructedDiffSha256": os.environ["RECONSTRUCTED_PATCH_SHA256"],
+              "reconstructionMatch": True,
+              "diffCheckPassed": True,
+              "frozenInstallPassed": True,
+              "consolidatedSpecsPassed": True,
+              "verifyReleasePassed": True,
+              "generatedAtUtc": datetime.now(timezone.utc).isoformat(),
+          }
+
+          (evidence_dir / "evidence-manifest.json").write_text(
+              json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+
+          json.loads((evidence_dir / "evidence-manifest.json").read_text("utf-8"))
+          PY
+
+          cat > "$evidence_dir/reconstruction-verification.txt" <<EOF
+          ORIGINAL_PATCH_SHA256=$original_patch_sha256
+          CHUNK_COUNT=$chunk_count
+          RECONSTRUCTED_PATCH_SHA256=$reconstructed_patch_sha256
+          RECONSTRUCTION_MATCH=true
+          EOF
+
+          rm -f "$reconstructed_file"
+
+          (
+            cd "$evidence_dir"
+            find . -type f ! -name manifest.sha256 -print0 |
+              sort -z |
+              xargs -0 sha256sum > manifest.sha256
+          )
+
           cat > pr-m2-consolidated-corrective-gate.json <<JSON
           {
             "workflow": "PR-M2 Consolidated Corrective Gate",
-            "expectedSha": "$sha",
+            "expectedSha": "$HEAD_SHA",
             "checkedOutSha": "$(git rev-parse HEAD)",
-            "exactHeadMatch": $([[ "$(git rev-parse HEAD)" == "$sha" ]] && echo true || echo false),
+            "baseSha": "$BASE_SHA",
+            "mergeBaseSha": "$MERGE_BASE_SHA",
+            "exactHeadMatch": true,
             "mergeRefUsed": false,
             "event": "${{ github.event_name }}",
-            "pullRequest": "${{ github.event.pull_request.number || 'manual' }}",
+            "pullRequest": "$PR_NUMBER",
             "repository": "${{ github.repository }}",
             "runId": "${{ github.run_id }}",
-            "job": "${{ github.job }}"
+            "job": "${{ github.job }}",
+            "fullDiffArtifact": "pr-m2-full-diff-evidence-$HEAD_SHA"
           }
           JSON
+
+          echo "artifact_name=pr-m2-full-diff-evidence-$HEAD_SHA" \
+            >> "$GITHUB_OUTPUT"
+
+      - name: Upload complete exact-head diff evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.full_diff.outputs.artifact_name }}
+          path: pr-m2-full-diff-evidence/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload exact-head corrective evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pr-m2-consolidated-corrective-${{ steps.expected.outputs.sha }}
+          name: pr-m2-consolidated-corrective-${{ steps.expected.outputs.head_sha }}
           path: |
             exact-head-metadata.txt
             pr-m2-consolidated-corrective-gate.json
