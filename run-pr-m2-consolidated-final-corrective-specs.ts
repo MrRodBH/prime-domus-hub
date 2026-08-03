@@ -18,7 +18,7 @@ check("migration is additive, atomic and search-path hardened", () => {
   assert.ok(migration.includes("BEGIN;"));
   assert.ok(migration.trimEnd().endsWith("COMMIT;"));
   assert.ok((migration.match(/SECURITY DEFINER/g) ?? []).length >= 5);
-  assert.ok((migration.match(/SET search_path = public, pg_temp/g) ?? []).length >= 5);
+  assert.ok((migration.match(/SET\s+search_path\s*=\s*public\s*,\s*pg_temp/g) ?? []).length >= 5);
   assert.equal(migration.includes("DROP TABLE"), false);
   assert.equal(migration.includes("DROP COLUMN"), false);
 });

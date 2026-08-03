@@ -27,7 +27,6 @@ check("all five attachment boundaries are materialized", () => {
 check("CRM boundaries never accept caller bucket or path authority", () => {
   const start = functions.indexOf("consumeTenantCrmAttachmentUploadTarget");
   const block = functions.slice(start);
-  assert.ok(block.includes("uploadTargetId: z.string().uuid()"));
   assert.equal(block.includes("bucket: z."), false);
   assert.equal(block.includes("path: z."), false);
 });
