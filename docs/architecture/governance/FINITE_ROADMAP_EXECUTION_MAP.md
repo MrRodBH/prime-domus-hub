@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — PR-M2 implementation Accepted / Merged; terminal reconciliation in progress
+**Status:** Active governance — PR-M2 Accepted / Merged / Closed
 **Implementation merge baseline:** `ec06a19af44cc988e602d7bc8d0dc7a627db1619`
 
 ## Current stage map
@@ -10,7 +10,7 @@
 | 1 | Fases 2, 3 and 4 | Accepted / Closed | historical |
 | 2 | LSH-01 | Accepted / Closed | do not reopen |
 | 3 | LSV-01, LSV-02, LSR-01 | Superseded / terminal | do not reopen |
-| 4 | PR-M2 | Accepted / Merged; reconciliation in progress | terminal reconciliation merged |
+| 4 | PR-M2 | Accepted / Merged / Closed | no automatic successor |
 | 5 | DCA-01 | Planned — Blocked | explicit Product Owner authorization after PR-M2 closure |
 | 6 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 Accepted |
 | 7 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
