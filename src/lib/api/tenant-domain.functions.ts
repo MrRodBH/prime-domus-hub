@@ -195,14 +195,23 @@ export const requestDomainRemoval = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => domainIdSchema.parse(data))
   .handler(async ({ context, data }) => {
     const authority = await authorizeTenantDomainOperation(trusted(context), "remove");
-    const domain = await getTenantDomain(authority.tenantId, data.domainId);
+    let domain = await getTenantDomain(authority.tenantId, data.domainId);
     if (domain.status === "revoked") throw new DomainError("domain_transition_forbidden", "Revoked domain is terminal");
-    return enqueueDomainJob({
+    if (domain.status !== "removal_pending") {
+      domain = await transitionTenantDomain({
+        authority,
+        domain,
+        to: "removal_pending",
+        recoveryTarget: domain.status === "failed" ? "removal_pending" : null,
+      });
+    }
+    const job = await enqueueDomainJob({
       authority,
       domain,
-      operationType: "remove_domain",
-      payload: { requestedAt: new Date().toISOString() },
+      operationType: "cleanup_domain",
+      payload: { requestedAt: new Date().toISOString(), publicAuthorityClosedAtRequest: true },
     });
+    return { domain, job, publicAuthorityClosed: true };
   });
 
 export const cancelCancellableDomainOperation = createServerFn({ method: "POST" })
