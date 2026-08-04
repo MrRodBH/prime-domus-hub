@@ -1,7 +1,7 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — PR-M2 implementation Accepted / Merged; terminal reconciliation in progress  
-**Authority:** Single Source of Future Evolution  
+**Status:** Ratificado — PR-M2 implementation Accepted / Merged; terminal reconciliation in progress
+**Authority:** Single Source of Future Evolution
 **Current main:** `ec06a19af44cc988e602d7bc8d0dc7a627db1619`
 
 ## Current authority

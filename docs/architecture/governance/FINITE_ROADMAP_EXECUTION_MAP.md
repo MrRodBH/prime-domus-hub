@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — PR-M2 implementation Accepted / Merged; terminal reconciliation in progress  
+**Status:** Active governance — PR-M2 implementation Accepted / Merged; terminal reconciliation in progress
 **Current main:** `ec06a19af44cc988e602d7bc8d0dc7a627db1619`
 
 ## Current stage map
