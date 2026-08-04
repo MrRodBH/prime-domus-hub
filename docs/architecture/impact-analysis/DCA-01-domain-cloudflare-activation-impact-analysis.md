@@ -267,9 +267,10 @@ RETRYABLE_STATES = pending_ownership_verification, pending_dns_configuration, pe
 PUBLICLY_AUTHORITATIVE_STATES = active
 GENERATION_CREATING_TRANSITIONS = create_domain_request, request_domain_replacement
 EXPLICIT_RECOVERY_TRANSITIONS = recover_failed_ownership, recover_failed_dns, recover_failed_provider, recover_failed_ssl, recover_failed_removal
+STATUS_PRESERVING_COMMANDS = issue_ownership_challenge, rotate_ownership_challenge, observe_ownership_dns_without_verified_evidence
 ```
 
-No adapter, UI component, client request or worker may mutate status directly. The centralized server transition function and database constraints must reject every transition not listed below.
+No adapter, UI component, client request or worker may mutate status directly. The centralized server transition function and database constraints must reject every transition not listed below. Commands that preserve status are audited commands, not edges in the transition graph.
 
 ### 6.1 `draft`
 
@@ -295,8 +296,9 @@ SUPER_ADMIN_VISIBILITY = diagnostic state; tenant mutation only by impersonation
 
 ```text
 VALID_PREDECESSORS = draft, replacement_pending, failed through recover_failed_ownership only
-VALID_SUCCESSORS = ownership_verified, pending_ownership_verification, removal_pending, failed
+VALID_SUCCESSORS = ownership_verified, removal_pending, failed
 AUTHORIZED_COMMAND = issue_ownership_challenge, rotate_ownership_challenge, observe_ownership_dns
+STATUS_PRESERVING_COMMAND = issue_ownership_challenge, rotate_ownership_challenge, observe_ownership_dns when current verified evidence is absent
 AUTHORITY = server command requested by authorized tenant or impersonated tenant
 PERSISTED_EFFECT = active challenge generation, expiry and anti-replay metadata
 GENERATION_EFFECT = preserves domain generation; challenge rotation increments challenge version only
@@ -310,6 +312,8 @@ AUDIT_EVENT = ownership_challenge_issued|rotated|observed|verified|failed
 TENANT_VISIBILITY = instructions and sanitized observations
 SUPER_ADMIN_VISIBILITY = full sanitized diagnostics; no tenant mutation without impersonation
 ```
+
+Challenge issuance, rotation and non-conclusive observations preserve `pending_ownership_verification`; they increment the challenge version or observation metadata and append audit events without creating a persisted self-transition. Every new challenge version is generation-bound, expires independently and invalidates prior proof material for anti-replay enforcement.
 
 ### 6.3 `ownership_verified`
 
@@ -394,22 +398,24 @@ SUPER_ADMIN_VISIBILITY = sanitized provider diagnostics
 ### 6.7 `active`
 
 ```text
-VALID_PREDECESSORS = pending_ssl
+VALID_PREDECESSORS = pending_ssl, degraded
 VALID_SUCCESSORS = degraded, removal_pending
-AUTHORIZED_COMMAND = activate_domain_generation, record_reconciliation_drift, request_domain_removal
-AUTHORITY = server-only activation transaction
+AUTHORIZED_COMMAND = activate_domain_generation, restore_degraded_domain, record_reconciliation_drift, request_domain_removal
+AUTHORITY = server-only activation or restoration transaction
 PERSISTED_EFFECT = exactly one active canonical generation and compatible aliases
-GENERATION_EFFECT = makes current candidate generation authoritative
+GENERATION_EFFECT = makes current candidate generation authoritative or restores the same degraded generation after complete evidence
 PUBLIC_AUTHORITY = true
 SUCCESS = complete current-generation active predicate
 RECOVERABLE_ERRORS = post-activation drift transitions to degraded
 TERMINAL_ERRORS = none directly; security or ownership loss closes authority through degraded/removal flow
 RETRY = periodic reconciliation only
-ROLLBACK = atomic candidate/incumbent swap when a still-valid incumbent exists; otherwise removal_pending
-AUDIT_EVENT = domain_activated|domain_drift_detected
+ROLLBACK = transaction abort before commit only; after a committed replacement swap, recovery requires a new explicit replacement generation
+AUDIT_EVENT = domain_activated|domain_restored|domain_drift_detected
 TENANT_VISIBILITY = active domain and safe diagnostics
 SUPER_ADMIN_VISIBILITY = global diagnostics; tenant mutation only through impersonation
 ```
+
+Direct `degraded → active` restoration is valid only after the server re-proves the complete current-generation active predicate, including ownership, DNS, provider binding, SSL, canonical/alias validity and successful reconciliation. It restores the same generation and is not a replacement rollback.
 
 ### 6.8 `degraded`
 
@@ -470,6 +476,8 @@ AUDIT_EVENT = domain_removal_requested|cleanup_attempted|domain_revoked
 TENANT_VISIBILITY = sanitized removal progress
 SUPER_ADMIN_VISIBILITY = cleanup diagnostics; tenant mutation only through impersonation
 ```
+
+A row that entered `removal_pending` after a committed replacement swap cannot transition directly back to `active`. Any later recovery of that hostname requires a new explicit candidate generation and the complete verification lifecycle.
 
 ### 6.11 `failed`
 
@@ -536,6 +544,9 @@ INCUMBENT_DOMAIN = current active canonical row and generation
 CANDIDATE_DOMAIN = new linked generation created in replacement_pending
 INCUMBENT_PUBLIC_AUTHORITY_DURING_REPLACEMENT = preserved
 CANDIDATE_PUBLIC_AUTHORITY_BEFORE_ATOMIC_SWAP = false
+POST_SWAP_DIRECT_REACTIVATION = prohibited
+ROLLBACK_BOUNDARY = transaction abort before commit only
+POST_COMMIT_RECOVERY = new explicit replacement generation
 ```
 
 The incumbent remains `active` while the candidate progresses through ownership, DNS, provider and SSL states. Candidate failure never mutates or degrades the incumbent.
@@ -551,7 +562,7 @@ The final swap is one server-owned transaction that:
 7. appends correlated audit events;
 8. fails entirely on any constraint or evidence mismatch.
 
-Rollback may restore the incumbent only when its complete evidence remains current and the swap can be reversed atomically. Otherwise the candidate is removed and the incumbent remains unchanged because the swap never commits.
+Before commit, any mismatch aborts the entire transaction and leaves the incumbent active and unchanged. After commit, the former incumbent remains in `removal_pending` and cannot be reactivated directly. Any later recovery must create a new candidate generation and repeat ownership, DNS, provider, SSL and reconciliation verification before a new atomic swap.
 
 ## 9. Hybrid execution contract
 
@@ -715,7 +726,7 @@ The future implementation must cover at minimum:
 3. complete enum and explicitly enumerated predecessors;
 4. absence of persisted states outside the enum;
 5. tenant authority and Super Admin impersonation;
-6. challenge expiry, rotation and replay prevention;
+6. challenge expiry, rotation, replay prevention and proof that rotation is status-preserving rather than a self-transition;
 7. global hostname uniqueness and canonical uniqueness;
 8. valid legacy import into `pending_ownership_verification`;
 9. cutover blocked by any unready incumbent;
@@ -723,17 +734,18 @@ The future implementation must cover at minimum:
 11. cutover without dual query or fallback;
 12. incumbent authority during replacement;
 13. candidate failure without incumbent mutation;
-14. atomic canonical and alias swap;
-15. provider errors, retry, lease and idempotency;
-16. removal, cooldown and orphan cleanup;
-17. active-domain public resolver cardinality;
-18. canonical redirect, loop prevention and same-tenant enforcement;
-19. scheduled handler fail-closed behavior;
-20. development map isolation from production;
-21. secret and credential-reference redaction;
-22. `FILES_ALLOWED` completeness;
-23. operator and credential-incident runbook presence;
-24. migration cutover without request-time dual path.
+14. atomic canonical and alias swap, transaction abort before commit and prohibition of post-commit incumbent reactivation;
+15. direct `degraded → active` restoration only with the complete current-generation active predicate;
+16. provider errors, retry, lease and idempotency;
+17. removal, cooldown and orphan cleanup;
+18. active-domain public resolver cardinality;
+19. canonical redirect, loop prevention and same-tenant enforcement;
+20. scheduled handler fail-closed behavior;
+21. development map isolation from production;
+22. secret and credential-reference redaction;
+23. `FILES_ALLOWED` completeness;
+24. operator and credential-incident runbook presence;
+25. migration cutover without request-time dual path.
 
 ## 17. External proof gate
 
@@ -754,7 +766,9 @@ Material risks are domain takeover, cross-tenant resolution, authority ambiguity
 
 Controls are global uniqueness, closed transitions, current-generation composite evidence, explicit impersonation, opaque credential references, deterministic jobs, periodic reconciliation, atomic candidate/incumbent swap and fail-closed global cutover.
 
-Repository rollback may revert unmerged code and migration artifacts. Once external provider or DNS mutation is separately authorized, rollback must be compensating and audit-preserving rather than destructive.
+Repository rollback may revert unmerged code and migration artifacts. A replacement swap may only be rolled back by aborting its transaction before commit. Once committed, recovery is compensating and generation-creating: the former incumbent cannot transition directly from `removal_pending` to `active`.
+
+Once external provider or DNS mutation is separately authorized, rollback must be compensating and audit-preserving rather than destructive.
 
 ## 19. Planning conclusion
 
@@ -762,6 +776,9 @@ This corrected planning closes the previously identified gaps:
 
 - no undefined imported status;
 - no open predecessor expressions;
+- direct `degraded → active` recovery is symmetric and requires the complete active predicate;
+- challenge issuance, rotation and inconclusive observations preserve status without a persisted self-transition;
+- replacement rollback is limited to transaction abort before commit, and post-commit recovery requires a new generation;
 - incumbent and replacement candidate are distinct;
 - cutover requires all incumbents ready and preserves old authority on failure;
 - `src/server.ts` is the exact redirect and scheduled-executor boundary;
