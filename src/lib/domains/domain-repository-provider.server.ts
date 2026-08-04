@@ -1,6 +1,11 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { DomainProviderBindingRecord, TenantDomainRecord } from "./domain-contracts";
-import { DomainError, sanitizeDomainDetail, toSafeDomainError } from "./domain-errors";
+import type {
+  DomainJsonObject,
+  DomainProviderAccountHealthRecord,
+  DomainProviderBindingRecord,
+  TenantDomainRecord,
+} from "./domain-contracts";
+import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
 import { mapBinding, objectValue } from "./domain-repository-mappers.server";
 const db = supabaseAdmin as any;
 
@@ -58,7 +63,7 @@ export async function upsertDomainProviderBinding(input: {
   providerStatus: string;
   sslStatus: string | null;
   providerVersion: string | null;
-  detail?: Record<string, unknown>;
+  detail?: DomainJsonObject;
 }): Promise<DomainProviderBindingRecord> {
   const { data, error } = await db.from("domain_provider_bindings").upsert({
     tenant_id: input.domain.tenantId,
@@ -70,7 +75,7 @@ export async function upsertDomainProviderBinding(input: {
     provider_status: input.providerStatus,
     ssl_status: input.sslStatus,
     provider_version: input.providerVersion,
-    provider_detail_sanitized: sanitizeDomainDetail(input.detail ?? {}),
+    provider_detail_sanitized: sanitizeDomainObject(input.detail ?? {}),
     observed_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }, { onConflict: "domain_id,generation" }).select("*");
@@ -79,16 +84,16 @@ export async function upsertDomainProviderBinding(input: {
   return mapBinding(data[0]);
 }
 
-export async function listProviderAccountHealth(): Promise<Array<Record<string, unknown>>> {
+export async function listProviderAccountHealth(): Promise<DomainProviderAccountHealthRecord[]> {
   const { data, error } = await db.from("domain_provider_accounts")
     .select("id, provider_code, account_identifier, enabled, capabilities, health_status, health_detail_sanitized, last_health_check_at, created_at, updated_at")
     .order("created_at", { ascending: true });
   if (error) throw toSafeDomainError(error);
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row: any): DomainProviderAccountHealthRecord => ({
     id: row.id,
     providerCode: row.provider_code,
     accountIdentifier: row.account_identifier,
-    enabled: row.enabled,
+    enabled: row.enabled === true,
     capabilities: objectValue(row.capabilities),
     healthStatus: row.health_status,
     healthDetailSanitized: objectValue(row.health_detail_sanitized),
