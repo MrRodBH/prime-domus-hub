@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — DCA-01 corrected planning ready for direct external re-audit
+**Status:** Active governance — DCA-01 planning Accepted for protected merge
 **Audited main baseline:** `fad8874bfeef85683445f52d21611e7d8760c1a0`
 
 ## Current stage map
@@ -11,7 +11,7 @@
 | 2 | LSH-01 | Accepted / Closed | do not reopen |
 | 3 | LSV-01, LSV-02, LSR-01 | Superseded / terminal | do not reopen |
 | 4 | PR-M2 | Accepted / Merged / Closed | no automatic successor |
-| 5 | DCA-01 | Corrected Planning — Ready for Direct External Re-Audit; implementation blocked | direct exact-head planning re-audit |
+| 5 | DCA-01 | Planning Accepted; protected planning merge authorized; implementation conditionally authorized after merge | protected planning merge |
 | 6 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 Accepted and explicit authorization |
 | 7 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
 | 8 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
@@ -29,25 +29,26 @@ DCA01_INITIAL_PLANNING_EXECUTED = true
 DCA01_INITIAL_PLANNING_HEAD = b6974aaccc11fbc4118a2af8c15320e2e665233e
 DCA01_INITIAL_PLANNING_AUDIT = Rejected
 DCA01_INITIAL_PLANNING_HEAD_AUTHORITY = historical only
-DCA01_CORRECTIVE_BUDGET = consumed
-DCA01_CORRECTED_PLANNING_STATE = Ready for Direct External Re-Audit
+DCA01_ORDINARY_CORRECTIVE_BUDGET = consumed
+DCA01_EXCEPTIONAL_NARROW_CORRECTION = authorized and executed
+DCA01_CORRECTED_PLANNING_STATE = Accepted
 DCA01_PLANNING_BRANCH = agent/dca-01-planning
 DCA01_PLANNING_PR = 64
 DCA01_PLANNING_BASELINE = fad8874bfeef85683445f52d21611e7d8760c1a0
 DCA01_INTEGRATION_MODEL = HYBRID
 DCA01_SUPPORTED_MODES = manual_assisted, api_automated
-DCA01_IMPLEMENTATION_STATE = Planned — Blocked
-DCA01_IMPLEMENTATION_AUTHORIZED = false
+DCA01_IMPLEMENTATION_STATE = Planned — Blocked until protected planning merge
+DCA01_IMPLEMENTATION_AUTHORIZED = conditionally_after_planning_merge
 DCA01_IMPLEMENTATION_STARTED = false
-DCA01_PLANNING_MERGE_READY = false
-DCA01_PLANNING_MERGE_AUTHORIZED = false
-DCA01_EXTERNAL_OPERATION_AUTHORIZED = false
+DCA01_PLANNING_MERGE_READY = true
+DCA01_PLANNING_MERGE_AUTHORIZED = true
+DCA01_EXTERNAL_NON_PRODUCTION_PROOF_AUTHORIZED = true subject to safe prerequisites
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = DCA-01 implementation after protected planning merge
 
 CLOUDFLARE_API_CALL_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
@@ -67,26 +68,34 @@ AUTO_MERGE_ENABLED = false
 Architecture First planning submission
 → direct external planning audit = Rejected
 → one consolidated planning correction
-→ direct external planning re-audit
-→ protected planning merge only after Accepted audit and explicit authorization
+→ exceptional narrow correction limited to three state-machine contradictions
+→ planning audit = Accepted
+→ protected planning merge
 → implementation preflight
 → one principal implementation PR
-→ deterministic development and at most one consolidated correction
-→ exact-head final implementation audit
-→ protected implementation merge only after explicit authorization
-→ separately authorized controlled external domain proof
+→ deterministic development and at most one consolidated internal correction
+→ concise exact-head pre-merge audit
+→ protected implementation merge when Accepted
+→ controlled external non-production domain proof when safe prerequisites exist
 → terminal DCA-01 audit
-→ Accepted or another valid terminal state
+→ Accepted, Accepted with Non-Blocking Backlog, Blocked External or Rejected
 → no automatic successor
 ```
 
-This is one finite stage. The original planning rejection and the single consolidated correction do not create artificial decimal stages, sublots or new prompt-budget identifiers.
+This is one finite stage. The original planning rejection, consolidated correction and exceptional narrow correction do not create artificial decimal stages, sublots or new stage identifiers.
 
-## Corrected architecture gates
+## Accepted architecture gates
 
 ```text
 CLOSED_STATE_MACHINE = required
 ALL_PREDECESSORS_ENUMERATED = required
+DEGRADED_ACTIVE_TRANSITION_SYMMETRIC = true
+DEGRADED_ACTIVE_REQUIRES_FULL_CURRENT_GENERATION_PREDICATE = true
+OWNERSHIP_ROTATION_STATUS_PRESERVING = true
+PENDING_OWNERSHIP_SELF_TRANSITION = prohibited
+POST_SWAP_DIRECT_REACTIVATION = prohibited
+ROLLBACK_BOUNDARY = transaction abort before commit only
+POST_COMMIT_RECOVERY = new explicit replacement generation
 VALID_LEGACY_IMPORT_STATE = pending_ownership_verification
 PUBLICLY_AUTHORITATIVE_STATE = active only
 INCUMBENT_AUTHORITY_DURING_REPLACEMENT = preserved
@@ -100,16 +109,16 @@ DEVELOPMENT_HOST_MAP = preserved outside production authority
 CANONICAL_REDIRECT_ENTRYPOINT = src/server.ts::fetch before SSR
 SCHEDULED_EXECUTOR_ENTRYPOINT = src/server.ts::scheduled
 TWO_OPERATIONAL_RUNBOOKS = required
-CONTROLLED_EXTERNAL_PROOF = required before terminal acceptance; separately unauthorized
+CONTROLLED_EXTERNAL_PROOF = required before terminal acceptance
 ```
 
 ## Governance
 
-- Planning re-audit approval does not authorize planning merge.
-- Planning merge does not authorize implementation.
-- Implementation authorization permits only the finite principal implementation envelope.
-- Implementation merge does not authorize real credentials, DNS mutation, deploy or controlled external proof.
-- External proof requires a separate explicit instruction and Same-Backend Homologation Cell.
+- The planning correction is Accepted and its protected merge is authorized by the current Product Owner instruction.
+- Planning merge activates only the finite DCA-01 implementation envelope.
+- Implementation uses one principal cycle and at most one consolidated internal corrective pass.
+- Implementation merge requires the concise pre-merge state `Accepted`.
+- Controlled external proof is limited to a non-production domain, Same-Backend Homologation Cell and safe external prerequisites.
 - DCA-01 acceptance does not automatically authorize BCA-01.
 - No successor starts without an explicit Product Owner instruction.
 - Terminal, rejected, superseded or historical states do not re-enter the executable chain as current authority.
@@ -119,4 +128,4 @@ CONTROLLED_EXTERNAL_PROOF = required before terminal acceptance; separately unau
 
 The PR-M2 terminal finite map is preserved at commit `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
-The DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` remains historical evidence of the rejected planning state. The corrected planning supersedes only its authority and leaves PR-M2 and all closed or superseded predecessor stages unchanged.
+The DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` remains historical evidence of the rejected planning state. The accepted correction supersedes only its authority and leaves PR-M2 and all closed or superseded predecessor stages unchanged.
