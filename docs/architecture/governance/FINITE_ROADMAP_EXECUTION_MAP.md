@@ -1,153 +1,58 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — PR-M2 blocking correction implemented; exact-head gate required before audit rerun
-**Authority:** `FINITE_DELIVERY_GOVERNANCE.md`, audited GitHub `main`, Product Owner execution decisions and PR-M2 final closure
-**Audited main:** `ec05fd4edee94feabf8423a129154eb807c52a99`
-**Correction start HEAD:** `be09b190996f512650331206898247a53004c8f8`
+**Status:** Active governance — PR-M2 implementation Accepted / Merged; terminal reconciliation in progress  
+**Current main:** `ec06a19af44cc988e602d7bc8d0dc7a627db1619`
 
-Nenhuma etapa pode iniciar sem predecessor compatível, escopo congelado e autorização explícita. Estados terminais não recuperam budget nem regressam à cadeia executável.
+## Current stage map
 
-## 1. Sequência finita vigente
-
-| # | Stage | Estado vigente | Condição sucessora |
+| # | Stage | State | Successor condition |
 |---:|---|---|---|
-| 1 | PR-PH.0 | Accepted | histórico |
-| 2 | PR-M1 | Superseded | histórico |
-| 3 | LSO-01 | Rejected / Closed | não reabrir |
-| 4 | LSH-01 | Accepted / Closed | não reabrir |
-| 5 | LSV-01 | Superseded / terminal | não reabrir |
-| 6 | LSV-02 | Superseded / terminal | não reabrir |
-| 7 | LSR-01 | Superseded / terminal | não reabrir |
-| 8 | LSR-02 | Rejected / terminal | não reabrir |
-| 9 | FRP-01 | Rejected / terminal | não reabrir |
-| 10 | HVP-01 | Superseded / historical | não reabrir |
-| 11 | HRC-01 | Rejected / terminal | não reabrir |
-| 12 | GNR-01 | Accepted | predecessor concluído |
-| 13 | HRR-01 | Accepted | predecessor concluído |
-| 14 | HRI-01 | Accepted / Closed | predecessor concluído |
-| 15 | RPD-01 | Accepted / Closed | predecessor concluído |
-| 16 | PR-M2 | Blocking Correction Implemented — Exact-Head Gate Required | exact-head checks + artifact integral + nova auditoria aceita + autorização separada de merge |
-| 17 | DCA-01 | Planned — Blocked by protected merge of PR-M2 | PR-M2 merged e autorização explícita |
-| 18 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 Accepted |
-| 19 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
-| 20 | Pre-Homologation Release Candidate | Blocked by PR-M3 | deliverable de saída da PR-M3 |
-| 21 | TH-M1 | Blocked by Release Candidate | UAT interna |
-| 22 | TH-M2 | Blocked by TH-M1 | remediação consolidada |
-| 23 | LSV-03 | Planned — Blocked by TH-M2 | validação controlada Same-Backend |
-| 24 | Formal Homologation | Blocked by LSV-03 | autorização explícita |
-| 25 | Production | Blocked by Formal Homologation | decisão explícita de produção |
+| 1 | Fases 2, 3 and 4 | Accepted / Closed | historical |
+| 2 | LSH-01 | Accepted / Closed | do not reopen |
+| 3 | LSV-01, LSV-02, LSR-01 | Superseded / terminal | do not reopen |
+| 4 | PR-M2 | Accepted / Merged; reconciliation in progress | terminal reconciliation merged |
+| 5 | DCA-01 | Planned — Blocked | explicit Product Owner authorization after PR-M2 closure |
+| 6 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 Accepted |
+| 7 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
+| 8 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
+| 9 | TH-M1 | Blocked by Release Candidate | internal UAT |
+| 10 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
+| 11 | LSV-03 | Planned — Blocked by TH-M2 | controlled Same-Backend validation |
+| 12 | Formal Homologation | Blocked by LSV-03 | explicit authorization |
+| 13 | Production | Blocked by Formal Homologation | explicit production decision |
 
-## 2. Estado factual da PR-M2
+## PR-M2 factual state
 
 ```text
-REPOSITORY = MrRodBH/prime-domus-hub
-BASE_BRANCH = main
-IMPLEMENTATION_BRANCH = agent/pr-m2-functional-completion
-PULL_REQUEST = 60
-
-PRM2_IMPLEMENTATION_AUTHORIZED = true
-PRM2_IMPLEMENTATION_EXECUTED = true
-PRM2_IMPLEMENTATION_COMPLETED = true
-PRM2_FINAL_CLOSURE_STATE = Historical — Superseded by Rejected Full Protected Merge Audit
-PRM2_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
-BF01_RESOLVED = true
-BF02_RESOLVED = true
-BF03_RESOLVED = true
-
-PRM2_MERGE_AUTHORIZED = false
-PRM2_MERGED = false
-MERGE_EXECUTED = false
+PRM2_IMPLEMENTATION_STATE = Accepted
+PRM2_MERGED = true
+PRM2_MERGE_METHOD = squash
+PRM2_IMPLEMENTATION_PR = 60
+PRM2_IMPLEMENTATION_HEAD = ef9e22c239c7ce7e5d937bd06c7452ebde47f096
+PRM2_MERGE_SHA = ec06a19af44cc988e602d7bc8d0dc7a627db1619
+PRM2_PREMERGE_EXACT_HEAD_RELEASE_GATE = success
+PRM2_PREMERGE_CORRECTIVE_GATE = success
+POST_IMPLEMENTATION_MERGE_MAIN_HEAD = ec06a19af44cc988e602d7bc8d0dc7a627db1619
+POST_IMPLEMENTATION_MERGE_TREE_EQUIVALENCE = true
+POST_IMPLEMENTATION_MERGE_RELEASE_GATE_DIRECT_RUN_BINDING = unavailable_in_current_connector
+POST_IMPLEMENTATION_MERGE_VALIDATION = Accepted by immutable exact-tree equivalence
+DCA01_STATE = Planned — Blocked pending explicit authorization
+DCA01_STARTED = false
+DCA01_AUTHORIZED = false
+BCA01_STATE = Planned — Blocked by DCA-01
+BCA01_STARTED = false
+PRM3_STATE = Planned — Blocked by BCA-01
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
 AUTO_MERGE_ENABLED = false
 ```
 
-A blocking correction altera runtime, frontend, uma migration aditiva, testes e documentos exclusivamente dentro de FILES_ALLOWED. Não executa migration gerenciada, deploy, provider real ou merge.
+## Governance
 
-## 3. Gate protegido de `main`
+No successor starts automatically. Terminal, rejected, superseded or historical stages do not recover prompt budget and do not re-enter the executable chain.
 
-```text
-RULESET_ID = 20308240
-RULESET_NAME = RM Prime — main protected merge gate
-RULESET_ENFORCEMENT = active
-RULESET_TARGET = refs/heads/main
-RULESET_MATCHING_ACTIVE_COUNT = 1
-BYPASS_ACTOR_COUNT = 0
-PULL_REQUEST_REQUIRED = true
-REQUIRED_CONVERSATION_RESOLUTION = true
-STRICT_REQUIRED_STATUS_CHECKS = true
-FORCE_PUSH_ALLOWED = false
-DELETION_ALLOWED = false
-```
+## Historical authority
 
-Required checks:
-
-```text
-Consolidated corrective exact-head Release Gate
-Typecheck, build and deterministic route generation
-```
-
-O ruleset não deve ser recriado ou alterado por esta correção.
-
-## 4. Caminho executável
-
-```text
-PR-M2 — blocking correction exact-head gate
-→ PR-M2 — Full Protected Merge Audit Rerun
-→ protected merge somente após autorização separada
-→ DCA-01
-→ BCA-01
-→ PR-M3
-→ Pre-Homologation Release Candidate
-→ TH-M1
-→ TH-M2
-→ LSV-03
-→ Formal Homologation
-→ Production
-```
-
-```text
-DCA01_START_AUTHORIZED = false
-BCA01_START_AUTHORIZED = false
-PRM3_START_AUTHORIZED = false
-DEPLOY_EXECUTED = false
-MANAGED_MIGRATION_EXECUTED = false
-REAL_PROVIDER_EXECUTED = false
-```
-
-## 5. Budgets e disposições históricas
-
-```text
-RRS-01 = Superseded by Accepted Later Authority — GNR-01/HRI-01
-PTA-01 = Absorbed by PTW-01/PSG-01 and PR-M2
-MOC-01 = Absorbed by PR-M3 and LSV-03
-RHV-01 = Absorbed by LSV-03
-LSV-04 = Absorbed by TH-M2 and LSV-03
-RDA-01 = Absorbed by PR-M2 and PR-M3
-RC-01 = Absorbed by TH-M1 and TH-M2
-```
-
-Operações ChatGPT GitHub-native não utilizam prompt budget do Lovable. Nenhum budget histórico é recuperado, transferido ou reaberto por esta reconciliação.
-
-## 6. Historical Planning Snapshot — Superseded by Product Owner Execution Decisions and PR-M2 Final Closure
-
-O mapa finito anterior e o estado `PR-M2 implementation — Planned / Blocked` permanecem preservados no commit:
-
-```text
-HISTORICAL_SNAPSHOT_COMMIT = ba737b82cd878d83f539a6142db5612962421e29
-HISTORICAL_SNAPSHOT_PATH = docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md
-HISTORICAL_AUTHORITY = superseded_for_current_execution_state
-```
-
-`https://github.com/MrRodBH/prime-domus-hub/blob/ba737b82cd878d83f539a6142db5612962421e29/docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md`
-
-## 7. Estado máximo
-
-```text
-BF01_RESOLVED = true
-BF02_RESOLVED = true
-BF03_RESOLVED = true
-READY_FOR_PROTECTED_MERGE_AUDIT_RERUN = pending_exact_head_gate
-PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = false
-PRM2_MERGE_AUTHORIZED = false
-MERGE_EXECUTED = false
-NEXT_AUTHORIZED_ACTION = exact-head validation; Full Protected Merge Audit Rerun remains gated
-```
+The detailed pre-merge finite map is preserved at commit `ec06a19af44cc988e602d7bc8d0dc7a627db1619` and is superseded only where its state conflicts with this current terminal authority.
