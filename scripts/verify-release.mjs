@@ -63,6 +63,7 @@ run("PR-M2 — CMS workflow functional completion specifications", "bun", ["run"
 run("PR-M2 — CRM operational workflow functional completion specifications", "bun", ["run", "test:pr-m2:crm-operational-workflow-functional-completion"]);
 run("PR-M2 — Marketing channels and lead ingestion functional completion specifications", "bun", ["run", "test:pr-m2:marketing-channels-lead-ingestion-functional-completion"]);
 run("PR-M2 — Analytics, tracking and conversion events functional completion specifications", "bun", ["run", "test:pr-m2:analytics-tracking-conversion-events-functional-completion"]);
+run("DCA-01 — domain and Cloudflare activation specifications", "bun", ["run", "test:dca-01"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -110,6 +111,7 @@ console.log(JSON.stringify({
   prM2CrmOperationalWorkflowFunctionalCompletionSpecsPassed: true,
   prM2MarketingChannelsLeadIngestionFunctionalCompletionSpecsPassed: true,
   prM2AnalyticsTrackingConversionEventsFunctionalCompletionSpecsPassed: true,
+  dca01DomainCloudflareActivationSpecsPassed: true,
   leadAuthorizationUnitSpecsPassed: true,
   leadRuntimeOperationSpecsPassed: true,
   leadStructuralSpecsPassed: true,
