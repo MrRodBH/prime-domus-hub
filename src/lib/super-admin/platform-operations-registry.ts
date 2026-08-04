@@ -51,8 +51,8 @@ export const PLATFORM_OPERATIONS_REGISTRY: Record<PlatformOperationKey, Platform
     healthSources: ["commercial_plans", "commercial_entitlement_definitions", "tenant_billing_provider_mappings", "billing_events"], retryContract: "not applicable before BCA-01", idempotencyContract: "read-only visibility", externalExecutionProof: "not_implied_by_local_state",
   },
   domain_visibility: {
-    key: "domain_visibility", category: "external_gate", authority: "global_platform", executionState: "blocked_by_DCA01",
-    healthSources: ["tenants.dominio_principal", "configuration future gate state"], retryContract: "not applicable before DCA-01", idempotencyContract: "read-only visibility", externalExecutionProof: "not_implied_by_local_state",
+    key: "domain_visibility", category: "external_gate", authority: "global_platform", executionState: "implemented",
+    healthSources: ["tenant_domains", "domain_operation_jobs", "domain_operation_attempts", "domain_provider_accounts", "domain_provider_bindings", "domain_authority_control"], retryContract: "bounded persisted retry plus explicit operator recovery", idempotencyContract: "tenant + domain + generation + operation + canonical payload hash", externalExecutionProof: "not_implied_by_local_state",
   },
 };
 
@@ -60,7 +60,7 @@ export const SUPER_CONTROL_PLANE_CONTRACT = {
   globalPlatformData: "direct_super_admin_authority",
   tenantScopedData: "explicit_impersonation_required",
   billingMutation: "deferred_to_BCA01",
-  domainActivation: "deferred_to_DCA01",
+  domainActivation: "implemented_by_DCA01_pending_external_proof",
   externalSuccessInference: false,
   operationCount: PLATFORM_OPERATION_KEYS.length,
 } as const;
