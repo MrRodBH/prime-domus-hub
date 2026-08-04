@@ -37,7 +37,7 @@ BEGIN
  FOREACH x IN ARRAY a LOOP n:=n+1;t:=public.prm2_lock_upload_target(_actor_user_id,_tenant_id,_tenant_origin,x,'media',NULL);IF t.bucket<>'site' OR left(t.path,length(_tenant_id||'/media/'))<>_tenant_id||'/media/' THEN RAISE EXCEPTION 'media_upload_target_mismatch';END IF;IF n=1 THEN main:=t.path;ELSIF n=2 THEN med:=t.path;ELSE thumb:=t.path;END IF;END LOOP;
  INSERT INTO public.media_library(tenant_id,nome,arquivo,arquivo_medium,arquivo_thumbnail,tipo,mime_type,tamanho,width,height,tags,descricao,created_by) VALUES(_tenant_id,_name,main,med,thumb,_type,_mime_type,_size,_width,_height,coalesce(_tags,ARRAY[]::text[]),_description,_actor_user_id) RETURNING id INTO mid;
  UPDATE public.tenant_upload_targets SET status='consumed',consumed_at=now(),updated_at=now() WHERE tenant_id=_tenant_id AND id=ANY(a) AND status='pending';IF NOT FOUND THEN RAISE EXCEPTION 'upload_target_concurrent_consumption';END IF;
- RETURN jsonb_build_object('id',mid,'arquivo',main,'status','consumed');
+ RETURN jsonb_build_object('id',mid,'tenant_id',_tenant_id,'arquivo',main,'arquivo_medium',med,'arquivo_thumbnail',thumb,'status','consumed');
 END$$;
 CREATE OR REPLACE FUNCTION public.consume_tenant_broker_photo_upload_target(_actor_user_id uuid,_tenant_id uuid,_tenant_origin text,_target_id uuid,_broker_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE t public.tenant_upload_targets%ROWTYPE; d jsonb;

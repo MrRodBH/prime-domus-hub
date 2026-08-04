@@ -32,6 +32,34 @@ check("all target consumers use the shared lock, validation and one-time consump
   assert.ok(/status\s*=\s*'consumed'/.test(migration));
 });
 
+check("media upload consumer return matches the strict runtime schema", () => {
+  const requiredKeys = [
+    "id",
+    "tenant_id",
+    "arquivo",
+    "arquivo_medium",
+    "arquivo_thumbnail",
+    "status",
+  ];
+  const consumerStart = migration.indexOf("CREATE OR REPLACE FUNCTION public.consume_tenant_media_upload_target");
+  const consumerEnd = migration.indexOf("CREATE OR REPLACE FUNCTION public.consume_tenant_broker_photo_upload_target");
+  assert.ok(consumerStart >= 0 && consumerEnd > consumerStart);
+  const consumer = migration.slice(consumerStart, consumerEnd);
+  const returnMatch = consumer.match(/RETURN\s+jsonb_build_object\(([^;]+)\);/s);
+  assert.ok(returnMatch);
+  const sqlKeys = [...returnMatch[1].matchAll(/'([^']+)'\s*,/g)].map((match) => match[1]);
+  assert.deepEqual(sqlKeys, requiredKeys);
+
+  const schemaStart = media.indexOf("const mediaRegistrationResultSchema");
+  const schemaEnd = media.indexOf("export const registrarMidia");
+  assert.ok(schemaStart >= 0 && schemaEnd > schemaStart);
+  const schema = media.slice(schemaStart, schemaEnd);
+  for (const key of requiredKeys) {
+    assert.match(schema, new RegExp(`\\b${key}\\s*:`), key);
+  }
+  assert.ok(schema.includes(".strict()"));
+});
+
 check("runtime has no raw caller path authority or signed-url persistence", () => {
   const registration = media.slice(media.indexOf("export const registrarMidia"), media.indexOf("export const atualizarMidia"));
   assert.equal(registration.includes("data.uploadTarget.path"), false);
