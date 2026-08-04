@@ -1,4 +1,9 @@
-import type { DomainCommandAuthority, DomainJobRecord, TenantDomainRecord } from "./domain-contracts";
+import type {
+  DomainCommandAuthority,
+  DomainJobRecord,
+  DomainJsonObject,
+  TenantDomainRecord,
+} from "./domain-contracts";
 import {
   completeDomainJob,
   getCurrentOwnershipChallenge,
@@ -16,7 +21,7 @@ import {
 import { observeDnsCname, observeDnsTxt } from "./dns-observation.server";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
 import { reconcileDomain } from "./domain-reconciliation.server";
-import { DomainError, toSafeDomainError } from "./domain-errors";
+import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
 
 function jobAuthority(job: DomainJobRecord): DomainCommandAuthority {
   return {
@@ -27,7 +32,7 @@ function jobAuthority(job: DomainJobRecord): DomainCommandAuthority {
   };
 }
 
-async function observeOwnership(job: DomainJobRecord, domain: TenantDomainRecord): Promise<Record<string, unknown>> {
+async function observeOwnership(job: DomainJobRecord, domain: TenantDomainRecord): Promise<DomainJsonObject> {
   const challenge = await getCurrentOwnershipChallenge(domain);
   if (!challenge || challenge.status !== "active") {
     throw new DomainError("domain_challenge_expired", "No active ownership challenge exists");
@@ -54,7 +59,11 @@ async function observeOwnership(job: DomainJobRecord, domain: TenantDomainRecord
   };
 }
 
-async function prepareDns(job: DomainJobRecord, domain: TenantDomainRecord, runtimeEnv: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function prepareDns(
+  job: DomainJobRecord,
+  domain: TenantDomainRecord,
+  runtimeEnv: Record<string, unknown>,
+): Promise<DomainJsonObject> {
   if (domain.status !== "ownership_verified") {
     throw new DomainError("domain_transition_forbidden", "DNS preparation requires ownership_verified");
   }
@@ -63,7 +72,7 @@ async function prepareDns(job: DomainJobRecord, domain: TenantDomainRecord, runt
   if (typeof target !== "string" || !target.includes(".")) {
     throw new DomainError("domain_external_prerequisite_missing", "Managed CNAME target is unavailable", { retryable: false });
   }
-  const plan = {
+  const plan: DomainJsonObject = {
     hostname: domain.normalizedHostname,
     recordType: "CNAME",
     targetHostname: target.toLowerCase().replace(/\.$/, ""),
@@ -91,7 +100,7 @@ async function prepareDns(job: DomainJobRecord, domain: TenantDomainRecord, runt
   return { prepared: true, status: current.status, plan };
 }
 
-async function observeRequiredDns(job: DomainJobRecord, domain: TenantDomainRecord): Promise<Record<string, unknown>> {
+async function observeRequiredDns(job: DomainJobRecord, domain: TenantDomainRecord): Promise<DomainJsonObject> {
   if (domain.status !== "pending_dns_configuration") {
     throw new DomainError("domain_transition_forbidden", "Required DNS observation requires pending_dns_configuration");
   }
@@ -99,7 +108,7 @@ async function observeRequiredDns(job: DomainJobRecord, domain: TenantDomainReco
   if (!plan || typeof plan !== "object" || Array.isArray(plan)) {
     throw new DomainError("domain_provider_configuration_invalid", "Required DNS plan is unavailable");
   }
-  const target = (plan as Record<string, unknown>).targetHostname;
+  const target = plan.targetHostname;
   if (typeof target !== "string") {
     throw new DomainError("domain_provider_configuration_invalid", "Required CNAME target is unavailable");
   }
@@ -137,7 +146,7 @@ async function provisionProvider(
   job: DomainJobRecord,
   domain: TenantDomainRecord,
   runtimeEnv: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+): Promise<DomainJsonObject> {
   if (domain.status !== "pending_cloudflare_provisioning") {
     throw new DomainError("domain_transition_forbidden", "Provider provisioning requires pending_cloudflare_provisioning");
   }
@@ -171,7 +180,10 @@ async function provisionProvider(
     providerStatus: observation.status,
     sslStatus: observation.sslStatus,
     providerVersion: observation.version,
-    detail: { errors: observation.errors, ownershipVerificationPresent: !!observation.ownershipVerification },
+    detail: sanitizeDomainObject({
+      errors: observation.errors,
+      ownershipVerificationPresent: !!observation.ownershipVerification,
+    }),
   });
   const transitioned = await transitionTenantDomain({
     authority: jobAuthority(job),
@@ -197,7 +209,7 @@ async function cleanupDomain(
   job: DomainJobRecord,
   domain: TenantDomainRecord,
   runtimeEnv: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+): Promise<DomainJsonObject> {
   let current = domain;
   if (current.status !== "removal_pending") {
     current = await transitionTenantDomain({
@@ -234,7 +246,7 @@ async function cleanupDomain(
 async function executeLeasedDomainJob(
   job: DomainJobRecord,
   runtimeEnv: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+): Promise<DomainJsonObject> {
   const domain = await getTenantDomain(job.tenantId, job.domainId);
   if (domain.generation !== job.generation) {
     throw new DomainError("domain_generation_mismatch", "Job generation is stale");
@@ -251,13 +263,14 @@ async function executeLeasedDomainJob(
     case "observe_ssl_lifecycle":
     case "reconcile_domain": {
       const result = await reconcileDomain({ authority: jobAuthority(job), domain, runtimeEnv });
+      const evidence = sanitizeDomainObject(result.evidence);
       if (result.domain.status === "pending_ssl" || result.domain.status === "degraded") {
         throw new DomainError("domain_provider_unavailable", "Current-generation reconciliation evidence is incomplete", {
           retryable: true,
-          safeDetail: { status: result.domain.status, evidence: result.evidence },
+          safeDetail: { status: result.domain.status, evidence },
         });
       }
-      return { changed: result.changed, status: result.domain.status, evidence: result.evidence };
+      return { changed: result.changed, status: result.domain.status, evidence };
     }
     case "remove_domain":
     case "cleanup_domain":
@@ -321,7 +334,7 @@ export async function processScheduledDomainJobs(input: {
         });
         retried += 1;
       } else {
-        let failureDetail = safe.safeDetail;
+        let failureDetail: DomainJsonObject = safe.safeDetail;
         try {
           const domain = await getTenantDomain(job.tenantId, job.domainId);
           if (domain.status !== "failed" && domain.status !== "revoked" && domain.status !== "active") {
