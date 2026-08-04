@@ -63,10 +63,11 @@ export const registerCloudflareProviderAccount = createServerFn({ method: "POST"
     if (Object.keys(normalizedZones).length === 0) {
       throw new DomainError("domain_provider_configuration_invalid", "At least one server-owned zone binding is required");
     }
+    const credentialRef = data.credentialReference;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await (supabaseAdmin as any).rpc("register_domain_provider_account", {
       _account_identifier: data.accountIdentifier,
-      _credential_reference: data.credentialReference,
+      _credential_reference: credentialRef,
       _zones: normalizedZones,
       _actor_user_id: context.userId,
       _authority_origin: "super_admin",
@@ -122,10 +123,11 @@ export const rotateProviderCredentialReference = createServerFn({ method: "POST"
   .inputValidator((data: unknown) => credentialSchema.parse(data))
   .handler(async ({ context, data }) => {
     await assertGlobalSuperAdmin(context);
+    const credentialRef = data.credentialReference;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await (supabaseAdmin as any).rpc("rotate_domain_provider_credential_reference", {
       _provider_account_id: data.providerAccountId,
-      _credential_reference: data.credentialReference,
+      _credential_reference: credentialRef,
       _actor_user_id: context.userId,
       _authority_origin: "super_admin",
     });
