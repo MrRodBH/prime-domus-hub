@@ -2,14 +2,14 @@ import type {
   DomainAuditEventRecord,
   DomainChallengeRecord,
   DomainJobRecord,
+  DomainJsonObject,
   DomainProviderBindingRecord,
   TenantDomainRecord,
 } from "./domain-contracts";
+import { sanitizeDomainObject } from "./domain-errors";
 
-export function objectValue(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
+export function objectValue(value: unknown): DomainJsonObject {
+  return sanitizeDomainObject(value);
 }
 
 export function mapDomain(row: any): TenantDomainRecord {
@@ -105,7 +105,7 @@ export function mapBinding(row: any): DomainProviderBindingRecord {
 export function mapAudit(row: any): DomainAuditEventRecord {
   return {
     id: row.id,
-    tenantId: row.tenant_id,
+    tenantId: row.tenant_id ?? null,
     domainId: row.domain_id ?? null,
     generation: row.generation == null ? null : Number(row.generation),
     actorUserId: row.actor_user_id ?? null,
