@@ -1,6 +1,15 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { DomainActivationStatus, DomainAuditEventRecord, DomainChallengeRecord, DomainCommandAuthority, DomainEvidence, DomainExecutionMode, TenantDomainRecord } from "./domain-contracts";
-import { DomainError, sanitizeDomainDetail, toSafeDomainError } from "./domain-errors";
+import type {
+  DomainActivationStatus,
+  DomainAuditEventRecord,
+  DomainChallengeRecord,
+  DomainCommandAuthority,
+  DomainEvidence,
+  DomainExecutionMode,
+  DomainJsonObject,
+  TenantDomainRecord,
+} from "./domain-contracts";
+import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
 import { normalizeDomainHostname } from "./domain-normalization";
 import { assertAtomicReplacementSwap, assertDomainTransition, assertStatusPreservingOwnershipCommand } from "./domain-state-machine";
 import { mapAudit, mapChallenge, mapDomain, randomHex, sha256 } from "./domain-repository-mappers.server";
@@ -66,7 +75,7 @@ export async function transitionTenantDomain(input: {
   to: DomainActivationStatus;
   evidence?: DomainEvidence;
   failureCode?: string | null;
-  failureDetail?: Record<string, unknown>;
+  failureDetail?: DomainJsonObject;
   recoveryTarget?: DomainActivationStatus | null;
 }): Promise<TenantDomainRecord> {
   assertDomainTransition(input.domain.status, input.to, {
@@ -83,7 +92,7 @@ export async function transitionTenantDomain(input: {
     _authority_origin: input.authority.origin,
     _active_evidence: input.evidence ?? {},
     _failure_code: input.failureCode ?? null,
-    _failure_detail_sanitized: sanitizeDomainDetail(input.failureDetail ?? {}),
+    _failure_detail_sanitized: sanitizeDomainObject(input.failureDetail ?? {}),
     _resume_state: input.recoveryTarget ?? null,
   });
   if (error) throw toSafeDomainError(error);
@@ -197,7 +206,7 @@ export async function appendDomainAudit(input: {
   eventType: string;
   beforeStatus: DomainActivationStatus | null;
   afterStatus: DomainActivationStatus | null;
-  detail?: Record<string, unknown>;
+  detail?: DomainJsonObject;
   correlationId?: string;
 }): Promise<void> {
   const { error } = await db.from("domain_audit_events").insert({
@@ -210,7 +219,7 @@ export async function appendDomainAudit(input: {
     event_type: input.eventType,
     before_status: input.beforeStatus,
     after_status: input.afterStatus,
-    detail_sanitized: sanitizeDomainDetail(input.detail ?? {}),
+    detail_sanitized: sanitizeDomainObject(input.detail ?? {}),
   });
   if (error) throw toSafeDomainError(error);
 }
@@ -237,9 +246,9 @@ export async function getCurrentOwnershipChallenge(domain: TenantDomainRecord): 
 
 export async function patchDomainMetadata(input: {
   domain: TenantDomainRecord;
-  patch: Record<string, unknown>;
+  patch: DomainJsonObject;
 }): Promise<TenantDomainRecord> {
-  const metadata = { ...input.domain.metadata, ...(sanitizeDomainDetail(input.patch) as Record<string, unknown>) };
+  const metadata: DomainJsonObject = { ...input.domain.metadata, ...sanitizeDomainObject(input.patch) };
   const { data, error } = await db.from("tenant_domains").update({
     metadata,
     lock_version: input.domain.lockVersion + 1,
