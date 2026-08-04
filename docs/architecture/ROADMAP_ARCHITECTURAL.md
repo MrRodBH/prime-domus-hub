@@ -1,6 +1,6 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — PR-M2 implementation Accepted / Merged; terminal reconciliation in progress
+**Status:** Ratificado — PR-M2 Accepted / Merged / Closed
 **Authority:** Single Source of Future Evolution
 **Implementation merge baseline:** `ec06a19af44cc988e602d7bc8d0dc7a627db1619`
 
@@ -35,7 +35,7 @@ AUTO_MERGE_ENABLED = false
 ## Executable sequence
 
 ```text
-PR-M2 terminal post-merge reconciliation
+PR-M2 Accepted / Merged / Closed
 → no automatic successor
 → DCA-01 only after explicit Product Owner authorization
 → BCA-01 only after DCA-01 Accepted
