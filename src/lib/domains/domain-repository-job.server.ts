@@ -1,6 +1,13 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { DomainCommandAuthority, DomainJobRecord, DomainJobStatus, DomainOperationType, TenantDomainRecord } from "./domain-contracts";
-import { DomainError, sanitizeDomainDetail, toSafeDomainError } from "./domain-errors";
+import type {
+  DomainCommandAuthority,
+  DomainJobRecord,
+  DomainJobStatus,
+  DomainJsonObject,
+  DomainOperationType,
+  TenantDomainRecord,
+} from "./domain-contracts";
+import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
 import { mapDomain, mapJob, sha256 } from "./domain-repository-mappers.server";
 const db = supabaseAdmin as any;
 
@@ -8,7 +15,7 @@ export async function enqueueDomainJob(input: {
   authority: DomainCommandAuthority;
   domain: TenantDomainRecord;
   operationType: DomainOperationType;
-  payload?: Record<string, unknown>;
+  payload?: DomainJsonObject;
   maxAttempts?: number;
 }): Promise<DomainJobRecord> {
   const idempotencyKey = await sha256([
@@ -29,7 +36,7 @@ export async function enqueueDomainJob(input: {
     requested_by: input.authority.userId,
     authority_origin: input.authority.origin,
     max_attempts: Math.max(1, Math.min(10, input.maxAttempts ?? 5)),
-    payload: sanitizeDomainDetail(input.payload ?? {}),
+    payload: sanitizeDomainObject(input.payload ?? {}),
   }, { onConflict: "idempotency_key", ignoreDuplicates: false }).select("*");
   if (error) throw toSafeDomainError(error);
   if (!data || data.length !== 1) throw new DomainError("domain_ambiguous", "Job was not resolved exactly once");
@@ -50,7 +57,7 @@ export async function completeDomainJob(input: {
   jobId: string;
   leaseOwner: string;
   outcome: Exclude<DomainJobStatus, "pending" | "leased">;
-  result?: Record<string, unknown>;
+  result?: DomainJsonObject;
   terminalErrorCode?: string | null;
   retryAfterSeconds?: number | null;
 }): Promise<DomainJobRecord> {
@@ -58,7 +65,7 @@ export async function completeDomainJob(input: {
     _job_id: input.jobId,
     _lease_owner: input.leaseOwner,
     _outcome: input.outcome,
-    _result_sanitized: sanitizeDomainDetail(input.result ?? {}),
+    _result_sanitized: sanitizeDomainObject(input.result ?? {}),
     _terminal_error_code: input.terminalErrorCode ?? null,
     _retry_after_seconds: input.retryAfterSeconds ?? null,
   });
@@ -109,8 +116,8 @@ export async function enqueueScheduledDomainReconciliationJobs(now = new Date())
     .eq("enabled", true);
   if (error) throw toSafeDomainError(error);
   const scheduleBucket = now.toISOString().slice(0, 13);
-  const domains = (data ?? []).map(mapDomain);
-  await Promise.all(domains.map((domain) => enqueueDomainJob({
+  const domains: TenantDomainRecord[] = (data ?? []).map(mapDomain);
+  await Promise.all(domains.map((domain: TenantDomainRecord) => enqueueDomainJob({
     authority: { userId: domain.requestedBy, tenantId: domain.tenantId, origin: "platform", isSuperAdmin: false },
     domain,
     operationType: domain.status === "pending_ssl" ? "observe_ssl_lifecycle" : "reconcile_domain",
