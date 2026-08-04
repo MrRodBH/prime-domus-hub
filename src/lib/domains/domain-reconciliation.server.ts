@@ -1,5 +1,10 @@
 import { normalizeDomainHostname } from "./domain-normalization";
-import type { DomainCommandAuthority, DomainEvidence, TenantDomainRecord } from "./domain-contracts";
+import type {
+  DomainCommandAuthority,
+  DomainEvidence,
+  DomainJsonObject,
+  TenantDomainRecord,
+} from "./domain-contracts";
 import {
   activateReplacement,
   getCurrentOwnershipChallenge,
@@ -12,7 +17,7 @@ import {
   getTenantDomain,
 } from "./domain-repository.server";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
-import { DomainError } from "./domain-errors";
+import { DomainError, sanitizeDomainObject } from "./domain-errors";
 
 export async function buildCurrentGenerationEvidence(domain: TenantDomainRecord): Promise<DomainEvidence> {
   let normalizedHostnameValid = false;
@@ -87,7 +92,7 @@ export async function reconcileDomain(input: {
       providerStatus: observation.status,
       sslStatus: observation.sslStatus,
       providerVersion: observation.version,
-      detail: { errors: observation.errors },
+      detail: sanitizeDomainObject({ errors: observation.errors }),
     });
   }
 
@@ -180,7 +185,7 @@ export async function assertDomainCutoverReady(): Promise<{
   if (activeError) throw new DomainError("domain_cutover_blocked", activeError.message);
 
   const activeDomains = await Promise.all((activeRows ?? []).map((row: any) => getTenantDomain(row.tenant_id, row.id)));
-  const blockers: Array<Record<string, unknown>> = [];
+  const blockers: DomainJsonObject[] = [];
   const canonicalByTenant = new Map<string, TenantDomainRecord[]>();
 
   for (const domain of activeDomains) {
@@ -214,7 +219,10 @@ export async function assertDomainCutoverReady(): Promise<{
 
   if (blockers.length > 0) {
     throw new DomainError("domain_cutover_blocked", "Authoritative domain cutover preflight failed", {
-      safeDetail: { blockerCount: blockers.length, blockers: blockers.slice(0, 100) },
+      safeDetail: {
+        blockerCount: blockers.length,
+        blockers: blockers.slice(0, 100),
+      },
     });
   }
   return {
