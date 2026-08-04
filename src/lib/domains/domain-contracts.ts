@@ -40,6 +40,17 @@ export type DomainOperationType = (typeof DOMAIN_OPERATION_TYPES)[number];
 export const DOMAIN_JOB_STATUSES = ["pending", "leased", "retry_wait", "succeeded", "failed", "cancelled"] as const;
 export type DomainJobStatus = (typeof DOMAIN_JOB_STATUSES)[number];
 
+/** JSON-safe value used by every server-function DTO. Undefined, bigint, symbol and function values are prohibited. */
+export type DomainJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | DomainJsonValue[]
+  | { [key: string]: DomainJsonValue };
+
+export type DomainJsonObject = { [key: string]: DomainJsonValue };
+
 export interface DomainEvidence {
   normalizedHostnameValid: boolean;
   globalHostnameReservationValid: boolean;
@@ -66,9 +77,9 @@ export interface TenantDomainRecord {
   incumbentDomainId: string | null;
   lockVersion: number;
   failureCode: string | null;
-  failureDetailSanitized: Record<string, unknown>;
+  failureDetailSanitized: DomainJsonObject;
   resumeState: DomainActivationStatus | null;
-  metadata: Record<string, unknown>;
+  metadata: DomainJsonObject;
   requestedBy: string;
   activatedAt: string | null;
   revokedAt: string | null;
@@ -111,6 +122,20 @@ export interface DomainProviderBindingRecord {
   updatedAt: string;
 }
 
+export interface DomainProviderAccountHealthRecord {
+  id: string;
+  providerCode: string;
+  accountIdentifier: string;
+  enabled: boolean;
+  capabilities: DomainJsonObject;
+  healthStatus: string;
+  healthDetailSanitized: DomainJsonObject;
+  lastHealthCheckAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  credentialReference: "[redacted]";
+}
+
 export interface DomainJobRecord {
   id: string;
   tenantId: string;
@@ -127,8 +152,8 @@ export interface DomainJobRecord {
   leaseOwner: string | null;
   leaseExpiresAt: string | null;
   nextAttemptAt: string;
-  payload: Record<string, unknown>;
-  resultSanitized: Record<string, unknown>;
+  payload: DomainJsonObject;
+  resultSanitized: DomainJsonObject;
   terminalErrorCode: string | null;
   createdAt: string;
   updatedAt: string;
@@ -136,7 +161,7 @@ export interface DomainJobRecord {
 
 export interface DomainAuditEventRecord {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
   domainId: string | null;
   generation: number | null;
   actorUserId: string | null;
@@ -146,7 +171,7 @@ export interface DomainAuditEventRecord {
   eventType: string;
   beforeStatus: DomainActivationStatus | null;
   afterStatus: DomainActivationStatus | null;
-  detailSanitized: Record<string, unknown>;
+  detailSanitized: DomainJsonObject;
   createdAt: string;
 }
 
