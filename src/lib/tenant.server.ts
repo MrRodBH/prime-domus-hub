@@ -10,6 +10,14 @@ export interface PublicTenantIdentity {
   nome: string;
 }
 
+export interface ActivePublicDomainIdentity extends PublicTenantIdentity {
+  domainId: string;
+  hostname: string;
+  hostnameKind: "canonical" | "alias";
+  canonicalHostname: string;
+  generation: number;
+}
+
 export type PublicHostAuthority =
   | { kind: "domain"; domain: string }
   | { kind: "development_slug"; host: string; slug: string }
@@ -35,10 +43,8 @@ function validPort(port: string | undefined): boolean {
 
 function validIpv4(host: string): boolean {
   const parts = host.split(".");
-  return (
-    parts.length === 4 &&
-    parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) >= 0 && Number(part) <= 255)
-  );
+  return parts.length === 4
+    && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) >= 0 && Number(part) <= 255);
 }
 
 function validDomain(host: string): boolean {
@@ -46,10 +52,7 @@ function validDomain(host: string): boolean {
   return host.split(".").every((label) => DOMAIN_LABEL_RE.test(label));
 }
 
-/**
- * Normalize one Host header value without creating authority by heuristic.
- * `www` is intentionally preserved: aliases must be explicit in persistence.
- */
+/** Normalize one Host header value without creating authority by heuristic. */
 export function normalizePublicHost(host: string | null | undefined): string | null {
   if (host == null) return null;
   const raw = host.trim().toLowerCase();
@@ -75,37 +78,25 @@ export function normalizePublicHost(host: string | null | undefined): string | n
 }
 
 export function isExplicitDevelopmentHost(host: string): boolean {
-  return (
-    host === "localhost" ||
-    host.endsWith(".localhost") ||
-    host === "127.0.0.1" ||
-    host === "0.0.0.0" ||
-    host === "[::1]" ||
-    host.endsWith(".lovable.app")
-  );
+  return host === "localhost"
+    || host.endsWith(".localhost")
+    || host === "127.0.0.1"
+    || host === "0.0.0.0"
+    || host === "[::1]"
+    || host.endsWith(".lovable.app");
 }
 
-/**
- * Parse an explicit development/preview host-to-tenant-slug map.
- * Example: {"localhost":"tenant-a","preview.lovable.app":"tenant-a"}
- * Invalid or ambiguous configuration throws and therefore fails closed.
- */
-export function parseExplicitDevelopmentHostMap(
-  raw: string | null | undefined,
-): ReadonlyMap<string, string> {
+export function parseExplicitDevelopmentHostMap(raw: string | null | undefined): ReadonlyMap<string, string> {
   if (raw == null || raw.trim() === "") return new Map();
-
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     throw new Error(`${DEVELOPMENT_HOST_MAP_ENV} must be valid JSON`);
   }
-
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error(`${DEVELOPMENT_HOST_MAP_ENV} must be a JSON object`);
   }
-
   const result = new Map<string, string>();
   for (const [rawHost, rawSlug] of Object.entries(parsed)) {
     const host = normalizePublicHost(rawHost);
@@ -115,9 +106,7 @@ export function parseExplicitDevelopmentHostMap(
     if (typeof rawSlug !== "string" || !TENANT_SLUG_RE.test(rawSlug)) {
       throw new Error(`${DEVELOPMENT_HOST_MAP_ENV} contains an invalid tenant slug`);
     }
-    if (result.has(host)) {
-      throw new Error(`${DEVELOPMENT_HOST_MAP_ENV} contains duplicate normalized hosts`);
-    }
+    if (result.has(host)) throw new Error(`${DEVELOPMENT_HOST_MAP_ENV} contains duplicate normalized hosts`);
     result.set(host, rawSlug);
   }
   return result;
@@ -128,17 +117,14 @@ export function resolvePublicHostAuthority(
   rawDevelopmentMap: string | null | undefined = process.env[DEVELOPMENT_HOST_MAP_ENV],
 ): PublicHostAuthority {
   if (host == null || host.trim() === "") return { kind: "none", reason: "absent_host" };
-
   const normalized = normalizePublicHost(host);
   if (!normalized) return { kind: "none", reason: "invalid_host" };
-
   if (isExplicitDevelopmentHost(normalized)) {
     const slug = parseExplicitDevelopmentHostMap(rawDevelopmentMap).get(normalized);
     return slug
       ? { kind: "development_slug", host: normalized, slug }
       : { kind: "none", reason: "unmapped_development_host" };
   }
-
   return { kind: "domain", domain: normalized };
 }
 
@@ -148,33 +134,78 @@ export function selectExactlyOneTenant(
   return rows?.length === 1 ? rows[0] : null;
 }
 
+function selectExactlyOneResolvedDomain(rows: any[] | null | undefined): PublicTenantIdentity | ActivePublicDomainIdentity | null {
+  if (!rows || rows.length !== 1) return null;
+  const row = rows[0];
+  if (!row.tenant_id || !row.tenant_slug || !row.tenant_name) return null;
+  if (row.authority_mode === "legacy") {
+    if (row.domain_id !== null || Number(row.generation) !== 0) return null;
+    return { id: row.tenant_id, slug: row.tenant_slug, nome: row.tenant_name };
+  }
+  if (row.authority_mode !== "tenant_domains"
+    || !row.domain_id
+    || !row.hostname
+    || !row.canonical_hostname
+    || !["canonical", "alias"].includes(row.hostname_kind)) {
+    return null;
+  }
+  return {
+    id: row.tenant_id,
+    slug: row.tenant_slug,
+    nome: row.tenant_name,
+    domainId: row.domain_id,
+    hostname: row.hostname,
+    hostnameKind: row.hostname_kind,
+    canonicalHostname: row.canonical_hostname,
+    generation: Number(row.generation),
+  };
+}
+
 export async function resolveTenantByHost(
   host: string | null | undefined,
   rawDevelopmentMap: string | null | undefined = process.env[DEVELOPMENT_HOST_MAP_ENV],
 ): Promise<PublicTenantIdentity | null> {
   const authority = resolvePublicHostAuthority(host, rawDevelopmentMap);
   if (authority.kind === "none") return null;
-
-  const client = serverPublishable();
-  const baseQuery = client.from("tenants").select("id, slug, nome");
-  const result =
-    authority.kind === "domain"
-      ? await baseQuery.eq("dominio_principal", authority.domain).limit(2)
-      : await baseQuery.eq("slug", authority.slug).limit(2);
-
-  if (result.error) {
-    throw new Error(`Public tenant resolution failed: ${result.error.message}`);
+  const client = serverPublishable() as any;
+  if (authority.kind === "development_slug") {
+    const result = await client.from("tenants").select("id, slug, nome").eq("slug", authority.slug).limit(2);
+    if (result.error) throw new Error(`Public development tenant resolution failed: ${result.error.message}`);
+    return selectExactlyOneTenant(result.data as PublicTenantIdentity[] | null);
   }
 
-  return selectExactlyOneTenant(result.data as unknown as PublicTenantIdentity[] | null);
+  const result = await client.rpc("resolve_public_tenant_by_host", { _hostname: authority.domain });
+  if (result.error) throw new Error(`Active domain resolution failed: ${result.error.message}`);
+  return selectExactlyOneResolvedDomain(result.data as any[] | null);
 }
 
-/** Resolve public tenant authority from the server-owned request Host header. */
+export async function resolveCanonicalRedirectByHost(
+  host: string | null | undefined,
+  rawDevelopmentMap: string | null | undefined = process.env[DEVELOPMENT_HOST_MAP_ENV],
+): Promise<{ aliasHostname: string; canonicalHostname: string; generation: number } | null> {
+  const authority = resolvePublicHostAuthority(host, rawDevelopmentMap);
+  if (authority.kind !== "domain") return null;
+  const result = await (serverPublishable() as any).rpc("get_canonical_redirect_for_active_alias", {
+    _hostname: authority.domain,
+  });
+  if (result.error) throw new Error(`Canonical redirect resolution failed: ${result.error.message}`);
+  if (!result.data || result.data.length === 0) return null;
+  if (result.data.length !== 1) throw new Error("Canonical redirect resolution is ambiguous");
+  const row = result.data[0];
+  if (row.alias_hostname !== authority.domain || row.alias_hostname === row.canonical_hostname) {
+    throw new Error("Canonical redirect contract violation");
+  }
+  return {
+    aliasHostname: row.alias_hostname,
+    canonicalHostname: row.canonical_hostname,
+    generation: Number(row.generation),
+  };
+}
+
 export async function resolvePublicTenantFromRequest(): Promise<PublicTenantIdentity | null> {
   return resolveTenantByHost(getRequestHeader("host"));
 }
 
-/** Public read surfaces must fail closed rather than return cross-tenant or empty fallback data. */
 export async function requirePublicTenantFromRequest(): Promise<PublicTenantIdentity> {
   const tenant = await resolvePublicTenantFromRequest();
   if (!tenant) throw new PublicTenantResolutionError();
@@ -183,7 +214,6 @@ export async function requirePublicTenantFromRequest(): Promise<PublicTenantIden
 
 export function publicSupabaseForTenant(tenantId: string) {
   if (!tenantId) throw new Error("Validated public tenant id is required.");
-
   const url = process.env.SUPABASE_URL!;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
   return createClient<Database>(url, key, {
