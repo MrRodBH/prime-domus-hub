@@ -1,3 +1,5 @@
+import type { DomainJsonObject, DomainJsonValue } from "./domain-contracts";
+
 export type DomainErrorCode =
   | "domain_invalid_hostname"
   | "domain_reserved_hostname"
@@ -22,12 +24,12 @@ export type DomainErrorCode =
 export class DomainError extends Error {
   readonly code: DomainErrorCode;
   readonly retryable: boolean;
-  readonly safeDetail: Record<string, unknown>;
+  readonly safeDetail: DomainJsonObject;
 
   constructor(
     code: DomainErrorCode,
     message: string,
-    options: { retryable?: boolean; safeDetail?: Record<string, unknown>; cause?: unknown } = {},
+    options: { retryable?: boolean; safeDetail?: DomainJsonObject; cause?: unknown } = {},
   ) {
     super(message, { cause: options.cause });
     this.name = "DomainError";
@@ -39,17 +41,26 @@ export class DomainError extends Error {
 
 const SECRET_KEY_RE = /(secret|token|credential|authorization|cookie|password|api[-_]?key)/i;
 
-export function sanitizeDomainDetail(value: unknown, depth = 0): unknown {
+export function sanitizeDomainDetail(value: unknown, depth = 0): DomainJsonValue {
   if (depth > 6) return "[depth-limit]";
-  if (value == null || typeof value === "number" || typeof value === "boolean") return value;
+  if (value == null || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value === "string") return value.length > 500 ? `${value.slice(0, 500)}…` : value;
   if (Array.isArray(value)) return value.slice(0, 50).map((item) => sanitizeDomainDetail(item, depth + 1));
+  if (value instanceof Date) return value.toISOString();
   if (typeof value !== "object") return String(value);
-  const output: Record<string, unknown> = {};
+  const output: DomainJsonObject = {};
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
     output[key] = SECRET_KEY_RE.test(key) ? "[redacted]" : sanitizeDomainDetail(item, depth + 1);
   }
   return output;
+}
+
+export function sanitizeDomainObject(value: unknown): DomainJsonObject {
+  const sanitized = sanitizeDomainDetail(value);
+  return typeof sanitized === "object" && sanitized !== null && !Array.isArray(sanitized)
+    ? sanitized
+    : {};
 }
 
 export function toSafeDomainError(error: unknown): DomainError {
@@ -57,7 +68,9 @@ export function toSafeDomainError(error: unknown): DomainError {
   const message = error instanceof Error ? error.message : "Unknown domain operation error";
   return new DomainError("domain_provider_unavailable", message, {
     retryable: true,
-    safeDetail: { error: sanitizeDomainDetail(error instanceof Error ? { name: error.name, message } : error) },
+    safeDetail: {
+      error: sanitizeDomainDetail(error instanceof Error ? { name: error.name, message } : error),
+    },
     cause: error,
   });
 }
