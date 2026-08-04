@@ -94,7 +94,7 @@ async function cloudflareRequest<T>(input: {
       const safeErrors = (payload.errors ?? []).map((error) => ({ code: error.code, message: error.message }));
       throw new DomainError("domain_provider_unavailable", "Cloudflare operation failed", {
         retryable: response.status === 408 || response.status === 429 || response.status >= 500,
-        safeDetail: { status: response.status, errors: sanitizeDomainDetail(safeErrors) as unknown },
+        safeDetail: { status: response.status, errors: sanitizeDomainDetail(safeErrors) },
       });
     }
     return payload.result as T;
