@@ -204,6 +204,7 @@ async function cleanupDomain(
       authority: jobAuthority(job),
       domain: current,
       to: "removal_pending",
+      recoveryTarget: current.status === "failed" ? "removal_pending" : null,
     });
   }
   const binding = await getDomainProviderBinding(current);
