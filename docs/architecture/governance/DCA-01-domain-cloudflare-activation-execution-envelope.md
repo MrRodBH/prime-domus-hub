@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planning — Ready for Direct External Re-Audit**
+**Planning — Accepted for Protected Merge**
 
 ```text
 STAGE_ID = DCA-01
@@ -14,17 +14,19 @@ PREDECESSOR = PR-M2 — Accepted / Merged / Closed
 INTEGRATION_MODEL = HYBRID
 PLANNING_AUTHORIZED = true
 PLANNING_EXECUTED = true
-IMPLEMENTATION_AUTHORIZED = false
+PLANNING_AUDIT = Accepted
+PLANNING_MERGE_READY = true
+PLANNING_MERGE_AUTHORIZED = true
+IMPLEMENTATION_AUTHORIZED = conditionally_after_planning_merge
 IMPLEMENTATION_STARTED = false
-PLANNING_MERGE_AUTHORIZED = false
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = DCA-01 implementation after protected planning merge
 ```
 
-This envelope is an implementation contract only. It does not authorize implementation, migration, deploy, DNS mutation, Cloudflare API execution, credentials, external proof, BCA-01, PR-M3, homologation or production.
+This envelope is the accepted implementation contract for DCA-01. Implementation becomes executable only after the protected planning merge is confirmed. BCA-01, PR-M3, formal homologation and production remain unauthorized.
 
 ## 1. Finite implementation objective
 
-A future expressly authorized DCA-01 implementation must materialize one authoritative custom-domain lifecycle supporting explicit `manual_assisted` and `api_automated` modes with:
+The authorized DCA-01 implementation must materialize one authoritative custom-domain lifecycle supporting explicit `manual_assisted` and `api_automated` modes with:
 
 - tenant-domain binding;
 - ownership challenge and independent verification;
@@ -39,21 +41,21 @@ A future expressly authorized DCA-01 implementation must materialize one authori
 
 The implementation is not complete while the repository contains only planning placeholders, client-declared provider success, an unconsumed redirect query or an uninvokable reconciliation function.
 
-## 2. Future implementation entry gate
+## 2. Implementation entry gate
 
 Before any implementation mutation:
 
-1. confirm `main` equals the factual planning-merge HEAD authorized by a later instruction;
-2. confirm the DCA-01 planning PR is merged and the final external planning audit is `Accepted`;
-3. confirm implementation is expressly authorized by the Product Owner;
+1. confirm `main` equals the factual protected planning-merge HEAD;
+2. confirm this DCA-01 planning PR is merged and the final planning audit is `Accepted`;
+3. confirm the Product Owner instruction authorizing end-to-end DCA-01 remains current;
 4. confirm BCA-01 and PR-M3 remain blocked;
 5. inspect the schema and all `FILES_ALLOWED` paths for collisions;
 6. execute a read-only preflight over every non-null `tenants.dominio_principal`;
 7. stop fail-closed if invalid, duplicate or ambiguous normalized hostnames exist;
 8. confirm no competing domain/Cloudflare implementation branch or PR exists;
-9. confirm real credentials, external DNS/provider execution, deploy and external proof remain separately unauthorized unless the instruction explicitly authorizes them.
+9. confirm external execution prerequisites before migration, deploy, DNS, provider or proof operations.
 
-Any divergence terminates the execution without mutation.
+Any material divergence terminates the execution without mutation.
 
 ## 3. Binding authority
 
@@ -82,15 +84,15 @@ SILENT_MODE_FALLBACK = prohibited
 
 Human Super Admin operations on tenant-scoped domain resources require explicit impersonation. Global provider-account, scheduler-health and cutover operations remain explicit platform operations without tenant data authority.
 
-## 4. Future branch and PR contract
+## 4. Branch and PR contract
 
 ```text
 IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
 IMPLEMENTATION_PR = one principal draft pull request
 BASE_BRANCH = main
 AUTO_MERGE = false
-MERGE_METHOD = squash only after final direct audit and explicit authorization
-PROMPT_BUDGET = one principal implementation instruction plus at most one consolidated corrective instruction
+MERGE_METHOD = squash after concise Accepted pre-merge audit
+PROMPT_BUDGET = one principal implementation cycle plus at most one consolidated internal corrective pass
 ARTIFICIAL_SUBSTAGES = prohibited
 ```
 
@@ -98,7 +100,7 @@ Internal commits and deterministic development cycles inside the single principa
 
 ## 5. FILES_ALLOWED
 
-The future implementation may alter only the following paths. An entry may be omitted when preflight proves it unnecessary. Adding another path requires a new Architecture First impact decision before mutation.
+The implementation may alter only the following paths. An entry may be omitted when preflight proves it unnecessary. Adding another path requires a recorded implementation-time impact justification and must remain a direct consequence of the Definition of Done; a new architectural decision blocks execution.
 
 ```text
 supabase/migrations/20260804180000_dca_01_domain_cloudflare_activation.sql
@@ -155,7 +157,7 @@ SCHEDULED_AUTHORITY = Cloudflare platform-native scheduled event
 PUBLIC_HTTP_JOB_TRIGGER = prohibited
 ```
 
-The future implementation must not leave canonical redirect as an unused query function or reconciliation as an uninvokable library function.
+The implementation must not leave canonical redirect as an unused query function or reconciliation as an uninvokable library function.
 
 ### 5.2 Dependency boundary
 
@@ -181,8 +183,7 @@ marketing adapters
 storage contracts
 CMS or CRM runtime
 Same-Backend Homologation Cell
-production deployment configuration
-Cloudflare account configuration files
+production domain configuration
 real credential files
 plaintext secret files
 unrelated workflows
@@ -210,7 +211,7 @@ Exactly one new forward migration at the authorized path must:
 16. import valid legacy values into `pending_ownership_verification` with server-owned import metadata;
 17. prohibit automatic import as `active`;
 18. establish `tenants.dominio_principal` as a server-maintained compatibility projection;
-19. retain the old deployed resolver as sole authority until the separately controlled cutover;
+19. retain the old deployed resolver as sole authority until the controlled cutover;
 20. include reversible database cleanup only where no external operation has occurred.
 
 Historical migrations must not be edited.
@@ -258,10 +259,13 @@ Implementation requirements:
 - SQL and TypeScript use the same exact enum;
 - unlisted transitions fail;
 - adapters, workers, UI and clients cannot write status directly;
+- challenge issuance, challenge rotation and non-conclusive observations are audited status-preserving commands, not persisted self-transitions;
+- `degraded → active` is symmetric and permitted only after the complete current-generation active predicate is re-proved;
 - `failed` reopens only through one of the named explicit recovery commands;
 - `revoked` is terminal;
 - only `active` is publicly authoritative;
 - `removal_pending` closes public authority at entry;
+- `removal_pending → active` is prohibited;
 - no open expressions such as “any processing state” are permitted.
 
 ## 10. Incumbent/candidate replacement
@@ -271,6 +275,9 @@ INCUMBENT = existing active canonical row and generation
 CANDIDATE = new linked row/generation created in replacement_pending
 INCUMBENT_AUTHORITY_DURING_PREPARATION = preserved
 CANDIDATE_AUTHORITY_BEFORE_SWAP = false
+POST_SWAP_DIRECT_REACTIVATION = prohibited
+ROLLBACK = transaction abort before commit only
+POST_COMMIT_RECOVERY = new explicit replacement generation
 ```
 
 The incumbent remains `active` while the candidate progresses through ownership, DNS, provider and SSL checks. Candidate failure must not mutate the incumbent.
@@ -284,7 +291,9 @@ The swap must be one transaction that:
 - moves the incumbent to `removal_pending`;
 - updates the compatibility projection;
 - appends correlated audit events;
-- rolls back entirely on any mismatch.
+- aborts entirely on any mismatch before commit.
+
+After commit, the former incumbent cannot transition from `removal_pending` to `active`. Any later recovery creates a new candidate generation and repeats ownership, DNS, provider, SSL and reconciliation verification before another atomic swap.
 
 Database constraints must prevent two active canonical rows for one tenant.
 
@@ -404,7 +413,7 @@ The handler may:
 - release or expire leases deterministically;
 - run periodic reconciliation using the same authority model.
 
-External Cron configuration and invocation remain separately authorized operations. No deployment configuration is changed by the principal implementation unless a later instruction explicitly authorizes it.
+External Cron configuration and invocation are permitted only after the external preflight is satisfied. No production-domain cutover is authorized.
 
 ## 16. Import and cutover
 
@@ -510,7 +519,7 @@ Must expose:
 4. every explicitly enumerated predecessor/successor pair;
 5. rejection of unlisted transitions;
 6. tenant authority and explicit Super Admin impersonation;
-7. challenge expiry, rotation, digest comparison and replay rejection;
+7. challenge expiry, rotation, digest comparison, replay rejection and no persisted self-transition;
 8. global hostname and canonical uniqueness;
 9. legacy import into `pending_ownership_verification`;
 10. no automatic imported `active` state;
@@ -521,21 +530,24 @@ Must expose:
 15. incumbent remains active during replacement;
 16. candidate failure leaves incumbent unchanged;
 17. atomic candidate/canonical/alias swap;
-18. removal closes public authority before cleanup completion;
-19. active-domain public resolver exact cardinality;
-20. global cutover blocked by any unready incumbent;
-21. old authority unchanged after failed preflight;
-22. no request-time dual query or fallback;
-23. canonical redirect before SSR, `308`, path/query preservation and HTTPS;
-24. redirect loop, cross-tenant and multi-hop rejection;
-25. `src/server.ts::scheduled` platform-native execution and fail-closed behavior;
-26. periodic reconciliation and orphan detection;
-27. production/development map isolation;
-28. credential-reference and log redaction;
-29. operator runbook completeness;
-30. credential incident runbook completeness;
-31. `FILES_ALLOWED` completeness against the Definition of Done;
-32. migration rollback where no external operation occurred.
+18. pre-commit swap abort preserves incumbent;
+19. post-commit incumbent direct reactivation is rejected and recovery creates a new generation;
+20. `degraded → active` requires complete current-generation evidence;
+21. removal closes public authority before cleanup completion;
+22. active-domain public resolver exact cardinality;
+23. global cutover blocked by any unready incumbent;
+24. old authority unchanged after failed preflight;
+25. no request-time dual query or fallback;
+26. canonical redirect before SSR, `308`, path/query preservation and HTTPS;
+27. redirect loop, cross-tenant and multi-hop rejection;
+28. `src/server.ts::scheduled` platform-native execution and fail-closed behavior;
+29. periodic reconciliation and orphan detection;
+30. production/development map isolation;
+31. credential-reference and log redaction;
+32. operator runbook completeness;
+33. credential incident runbook completeness;
+34. `FILES_ALLOWED` completeness against the Definition of Done;
+35. migration rollback where no external operation occurred.
 
 Existing release verification must continue to pass. Tests may not be removed or weakened to obtain green status.
 
@@ -550,8 +562,8 @@ Before implementation submission for direct audit:
 5. run typecheck and production/development builds through the existing Release Gate;
 6. confirm exactly the allowed files changed;
 7. produce exact-head full-diff evidence with manifest hashes and reconstruction match;
-8. keep the implementation PR draft;
-9. do not merge or enable auto-merge.
+8. keep the implementation PR draft until the concise pre-merge audit;
+9. do not enable auto-merge.
 
 A green status without exact-head artifact validation is insufficient.
 
@@ -595,7 +607,13 @@ Before external operation:
 - no historical migration is edited;
 - a failed implementation PR remains unmerged.
 
-After separately authorized external operation:
+For a replacement swap:
+
+- rollback means transaction abort before commit only;
+- a committed swap is not reversed by `removal_pending → active`;
+- post-commit recovery is a compensating, audit-preserving new replacement generation.
+
+After authorized external operation:
 
 - rollback is compensating and audit-preserving;
 - public authority closes fail-closed before provider cleanup;
@@ -605,12 +623,12 @@ After separately authorized external operation:
 
 ## 24. Controlled external proof gate
 
-Terminal DCA-01 acceptance requires a separately authorized proof in a non-production domain and Same-Backend Homologation Cell.
+Terminal DCA-01 acceptance requires a proof in a non-production domain and Same-Backend Homologation Cell.
 
 The proof must demonstrate:
 
 - ownership challenge lifecycle;
-- manual-assisted and, when credentials are authorized, API-automated mode;
+- manual-assisted and, when credentials are available, API-automated mode;
 - DNS, provider binding and SSL evidence;
 - active-domain public resolution;
 - canonical alias redirect;
@@ -619,16 +637,21 @@ The proof must demonstrate:
 - secret/log redaction;
 - teardown and orphan absence.
 
-The planning merge, implementation authorization and implementation merge do not automatically authorize this proof.
+No productive domain or production cutover may be used for this proof.
 
 ## 25. Definition of Done
 
-DCA-01 implementation is ready for final direct implementation audit only when:
+DCA-01 implementation is ready for the concise pre-merge audit only when:
 
 ```text
 ONE_AUTHORITATIVE_DOMAIN_AGGREGATE = true
 CLOSED_STATE_MACHINE = true
 ALL_PREDECESSORS_ENUMERATED = true
+DEGRADED_ACTIVE_TRANSITION_SYMMETRIC = true
+OWNERSHIP_ROTATION_STATUS_PRESERVING = true
+PENDING_OWNERSHIP_SELF_TRANSITION = false
+POST_SWAP_DIRECT_REACTIVATION = false
+POST_COMMIT_RECOVERY_CREATES_NEW_GENERATION = true
 UNDEFINED_IMPORT_STATE = false
 SERVER_ONLY_PROVIDER_AUTHORITY = true
 MANUAL_AND_API_MODES_SHARE_AUTHORITY = true
@@ -653,35 +676,35 @@ TWO_REQUIRED_RUNBOOKS = true
 DETERMINISTIC_TESTS = true
 RELEASE_GATE = success
 EXACT_HEAD_EVIDENCE = valid
-IMPLEMENTATION_PR_DRAFT = true
-IMPLEMENTATION_MERGED = false
-EXTERNAL_PROOF_EXECUTED = false unless separately authorized
+IMPLEMENTATION_PR_DRAFT = true before accepted pre-merge audit
+EXTERNAL_PROOF = success or Blocked External with factual prerequisite evidence
 ```
 
-## 26. State ceiling for the future principal implementation
-
-Absent a later instruction that explicitly changes the ceiling:
+## 26. State ceiling for the principal implementation
 
 ```text
-DCA01_IMPLEMENTATION_STATE = Ready for Direct External Implementation Audit
-DCA01_IMPLEMENTATION_AUTHORIZED = true only for the principal implementation instruction
-DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = false
-DCA01_EXTERNAL_OPERATION_AUTHORIZED = false
-DCA01_EXTERNAL_PROOF_AUTHORIZED = false
+DCA01_IMPLEMENTATION_STATE = Ready for Concise Pre-Merge Audit
+DCA01_IMPLEMENTATION_AUTHORIZED = true after protected planning merge
+DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = conditional on Accepted pre-merge audit
+DCA01_EXTERNAL_OPERATION_AUTHORIZED = true only for controlled non-production proof after safe preflight
 BCA01_STARTED = false
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = none beyond DCA-01
 ```
 
 ## 27. Current planning conclusion
 
-This corrected envelope now names every known implementation file required by its own Definition of Done, including the request-level redirect integration, platform-native scheduled executor and two operational runbooks.
+The exceptional narrow correction is internally accepted. The three final state-machine contradictions are closed without expanding the planning scope:
+
+- `degraded → active` is symmetric and evidence-gated;
+- challenge rotation and inconclusive observation preserve status without a self-transition;
+- replacement rollback is limited to pre-commit transaction abort, with post-commit recovery requiring a new generation.
 
 ```text
-DCA01_PLANNING_STATE = Ready for Direct External Re-Audit
-DCA01_PLANNING_MERGE_READY = false
-DCA01_PLANNING_MERGE_AUTHORIZED = false
-DCA01_IMPLEMENTATION_AUTHORIZED = false
+DCA01_PLANNING_STATE = Accepted
+DCA01_PLANNING_MERGE_READY = true
+DCA01_PLANNING_MERGE_AUTHORIZED = true
+DCA01_IMPLEMENTATION_AUTHORIZED = conditionally_after_planning_merge
 DCA01_IMPLEMENTATION_STARTED = false
 CLOUDFLARE_API_CALL_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
@@ -689,5 +712,5 @@ DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
 BCA01_STARTED = false
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = DCA-01 implementation after protected planning merge
 ```
