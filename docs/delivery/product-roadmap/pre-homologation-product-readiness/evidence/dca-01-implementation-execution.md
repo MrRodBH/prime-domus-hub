@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implementation in progress — principal draft PR validation running**
+**Implementation complete — concise exact-head pre-merge audit pending**
 
 ```text
 STAGE_ID = DCA-01
@@ -11,104 +11,229 @@ IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
 IMPLEMENTATION_PR = 65
 IMPLEMENTATION_PR_DRAFT = true
 AUTO_MERGE = false
+PREMERGE_AUDIT = pending
+IMPLEMENTATION_MERGE_AUTHORIZED = false
+TERMINAL_DCA01_STATE = not reached
+
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
 CLOUDFLARE_API_CALL_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
 REAL_SECRET_USED = false
 PRODUCTION_CUTOVER_EXECUTED = false
+
 BCA01_STATE = Planned — Blocked by DCA-01
 PRM3_STATE = Planned — Blocked by BCA-01
 ```
 
 ## Materialized repository scope
 
-The branch materializes the accepted DCA-01 lifecycle through one forward migration, server-only domain authority modules, an official embedded PSL snapshot, tenant and global command surfaces, a narrow Cloudflare adapter, public active-domain resolution, canonical redirect before SSR and a platform-native scheduled executor.
+The principal PR materializes the accepted DCA-01 lifecycle through:
 
-Additional subordinate files below `src/lib/domains/` are implementation-time impact consequences of the accepted Definition of Done:
+- one forward database migration;
+- one closed TypeScript and SQL lifecycle;
+- server-only domain authority modules;
+- an official pinned Public Suffix List snapshot;
+- tenant and global command surfaces;
+- a narrow Cloudflare adapter;
+- active-domain public resolution;
+- canonical redirect before SSR;
+- a platform-native scheduled executor;
+- tenant and Super Admin operational surfaces;
+- deterministic release specifications and two operational runbooks.
+
+Additional subordinate files below `src/lib/domains/` are direct implementation-time consequences of the accepted Definition of Done:
 
 - generated Public Suffix List snapshot segments;
 - split server-only repository modules preserving one exported repository boundary;
-- deterministic legacy-import manifest builder required because SQL may not infer PSL/IDNA authority.
+- deterministic legacy-import manifest builder because SQL cannot infer PSL/IDNA authority.
 
-They do not create a new architectural decision, a second domain authority or a new stage.
+They introduce no second authority, no new architectural decision and no additional stage.
 
-## Current deterministic evidence
+## Authority and security evidence
+
+```text
+SERVER_TENANT_AUTHORITY = true
+SERVER_DOMAIN_AUTHORITY = true
+SERVER_STATE_TRANSITION_AUTHORITY = true
+SERVER_PROVIDER_ACCOUNT_AUTHORITY = true
+SERVER_CANONICAL_HOST_AUTHORITY = true
+SERVER_CUTOVER_AUTHORITY = true
+
+CLIENT_TENANT_AUTHORITY = false
+CLIENT_STATUS_AUTHORITY = false
+CLIENT_PROVIDER_IDENTIFIER_AUTHORITY = false
+CLIENT_DNS_SUCCESS_AUTHORITY = false
+CLIENT_SSL_SUCCESS_AUTHORITY = false
+REQUEST_TIME_DUAL_AUTHORITY = false
+SILENT_MODE_FALLBACK = false
+PUBLIC_HTTP_JOB_TRIGGER = false
+PLAINTEXT_PROVIDER_SECRET_STORAGE = false
+SUPER_ADMIN_TENANT_MUTATION_WITHOUT_IMPERSONATION = false
+```
+
+## Lifecycle evidence
+
+- The only persisted statuses are the accepted 12-state set.
+- `degraded → active` is symmetric and requires the full current-generation predicate.
+- Ownership issue/rotation/non-conclusive observation preserve status and append audit evidence.
+- Ownership verification locks the current domain and challenge generation/version in one transaction.
+- `removal_pending → active` is prohibited.
+- Failed retry performs one explicit matching recovery transition before enqueuing work.
+- A removal request closes public authority before provider cleanup.
+- Replacement preserves the active incumbent while the candidate is prepared.
+- Replacement retires the incumbent generation and promotes the candidate in one transaction; failure aborts both effects.
+- Post-commit recovery requires a new explicit candidate generation.
+
+## PSL and normalization evidence
 
 ```text
 PSL_VERSION = 2026-07-25_14-20-03_UTC
 PSL_SOURCE_COMMIT = e1b8015c3b2f0f4f8c18659c2480fc1a22c07b20
 PSL_RULE_COUNT = 10239
+PSL_UNIQUE_RULE_COUNT = 10239
 PSL_DUPLICATE_COUNT = 0
-REQUEST_TIME_DUAL_AUTHORITY = false
-CLIENT_TENANT_AUTHORITY = false
-CLIENT_STATUS_AUTHORITY = false
-CLIENT_PROVIDER_SUCCESS_AUTHORITY = false
-PLAINTEXT_PROVIDER_SECRET_STORAGE = false
-PUBLIC_HTTP_JOB_TRIGGER = false
+IDNA_TO_ASCII = implemented
+PUBLIC_SUFFIX_ONLY_REJECTION = implemented
+RESERVED_TEST_EXAMPLE_INTERNAL_REJECTION = implemented
+APEX_WWW_IMPLICIT_EQUIVALENCE = prohibited
 ```
 
-## Exact-head gate history
-
-### Initial draft head
-
-```text
-HEAD = 86d6e2543472fe136eccee062052fe1152031295
-RELEASE_GATE = failure
-EXACT_HEAD_CHECKOUT = passed
-PREDECESSOR_TESTS_REACHED = all passed through PR-M2 analytics/tracking
-DCA01_TEST_RESULT = failed before build/typecheck
-ROOT_CAUSE = test matcher treated an audited RPC parameter as direct table persistence
-DIRECT_PROVIDER_TABLE_MUTATION_FOUND = false
-BUILD_REACHED = false
-TYPECHECK_REACHED = false
-```
-
-The failure was a test-predicate false positive. `super-domain.functions.ts` invokes audited server RPCs and does not perform direct `.from("domain_provider_accounts").insert/update/upsert` mutation. The credential reference remains schema-validated, opaque and redacted.
-
-### Current validation head
-
-```text
-HEAD = 50e1666f8d8cac3d2e0b372754268208802d93c1
-CHANGE = disambiguate audited credential-reference transport without changing authority
-RELEASE_GATE = pending
-```
-
-The exact PR Release Gate is the authority for final assertion count, typecheck and build status. Earlier local assertion counts are development evidence only and are not terminal acceptance evidence.
+The snapshot segments were reconciled by Git blob SHA against the generated source artifacts before runtime integration.
 
 ## Migration boundary
 
-The single migration is:
-
 ```text
-supabase/migrations/20260804180000_dca_01_domain_cloudflare_activation.sql
-```
-
-It creates the closed domain schema, RLS-enabled tables, explicit grants and server RPCs. A server-generated legacy import manifest is mandatory when `tenants.dominio_principal` contains non-empty values. The migration validates exact tenant cardinality, normalized-host uniqueness and a SHA-256 binding to each legacy source value. It does not derive registrable domains heuristically in SQL.
-
-```text
-LOCAL_DEVELOPMENT_MIGRATION_BLOB = d4ca60f07bfb854aea823905d59dee772b1aecc5
-REMOTE_BRANCH_MIGRATION_BLOB = 61d9e86cbbafe5f4a91017081d8b2f652847faf9
-BYTE_EQUIVALENCE_CONFIRMED = false
+MIGRATION_PATH = supabase/migrations/20260804180000_dca_01_domain_cloudflare_activation.sql
+REMOTE_GITHUB_BLOB = 61d9e86cbbafe5f4a91017081d8b2f652847faf9
 REMOTE_LINE_COUNT = 1490
-EXACT_BRANCH_RELEASE_GATE = pending
+HISTORICAL_LOCAL_DRAFT_BLOB = d4ca60f07bfb854aea823905d59dee772b1aecc5
+LOCAL_DRAFT_IS_AUTHORITY = false
+GITHUB_PR_CONTENT_IS_AUTHORITY = true
 ```
 
-The remote migration has the expected 1,490-line structure, but byte equivalence to the local development artifact has not yet been proven. This remains a non-terminal implementation gate and is not terminal acceptance evidence.
+The initial local draft and the GitHub file are not byte-identical. That local draft is development history, not a repository authority. The GitHub PR file is the operative implementation and has been validated directly by the exact-head Release Gate and DCA-01 structural specifications.
+
+The migration provides:
+
+- all eight RLS-enabled DCA tables;
+- no permissive client policies;
+- explicit table and function grants;
+- closed SQL transitions and active predicate enforcement;
+- atomic domain creation, challenge verification and replacement;
+- append-only audit events;
+- opaque `env:VARIABLE` credential references;
+- leased jobs with attempt records and bounded retry;
+- public resolver functions over active `tenant_domains` only;
+- a global cutover RPC with legacy continuity and current-generation evidence checks;
+- fail-closed legacy import requiring a server-generated PSL/IDNA manifest and source SHA-256 binding.
 
 The migration has not been applied to a managed database.
 
-## External operations
+## Exact-head Release Gate history
 
-No external operation has been executed. The following remain separate gated proof work after repository acceptance and protected merge:
+### Initial draft diagnostic
 
-- controlled migration application;
-- non-production DNS proof;
-- Cloudflare Custom Hostname creation or observation;
-- SSL observation;
+```text
+HEAD = 86d6e2543472fe136eccee062052fe1152031295
+RESULT = failure
+CAUSE = structural test matcher false positive before build/typecheck
+DIRECT_PROVIDER_TABLE_MUTATION_FOUND = false
+```
+
+### Serializable DTO correction
+
+```text
+HEAD = 76fea3457cc1b8d97522e043a3fdf50409e07f65
+DCA01_TEST = passed
+BUILD_DEV = passed
+TYPECHECK = failed
+CAUSE = non-serializable Record<string, unknown> in server-function DTOs
+```
+
+The DTO root contract was replaced with strict recursive JSON types. External DNS/provider data is sanitized before persistence or return.
+
+### Runtime and repository validation
+
+```text
+HEAD = b475f1e4e7b04021e32b74309df289fe07a605ba
+RELEASE_GATE = success
+PRM2_CONSOLIDATED_CORRECTIVE_GATE = success
+DCA01_SPEC_ASSERTIONS = 134
+BUILD_DEV = passed
+BUILD = passed
+TYPECHECK = passed
+```
+
+### Tenant/Super UI validation
+
+```text
+HEAD = 8ca3c64b2b13416389fd62da63e8894b5c05f14a
+RELEASE_GATE = success
+PRM2_CONSOLIDATED_CORRECTIVE_GATE = success
+TENANT_DOMAIN_ROUTE_GENERATED = true
+SUPER_DOMAIN_ROUTE_GENERATED = true
+BUILD_DEV = passed
+BUILD = passed
+TYPECHECK = passed
+```
+
+### Generator-owned route-tree proof
+
+```text
+HEAD = 4bb3bfbcb1b77dae0feb3c77df5288b9d56eee8e
+RELEASE_GATE = success
+PRM2_CONSOLIDATED_CORRECTIVE_GATE = success
+GENERATED_ROUTE_TREE_BYTES = 71456
+GENERATED_ROUTE_TREE_LINES = 1695
+GENERATED_ROUTE_TREE_SHA256 = 00ea348d4032a9619fd033fe1d794abc177a74a0f830a8645dcae1c4055d13d8
+GENERATED_ROUTE_TREE_MANUAL_EDIT = false
+DETERMINISTIC_ROUTE_TREE_CYCLES = 3
+```
+
+`src/routeTree.gen.ts` remains generator-owned and unedited in the branch. The exact builds generate both DCA routes and produce one stable digest across development, production and repeated development cycles.
+
+## Operational surfaces
+
+### Tenant
+
+The tenant workspace supports:
+
+- domain request with explicit mode and binding kind;
+- one-time ownership TXT display;
+- challenge rotation;
+- verification request;
+- deterministic retry;
+- canonical replacement request;
+- removal request.
+
+It exposes no status mutation, provider ID mutation, DNS success assertion or SSL success assertion.
+
+### Super Admin
+
+The global workspace supports:
+
+- sanitized platform diagnostics;
+- provider-account registration through audited RPC;
+- opaque credential-reference rotation;
+- explicit provider availability control;
+- failed-job visibility;
+- read-only authoritative-cutover preflight.
+
+Tenant-scoped retry and manual-assisted observation remain protected by `requireTenant` and explicit impersonation.
+
+## External proof boundary
+
+No external operation has been executed. After an Accepted pre-merge audit and protected implementation merge, the controlled non-production proof still must cover:
+
+- managed migration application;
+- legacy import preflight where applicable;
+- DNS ownership and required record observation;
+- Cloudflare Custom Hostname creation or exact observation;
+- SSL activation;
 - activation, degradation and recovery;
 - atomic replacement;
-- removal and cleanup;
+- removal and provider cleanup;
 - exact-release cutover preflight.
 
-Production cutover remains unauthorized.
+Repository success is not external-provider success. Production cutover remains unauthorized.
