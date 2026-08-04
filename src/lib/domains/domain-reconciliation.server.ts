@@ -173,20 +173,31 @@ export async function assertDomainCutoverReady(): Promise<{
     });
   }
 
-  const { data: active, error: activeError } = await db.from("tenant_domains")
-    .select("tenant_id, normalized_hostname, status, enabled, hostname_kind, generation, metadata")
+  const { data: activeRows, error: activeError } = await db.from("tenant_domains")
+    .select("id, tenant_id, normalized_hostname, hostname_kind")
     .eq("status", "active")
-    .eq("enabled", true)
-    .eq("hostname_kind", "canonical");
+    .eq("enabled", true);
   if (activeError) throw new DomainError("domain_cutover_blocked", activeError.message);
 
-  const byTenant = new Map<string, any[]>();
-  for (const row of active ?? []) {
-    const list = byTenant.get(row.tenant_id) ?? [];
-    list.push(row);
-    byTenant.set(row.tenant_id, list);
-  }
+  const activeDomains = await Promise.all((activeRows ?? []).map((row: any) => getTenantDomain(row.tenant_id, row.id)));
   const blockers: Array<Record<string, unknown>> = [];
+  const canonicalByTenant = new Map<string, TenantDomainRecord[]>();
+
+  for (const domain of activeDomains) {
+    const evidence = await buildCurrentGenerationEvidence(domain);
+    const incomplete = Object.entries(evidence)
+      .filter(([, value]) => value !== true)
+      .map(([key]) => key);
+    if (incomplete.length > 0) {
+      blockers.push({ domainId: domain.id, tenantId: domain.tenantId, reason: "active_predicate_incomplete", incomplete });
+    }
+    if (domain.hostnameKind === "canonical") {
+      const rows = canonicalByTenant.get(domain.tenantId) ?? [];
+      rows.push(domain);
+      canonicalByTenant.set(domain.tenantId, rows);
+    }
+  }
+
   for (const tenant of legacyRows) {
     let legacyHostname: string;
     try {
@@ -195,17 +206,12 @@ export async function assertDomainCutoverReady(): Promise<{
       blockers.push({ tenantId: tenant.id, reason: "legacy_hostname_invalid" });
       continue;
     }
-    const rows = byTenant.get(tenant.id) ?? [];
-    if (rows.length !== 1 || rows[0].normalized_hostname !== legacyHostname) {
-      blockers.push({ tenantId: tenant.id, reason: "active_canonical_mismatch" });
-      continue;
-    }
-    const metadata = rows[0].metadata ?? {};
-    if (metadata.last_reconciliation_success !== true
-      || Number(metadata.last_reconciliation_generation) !== Number(rows[0].generation)) {
-      blockers.push({ tenantId: tenant.id, reason: "reconciliation_not_current" });
+    const rows = canonicalByTenant.get(tenant.id) ?? [];
+    if (rows.length !== 1 || rows[0].normalizedHostname !== legacyHostname) {
+      blockers.push({ tenantId: tenant.id, reason: "active_canonical_mismatch", activeCanonicalCount: rows.length });
     }
   }
+
   if (blockers.length > 0) {
     throw new DomainError("domain_cutover_blocked", "Authoritative domain cutover preflight failed", {
       safeDetail: { blockerCount: blockers.length, blockers: blockers.slice(0, 100) },
@@ -213,7 +219,7 @@ export async function assertDomainCutoverReady(): Promise<{
   }
   return {
     ready: true,
-    domainCount: active?.length ?? 0,
+    domainCount: activeDomains.length,
     legacyDomainCount: legacyRows.length,
     authorityMode: "legacy",
     lockVersion: Number(controls[0].lock_version),
