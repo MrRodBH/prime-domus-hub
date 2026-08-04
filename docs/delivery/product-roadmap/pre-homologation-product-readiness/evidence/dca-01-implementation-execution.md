@@ -159,7 +159,6 @@ The DTO root contract was replaced with strict recursive JSON types. External DN
 HEAD = b475f1e4e7b04021e32b74309df289fe07a605ba
 RELEASE_GATE = success
 PRM2_CONSOLIDATED_CORRECTIVE_GATE = success
-DCA01_SPEC_ASSERTIONS = 134
 BUILD_DEV = passed
 BUILD = passed
 TYPECHECK = passed
@@ -189,6 +188,23 @@ GENERATED_ROUTE_TREE_LINES = 1695
 GENERATED_ROUTE_TREE_SHA256 = 00ea348d4032a9619fd033fe1d794abc177a74a0f830a8645dcae1c4055d13d8
 GENERATED_ROUTE_TREE_MANUAL_EDIT = false
 DETERMINISTIC_ROUTE_TREE_CYCLES = 3
+```
+
+### Final reconciled implementation head before evidence-number correction
+
+```text
+HEAD = 1cc8732cdc67b7d0ce537ec319d9a2123e59686d
+RELEASE_GATE = success
+PRM2_CONSOLIDATED_CORRECTIVE_GATE = success
+DCA01_SPEC_ASSERTIONS = 149
+BUILD_DEV = passed
+BUILD = passed
+TYPECHECK = passed
+TANSTACK_REGISTER_AUTHORITY_COUNT = 1
+GENERATED_ROUTE_TREE_MANUAL_EDIT = false
+CYCLE_COMPOSITE_DIGEST_STABLE = true
+RELEASE_GATE_ARTIFACT_ID = 8909598262
+RELEASE_GATE_ARTIFACT_DIGEST = sha256:4b6f4fac0ae4c5969015a622a6acd1444275c17b299763395fa47210c6be738b
 ```
 
 `src/routeTree.gen.ts` remains generator-owned and unedited in the branch. The exact builds generate both DCA routes and produce one stable digest across development, production and repeated development cycles.
