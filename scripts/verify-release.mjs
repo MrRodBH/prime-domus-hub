@@ -78,6 +78,11 @@ run("Cycle C — repeated development build", "bun", ["run", "build:dev"]);
 const cycleC = inspectRegisterAuthority("cycle-c");
 if (cycleC !== cycleA) fail(`route tree is not stable across repeated generation: ${cycleA} != ${cycleC}`);
 
+const generatedRouteTreeBase64 = Buffer.from(readFileSync(routeTreePath, "utf8"), "utf8").toString("base64");
+console.log("DCA01_GENERATED_ROUTE_TREE_BASE64_BEGIN");
+console.log(generatedRouteTreeBase64);
+console.log("DCA01_GENERATED_ROUTE_TREE_BASE64_END");
+
 run("Lead authorization unit specifications", "bun", ["run", "test:lsh-01:unit"]);
 run("Lead runtime operation specifications", "bun", ["run", "test:lsh-01:runtime"]);
 run("Lead structural specifications", "bun", ["run", "test:lsh-01:structural"]);
