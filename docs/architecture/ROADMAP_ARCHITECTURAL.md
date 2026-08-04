@@ -1,495 +1,213 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — RPD-01 Accepted / Closed; PR-M2 Pre-Principal Planning Gate Accepted / Merged; implementation Planned / Blocked  
-**Autoridade:** Single Source of Future Evolution do RM Prime SaaS  
-**HEAD técnico após merge da reconciliação:** `acdc461b0a3c430339c7d07d0fafc94063eca5d8`  
-**Baseline auditado da PR-M2:** `985a48e26c72c36aa80cac21ab32c768dac84c17`  
-**Executor da RPD-01 e planejamento PR-M2:** ChatGPT GitHub-native
+**Status:** Ratificado — PR-M2 blocking correction implementada; exact-head gate obrigatório antes da Full Protected Merge Audit Rerun
+**Autoridade:** Single Source of Future Evolution do RM Prime SaaS
+**Main auditada:** `ec05fd4edee94feabf8423a129154eb807c52a99`
+**Branch de implementação:** `agent/pr-m2-functional-completion`
+**HEAD de início da blocking correction:** `be09b190996f512650331206898247a53004c8f8`
+**Executor:** ChatGPT GitHub-native
 
-## 1. Fechamento vinculante da RPD-01
-
-```text
-STAGE_ID = RPD-01
-FINAL_EXTERNAL_AUDIT = Accepted
-RPD01_STATE = Accepted / Closed
-RPD01_ACCEPTED = true
-RPD01_CLOSURE_COMPLETE = true
-
-RPD01_PLANNING_PR = 55
-RPD01_PLANNING_HEAD = 8a56c758ca1d8b127dd0ee736769f0b4171f4c7d
-RPD01_PLANNING_MERGED = true
-RPD01_PLANNING_MERGE_METHOD = squash
-RPD01_PLANNING_MERGE_SHA = 1acf99e272e448e834b52a0018e3d34b79f0a133
-
-RPD01_RECONCILIATION_FINAL_AUDIT = Accepted
-RPD01_RECONCILIATION_MERGE_AUTHORIZED = true
-RPD01_RECONCILIATION_PR = 56
-RPD01_RECONCILIATION_HEAD = 90b4792b90e66883ebcb1caa62dad9b644793f93
-RPD01_RECONCILIATION_MERGE_METHOD = squash
-RPD01_RECONCILIATION_MERGE_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
-RPD01_RECONCILIATION_MERGED = true
-
-RPD01_PRINCIPAL_PROMPT_CONSUMED = true
-RPD01_CORRECTIVE_PROMPT_CONSUMED = true
-RPD01_REMAINING_PROMPT_BUDGET = 0/2
-```
-
-Release Gates vinculados:
+## 1. Estado vinculante atual
 
 ```text
-RPD01_PLANNING_RELEASE_GATE_RUN_ID = 30132995455
-RPD01_PLANNING_RELEASE_GATE_JOB_ID = 89611181337
-RPD01_PLANNING_RELEASE_GATE_RESULT = success
-RPD01_PLANNING_RELEASE_GATE_ARTIFACT_ID = 8611824397
-RPD01_PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:7052f7f3b31e4aaadf23f32a4004a2d3d9c3081cb84090fb130c0dc44d80bb86
+PRODUCT = Plataforma SaaS White Label para corretores de imóveis e imobiliárias
+REPOSITORY = MrRodBH/prime-domus-hub
+BASE_BRANCH = main
+IMPLEMENTATION_BRANCH = agent/pr-m2-functional-completion
+PULL_REQUEST = 60
 
-POST_PLANNING_MERGE_RELEASE_GATE_RUN_ID = 30134139802
-POST_PLANNING_MERGE_RELEASE_GATE_JOB_ID = 89614524262
-POST_PLANNING_MERGE_RELEASE_GATE_RESULT = success
-POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_ID = 8612216615
-POST_PLANNING_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:bf474c3858f4b1e704df19c7e174f4bb2ad69c8c99ff4f7b4e7821f223df0308
+PRM2_IMPLEMENTATION_AUTHORIZED = true
+PRM2_IMPLEMENTATION_STARTED = true
+PRM2_IMPLEMENTATION_COMPLETED = true
+PRM2_FINAL_CLOSURE_STATE = Historical — Superseded by Rejected Full Protected Merge Audit
+PRM2_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
+BF01_RESOLVED = true
+BF02_RESOLVED = true
+BF03_RESOLVED = true
 
-RPD01_RECONCILIATION_RELEASE_GATE_RUN_ID = 30164381209
-RPD01_RECONCILIATION_RELEASE_GATE_JOB_ID = 89694819354
-RPD01_RECONCILIATION_RELEASE_GATE_RESULT = success
-RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_ID = 8621159498
-RPD01_RECONCILIATION_RELEASE_GATE_ARTIFACT_DIGEST = sha256:487c976138a033a5d7fe44b51cc517a589e35862aeacfc1437688f1ef6c3081e
+PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = false
+PRM2_PROTECTED_MERGE_EXECUTION_AUTHORIZED = false
+PRM2_MERGE_AUTHORIZED = false
+PRM2_MERGED = false
+MERGE_EXECUTED = false
+AUTO_MERGE_ENABLED = false
 
-FINAL_PUSH_RELEASE_GATE_RUN_ID = 30270513019
-FINAL_PUSH_RELEASE_GATE_JOB_ID = 89991615902
-FINAL_PUSH_RELEASE_GATE_EVENT = push
-FINAL_PUSH_RELEASE_GATE_BRANCH = main
-FINAL_PUSH_RELEASE_GATE_HEAD_SHA = acdc461b0a3c430339c7d07d0fafc94063eca5d8
-FINAL_PUSH_RELEASE_GATE_RESULT = success
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_ID = 8654686143
-FINAL_PUSH_RELEASE_GATE_ARTIFACT_DIGEST = sha256:5b16716597c3dd036ffb7a6600ff6e62768adc8a04293d84b0f891acda6fb400
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+REAL_PROVIDER_EXECUTED = false
+DCA01_START_AUTHORIZED = false
+BCA01_START_AUTHORIZED = false
+PRM3_START_AUTHORIZED = false
 ```
 
-## 2. Regras permanentes
+A Full Protected Merge Audit rejeitou o estado anterior por três bloqueios materiais: raw client path authority, foto de corretor sem consumer atômico e CRM Attachments sem boundary funcional. A blocking correction materializa essas três correções e não autoriza merge. O exact-head Release Gate e o artifact integral permanecem predecessores obrigatórios da nova auditoria.
+
+## 2. Proteção vinculante de `main`
+
+```text
+RULESET_ID = 20308240
+RULESET_NAME = RM Prime — main protected merge gate
+RULESET_ENFORCEMENT = active
+RULESET_TARGET = refs/heads/main
+RULESET_MATCHING_ACTIVE_COUNT = 1
+BYPASS_ACTOR_COUNT = 0
+CURRENT_USER_CAN_BYPASS = never
+
+PULL_REQUEST_REQUIRED = true
+REQUIRED_CONVERSATION_RESOLUTION = true
+STRICT_REQUIRED_STATUS_CHECKS = true
+FORCE_PUSH_ALLOWED = false
+DELETION_ALLOWED = false
+```
+
+Required checks:
+
+```text
+Consolidated corrective exact-head Release Gate
+integration_id = 15368
+
+Typecheck, build and deterministic route generation
+integration_id = 15368
+```
+
+O ruleset é predecessor obrigatório desta correção. Nenhuma nova criação, alteração ou auditoria operacional do ruleset integra este estágio.
+
+## 3. Invariantes permanentes
 
 1. Architecture First e Impact Analysis antes de mudança estrutural ou runtime relevante.
 2. GitHub `main` auditado é a fonte técnica final.
-3. Servidor é a única autoridade para tenant, autorização e decisões comerciais.
-4. Client, header e path nunca são autoridade.
+3. Servidor é a única autoridade de tenant, autorização e decisões comerciais.
+4. Client, headers e paths enviados pelo client nunca são autoridade.
 5. Sem fallback implícito, tenant default, heurística, dual path ou `ORDER BY/LIMIT 1` autoritativo.
 6. Ambiguidade falha rápido e fechado.
-7. Super Admin sem impersonação explícita não acessa recurso tenant-scoped.
-8. `x-tenant-id` é somente transporte e deve ser revalidado pelo servidor.
+7. Super Admin sem impersonação explícita não acessa recursos tenant-scoped.
+8. `x-tenant-id` é apenas transporte e deve ser revalidado pelo servidor.
 9. Storage não confia em bucket, path ou filename enviados pelo client.
 10. Signed URL não é autorização primária.
 11. Same-Backend Homologation Cell permanece vinculante.
 12. Supabase externo não é fallback canônico.
-13. Cada etapa admite no máximo um prompt principal e um corretivo consolidado.
-14. Nenhuma etapa sucessora inicia sem predecessor compatível, Execution Envelope congelado e autorização explícita.
+13. Nenhuma etapa sucessora inicia sem predecessor aceito e autorização explícita.
 
-```text
-CANONICAL_REGISTER_STRATEGY = generated route-tree augmentation
-GENERATED_REGISTER_AUTHORITY_COUNT = 1
-AUTHORED_REGISTER_DECLARATION_COUNT = 0
-GENERATED_FILE_REWRITER_COUNT = 0
-STRATEGY_B_ALLOWED = false
-```
+## 4. Estado arquitetural consolidado
 
-## 3. Estado arquitetural aceito
-
-| Macro / etapa | Estado |
+| Macro / etapa | Estado vigente |
 |---|---|
 | Fase 2 — Multi-Tenant Core | Accepted / Closed |
 | Fase 3 — Membership Evolution Model | Accepted / Closed |
 | Fase 4 — SaaS Commercial Platform | Accepted / Closed |
 | LSH-01 | Accepted / Closed |
+| LSV-01 | Superseded / terminal |
+| LSV-02 | Superseded / terminal |
+| LSR-01 | Superseded / terminal |
+| LSR-02 | Rejected / terminal |
+| FRP-01 | Rejected / terminal |
+| HVP-01 | Superseded / historical |
+| HRC-01 | Rejected / terminal |
 | GNR-01 | Accepted |
-| PTC-01 | Accepted |
-| PSC-01 | Accepted |
-| PPR-GN-01 | Accepted |
-| PTW-01 | Accepted |
-| PSG-01 | Accepted with Non-Blocking Backlog / Merged |
 | HRR-01 | Accepted |
 | HRI-01 | Accepted / Closed |
 | RPD-01 | Accepted / Closed |
 | PR-M2 Pre-Principal Planning Gate | Accepted / Merged |
-| PR-M2 implementation | Planned — Blocked; scope not finite and principal prompt not authorized |
+| PR-M2 Functional Completion | Blocking Correction Implemented — Exact-Head Gate Required |
+| DCA-01 | Planned — Blocked by protected merge of PR-M2 |
+| BCA-01 | Planned — Blocked by DCA-01 |
+| PR-M3 | Planned — Blocked by BCA-01 |
+| Pre-Homologation Release Candidate | Blocked by PR-M3 |
+| TH-M1 | Blocked by Release Candidate |
+| TH-M2 | Blocked by TH-M1 |
+| LSV-03 | Planned — Blocked by TH-M2 |
+| Formal Homologation | Blocked by LSV-03 |
+| Production | Blocked by Formal Homologation |
 
-## 4. Caminho crítico executável
+Estados `Accepted`, `Rejected`, `Superseded`, `Closed` ou históricos não recuperam budget nem voltam à cadeia executável.
 
-```text
-HRI-01 Accepted / Closed
-→ RPD-01 Accepted / Closed
-→ PR-M2 Pre-Principal Planning Gate — Accepted / Merged
-→ PR-M2 implementation — Planned / Blocked
-→ no automatic successor
-```
-
-PR-M3 não está imediatamente executável. A sequência futura permanece PR-M3 → Pre-Homologation Release Candidate Deploy → TH-M1 → TH-M2 → LSV-03 → homologação formal → produção, mas nenhuma etapa sucessora está autorizada enquanto a implementação PR-M2 não for tornada finita, autorizada, executada e aceita. O Release Candidate Deploy é deliverable da PR-M3, não etapa autônoma; TH-M1 é UAT interna.
-
-## 5. Disposição histórica
-
-```text
-RRS-01 = Superseded by Accepted Later Authority — GNR-01/HRI-01
-PTA-01 = Absorbed by PTW-01/PSG-01 and PR-M2
-MOC-01 = Absorbed by PR-M3 and LSV-03
-RHV-01 = Absorbed by LSV-03
-LSV-04 = Absorbed by TH-M2 and LSV-03
-RDA-01 = Absorbed by PR-M2 and PR-M3
-RC-01 = Absorbed by TH-M1 and TH-M2
-```
-
-Registros históricos são preservados, mas não formam cadeia executável concorrente nem recuperam budget ou autoridade.
-
-## 6. PR-M2 — conclusão funcional
-
-**Pre-Principal Planning Gate:** Accepted / Merged.  
-**Implementação PR-M2:** Planned — Blocked; escopo não finito, não pronto e não autorizado.
-
-A auditoria direta classificou cada capacidade como:
+## 5. Caminho crítico executável
 
 ```text
-IMPLEMENTED_AND_VALIDATED
-IMPLEMENTED_BUT_INCOMPLETE
-LEGACY_OR_DUAL_PATH
-MISSING
-BLOCKED
-REQUIRES_REDESIGN
-REQUIRES_SEPARATE_GATE
-FUTURE_COMMERCIAL_SCOPE
+PR-M2 — Blocking Correction exact-head gate
+→ PR-M2 — Full Protected Merge Audit Rerun
+→ protected merge somente após autorização separada
+→ DCA-01 — Domain & Cloudflare Activation
+→ BCA-01 — Billing & Commercial Activation
+→ PR-M3 — Final Product UX/UI
+→ Pre-Homologation Release Candidate
+→ TH-M1 — Internal End-to-End UAT
+→ TH-M2 — Consolidated Remediation
+→ LSV-03 — Controlled Security Validation
+→ Formal Homologation
+→ Production
 ```
 
-Resultado vinculável somente após auditoria externa:
+A única próxima ação após sucesso comprovado do exact-head Release Gate e validação do artifact integral é a repetição integral da Full Protected Merge Audit. O merge não é automático e permanece condicionado a autorização posterior do Product Owner.
+
+## 6. PR-M2 — resultado corrente
+
+A PR-M2 materializou as capacidades funcionais previstas no boundary autorizado, incluindo tenant lifecycle, access control, Configuration Center, CMS, CRM, dashboards, portais, marketing, tracking e Super Admin Control Plane.
+
+Fronteiras externas preservadas:
 
 ```text
-AUDITED_MAIN_HEAD = 985a48e26c72c36aa80cac21ab32c768dac84c17
-CAPABILITIES_AUDITED = 248
-IMPLEMENTED_AND_VALIDATED_COUNT = 32
-IMPLEMENTED_BUT_INCOMPLETE_COUNT = 116
-LEGACY_OR_DUAL_PATH_COUNT = 15
-MISSING_COUNT = 65
-BLOCKED_COUNT = 0
-REQUIRES_REDESIGN_COUNT = 13
-REQUIRES_SEPARATE_GATE_COUNT = 2
-FUTURE_COMMERCIAL_SCOPE_COUNT = 5
-UNCLASSIFIED_CAPABILITIES = 0
-IMPLEMENTATION_SCOPE_FINITE = false
-PRM2_IMPLEMENTATION_READY = false
+MANAGED_MIGRATION_EXECUTED = false
+LIVE_BACKEND_SCHEMA_VERIFIED = false
+REAL_PROVIDER_EXECUTED = false
+REAL_CREDENTIAL_USED = false
+LIVE_TRAFFIC_TESTED = false
+LIVE_DOMAIN_ACTIVATION_EXECUTED = false
+LIVE_BILLING_ACTIVATION_EXECUTED = false
 ```
 
-Escopo mínimo:
+DCA-01 responde pela ativação híbrida de domínios e Cloudflare. BCA-01 responde pela autorização comercial, provider real, checkout, webhooks, portal de cobrança, lifecycle de assinatura, conciliação e receita realizada. PR-M3 somente inicia após BCA-01.
 
-- tenant lifecycle, onboarding, usuários, memberships, roles, permissões e Configuration Center;
-- domínios, DNS, TXT, SSL, anti-takeover, canonical host, redirects, publicação, rollback e diagnóstico;
-- white label, site público, CMS, imóveis, portais e integrações;
-- ingestão automática de campanhas no CRM/Kanban;
-- CRM, dashboards tenant-scoped e Super Admin SaaS Control Plane;
-- planos, entitlements, limites, billing visibility e diagnósticos.
+## 7. Evidência integral do diff
 
-A matriz completa e o envelope congelado estão em:
-
-- `docs/architecture/impact-analysis/PR-M2-functional-completion-impact-analysis.md`;
-- `docs/architecture/governance/PR-M2-functional-completion-execution-envelope.md`;
-- `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m2-functional-completion-planning-submission.md`.
-
-### 6.1 Modelo Cloudflare a decidir
+O workflow `PR-M2 Consolidated Corrective Gate` deve executar sobre o HEAD exato da branch e publicar:
 
 ```text
-CLOUDFLARE_INTEGRATION_MODEL =
-MANUAL_ASSISTED
-OR API_AUTOMATED
-OR HYBRID
+pr-m2-consolidated-corrective-<HEAD>
+pr-m2-full-diff-evidence-<HEAD>
 ```
 
-Nenhuma alternativa é escolhida pela RPD-01 ou pelo planejamento PR-M2. A decisão altera boundary externo, credenciais, DNS, SSL, jobs, retries, rollback e diagnósticos; por isso permanece `REQUIRES_SEPARATE_GATE` sem criação automática de novo stage ID.
-
-### 6.2 Portal Connector Registry
+A evidência integral contém patch `--binary --full-index`, inventários de arquivos, `git bundle` verificável, chunks determinísticos de até 8 MiB, hashes SHA-256, reconstrução byte a byte e manifesto JSON.
 
 ```text
-portal_id
-tenant_id
-portal_name
-portal_status
-integration_method
-configuration_schema
-credential_reference
-feed_or_endpoint
-mapping_profile
-publication_rules
-last_sync_status
-last_sync_at
-error_state
+MERGE_REF_USED = false
+EXACT_HEAD_MATCH = true
+MERGE_BASE_MATCH = true
+HEAD_IS_DESCENDANT_OF_BASE = true
+BEHIND_BY = 0
 ```
+
+A existência do artifact não substitui a auditoria externa; ela remove a limitação dos endpoints de diff truncados.
+
+## 8. Historical Planning Snapshot — Superseded by Product Owner Execution Decisions and PR-M2 Final Closure
+
+O planejamento original, a matriz de 248 capacidades, as contagens, os gaps pré-implementação e o caminho antigo `Planned — Blocked` permanecem preservados de forma imutável no commit de entrada:
 
 ```text
-JSON_API
-XML_FEED
-XLSX
-CSV
-WEBHOOK
-MANUAL_EXPORT
-CUSTOM_ADAPTER
+HISTORICAL_SNAPSHOT_COMMIT = ba737b82cd878d83f539a6142db5612962421e29
+HISTORICAL_SNAPSHOT_PATH = docs/architecture/ROADMAP_ARCHITECTURAL.md
+HISTORICAL_AUTHORITY = superseded_for_current_execution_state
 ```
 
-A lista de portais e métodos é aberta. `portal_name` é configurável, `integration_method` é declarado e validado, credenciais são referências seguras e adapters/configurações são versionáveis. Fork por tenant é proibido. O runtime auditado ainda usa modelo legado e requer redesign antes da implementação principal.
+Snapshot imutável:
 
-### 6.3 Marketing e leads
+`https://github.com/MrRodBH/prime-domus-hub/blob/ba737b82cd878d83f539a6142db5612962421e29/docs/architecture/ROADMAP_ARCHITECTURAL.md`
+
+Esse snapshot é evidência temporal, não autoridade vigente contra as decisões posteriores do Product Owner e a evidência final da PR-M2.
+
+## 9. Estado máximo após esta correção
 
 ```text
-META_ADS = required
-GOOGLE_ADS = required
-META_PIXEL = required
-LINKEDIN_ADS = extensible
-TIKTOK_ADS = extensible
-GOOGLE_ANALYTICS = extensible
-GOOGLE_TAG_MANAGER = extensible
-FUTURE_CHANNELS = extensible
+PRM2_BLOCKING_CORRECTION_STATE = Implemented — Exact-Head Gate Required
+BF01_RESOLVED = true
+BF02_RESOLVED = true
+BF03_RESOLVED = true
+DIFF_CHECK_PASSED = pending_exact_head_gate
+REQUIRED_CHECKS_SUCCESS = pending_exact_head_gate
+FULL_DIFF_ARTIFACT_VALID = pending_exact_head_gate
+PRM2_PROTECTED_MERGE_AUDIT_AUTHORIZED = false
+PRM2_PROTECTED_MERGE_EXECUTION_AUTHORIZED = false
+PRM2_MERGE_AUTHORIZED = false
+MERGE_EXECUTED = false
+NEXT_AUTHORIZED_ACTION = exact-head validation; authorize Full Protected Merge Audit Rerun only after all gates pass
 ```
-
-Leads entram no estágio inicial aceito do Kanban com tenant derivado no servidor, provenance, origem, campanha, anúncio, UTM, deduplicação, campos disponíveis e histórico inicial. A auditoria confirmou o writer público e a atribuição, mas não confirmou integração automática completa de Ads.
-
-### 6.4 CMS Functional Inventory
-
-Inventário obrigatório: Content Workspace, editor universal, adapters, dispatcher, metadata-driven forms, page builder, landing page builder, layouts, seções, blocos, widgets, templates, menus, cabeçalhos, rodapés, grids, colunas, cards, galerias, vídeos, tours, formulários, CTAs, depoimentos, listagens de imóveis, lançamentos, equipes, contatos, mapas, embeds, rich text, preview, versionamento, agendamento, publicação, rollback, permissões, workflow, mídia, SEO, responsividade, blocos reutilizáveis, temas e customizações data-driven por tenant.
-
-CMS Component and Layout Registry:
-
-```text
-component_key
-component_name
-component_category
-schema_version
-configuration_schema
-content_schema
-layout_constraints
-responsive_rules
-visibility_rules
-tenant_customizable
-theme_aware
-preview_supported
-versioning_supported
-publication_supported
-deprecated
-replacement_component_key
-```
-
-Capacidades extensíveis:
-
-```text
-NEW_LAYOUT
-NEW_SECTION
-NEW_BLOCK
-NEW_WIDGET
-NEW_TEMPLATE
-NEW_CONTENT_TYPE
-NEW_EDITOR_CONTROL
-NEW_TENANT_CONFIGURATION
-```
-
-Resultados proibidos:
-
-```text
-TENANT_SPECIFIC_CODE_FORK
-DUPLICATE_EDITOR_PATH
-PARALLEL_CMS_RUNTIME
-CLIENT_SIDE_AUTHORITY
-```
-
-Taxonomia CMS:
-
-```text
-CMS_BLOCKING_FUNCTIONAL_DEFECT
-CMS_BLOCKING_EDITOR_DEFECT
-CMS_BLOCKING_PUBLICATION_DEFECT
-CMS_BLOCKING_PREVIEW_DEFECT
-CMS_BLOCKING_VERSIONING_DEFECT
-CMS_BLOCKING_PERMISSION_DEFECT
-CMS_BLOCKING_RESPONSIVE_DEFECT
-CMS_BLOCKING_ACCESSIBILITY_DEFECT
-CMS_LAYOUT_REFINEMENT
-CMS_EDITOR_UX_REFINEMENT
-CMS_COMPONENT_EXTENSION
-CMS_TEMPLATE_EXTENSION
-CMS_CONTENT_TYPE_EXTENSION
-CMS_TENANT_CUSTOMIZATION
-CMS_NON_BLOCKING_BACKLOG
-```
-
-### 6.5 CRM Functional Inventory
-
-Inventário obrigatório: lead capture, deduplicação, atribuição, Kanban, funil, estágios, transições, tarefas, agenda, contatos, visitas, propostas, histórico de ações, histórico de conversas, notas, anexos, origem, campanhas, relatórios, automações, permissões, auditoria, importação, exportação, integrações de comunicação, dashboards, KPIs, filtros, SLA, alertas, follow-ups e relações com imóvel, corretor e campanha.
-
-### 6.6 Dashboards e Super Admin
-
-```text
-PRM2_DASHBOARD_FUNCTIONAL_AUTHORITY = true
-PRM3_DASHBOARD_FINAL_PRESENTATION = true
-TENANT_ADMIN_DASHBOARD != SUPER_ADMIN_SAAS_CONTROL_PLANE
-SUPER_ADMIN_GLOBAL_AUTHORITY = global platform administration only
-SUPER_ADMIN_TENANT_SCOPED_ACCESS = explicit impersonation only
-SUPER_ADMIN_WITHOUT_IMPERSONATION_TENANT_ACCESS = prohibited
-```
-
-Dashboard funcional: fontes, fórmulas, períodos, timezone, cardinalidade, permissões, filtros, drill-down, ganho, perda, descarte, métricas de imóveis, leads, funil, campanhas, publicação, relatórios, empty states e dados por role.
-
-Super Admin: dashboard executivo global, tenants, usuários, memberships, roles, planos, entitlements, limites, billing visibility, domínios, integrações, portais, campanhas, incidentes, logs, auditoria, suporte, impersonação, health, jobs, cron, filas, webhooks, diagnósticos e relatórios globais. Impersonação deve ser explícita, server-validated, visível, reversível e auditada.
-
-## 7. PR-M3 — interface final
-
-```text
-LOVABLE = primary implementation platform
-UX_PRODUCT_PROFESSIONAL = active collaborator
-CHATGPT_GITHUB_AUDIT = mandatory
-```
-
-PR-M3 responde pela experiência final de Tenant Admin, Super Admin, CRM, CMS, dashboards, relatórios, onboarding, domínios, portais e campanhas. Imagens do Product Owner são referência de densidade, composição, organização, hierarquia e visibilidade, não de paleta, tipografia ou identidade final.
-
-## 8. TH-M1 e TH-M2
-
-TH-M1 valida end-to-end: onboarding; usuários, roles, permissões e convites; domínio, DNS, Cloudflare e SSL; white label, site e publicação; CMS do rascunho ao rollback; imóvel completo; nenhum, um e múltiplos portais; dashboards e relatórios; CRM e Kanban; históricos e conversas; Meta Ads, Google Ads, Meta Pixel, analytics, GTM, LinkedIn, TikTok, UTMs e conversões; Super Admin; impersonação explícita; saída da impersonação; e ausência de acesso tenant-scoped sem impersonação.
-
-```text
-THM1_FINDINGS_REPORT = required
-THM1_PRODUCT_ACCEPTANCE = not automatic
-```
-
-Taxonomia TH-M2:
-
-```text
-BLOCKING_BACKEND_DEFECT
-BLOCKING_FRONTEND_DEFECT
-ESSENTIAL_CAPABILITY_MISSING
-AUTHORIZATION_OR_ISOLATION_DEFECT
-INTEGRATION_DEFECT
-UX_REFINEMENT
-DASHBOARD_REFINEMENT
-CONNECTOR_EXTENSION
-TENANT_CUSTOMIZATION
-CMS_BLOCKING_FUNCTIONAL_DEFECT
-CMS_BLOCKING_EDITOR_DEFECT
-CMS_BLOCKING_PUBLICATION_DEFECT
-CMS_BLOCKING_PREVIEW_DEFECT
-CMS_BLOCKING_VERSIONING_DEFECT
-CMS_BLOCKING_PERMISSION_DEFECT
-CMS_BLOCKING_RESPONSIVE_DEFECT
-CMS_BLOCKING_ACCESSIBILITY_DEFECT
-CMS_LAYOUT_REFINEMENT
-CMS_EDITOR_UX_REFINEMENT
-CMS_COMPONENT_EXTENSION
-CMS_TEMPLATE_EXTENSION
-CMS_CONTENT_TYPE_EXTENSION
-CMS_TENANT_CUSTOMIZATION
-CRM_BLOCKING_FUNCTIONAL_DEFECT
-CRM_WORKFLOW_DEFECT
-CRM_AUTOMATION_DEFECT
-CRM_REPORTING_DEFECT
-CRM_UX_REFINEMENT
-SUPER_ADMIN_BLOCKING_FUNCTIONAL_DEFECT
-SUPER_ADMIN_AUTHORIZATION_DEFECT
-SUPER_ADMIN_IMPERSONATION_DEFECT
-SUPER_ADMIN_TENANT_LIFECYCLE_DEFECT
-SUPER_ADMIN_COMMERCIAL_VISIBILITY_DEFECT
-SUPER_ADMIN_INTEGRATION_DIAGNOSTIC_DEFECT
-SUPER_ADMIN_DASHBOARD_REFINEMENT
-SUPER_ADMIN_REPORT_EXTENSION
-SUPER_ADMIN_SUPPORT_TOOL_EXTENSION
-SUPER_ADMIN_UX_REFINEMENT
-NON_BLOCKING_BACKLOG
-```
-
-## 9. Ownership matrix
-
-```text
-PRM2_TENANT_FUNCTIONAL_OWNERSHIP = true
-PRM2_CMS_FUNCTIONAL_OWNERSHIP = true
-PRM2_CRM_FUNCTIONAL_OWNERSHIP = true
-PRM2_SUPER_ADMIN_FUNCTIONAL_OWNERSHIP = true
-PRM2_INTEGRATION_FUNCTIONAL_OWNERSHIP = true
-PRM3_TENANT_FINAL_UX_OWNERSHIP = true
-PRM3_CMS_FINAL_UX_OWNERSHIP = true
-PRM3_CRM_FINAL_UX_OWNERSHIP = true
-PRM3_SUPER_ADMIN_FINAL_UX_OWNERSHIP = true
-THM1_TENANT_E2E_VALIDATION_REQUIRED = true
-THM1_CMS_E2E_VALIDATION_REQUIRED = true
-THM1_CRM_E2E_VALIDATION_REQUIRED = true
-THM1_SUPER_ADMIN_E2E_VALIDATION_REQUIRED = true
-THM1_INTEGRATION_E2E_VALIDATION_REQUIRED = true
-THM2_TENANT_REMEDIATION_OWNERSHIP = true
-THM2_CMS_REMEDIATION_OWNERSHIP = true
-THM2_CRM_REMEDIATION_OWNERSHIP = true
-THM2_SUPER_ADMIN_REMEDIATION_OWNERSHIP = true
-THM2_INTEGRATION_REMEDIATION_OWNERSHIP = true
-```
-
-## 10. Product Discovery, Customization & Test Feedback Contract
-
-```text
-DOCUMENTATION_SUPPORTS_FUTURE_DISCOVERY = true
-PROVIDER_CATALOG_IS_EXTENSIBLE = true
-PORTAL_CATALOG_IS_EXTENSIBLE = true
-MARKETING_CHANNEL_CATALOG_IS_EXTENSIBLE = true
-CRM_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
-CMS_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
-DASHBOARD_REFINEMENT_IS_EXPECTED = true
-SUPER_ADMIN_CAPABILITY_CATALOG_IS_AUDIT_DRIVEN = true
-TENANT_CUSTOMIZATION_IS_EXPECTED = true
-```
-
-```text
-SILENT_SCOPE_EXPANSION_AFTER_STAGE_START = prohibited
-RETROACTIVE_DEFINITION_OF_DONE_EXPANSION = prohibited
-UNBOUNDED_IMPLEMENTATION_PROMPTS = prohibited
-TENANT_SPECIFIC_CODE_FORKS = prohibited
-CLIENT_SIDE_AUTHORITY = prohibited
-PARALLEL_CMS_RUNTIME = prohibited
-DUPLICATE_CMS_EDITOR_PATH = prohibited
-SUPER_ADMIN_DIRECT_TENANT_AUTHORITY = prohibited
-```
-
-## 11. Autorizações
-
-```text
-FINAL_EXTERNAL_PLANNING_AUDIT = Accepted
-PRM2_PRE_PRINCIPAL_GATE_STATE = Accepted / Merged
-PRM2_PLANNING_MERGE_AUTHORIZED = true
-PRM2_PLANNING_MERGED = true
-PRM2_PLANNING_MERGE_METHOD = squash
-PRM2_PLANNING_MERGE_SHA = fc055cb69c2373a4adbc99d4ac02614ecfbde74f
-PRM2_PLANNING_MERGED_AT = 2026-07-27T19:33:37Z
-
-PLANNING_PR = 58
-PLANNING_HEAD = e51a05876e0d4d30f31fbe822e0221873642eae6
-PLANNING_RELEASE_GATE_RUN_ID = 30296162677
-PLANNING_RELEASE_GATE_JOB_ID = 90077707894
-PLANNING_RELEASE_GATE_ARTIFACT_ID = 8664785012
-PLANNING_RELEASE_GATE_ARTIFACT_DIGEST = sha256:3af399ba8c78764b0d661addaac96429a88c7cc950c8f28717ff12d72c1f93b5
-
-POST_MERGE_RELEASE_GATE_RUN_ID = 30298768659
-POST_MERGE_RELEASE_GATE_JOB_ID = 90086242677
-POST_MERGE_RELEASE_GATE_EVENT = push
-POST_MERGE_RELEASE_GATE_BRANCH = main
-POST_MERGE_RELEASE_GATE_EXPECTED_SHA = fc055cb69c2373a4adbc99d4ac02614ecfbde74f
-POST_MERGE_RELEASE_GATE_CHECKED_OUT_SHA = fc055cb69c2373a4adbc99d4ac02614ecfbde74f
-POST_MERGE_RELEASE_GATE_EXACT_HEAD_MATCH = true
-POST_MERGE_RELEASE_GATE_MERGE_REF_USED = false
-POST_MERGE_RELEASE_GATE_RESULT = success
-POST_MERGE_RELEASE_GATE_ARTIFACT_NAME = release-gate-fc055cb69c2373a4adbc99d4ac02614ecfbde74f
-POST_MERGE_RELEASE_GATE_ARTIFACT_ID = 8665766909
-POST_MERGE_RELEASE_GATE_ARTIFACT_DIGEST = sha256:4648fae81bb752207ac6de062d592a0be6a3166b789d5a63207ceeb5312ad778
-POST_MERGE_RELEASE_GATE_ARTIFACT_EXPIRED = false
-
-PLANNING_ACCEPTED_AND_MERGED = true
-IMPLEMENTATION_ACCEPTED = false
-PRM2_STATE = Planned — Blocked
-IMPLEMENTATION_SCOPE_FINITE = false
-PRM2_IMPLEMENTATION_READY = false
-PRM2_IMPLEMENTATION_AUTHORIZED = false
-READY_FOR_PRM2_PRINCIPAL_PROMPT = false
-
-CHATGPT_GITHUB_PROMPT_BUDGET = not_applicable
-LOVABLE_IMPLEMENTATION_PROMPT_BUDGET = 2/2
-LOVABLE_PRINCIPAL_IMPLEMENTATION_PROMPT_CONSUMED = false
-LOVABLE_CORRECTIVE_IMPLEMENTATION_PROMPT_CONSUMED = false
-
-PRM3_STATE = Planned — Blocked by PR-M2
-PRM3_IMPLEMENTATION_AUTHORIZED = false
-NEXT_STAGE_AUTHORIZED = none
-RECONCILIATION_READY_FOR_FINAL_DIRECT_EXTERNAL_AUDIT = true
-```
-
-Nenhuma implementação, PR-M3 ou etapa sucessora está autorizada por esta reconciliação. A evidência do Release Gate do PR de reconciliação é externa e não autorreferente; nenhum commit deve ser criado após sua validação.

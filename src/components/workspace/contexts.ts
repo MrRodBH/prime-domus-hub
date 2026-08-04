@@ -27,8 +27,8 @@ export type WorkspaceContext = {
   label: string;
   icon: LucideIcon;
   root: string;
-  matches: string[]; // pathname prefixes that map to this context
-  subs: SubTab[]; // horizontal tabs shown in header when > 1
+  matches: string[];
+  subs: SubTab[];
   superOnly?: boolean;
 };
 
@@ -46,8 +46,11 @@ export const CONTEXTS: WorkspaceContext[] = [
     label: "Pipeline",
     icon: Inbox,
     root: "/admin/pipeline",
-    matches: ["/admin/pipeline", "/admin/leads"],
-    subs: [],
+    matches: ["/admin/pipeline", "/admin/leads", "/admin/crm-operacoes"],
+    subs: [
+      { label: "Kanban", to: "/admin/pipeline" },
+      { label: "CRM Operacional", to: "/admin/crm-operacoes" },
+    ],
   },
   {
     id: "catalogo",
@@ -74,10 +77,12 @@ export const CONTEXTS: WorkspaceContext[] = [
       "/admin/midias",
       "/admin/cms-auditoria",
       "/admin/cms-transferencia",
+      "/admin/cms-inventario",
     ],
     subs: [
       { label: "Site", to: "/admin/site" },
       { label: "Páginas", to: "/admin/paginas" },
+      { label: "Inventário", to: "/admin/cms-inventario" },
       { label: "Blog", to: "/admin/blog" },
       { label: "Formulários", to: "/admin/formularios" },
       { label: "Campanhas", to: "/admin/campanhas" },
@@ -90,8 +95,13 @@ export const CONTEXTS: WorkspaceContext[] = [
     label: "Distribuição",
     icon: Radio,
     root: "/admin/portais",
-    matches: ["/admin/portais"],
-    subs: [{ label: "Portais", to: "/admin/portais" }],
+    // Predecessor evidence retained verbatim: matches: ["/admin/portais", "/admin/marketing"]
+    matches: ["/admin/portais", "/admin/marketing", "/admin/tracking"],
+    subs: [
+      { label: "Portais", to: "/admin/portais" },
+      { label: "Marketing", to: "/admin/marketing" },
+      { label: "Tracking", to: "/admin/tracking" },
+    ],
   },
   {
     id: "administracao",
@@ -128,6 +138,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     superOnly: true,
     subs: [
       { label: "Tenants", to: "/super" },
+      { label: "Control Plane", to: "/super/control-plane" },
       { label: "Observabilidade", to: "/super/observabilidade" },
       { label: "DLQ", to: "/super/dlq" },
     ],
@@ -135,14 +146,13 @@ export const CONTEXTS: WorkspaceContext[] = [
 ];
 
 export function contextFromPath(path: string): WorkspaceContext {
-  // Longest-match wins so /admin/leads doesn't fall into "inicio" (/admin).
   let best: WorkspaceContext = CONTEXTS[0];
   let bestLen = -1;
-  for (const c of CONTEXTS) {
-    for (const m of c.matches) {
-      if ((path === m || path.startsWith(m + "/")) && m.length > bestLen) {
-        best = c;
-        bestLen = m.length;
+  for (const context of CONTEXTS) {
+    for (const match of context.matches) {
+      if ((path === match || path.startsWith(match + "/")) && match.length > bestLen) {
+        best = context;
+        bestLen = match.length;
       }
     }
   }

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { obterPostPublico } from "@/lib/api/blog.functions";
+import { obterPostPublico } from "@/lib/api/blog-public.functions";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
@@ -11,7 +11,6 @@ export const Route = createFileRoute("/blog/$slug")({
   },
   head: ({ params, loaderData }) => {
     const post = loaderData;
-    const autor = post ? (Array.isArray(post.autor) ? post.autor[0] : post.autor) : null;
     const title = post?.meta_title || `${post?.titulo} — Blog RM Prime`;
     const desc = post?.meta_description || post?.resumo || "Artigo do blog RM Prime Imóveis.";
     return {
@@ -35,7 +34,9 @@ export const Route = createFileRoute("/blog/$slug")({
               description: desc,
               image: post.imagem_capa || undefined,
               datePublished: post.publicado_em,
-              author: autor?.nome ? { "@type": "Person", name: [autor.nome, (autor as { sobrenome?: string }).sobrenome].filter(Boolean).join(" ") } : undefined,
+              author: post.autor?.nome
+                ? { "@type": "Person", name: [post.autor.nome, post.autor.sobrenome].filter(Boolean).join(" ") }
+                : undefined,
             }),
           }]
         : [],
@@ -65,9 +66,6 @@ export const Route = createFileRoute("/blog/$slug")({
 
 function Page() {
   const post = Route.useLoaderData();
-  const cat = Array.isArray(post.categoria) ? post.categoria[0] : post.categoria;
-  const autor = Array.isArray(post.autor) ? post.autor[0] : post.autor;
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -78,12 +76,12 @@ function Page() {
           </div>
         )}
         <article className="max-w-3xl mx-auto px-6 py-16 lg:py-24">
-          {cat?.nome && <span className="eyebrow text-gold">{cat.nome}</span>}
+          {post.categoria?.nome && <span className="eyebrow text-gold">{post.categoria.nome}</span>}
           <h1 className="font-display text-4xl md:text-5xl mt-4 mb-4">{post.titulo}</h1>
           {post.publicado_em && (
             <p className="text-sm text-muted-foreground mb-8">
               {new Date(post.publicado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
-              {autor?.nome && <> · por {[autor.nome, (autor as { sobrenome?: string }).sobrenome].filter(Boolean).join(" ")}</>}
+              {post.autor?.nome && <> · por {[post.autor.nome, post.autor.sobrenome].filter(Boolean).join(" ")}</>}
             </p>
           )}
           {post.resumo && <p className="text-xl text-foreground/80 leading-relaxed mb-10">{post.resumo}</p>}

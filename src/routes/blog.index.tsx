@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { listarPostsPublicos, listarCategoriasPublicas } from "@/lib/api/blog.functions";
+import { listarPostsPublicos, listarCategoriasPublicas } from "@/lib/api/blog-public.functions";
 
 export const Route = createFileRoute("/blog/")({
   head: () => ({
@@ -34,44 +34,39 @@ function Page() {
 
         {cats && cats.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-10">
-            {cats.map((c) => (
-              <span key={c.id} className="text-[11px] uppercase tracking-[0.2em] border border-foreground/10 rounded-full px-3 py-1.5 text-foreground/70">
-                {c.nome}
+            {cats.map((category) => (
+              <span key={category.id} className="text-[11px] uppercase tracking-[0.2em] border border-foreground/10 rounded-full px-3 py-1.5 text-foreground/70">
+                {category.nome}
               </span>
             ))}
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-          {posts?.map((p) => {
-            const cat = Array.isArray(p.categoria) ? p.categoria[0] : p.categoria;
-            return (
+          {posts?.map((post) => (
             <Link
-              key={p.id}
+              key={post.id}
               to="/blog/$slug"
-              params={{ slug: p.slug }}
+              params={{ slug: post.slug }}
               className="group block bg-card rounded-lg overflow-hidden border border-foreground/5 hover:border-gold/40 transition-colors"
             >
-              {p.imagem_capa && (
+              {post.imagem_capa && (
                 <div className="aspect-[4/3] overflow-hidden bg-secondary">
-                  <img src={p.imagem_capa} alt={p.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={post.imagem_capa} alt={post.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
               )}
               <div className="p-6">
-                {cat?.nome && (
-                  <span className="eyebrow text-gold">{cat.nome}</span>
-                )}
-                <h2 className="font-display text-xl mt-2 group-hover:text-gold transition-colors">{p.titulo}</h2>
-                {p.resumo && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{p.resumo}</p>}
-                {p.publicado_em && (
+                {post.categoria?.nome && <span className="eyebrow text-gold">{post.categoria.nome}</span>}
+                <h2 className="font-display text-xl mt-2 group-hover:text-gold transition-colors">{post.titulo}</h2>
+                {post.resumo && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{post.resumo}</p>}
+                {post.publicado_em && (
                   <p className="text-xs text-muted-foreground mt-4">
-                    {new Date(p.publicado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
+                    {new Date(post.publicado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}
                   </p>
                 )}
               </div>
             </Link>
-            );
-          })}
+          ))}
           {posts && posts.length === 0 && (
             <p className="text-muted-foreground col-span-full">Em breve, novos conteúdos.</p>
           )}

@@ -1,45 +1,67 @@
 /**
- * Helpers compartilhados dos módulos CMS (Fase 4 — Governança).
- * - assertCmsPermission: valida no servidor se o usuário tem determinada action num módulo CMS.
- * - logCmsAudit: registra mutação no audit_log com before/after + metadados (ip/user_agent).
+ * Helpers compartilhados dos módulos CMS.
+ *
+ * A autoridade tenant-scoped canônica é Tenant Access Control, resolvida no
+ * servidor. O helper sem TenantContext foi aposentado fail-closed para impedir
+ * que `has_role`, `user_roles` ou `is_super_admin` voltem a funcionar como
+ * autoridade paralela.
  */
 import { getRequest, getRequestIP } from "@tanstack/react-start/server";
+import type { TenantContext } from "@/integrations/supabase/tenant-middleware";
+import {
+  authorizeTenantCmsOperation,
+  type TenantCmsModule,
+  type TenantCmsOperation,
+} from "@/lib/api/tenant-cms-authority.server";
 
-export type CmsModule =
-  | "cms.paginas"
-  | "cms.campanhas"
-  | "cms.formularios"
-  | "cms.midias"
-  | "cms.menu"
-  | "cms.branding"
-  | "cms.versoes"
-  | "cms.configuracoes";
-
+export type CmsModule = TenantCmsModule;
 export type CmsAction = "visualizar" | "criar" | "editar" | "excluir" | "publicar";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AuthedCtx = { supabase: any; userId: string };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AuthedTenantCtx = { supabase: any; userId: string; tenant: TenantContext };
 
-/** Lança erro se o usuário autenticado não tiver a permissão CMS solicitada. */
-export async function assertCmsPermission(ctx: AuthedCtx, modulo: CmsModule, action: CmsAction) {
-  // Super admin e admin passam sempre
-  const isAdmin = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
-  if (isAdmin?.data === true) return;
-  const isSuper = await ctx.supabase.rpc("is_super_admin");
-  if (isSuper?.data === true) return;
+const OPERATION_BY_ACTION: Record<CmsAction, TenantCmsOperation> = {
+  visualizar: "read",
+  criar: "create_draft",
+  editar: "save_draft",
+  excluir: "delete",
+  publicar: "publish",
+};
 
-  const { data, error } = await ctx.supabase.rpc("has_cms_permission", {
-    _user_id: ctx.userId,
-    _module_codigo: modulo,
-    _action: action,
-  });
-  if (error) throw new Error("Falha ao validar permissão CMS.");
-  if (!data) throw new Error(`Acesso negado: sua permissão ${modulo}/${action} não está habilitada.`);
+/**
+ * Boundary legado sem TenantContext. Mantido apenas para tornar falhas antigas
+ * explícitas e auditáveis; não executa autorização por role global.
+ */
+export async function assertCmsPermission(
+  _ctx: AuthedCtx,
+  _modulo: CmsModule,
+  _action: CmsAction,
+): Promise<void> {
+  throw new Error("legacy_cms_permission_boundary_retired");
 }
 
-/** Registra evento CMS no audit_log com metadados de request (ip / user_agent). */
+/**
+ * Autoriza a operação CMS usando tenant e ator derivados pelo servidor,
+ * permissão efetiva de Tenant Access Control e escopo global obrigatório.
+ */
+export async function assertCmsTenantPermission(
+  ctx: AuthedTenantCtx,
+  modulo: CmsModule,
+  action: CmsAction,
+): Promise<string> {
+  const authorization = await authorizeTenantCmsOperation(
+    { userId: ctx.userId, tenant: ctx.tenant },
+    modulo,
+    OPERATION_BY_ACTION[action],
+  );
+  return authorization.tenantId;
+}
+
+/** Registra evento CMS com tenant, ator e metadados de request. */
 export async function logCmsAudit(
-  ctx: { userId: string },
+  ctx: { userId: string; tenant?: TenantContext },
   entity: string,
   action: string,
   entity_id: string | null,
@@ -47,22 +69,29 @@ export async function logCmsAudit(
   after: unknown,
 ) {
   try {
+    const tenantId = ctx.tenant?.tenantId;
+    if (!tenantId) throw new Error("cms_audit_tenant_unresolved");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let email: string | null = null;
     try {
-      const u = await supabaseAdmin.auth.admin.getUserById(ctx.userId);
-      email = u?.data?.user?.email ?? null;
-    } catch { /* ignore */ }
+      const user = await supabaseAdmin.auth.admin.getUserById(ctx.userId);
+      email = user?.data?.user?.email ?? null;
+    } catch {
+      // A ausência do e-mail não altera tenant authority nem a transação chamadora.
+    }
 
     let ip: string | null = null;
-    let ua: string | null = null;
+    let userAgent: string | null = null;
     try {
-      const req = getRequest();
-      ua = req.headers.get("user-agent");
+      const request = getRequest();
+      userAgent = request.headers.get("user-agent");
       ip = getRequestIP({ xForwardedFor: true }) ?? null;
-    } catch { /* not in request scope */ }
+    } catch {
+      // Execução fora de request scope.
+    }
 
     await supabaseAdmin.from("audit_log").insert({
+      tenant_id: tenantId,
       user_id: ctx.userId,
       user_email: email,
       action,
@@ -73,10 +102,12 @@ export async function logCmsAudit(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       after: (after ?? null) as any,
       ip,
-      user_agent: ua,
+      user_agent: userAgent,
     });
-  } catch (e) {
-    // Nunca quebrar a operação por falha de auditoria.
-    console.error("[cms-audit] falhou", e);
+  } catch (error) {
+    // Compatibilidade histórica: mutations legadas não falham depois de já
+    // persistirem por erro de telemetria. As novas primitives registram audit
+    // atomicamente no banco e não dependem deste helper.
+    console.error("[cms-audit] falhou", error);
   }
 }

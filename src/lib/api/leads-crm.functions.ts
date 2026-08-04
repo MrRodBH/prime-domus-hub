@@ -1,185 +1,131 @@
-// PR-M1 — Transition Caller Cutover.
-// This module hosts the canonical server-side entry points for lead status
-// mutations. All transitions delegate to the typed boundary
-// `transitionLead` (src/lib/leads/lead-transition.server) which is the ONLY
-// server-side authority calling the RPC `transition_lead_status`.
+// PR-M2 — CRM compatibility surface.
 //
-// Rules enforced here:
-//   - No direct `leads.update({ status, ...*_reason_id, *_at })` writes.
-//   - No supabaseAdmin.
-//   - `expectedVersion` is a required client-supplied value (OCC).
-//   - Wrappers only validate input, forward to the boundary, and map result.
+// Active callers retain stable export names, but all tenant-scoped reads and
+// mutations delegate to the canonical Tenant CRM authority. No legacy direct
+// mutation, has_role authority or external insight provider remains here.
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
-  transitionLead,
-  LeadTransitionError,
-  type LeadTransitionResult,
-} from "@/lib/leads/lead-transition.server";
+  listTenantLeadsForContext,
+  transitionTenantLeadForContext,
+  type CrmLeadDto,
+  type CrmMutationResultDto,
+} from "@/lib/api/tenant-crm.functions";
+import { LEAD_STATUS_KEYS, type LeadStatusKey } from "@/lib/crm/crm-registry";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function ensureAdmin(ctx: any) {
-  const { data } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
-  if (!data) throw new Error("Acesso negado.");
+function compatibilityKey(
+  operation: string,
+  leadId: string,
+  expectedVersion: number,
+  qualifier = "none",
+): string {
+  return `crm:${operation}:${leadId}:${expectedVersion}:${qualifier}`;
 }
 
-// Serializes a boundary result for the wire. Preserves typed error contract
-// by throwing a plain Error whose message is the canonical code (mappable
-// on the client via the LeadTransitionError code list).
-function serializeResult(r: LeadTransitionResult) {
+function transitionResult(result: CrmMutationResultDto) {
+  if (!result.leadId || !result.fromStatus || !result.toStatus || !result.reasonType || result.version === undefined) {
+    throw new Error("crm_transition_contract_invalid");
+  }
   return {
     ok: true as const,
-    leadId: r.leadId,
-    fromStatus: r.fromStatus,
-    toStatus: r.toStatus,
-    reasonType: r.reasonType,
-    version: r.version,
+    leadId: result.leadId,
+    fromStatus: result.fromStatus,
+    toStatus: result.toStatus,
+    reasonType: result.reasonType,
+    version: result.version,
   };
 }
 
-function rethrow(err: unknown): never {
-  if (err instanceof LeadTransitionError) {
-    // Preserve the canonical code as the message head so the client can
-    // remap it back to LeadTransitionError.code.
-    throw new Error(err.code);
-  }
-  throw err instanceof Error ? err : new Error("unknown_error");
-}
-
-/** Canonical transition entry: advance / ganho / perdido / descartado / reabrir. */
 export const transicionarLead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z
-      .object({
-        leadId: z.string().uuid(),
-        toStatus: z.enum([
-          "novo",
-          "conversando",
-          "visita",
-          "proposta",
-          "ganho",
-          "perdido",
-          "descartado",
-        ]),
-        expectedVersion: z.number().int().nonnegative(),
-        reasonId: z.string().uuid().nullish(),
-        metadata: z
-          .object({
-            note: z.string().max(2000).nullish(),
-            source: z.string().max(200).nullish(),
-          })
-          .partial()
-          .optional(),
-      })
-      .parse(i),
+  .middleware([requireTenant])
+  .inputValidator((input: unknown) =>
+    z.object({
+      leadId: z.string().uuid(),
+      toStatus: z.enum(LEAD_STATUS_KEYS),
+      expectedVersion: z.number().int().nonnegative(),
+      reasonId: z.string().uuid().nullish(),
+      idempotencyKey: z.string().min(8).max(200).optional(),
+      metadata: z.object({ note: z.string().trim().min(1).max(2_000).nullish(), source: z.string().max(200).nullish() }).strict().optional(),
+    }).strict().parse(input),
   )
-  .handler(async ({ data, context }) => {
-    try {
-      const r = await transitionLead(context.supabase, {
-        leadId: data.leadId,
-        toStatus: data.toStatus,
-        expectedVersion: data.expectedVersion,
-        reasonId: data.reasonId ?? null,
-        metadata: data.metadata,
-      });
-      return serializeResult(r);
-    } catch (e) {
-      rethrow(e);
-    }
-  });
+  .handler(async ({ data, context }) =>
+    transitionResult(await transitionTenantLeadForContext(context, {
+      leadId: data.leadId,
+      toStatus: data.toStatus,
+      expectedVersion: data.expectedVersion,
+      reasonId: data.reasonId ?? null,
+      note: data.metadata?.note ?? null,
+      idempotencyKey: data.idempotencyKey ?? compatibilityKey("transition", data.leadId, data.expectedVersion, `${data.toStatus}:${data.reasonId ?? "none"}`),
+    })),
+  );
 
-/** Descarta um lead (motivo obrigatório). */
 export const descartarLead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z
-      .object({
-        lead_id: z.string().uuid(),
-        motivo_id: z.string().uuid(),
-        detalhes: z.string().max(1000).optional().nullable(),
-        expected_version: z.number().int().nonnegative(),
-      })
-      .parse(i),
+  .middleware([requireTenant])
+  .inputValidator((input: unknown) =>
+    z.object({
+      lead_id: z.string().uuid(),
+      motivo_id: z.string().uuid(),
+      detalhes: z.string().max(1_000).nullish(),
+      expected_version: z.number().int().nonnegative(),
+      idempotencyKey: z.string().min(8).max(200).optional(),
+    }).strict().parse(input),
   )
-  .handler(async ({ data, context }) => {
-    try {
-      const r = await transitionLead(context.supabase, {
-        leadId: data.lead_id,
-        toStatus: "descartado",
-        expectedVersion: data.expected_version,
-        reasonId: data.motivo_id,
-        metadata: {
-          note: data.detalhes ?? undefined,
-          source: "pipeline_discard",
-        },
-      });
-      return serializeResult(r);
-    } catch (e) {
-      rethrow(e);
-    }
-  });
+  .handler(async ({ data, context }) =>
+    transitionResult(await transitionTenantLeadForContext(context, {
+      leadId: data.lead_id,
+      toStatus: "descartado",
+      expectedVersion: data.expected_version,
+      reasonId: data.motivo_id,
+      note: data.detalhes ?? null,
+      idempotencyKey: data.idempotencyKey ?? compatibilityKey("discard", data.lead_id, data.expected_version, data.motivo_id),
+    })),
+  );
 
-/** Marca lead como perdido (somente a partir de Proposta; motivo obrigatório). */
 export const perderLead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z
-      .object({
-        lead_id: z.string().uuid(),
-        motivo_id: z.string().uuid(),
-        detalhes: z.string().max(1000).optional().nullable(),
-        expected_version: z.number().int().nonnegative(),
-      })
-      .parse(i),
+  .middleware([requireTenant])
+  .inputValidator((input: unknown) =>
+    z.object({
+      lead_id: z.string().uuid(),
+      motivo_id: z.string().uuid(),
+      detalhes: z.string().max(1_000).nullish(),
+      expected_version: z.number().int().nonnegative(),
+      idempotencyKey: z.string().min(8).max(200).optional(),
+    }).strict().parse(input),
   )
-  .handler(async ({ data, context }) => {
-    try {
-      const r = await transitionLead(context.supabase, {
-        leadId: data.lead_id,
-        toStatus: "perdido",
-        expectedVersion: data.expected_version,
-        reasonId: data.motivo_id,
-        metadata: {
-          note: data.detalhes ?? undefined,
-          source: "pipeline_lost",
-        },
-      });
-      return serializeResult(r);
-    } catch (e) {
-      rethrow(e);
-    }
-  });
+  .handler(async ({ data, context }) =>
+    transitionResult(await transitionTenantLeadForContext(context, {
+      leadId: data.lead_id,
+      toStatus: "perdido",
+      expectedVersion: data.expected_version,
+      reasonId: data.motivo_id,
+      note: data.detalhes ?? null,
+      idempotencyKey: data.idempotencyKey ?? compatibilityKey("lost", data.lead_id, data.expected_version, data.motivo_id),
+    })),
+  );
 
-/** Reabre um lead descartado / perdido, voltando para "novo". */
 export const reabrirLead = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z
-      .object({
-        lead_id: z.string().uuid(),
-        expected_version: z.number().int().nonnegative(),
-      })
-      .parse(i),
+  .middleware([requireTenant])
+  .inputValidator((input: unknown) =>
+    z.object({
+      lead_id: z.string().uuid(),
+      expected_version: z.number().int().nonnegative(),
+      motivo: z.string().trim().min(1).max(1_000).optional(),
+      idempotencyKey: z.string().min(8).max(200).optional(),
+    }).strict().parse(input),
   )
-  .handler(async ({ data, context }) => {
-    try {
-      const r = await transitionLead(context.supabase, {
-        leadId: data.lead_id,
-        toStatus: "novo",
-        expectedVersion: data.expected_version,
-        reasonId: null,
-        metadata: { source: "pipeline_reopen" },
-      });
-      return serializeResult(r);
-    } catch (e) {
-      rethrow(e);
-    }
-  });
+  .handler(async ({ data, context }) =>
+    transitionResult(await transitionTenantLeadForContext(context, {
+      leadId: data.lead_id,
+      toStatus: "novo",
+      expectedVersion: data.expected_version,
+      reasonId: null,
+      note: data.motivo ?? "Reabertura solicitada pelo usuário autenticado.",
+      idempotencyKey: data.idempotencyKey ?? compatibilityKey("reopen", data.lead_id, data.expected_version),
+    })),
+  );
 
-/** Lista leads descartados. Contrato tipado — sem cast duplo no caller (PR-M1). */
 export type LeadDescartadoRow = {
   id: string;
   nome: string;
@@ -192,166 +138,97 @@ export type LeadDescartadoRow = {
 };
 
 export const listarLeadsDescartados = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireTenant])
   .handler(async ({ context }): Promise<LeadDescartadoRow[]> => {
-    await ensureAdmin(context);
-    const { data, error } = await context.supabase
-      .from("leads")
-      .select("id, nome, status, version, descartado_at, origem, imovel:imoveis(titulo, slug), motivo:lead_discard_reasons!leads_discard_reason_id_fkey(nome)")
-      .eq("status", "descartado")
-      .order("descartado_at", { ascending: false, nullsFirst: false });
-    if (error) throw new Error(error.message);
-    // Supabase infers relation fields as arrays for FK aliases; normalize.
-    const rows = (data ?? []) as Array<{
-      id: string;
-      nome: string;
-      status: string;
-      version: number;
-      descartado_at: string | null;
-      origem: string | null;
-      imovel: { titulo: string | null; slug: string | null } | { titulo: string | null; slug: string | null }[] | null;
-      motivo: { nome: string } | { nome: string }[] | null;
-    }>;
-    return rows.map((r) => ({
-      id: r.id,
-      nome: r.nome,
-      status: "descartado" as const,
-      version: r.version,
-      descartado_at: r.descartado_at,
-      origem: r.origem,
-      motivo: Array.isArray(r.motivo) ? (r.motivo[0] ?? null) : r.motivo,
-      imovel: Array.isArray(r.imovel) ? (r.imovel[0] ?? null) : r.imovel,
+    const leads = await listTenantLeadsForContext(context, { status: "descartado", limit: 500 });
+    return leads.map((lead) => ({
+      id: lead.id,
+      nome: lead.nome,
+      status: "descartado",
+      version: lead.version,
+      descartado_at: lead.updated_at,
+      origem: lead.origem,
+      motivo: null,
+      imovel: lead.imovel ? { titulo: lead.imovel.titulo, slug: lead.imovel.slug } : null,
     }));
   });
 
-/** Métricas de performance comercial nos últimos N dias. */
+type CommercialPerformance = {
+  periodoDias: number;
+  totais: { total: number; emAndamento: number; propostas: number; ganhos: number; perdidos: number; descartados: number };
+  vgv: { emAndamento: number; propostas: number; ganhos: number; perdidos: number };
+  taxas: { conversao: number; descarteRate: number };
+  motivosDescarte: Array<{ nome: string; total: number }>;
+  motivosPerda: Array<{ nome: string; total: number }>;
+};
+
+function sum(items: readonly CrmLeadDto[]): number {
+  return items.reduce((total, lead) => total + (lead.valor_estimado ?? 0), 0);
+}
+
+function performance(leads: readonly CrmLeadDto[], dias: number): CommercialPerformance {
+  const threshold = Date.now() - dias * 86_400_000;
+  const rows = leads.filter((lead) => new Date(lead.created_at).getTime() >= threshold);
+  const by = (status: LeadStatusKey) => rows.filter((lead) => lead.status === status);
+  const ganhos = by("ganho");
+  const perdidos = by("perdido");
+  const descartados = by("descartado");
+  const propostas = by("proposta");
+  const emAndamento = rows.filter((lead) => ["novo", "conversando", "visita", "proposta"].includes(lead.status));
+  const decided = ganhos.length + perdidos.length;
+  return {
+    periodoDias: dias,
+    totais: {
+      total: rows.length,
+      emAndamento: emAndamento.length,
+      propostas: propostas.length,
+      ganhos: ganhos.length,
+      perdidos: perdidos.length,
+      descartados: descartados.length,
+    },
+    vgv: {
+      emAndamento: sum(emAndamento),
+      propostas: sum(propostas),
+      ganhos: sum(ganhos),
+      perdidos: sum(perdidos),
+    },
+    taxas: {
+      conversao: decided > 0 ? ganhos.length / decided : 0,
+      descarteRate: rows.length > 0 ? descartados.length / rows.length : 0,
+    },
+    motivosDescarte: [],
+    motivosPerda: [],
+  };
+}
+
 export const performanceComercial = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ dias: z.number().int().min(1).max(365).default(30) }).parse(i))
-  .handler(async ({ data, context }) => {
-    await ensureAdmin(context);
-    const desde = new Date(Date.now() - data.dias * 86_400_000).toISOString();
+  .middleware([requireTenant])
+  .inputValidator((input: unknown) => z.object({ dias: z.number().int().min(1).max(365).default(30) }).strict().parse(input))
+  .handler(async ({ data, context }): Promise<CommercialPerformance> =>
+    performance(await listTenantLeadsForContext(context, { limit: 500 }), data.dias),
+  );
 
-    const { data: rows, error } = await context.supabase
-      .from("leads")
-      .select("id, status, valor_estimado, created_at, discard_reason_id, lost_reason_id")
-      .gte("created_at", desde);
-    if (error) throw new Error(error.message);
-
-    const by = (s: string) => (rows ?? []).filter((r) => r.status === s);
-    const total = rows?.length ?? 0;
-    const ganhos = by("ganho");
-    const perdidos = by("perdido");
-    const descartados = by("descartado");
-    const propostas = by("proposta");
-    const emAndamento = (rows ?? []).filter((r) =>
-      ["novo", "conversando", "visita", "proposta"].includes(r.status),
-    );
-
-    const sum = (arr: typeof ganhos) =>
-      arr.reduce((a, l) => a + (Number(l.valor_estimado) || 0), 0);
-
-    const decididos = ganhos.length + perdidos.length;
-    const conversao = decididos > 0 ? ganhos.length / decididos : 0;
-    const descarteRate = total > 0 ? descartados.length / total : 0;
-
-    const dIds = [...new Set(descartados.map((r) => r.discard_reason_id).filter(Boolean))] as string[];
-    const pIds = [...new Set(perdidos.map((r) => r.lost_reason_id).filter(Boolean))] as string[];
-
-    const [dNames, pNames] = await Promise.all([
-      dIds.length
-        ? context.supabase.from("lead_discard_reasons").select("id, nome").in("id", dIds)
-        : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
-      pIds.length
-        ? context.supabase.from("deal_lost_reasons").select("id, nome").in("id", pIds)
-        : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
-    ]);
-
-    const dMap = new Map((dNames.data ?? []).map((r) => [r.id, r.nome]));
-    const pMap = new Map((pNames.data ?? []).map((r) => [r.id, r.nome]));
-
-    const tally = (
-      arr: { discard_reason_id?: string | null; lost_reason_id?: string | null }[],
-      kind: "d" | "p",
-    ) => {
-      const m = new Map<string, number>();
-      for (const r of arr) {
-        const id = kind === "d" ? r.discard_reason_id : r.lost_reason_id;
-        const nome = (id && (kind === "d" ? dMap.get(id) : pMap.get(id))) || "Não informado";
-        m.set(nome, (m.get(nome) ?? 0) + 1);
-      }
-      return [...m.entries()]
-        .map(([nome, total]) => ({ nome, total }))
-        .sort((a, b) => b.total - a.total);
-    };
-
-    return {
-      periodoDias: data.dias,
-      totais: {
-        total,
-        emAndamento: emAndamento.length,
-        propostas: propostas.length,
-        ganhos: ganhos.length,
-        perdidos: perdidos.length,
-        descartados: descartados.length,
-      },
-      vgv: {
-        emAndamento: sum(emAndamento),
-        propostas: sum(propostas),
-        ganhos: sum(ganhos),
-        perdidos: sum(perdidos),
-      },
-      taxas: { conversao, descarteRate },
-      motivosDescarte: tally(descartados, "d"),
-      motivosPerda: tally(perdidos, "p"),
-    };
-  });
-
-/** IA — insight sobre performance comercial. */
 export const gerarInsightsPerformance = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z.object({
-      periodoDias: z.number().int(),
-      totais: z.record(z.string(), z.number()),
-      taxas: z.object({ conversao: z.number(), descarteRate: z.number() }),
-      vgv: z.record(z.string(), z.number()),
-      motivosDescarte: z.array(z.object({ nome: z.string(), total: z.number() })).max(20),
-      motivosPerda: z.array(z.object({ nome: z.string(), total: z.number() })).max(20),
-    }).parse(i),
-  )
+  .middleware([requireTenant])
+  .inputValidator((input: unknown) => z.object({
+    periodoDias: z.number().int().min(1).max(365),
+    totais: z.object({ total: z.number(), emAndamento: z.number(), propostas: z.number(), ganhos: z.number(), perdidos: z.number(), descartados: z.number() }).strict(),
+    taxas: z.object({ conversao: z.number(), descarteRate: z.number() }).strict(),
+    vgv: z.object({ emAndamento: z.number(), propostas: z.number(), ganhos: z.number(), perdidos: z.number() }).strict(),
+    motivosDescarte: z.array(z.object({ nome: z.string(), total: z.number() }).strict()).max(20),
+    motivosPerda: z.array(z.object({ nome: z.string(), total: z.number() }).strict()).max(20),
+  }).strict().parse(input))
   .handler(async ({ data, context }) => {
-    await ensureAdmin(context);
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada.");
-
-    const md = data.motivosDescarte.slice(0, 5).map((m) => `${m.nome} (${m.total})`).join(", ") || "—";
-    const mp = data.motivosPerda.slice(0, 5).map((m) => `${m.nome} (${m.total})`).join(", ") || "—";
-    const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-
-    const user = `Últimos ${data.periodoDias} dias.
-Total: ${data.totais.total} | Em andamento: ${data.totais.emAndamento} | Propostas: ${data.totais.propostas} | Ganhos: ${data.totais.ganhos} | Perdidos: ${data.totais.perdidos} | Descartados: ${data.totais.descartados}.
-Conversão (ganho / decididos): ${(data.taxas.conversao * 100).toFixed(1)}% | Descarte: ${(data.taxas.descarteRate * 100).toFixed(1)}%.
-VGV em andamento: ${brl(data.vgv.emAndamento)} | proposta: ${brl(data.vgv.propostas)} | ganho: ${brl(data.vgv.ganhos)} | perdido: ${brl(data.vgv.perdidos)}.
-Top motivos de descarte: ${md}.
-Top motivos de perda: ${mp}.
-
-Em 3 a 4 frases curtas, em português do Brasil, sem markdown e sem emojis, aponte gargalos, oportunidades e uma recomendação prática para o gestor comercial. Máximo 550 caracteres.`;
-
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "Você é um consultor de vendas imobiliárias de alto padrão. Seja objetivo e acionável." },
-          { role: "user", content: user },
-        ],
-      }),
-    });
-    if (resp.status === 429) throw new Error("Limite de uso da IA atingido.");
-    if (resp.status === 402) throw new Error("Créditos de IA esgotados.");
-    if (!resp.ok) throw new Error(`Falha na IA (${resp.status}).`);
-    const json = await resp.json();
-    return { insight: (json?.choices?.[0]?.message?.content ?? "").trim() as string };
+    // Re-authorize and recompute; caller metrics are presentation input only.
+    const metrics = performance(await listTenantLeadsForContext(context, { limit: 500 }), data.periodoDias);
+    const conversion = (metrics.taxas.conversao * 100).toFixed(1);
+    const discard = (metrics.taxas.descarteRate * 100).toFixed(1);
+    const recommendation = metrics.totais.propostas > 0 && metrics.totais.ganhos === 0
+      ? "Priorize a revisão das propostas abertas e registre o próximo follow-up."
+      : metrics.totais.descartados > metrics.totais.ganhos
+        ? "Revise qualificação e origem dos leads antes de ampliar a aquisição."
+        : "Mantenha o acompanhamento das oportunidades em andamento e das tarefas vencidas.";
+    return {
+      insight: `Nos últimos ${metrics.periodoDias} dias, a conversão foi ${conversion}% e o descarte ${discard}%. ${recommendation}`,
+    };
   });

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, Search, Sparkles } from "lucide-react";
-import { listarAmenities } from "@/lib/api/lancamentos.functions";
+import { listarTenantLaunchAmenities } from "@/lib/api/tenant-launch-catalog.functions";
 
 type Props = {
   /** "id": value/onChange devolvem amenity ids. "nome": devolvem amenity nomes. */
@@ -15,11 +15,14 @@ type Props = {
 };
 
 /**
- * Picker compartilhado de itens de Lazer. Mesma lista para Pronto para Morar e Lançamentos.
- * Botão "Selecionar lazer" abre o diálogo com checkboxes.
+ * Picker administrativo de itens de lazer. O catálogo é resolvido pelo tenant
+ * efetivo no servidor; Host e client não participam da autoridade.
  */
 export function LazerPicker({ by = "id", value, onChange, label = "Lazer" }: Props) {
-  const { data: amenities } = useQuery({ queryKey: ["launch-amenities"], queryFn: () => listarAmenities() });
+  const { data: amenities } = useQuery({
+    queryKey: ["tenant-launch-amenities"],
+    queryFn: () => listarTenantLaunchAmenities(),
+  });
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
   const [draft, setDraft] = useState<string[]>(value);
@@ -38,7 +41,9 @@ export function LazerPicker({ by = "id", value, onChange, label = "Lazer" }: Pro
   }, [amenities, value, by]);
 
   function toggle(key: string) {
-    setDraft((d) => (d.includes(key) ? d.filter((x) => x !== key) : [...d, key]));
+    setDraft((current) => current.includes(key)
+      ? current.filter((item) => item !== key)
+      : [...current, key]);
   }
 
   function abrir() {
@@ -54,7 +59,7 @@ export function LazerPicker({ by = "id", value, onChange, label = "Lazer" }: Pro
 
   return (
     <div className="space-y-2">
-      <Dialog open={open} onOpenChange={(o) => (o ? abrir() : setOpen(false))}>
+      <Dialog open={open} onOpenChange={(next) => (next ? abrir() : setOpen(false))}>
         <DialogTrigger asChild>
           <button
             type="button"
@@ -71,29 +76,25 @@ export function LazerPicker({ by = "id", value, onChange, label = "Lazer" }: Pro
           </button>
         </DialogTrigger>
         <DialogContent className="max-w-3xl max-h-[88vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Selecionar itens de lazer</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Selecionar itens de lazer</DialogTitle></DialogHeader>
           <div className="relative">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               autoFocus
               placeholder="Buscar item…"
               value={busca}
-              onChange={(e) => setBusca(e.target.value)}
+              onChange={(event) => setBusca(event.target.value)}
               className="pl-9"
             />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 overflow-y-auto pr-1">
-            {filtradas.map((a) => {
-              const key = by === "id" ? a.id : a.nome;
+            {filtradas.map((amenity) => {
+              const key = by === "id" ? amenity.id : amenity.nome;
               const checked = draft.includes(key);
               return (
                 <label
-                  key={a.id}
-                  className={`flex items-center gap-2 px-3 py-2 rounded border text-sm cursor-pointer transition ${
-                    checked ? "border-gold bg-gold/5" : "border-foreground/10 hover:bg-foreground/5"
-                  }`}
+                  key={amenity.id}
+                  className={`flex items-center gap-2 px-3 py-2 rounded border text-sm cursor-pointer transition ${checked ? "border-gold bg-gold/5" : "border-foreground/10 hover:bg-foreground/5"}`}
                 >
                   <input
                     type="checkbox"
@@ -101,28 +102,20 @@ export function LazerPicker({ by = "id", value, onChange, label = "Lazer" }: Pro
                     onChange={() => toggle(key)}
                     className="accent-gold"
                   />
-                  {a.nome}
+                  {amenity.nome}
                 </label>
               );
             })}
             {filtradas.length === 0 && (
-              <p className="col-span-full text-sm text-muted-foreground py-6 text-center">
-                Nenhum item encontrado.
-              </p>
+              <p className="col-span-full text-sm text-muted-foreground py-6 text-center">Nenhum item encontrado.</p>
             )}
           </div>
           <DialogFooter className="flex items-center justify-between gap-2 pt-2 border-t border-foreground/10 sm:justify-between">
             <span className="text-xs text-muted-foreground">{draft.length} selecionado(s)</span>
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => setDraft([])} disabled={draft.length === 0}>
-                Limpar
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="button" onClick={confirmar}>
-                Confirmar seleção
-              </Button>
+              <Button type="button" variant="ghost" onClick={() => setDraft([])} disabled={draft.length === 0}>Limpar</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button type="button" onClick={confirmar}>Confirmar seleção</Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -130,12 +123,12 @@ export function LazerPicker({ by = "id", value, onChange, label = "Lazer" }: Pro
 
       {selecionadasObj.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {selecionadasObj.map((a) => (
+          {selecionadasObj.map((amenity) => (
             <span
-              key={a.id}
+              key={amenity.id}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gold/10 text-petroleum text-xs border border-gold/30"
             >
-              {a.nome}
+              {amenity.nome}
             </span>
           ))}
         </div>

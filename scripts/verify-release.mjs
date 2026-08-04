@@ -51,6 +51,18 @@ run("Preflight — PTW-01 public writer authority specifications", "bun", ["run"
 run("Preflight — PTW-01 campaign-event SQL structural specifications", "bun", ["run", "test:ptw-01:sql-structural"]);
 run("PSG-01 — public-surface security specifications", "bun", ["run", "test:psg-01:security"]);
 run("PSG-01 — public-surface tenant-read specifications", "bun", ["run", "test:psg-01:tenant-reads"]);
+run("PR-M2 — CMS tenant authority specifications", "bun", ["run", "test:pr-m2:cms-authority"]);
+run("PR-M2 — dashboard tenant authority specifications", "bun", ["run", "test:pr-m2:dashboard-authority"]);
+run("PR-M2 — CRM report authority specifications", "bun", ["run", "test:pr-m2:crm-report-authority"]);
+run("PR-M2 — property admin authority specifications", "bun", ["run", "test:pr-m2:property-admin-authority"]);
+run("PR-M2 — tenant lifecycle specifications", "bun", ["run", "test:pr-m2:tenant-lifecycle"]);
+run("PR-M2 — tenant access control specifications", "bun", ["run", "test:pr-m2:tenant-access-control"]);
+run("PR-M2 — Configuration Center specifications", "bun", ["run", "test:pr-m2:configuration-center"]);
+run("PR-M2 — Portal functional completion specifications", "bun", ["run", "test:pr-m2:portal-functional-completion"]);
+run("PR-M2 — CMS workflow functional completion specifications", "bun", ["run", "test:pr-m2:cms-workflow-functional-completion"]);
+run("PR-M2 — CRM operational workflow functional completion specifications", "bun", ["run", "test:pr-m2:crm-operational-workflow-functional-completion"]);
+run("PR-M2 — Marketing channels and lead ingestion functional completion specifications", "bun", ["run", "test:pr-m2:marketing-channels-lead-ingestion-functional-completion"]);
+run("PR-M2 — Analytics, tracking and conversion events functional completion specifications", "bun", ["run", "test:pr-m2:analytics-tracking-conversion-events-functional-completion"]);
 
 run("Cycle A — development build", "bun", ["run", "build:dev"]);
 const cycleA = inspectRegisterAuthority("cycle-a");
@@ -86,6 +98,18 @@ console.log(JSON.stringify({
   publicTenantWriterSqlStructuralSpecsPassed: true,
   publicSurfaceSecuritySpecsPassed: true,
   publicSurfaceTenantReadSpecsPassed: true,
+  prM2CmsTenantAuthoritySpecsPassed: true,
+  prM2DashboardTenantAuthoritySpecsPassed: true,
+  prM2CrmReportAuthoritySpecsPassed: true,
+  prM2PropertyAdminAuthoritySpecsPassed: true,
+  prM2TenantLifecycleSpecsPassed: true,
+  prM2TenantAccessControlSpecsPassed: true,
+  prM2ConfigurationCenterSpecsPassed: true,
+  prM2PortalFunctionalCompletionSpecsPassed: true,
+  prM2CmsWorkflowFunctionalCompletionSpecsPassed: true,
+  prM2CrmOperationalWorkflowFunctionalCompletionSpecsPassed: true,
+  prM2MarketingChannelsLeadIngestionFunctionalCompletionSpecsPassed: true,
+  prM2AnalyticsTrackingConversionEventsFunctionalCompletionSpecsPassed: true,
   leadAuthorizationUnitSpecsPassed: true,
   leadRuntimeOperationSpecsPassed: true,
   leadStructuralSpecsPassed: true,

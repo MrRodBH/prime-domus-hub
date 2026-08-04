@@ -36,13 +36,22 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
-    name: "public site settings are tenant-bound",
+    name: "public site settings are tenant-bound through the canonical published ledger",
     run: async () => {
       const source = read("src/lib/api/site.functions.ts");
       const block = section(source, "export const obterSiteSettings", "export const atualizarSiteSettings");
-      assertTenantBoundQuery(block, "public site settings");
+      assert(block.includes("requirePublicTenantFromRequest"), "public site settings do not require Host-derived tenant authority");
+      assert(block.includes("loadPublishedConfigurationForTenant(tenant.id)"), "public site settings bypass the canonical published configuration boundary");
       assert(!block.includes("publicClient"), "public settings still use a global anonymous client");
       assert(!block.includes("catch"), "public settings silently convert authority/query failure");
+
+      const authority = read("src/lib/api/tenant-configuration-authority.server.ts");
+      const published = section(authority, "async function querySingleConfigurationVersion", "export async function loadTenantConfigurationState");
+      assert(published.includes("supabaseAdmin"), "canonical published ledger does not use the server-side client");
+      assert(published.includes('.eq("tenant_id", tenantId)'), "canonical published ledger lacks explicit tenant equality");
+      assert(published.includes('.eq("key", "configuration")'), "canonical published ledger does not constrain the aggregate key");
+      assert(published.includes('.eq("status", status)'), "canonical published ledger does not constrain publication state");
+      assert(published.includes(".maybeSingle()"), "canonical published ledger does not fail closed on cardinality");
     },
   },
   {

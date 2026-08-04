@@ -1,11 +1,13 @@
 // AppHeader — 56 px permanente (Doc 05 §2).
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Bell, LogOut, Menu, Search, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUI } from "./ui-store";
 import { supabase } from "@/integrations/supabase/client";
 import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
+import { listMyTenantInvitations } from "@/lib/api/tenant-lifecycle.functions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,13 +30,17 @@ export function AppHeader({
 }) {
   const { openPalette, openAi } = useUI();
   const navigate = useNavigate();
-  const path = useRouterState({ select: (s) => s.location.pathname });
+  const path = useRouterState({ select: (state) => state.location.pathname });
   const active = contextFromPath(path);
+  const invitationsQuery = useQuery({
+    queryKey: ["tenant-invitations", "mine"],
+    queryFn: () => listMyTenantInvitations(),
+    enabled: isSuper === false,
+    staleTime: 60_000,
+  });
+  const pendingInvitations = invitationsQuery.data?.length ?? 0;
 
   async function signOut() {
-    // Patch 2.3.1 · Regra 1 — limpar estado local ANTES do signOut.
-    // F3.4.1 — inclui limpeza da seleção comum de tenant (não é UI nova,
-    // é lifecycle: seleção não pode sobreviver a logout ou troca de conta).
     clearImpersonationTenantId();
     clearSelectedTenantId();
     await supabase.auth.signOut();
@@ -77,16 +83,23 @@ export function AppHeader({
             Impersonando {impersonating.slice(0, 8)}…
           </span>
         ) : !isSuper ? (
-          // F3.5.1 — switcher comum apenas para usuário não-Super.
-          // Super Admin sem impersonação usa fluxo próprio.
           <TenantSwitcher impersonating={impersonating} isSuper={isSuper} />
         ) : null}
         <Button size="icon" variant="ghost" onClick={openAi} aria-label="Assistente IA">
           <Sparkles className="size-4" />
         </Button>
-        <Button size="icon" variant="ghost" aria-label="Notificações">
-          <Bell className="size-4" />
-        </Button>
+        {!isSuper ? (
+          <Button size="icon" variant="ghost" asChild aria-label="Convites de organizações">
+            <Link to="/invitations" className="relative">
+              <Bell className="size-4" />
+              {pendingInvitations > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-destructive px-1 text-[9px] leading-4 text-destructive-foreground text-center">
+                  {pendingInvitations > 9 ? "9+" : pendingInvitations}
+                </span>
+              ) : null}
+            </Link>
+          </Button>
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="icon" variant="ghost" aria-label="Conta">
@@ -96,16 +109,21 @@ export function AppHeader({
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {isSuper && (
+            {!isSuper ? (
+              <DropdownMenuItem asChild>
+                <Link to="/invitations">Convites de organizações</Link>
+              </DropdownMenuItem>
+            ) : null}
+            {isSuper ? (
               <>
                 <DropdownMenuItem asChild>
-                  <Link to={CONTEXTS.find((c) => c.id === "operacao")!.root as "/super"}>
+                  <Link to={CONTEXTS.find((context) => context.id === "operacao")!.root as "/super"}>
                     Operação (Super)
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
-            )}
+            ) : null}
             <DropdownMenuItem asChild>
               <Link to="/">Ver site público</Link>
             </DropdownMenuItem>

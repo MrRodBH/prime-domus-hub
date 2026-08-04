@@ -57,7 +57,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
     .filter((l) => `${l.nome} ${l.email ?? ""} ${l.telefone ?? ""}`.toLowerCase().includes(needle))
     .slice(0, 6);
   const pageMatches = !needle ? [] : (pages ?? [])
-    .filter((p) => `${p.titulo} ${p.slug ?? ""}`.toLowerCase().includes(needle))
+    .filter((p) => `${p.title} ${p.slug ?? ""}`.toLowerCase().includes(needle))
     .slice(0, 6);
 
   const go = (to: string, search?: Record<string, string>) => {
@@ -116,9 +116,9 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
         {pageMatches.length > 0 && (<>
           <CommandGroup heading="Páginas">
             {pageMatches.map((p) => (
-              <CommandItem key={p.id} value={`pagina ${p.titulo} ${p.slug ?? ""}`} onSelect={() => openPage(p.id)}>
+              <CommandItem key={p.id} value={`pagina ${p.title} ${p.slug ?? ""}`} onSelect={() => openPage(p.id)}>
                 <FileText className="size-4 mr-2" />
-                <span className="truncate">{p.titulo}</span>
+                <span className="truncate">{p.title}</span>
                 <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">{p.status}</span>
               </CommandItem>
             ))}

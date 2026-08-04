@@ -1,276 +1,496 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { listarPortais, atualizarPortal, rotacionarToken, dashboardPortais } from "@/lib/api/portals.functions";
+import {
+  DEFAULT_PORTAL_MAPPING,
+  cancelTenantPortalJob,
+  generateTenantPortalManualExport,
+  getPortalConnectorRegistry,
+  getTenantPortalDashboard,
+  getTenantPortalDiagnostics,
+  listTenantPortalConnectors,
+  listTenantPortalJobs,
+  listTenantPortalLogs,
+  listTenantPortalMappings,
+  retryTenantPortalJob,
+  rotateTenantPortalCredentialReference,
+  saveTenantPortalConnector,
+  saveTenantPortalMapping,
+  setTenantPortalConnectorState,
+} from "@/lib/api/tenant-portal.functions";
+import type {
+  PortalAutomatedMethod,
+  PortalConnectorView,
+  PortalManualMethod,
+} from "@/lib/portals/portal-connector-registry";
+import { AdminPageHeader, AdminStats } from "@/components/admin/ui";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Copy, RefreshCw, Settings2, Radio, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { AdminPageHeader, AdminStats } from "@/components/admin/ui";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Download,
+  KeyRound,
+  RefreshCw,
+  Settings2,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/portais")({
   component: AdminPortais,
 });
 
-type Portal = {
+type ExportFormat = "CSV" | "XLSX" | "MANUAL_EXPORT";
+type PortalJobView = {
   id: string;
-  portal_slug: string;
-  portal_nome: string;
-  ativo: boolean;
-  feed_url: string | null;
-  feed_token: string;
-  webhook_url: string | null;
-  webhook_secret: string;
+  revision: number;
+  createdAt: string;
+  operation: "publish" | "unpublish" | "reconcile";
+  currentState: string;
+  attemptCount: number;
+  maxAttempts: number;
+  nextAttemptAt: string | null;
+  lastErrorCode: string | null;
+};
+type PortalLogView = {
+  id: string;
+  createdAt: string;
+  connectorSlug: string;
+  action: string;
   status: string;
-  ultimo_sync_at: string | null;
-  ultimo_erro: string | null;
+  errorCode: string | null;
+};
+type PortalRegistryView = {
+  definitions: Array<{
+    connectorKey: PortalAutomatedMethod;
+    displayName: string;
+    availabilityState: string;
+  }>;
 };
 
 function AdminPortais() {
-  const qc = useQueryClient();
-  const { data: portais = [] } = useQuery({
-    queryKey: ["admin", "portais"],
-    queryFn: () => listarPortais() as Promise<Portal[]>,
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState<PortalConnectorView | null>(null);
+  const [mappingConnector, setMappingConnector] = useState<PortalConnectorView | null>(null);
+  const [credentialConnector, setCredentialConnector] = useState<PortalConnectorView | null>(null);
+  const [exportConnectorId, setExportConnectorId] = useState("");
+  const [exportPropertyIds, setExportPropertyIds] = useState("");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("CSV");
+
+  const connectors = useQuery({
+    queryKey: ["tenant-portals", "connectors"],
+    queryFn: () => listTenantPortalConnectors(),
   });
-  const { data: dash } = useQuery({
-    queryKey: ["admin", "portais", "dashboard"],
-    queryFn: () => dashboardPortais(),
+  const registry = useQuery({
+    queryKey: ["tenant-portals", "registry"],
+    queryFn: () => getPortalConnectorRegistry(),
+  });
+  const dashboard = useQuery({
+    queryKey: ["tenant-portals", "dashboard"],
+    queryFn: () => getTenantPortalDashboard(),
     refetchInterval: 30_000,
   });
-  const [editing, setEditing] = useState<Portal | null>(null);
+  const diagnostics = useQuery({
+    queryKey: ["tenant-portals", "diagnostics"],
+    queryFn: () => getTenantPortalDiagnostics(),
+  });
+  const jobs = useQuery({
+    queryKey: ["tenant-portals", "jobs"],
+    queryFn: () => listTenantPortalJobs({ data: { limit: 100 } }),
+    refetchInterval: 15_000,
+  });
+  const logs = useQuery({
+    queryKey: ["tenant-portals", "logs"],
+    queryFn: () => listTenantPortalLogs({ data: { limit: 100 } }),
+  });
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["tenant-portals"] }),
+    ]);
+  };
 
   const toggle = useMutation({
-    mutationFn: (p: Portal) => atualizarPortal({ data: { id: p.id, ativo: !p.ativo } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "portais"] });
-      toast.success("Portal atualizado.");
+    mutationFn: (connector: PortalConnectorView) =>
+      setTenantPortalConnectorState({
+        data: {
+          connectorId: connector.id,
+          expectedRowVersion: connector.rowVersion,
+          active: !connector.active,
+        },
+      }),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Estado do connector atualizado.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
-  const rotate = useMutation({
-    mutationFn: (id: string) => rotacionarToken({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "portais"] });
-      toast.success("Novo token gerado.");
+  const retry = useMutation({
+    mutationFn: (job: { id: string; revision: number }) =>
+      retryTenantPortalJob({ data: { jobId: job.id, expectedRevision: job.revision } }),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Retry agendado pelo servidor.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
-    toast.success("Copiado.");
+  const cancel = useMutation({
+    mutationFn: (job: { id: string; revision: number }) =>
+      cancelTenantPortalJob({ data: { jobId: job.id, expectedRevision: job.revision } }),
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("Job cancelado.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: () => {
+      const propertyIds = exportPropertyIds
+        .split(/[\s,;]+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (!exportConnectorId) throw new Error("Selecione um connector.");
+      return generateTenantPortalManualExport({
+        data: { connectorId: exportConnectorId, propertyIds, format: exportFormat },
+      });
+    },
+    onSuccess: async (result) => {
+      await invalidate();
+      window.open(result.signedUrl, "_blank", "noopener,noreferrer");
+      toast.success(`Export ${result.format} gerado com ${result.rowCount} registro(s).`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const loading = [connectors, registry, dashboard, diagnostics, jobs, logs].some(
+    (query) => query.isLoading,
+  );
+  const failed = [connectors, registry, dashboard, diagnostics, jobs, logs].find(
+    (query) => query.isError,
+  );
+  const connectorRows = (connectors.data ?? []) as PortalConnectorView[];
+  const jobRows = (jobs.data ?? []) as PortalJobView[];
+  const logRows = (logs.data ?? []) as PortalLogView[];
+  const diagnostic = diagnostics.data;
+  const kpis = dashboard.data;
+
+  if (loading) {
+    return <StateCard icon={Clock3} title="loading" description="Carregando contratos tenant-scoped de portais." />;
   }
-
-  const kpis = dash?.kpis;
+  if (failed) {
+    return (
+      <StateCard
+        icon={XCircle}
+        title="permission_denied / error"
+        description={failed.error instanceof Error ? failed.error.message : "Falha segura ao carregar portais."}
+        action={<Button onClick={() => void invalidate()}>retry_available</Button>}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="Distribuição"
-        title="Portais Imobiliários"
-        description="Conecte e monitore a distribuição de imóveis e leads nos principais portais."
+        eyebrow="Distribuição HYBRID"
+        title="Portal Connector Center"
+        description="Registry fechado, mappings versionados, exports manuais, jobs idempotentes e diagnóstico sem secrets."
       />
+
+      <Alert>
+        <ShieldCheck className="size-4" />
+        <AlertTitle>Automação fail-closed</AlertTitle>
+        <AlertDescription>
+          Adapters automatizados estão em <strong>adapter_not_implemented</strong>. Nenhum sucesso externo é simulado.
+          CSV, XLSX e MANUAL_EXPORT permanecem disponíveis como entrega funcional auditável.
+        </AlertDescription>
+      </Alert>
 
       <AdminStats
         columns={4}
         items={[
-          { label: "Imóveis publicados", value: kpis?.imoveis_publicados ?? 0, icon: CheckCircle2, tone: "success" },
-          { label: "Pendentes", value: kpis?.imoveis_pendentes ?? 0, icon: Radio, tone: "warning" },
-          { label: "Com erro", value: kpis?.imoveis_erro ?? 0, icon: AlertTriangle, tone: "danger" },
-          { label: "Portais ativos", value: kpis?.portais_ativos ?? 0, icon: Settings2 },
-          { label: "Leads recebidos", value: kpis?.leads_total ?? 0, icon: Radio },
+          { label: "Connectors ativos", value: kpis?.connectorsActive ?? 0, icon: CheckCircle2, tone: "success" },
+          { label: "Jobs ativos", value: kpis?.activeJobs ?? 0, icon: RefreshCw, tone: "warning" },
+          { label: "Falhas terminais", value: kpis?.terminalFailures ?? 0, icon: AlertTriangle, tone: "danger" },
+          { label: "Reconciliação", value: kpis?.reconciliationRequired ?? 0, icon: ShieldCheck },
+          { label: "Exports", value: kpis?.exportsGenerated ?? 0, icon: Download },
+          { label: "Credenciais pendentes", value: kpis?.credentialsPending ?? 0, icon: KeyRound, tone: "warning" },
         ]}
       />
 
-
-      <Tabs defaultValue="conectores">
-        <TabsList>
-          <TabsTrigger value="conectores">Conectores</TabsTrigger>
-          <TabsTrigger value="portais">Leads por Portal</TabsTrigger>
+      <Tabs defaultValue="connectors">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="connectors">Connectors</TabsTrigger>
+          <TabsTrigger value="jobs">Jobs</TabsTrigger>
+          <TabsTrigger value="exports">Exports</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
+          <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="conectores" className="space-y-3 pt-3">
-          {portais.map((p) => {
-            const feedUrl = `${origin}/api/public/feeds/${p.portal_slug}/${p.feed_token}`;
-            const leadsUrl = `${origin}/api/public/portal-leads`;
-            return (
-              <Card key={p.id}>
-                <CardHeader className="flex flex-row items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base">{p.portal_nome}</CardTitle>
-                    <div className="mt-1 flex items-center gap-2">
-                      <StatusBadge status={p.ativo ? p.status : "nao_configurado"} />
-                      {p.ultimo_sync_at ? (
-                        <span className="text-xs text-muted-foreground">
-                          Último sync: {new Date(p.ultimo_sync_at).toLocaleString("pt-BR")}
-                        </span>
-                      ) : null}
-                    </div>
+        <TabsContent value="connectors" className="space-y-3 pt-3">
+          {connectorRows.length === 0 ? (
+            <StateCard icon={Settings2} title="empty" description="Nenhuma instância persistida de connector foi encontrada para o tenant." />
+          ) : connectorRows.map((connector: PortalConnectorView) => (
+            <Card key={connector.id}>
+              <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <CardTitle className="text-base">{connector.name}</CardTitle>
+                  <div className="flex flex-wrap gap-2">
+                    <StateBadge state={connector.active ? "ready" : "disabled"} />
+                    <StateBadge state={connector.configurationState} />
+                    <StateBadge state={connector.credentialState} />
+                    <StateBadge state={connector.adapterAvailability} />
+                    <Badge variant="outline">HYBRID</Badge>
+                    <Badge variant="secondary">row v{connector.rowVersion}</Badge>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={p.ativo} onCheckedChange={() => toggle.mutate(p)} />
-                    <Button variant="outline" size="sm" onClick={() => setEditing(p)}>
-                      <Settings2 className="size-4 mr-1" /> Configurar
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="grid gap-3 text-sm">
-                  <FieldCopy label="Feed XML (VRSync)" value={feedUrl} onCopy={() => copyToClipboard(feedUrl)} />
-                  <FieldCopy label="Endpoint de Leads" value={leadsUrl} onCopy={() => copyToClipboard(leadsUrl)} />
-                  <div className="grid gap-1">
-                    <Label className="text-xs">Feed token</Label>
-                    <div className="flex gap-2">
-                      <Input value={p.feed_token} readOnly className="font-mono text-xs" />
-                      <Button size="icon" variant="outline" onClick={() => copyToClipboard(p.feed_token)}><Copy className="size-4" /></Button>
-                      <Button size="icon" variant="outline" onClick={() => rotate.mutate(p.id)}><RefreshCw className="size-4" /></Button>
-                    </div>
-                  </div>
-                  {p.ultimo_erro ? (
-                    <div className="text-xs text-destructive">Último erro: {p.ultimo_erro}</div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditing(connector)}>
+                    <Settings2 className="mr-1 size-4" /> Configurar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setMappingConnector(connector)}>
+                    Mapping
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setCredentialConnector(connector)}>
+                    <KeyRound className="mr-1 size-4" /> Referência
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => toggle.mutate(connector)}
+                    disabled={toggle.isPending || connector.configurationState !== "adapter_not_implemented" || connector.credentialState === "credential_provisioning_required" || connector.credentialState === "rotation_required"}
+                  >
+                    {connector.active ? "Desativar" : "Ativar"}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-2 text-sm md:grid-cols-2">
+                <ReadOnly label="Slug persistido" value={connector.slug} />
+                <ReadOnly label="Automated method" value={connector.hybridConfig?.automated_method ?? "configuration_required"} />
+                <ReadOnly label="Manual method" value={connector.hybridConfig?.manual_method ?? "configuration_required"} />
+                <ReadOnly label="Mapping version" value={String(connector.hybridConfig?.mapping_version ?? 0)} />
+                <ReadOnly label="Last success" value={connector.lastSyncAt ?? "never"} />
+                <ReadOnly label="Last failure" value={connector.lastErrorCode ?? "none"} />
+              </CardContent>
+            </Card>
+          ))}
         </TabsContent>
 
-        <TabsContent value="portais" className="pt-3">
+        <TabsContent value="jobs" className="pt-3">
           <Card>
-            <CardHeader><CardTitle className="text-base">Leads por Portal (últimos 500)</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader><CardTitle className="text-base">Publication jobs</CardTitle></CardHeader>
+            <CardContent className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow><TableHead>Portal</TableHead><TableHead className="text-right">Leads</TableHead></TableRow>
+                  <TableRow>
+                    <TableHead>Created</TableHead><TableHead>Operation</TableHead><TableHead>State</TableHead>
+                    <TableHead>Attempts</TableHead><TableHead>Next retry</TableHead><TableHead>Error</TableHead><TableHead>Actions</TableHead>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Object.entries(dash?.leadsPorPortal ?? {}).map(([k, v]) => (
-                    <TableRow key={k}>
-                      <TableCell className="font-mono text-xs">{k}</TableCell>
-                      <TableCell className="text-right">{v}</TableCell>
+                  {jobRows.map((job: PortalJobView) => (
+                    <TableRow key={job.id}>
+                      <TableCell className="text-xs">{formatDate(job.createdAt)}</TableCell>
+                      <TableCell>{job.operation}</TableCell>
+                      <TableCell><StateBadge state={job.currentState} /></TableCell>
+                      <TableCell>{job.attemptCount}/{job.maxAttempts}</TableCell>
+                      <TableCell className="text-xs">{job.nextAttemptAt ? formatDate(job.nextAttemptAt) : "-"}</TableCell>
+                      <TableCell className="max-w-48 truncate text-xs">{job.lastErrorCode ?? "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {job.currentState === "failed_retryable" ? (
+                            <Button size="sm" variant="outline" onClick={() => retry.mutate(job)} disabled={retry.isPending}>Retry</Button>
+                          ) : null}
+                          {["queued", "unpublish_queued", "retry_scheduled", "failed_retryable"].includes(job.currentState) ? (
+                            <Button size="sm" variant="outline" onClick={() => cancel.mutate(job)} disabled={cancel.isPending}>Cancel</Button>
+                          ) : null}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
-                  {Object.keys(dash?.leadsPorPortal ?? {}).length === 0 ? (
-                    <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-6">Nenhum lead registrado ainda.</TableCell></TableRow>
+                  {jobRows.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">empty — nenhum job registrado.</TableCell></TableRow>
                   ) : null}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="exports" className="pt-3">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Manual delivery</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <Field label="Connector">
+                <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={exportConnectorId} onChange={(event) => setExportConnectorId(event.target.value)}>
+                  <option value="">Selecione</option>
+                  {connectorRows.map((connector: PortalConnectorView) => <option key={connector.id} value={connector.id}>{connector.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Format">
+                <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)}>
+                  <option value="CSV">CSV</option><option value="XLSX">XLSX</option><option value="MANUAL_EXPORT">MANUAL_EXPORT</option>
+                </select>
+              </Field>
+              <div className="md:col-span-2">
+                <Field label="Property UUIDs — separados por vírgula, espaço ou linha; vazio gera export vazio explícito">
+                  <Input value={exportPropertyIds} onChange={(event) => setExportPropertyIds(event.target.value)} placeholder="uuid-1, uuid-2" />
+                </Field>
+              </div>
+              <div className="md:col-span-2">
+                <Button onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>
+                  <Download className="mr-1 size-4" /> {exportMutation.isPending ? "Gerando…" : "Gerar export tenant-scoped"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="logs" className="pt-3">
           <Card>
-            <CardHeader><CardTitle className="text-base">Últimas 50 operações</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader><CardTitle className="text-base">Sanitized logs</CardTitle></CardHeader>
+            <CardContent className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Portal</TableHead>
-                    <TableHead>Ação</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Erro</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Connector</TableHead><TableHead>Action</TableHead><TableHead>Status</TableHead><TableHead>Error code</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {(dash?.logs ?? []).map((l: { id: string; created_at: string; portal_slug: string; acao: string; status: string; erro: string | null }) => (
-                    <TableRow key={l.id}>
-                      <TableCell className="text-xs">{new Date(l.created_at).toLocaleString("pt-BR")}</TableCell>
-                      <TableCell className="font-mono text-xs">{l.portal_slug}</TableCell>
-                      <TableCell className="text-xs">{l.acao}</TableCell>
-                      <TableCell><Badge variant={l.status === "ok" ? "secondary" : "destructive"}>{l.status}</Badge></TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{l.erro ?? "-"}</TableCell>
+                  {logRows.map((log: PortalLogView) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs">{formatDate(log.createdAt)}</TableCell>
+                      <TableCell className="font-mono text-xs">{log.connectorSlug}</TableCell>
+                      <TableCell>{log.action}</TableCell><TableCell><StateBadge state={log.status} /></TableCell>
+                      <TableCell className="text-xs">{log.errorCode ?? "-"}</TableCell>
                     </TableRow>
                   ))}
-                  {(dash?.logs ?? []).length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sem operações ainda.</TableCell></TableRow>
-                  ) : null}
+                  {logRows.length === 0 ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">empty</TableCell></TableRow> : null}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="diagnostics" className="grid gap-3 pt-3 md:grid-cols-2">
+          <Diagnostic label="Operation mode" value={diagnostic?.operationMode ?? "HYBRID"} />
+          <Diagnostic label="Automated state" value={diagnostic?.automatedState ?? "adapter_not_implemented"} />
+          <Diagnostic label="Registry" value={`${diagnostic?.registryCount ?? 0} cataloged`} />
+          <Diagnostic label="Adapters" value={`${diagnostic?.adapterImplementedCount ?? 0} implemented / ${diagnostic?.adapterNotImplementedCount ?? 0} pending`} />
+          <Diagnostic label="Inline secrets" value={diagnostic?.inlineSecretsAccepted ? "unsafe" : "prohibited"} />
+          <Diagnostic label="Plaintext credentials" value={diagnostic?.plaintextCredentialsAccepted ? "unsafe" : "prohibited"} />
+          <Diagnostic label="Direct client mutation" value={diagnostic?.directClientMutation ? "unsafe" : "false"} />
+          <Diagnostic label="Super Admin" value={diagnostic?.superAdminImpersonationRequired ? "impersonation required" : "invalid"} />
+          <Diagnostic label="Managed backend" value="migration not executed in this increment" />
+          <Diagnostic label="External portals" value="real publication not executed" />
+        </TabsContent>
       </Tabs>
 
-      <ConfigurePortalDialog portal={editing} onClose={() => setEditing(null)} />
+      <ConnectorDialog connector={editing} registry={registry.data as PortalRegistryView | undefined} onClose={() => setEditing(null)} onSaved={invalidate} />
+      <MappingDialog connector={mappingConnector} onClose={() => setMappingConnector(null)} onSaved={invalidate} />
+      <CredentialDialog connector={credentialConnector} onClose={() => setCredentialConnector(null)} onSaved={invalidate} />
     </div>
   );
 }
 
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    ativo: { label: "Conectado", variant: "default" },
-    inativo: { label: "Inativo", variant: "secondary" },
-    erro: { label: "Erro", variant: "destructive" },
-    nao_configurado: { label: "Não configurado", variant: "outline" },
-  };
-  const info = map[status] ?? { label: status, variant: "outline" as const };
-  return <Badge variant={info.variant}>{info.label}</Badge>;
-}
-
-function FieldCopy({ label, value, onCopy }: { label: string; value: string; onCopy: () => void }) {
-  return (
-    <div className="grid gap-1">
-      <Label className="text-xs">{label}</Label>
-      <div className="flex gap-2">
-        <Input value={value} readOnly className="font-mono text-xs" />
-        <Button size="icon" variant="outline" onClick={onCopy}><Copy className="size-4" /></Button>
-      </div>
-    </div>
-  );
-}
-
-function ConfigurePortalDialog({ portal, onClose }: { portal: Portal | null; onClose: () => void }) {
-  const qc = useQueryClient();
-  const [feedUrl, setFeedUrl] = useState(portal?.feed_url ?? "");
-  const [webhookUrl, setWebhookUrl] = useState(portal?.webhook_url ?? "");
-
-  const save = useMutation({
-    mutationFn: () =>
-      atualizarPortal({
-        data: { id: portal!.id, feed_url: feedUrl || null, webhook_url: webhookUrl || null },
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "portais"] });
-      toast.success("Configuração salva.");
-      onClose();
+function ConnectorDialog({ connector, registry, onClose, onSaved }: {
+  connector: PortalConnectorView | null;
+  registry: PortalRegistryView | undefined;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const current = connector?.hybridConfig;
+  const [automatedMethod, setAutomatedMethod] = useState<PortalAutomatedMethod>(current?.automated_method ?? "JSON_API");
+  const [manualMethod, setManualMethod] = useState<PortalManualMethod>(current?.manual_method ?? "CSV");
+  const [mappingProfile, setMappingProfile] = useState(current?.mapping_profile ?? "default-v1");
+  const [feedUrl, setFeedUrl] = useState(connector?.feedUrl ?? "");
+  const [webhookUrl, setWebhookUrl] = useState(connector?.webhookUrl ?? "");
+  const [maxAttempts, setMaxAttempts] = useState(current?.retry_policy.max_attempts ?? 5);
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (!connector) throw new Error("Connector ausente.");
+      return saveTenantPortalConnector({ data: {
+        connectorId: connector.id,
+        expectedRowVersion: connector.rowVersion,
+        feedUrl: feedUrl || null,
+        webhookUrl: webhookUrl || null,
+        config: {
+          operation_mode: "HYBRID",
+          automated_method: automatedMethod,
+          manual_method: manualMethod,
+          configuration_schema_version: 1,
+          credential_reference: current?.credential_reference ?? null,
+          mapping_profile: mappingProfile,
+          mapping_version: current?.mapping_version ?? 1,
+          publication_rules: { only_published: true, include_statuses: ["publicado"], batch_size: 100 },
+          retry_policy: { max_attempts: maxAttempts, initial_delay_seconds: 30, max_delay_seconds: 3600 },
+        },
+      } });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: async () => { await onSaved(); toast.success("Configuração salva; connector desativado até validação completa."); onClose(); },
+    onError: (error: Error) => toast.error(error.message),
   });
-
-  if (!portal) return null;
-
+  const definitions = registry?.definitions ?? [];
   return (
-    <Dialog open={!!portal} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Configurar {portal.portal_nome}</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div className="grid gap-1">
-            <Label>URL de Feed (opcional — para consumo externo, se o portal exigir upload)</Label>
-            <Input value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} placeholder="https://..." />
-          </div>
-          <div className="grid gap-1">
-            <Label>URL de Webhook do Portal (opcional)</Label>
-            <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://..." />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={() => save.mutate()} disabled={save.isPending}>Salvar</Button>
-          </div>
+    <Dialog open={connector !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Configurar {connector?.name}</DialogTitle></DialogHeader>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Automated method"><select className="h-10 w-full rounded-md border bg-background px-3" value={automatedMethod} onChange={(event) => setAutomatedMethod(event.target.value as PortalAutomatedMethod)}>{definitions.map((item: PortalRegistryView["definitions"][number]) => <option key={item.connectorKey} value={item.connectorKey}>{item.displayName} — {item.availabilityState}</option>)}</select></Field>
+          <Field label="Manual method"><select className="h-10 w-full rounded-md border bg-background px-3" value={manualMethod} onChange={(event) => setManualMethod(event.target.value as PortalManualMethod)}><option>CSV</option><option>XLSX</option><option>MANUAL_EXPORT</option></select></Field>
+          <Field label="Mapping profile"><Input value={mappingProfile} onChange={(event) => setMappingProfile(event.target.value)} /></Field>
+          <Field label="Max attempts"><Input type="number" min={1} max={20} value={maxAttempts} onChange={(event) => setMaxAttempts(Number(event.target.value))} /></Field>
+          <Field label="Feed/API HTTPS"><Input value={feedUrl} onChange={(event) => setFeedUrl(event.target.value)} placeholder="https://…" /></Field>
+          <Field label="Webhook HTTPS"><Input value={webhookUrl} onChange={(event) => setWebhookUrl(event.target.value)} placeholder="https://…" /></Field>
         </div>
+        <Alert><AlertTriangle className="size-4" /><AlertDescription>Salvar não ativa o adapter nem confirma publicação externa. O estado automatizado permanece adapter_not_implemented.</AlertDescription></Alert>
+        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Salvar contrato fechado</Button>
       </DialogContent>
     </Dialog>
   );
 }
+
+function MappingDialog({ connector, onClose, onSaved }: { connector: PortalConnectorView | null; onClose: () => void; onSaved: () => Promise<void> }) {
+  const mappings = useQuery({
+    queryKey: ["tenant-portals", "mappings", connector?.id],
+    queryFn: () => listTenantPortalMappings({ data: { connectorId: connector!.id } }),
+    enabled: connector !== null,
+  });
+  const currentVersion = mappings.data?.find((item: { current: boolean; version: number }) => item.current)?.version ?? 0;
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (!connector) throw new Error("Connector ausente.");
+      return saveTenantPortalMapping({ data: { connectorId: connector.id, expectedVersion: currentVersion, mapping: DEFAULT_PORTAL_MAPPING } });
+    },
+    onSuccess: async () => { await onSaved(); toast.success("Mapping fechado versionado."); onClose(); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  return <Dialog open={connector !== null} onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>Mapping — {connector?.name}</DialogTitle></DialogHeader><p className="text-sm text-muted-foreground">Versão atual: {currentVersion}. O mapping fechado cobre campos públicos de imóveis e mídia tenant-scoped.</p><Button onClick={() => mutation.mutate()} disabled={mutation.isPending || mappings.isLoading}>Criar próxima versão canônica</Button></DialogContent></Dialog>;
+}
+
+function CredentialDialog({ connector, onClose, onSaved }: { connector: PortalConnectorView | null; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [reference, setReference] = useState("credential://tenant/portal/provider");
+  const mutation = useMutation({
+    mutationFn: () => {
+      if (!connector) throw new Error("Connector ausente.");
+      return rotateTenantPortalCredentialReference({ data: { connectorId: connector.id, expectedRowVersion: connector.rowVersion, credentialReference: reference } });
+    },
+    onSuccess: async () => { await onSaved(); toast.success("Referência rotacionada; provisionamento externo ainda é obrigatório."); onClose(); },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  return <Dialog open={connector !== null} onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>Credential reference — {connector?.name}</DialogTitle></DialogHeader><Field label="Reference only — nenhum secret"><Input value={reference} onChange={(event) => setReference(event.target.value)} /></Field><p className="text-sm text-muted-foreground">A operação não cria vault fictício e não recebe token, password ou client secret.</p><Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>Rotacionar referência</Button></DialogContent></Dialog>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <div className="grid gap-1.5"><Label>{label}</Label>{children}</div>; }
+function ReadOnly({ label, value }: { label: string; value: string }) { return <div><span className="text-xs text-muted-foreground">{label}</span><div className="font-mono text-xs break-all">{value}</div></div>; }
+function Diagnostic({ label, value }: { label: string; value: string }) { return <Card><CardContent className="pt-6"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 font-mono text-sm">{value}</div></CardContent></Card>; }
+function StateBadge({ state }: { state: string }) { const danger = state.includes("failed") || state === "error" || state === "permission_denied"; const warning = state.includes("required") || state.includes("queued") || state.includes("retry") || state === "adapter_not_implemented"; return <Badge variant={danger ? "destructive" : warning ? "outline" : "secondary"}>{state}</Badge>; }
+function formatDate(value: string) { return new Date(value).toLocaleString("pt-BR"); }
+function StateCard({ icon: Icon, title, description, action }: { icon: typeof Clock3; title: string; description: string; action?: React.ReactNode }) { return <Card><CardContent className="flex min-h-56 flex-col items-center justify-center gap-3 text-center"><Icon className="size-8 text-muted-foreground" /><div><div className="font-medium">{title}</div><p className="text-sm text-muted-foreground">{description}</p></div>{action}</CardContent></Card>; }

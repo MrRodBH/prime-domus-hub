@@ -1,9 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
-import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
 import { normalizePublicLinkPresentation, normalizePublicNavigationUrl } from "@/lib/public-content-security";
+import {
+  authorizeTenantConfigurationOperation,
+  loadPublishedConfigurationForTenant,
+  loadTenantConfigurationState,
+} from "@/lib/api/tenant-configuration-authority.server";
 
 export interface MenuItem {
   id: string;
@@ -16,42 +20,50 @@ export interface MenuItem {
   tipo: "internal" | "external";
 }
 
-type PublicMenuRow = MenuItem & { tenant_id: string };
+function normalizeMenuItems(value: unknown, publicOnly: boolean): MenuItem[] {
+  if (!Array.isArray(value)) throw new Error("configuration_menu_items_invalid");
+  const seen = new Set<string>();
+  const rows = value.map((entry, index): MenuItem => {
+    if (typeof entry !== "object" || entry === null) throw new Error("configuration_menu_item_invalid");
+    const item = entry as Record<string, unknown>;
+    const id = typeof item.id === "string" && item.id.length > 0 ? item.id : `configuration-menu-${index}`;
+    if (seen.has(id)) throw new Error("configuration_menu_item_duplicate");
+    seen.add(id);
+    const location = item.location === "footer" ? "footer" : item.location === "header" ? "header" : null;
+    const label = typeof item.label === "string" ? item.label.trim() : "";
+    const rawUrl = typeof item.url === "string" ? item.url : "";
+    const ordem = Number.isInteger(item.order) ? Number(item.order) : Number.isInteger(item.ordem) ? Number(item.ordem) : index * 10;
+    const visivel = typeof item.visible === "boolean" ? item.visible : typeof item.visivel === "boolean" ? item.visivel : true;
+    const target = item.target === "_blank" ? "_blank" : "_self";
+    const tipo = item.type === "external" || item.tipo === "external" ? "external" : "internal";
+    if (!location || !label || label.length > 120 || !Number.isSafeInteger(ordem)) {
+      throw new Error("configuration_menu_item_invalid");
+    }
+    const url = normalizePublicNavigationUrl(rawUrl, "contact");
+    if (!url) throw new Error("unsafe_navigation_destination");
+    const presentation = normalizePublicLinkPresentation(url, target);
+    return { id, location, label, url, ordem, visivel, target: presentation.target, tipo };
+  });
+  return rows
+    .filter((row) => !publicOnly || row.visivel)
+    .sort((a, b) => a.location.localeCompare(b.location) || a.ordem - b.ordem || a.id.localeCompare(b.id));
+}
 
-export const listarMenuPublico = createServerFn({ method: "GET" }).handler(async () => {
+export const listarMenuPublico = createServerFn({ method: "GET" }).handler(async (): Promise<MenuItem[]> => {
   const tenant = await requirePublicTenantFromRequest();
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("website_menu_items")
-    .select("tenant_id, id, location, label, url, ordem, visivel, target, tipo")
-    .eq("tenant_id", tenant.id)
-    .eq("visivel", true)
-    .order("ordem", { ascending: true });
-  if (error) throw new Error(error.message);
-  return assertTenantScopedRows(tenant.id, data as unknown as PublicMenuRow[] | null)
-    .map((row): MenuItem => {
-      const dto = withoutTenantId(row);
-      const url = normalizePublicNavigationUrl(dto.url, "contact");
-      if (!url) throw new Error("unsafe_navigation_destination");
-      const presentation = normalizePublicLinkPresentation(url, dto.target);
-      return { ...dto, url, target: presentation.target };
-    });
+  const published = await loadPublishedConfigurationForTenant(tenant.id);
+  return normalizeMenuItems(published.publicSnapshot.menu_items, true);
 });
 
 export const listarMenuAdmin = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("website_menu_items")
-      .select("id, location, label, url, ordem, visivel, target, tipo")
-      .order("location", { ascending: true })
-      .order("ordem", { ascending: true });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as MenuItem[];
+  .middleware([requireTenant])
+  .handler(async ({ context }): Promise<MenuItem[]> => {
+    const state = await loadTenantConfigurationState({ userId: context.userId, tenant: context.tenant }, "visualizar");
+    return normalizeMenuItems(state.effectiveSnapshot.menu_items, false);
   });
 
 const itemSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().optional(),
   location: z.enum(["header", "footer"]),
   label: z.string().min(1),
   url: z.string().min(1),
@@ -59,60 +71,35 @@ const itemSchema = z.object({
   visivel: z.boolean().default(true),
   target: z.enum(["_self", "_blank"]).default("_self"),
   tipo: z.enum(["internal", "external"]).default("internal"),
-});
+}).strict();
 
+function retiredMenuMutation(): never {
+  throw new Error("legacy_menu_mutation_retired_use_configuration_center");
+}
+
+/** @deprecated Menu mutations are part of the whole configuration draft. */
 export const salvarMenuItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => itemSchema.parse(d))
-  .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    const { id, ...rest } = data;
-    await assertCmsPermission(context, "cms.menu", id ? "editar" : "criar");
-    if (id) {
-      const { data: before } = await context.supabase.from("website_menu_items").select("*").eq("id", id).maybeSingle();
-      const { data: row, error } = await context.supabase.from("website_menu_items").update(rest).eq("id", id).select("*").single();
-      if (error) throw new Error(error.message);
-      await logCmsAudit(context, "website_menu_items", "cms.menu.editar", id, before, row);
-      return { id };
-    }
-    const { data: inserted, error } = await context.supabase
-      .from("website_menu_items")
-      .insert(rest)
-      .select("*")
-      .single();
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "website_menu_items", "cms.menu.criar", inserted!.id as string, null, inserted);
-    return { id: inserted!.id as string };
+  .middleware([requireTenant])
+  .inputValidator((raw) => itemSchema.parse(raw))
+  .handler(async ({ context }) => {
+    await authorizeTenantConfigurationOperation({ userId: context.userId, tenant: context.tenant }, "editar");
+    return retiredMenuMutation();
   });
 
+/** @deprecated Menu mutations are part of the whole configuration draft. */
 export const excluirMenuItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.menu", "excluir");
-    const { data: before } = await context.supabase.from("website_menu_items").select("*").eq("id", data.id).maybeSingle();
-    const { error } = await context.supabase.from("website_menu_items").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    await logCmsAudit(context, "website_menu_items", "cms.menu.excluir", data.id, before, null);
-    return { ok: true };
+  .middleware([requireTenant])
+  .inputValidator((raw) => z.object({ id: z.string().min(1) }).strict().parse(raw))
+  .handler(async ({ context }) => {
+    await authorizeTenantConfigurationOperation({ userId: context.userId, tenant: context.tenant }, "editar");
+    return retiredMenuMutation();
   });
 
+/** @deprecated Menu mutations are part of the whole configuration draft. */
 export const reordenarMenu = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
-    z.object({ items: z.array(z.object({ id: z.string().uuid(), ordem: z.number().int() })) }).parse(d),
-  )
-  .handler(async ({ data, context }) => {
-    const { assertCmsPermission, logCmsAudit } = await import("./_cms");
-    await assertCmsPermission(context, "cms.menu", "editar");
-    for (const it of data.items) {
-      const { error } = await context.supabase
-        .from("website_menu_items")
-        .update({ ordem: it.ordem })
-        .eq("id", it.id);
-      if (error) throw new Error(error.message);
-    }
-    await logCmsAudit(context, "website_menu_items", "cms.menu.reordenar", "bulk", null, data.items);
-    return { ok: true };
+  .middleware([requireTenant])
+  .inputValidator((raw) => z.object({ items: z.array(z.object({ id: z.string().min(1), ordem: z.number().int() }).strict()) }).strict().parse(raw))
+  .handler(async ({ context }) => {
+    await authorizeTenantConfigurationOperation({ userId: context.userId, tenant: context.tenant }, "editar");
+    return retiredMenuMutation();
   });

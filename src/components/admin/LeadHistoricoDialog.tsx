@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,31 +17,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import {
-  Phone,
-  MessageCircle,
-  Mail,
-  Home,
-  Video,
-  Users,
-  CircleDot,
-  Sparkles,
-  Trash2,
-  Pencil,
-  Loader2,
-  X,
   Check,
-  AlertTriangle,
+  CircleDot,
+  Home,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Phone,
+  Users,
+  Video,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  listarHistorico,
-  criarAtividade,
-  editarAtividade,
-  descartarLead,
-  analisarLeadIA,
-} from "@/lib/api/historico.functions";
+import { criarAtividade, listarHistorico } from "@/lib/api/historico.functions";
 
 type Tipo =
   | "ligacao"
@@ -50,9 +39,7 @@ type Tipo =
   | "visita"
   | "video_chamada"
   | "reuniao_presencial"
-  | "outros"
-  | "descarte"
-  | "ia_analise";
+  | "outros";
 
 const TIPO_INFO: Record<Tipo, { label: string; icon: typeof Phone; color: string }> = {
   ligacao: { label: "Ligação", icon: Phone, color: "text-blue-500" },
@@ -61,38 +48,18 @@ const TIPO_INFO: Record<Tipo, { label: string; icon: typeof Phone; color: string
   visita: { label: "Visita", icon: Home, color: "text-violet-500" },
   video_chamada: { label: "Vídeo Chamada", icon: Video, color: "text-cyan-500" },
   reuniao_presencial: { label: "Reunião Presencial", icon: Users, color: "text-pink-500" },
-  outros: { label: "Outros", icon: CircleDot, color: "text-muted-foreground" },
-  descarte: { label: "Descarte", icon: Trash2, color: "text-rose-500" },
-  ia_analise: { label: "Análise IA", icon: Sparkles, color: "text-primary" },
+  outros: { label: "Atividade CRM", icon: CircleDot, color: "text-muted-foreground" },
 };
 
-const TIPOS_USUARIO: Tipo[] = [
-  "ligacao",
-  "whatsapp",
-  "email",
-  "visita",
-  "video_chamada",
-  "reuniao_presencial",
-  "outros",
-];
-
-const MOTIVO_OPTIONS: { value: string; label: string }[] = [
-  { value: "sem_contato", label: "Não consigo contato" },
-  { value: "nao_e_lead", label: "Não é Lead" },
-  { value: "financeiro", label: "Condições Financeiras" },
-  { value: "desistiu", label: "Desistiu da Compra" },
-  { value: "aluguel", label: "Procurando Aluguel" },
-  { value: "outros", label: "Outros" },
-];
+const TIPOS_USUARIO = Object.keys(TIPO_INFO) as Tipo[];
 
 function formatDateTime(iso: string) {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${dd}/${mm}/${yyyy} - ${hh}:${mi}`;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Data indisponível";
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
 }
 
 type Props = {
@@ -103,172 +70,120 @@ type Props = {
 };
 
 export function LeadHistoricoDialog({ leadId, leadNome, isAdmin, onClose }: Props) {
-  const qc = useQueryClient();
-  const [novoTipo, setNovoTipo] = useState<Tipo | "">("");
-  const [novaDesc, setNovaDesc] = useState("");
-  const [editId, setEditId] = useState<string | null>(null);
-  const [editDesc, setEditDesc] = useState("");
-  // PR-M1: legacy discard button removed; no local discard-dialog state here.
+  const queryClient = useQueryClient();
+  const [tipo, setTipo] = useState<Tipo | "">("");
+  const [descricao, setDescricao] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const historyQuery = useQuery({
     queryKey: ["lead-historico", leadId],
     queryFn: () => listarHistorico({ data: { lead_id: leadId! } }),
-    enabled: !!leadId,
+    enabled: Boolean(leadId),
   });
 
-  const criar = useMutation({
-    mutationFn: (p: { tipo: Tipo; descricao: string }) =>
-      criarAtividade({ data: { lead_id: leadId!, tipo: p.tipo, descricao: p.descricao } }),
+  const createActivity = useMutation({
+    mutationFn: (input: { tipo: Tipo; descricao: string }) =>
+      criarAtividade({
+        data: {
+          lead_id: leadId!,
+          tipo: input.tipo,
+          descricao: input.descricao,
+        },
+      }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lead-historico", leadId] });
-      setNovoTipo("");
-      setNovaDesc("");
-      toast.success("Atividade registrada.");
+      void queryClient.invalidateQueries({ queryKey: ["lead-historico", leadId] });
+      setTipo("");
+      setDescricao("");
+      toast.success("Atividade registrada na timeline CRM.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
-  const editar = useMutation({
-    mutationFn: (p: { id: string; descricao: string }) =>
-      editarAtividade({ data: p }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lead-historico", leadId] });
-      setEditId(null);
-      setEditDesc("");
-      toast.success("Atividade atualizada.");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const ia = useMutation({
-    mutationFn: () => analisarLeadIA({ data: { lead_id: leadId! } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lead-historico", leadId] });
-      toast.success("Análise gerada.");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const atividades = data?.atividades ?? [];
-  const temAtividade = atividades.length > 0;
-  const jaDescartado = !!data?.descarte;
+  const atividades = historyQuery.data?.atividades ?? [];
+  const descartado = Boolean(historyQuery.data?.descarte);
 
   return (
-    <Dialog open={!!leadId} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+    <Dialog open={Boolean(leadId)} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Histórico — {leadNome}</DialogTitle>
+          <DialogTitle>Timeline CRM — {leadNome}</DialogTitle>
           <DialogDescription>
-            Registre todas as interações com este lead. Os registros são permanentes.
+            Registros canônicos são append-only. Correções devem ser adicionadas como nova atividade, preservando a trilha de auditoria.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {/* Nova atividade */}
-          {!jaDescartado && (
+          {!descartado ? (
             <div className="rounded-lg border border-foreground/10 bg-card p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <CircleDot className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Nova atividade</span>
               </div>
               <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
-                <Select value={novoTipo} onValueChange={(v) => setNovoTipo(v as Tipo)}>
+                <Select value={tipo} onValueChange={(value) => setTipo(value as Tipo)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Tipo de atividade" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TIPOS_USUARIO.map((t) => (
-                      <SelectItem key={t} value={t}>{TIPO_INFO[t].label}</SelectItem>
+                    {TIPOS_USUARIO.map((key) => (
+                      <SelectItem key={key} value={key}>{TIPO_INFO[key].label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <Textarea
-                  placeholder="Descreva a atividade: resumo, interesse, objeções, próximos passos…"
-                  value={novaDesc}
-                  onChange={(e) => setNovaDesc(e.target.value)}
+                  placeholder="Registre contexto, resultado e próximo passo."
+                  value={descricao}
+                  onChange={(event) => setDescricao(event.target.value)}
                   rows={3}
                 />
               </div>
               <div className="flex justify-end">
                 <Button
                   size="sm"
-                  disabled={!novoTipo || !novaDesc.trim() || criar.isPending}
-                  onClick={() => criar.mutate({ tipo: novoTipo as Tipo, descricao: novaDesc })}
+                  disabled={!tipo || !descricao.trim() || createActivity.isPending}
+                  onClick={() => createActivity.mutate({ tipo: tipo as Tipo, descricao })}
                 >
-                  {criar.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
-                  Salvar
+                  {createActivity.isPending
+                    ? <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    : <Check className="mr-1 h-4 w-4" />}
+                  Registrar
                 </Button>
               </div>
             </div>
+          ) : (
+            <div className="rounded-md border border-muted px-4 py-3 text-sm text-muted-foreground">
+              Lead descartado. Reabra-o pelo workflow canônico antes de registrar nova atividade.
+            </div>
           )}
 
-          {/* Lista */}
           <div className="space-y-2">
-            {isLoading && (
+            {historyQuery.isLoading ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin mr-2" /> Carregando…
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando…
               </div>
-            )}
-            {!isLoading && atividades.length === 0 && (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                Nenhuma atividade registrada ainda.
+            ) : null}
+            {!historyQuery.isLoading && atividades.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Nenhum evento CRM registrado.
               </div>
-            )}
-            {atividades.map((a) => {
-              const tipo = a.tipo as Tipo;
-              const info = TIPO_INFO[tipo] ?? TIPO_INFO.outros;
+            ) : null}
+            {atividades.map((activity) => {
+              const key = (activity.tipo in TIPO_INFO ? activity.tipo : "outros") as Tipo;
+              const info = TIPO_INFO[key];
               const Icon = info.icon;
-              const editavel =
-                tipo !== "descarte" && tipo !== "ia_analise";
               return (
-                <div key={a.id} className="rounded-md border border-foreground/10 bg-background p-3">
+                <div key={activity.id} className="rounded-md border border-foreground/10 bg-background p-3">
                   <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 ${info.color}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
+                    <div className={`mt-0.5 ${info.color}`}><Icon className="h-4 w-4" /></div>
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                         <span className="text-sm font-medium">{info.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDateTime(a.created_at)}
-                        </span>
-                        {isAdmin && (
-                          <span className="text-xs text-muted-foreground">
-                            · por <strong className="font-medium text-foreground">{a.user_nome}</strong>
-                          </span>
-                        )}
+                        <span className="text-xs text-muted-foreground">{formatDateTime(activity.created_at)}</span>
+                        {isAdmin ? (
+                          <span className="text-xs text-muted-foreground">· por {activity.user_nome}</span>
+                        ) : null}
                       </div>
-                      {editId === a.id ? (
-                        <div className="mt-2 space-y-2">
-                          <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={3} />
-                          <div className="flex gap-2 justify-end">
-                            <Button size="sm" variant="ghost" onClick={() => { setEditId(null); setEditDesc(""); }}>
-                              Cancelar
-                            </Button>
-                            <Button
-                              size="sm"
-                              disabled={!editDesc.trim() || editar.isPending}
-                              onClick={() => editar.mutate({ id: a.id, descricao: editDesc })}
-                            >
-                              {editar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{a.descricao}</p>
-                      )}
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{activity.descricao}</p>
                     </div>
-                    {editavel && editId !== a.id && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => { setEditId(a.id); setEditDesc(a.descricao); }}
-                        title="Editar"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
                   </div>
                 </div>
               );
@@ -276,44 +191,12 @@ export function LeadHistoricoDialog({ leadId, leadNome, isAdmin, onClose }: Prop
           </div>
         </div>
 
-        <DialogFooter className="flex-row flex-wrap gap-2 sm:justify-between border-t border-foreground/10 pt-3">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => ia.mutate()}
-              disabled={ia.isPending || !temAtividade}
-              title={!temAtividade ? "Registre ao menos uma atividade" : "Analisar com IA"}
-            >
-              {ia.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
-              Analisar com IA
-            </Button>
-            {/*
-              PR-M1: a ação "Descartar Lead" foi removida deste diálogo. O
-              descarte canônico é uma transição de status atômica
-              (transition_lead_status) exposta pelo botão Descartar do
-              LeadDetail; o histórico permanece dedicado exclusivamente ao
-              registro/consulta/edição de atividades e à análise de IA.
-              A referência a jaDescartado permanece apenas para bloquear a
-              criação de novas atividades em leads já descartados.
-            */}
-            {jaDescartado && (
-              <span className="text-xs text-muted-foreground self-center">
-                Lead descartado — abra o lead para reabrir.
-              </span>
-            )}
-          </div>
+        <DialogFooter className="border-t border-foreground/10 pt-3">
           <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4 mr-1" /> Fechar
+            <X className="mr-1 h-4 w-4" /> Fechar
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-// PR-M1: DescarteDialog legado removido. O descarte canônico é uma
-// transição de status atômica (`transition_lead_status`) acionada pelo
-// botão Descartar do LeadDetail, que consome descartarLead do módulo
-// `@/lib/api/leads-crm.functions` sob o boundary tipado. Este arquivo
-// permanece dedicado ao histórico de atividades / análise IA.

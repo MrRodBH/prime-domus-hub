@@ -1,59 +1,91 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Crown, Loader2, Sparkles, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
 import {
-  adminSalvarImovel,
   adminAdicionarImagem,
-  adminRemoverImagem,
   adminAssinarUrl,
-  adminSalvarBairro,
-  adminSalvarCidade,
-  adminReordenarImagens,
   adminDefinirCapa,
   adminListarCorretores,
+  adminRemoverImagem,
+  adminReordenarImagens,
+  adminSalvarImovel,
 } from "@/lib/api/admin.functions";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
 import { gerarDescricaoImovel } from "@/lib/api/ia.functions";
 import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { listarTenantLaunchAmenities } from "@/lib/api/tenant-launch-catalog.functions";
 import { createUploadTarget } from "@/lib/api/uploads.functions";
-import { Trash2, Upload, Sparkles, Crown } from "lucide-react";
-import { InstagramPostManager } from "./InstagramPostManager";
-import { LazerPicker } from "./LazerPicker";
-import { listarAmenities } from "@/lib/api/lancamentos.functions";
-import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
+const PROPERTY_TYPES = ["apartamento", "cobertura", "casa", "casa_condominio", "terreno", "comercial"] as const;
+const PURPOSES = ["venda", "aluguel", "lancamento"] as const;
+const STATUSES = ["ativo", "rascunho", "vendido", "reservado"] as const;
+const MAX_IMAGES = 20;
 
-type Imagem = { id: string; url: string; alt?: string | null; ordem: number };
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ImovelData = any;
+type PropertyImage = {
+  id: string;
+  url: string;
+  alt?: string | null;
+  ordem: number;
+};
 
-function ordemInicial(img: Imagem) {
-  return Number.isInteger(img.ordem) && img.ordem > 0 ? String(img.ordem) : "0";
+type PropertyFormState = {
+  id?: string;
+  codigo: string;
+  titulo: string;
+  slug: string;
+  descricao: string;
+  finalidade: (typeof PURPOSES)[number];
+  tipo: (typeof PROPERTY_TYPES)[number];
+  status: (typeof STATUSES)[number];
+  preco: number | null;
+  preco_sob_consulta: boolean;
+  condominio: number | null;
+  iptu: number | null;
+  area_util: number | null;
+  area_total: number | null;
+  quartos: number | null;
+  suites: number | null;
+  banheiros: number | null;
+  vagas: number | null;
+  endereco: string;
+  rua: string;
+  numero: string;
+  complemento: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+  bairro_id: string | null;
+  corretor_id: string | null;
+  badge: string;
+  destaque: boolean;
+  exclusivo: boolean;
+  imagem_capa: string;
+  latitude: number | null;
+  longitude: number | null;
+  video_url: string;
+  tour_url: string;
+  mostrar_rua: boolean;
+  mostrar_endereco_completo: boolean;
+};
+
+type Props = { initial?: any };
+
+function optionalNumber(value: string): number | null {
+  if (value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-interface Props { initial?: ImovelData }
-
-const tipos = ["apartamento", "cobertura", "casa", "casa_condominio", "terreno", "comercial"];
-const finalidades = ["venda", "aluguel", "lancamento"];
-const statusList = ["ativo", "rascunho", "vendido", "reservado"];
-const MAX_IMAGENS = 20;
-
-export function ImovelForm({ initial }: Props) {
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const bairros = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
-  const cidades = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
-  const captadores = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
-  const [form, setForm] = useState({
+function initialState(initial?: Props["initial"]): PropertyFormState {
+  return {
     id: initial?.id,
     codigo: initial?.codigo ?? "",
     titulo: initial?.titulo ?? "",
@@ -61,9 +93,11 @@ export function ImovelForm({ initial }: Props) {
     descricao: initial?.descricao ?? "",
     finalidade: initial?.finalidade ?? "venda",
     tipo: initial?.tipo ?? "apartamento",
-    status: initial?.status ?? "ativo",
+    status: initial?.status ?? "rascunho",
     preco: initial?.preco ?? null,
     preco_sob_consulta: initial?.preco_sob_consulta ?? false,
+    condominio: initial?.condominio ?? null,
+    iptu: initial?.iptu ?? null,
     area_util: initial?.area_util ?? null,
     area_total: initial?.area_total ?? null,
     quartos: initial?.quartos ?? null,
@@ -82,7 +116,6 @@ export function ImovelForm({ initial }: Props) {
     badge: initial?.badge ?? "",
     destaque: initial?.destaque ?? false,
     exclusivo: initial?.exclusivo ?? false,
-    caracteristicas: initial?.caracteristicas ?? [],
     imagem_capa: initial?.imagem_capa ?? "",
     latitude: initial?.latitude ?? null,
     longitude: initial?.longitude ?? null,
@@ -90,166 +123,131 @@ export function ImovelForm({ initial }: Props) {
     tour_url: initial?.tour_url ?? "",
     mostrar_rua: initial?.mostrar_rua ?? false,
     mostrar_endereco_completo: initial?.mostrar_endereco_completo ?? false,
-  });
+  };
+}
 
-  // Separa caracteristicas iniciais em "lazer" (catálogo) e "extras" (texto livre)
-  const amenitiesQuery = useQuery({ queryKey: ["launch-amenities"], queryFn: () => listarAmenities() });
-  const amenityNames = (amenitiesQuery.data ?? []).map((a) => a.nome);
-  const initialCarac: string[] = initial?.caracteristicas ?? [];
-  const [lazerSel, setLazerSel] = useState<string[]>(initialCarac);
-  const [caracTxt, setCaracTxt] = useState(initialCarac.join(", "));
-  // Quando o catálogo carrega, separa lazer dos extras manuais
-  useEffect(() => {
-    if (!amenitiesQuery.data) return;
-    const set = new Set(amenityNames);
-    const lazer = initialCarac.filter((c) => set.has(c));
-    const extras = initialCarac.filter((c) => !set.has(c));
-    setLazerSel(lazer);
-    setCaracTxt(extras.join(", "));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amenitiesQuery.data]);
-  const [imagens, setImagens] = useState<Imagem[]>(initial?.imagens ?? []);
+export function ImovelForm({ initial }: Props) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<PropertyFormState>(() => initialState(initial));
+  const [images, setImages] = useState<PropertyImage[]>(initial?.imagens ?? []);
+  const [orders, setOrders] = useState<Record<string, string>>(() =>
+    Object.fromEntries((initial?.imagens ?? []).map((image: PropertyImage) => [image.id, image.ordem > 0 ? String(image.ordem) : "0"])),
+  );
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
-  const [tomIA, setTomIA] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
-  const [novoBairroOpen, setNovoBairroOpen] = useState(false);
-  const [novoBairro, setNovoBairro] = useState<{ nome: string; slug: string; cidade_id: string | null }>({ nome: "", slug: "", cidade_id: null });
-  const [novaCidadeOpen, setNovaCidadeOpen] = useState(false);
-  const [novaCidade, setNovaCidade] = useState({ nome: "", slug: "", estado: "MG" });
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [tone, setTone] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
+  const [manualFeatures, setManualFeatures] = useState<string[]>(initial?.caracteristicas ?? []);
 
-  const criarBairro = useMutation({
-    mutationFn: () => adminSalvarBairro({ data: { ...novoBairro, destaque: false } }),
-    onSuccess: async () => {
-      toast.success("Bairro criado");
-      const r = await qc.fetchQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
-      const created = r?.find((b) => b.slug === novoBairro.slug);
-      if (created) setForm((f) => ({ ...f, bairro_id: created.id }));
-      setNovoBairroOpen(false);
-      setNovoBairro({ nome: "", slug: "", cidade_id: null });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const neighborhoods = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
+  const cities = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
+  const brokers = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
+  const amenities = useQuery({ queryKey: ["tenant-launch-amenities"], queryFn: () => listarTenantLaunchAmenities() });
 
-  const criarCidade = useMutation({
-    mutationFn: () => adminSalvarCidade({ data: novaCidade }),
-    onSuccess: async () => {
-      toast.success("Cidade criada");
-      const r = await qc.fetchQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
-      const created = r?.find((c) => c.slug === novaCidade.slug);
-      if (created) {
-        if (novoBairroOpen) {
-          setNovoBairro((b) => ({ ...b, cidade_id: created.id }));
-        } else {
-          setForm((f) => ({ ...f, cidade: created.nome, estado: created.estado ?? f.estado }));
+  const availableFeatures = useMemo(
+    () => [...new Set((amenities.data ?? []).map((item) => item.nome))].sort(),
+    [amenities.data],
+  );
+
+  useEffect(() => {
+    setOrders((current) => Object.fromEntries(
+      images.map((image) => [image.id, current[image.id] ?? (image.ordem > 0 ? String(image.ordem) : "0")]),
+    ));
+  }, [images]);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const next: Record<string, string> = {};
+      for (const image of images) {
+        if (image.url.startsWith("https://")) {
+          next[image.id] = image.url;
+          continue;
+        }
+        try {
+          const result = await adminAssinarUrl({
+            data: { bucket: "imoveis", path: image.url, width: 500, quality: 70 },
+          });
+          next[image.id] = result.url;
+        } catch {
+          // Preview failure does not weaken the persisted property-image authority.
         }
       }
-      setNovaCidadeOpen(false);
-      setNovaCidade({ nome: "", slug: "", estado: "MG" });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const gerarIA = useMutation({
-    mutationFn: () => {
-      const bairroNome = bairros.data?.find((b) => b.id === form.bairro_id)?.nome ?? "";
-      return gerarDescricaoImovel({
-        data: {
-          titulo: form.titulo,
-          tipo: form.tipo,
-          finalidade: form.finalidade,
-          bairro: bairroNome,
-          endereco: form.endereco,
-          quartos: form.quartos,
-          suites: form.suites,
-          banheiros: form.banheiros,
-          vagas: form.vagas,
-          area_util: form.area_util,
-          area_total: form.area_total,
-          preco: form.preco,
-          preco_sob_consulta: form.preco_sob_consulta,
-          caracteristicas: [...lazerSel, ...caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean)],
-          tom: tomIA,
-        },
-      });
-    },
-    onSuccess: (r) => {
-      setForm((f) => ({ ...f, descricao: r.descricao }));
-      toast.success("Descrição gerada com IA");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  // Assina URLs (miniaturas 400px) para preview das imagens existentes
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const map: Record<string, string> = {};
-      for (const img of imagens) {
-        if (img.url.startsWith("http")) { map[img.id] = img.url; continue; }
-        try {
-          const { url } = await adminAssinarUrl({ data: { bucket: "imoveis", path: img.url, width: 400, quality: 65 } });
-          map[img.id] = url;
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (_e) { /* ignore */ }
-      }
-      if (!cancelled) setSignedUrls(map);
+      if (active) setSignedUrls(next);
     })();
-    return () => { cancelled = true; };
-  }, [imagens]);
+    return () => { active = false; };
+  }, [images]);
 
-  // Estado dos inputs de ordem (string por id de imagem). 0 = ainda não definido.
-  const [ordens, setOrdens] = useState<Record<string, string>>(() =>
-    Object.fromEntries((initial?.imagens ?? []).map((img: Imagem) => [img.id, ordemInicial(img)])),
-  );
-  useEffect(() => {
-    setOrdens((prev) => {
-      const next: Record<string, string> = {};
-      for (const img of imagens) {
-        next[img.id] = prev[img.id] ?? ordemInicial(img);
-      }
-      return next;
-    });
-  }, [imagens]);
-  const [savingOrdem, setSavingOrdem] = useState(false);
-  const [zoomImg, setZoomImg] = useState<{ id: string; url: string } | null>(null);
-
-  const salvar = useMutation({
-    mutationFn: () =>
-      adminSalvarImovel({
-        data: {
-          ...form,
-          caracteristicas: [...lazerSel, ...caracTxt.split(",").map((s: string) => s.trim()).filter(Boolean)],
-        },
-      }),
-    onSuccess: (r) => {
-      toast.success("Imóvel salvo");
-      qc.invalidateQueries({ queryKey: ["admin", "imoveis"] });
-      if (!form.id && r.id) navigate({ to: "/admin/imoveis/$id", params: { id: r.id } });
+  const saveProperty = useMutation({
+    mutationFn: () => adminSalvarImovel({
+      data: {
+        ...form,
+        caracteristicas: manualFeatures,
+        descricao: form.descricao || null,
+        badge: form.badge || null,
+        endereco: form.endereco || null,
+        rua: form.rua || null,
+        numero: form.numero || null,
+        complemento: form.complemento || null,
+        cidade: form.cidade || null,
+        estado: form.estado || null,
+        cep: form.cep || null,
+        imagem_capa: form.imagem_capa || null,
+        video_url: form.video_url || null,
+        tour_url: form.tour_url || null,
+      },
+    }),
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ["admin", "imoveis"] });
+      toast.success("Imóvel salvo.");
+      if (!form.id) navigate({ to: "/admin/imoveis/$id", params: { id: result.id } });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || !form.id) {
+  const generateLocalDraft = useMutation({
+    mutationFn: () => gerarDescricaoImovel({
+      data: {
+        titulo: form.titulo,
+        tipo: form.tipo,
+        finalidade: form.finalidade,
+        bairro: neighborhoods.data?.find((item) => item.id === form.bairro_id)?.nome ?? "",
+        endereco: form.endereco,
+        quartos: form.quartos,
+        suites: form.suites,
+        banheiros: form.banheiros,
+        vagas: form.vagas,
+        area_util: form.area_util,
+        area_total: form.area_total,
+        preco: form.preco,
+        preco_sob_consulta: form.preco_sob_consulta,
+        caracteristicas: manualFeatures,
+        tom: tone,
+      },
+    }),
+    onSuccess: (result) => {
+      setForm((current) => ({ ...current, descricao: result.descricao }));
+      toast.success("Rascunho local gerado. Revise antes de publicar.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  async function uploadImages(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (!form.id) {
       toast.error("Salve o imóvel antes de adicionar imagens.");
       return;
     }
-    const restante = MAX_IMAGENS - imagens.length;
-    if (restante <= 0) {
-      toast.error(`Limite de ${MAX_IMAGENS} imagens atingido.`);
-      e.target.value = "";
+    const allowed = selected.slice(0, Math.max(0, MAX_IMAGES - images.length));
+    if (allowed.length === 0) {
+      toast.error(`Limite de ${MAX_IMAGES} imagens atingido.`);
       return;
-    }
-    const arr = Array.from(files);
-    const aEnviar = arr.slice(0, restante);
-    if (arr.length > restante) {
-      toast.warning(`Apenas ${restante} imagem(ns) serão enviadas (limite de ${MAX_IMAGENS}).`);
     }
     setUploading(true);
     try {
-      for (const file of aEnviar) {
-        // M3.2 — path autoritativo pelo servidor (tenantId + validação de ownership).
+      for (const file of allowed) {
         const target = await createUploadTarget({
           data: {
             domain: "imoveis",
@@ -259,713 +257,210 @@ export function ImovelForm({ initial }: Props) {
             size: file.size,
           },
         });
-        const { error: upErr } = await supabase.storage
+        const { error } = await supabase.storage
           .from(target.bucket)
-          .upload(target.path, file, { upsert: false });
-        if (upErr) throw upErr;
-        await adminAdicionarImagem({
-          data: { imovel_id: form.id, url: target.path, alt: form.titulo, ordem: 0 },
+          .upload(target.path, file, { upsert: false, contentType: file.type });
+        if (error) throw error;
+        const result = await adminAdicionarImagem({
+          data: {
+            imovel_id: form.id,
+            uploadTargetId: target.targetId,
+            alt: form.titulo || file.name,
+            ordem: 0,
+          },
         });
+        setImages((current) => [...current, result.image]);
       }
-      toast.success("Imagens enviadas");
-      const { data: imgs } = await supabase
-        .from("imovel_imagens")
-        .select("id, url, alt, ordem")
-        .eq("imovel_id", form.id);
-      const lista = imgs ?? [];
-      // Preserva a ordem visual da tabela: mantém as existentes na mesma posição
-      // e adiciona as novas ao final.
-      setImagens((prev) => {
-        const prevIds = new Set(prev.map((p) => p.id));
-        const atualizadas = prev.map((p) => {
-          const fresh = lista.find((l) => l.id === p.id);
-          return fresh ? { ...p, ordem: fresh.ordem, url: fresh.url, alt: fresh.alt } : p;
-        });
-        const novos = lista.filter((i) => !prevIds.has(i.id));
-        return [...atualizadas, ...novos];
-      });
-
-    } catch (err) {
-      toast.error((err as Error).message);
+      toast.success("Upload e registro de provenance concluídos.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha no upload.");
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   }
 
-  async function removerImg(img: Imagem) {
-    if (!confirm("Remover esta imagem?")) return;
+  async function removeImage(image: PropertyImage) {
+    if (!window.confirm("Remover esta imagem?")) return;
     try {
-      await adminRemoverImagem({ data: { id: img.id, path: img.url } });
-      setImagens((prev) => prev.filter((i) => i.id !== img.id));
-      setOrdens((prev) => {
-        const next = { ...prev };
-        delete next[img.id];
-        return next;
-      });
-      toast.success("Imagem removida");
-    } catch (e) {
-      toast.error((e as Error).message);
+      await adminRemoverImagem({ data: { id: image.id } });
+      setImages((current) => current.filter((item) => item.id !== image.id));
+      toast.success("Imagem removida.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao remover imagem.");
     }
   }
 
-  const [apagandoTodas, setApagandoTodas] = useState(false);
-  async function apagarTodasImagens() {
-    if (imagens.length === 0) return;
-    if (!confirm("Todas as imagens serão apagadas. Confirma?")) return;
-    setApagandoTodas(true);
+  async function persistOrder() {
+    if (!form.id || images.length === 0) return;
+    const ordered = images.map((image) => ({ image, ordem: Number(orders[image.id]) }));
+    const values = ordered.map((item) => item.ordem);
+    const valid = values.every((value) => Number.isInteger(value) && value >= 1 && value <= images.length)
+      && new Set(values).size === images.length
+      && values.includes(1);
+    if (!valid) {
+      toast.error(`Utilize cada número de 1 a ${images.length} exatamente uma vez.`);
+      return;
+    }
+    setSavingOrder(true);
     try {
-      for (const img of imagens) {
-        await adminRemoverImagem({ data: { id: img.id, path: img.url } });
-      }
-      setImagens([]);
-      setOrdens({});
-      setForm((f) => ({ ...f, imagem_capa: "" }));
-      toast.success("Todas as imagens foram apagadas");
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setApagandoTodas(false);
-    }
-  }
-
-  // Conjunto de números duplicados (apenas para destacar visualmente as células)
-  const duplicados = (() => {
-    const seen = new Set<number>();
-    const dups = new Set<number>();
-    for (const img of imagens) {
-      const v = ordens[img.id];
-      const n = v == null || v === "" || v === "0" ? null : Number(v);
-      if (n === null || !Number.isFinite(n)) continue;
-      if (seen.has(n)) dups.add(n);
-      else seen.add(n);
-    }
-    return dups;
-  })();
-
-
-  function numerarSequencial() {
-    const novo: Record<string, string> = {};
-    const usados = new Set<number>();
-    imagens.forEach((img) => {
-      const v = Number(ordens[img.id]);
-      if (Number.isInteger(v) && v >= 1 && v <= imagens.length && !usados.has(v)) {
-        novo[img.id] = String(v);
-        usados.add(v);
-      }
-    });
-    let proximo = 1;
-    imagens.forEach((img) => {
-      if (novo[img.id]) return;
-      while (usados.has(proximo)) proximo++;
-      novo[img.id] = String(proximo);
-      usados.add(proximo);
-      proximo++;
-    });
-    setOrdens(novo);
-  }
-
-  async function salvarOrdem() {
-    if (!form.id) return;
-    if (imagens.length === 0) {
-      toast.error("Não há imagens para ordenar.");
-      return;
-    }
-    // Validação no clique (botão fica sempre habilitado)
-    const valores = imagens.map((i) => (ordens[i.id] ?? "0").trim());
-    const nums = valores.map((v) => (v === "" ? NaN : Number(v)));
-    const invalidos = nums.some(
-      (n) => !Number.isInteger(n) || n < 1 || n > imagens.length,
-    );
-    if (invalidos) {
-      toast.error(`Defina um número entre 1 e ${imagens.length} para cada foto.`);
-      return;
-    }
-    const seen = new Set<number>();
-    const dup: number[] = [];
-    for (const n of nums) {
-      if (seen.has(n)) dup.push(n);
-      else seen.add(n);
-    }
-    if (dup.length > 0) {
-      toast.error(`Há números repetidos: ${[...new Set(dup)].join(", ")}.`);
-      return;
-    }
-    if (!nums.includes(1)) {
-      toast.error("Defina a capa atribuindo o número 1 a uma foto.");
-      return;
-    }
-
-    setSavingOrdem(true);
-    try {
-      const mapeadas = imagens
-        .map((img) => ({ img, ordem: Number(ordens[img.id]) }))
-        .sort((a, b) => a.ordem - b.ordem);
-      const capa = mapeadas.find((m) => m.ordem === 1)?.img.url ?? null;
-      await adminReordenarImagens({
+      const result = await adminReordenarImagens({
         data: {
           imovel_id: form.id,
-          ordem: mapeadas.map((m) => ({ id: m.img.id, ordem: m.ordem })),
-          imagem_capa: capa,
+          ordem: ordered.map(({ image, ordem }) => ({ id: image.id, ordem })),
         },
       });
-      setImagens((prev) =>
-        prev.map((i) => {
-          const m = mapeadas.find((x) => x.img.id === i.id);
-          return m ? { ...i, ordem: m.ordem } : i;
-        }),
-      );
-      setForm((f) => ({ ...f, imagem_capa: capa ?? "" }));
-      qc.invalidateQueries({ queryKey: ["admin", "imoveis"] });
-      toast.success("Ordem salva — capa definida pela foto nº 1.");
-    } catch (e) {
-      toast.error((e as Error).message);
+      setImages((current) => current.map((image) => ({ ...image, ordem: Number(orders[image.id]) })));
+      setForm((current) => ({ ...current, imagem_capa: result.imagem_capa }));
+      toast.success("Ordem salva; a foto nº 1 é a capa.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao ordenar imagens.");
     } finally {
-      setSavingOrdem(false);
+      setSavingOrder(false);
     }
   }
 
-
-
-  async function definirComoCapa(img: Imagem) {
+  async function setCover(image: PropertyImage) {
     if (!form.id) return;
     try {
-      const r = await adminDefinirCapa({ data: { imovel_id: form.id, imagem_id: img.id } });
-      setForm((f) => ({ ...f, imagem_capa: r.imagem_capa }));
-      qc.invalidateQueries({ queryKey: ["admin", "imoveis"] });
-      toast.success("Capa definida — visível no site público.");
-    } catch (e) {
-      toast.error((e as Error).message);
+      const result = await adminDefinirCapa({ data: { imovel_id: form.id, imagem_id: image.id } });
+      setForm((current) => ({ ...current, imagem_capa: result.imagem_capa }));
+      toast.success("Capa atualizada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao definir capa.");
     }
   }
 
-
-
-  async function abrirZoom(img: Imagem) {
-    if (img.url.startsWith("http")) {
-      setZoomImg({ id: img.id, url: img.url });
-      return;
-    }
-    try {
-      const { url } = await adminAssinarUrl({
-        data: { bucket: "imoveis", path: img.url, width: 1600, quality: 85 },
-      });
-      setZoomImg({ id: img.id, url });
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }
-
-  // Grid 5x4 só quando todas as imagens já têm ordem persistida (>0)
-  const ordenadasSalvas = [...imagens]
-    .filter((i) => i.ordem > 0)
-    .sort((a, b) => a.ordem - b.ordem);
-  const mostrarGrid = ordenadasSalvas.length === imagens.length && imagens.length > 0;
+  const setNumber = (key: keyof PropertyFormState, value: string) =>
+    setForm((current) => ({ ...current, [key]: optionalNumber(value) }));
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); salvar.mutate(); }} className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">{form.id ? "Editar imóvel" : "Novo imóvel"}</h1>
+    <form className="mx-auto max-w-6xl space-y-6" onSubmit={(event) => { event.preventDefault(); saveProperty.mutate(); }}>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">{form.id ? "Editar imóvel" : "Novo imóvel"}</h1>
+          <p className="text-sm text-muted-foreground">Dados, publicação e mídia com autoridade tenant-scoped.</p>
+        </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => navigate({ to: "/admin/imoveis" })}>Cancelar</Button>
-          <Button type="submit" disabled={salvar.isPending}>{salvar.isPending ? "Salvando…" : "Salvar"}</Button>
+          <Button type="submit" disabled={saveProperty.isPending}>{saveProperty.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}Salvar</Button>
         </div>
-      </div>
+      </header>
 
-      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Informações principais</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div><Label>Código *</Label><Input required value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} /></div>
-          <div><Label>Slug (URL) *</Label><Input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></div>
-          <div className="md:col-span-2"><Label>Título *</Label><Input required value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} /></div>
-          <div className="md:col-span-2">
-            <div className="flex items-end justify-between gap-2 mb-1">
-              <Label>Descrição</Label>
-              <div className="flex items-center gap-2">
-                <Select value={tomIA} onValueChange={(v) => setTomIA(v as typeof tomIA)}>
-                  <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sofisticado">Tom sofisticado</SelectItem>
-                    <SelectItem value="objetivo">Tom objetivo</SelectItem>
-                    <SelectItem value="acolhedor">Tom acolhedor</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button type="button" size="sm" variant="outline" onClick={() => gerarIA.mutate()} disabled={gerarIA.isPending}>
-                  <Sparkles className="size-3.5 mr-1.5" />
-                  {gerarIA.isPending ? "Gerando…" : "Gerar com IA"}
-                </Button>
+      <Section title="Informações principais">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Código" required value={form.codigo} onChange={(codigo) => setForm((current) => ({ ...current, codigo }))} />
+          <Field label="Slug" required value={form.slug} onChange={(slug) => setForm((current) => ({ ...current, slug }))} />
+          <div className="md:col-span-2"><Field label="Título" required value={form.titulo} onChange={(titulo) => setForm((current) => ({ ...current, titulo }))} /></div>
+          <SelectField label="Finalidade" value={form.finalidade} options={PURPOSES} onChange={(value) => setForm((current) => ({ ...current, finalidade: value as PropertyFormState["finalidade"] }))} />
+          <SelectField label="Tipo" value={form.tipo} options={PROPERTY_TYPES} onChange={(value) => setForm((current) => ({ ...current, tipo: value as PropertyFormState["tipo"] }))} />
+          <SelectField label="Status" value={form.status} options={STATUSES} onChange={(value) => setForm((current) => ({ ...current, status: value as PropertyFormState["status"] }))} />
+          <Field label="Badge" value={form.badge} onChange={(badge) => setForm((current) => ({ ...current, badge }))} />
+        </div>
+        <div className="mt-4 space-y-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <Label>Descrição</Label>
+            <div className="flex gap-2">
+              <Select value={tone} onValueChange={(value) => setTone(value as typeof tone)}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="sofisticado">Sofisticado</SelectItem><SelectItem value="objetivo">Objetivo</SelectItem><SelectItem value="acolhedor">Acolhedor</SelectItem></SelectContent>
+              </Select>
+              <Button type="button" variant="outline" disabled={generateLocalDraft.isPending} onClick={() => generateLocalDraft.mutate()}>
+                <Sparkles className="mr-2 size-4" />Gerar rascunho local
+              </Button>
+            </div>
+          </div>
+          <Textarea rows={7} value={form.descricao} onChange={(event) => setForm((current) => ({ ...current, descricao: event.target.value }))} />
+          <p className="text-xs text-muted-foreground">Geração determinística local; nenhum provider externo ou credencial é executado.</p>
+        </div>
+      </Section>
+
+      <Section title="Valores e características">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <NumberField label="Preço" value={form.preco} onChange={(value) => setNumber("preco", value)} />
+          <NumberField label="Condomínio" value={form.condominio} onChange={(value) => setNumber("condominio", value)} />
+          <NumberField label="IPTU" value={form.iptu} onChange={(value) => setNumber("iptu", value)} />
+          <NumberField label="Área útil" value={form.area_util} onChange={(value) => setNumber("area_util", value)} />
+          <NumberField label="Área total" value={form.area_total} onChange={(value) => setNumber("area_total", value)} />
+          <NumberField label="Quartos" value={form.quartos} onChange={(value) => setNumber("quartos", value)} />
+          <NumberField label="Suítes" value={form.suites} onChange={(value) => setNumber("suites", value)} />
+          <NumberField label="Banheiros" value={form.banheiros} onChange={(value) => setNumber("banheiros", value)} />
+          <NumberField label="Vagas" value={form.vagas} onChange={(value) => setNumber("vagas", value)} />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <Toggle label="Preço sob consulta" checked={form.preco_sob_consulta} onChange={(preco_sob_consulta) => setForm((current) => ({ ...current, preco_sob_consulta }))} />
+          <Toggle label="Destaque" checked={form.destaque} onChange={(destaque) => setForm((current) => ({ ...current, destaque }))} />
+          <Toggle label="Exclusivo" checked={form.exclusivo} onChange={(exclusivo) => setForm((current) => ({ ...current, exclusivo }))} />
+        </div>
+        <div className="mt-4">
+          <Label>Características</Label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {availableFeatures.map((feature) => {
+              const selected = manualFeatures.includes(feature);
+              return <Button key={feature} type="button" size="sm" variant={selected ? "default" : "outline"} onClick={() => setManualFeatures((current) => selected ? current.filter((item) => item !== feature) : [...current, feature])}>{feature}</Button>;
+            })}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Localização e responsável">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <SelectField label="Bairro" value={form.bairro_id ?? "none"} options={["none", ...(neighborhoods.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((neighborhoods.data ?? []).map((item) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, bairro_id: value === "none" ? null : value }))} />
+          <SelectField label="Corretor" value={form.corretor_id ?? "none"} options={["none", ...(brokers.data ?? []).map((item: any) => item.id)]} labels={Object.fromEntries((brokers.data ?? []).map((item: any) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, corretor_id: value === "none" ? null : value }))} />
+          <SelectField label="Cidade de referência" value={cities.data?.find((item) => item.nome === form.cidade)?.id ?? "none"} options={["none", ...(cities.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((cities.data ?? []).map((item) => [item.id, `${item.nome}/${item.estado}`]))} onChange={(value) => { const city = cities.data?.find((item) => item.id === value); setForm((current) => ({ ...current, cidade: city?.nome ?? "", estado: city?.estado ?? "" })); }} />
+          <Field label="Rua" value={form.rua} onChange={(rua) => setForm((current) => ({ ...current, rua, endereco: rua }))} />
+          <Field label="Número" value={form.numero} onChange={(numero) => setForm((current) => ({ ...current, numero }))} />
+          <Field label="Complemento" value={form.complemento} onChange={(complemento) => setForm((current) => ({ ...current, complemento }))} />
+          <Field label="CEP" value={form.cep} onChange={(cep) => setForm((current) => ({ ...current, cep }))} />
+          <NumberField label="Latitude" value={form.latitude} onChange={(value) => setNumber("latitude", value)} />
+          <NumberField label="Longitude" value={form.longitude} onChange={(value) => setNumber("longitude", value)} />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Toggle label="Mostrar rua" checked={form.mostrar_rua} onChange={(mostrar_rua) => setForm((current) => ({ ...current, mostrar_rua }))} />
+          <Toggle label="Mostrar endereço completo" checked={form.mostrar_endereco_completo} onChange={(mostrar_endereco_completo) => setForm((current) => ({ ...current, mostrar_endereco_completo }))} />
+        </div>
+      </Section>
+
+      <Section title="Mídia e tours">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Vídeo HTTPS" value={form.video_url} onChange={(video_url) => setForm((current) => ({ ...current, video_url }))} />
+          <Field label="Tour HTTPS" value={form.tour_url} onChange={(tour_url) => setForm((current) => ({ ...current, tour_url }))} />
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" asChild disabled={!form.id || uploading || images.length >= MAX_IMAGES}>
+            <label className="cursor-pointer">{uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}Enviar imagens<input className="hidden" type="file" accept="image/*" multiple onChange={uploadImages} /></label>
+          </Button>
+          <span className="text-xs text-muted-foreground">{images.length}/{MAX_IMAGES} · o registro final usa uploadTargetId.</span>
+        </div>
+        {images.length > 0 && (
+          <div className="mt-5 space-y-3">
+            {images.map((image) => (
+              <div key={image.id} className="grid items-center gap-3 rounded-lg border p-3 sm:grid-cols-[96px_1fr_100px_auto]">
+                <div className="aspect-square overflow-hidden rounded bg-muted">{signedUrls[image.id] && <img className="h-full w-full object-cover" src={signedUrls[image.id]} alt={image.alt ?? form.titulo} />}</div>
+                <div className="min-w-0"><div className="truncate text-sm font-medium">{image.alt || "Imagem do imóvel"}</div><div className="truncate font-mono text-xs text-muted-foreground">{image.url}</div>{form.imagem_capa === image.url && <div className="mt-1 inline-flex items-center gap-1 text-xs"><Crown className="size-3" />Capa atual</div>}</div>
+                <div><Label className="text-xs">Ordem</Label><Input type="number" min={1} max={images.length} value={orders[image.id] ?? "0"} onChange={(event) => setOrders((current) => ({ ...current, [image.id]: event.target.value }))} /></div>
+                <div className="flex gap-2 sm:justify-end"><Button type="button" size="icon" variant="outline" aria-label="Definir capa" onClick={() => void setCover(image)}><Crown className="size-4" /></Button><Button type="button" size="icon" variant="destructive" aria-label="Remover imagem" onClick={() => void removeImage(image)}><Trash2 className="size-4" /></Button></div>
               </div>
-            </div>
-            <Textarea rows={6} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-            <p className="text-xs text-muted-foreground mt-1">A IA usa os campos preenchidos abaixo (tipo, bairro, quartos, área, preço, características).</p>
+            ))}
+            <Button type="button" variant="outline" disabled={savingOrder} onClick={() => void persistOrder()}>{savingOrder && <Loader2 className="mr-2 size-4 animate-spin" />}Salvar ordem e capa nº 1</Button>
           </div>
-          <div>
-            <Label>Finalidade</Label>
-            <Select value={form.finalidade} onValueChange={(v) => setForm({ ...form, finalidade: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{finalidades.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Tipo</Label>
-            <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{tipos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Status</Label>
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{statusList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Captador</Label>
-            <Select
-              value={form.corretor_id ?? "__none__"}
-              onValueChange={(v) => setForm({ ...form, corretor_id: v === "__none__" ? null : v })}
-            >
-              <SelectTrigger><SelectValue placeholder="Selecione o usuário responsável" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— Sem captador —</SelectItem>
-                {(captadores.data ?? []).map((c) => {
-                  const nome = [c.nome, c.sobrenome].filter(Boolean).join(" ");
-                  return <SelectItem key={c.id} value={c.id}>{nome || c.email || c.id}</SelectItem>;
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-
-      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Valores e medidas</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          <div><Label>Preço (R$)</Label><Input
-            inputMode="numeric"
-            value={form.preco != null ? new Intl.NumberFormat("pt-BR").format(form.preco) : ""}
-            onChange={(e) => {
-              const digits = e.target.value.replace(/\D/g, "");
-              setForm({ ...form, preco: digits ? Number(digits) : null });
-            }}
-            placeholder="R$ 0"
-          /></div>
-          <div className="flex items-center gap-2 pt-7"><Switch checked={form.preco_sob_consulta} onCheckedChange={(v) => setForm({ ...form, preco_sob_consulta: v })} /><Label>Sob consulta</Label></div>
-          <div></div>
-          <div><Label>Área útil (m²)</Label><Input type="number" value={form.area_util ?? ""} onChange={(e) => setForm({ ...form, area_util: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Área total (m²)</Label><Input type="number" value={form.area_total ?? ""} onChange={(e) => setForm({ ...form, area_total: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Quartos</Label><Input type="number" value={form.quartos ?? ""} onChange={(e) => setForm({ ...form, quartos: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Suítes</Label><Input type="number" value={form.suites ?? ""} onChange={(e) => setForm({ ...form, suites: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Banheiros</Label><Input type="number" value={form.banheiros ?? ""} onChange={(e) => setForm({ ...form, banheiros: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Vagas</Label><Input type="number" value={form.vagas ?? ""} onChange={(e) => setForm({ ...form, vagas: e.target.value ? Number(e.target.value) : null })} /></div>
-        </div>
-      </div>
-
-      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Localização e marcação</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="md:col-span-2"><Label>Rua / Avenida</Label><Input value={form.rua} onChange={(e) => setForm({ ...form, rua: e.target.value, endereco: e.target.value })} placeholder="Rua, Av., Alameda…" /></div>
-          <div><Label>Número</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} placeholder="123" /></div>
-          <div><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => setForm({ ...form, complemento: e.target.value })} placeholder="Apto, bloco…" /></div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label>Bairro</Label>
-              <Dialog open={novoBairroOpen} onOpenChange={setNovoBairroOpen}>
-                <DialogTrigger asChild>
-                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
-                    <Plus className="size-3 mr-1" /> Novo bairro
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Novo bairro</DialogTitle></DialogHeader>
-                  <div className="space-y-3">
-                    <div>
-                      <Label>Nome *</Label>
-                      <Input
-                        value={novoBairro.nome}
-                        onChange={(e) => {
-                          const nome = e.target.value;
-                          const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-                          setNovoBairro({ ...novoBairro, nome, slug });
-                        }}
-                      />
-                    </div>
-                    <div><Label>Slug *</Label><Input value={novoBairro.slug} onChange={(e) => setNovoBairro({ ...novoBairro, slug: e.target.value })} /></div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <Label>Cidade *</Label>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => setNovaCidadeOpen(true)}
-                        >
-                          <Plus className="size-3 mr-1" /> Nova cidade
-                        </Button>
-                      </div>
-                      <Select value={novoBairro.cidade_id ?? ""} onValueChange={(v) => setNovoBairro({ ...novoBairro, cidade_id: v || null })}>
-                        <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-                        <SelectContent>{cidades.data?.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}/{c.estado}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setNovoBairroOpen(false)}>Cancelar</Button>
-                    <Button type="button" disabled={!novoBairro.nome || !novoBairro.slug || !novoBairro.cidade_id || criarBairro.isPending} onClick={() => criarBairro.mutate()}>
-                      {criarBairro.isPending ? "Salvando…" : "Criar"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-            <Select value={form.bairro_id ?? ""} onValueChange={(v) => setForm({ ...form, bairro_id: v || null })}>
-              <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-              <SelectContent>{bairros.data?.map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div><Label>CEP</Label><Input value={form.cep} onChange={(e) => setForm({ ...form, cep: e.target.value })} placeholder="00000-000" /></div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <Label>Cidade</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={() => setNovaCidadeOpen(true)}
-              >
-                <Plus className="size-3 mr-1" /> Nova cidade
-              </Button>
-            </div>
-            <Select
-              value={form.cidade ?? ""}
-              onValueChange={(v) => {
-                const c = cidades.data?.find((x) => x.nome === v);
-                setForm({ ...form, cidade: v, estado: c?.estado ?? form.estado });
-              }}
-            >
-              <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
-              <SelectContent>
-                {cidades.data?.map((c) => (
-                  <SelectItem key={c.id} value={c.nome}>{c.nome}/{c.estado}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div><Label>Estado (UF)</Label><Input maxLength={2} value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value.toUpperCase() })} placeholder="MG" /></div>
-          <div><Label>Latitude</Label><Input type="number" step="any" value={form.latitude ?? ""} onChange={(e) => setForm({ ...form, latitude: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div><Label>Longitude</Label><Input type="number" step="any" value={form.longitude ?? ""} onChange={(e) => setForm({ ...form, longitude: e.target.value ? Number(e.target.value) : null })} /></div>
-          <div className="md:col-span-2 flex flex-col gap-3 rounded border border-dashed border-foreground/15 p-3">
-            <p className="text-xs text-muted-foreground">
-              Controla o que aparece no site público. Se ambos desmarcados, mostra apenas o bairro no mapa.
-            </p>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={form.mostrar_rua}
-                onCheckedChange={(v) => setForm({ ...form, mostrar_rua: v, mostrar_endereco_completo: v ? false : form.mostrar_endereco_completo })}
-              />
-              <Label>Mostrar endereço (somente nome da Rua/Av + bairro)</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={form.mostrar_endereco_completo}
-                onCheckedChange={(v) => setForm({ ...form, mostrar_endereco_completo: v, mostrar_rua: v ? false : form.mostrar_rua })}
-              />
-              <Label>Mostrar endereço completo (rua + número + bairro)</Label>
-            </div>
-          </div>
-          <div><Label>Selo (badge)</Label><Input value={form.badge} onChange={(e) => setForm({ ...form, badge: e.target.value })} placeholder="ex: Lançamento, Exclusivo" /></div>
-          <div className="flex items-center gap-6 pt-7">
-            <div className="flex items-center gap-2"><Switch checked={form.destaque} onCheckedChange={(v) => setForm({ ...form, destaque: v })} /><Label>Destaque</Label></div>
-            <div className="flex items-center gap-2"><Switch checked={form.exclusivo} onCheckedChange={(v) => setForm({ ...form, exclusivo: v })} /><Label>Exclusivo</Label></div>
-          </div>
-          <div className="md:col-span-2 space-y-2">
-            <Label>Lazer</Label>
-            <LazerPicker by="nome" value={lazerSel} onChange={setLazerSel} label="Selecionar itens de lazer" />
-          </div>
-          <div className="md:col-span-2"><Label>Outras características (separadas por vírgula)</Label><Textarea rows={2} value={caracTxt} onChange={(e) => setCaracTxt(e.target.value)} placeholder="Ex.: Sacada gourmet, vista panorâmica…" /></div>
-        </div>
-      </div>
-
-      <Dialog open={novaCidadeOpen} onOpenChange={setNovaCidadeOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nova cidade</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Nome *</Label>
-              <Input
-                value={novaCidade.nome}
-                onChange={(e) => {
-                  const nome = e.target.value;
-                  const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-                  setNovaCidade({ ...novaCidade, nome, slug });
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Slug *</Label><Input value={novaCidade.slug} onChange={(e) => setNovaCidade({ ...novaCidade, slug: e.target.value })} /></div>
-              <div><Label>UF</Label><Input maxLength={2} value={novaCidade.estado} onChange={(e) => setNovaCidade({ ...novaCidade, estado: e.target.value.toUpperCase() })} /></div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setNovaCidadeOpen(false)}>Cancelar</Button>
-            <Button type="button" disabled={!novaCidade.nome || !novaCidade.slug || criarCidade.isPending} onClick={() => criarCidade.mutate()}>
-              {criarCidade.isPending ? "Salvando…" : "Criar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <h2 className="font-display text-lg">Tour virtual e vídeo</h2>
-        <p className="text-xs text-muted-foreground -mt-1">
-          Cole a URL pública. Suportado: YouTube, Vimeo, Matterport, Kuula (ou qualquer URL de embed).
-        </p>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <Label>URL do vídeo</Label>
-            <Input
-              type="url"
-              placeholder="https://youtube.com/watch?v=..."
-              value={form.video_url}
-              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>URL do tour 360°</Label>
-            <Input
-              type="url"
-              placeholder="https://my.matterport.com/show/?m=..."
-              value={form.tour_url}
-              onChange={(e) => setForm({ ...form, tour_url: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="font-display text-lg">Galeria de imagens</h2>
-          <span className="text-xs text-muted-foreground">
-            {imagens.length}/{MAX_IMAGENS} fotos
-          </span>
-        </div>
-        {!form.id && <p className="text-sm text-muted-foreground">Salve o imóvel para começar a enviar imagens.</p>}
-        {form.id && (
-          <>
-            <div className="flex items-center gap-3 flex-wrap">
-              <label
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded text-sm ${
-                  imagens.length >= MAX_IMAGENS || uploading
-                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-petroleum text-linen cursor-pointer"
-                }`}
-              >
-                <Upload className="size-4" />
-                {uploading ? "Enviando…" : imagens.length >= MAX_IMAGENS ? "Limite atingido" : "Adicionar imagens"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleUpload}
-                  disabled={uploading || imagens.length >= MAX_IMAGENS}
-                />
-              </label>
-              <Button type="button" variant="outline" size="sm" onClick={numerarSequencial} disabled={imagens.length === 0}>
-                Numerar sequencialmente
-              </Button>
-              <Button type="button" size="sm" onClick={salvarOrdem} disabled={savingOrdem || imagens.length === 0}>
-                {savingOrdem ? "Salvando…" : "Salvar ordem"}
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={apagarTodasImagens}
-                disabled={imagens.length === 0 || apagandoTodas}
-              >
-                <Trash2 className="size-4 mr-1" />
-                {apagandoTodas ? "Apagando…" : "Apagar todas"}
-              </Button>
-
-              <p className="text-xs text-muted-foreground">
-                Defina um número (1–{imagens.length || MAX_IMAGENS}) para cada foto e clique <strong>Salvar ordem</strong>. Para trocar apenas a <strong>capa <Crown className="inline size-3 -mt-0.5" /></strong> sem mexer na ordem, clique no ícone de coroa na linha da imagem.
-              </p>
-
-            </div>
-
-            {imagens.length > 0 && (
-              <div className="border border-foreground/10 rounded-md overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-left p-2 w-[70%]">Imagem</th>
-                      <th className="text-left p-2">Ordem</th>
-                      <th className="p-2 w-24"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {imagens.map((img, idx) => {
-                      const valor = ordens[img.id] ?? "0";
-                      const num = valor === "" || valor === "0" ? null : Number(valor);
-                      const ehDup = num !== null && duplicados.has(num);
-                      const foraRange =
-                        num !== null && (!Number.isInteger(num) || num < 1 || num > imagens.length);
-                      const ehCapa = form.imagem_capa === img.url;
-                      return (
-                        <tr key={img.id} className="border-t border-foreground/5">
-                          <td className="p-2">
-                            <div className="flex items-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() => abrirZoom(img)}
-                                tabIndex={-1}
-                                className="block w-20 h-16 rounded overflow-hidden border border-foreground/10 bg-muted shrink-0"
-                                title="Clique para ampliar"
-                              >
-                                {signedUrls[img.id] && (
-                                  <img
-                                    src={signedUrls[img.id]}
-                                    alt=""
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="w-full h-full object-cover"
-                                  />
-                                )}
-                              </button>
-                              <div className="min-w-0">
-                                <div className="text-xs text-muted-foreground truncate max-w-[280px]">
-                                  {img.url.split("/").pop()}
-                                </div>
-                                {ehCapa && (
-                                  <span className="inline-flex items-center gap-1 mt-1 bg-gold text-petroleum text-[10px] px-2 py-0.5 rounded">
-                                    <Crown className="size-3" /> Capa
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-2 align-top">
-                            <Input
-                              type="number"
-                              min={0}
-                              max={imagens.length}
-                              inputMode="numeric"
-                              value={valor}
-                              onChange={(e) =>
-                                setOrdens((p) => ({ ...p, [img.id]: e.target.value }))
-                              }
-                              className={`w-20 ${ehDup || foraRange ? "border-destructive" : ""}`}
-                              placeholder="0"
-                            />
-                            {ehDup && (
-                              <p className="text-[11px] text-destructive mt-1">Número repetido</p>
-                            )}
-                            {foraRange && !ehDup && (
-                              <p className="text-[11px] text-destructive mt-1">Use 1–{imagens.length}</p>
-                            )}
-                          </td>
-                          <td className="p-2 align-top">
-                            <div className="flex gap-1">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                tabIndex={-1}
-                                onClick={() => definirComoCapa(img)}
-                                title="Definir como capa"
-                                disabled={form.imagem_capa === img.url}
-                              >
-                                <Crown className={`size-4 ${form.imagem_capa === img.url ? "text-gold" : ""}`} />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                tabIndex={-1}
-                                onClick={() => removerImg(img)}
-                                title="Remover"
-                              >
-                                <Trash2 className="size-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </td>
-
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {mostrarGrid && (
-              <div className="pt-2">
-                <h3 className="text-sm font-medium mb-2">Pré-visualização (ordem salva)</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                  {ordenadasSalvas.map((img) => (
-                    <button
-                      type="button"
-                      key={img.id}
-                      onClick={() => abrirZoom(img)}
-                      className="relative aspect-[4/3] rounded overflow-hidden border border-foreground/10 bg-muted group"
-                    >
-                      {signedUrls[img.id] && (
-                        <img
-                          src={signedUrls[img.id]}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                      {img.ordem === 1 && (
-                        <span className="absolute top-1 left-1 bg-gold text-petroleum text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-1">
-                          <Crown className="size-3" /> Capa
-                        </span>
-                      )}
-                      <span className="absolute top-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-                        {img.ordem}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <Dialog open={!!zoomImg} onOpenChange={(o) => !o && setZoomImg(null)}>
-              <DialogContent className="max-w-5xl p-2">
-                <DialogHeader className="sr-only">
-                  <DialogTitle>Visualizar imagem</DialogTitle>
-                </DialogHeader>
-                {zoomImg && (
-                  <img src={zoomImg.url} alt="" className="w-full h-auto max-h-[80vh] object-contain rounded" />
-                )}
-              </DialogContent>
-            </Dialog>
-          </>
         )}
-      </div>
-
-
-      {form.id && (
-        <div className="bg-card border border-foreground/5 rounded-lg p-6 space-y-3">
-          <h2 className="font-display text-lg">Instagram</h2>
-          <p className="text-sm text-muted-foreground">
-            Gere legenda + hashtags com IA, edite e baixe um ZIP com as fotos prontas para postar.
-          </p>
-          <InstagramPostManager
-            imovelId={form.id}
-            titulo={form.titulo}
-            imagens={imagens}
-            signedUrls={signedUrls}
-          />
-        </div>
-      )}
+      </Section>
     </form>
   );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="rounded-lg border bg-card p-5"><h2 className="mb-4 text-lg font-medium">{title}</h2>{children}</section>;
+}
+function Field({ label, value, onChange, required = false }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
+  return <div className="space-y-2"><Label>{label}</Label><Input required={required} value={value} onChange={(event) => onChange(event.target.value)} /></div>;
+}
+function NumberField({ label, value, onChange }: { label: string; value: number | null; onChange: (value: string) => void }) {
+  return <div className="space-y-2"><Label>{label}</Label><Input type="number" step="any" value={value ?? ""} onChange={(event) => onChange(event.target.value)} /></div>;
+}
+function SelectField({ label, value, options, labels = {}, onChange }: { label: string; value: string; options: readonly string[]; labels?: Record<string, string>; onChange: (value: string) => void }) {
+  return <div className="space-y-2"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((option) => <SelectItem key={option} value={option}>{labels[option] ?? (option === "none" ? "— Nenhum —" : option.replaceAll("_", " "))}</SelectItem>)}</SelectContent></Select></div>;
+}
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return <div className="flex items-center gap-2"><Switch checked={checked} onCheckedChange={onChange} /><Label>{label}</Label></div>;
 }

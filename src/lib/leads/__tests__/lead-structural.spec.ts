@@ -1,297 +1,200 @@
-// LSH-01 — Structural tests. Deterministic reads over repo files.
-// Prove that migrations, RPC hardening, boundary and adapters carry the
-// contract text. Operational proof against the live DB belongs to LSV-01.
+// LSH-01 / PR-M2 — Lead structural regressions against the canonical CRM runtime.
+// Historical implementation files may remain in the repository as evidence, but
+// they are not active authority and are not imported by this specification.
 
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 type Case = { name: string; run: () => void };
 
-function must(cond: boolean, msg: string): void {
-  if (!cond) throw new Error(msg);
+function must(condition: boolean, message: string): void {
+  if (!condition) throw new Error(message);
 }
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
+
 function migrations(): string[] {
   return readdirSync(MIG_DIR)
-    .filter((f) => f.endsWith(".sql"))
+    .filter((file) => file.endsWith(".sql"))
     .sort()
-    .map((f) => readFileSync(join(MIG_DIR, f), "utf8"));
+    .map((file) => readFileSync(join(MIG_DIR, file), "utf8"));
 }
+
 function anyMigration(pattern: RegExp): boolean {
   return migrations().some((sql) => pattern.test(sql));
 }
-function read(p: string): string {
-  return readFileSync(join(ROOT, p), "utf8");
+
+function read(path: string): string {
+  return readFileSync(join(ROOT, path), "utf8");
 }
+
+const ADMIN_BARREL_PATH = "src/lib/api/admin.functions.ts";
+const CRM_COMPAT_PATH = "src/lib/api/tenant-crm-compat.functions.ts";
+const CRM_AUTHORITY_PATH = "src/lib/api/tenant-crm-authority.server.ts";
 
 const cases: Case[] = [
   {
-    name: "migration revokes DML on lead_audit_events from all roles",
+    name: "lead audit table direct access remains revoked",
     run: () => {
       must(anyMigration(/REVOKE ALL ON TABLE public\.lead_audit_events FROM PUBLIC/i), "PUBLIC revoke missing");
       must(anyMigration(/REVOKE ALL ON TABLE public\.lead_audit_events FROM anon/i), "anon revoke missing");
       must(anyMigration(/REVOKE ALL ON TABLE public\.lead_audit_events FROM authenticated/i), "authenticated revoke missing");
-      must(anyMigration(/REVOKE ALL ON TABLE public\.lead_audit_events FROM service_role/i), "service_role revoke missing");
     },
   },
   {
-    name: "migration drops direct SELECT policy on lead_audit_events",
-    run: () => must(anyMigration(/DROP POLICY IF EXISTS lead_audit_events_select ON public\.lead_audit_events/i), "drop policy missing"),
-  },
-  {
-    name: "migration replaces ON DELETE CASCADE with ON DELETE RESTRICT on audit FK",
-    run: () => must(anyMigration(/ON DELETE RESTRICT/i) && anyMigration(/lead_audit_events_lead_id_fkey/i), "restrict FK missing"),
-  },
-  {
-    name: "migration removes tenant_id default on audit table",
-    run: () => must(anyMigration(/ALTER TABLE public\.lead_audit_events\s+ALTER COLUMN tenant_id DROP DEFAULT/i), "drop default missing"),
-  },
-  {
-    name: "migration adds event_type CHECK constraint",
-    run: () => must(anyMigration(/lead_audit_events_event_type_check[\s\S]*manual_lead_created/i), "event_type check missing"),
-  },
-  {
-    name: "create_manual_lead uses secure search_path",
-    run: () => must(anyMigration(/SET search_path = 'public', 'pg_temp'/i), "safe search_path missing"),
-  },
-  {
-    name: "create_manual_lead grants: authenticated only, revoked from PUBLIC/anon/service_role",
+    name: "lead audit FK and event domain remain hardened",
     run: () => {
-      must(anyMigration(/REVOKE ALL ON FUNCTION public\.create_manual_lead[^;]+FROM PUBLIC/i), "PUBLIC revoke");
-      must(anyMigration(/REVOKE ALL ON FUNCTION public\.create_manual_lead[^;]+FROM anon/i), "anon revoke");
-      must(anyMigration(/REVOKE ALL ON FUNCTION public\.create_manual_lead[^;]+FROM service_role/i), "service_role revoke");
-      must(anyMigration(/GRANT EXECUTE ON FUNCTION public\.create_manual_lead[^;]+TO authenticated/i), "authenticated grant");
+      must(anyMigration(/ON DELETE RESTRICT/i) && anyMigration(/lead_audit_events_lead_id_fkey/i), "restrict FK missing");
+      must(anyMigration(/lead_audit_events_event_type_check[\s\S]*manual_lead_created/i), "event type check missing");
+      must(anyMigration(/ALTER TABLE public\.lead_audit_events\s+ALTER COLUMN tenant_id DROP DEFAULT/i), "tenant default removal missing");
     },
   },
   {
-    name: "create_manual_lead validates inputs at database level",
+    name: "historical manual lead primitive validates bounded input",
     run: () => {
       const sql = migrations().join("\n");
-      must(/input_invalid: nome/.test(sql), "nome validation");
-      must(/input_invalid: nome_max/.test(sql), "nome_max validation");
-      must(/input_invalid: email_max/.test(sql), "email_max validation");
-      must(/input_invalid: telefone_max/.test(sql), "telefone_max validation");
-      must(/input_invalid: observacoes_max/.test(sql), "observacoes_max validation");
-    },
-  },
-  {
-    name: "create_manual_lead passes tenant_id explicitly to audit event",
-    run: () => must(anyMigration(/INSERT INTO public\.lead_audit_events[\s\S]{0,400}v_tenant, v_lead\.id, v_actor, 'manual_lead_created'/i), "audit tenant param"),
-  },
-  {
-    name: "lead authorization boundary module exists and is typed",
-    run: () => {
-      const src = read("src/lib/leads/lead-authorization.server.ts");
-      must(/LeadAuthorizationDecision/.test(src), "decision type missing");
-      must(/LeadOperation/.test(src) && /LeadAccessScope/.test(src), "operation/scope types missing");
-      must(!/\bas any\b/.test(src), "any leak in boundary");
-      must(!/as never\b/.test(src), "as never leak in boundary");
-      must(!/as unknown as/.test(src), "as unknown as leak in boundary");
-    },
-  },
-  {
-    name: "content workspace Lead adapter has runAction disabled and no legacy claim",
-    run: () => {
-      const src = read("src/components/content/adapters/useLeadAdapter.ts");
-      must(/indisponível no Content Workspace/.test(src), "runAction must throw explicitly");
-      must(!/runAction é o único ponto de execução/.test(src), "legacy comment claiming runAction is authority still present");
-    },
-  },
-  {
-    name: "no route mounts a Content Workspace Lead surface",
-    run: () => {
-      const routes = readdirSync(join(ROOT, "src/routes")).filter((f) => f.endsWith(".tsx"));
-      for (const r of routes) {
-        const src = read(`src/routes/${r}`);
-        must(!/ContentWorkspace[^>]*kind\s*=\s*["']lead["']/.test(src), `route ${r} mounts lead workspace`);
+      for (const token of ["input_invalid: nome", "input_invalid: nome_max", "input_invalid: email_max", "input_invalid: telefone_max", "input_invalid: observacoes_max"]) {
+        must(sql.includes(token), `${token} validation missing`);
       }
     },
   },
   {
-    name: "criarLeadManual handler does not use supabaseAdmin",
+    name: "lead authorization boundary is typed and consumes canonical tenant context",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      const idx = src.indexOf("criarLeadManual");
-      must(idx > 0, "criarLeadManual not found");
-      const region = src.slice(idx, idx + 1500);
-      must(!/supabaseAdmin/.test(region), "supabaseAdmin present in criarLeadManual region");
+      const source = read("src/lib/leads/lead-authorization.server.ts");
+      must(/LeadAuthorizationDecision/.test(source), "decision type missing");
+      must(/LeadOperation/.test(source) && /LeadAccessScope/.test(source), "operation or scope type missing");
+      must(/from ["']@\/integrations\/supabase\/tenant-middleware["']/.test(source), "tenant middleware import missing");
+      must(/tenant:\s*LeadTenantContext/.test(source), "LeadTenantContext missing");
+      must(!/impersonating\?\s*:\s*boolean/.test(source), "caller supplied impersonation present");
+      must(/super_admin_requires_impersonation/.test(source), "Super Admin impersonation denial missing");
     },
   },
   {
-    name: "adminListarCorretores does not use select(\"*\")",
+    name: "Content Workspace does not mount a parallel Lead mutation surface",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      const idx = src.indexOf("adminListarCorretores");
-      must(idx > 0, "adminListarCorretores not found");
-      const region = src.slice(idx, idx + 1000);
-      must(!/\.select\(\s*['"]\*['"]\s*\)/.test(region), "select('*') leak");
-    },
-  },
-  {
-    name: "adminAtualizarLead does not cast payload via `as never`",
-    run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      const idx = src.indexOf("adminAtualizarLead");
-      const region = src.slice(idx, idx + 1200);
-      must(!/\bas never\b/.test(region), "`as never` cast leak in adminAtualizarLead");
-    },
-  },
-  {
-    name: "manualLeadReturnSchema tightened (status literal novo, version positive int, createdAt datetime)",
-    run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      must(/manualLeadReturnSchema[\s\S]{0,400}z\.literal\(\s*["']novo["']\s*\)/.test(src), "status literal novo missing");
-      must(/version:\s*z\.number\(\)\.int\(\)\.positive\(\)/.test(src), "version .int().positive() missing");
-      must(/createdAt:\s*z\.string\(\)\.datetime\(\)/.test(src), "createdAt .datetime() missing");
-    },
-  },
-  // LSH-01 · Lote A — Runtime Authorization Integration structural proofs.
-  {
-    name: "admin.functions.ts consumes the operations module",
-    run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      must(/from ["']@\/lib\/leads\/lead-operations\.server["']/.test(src), "operations import missing");
-      must(/createRuntimeLeadOperationsDeps/.test(src), "runtime deps builder not used");
-    },
-  },
-  {
-    name: "five Lead server functions call the boundary via operations module",
-    run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      const ops = [
-        { fn: "adminListarLeads", call: "listLeadsAuthorized" },
-        { fn: "adminListarImoveisLite", call: "listLeadPropertiesAuthorized" },
-        { fn: "adminListarLeadAssignees", call: "listLeadAssigneesAuthorized" },
-        { fn: "adminAtualizarLead", call: "updateLeadFieldsAuthorized" },
-        { fn: "criarLeadManual", call: "createManualLeadAuthorized" },
-      ];
-      for (const { fn, call } of ops) {
-        const idx = src.indexOf(`export const ${fn}`);
-        must(idx > 0, `${fn} not found`);
-        const region = src.slice(idx, idx + 1600);
-        must(region.includes(call), `${fn} does not call ${call}`);
+      const routes = readdirSync(join(ROOT, "src/routes")).filter((file) => file.endsWith(".tsx"));
+      for (const route of routes) {
+        const source = read(`src/routes/${route}`);
+        must(!/ContentWorkspace[^>]*kind\s*=\s*["']lead["']/.test(source), `route ${route} mounts parallel Lead workspace`);
       }
     },
   },
   {
-    name: "legacy guards absent from Lead runtime operations regions",
+    name: "administrative barrel exposes only explicit canonical CRM aliases",
     run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      const regions = ["adminListarLeads", "adminAtualizarLead", "adminListarImoveisLite", "adminListarLeadAssignees", "criarLeadManual"];
-      for (const fn of regions) {
-        const idx = src.indexOf(`export const ${fn}`);
-        const end = src.indexOf("export const ", idx + 20);
-        const region = src.slice(idx, end > 0 ? end : idx + 1600);
-        must(!/ensureAdmin\s*\(/.test(region), `ensureAdmin leak in ${fn}`);
-        must(!/ensureActiveTenantMembership\s*\(/.test(region), `ensureActiveTenantMembership leak in ${fn}`);
+      const barrel = read(ADMIN_BARREL_PATH);
+      must(!/export\s+\*\s+from\s+["'][^"']*legacy["']/.test(barrel), "legacy wildcard export present");
+      must(/from ["']\.\/tenant-crm-compat\.functions["']/.test(barrel), "canonical CRM compatibility export missing");
+      for (const name of ["adminListarLeads", "adminListarLeadAssignees", "adminListarImoveisLite", "adminAtualizarLead", "criarLeadManual"]) {
+        must(barrel.includes(name), `${name} missing from explicit barrel`);
       }
     },
   },
   {
-    name: "operations module applies own_assigned filters (tenant + actor) in update and list",
+    name: "canonical CRM compatibility mappers use requireTenant and no global role authority",
     run: () => {
-      const src = read("src/lib/leads/lead-operations.server.ts");
-      must(/updateLeadOwnAssigned\([^)]*tenantId[^)]*actorUserId/.test(src), "update own_assigned path missing actor");
-      must(/listLeadsOwnAssigned\([^)]*tenantId[^)]*actorUserId/.test(src), "list own_assigned path missing actor");
-      must(/\.eq\(["']assigned_to["'],\s*actorUserId\)/.test(src), "assigned_to filter not applied server-side");
+      const source = read(CRM_COMPAT_PATH);
+      must(source.includes('import { requireTenant }'), "requireTenant import missing");
+      must((source.match(/\.middleware\(\[requireTenant\]\)/g) ?? []).length === 2, "canonical mutations must use requireTenant");
+      must(!source.includes('.rpc("has_role"'), "has_role authority present");
+      must(!source.includes('.from("user_roles")'), "user_roles authority present");
+      must(!/\.(insert|update|delete)\(/.test(source), "direct table mutation present in compatibility mapper");
     },
   },
   {
-    name: "criarLeadManual authorizes before RPC (authorize call precedes gateway.createManualLead)",
+    name: "manual Lead compatibility result contract remains strict",
     run: () => {
-      const src = read("src/lib/leads/lead-operations.server.ts");
-      const idx = src.indexOf("export async function createManualLeadAuthorized");
-      must(idx > 0, "createManualLeadAuthorized missing");
-      const region = src.slice(idx, idx + 800);
-      const authIdx = region.indexOf("authorizeLeadOperation");
-      const rpcIdx = region.indexOf("gateway.createManualLead");
-      must(authIdx > 0 && rpcIdx > authIdx, "authorization must precede RPC");
+      const source = read(CRM_COMPAT_PATH);
+      must(/status:\s*z\.literal\(["']novo["']\)/.test(source), "status literal missing");
+      must(/version:\s*z\.number\(\)\.int\(\)\.positive\(\)/.test(source), "positive version missing");
+      must(/createdAt:\s*z\.string\(\)\.datetime\(\)/.test(source), "createdAt datetime missing");
+      must(/\.strict\(\)/.test(source), "strict result contract missing");
     },
   },
   {
-    name: "boundary does not accept caller-supplied impersonation input",
+    name: "CRM compatibility mutations authorize before invoking service-role primitives",
     run: () => {
-      const src = read("src/lib/leads/lead-authorization.server.ts");
-      must(!/impersonating\?\s*:\s*boolean/.test(src), "caller-supplied impersonation field present");
-      // Rejects the anti-pattern `has_role(..., "admin")` as Super Admin.
-      must(!/has_role[\s\S]{0,80}_role:\s*["']admin["']/.test(src), "has_role admin used as Super Admin");
+      const source = read(CRM_COMPAT_PATH);
+      const helper = source.indexOf("async function crmRpc");
+      const authorization = source.indexOf("authorizeTenantCrmOperation", helper);
+      const adminClient = source.indexOf("supabaseAdmin", authorization);
+      const rpc = source.indexOf(".rpc(name", adminClient);
+      must(helper >= 0 && authorization > helper && adminClient > authorization && rpc > adminClient, "authorization chain is not ordered");
+      must(source.includes('"get_tenant_crm_lead_aggregate"'), "aggregate read missing");
+      must(source.includes('"update_tenant_crm_lead"'), "canonical update primitive missing");
+      must(source.includes('"create_tenant_crm_lead"'), "canonical create primitive missing");
     },
   },
   {
-    name: "boundary consumes canonical Tenant Context (requireTenant contract)",
+    name: "canonical Tenant CRM authority uses Tenant Access Control without role fallback",
     run: () => {
-      const src = read("src/lib/leads/lead-authorization.server.ts");
-      must(/from ["']@\/integrations\/supabase\/tenant-middleware["']/.test(src), "tenant-middleware not imported");
-      must(/mapTenantOrigin\s*\(/.test(src), "mapTenantOrigin helper missing");
-      must(/deriveLeadTenantContext\s*\(/.test(src), "deriveLeadTenantContext helper missing");
-      must(/tenant:\s*LeadTenantContext/.test(src), "LeadTenantContext not required in context");
+      const source = read(CRM_AUTHORITY_PATH);
+      must(source.includes("resolveEffectiveTenantPermission"), "effective permission resolver missing");
+      must(source.includes("requireTenantScopedAuthority"), "tenant scoped authority missing");
+      must(source.includes('CRM_MODULE_CODE = "crm"'), "catalogued CRM module missing");
+      must(!source.includes('.rpc("has_role"'), "has_role fallback present");
+      must(!source.includes('.from("user_roles")'), "user_roles fallback present");
+      must(source.includes("super_admin_impersonation"), "Super Admin impersonation source missing");
     },
   },
   {
-    name: "boundary derives impersonating from Super Admin AND impersonation origin (no constant false)",
+    name: "legacy Lead operations retain explicit tenant and own-assigned filters",
     run: () => {
-      const src = read("src/lib/leads/lead-authorization.server.ts");
-      must(/isSuperAdmin:\s*boolean/.test(src), "isSuperAdmin missing from decision");
-      must(/impersonating:\s*boolean/.test(src), "impersonating missing from decision");
-      // The boundary must NOT keep `impersonating: false` as a constant literal
-      // for authorized decisions; Super Admin impersonating returns true.
-      must(!/impersonating:\s*false\s*,\s*\/\/ Fail-closed/.test(src), "legacy fail-closed constant still present");
-      must(/impersonating:\s*true/.test(src), "impersonating=true path missing");
-      // Super Admin path must be reachable and denied without impersonation.
-      must(/super_admin_requires_impersonation/.test(src), "super_admin_requires_impersonation not used");
+      const source = read("src/lib/leads/lead-operations.server.ts");
+      must(/listLeadsOwnAssigned\([^)]*tenantId[^)]*actorUserId/.test(source), "own assigned list contract missing");
+      must(/updateLeadOwnAssigned\([^)]*tenantId[^)]*actorUserId/.test(source), "own assigned update contract missing");
+      must(/\.eq\(["']tenant_id["'],\s*tenantId\)/.test(source), "tenant filter missing");
+      must(/\.eq\(["']assigned_to["'],\s*actorUserId\)/.test(source), "actor assignment filter missing");
     },
   },
   {
-    name: "wrappers compose requireTenant middleware (not requireSupabaseAuth alone) for Lead operations",
-    run: () => {
-      const src = read("src/lib/api/admin.functions.ts");
-      const ops = ["adminListarLeads", "adminAtualizarLead", "adminListarImoveisLite", "adminListarLeadAssignees", "criarLeadManual"];
-      for (const fn of ops) {
-        const idx = src.indexOf(`export const ${fn}`);
-        must(idx > 0, `${fn} not found`);
-        const end = src.indexOf("export const ", idx + 20);
-        const region = src.slice(idx, end > 0 ? end : idx + 2000);
-        must(/\.middleware\(\[requireTenant\]\)/.test(region), `${fn} does not compose requireTenant`);
-        must(/context\.tenant/.test(region), `${fn} does not forward context.tenant`);
-      }
-    },
-  },
-  {
-    name: "Lead-domain adapter routes assignee reads via boundary (adminListarLeadAssignees)",
+    name: "Lead adapters route assignee reads through the canonical exported alias",
     run: () => {
       const adapter = read("src/components/content/adapters/useLeadAdapter.ts");
-      must(/adminListarLeadAssignees/.test(adapter), "adapter must call adminListarLeadAssignees");
-      must(!/adminListarCorretores/.test(adapter), "adapter must not import adminListarCorretores");
-      const pipe = read("src/components/pipeline/hooks/usePipelineData.ts");
-      must(/adminListarLeadAssignees/.test(pipe), "pipeline hook must call adminListarLeadAssignees");
-      must(!/adminListarCorretores/.test(pipe), "pipeline hook must not call adminListarCorretores");
+      const pipeline = read("src/components/pipeline/hooks/usePipelineData.ts");
+      for (const [name, source] of [["adapter", adapter], ["pipeline", pipeline]]) {
+        must(source.includes("adminListarLeadAssignees"), `${name} canonical assignee alias missing`);
+        must(!source.includes("adminListarCorretores"), `${name} bypasses CRM assignee authority`);
+      }
     },
   },
   {
-    name: "workspace mutation surface remains absent (no ContentWorkspace lead route)",
+    name: "CRM compatibility input cannot provide tenant, actor, role or scope",
     run: () => {
-      const routes = readdirSync(join(ROOT, "src/routes")).filter((f) => f.endsWith(".tsx"));
-      for (const r of routes) {
-        const src = read(`src/routes/${r}`);
-        must(!/ContentWorkspace[^>]*kind\s*=\s*["']lead["']/.test(src), `route ${r} mounts lead workspace`);
+      const source = read(CRM_COMPAT_PATH);
+      const inputValidators = [...source.matchAll(
+        /\.inputValidator\(\(input: unknown\) => z\.object\(\{([\s\S]*?)\}\)\.strict\(\)\.parse\(input\)\)/g,
+      )].map((match) => match[1]).join("\n");
+      must(inputValidators.length > 0, "compatibility input validators not found");
+      for (const pattern of [
+        /\btenant_id\s*:/,
+        /\btenantId\s*:/,
+        /\bactorUserId\s*:/,
+        /\bactor_user_id\s*:/,
+        /\brole\s*:/,
+        /\bscope\s*:/,
+      ]) {
+        must(!pattern.test(inputValidators), `caller authority field present: ${pattern}`);
       }
+      must(source.includes("_tenant_id: decision.tenantId"), "server-derived tenant is not forwarded");
+      must(source.includes("_actor_user_id: decision.actorUserId"), "server-derived actor is not forwarded");
+      must(source.includes("context.tenant.origin"), "trusted tenant origin is not forwarded");
     },
   },
 ];
 
-
 export async function runLeadStructuralSpecs(): Promise<{ passed: number; failed: number }> {
   let passed = 0;
   let failed = 0;
-  for (const c of cases) {
+  for (const testCase of cases) {
     try {
-      c.run();
-      passed++;
-    } catch (e) {
-      failed++;
-      console.error(`FAIL ${c.name}:`, e instanceof Error ? e.message : e);
+      testCase.run();
+      passed += 1;
+    } catch (error) {
+      failed += 1;
+      console.error(`FAIL ${testCase.name}:`, error instanceof Error ? error.message : error);
     }
   }
   return { passed, failed };

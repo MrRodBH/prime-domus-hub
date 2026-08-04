@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { adminObterImovel } from "@/lib/api/admin.functions";
+import { adminObterImovel } from "@/lib/api/property-admin.functions";
 import { ImovelForm } from "@/components/admin/ImovelForm";
 
 export const Route = createFileRoute("/_authenticated/admin/imoveis/$id")({
