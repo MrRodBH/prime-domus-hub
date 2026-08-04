@@ -51,7 +51,7 @@ export async function observeDnsTxt(
     if (error instanceof DomainError) throw error;
     throw new DomainError("domain_provider_unavailable", "DNS observation failed", {
       retryable: true,
-      safeDetail: { cause: sanitizeDomainDetail(error instanceof Error ? error.name : error) as unknown },
+      safeDetail: { cause: sanitizeDomainDetail(error instanceof Error ? error.name : error) },
       cause: error,
     });
   } finally {
