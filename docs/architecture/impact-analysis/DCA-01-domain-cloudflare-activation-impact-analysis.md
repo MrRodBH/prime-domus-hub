@@ -2,176 +2,44 @@
 
 ## Status
 
-**Planning — Ready for Direct External Audit**
+**Planning — Ready for Direct External Re-Audit**
 
 ```text
 STAGE_ID = DCA-01
 STAGE_NAME = Domain & Cloudflare Activation
 STAGE_TYPE = Architecture First planning
 AUDITED_MAIN_HEAD = fad8874bfeef85683445f52d21611e7d8760c1a0
+REJECTED_PLANNING_HEAD_HISTORICAL = b6974aaccc11fbc4118a2af8c15320e2e665233e
 PREDECESSOR = PR-M2 — Accepted / Merged / Closed
 EXECUTION_MODEL = GitHub-native
-INTEGRATION_MODEL = HYBRID
+DOMAIN_AND_CLOUDFLARE_INTEGRATION_MODEL = HYBRID
 IMPLEMENTATION_AUTHORIZED = false
 IMPLEMENTATION_STARTED = false
 PLANNING_MERGE_AUTHORIZED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
 
-## 1. Objective
+The rejected planning HEAD is historical evidence only. It is not current planning authority and must not be restored as the operative state.
 
-Define a finite, fail-closed architecture for custom-domain activation and Cloudflare integration without executing runtime implementation, DNS mutation, provider calls, managed migrations, deploy, homologation or production.
+## 1. Finite objective
 
-The future DCA-01 implementation must deliver one authoritative lifecycle for:
+DCA-01 must define and, only after a separate authorization, materialize one fail-closed custom-domain lifecycle for:
 
-- domain request and tenant binding;
-- ownership challenge and verification;
-- manual-assisted and API-automated execution;
-- DNS configuration and verification;
-- Cloudflare account, zone and custom-hostname authority;
-- SSL provisioning and certificate observation;
-- canonical host and explicit aliases;
-- redirect policy;
+- tenant-domain binding;
+- ownership challenge and independent verification;
+- explicit `manual_assisted` and `api_automated` modes;
+- DNS instruction, execution and observation;
+- Cloudflare account, zone, custom-hostname and SSL authority;
+- canonical host, explicit aliases and redirects;
 - replacement, removal, rollback and reconciliation;
-- diagnostics, audit, rate limiting, retry and idempotency;
-- anti-domain-takeover controls.
+- tenant and Super Admin operational surfaces;
+- deterministic evidence, audit, retry and idempotency;
+- anti-domain-takeover controls;
+- one atomic public-resolution cutover without request-time dual authority.
 
-## 2. Binding decisions
+This planning does not execute implementation, migration, deploy, DNS mutation, Cloudflare API calls, real credentials, external proof, BCA-01, PR-M3, homologation or production.
 
-```text
-DOMAIN_AND_CLOUDFLARE_INTEGRATION_MODEL = HYBRID
-MANUAL_ASSISTED_MODE = required
-API_AUTOMATED_MODE = required
-MODE_SELECTION = explicit_authorized_configuration
-HEURISTIC_MODE_FALLBACK = prohibited
-CLIENT_IS_DOMAIN_AUTHORITY = false
-SERVER_IS_DOMAIN_AUTHORITY = true
-SERVER_IS_CLOUDFLARE_ACCOUNT_AUTHORITY = true
-```
-
-`HYBRID` means both operational modes are supported by one state machine and one authority model. It does not permit automatic fallback from API execution to manual execution, duplicate writes, independent status fields or separate tenant-resolution paths.
-
-## 3. Audited current state
-
-### 3.1 Already materialized
-
-```text
-ALREADY_MATERIALIZED =
-- request Host normalization in src/lib/tenant.server.ts
-- lowercase and trailing-dot normalization
-- rejection of schemes, credentials, paths, query and malformed ports
-- exact public tenant cardinality through limit(2) plus exactly-one selection
-- fail-closed public tenant requirement
-- explicit development-host map with invalid/ambiguous configuration failure
-- tenants.dominio_principal nullable compatibility field
-- public reads bound to server-owned Host resolution
-- configuration system keys domain_activation_state and cloudflare_mode
-- SQL validation freezing those keys at pending_DCA01 / HYBRID_pending_DCA01
-- Super Admin domain_visibility external gate blocked_by_DCA01
-- global-platform versus explicit-impersonation operation vocabulary
-- configuration snapshots, revision checks, publish, rollback, diagnostics and audit patterns
-```
-
-The current public resolver normalizes the request `Host`, preserves `www`, queries `tenants.dominio_principal`, retrieves at most two rows and accepts only cardinality one. This is secure as a narrow single-host compatibility boundary, but it is not a complete domain lifecycle.
-
-### 3.2 Reusable without change
-
-```text
-REUSABLE_WITHOUT_CHANGE =
-- requireTenant and tenant middleware authority
-- explicit Super Admin impersonation invariant
-- PublicTenantResolutionError fail-closed behavior
-- configuration revision and optimistic-concurrency patterns
-- service-role server-only client boundary
-- audit_log conventions
-- deterministic exact-head Release Gate
-- external success must not be inferred from local state
-- Same-Backend Homologation Cell decision
-```
-
-### 3.3 Requires extension
-
-```text
-REQUIRES_EXTENSION =
-- normalizePublicHost must delegate production-domain normalization to the canonical DCA normalizer
-- public tenant resolution must require an active domain binding, not raw tenants.dominio_principal
-- configuration future-gate keys must become projections of authoritative DCA state
-- domain_visibility must read DCA lifecycle and diagnostic sources
-- tenant and Super Admin diagnostics must expose all supported lifecycle states and modes
-- public canonical URL generation must use the authoritative active canonical binding
-```
-
-### 3.4 Requires a new boundary
-
-```text
-REQUIRES_NEW_BOUNDARY =
-- authoritative tenant_domains aggregate
-- ownership challenge lifecycle
-- provider account and credential-reference boundary
-- provider binding records
-- operation jobs and attempts
-- domain audit events
-- canonical alias and redirect model
-- Cloudflare adapter port
-- DNS observation port
-- periodic reconciliation worker
-- idempotent command boundary
-- deterministic failure taxonomy
-```
-
-### 3.5 Requires external execution
-
-```text
-REQUIRES_EXTERNAL_EXECUTION =
-- authoritative DNS queries against public resolvers
-- TXT/CNAME observation
-- Cloudflare account and zone lookup
-- custom hostname creation/update/removal
-- SSL/certificate observation
-- live anti-takeover validation
-- controlled test-domain activation
-```
-
-### 3.6 Out of scope
-
-```text
-OUT_OF_SCOPE =
-- billing and commercial activation
-- BCA-01
-- PR-M3 visual refinement
-- production release
-- unrelated tenant, CRM, CMS, portal, marketing or tracking redesign
-- replacement of Same-Backend Homologation Cell
-- arbitrary Cloudflare infrastructure management outside domain activation
-```
-
-## 4. Material gaps and risks
-
-### 4.1 Single nullable field is not a lifecycle aggregate
-
-`tenants.dominio_principal` contains no ownership proof, mode, status, provider binding, SSL state, canonical/alias distinction, replacement generation, retry metadata or audit history. It must not become the write authority for DCA-01.
-
-### 4.2 Public resolution currently has no activation-state predicate
-
-The resolver accepts an exact match on `tenants.dominio_principal`. DCA-01 must retire this direct lookup as the primary authority and atomically cut over to an active-domain read model. Keeping both paths would create forbidden dual authority.
-
-### 4.3 No repository-owned Cloudflare adapter was found
-
-The audited HEAD contains planning placeholders and `domain_visibility`, but no server adapter that owns Cloudflare account selection, zone selection, custom-hostname lifecycle or certificate observation. Provider success cannot be inferred from current configuration or UI state.
-
-### 4.4 No ownership challenge or anti-replay model exists
-
-No challenge generation, expiry, rotation, digest verification, replay prevention, attempt tracking or cooldown contract is materialized.
-
-### 4.5 No closed state machine exists
-
-The current state is a single system-owned placeholder `pending_DCA01`. Partial activation could otherwise be mistaken for success. The implementation must persist every transition and reject unstated transitions.
-
-### 4.6 Secret storage boundary is not materialized
-
-Configuration snapshots explicitly reject secret-shaped keys and accept only public identifiers/non-secret values. Cloudflare credentials therefore require a separate server-only secret reference boundary; they may not be stored in tenant configuration, browser storage, public environment variables, logs or ordinary domain tables.
-
-## 5. Authority model
+## 2. Binding authority model
 
 ```text
 SERVER_IS_TENANT_AUTHORITY = true
@@ -179,45 +47,97 @@ SERVER_IS_DOMAIN_AUTHORITY = true
 SERVER_IS_CLOUDFLARE_ACCOUNT_AUTHORITY = true
 SERVER_IS_STATE_TRANSITION_AUTHORITY = true
 SERVER_IS_CANONICAL_HOST_AUTHORITY = true
+SERVER_IS_CUTOVER_AUTHORITY = true
+
 CLIENT_HOSTNAME_IS_AUTHORITY = false
 CLIENT_ZONE_ID_IS_AUTHORITY = false
 CLIENT_ACCOUNT_ID_IS_AUTHORITY = false
 CLIENT_PROVIDER_OBJECT_ID_IS_AUTHORITY = false
-CLIENT_VERIFICATION_STATUS_IS_AUTHORITY = false
-CLIENT_CERTIFICATE_STATUS_IS_AUTHORITY = false
-FAIL_CLOSED_ON_AMBIGUITY = true
-SUPER_ADMIN_REQUIRES_EXPLICIT_PLATFORM_OPERATION = true
-SUPER_ADMIN_TENANT_MUTATION_REQUIRES_EXPLICIT_IMPERSONATION = true
+CLIENT_PROVIDER_STATUS_IS_AUTHORITY = false
+CLIENT_SSL_STATUS_IS_AUTHORITY = false
+CLIENT_DNS_OBSERVATION_IS_AUTHORITY = false
+
+FAIL_FAST = true
+FAIL_CLOSED = true
+HEURISTIC_FALLBACK = prohibited
+TENANT_DEFAULT = prohibited
+FIRST_ROW_AUTHORITY = prohibited
+REQUEST_TIME_DUAL_QUERY = prohibited
+SILENT_MODE_FALLBACK = prohibited
+DIRECT_STATUS_MUTATION = prohibited
 ```
 
-### 5.1 Tenant Admin
+A tenant-authorized user may request an operation and view sanitized state, but may not set lifecycle status, provider identifiers, verification outcome, certificate outcome, retry counters, canonical authority or cutover state.
 
-A tenant-authorized user may:
+Human Super Admin mutation of tenant-scoped domain data requires explicit impersonation. Global provider-account registration, credential-reference health, scheduler health and global cutover are explicit platform operations and do not grant tenant resource access.
 
-- request one normalized hostname;
-- choose an explicitly available execution mode;
-- view instructions, observed status, diagnostics and safe failure details;
-- request challenge rotation, retry, replacement or removal;
-- cancel only transitions explicitly marked cancellable.
+## 3. Audited current state
 
-A tenant-authorized user may not set lifecycle status, provider IDs, account IDs, zone IDs, verification result, SSL result, canonical activation or retry counters.
+### 3.1 Existing public tenant resolution
 
-### 5.2 Super Admin and platform service
+The current repository already provides:
 
-- Human mutation of a tenant-scoped domain requires explicit impersonation.
-- Global provider-account registration, credential-reference availability and worker health are platform operations and do not grant tenant data access.
-- Service workers execute commands already authorized and persisted by the server; they do not manufacture tenant authority.
-- Manual-assisted operator evidence is an observation request, never a success assertion. The server must independently verify DNS/provider state before transition.
+- server-owned request `Host` input;
+- trim, lowercase and trailing-dot normalization;
+- rejection of schemes, credentials, paths, query strings, fragments and malformed ports;
+- an explicit development-host map;
+- a production lookup against `tenants.dominio_principal`;
+- `limit(2)` cardinality detection and acceptance only when exactly one tenant matches;
+- no default tenant and fail-closed behavior on absence or ambiguity.
 
-### 5.3 Public request
+This is a secure compatibility boundary, not a complete domain lifecycle. Production resolution must eventually cut over to the authoritative active-domain boundary defined here.
 
-Anonymous/public requests may resolve only a domain binding with `status = active`, `enabled = true`, a current generation and an unambiguous tenant. Alias rows may redirect to the canonical hostname; they may not independently select another tenant.
+### 3.2 Existing Configuration Center placeholders
 
-## 6. Canonical data model
+```text
+domain_activation_state = pending_DCA01
+cloudflare_mode = HYBRID_pending_DCA01
+```
 
-The future implementation must create one migration that materializes the following logical aggregates. Exact SQL names may only change during implementation preflight if a collision with current HEAD is proven.
+These values are system-owned, non-public and secret-rejecting placeholders. They are not domain authority, provider success, DNS evidence or SSL evidence.
 
-### 6.1 `tenant_domains`
+The existing revision, optimistic-concurrency, publish, rollback and audit patterns are reusable. Configuration snapshots remain prohibited from containing provider secrets or credential references visible to clients.
+
+### 3.3 Existing Super Admin decisions
+
+The current repository keeps `domain_visibility` blocked by DCA-01 and separates global platform operations from tenant-scoped operations requiring explicit impersonation.
+
+The Product Owner decision remains binding:
+
+```text
+DOMAINS_AND_CLOUDFLARE = HYBRID
+SUPPORTED_MODES = manual_assisted, api_automated
+MODE_SELECTION = explicit
+SILENT_MODE_FALLBACK = prohibited
+EXTERNAL_SUCCESS_INFERRED_FROM_LOCAL_STATE = prohibited
+```
+
+### 3.4 Not materialized in the audited baseline
+
+The current `main` does not materialize:
+
+- `tenant_domains`;
+- `domain_verification_challenges`;
+- `domain_provider_accounts`;
+- `domain_provider_bindings`;
+- `domain_operation_jobs`;
+- `domain_operation_attempts`;
+- `domain_audit_events`;
+- a Cloudflare adapter;
+- a closed domain state machine;
+- ownership challenge rotation and anti-replay;
+- canonical/alias aggregate authority;
+- SSL lifecycle authority;
+- periodic domain reconciliation;
+- an active-domain public resolver.
+
+Document names and placeholders are not evidence of implementation.
+
+## 4. Canonical data model
+
+A future authorized implementation must create one forward migration containing these logical aggregates.
+
+### 4.1 `tenant_domains`
 
 Required fields:
 
@@ -230,11 +150,14 @@ hostname_kind canonical|alias
 execution_mode manual_assisted|api_automated
 status domain_activation_status not null
 enabled boolean not null
-current_generation bigint not null
+generation bigint not null
 replacement_of uuid null
+incumbent_domain_id uuid null
 lock_version bigint not null
 failure_code text null
 failure_detail_sanitized jsonb not null
+resume_state domain_activation_status null
+metadata jsonb not null
 requested_by uuid not null
 activated_at timestamptz null
 revoked_at timestamptz null
@@ -244,108 +167,84 @@ updated_at timestamptz not null
 
 Constraints:
 
-- global unique normalized hostname for all non-terminal reusable states;
-- at most one active canonical hostname per tenant;
-- aliases reference the same tenant and active canonical generation;
-- wildcard hostnames prohibited;
-- terminal rows remain auditable and are not silently reused;
-- all mutations through server RPC/command functions with explicit expected version.
+- normalized hostname is globally reserved across all non-reusable and cooldown states;
+- no more than one active canonical hostname exists per tenant;
+- aliases belong to the same tenant and active canonical generation;
+- wildcard hostnames are prohibited;
+- provider identifiers are not client-writable;
+- all commands use explicit expected `lock_version`;
+- direct client table mutation is prohibited;
+- terminal tombstones remain auditable and are not silently reused.
 
-### 6.2 `domain_verification_challenges`
+### 4.2 `domain_verification_challenges`
 
-Required fields:
+Required fields include domain ID, generation, challenge kind, record name, digest, opaque nonce reference, status, expiry, verification timestamp, attempt count, observed-value hash and actor metadata.
 
-```text
-id uuid primary key
-domain_id uuid not null
-generation bigint not null
-challenge_kind dns_txt|dns_cname
-record_name text not null
-challenge_digest text not null
-nonce text not null
-status pending|verified|expired|revoked
-expires_at timestamptz not null
-verified_at timestamptz null
-attempt_count integer not null
-last_observed_value_hash text null
-created_by uuid not null
-created_at timestamptz not null
-updated_at timestamptz not null
-```
+The challenge must be temporary, generation-bound, rotatable and anti-replay. A reusable plaintext proof token must not be persisted in ordinary tables.
 
-The published challenge value is derived server-side from an opaque nonce and a server-held secret or stored through an approved encrypted-secret facility. Ordinary tables do not persist a reusable plaintext proof token.
+### 4.3 `domain_provider_accounts`
 
-### 6.3 `domain_provider_accounts`
-
-Global platform table containing only:
+Global platform aggregate containing only:
 
 - provider code;
 - server-selected account identifier;
-- opaque credential reference;
-- enabled/capability state;
-- health metadata and timestamps.
+- opaque server-side credential reference;
+- enabled capabilities;
+- sanitized health state and timestamps.
 
-No credential material is returned to tenant APIs or stored in configuration snapshots.
+Plaintext provider secrets are prohibited in the database, tenant configuration, logs, client DTOs and CI.
 
-### 6.4 `domain_provider_bindings`
+### 4.4 `domain_provider_bindings`
 
-Server-owned mapping between a domain generation and provider objects:
+Server-owned mapping between a domain generation and provider objects, including account, zone, custom-hostname identity, observed provider status, observed SSL status, provider version/etag and observation timestamps.
 
-```text
-provider_account_id
-provider_zone_id
-provider_custom_hostname_id
-provider_hostname_status
-provider_ssl_status
-last_provider_observed_at
-last_provider_etag_or_version
-```
+Client-supplied account IDs, zone IDs, custom-hostname IDs and status values are never authority.
 
-Client input for these fields is prohibited.
+### 4.5 `domain_operation_jobs` and `domain_operation_attempts`
 
-### 6.5 `domain_operation_jobs` and `domain_operation_attempts`
+Every operation must include:
 
-Each command has:
-
-- tenant and domain generation;
-- operation type;
-- explicit execution mode;
-- idempotency key;
-- requested authority and actor;
+- tenant, domain and generation;
+- explicit operation type and execution mode;
+- deterministic idempotency key;
+- requesting authority and actor;
 - bounded retry policy;
-- lease/lock state;
-- sanitized provider/DNS result;
-- next attempt time;
-- terminal result.
+- lease owner and lease expiry;
+- next-attempt timestamp;
+- sanitized DNS/provider result;
+- terminal result and deterministic error taxonomy.
 
-### 6.6 `domain_audit_events`
+A worker may execute only a persisted server-authorized command. It may not manufacture tenant authority or infer a successful transition from transport success.
 
-Append-only lifecycle events including actor, authority origin, transition, command ID, domain generation, sanitized before/after state and correlation ID.
+### 4.6 `domain_audit_events`
 
-### 6.7 Compatibility projection
+Append-only events must record actor, authority origin, command ID, correlation ID, generation, transition, sanitized before/after state and external observation references.
 
-`tenants.dominio_principal` becomes a read-only compatibility projection of the active canonical `tenant_domains` row. It may be updated transactionally by the server during cutover, but direct application writes are prohibited. Public resolution must use the DCA active-domain boundary, not this projection.
+### 4.7 Compatibility projection
 
-## 7. Hostname normalization and validation
+`tenants.dominio_principal` becomes a read-only compatibility projection of the active canonical `tenant_domains` row. Direct application writes are prohibited. After cutover it is never a public-resolution authority.
 
-The canonical normalizer must:
+## 5. Canonical hostname normalization
 
-1. accept a hostname only, never URL input;
+The single server-owned normalizer must:
+
+1. accept a hostname only, never a URL-shaped input;
 2. trim and lowercase;
 3. remove exactly one terminal dot;
 4. convert Unicode through IDNA ToASCII;
-5. reject empty labels, invalid label length and total length over 253 octets;
+5. reject empty labels, invalid label lengths and total length above 253 octets;
 6. reject scheme, path, query, fragment, credentials and port;
-7. reject IP literals, localhost and development hosts for production activation;
-8. reject wildcard labels;
-9. reject reserved/test/example/internal names;
-10. reject public-suffix-only input;
-11. derive and persist the registrable domain through a vetted public-suffix implementation;
-12. produce one canonical ASCII hostname used for uniqueness and DNS/provider calls.
+7. reject IP literals, localhost, wildcard and development-only hosts for production activation;
+8. reject reserved, example, test and internal domains;
+9. reject public-suffix-only input;
+10. derive the registrable domain using a vetted public-suffix implementation;
+11. persist and compare only canonical ASCII hostnames.
 
-`www` is not removed heuristically. Apex and `www` are distinct explicit bindings. Redirect behavior is configured through canonical/alias rows.
+Apex and `www` are separate explicit bindings. Neither is inferred from the other.
 
-## 8. Closed state machine
+## 6. Closed domain state machine
+
+The only persisted statuses are:
 
 ```text
 draft
@@ -362,257 +261,519 @@ failed
 revoked
 ```
 
-No other persisted status is valid.
+```text
+TERMINAL_STATES = revoked
+RETRYABLE_STATES = pending_ownership_verification, pending_dns_configuration, pending_cloudflare_provisioning, pending_ssl, degraded, replacement_pending, removal_pending, failed
+PUBLICLY_AUTHORITATIVE_STATES = active
+GENERATION_CREATING_TRANSITIONS = create_domain_request, request_domain_replacement
+EXPLICIT_RECOVERY_TRANSITIONS = recover_failed_ownership, recover_failed_dns, recover_failed_provider, recover_failed_ssl, recover_failed_removal
+```
 
-### 8.1 Transition matrix
+No adapter, UI component, client request or worker may mutate status directly. The centralized server transition function and database constraints must reject every transition not listed below.
 
-| State | Valid predecessors | Server-authorized operation | Success condition | Recoverability |
-|---|---|---|---|---|
-| `draft` | none | validate and persist request | normalized hostname reserved globally | cancellable |
-| `pending_ownership_verification` | draft, failed | issue/rotate challenge; observe DNS | current unexpired challenge independently verified | retryable with bounds |
-| `ownership_verified` | pending_ownership_verification | freeze verified generation | verification proof recorded and not expired | advances only |
-| `pending_dns_configuration` | ownership_verified | present instructions or execute DNS adapter | required DNS records observed exactly | retryable |
-| `pending_cloudflare_provisioning` | pending_dns_configuration, degraded | create/reconcile provider binding | provider object identity confirmed server-side | retryable/idempotent |
-| `pending_ssl` | pending_cloudflare_provisioning, degraded | observe certificate lifecycle | provider reports active certificate and hostname validation | retryable |
-| `active` | pending_ssl, replacement_pending | atomically activate generation/canonical projection | DNS, provider and SSL all current and verified | monitored |
-| `degraded` | active | reconcile drift | active requirements restored or removal initiated | retryable |
-| `replacement_pending` | active | prepare new generation while old remains authoritative | replacement reaches complete activation checks | atomic cutover/rollback |
-| `removal_pending` | draft through degraded | revoke provider/DNS authority safely | provider binding removed/disabled and public resolution closed | retryable |
-| `failed` | non-terminal processing states | record deterministic terminal failure | failure taxonomy marks manual correction or explicit retry | explicit retry only |
-| `revoked` | removal_pending, failed | retain tombstone/cooldown | no active public/provider authority remains | terminal |
-
-### 8.2 Active predicate
-
-`active` requires all of the following in the same current generation:
+### 6.1 `draft`
 
 ```text
+VALID_PREDECESSORS = none; created only by create_domain_request
+VALID_SUCCESSORS = pending_ownership_verification, removal_pending, failed
+AUTHORIZED_COMMAND = create_domain_request, issue_ownership_challenge, request_domain_removal
+AUTHORITY = tenant command after requireTenant, or impersonated tenant command
+PERSISTED_EFFECT = reserve normalized hostname and generation 1
+GENERATION_EFFECT = creates generation
+PUBLIC_AUTHORITY = false
+SUCCESS = normalized hostname passes validation and global reservation
+RECOVERABLE_ERRORS = transient persistence conflict before commit
+TERMINAL_ERRORS = invalid, reserved, duplicate or ambiguous hostname
+RETRY = new command with same deterministic idempotency key before commit; otherwise explicit new request
+ROLLBACK = delete only before reservation commit; after commit use removal_pending
+AUDIT_EVENT = domain_request_created
+TENANT_VISIBILITY = sanitized request state
+SUPER_ADMIN_VISIBILITY = diagnostic state; tenant mutation only by impersonation
+```
+
+### 6.2 `pending_ownership_verification`
+
+```text
+VALID_PREDECESSORS = draft, replacement_pending, failed through recover_failed_ownership only
+VALID_SUCCESSORS = ownership_verified, pending_ownership_verification, removal_pending, failed
+AUTHORIZED_COMMAND = issue_ownership_challenge, rotate_ownership_challenge, observe_ownership_dns
+AUTHORITY = server command requested by authorized tenant or impersonated tenant
+PERSISTED_EFFECT = active challenge generation, expiry and anti-replay metadata
+GENERATION_EFFECT = preserves domain generation; challenge rotation increments challenge version only
+PUBLIC_AUTHORITY = false
+SUCCESS = current unexpired challenge independently observed and verified
+RECOVERABLE_ERRORS = DNS timeout, propagation delay, bounded resolver error
+TERMINAL_ERRORS = challenge replay, ownership conflict, policy rejection
+RETRY = bounded observation retry or explicit rotation
+ROLLBACK = revoke challenge and enter removal_pending
+AUDIT_EVENT = ownership_challenge_issued|rotated|observed|verified|failed
+TENANT_VISIBILITY = instructions and sanitized observations
+SUPER_ADMIN_VISIBILITY = full sanitized diagnostics; no tenant mutation without impersonation
+```
+
+### 6.3 `ownership_verified`
+
+```text
+VALID_PREDECESSORS = pending_ownership_verification
+VALID_SUCCESSORS = pending_dns_configuration, removal_pending, failed
+AUTHORIZED_COMMAND = freeze_ownership_proof, prepare_dns_configuration
+AUTHORITY = server transition after independent verification
+PERSISTED_EFFECT = immutable current-generation ownership evidence reference
+GENERATION_EFFECT = preserves generation
+PUBLIC_AUTHORITY = false
+SUCCESS = proof is current, unexpired and generation-bound
+RECOVERABLE_ERRORS = none after committed verification
+TERMINAL_ERRORS = proof invalidated before DNS preparation
+RETRY = explicit restart through failed recovery when proof becomes invalid
+ROLLBACK = removal_pending
+AUDIT_EVENT = ownership_verified
+TENANT_VISIBILITY = verified state without secret proof material
+SUPER_ADMIN_VISIBILITY = sanitized evidence metadata
+```
+
+### 6.4 `pending_dns_configuration`
+
+```text
+VALID_PREDECESSORS = ownership_verified, failed through recover_failed_dns only
+VALID_SUCCESSORS = pending_cloudflare_provisioning, removal_pending, failed
+AUTHORIZED_COMMAND = present_manual_dns_instructions, execute_automated_dns_plan, observe_required_dns
+AUTHORITY = server command; external actor never sets success
+PERSISTED_EFFECT = required DNS plan and independent observation set
+GENERATION_EFFECT = preserves generation
+PUBLIC_AUTHORITY = false
+SUCCESS = exact required records independently observed for current generation
+RECOVERABLE_ERRORS = propagation delay, resolver timeout, bounded provider error
+TERMINAL_ERRORS = conflicting ownership, policy-invalid record set
+RETRY = bounded job retry or explicit tenant recheck request
+ROLLBACK = remove server-created provider records when applicable, then removal_pending
+AUDIT_EVENT = dns_plan_created|dns_observed|dns_failed
+TENANT_VISIBILITY = exact instructions and sanitized observations
+SUPER_ADMIN_VISIBILITY = platform diagnostics plus impersonated tenant actions
+```
+
+### 6.5 `pending_cloudflare_provisioning`
+
+```text
+VALID_PREDECESSORS = pending_dns_configuration, degraded, failed through recover_failed_provider only
+VALID_SUCCESSORS = pending_ssl, removal_pending, failed
+AUTHORIZED_COMMAND = provision_or_reconcile_provider_binding
+AUTHORITY = server-selected provider account and server-owned canonical inputs
+PERSISTED_EFFECT = idempotent provider binding and sanitized provider observation
+GENERATION_EFFECT = preserves generation
+PUBLIC_AUTHORITY = false
+SUCCESS = provider object identity independently confirmed server-side
+RECOVERABLE_ERRORS = timeout, rate limit, transient provider failure
+TERMINAL_ERRORS = account policy rejection, zone mismatch, ownership conflict
+RETRY = bounded with the same deterministic idempotency key
+ROLLBACK = disable/remove server-created provider object, then removal_pending
+AUDIT_EVENT = provider_provisioning_started|observed|failed
+TENANT_VISIBILITY = sanitized progress and actionable instructions
+SUPER_ADMIN_VISIBILITY = provider health globally; tenant operation only through impersonation
+```
+
+### 6.6 `pending_ssl`
+
+```text
+VALID_PREDECESSORS = pending_cloudflare_provisioning, degraded, failed through recover_failed_ssl only
+VALID_SUCCESSORS = active, removal_pending, failed
+AUTHORIZED_COMMAND = observe_ssl_lifecycle, activate_domain_generation
+AUTHORITY = server after provider and DNS observations
+PERSISTED_EFFECT = current-generation SSL observations and activation preconditions
+GENERATION_EFFECT = preserves generation
+PUBLIC_AUTHORITY = false
+SUCCESS = certificate active and all active predicate evidence current
+RECOVERABLE_ERRORS = provider pending state, transient observation failure
+TERMINAL_ERRORS = certificate policy rejection or irreconcilable provider mismatch
+RETRY = bounded observation retry
+ROLLBACK = provider cleanup followed by removal_pending
+AUDIT_EVENT = ssl_observed|ssl_active|ssl_failed
+TENANT_VISIBILITY = sanitized certificate state
+SUPER_ADMIN_VISIBILITY = sanitized provider diagnostics
+```
+
+### 6.7 `active`
+
+```text
+VALID_PREDECESSORS = pending_ssl
+VALID_SUCCESSORS = degraded, removal_pending
+AUTHORIZED_COMMAND = activate_domain_generation, record_reconciliation_drift, request_domain_removal
+AUTHORITY = server-only activation transaction
+PERSISTED_EFFECT = exactly one active canonical generation and compatible aliases
+GENERATION_EFFECT = makes current candidate generation authoritative
+PUBLIC_AUTHORITY = true
+SUCCESS = complete current-generation active predicate
+RECOVERABLE_ERRORS = post-activation drift transitions to degraded
+TERMINAL_ERRORS = none directly; security or ownership loss closes authority through degraded/removal flow
+RETRY = periodic reconciliation only
+ROLLBACK = atomic candidate/incumbent swap when a still-valid incumbent exists; otherwise removal_pending
+AUDIT_EVENT = domain_activated|domain_drift_detected
+TENANT_VISIBILITY = active domain and safe diagnostics
+SUPER_ADMIN_VISIBILITY = global diagnostics; tenant mutation only through impersonation
+```
+
+### 6.8 `degraded`
+
+```text
+VALID_PREDECESSORS = active
+VALID_SUCCESSORS = active, pending_cloudflare_provisioning, pending_ssl, removal_pending, failed
+AUTHORIZED_COMMAND = reconcile_domain_drift, restart_provider_reconciliation, restart_ssl_observation, request_domain_removal
+AUTHORITY = server reconciliation command
+PERSISTED_EFFECT = close public authority and persist deterministic drift evidence
+GENERATION_EFFECT = preserves generation
+PUBLIC_AUTHORITY = false
+SUCCESS = full active predicate independently restored before transition to active
+RECOVERABLE_ERRORS = DNS, provider or SSL transient drift
+TERMINAL_ERRORS = ownership loss, provider deletion or irreconcilable binding conflict
+RETRY = bounded reconciliation
+ROLLBACK = restore active only after full evidence; otherwise removal_pending
+AUDIT_EVENT = domain_degraded|domain_restored|domain_reconciliation_failed
+TENANT_VISIBILITY = sanitized degraded reason and remediation
+SUPER_ADMIN_VISIBILITY = platform diagnostics and impersonated remediation
+```
+
+### 6.9 `replacement_pending`
+
+```text
+VALID_PREDECESSORS = none; created only as a new candidate generation by request_domain_replacement while an incumbent row remains active
+VALID_SUCCESSORS = pending_ownership_verification, removal_pending, failed
+AUTHORIZED_COMMAND = request_domain_replacement, issue_ownership_challenge_for_candidate
+AUTHORITY = tenant command after requireTenant, or impersonated tenant command
+PERSISTED_EFFECT = create candidate domain/generation linked to active incumbent
+GENERATION_EFFECT = creates a new candidate generation
+PUBLIC_AUTHORITY = false; incumbent remains active and authoritative
+SUCCESS = candidate reservation succeeds and challenge can be issued
+RECOVERABLE_ERRORS = transient candidate preparation failure
+TERMINAL_ERRORS = duplicate hostname, policy rejection, ownership conflict
+RETRY = explicit candidate command with deterministic idempotency key
+ROLLBACK = revoke candidate only; incumbent remains unchanged
+AUDIT_EVENT = domain_replacement_requested|candidate_created|candidate_failed
+TENANT_VISIBILITY = candidate progress plus incumbent identity
+SUPER_ADMIN_VISIBILITY = sanitized diagnostics; tenant mutation only by impersonation
+```
+
+### 6.10 `removal_pending`
+
+```text
+VALID_PREDECESSORS = draft, pending_ownership_verification, ownership_verified, pending_dns_configuration, pending_cloudflare_provisioning, pending_ssl, active, degraded, replacement_pending, failed
+VALID_SUCCESSORS = revoked, failed
+AUTHORIZED_COMMAND = request_domain_removal, continue_domain_cleanup
+AUTHORITY = authorized tenant or impersonated tenant request; cleanup executed server-side
+PERSISTED_EFFECT = close public authority atomically, revoke challenges, remove/disable provider binding and enforce cooldown
+GENERATION_EFFECT = preserves generation as tombstone
+PUBLIC_AUTHORITY = false from entry into the state
+SUCCESS = no public resolver, provider or reusable ownership authority remains
+RECOVERABLE_ERRORS = provider cleanup timeout or transient DNS/provider error
+TERMINAL_ERRORS = deterministic cleanup failure recorded as failed with resume_state=removal_pending
+RETRY = bounded cleanup retry or recover_failed_removal
+ROLLBACK = prohibited after public authority is closed unless an explicit new generation is created
+AUDIT_EVENT = domain_removal_requested|cleanup_attempted|domain_revoked
+TENANT_VISIBILITY = sanitized removal progress
+SUPER_ADMIN_VISIBILITY = cleanup diagnostics; tenant mutation only through impersonation
+```
+
+### 6.11 `failed`
+
+```text
+VALID_PREDECESSORS = draft, pending_ownership_verification, ownership_verified, pending_dns_configuration, pending_cloudflare_provisioning, pending_ssl, degraded, replacement_pending, removal_pending
+VALID_SUCCESSORS = pending_ownership_verification, pending_dns_configuration, pending_cloudflare_provisioning, pending_ssl, removal_pending, revoked
+AUTHORIZED_COMMAND = recover_failed_ownership, recover_failed_dns, recover_failed_provider, recover_failed_ssl, recover_failed_removal, revoke_failed_domain
+AUTHORITY = explicit authorized server command; no implicit retry transition
+PERSISTED_EFFECT = deterministic failure code, sanitized detail and constrained resume_state
+GENERATION_EFFECT = preserves generation unless a separate replacement command creates a new one
+PUBLIC_AUTHORITY = false
+SUCCESS = explicit recovery command validates the exact allowed resume target
+RECOVERABLE_ERRORS = only failure codes classified retryable
+TERMINAL_ERRORS = policy, ownership or security failures classified non-recoverable
+RETRY = explicit, audited and bounded; background worker cannot reopen automatically
+ROLLBACK = cleanup or revocation; no restoration of public authority without full active predicate
+AUDIT_EVENT = domain_failed|domain_recovery_requested|domain_recovery_started
+TENANT_VISIBILITY = safe failure code and permitted action
+SUPER_ADMIN_VISIBILITY = sanitized diagnostics; tenant recovery requires impersonation
+```
+
+### 6.12 `revoked`
+
+```text
+VALID_PREDECESSORS = removal_pending, failed through revoke_failed_domain only
+VALID_SUCCESSORS = none
+AUTHORIZED_COMMAND = finalize_domain_revocation
+AUTHORITY = server after cleanup proof
+PERSISTED_EFFECT = immutable tombstone and cooldown metadata
+GENERATION_EFFECT = terminal generation
+PUBLIC_AUTHORITY = false
+SUCCESS = all public/provider authority removed and cooldown recorded
+RECOVERABLE_ERRORS = none after commit
+TERMINAL_ERRORS = none; this state is terminal
+RETRY = prohibited
+ROLLBACK = prohibited; reuse requires a new request after cooldown and anti-takeover checks
+AUDIT_EVENT = domain_revoked
+TENANT_VISIBILITY = revoked state and cooldown policy
+SUPER_ADMIN_VISIBILITY = immutable audit metadata
+```
+
+## 7. Active predicate
+
+A candidate may become `active` only when all evidence belongs to the same current generation:
+
+```text
+normalized_hostname_valid = true
+global_hostname_reservation_valid = true
 ownership_verified = true
 required_dns_observed = true
 provider_binding_confirmed = true
 ssl_status = active
-canonical_binding_unique = true
+canonical_or_alias_binding_valid = true
 enabled = true
-last_reconciliation_within_policy = true
+last_reconciliation_current_generation_success = true
 ```
 
-A DNS response alone, provider API success alone or certificate issuance alone must never activate the domain.
+DNS success alone, provider API success alone, local configuration state alone or certificate issuance alone never activates a domain.
+
+## 8. Replacement authority
+
+```text
+INCUMBENT_DOMAIN = current active canonical row and generation
+CANDIDATE_DOMAIN = new linked generation created in replacement_pending
+INCUMBENT_PUBLIC_AUTHORITY_DURING_REPLACEMENT = preserved
+CANDIDATE_PUBLIC_AUTHORITY_BEFORE_ATOMIC_SWAP = false
+```
+
+The incumbent remains `active` while the candidate progresses through ownership, DNS, provider and SSL states. Candidate failure never mutates or degrades the incumbent.
+
+The final swap is one server-owned transaction that:
+
+1. revalidates both rows and expected lock versions;
+2. proves the candidate active predicate;
+3. moves canonical and same-tenant alias authority to the candidate;
+4. transitions the candidate from `pending_ssl` to `active`;
+5. transitions the incumbent to `removal_pending` and closes its public authority;
+6. updates `tenants.dominio_principal` as a compatibility projection;
+7. appends correlated audit events;
+8. fails entirely on any constraint or evidence mismatch.
+
+Rollback may restore the incumbent only when its complete evidence remains current and the swap can be reversed atomically. Otherwise the candidate is removed and the incumbent remains unchanged because the swap never commits.
 
 ## 9. Hybrid execution contract
 
-### 9.1 Manual-assisted mode
+### 9.1 `manual_assisted`
 
-- Server generates exact DNS/provider instructions.
-- Tenant or authorized operator performs the external action.
-- Client may request recheck but cannot submit a success status.
-- Server independently queries DNS/provider observation ports.
-- Provider IDs typed by a human are treated as lookup hints only and must be resolved and matched by the server before persistence.
+- The server generates exact instructions.
+- A tenant or authorized operator performs the external action.
+- The client may request recheck but may not assert success.
+- DNS/provider state is independently observed server-side.
+- Human-entered provider identifiers are non-authoritative hints and are never persisted until independently resolved and matched.
 
-### 9.2 API-automated mode
+### 9.2 `api_automated`
 
-- Server selects the enabled provider account and zone using platform policy.
-- Adapter receives canonical server-owned inputs only.
-- Every provider mutation has a deterministic idempotency key.
-- Retries are bounded and operate on the same command/generation.
-- Provider responses are sanitized before persistence/logging.
+- The server selects the provider account and zone through platform policy.
+- Adapter inputs are canonical and server-owned.
+- Every provider mutation uses a deterministic idempotency key.
+- Retries are bounded and remain attached to the same command and generation.
+- Provider output is sanitized before storage or logging.
 
 ### 9.3 Mode changes
 
-Mode change requires an explicit authorized command. It creates a new operation plan or generation where necessary. Provider outage, timeout or rate limit does not silently switch to manual-assisted mode.
+Mode selection is explicit, versioned and audited. A mode change is an authorized command and creates a new operation plan or generation when required. API timeout, failure, rate limit or provider outage never causes silent fallback to `manual_assisted`.
 
-## 10. DNS, canonical host and redirects
+## 10. Import and cutover contract
 
-- TXT ownership challenge and CNAME/target records are modeled separately.
-- DNS observations record resolver, response set, TTL and observation time without treating cache as authority.
-- Canonical hostname is one explicit active row.
-- Apex and `www` aliases are explicit rows and globally unique.
-- Redirects are generated only after both source alias and target canonical binding are active for the same tenant/generation.
-- Cross-tenant redirects are prohibited.
-- Redirect loops and chains longer than one hop are prohibited.
-- Canonical URL generation uses the active canonical binding and HTTPS only.
+### 10.1 Legacy import
 
-## 11. Anti-takeover and removal
+Every non-null `tenants.dominio_principal` value must be normalized and preflighted before mutation. Invalid, duplicate or ambiguous values stop the operation fail-closed.
 
-- Hostname reservation starts before challenge issuance.
-- Challenge is bound to domain ID and generation, expires, rotates and cannot be replayed.
-- A replaced or removed hostname remains tombstoned for a configurable cooldown.
-- Provider custom hostnames are disabled/removed before the reservation is released.
-- Public resolution closes before or atomically with removal.
-- Reconciliation detects dangling DNS, orphaned provider objects, certificate regression and provider binding drift.
-- Reuse after cooldown requires a new ownership challenge and generation.
-
-## 12. Cloudflare adapter port
-
-The domain core depends on a provider-neutral port with operations equivalent to:
+A valid legacy value is imported as:
 
 ```text
-getAccountCapabilities
-resolveZoneForHostname
-createOrGetCustomHostname
-readCustomHostname
-readSslStatus
-disableCustomHostname
-deleteCustomHostname
-readDnsObservation
+status = pending_ownership_verification
+metadata.import_source = tenants.dominio_principal
+metadata.imported_at = server timestamp
+metadata.imported_from_legacy_authority = true
 ```
 
-The Cloudflare implementation is one adapter. Provider-specific payloads and errors do not cross the domain boundary. The adapter must classify timeout, rate limit, authentication failure, permission failure, zone not found, object conflict, validation pending, certificate pending and terminal provider rejection.
+No imported row is marked `active` without current-generation ownership, DNS, provider, SSL, canonical and reconciliation evidence.
 
-## 13. Secrets and credential references
+### 10.2 Ordered cutover
+
+The cutover is separated into:
+
+1. migration and fail-closed backfill;
+2. independent verification of every incumbent hostname that must remain available;
+3. materialization and testing of one active-domain read boundary;
+4. global preflight;
+5. explicit cutover authorization command;
+6. atomic deployment activation of the new resolver without fallback;
+7. removal of `tenants.dominio_principal` as primary authority;
+8. continued maintenance of that field only as a projection.
 
 ```text
-TENANT_CONFIGURATION_MAY_STORE_PROVIDER_SECRET = false
-CLIENT_MAY_READ_CREDENTIAL_REFERENCE = false
-DATABASE_MAY_STORE_PLAINTEXT_API_TOKEN = false
-LOGS_MAY_INCLUDE_SECRET = false
-CI_MAY_USE_REAL_CREDENTIAL = false
+CUTOVER_COMMAND = activate_authoritative_domain_resolution
+CUTOVER_AUTHORITY = global platform operation
+CUTOVER_FAILS_CLOSED = true
+PER_REQUEST_DUAL_QUERY = false
+SILENT_FALLBACK = false
 ```
 
-A global provider account stores an opaque credential reference. Runtime resolves that reference from an approved server secret facility. Rotation changes the secret behind the reference or atomically changes the reference; domain records do not contain the credential.
-
-## 14. Idempotency, concurrency and retry
-
-- Domain commands require `expectedLockVersion`.
-- One current operation lease per domain generation.
-- Idempotency key includes tenant, domain ID, generation and operation type.
-- Provider create is implemented as create-or-read/reconcile, not blind duplicate creation.
-- Retry count, backoff and next-attempt time are persisted.
-- `failed` requires an explicit retry command; workers do not reopen terminal states implicitly.
-- Replacement cutover is atomic: old canonical remains active until the new generation satisfies the full active predicate.
-
-## 15. Failure taxonomy
-
-Minimum stable error codes:
+The command may succeed only when every incumbent hostname that must remain public satisfies:
 
 ```text
-invalid_hostname
-reserved_hostname
-public_suffix_only
-hostname_already_reserved
-hostname_cross_tenant_conflict
-ownership_challenge_expired
-ownership_not_verified
-ownership_observation_mismatch
-dns_record_missing
-dns_record_ambiguous
-dns_propagation_pending
-provider_account_unavailable
-provider_zone_not_found
-provider_authentication_failed
-provider_permission_denied
-provider_rate_limited
-provider_conflict
-provider_rejected
-ssl_pending
-ssl_failed
-state_transition_invalid
-lock_version_conflict
-operation_already_in_progress
-retry_budget_exhausted
-reconciliation_drift_detected
-removal_incomplete
+normalized_hostname_valid = true
+global_uniqueness = true
+current_generation_ownership_verified = true
+dns_evidence_current = true
+provider_binding_current = true
+ssl_status_active = true
+canonical_or_alias_binding_valid = true
+reconciliation_current_generation_success = true
 ```
 
-Tenant responses expose safe codes and guidance. Provider payloads, account IDs, credential references and internal diagnostics remain restricted.
-
-## 16. Observability and audit
-
-Metrics and diagnostics must include:
-
-- count by lifecycle state and execution mode;
-- challenge age and verification attempts;
-- operation queue age, attempts and retry exhaustion;
-- provider latency/rate-limit/auth failures;
-- SSL pending age;
-- active-domain reconciliation age;
-- degraded and orphaned binding counts;
-- manual versus automated completion rate;
-- sanitized correlation IDs.
-
-Every state transition and operator command produces an append-only audit event.
-
-## 17. Rate limiting
-
-Server-side limits apply per actor, tenant, domain and IP where applicable:
-
-- domain requests;
-- challenge rotations;
-- DNS rechecks;
-- provider retries;
-- replacements;
-- removals.
-
-Rate limiting is not delegated to the client and cannot be bypassed by changing identifiers.
-
-## 18. Cutover strategy
-
-1. Preflight all non-null `tenants.dominio_principal` values through the canonical normalizer.
-2. Fail the migration if normalized duplicates, invalid values or ambiguous tenant bindings exist.
-3. Backfill one domain aggregate per valid existing hostname with an explicit imported state that cannot become `active` without current verification/provider/SSL evidence.
-4. Materialize the active-domain server read boundary.
-5. Atomically switch public resolution to that boundary.
-6. Remove direct application writes and direct public authority from `tenants.dominio_principal`.
-7. Keep `tenants.dominio_principal` only as a transactional compatibility projection until a later separately approved cleanup.
-
-No dual-path fallback is permitted during or after cutover.
-
-## 19. Rollback
-
-- Before public cutover: revert code/migration while no external objects have been activated.
-- After provider object creation but before activation: disable/delete provider objects and revoke challenges; public resolution remains unchanged.
-- After active cutover: restore the prior active generation atomically if still valid, otherwise fail closed and serve no tenant for the affected host.
-- Replacement rollback never points a hostname to two tenants or two canonical generations.
-- Database rollback does not imply external rollback; external cleanup must be independently confirmed and audited.
-
-## 20. Future implementation validation
-
-### Deterministic tests
-
-- hostname normalization/IDNA/public suffix cases;
-- exact transition matrix;
-- tenant and Super Admin authorization;
-- no client authority for status/provider IDs;
-- global uniqueness and canonical cardinality;
-- challenge expiry/rotation/replay;
-- idempotency and lock conflicts;
-- manual-assisted observation contract;
-- API adapter create-or-reconcile behavior;
-- bounded retry and failure taxonomy;
-- replacement/removal atomicity;
-- public resolution only for active bindings;
-- alias redirect single-hop/same-tenant rules;
-- secret redaction;
-- no dual-path resolver.
-
-### Integration tests with fakes
-
-- deterministic DNS observation fake;
-- deterministic Cloudflare adapter fake;
-- provider timeout/rate-limit/auth/conflict scenarios;
-- SSL pending-to-active progression;
-- drift reconciliation;
-- outbox/job retry behavior.
-
-### Controlled external proof
-
-DCA-01 cannot reach terminal `Accepted` solely from mocked tests. A later explicitly authorized operation must validate one isolated non-production test domain against real DNS and Cloudflare using Same-Backend Homologation Cell constraints. That proof remains part of DCA-01 and does not create an artificial successor stage.
-
-## 21. Planning result
+If any incumbent fails:
 
 ```text
-DCA01_PLANNING_STATE = Ready for Direct External Audit
-DCA01_IMPLEMENTATION_STATE = Planned — Blocked
+CUTOVER_EXECUTED = false
+OLD_AUTHORITY_REMAINS_UNCHANGED = true
+CUTOVER_STATE = Blocked External or explicit failed preflight
+```
+
+The release must contain one resolver path only. It must never query both `tenant_domains` and `tenants.dominio_principal`, never fall back by request and never select a first row. The previous deployed release remains authoritative until the new exact release is activated; a failed deployment leaves the previous release unchanged.
+
+## 11. Production versus development resolution
+
+```text
+PRODUCTION_CUSTOM_DOMAIN_RESOLUTION = tenant_domains active-domain boundary only
+PRODUCTION_DOMAIN_TO_SLUG_FALLBACK = prohibited
+TENANT_DEFAULT_FALLBACK = prohibited
+PUBLIC_TENANT_DEV_HOST_MAP = development-only explicit authority
+DEVELOPMENT_HOST_MAP_IN_PRODUCTION = prohibited
+DEVELOPMENT_MAP_COUNTS_AS_PRODUCTION_FALLBACK = false
+```
+
+The explicit development/preview host map remains available only after server-side environment classification. A production hostname may never resolve through slug, development mapping or client configuration.
+
+## 12. Redirect contract
+
+Canonical redirects are evaluated in `src/server.ts` before SSR rendering and only after server-owned host normalization.
+
+Requirements:
+
+- source alias and target canonical row are active, same-tenant and same-generation;
+- exact cardinality is one;
+- HTTPS is mandatory;
+- path and query are preserved through URL parsing, not string concatenation;
+- redirect is single-hop;
+- redirect loops and cross-tenant redirects are rejected;
+- ambiguous or invalid aliases fail closed;
+- redirect status is `308` for stable active bindings and no redirect is emitted for non-active state.
+
+## 13. Scheduled execution and reconciliation
+
+The repository-owned executor is `src/server.ts::scheduled` using Cloudflare platform-native scheduled authority. It does not expose a public HTTP trigger.
+
+```text
+AUTHENTICATION = platform-native scheduled authority
+AUTH_FAILURE = fail-closed
+TENANT_INPUT_AUTHORITY = false
+LEASE_REQUIRED = true
+IDEMPOTENCY_REQUIRED = true
+CONCURRENCY_CONTROL = true
+RETRY_LIMIT = explicit per operation taxonomy
+TERMINAL_RESULT = explicit and persisted
+```
+
+The handler may lease and execute only due persisted jobs, must release or expire leases deterministically and must append sanitized attempt and audit records. External Cron configuration remains a separately authorized operation.
+
+Periodic reconciliation detects DNS drift, dangling DNS, orphaned provider objects, SSL regression, stale challenge material and public-resolution mismatch. It never silently changes execution mode or reopens `failed`.
+
+## 14. Anti-takeover controls
+
+- reservation begins before challenge issuance;
+- challenge is temporary, generation-bound, rotatable and anti-replay;
+- provider cleanup precedes hostname release;
+- removed/replaced hostnames remain tombstoned for cooldown;
+- dangling DNS and orphaned custom hostnames are reconciled;
+- hostname reuse requires a new ownership proof after cooldown;
+- aliases are same-tenant, explicit and single-hop;
+- public suffix, wildcard, IP, localhost and reserved names are rejected.
+
+## 15. Secret boundary
+
+```text
+PLAINTEXT_PROVIDER_SECRET_IN_DATABASE = prohibited
+TENANT_CONFIGURATION_SECRET = prohibited
+CLIENT_CREDENTIAL_REFERENCE_VISIBILITY = prohibited
+REAL_CREDENTIAL_IN_CI = prohibited
+LOG_SECRET_EXPOSURE = prohibited
+```
+
+`domain_provider_accounts.credential_reference` is an opaque server-side locator only. The adapter resolves it through the deployment secret facility at execution time. The reference is redacted from tenant DTOs, browser payloads, ordinary logs and public diagnostics.
+
+## 16. Deterministic test obligations
+
+The future implementation must cover at minimum:
+
+1. hostname normalization and IDNA;
+2. public-suffix and reserved-domain rejection;
+3. complete enum and explicitly enumerated predecessors;
+4. absence of persisted states outside the enum;
+5. tenant authority and Super Admin impersonation;
+6. challenge expiry, rotation and replay prevention;
+7. global hostname uniqueness and canonical uniqueness;
+8. valid legacy import into `pending_ownership_verification`;
+9. cutover blocked by any unready incumbent;
+10. preservation of old authority when preflight fails;
+11. cutover without dual query or fallback;
+12. incumbent authority during replacement;
+13. candidate failure without incumbent mutation;
+14. atomic canonical and alias swap;
+15. provider errors, retry, lease and idempotency;
+16. removal, cooldown and orphan cleanup;
+17. active-domain public resolver cardinality;
+18. canonical redirect, loop prevention and same-tenant enforcement;
+19. scheduled handler fail-closed behavior;
+20. development map isolation from production;
+21. secret and credential-reference redaction;
+22. `FILES_ALLOWED` completeness;
+23. operator and credential-incident runbook presence;
+24. migration cutover without request-time dual path.
+
+## 17. External proof gate
+
+Terminal DCA-01 acceptance requires a separately authorized controlled proof using:
+
+- a non-production test domain;
+- Same-Backend Homologation Cell;
+- server-held temporary credentials where API mode is tested;
+- evidence for ownership, DNS, provider binding, SSL, canonical redirect, reconciliation and cleanup;
+- credential and log redaction review;
+- explicit teardown and orphan check.
+
+The planning PR and its correction do not authorize this proof.
+
+## 18. Risk and rollback
+
+Material risks are domain takeover, cross-tenant resolution, authority ambiguity, certificate regression, provider drift, stale challenge reuse, secret leakage and cutover outage.
+
+Controls are global uniqueness, closed transitions, current-generation composite evidence, explicit impersonation, opaque credential references, deterministic jobs, periodic reconciliation, atomic candidate/incumbent swap and fail-closed global cutover.
+
+Repository rollback may revert unmerged code and migration artifacts. Once external provider or DNS mutation is separately authorized, rollback must be compensating and audit-preserving rather than destructive.
+
+## 19. Planning conclusion
+
+This corrected planning closes the previously identified gaps:
+
+- no undefined imported status;
+- no open predecessor expressions;
+- incumbent and replacement candidate are distinct;
+- cutover requires all incumbents ready and preserves old authority on failure;
+- `src/server.ts` is the exact redirect and scheduled-executor boundary;
+- runbooks are mandatory implementation deliverables;
+- production resolution and the development host map are explicitly separated.
+
+```text
+DCA01_PLANNING_STATE = Ready for Direct External Re-Audit
+DCA01_ARCHITECTURE_FIRST_COMPLETE = submitted_for_re_audit
+DCA01_PLANNING_MERGE_READY = false
+DCA01_PLANNING_MERGE_AUTHORIZED = false
 DCA01_IMPLEMENTATION_AUTHORIZED = false
 DCA01_IMPLEMENTATION_STARTED = false
-CLOUDFLARE_API_CALL_EXECUTED = false
-DNS_MUTATION_EXECUTED = false
-TXT_RECORD_CREATED = false
-CUSTOM_HOSTNAME_CREATED = false
-SSL_PROVISIONING_EXECUTED = false
-REAL_SECRET_USED = false
-LIVE_DOMAIN_VERIFIED = false
-DEPLOY_EXECUTED = false
-MANAGED_MIGRATION_EXECUTED = false
-BCA01_STARTED = false
-PRM3_STARTED = false
 NEXT_STAGE_AUTHORIZED = none
 ```
