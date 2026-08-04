@@ -2,13 +2,14 @@
 
 ## Status
 
-**Implementation in progress — principal draft PR validation pending**
+**Implementation in progress — principal draft PR validation running**
 
 ```text
 STAGE_ID = DCA-01
 IMPLEMENTATION_BASELINE_MAIN = 623f94f98174478af19b130cda9896c64f256f14
 IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
-IMPLEMENTATION_PR = pending creation
+IMPLEMENTATION_PR = 65
+IMPLEMENTATION_PR_DRAFT = true
 AUTO_MERGE = false
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
@@ -47,7 +48,33 @@ PLAINTEXT_PROVIDER_SECRET_STORAGE = false
 PUBLIC_HTTP_JOB_TRIGGER = false
 ```
 
-The exact branch Release Gate is the authority for the final assertion count, typecheck and build status. Earlier local assertion counts are development evidence only and are not terminal acceptance evidence.
+## Exact-head gate history
+
+### Initial draft head
+
+```text
+HEAD = 86d6e2543472fe136eccee062052fe1152031295
+RELEASE_GATE = failure
+EXACT_HEAD_CHECKOUT = passed
+PREDECESSOR_TESTS_REACHED = all passed through PR-M2 analytics/tracking
+DCA01_TEST_RESULT = failed before build/typecheck
+ROOT_CAUSE = test matcher treated an audited RPC parameter as direct table persistence
+DIRECT_PROVIDER_TABLE_MUTATION_FOUND = false
+BUILD_REACHED = false
+TYPECHECK_REACHED = false
+```
+
+The failure was a test-predicate false positive. `super-domain.functions.ts` invokes audited server RPCs and does not perform direct `.from("domain_provider_accounts").insert/update/upsert` mutation. The credential reference remains schema-validated, opaque and redacted.
+
+### Current validation head
+
+```text
+HEAD = 50e1666f8d8cac3d2e0b372754268208802d93c1
+CHANGE = disambiguate audited credential-reference transport without changing authority
+RELEASE_GATE = pending
+```
+
+The exact PR Release Gate is the authority for final assertion count, typecheck and build status. Earlier local assertion counts are development evidence only and are not terminal acceptance evidence.
 
 ## Migration boundary
 
@@ -59,7 +86,17 @@ supabase/migrations/20260804180000_dca_01_domain_cloudflare_activation.sql
 
 It creates the closed domain schema, RLS-enabled tables, explicit grants and server RPCs. A server-generated legacy import manifest is mandatory when `tenants.dominio_principal` contains non-empty values. The migration validates exact tenant cardinality, normalized-host uniqueness and a SHA-256 binding to each legacy source value. It does not derive registrable domains heuristically in SQL.
 
-The migration has been committed to the implementation branch but has not been applied to a managed database.
+```text
+LOCAL_DEVELOPMENT_MIGRATION_BLOB = d4ca60f07bfb854aea823905d59dee772b1aecc5
+REMOTE_BRANCH_MIGRATION_BLOB = 61d9e86cbbafe5f4a91017081d8b2f652847faf9
+BYTE_EQUIVALENCE_CONFIRMED = false
+REMOTE_LINE_COUNT = 1490
+EXACT_BRANCH_RELEASE_GATE = pending
+```
+
+The remote migration has the expected 1,490-line structure, but byte equivalence to the local development artifact has not yet been proven. This remains a non-terminal implementation gate and is not terminal acceptance evidence.
+
+The migration has not been applied to a managed database.
 
 ## External operations
 
