@@ -9,8 +9,10 @@ import {
   getTenantDomain,
   listDomainOperationFailures,
   listProviderAccountHealth,
+  transitionTenantDomain,
 } from "@/lib/domains/domain-repository.server";
 import { assertDomainCutoverReady } from "@/lib/domains/domain-reconciliation.server";
+import type { DomainOperationType, TenantDomainRecord } from "@/lib/domains/domain-contracts";
 import { DomainError, sanitizeDomainDetail, toSafeDomainError } from "@/lib/domains/domain-errors";
 import { normalizeDomainHostname } from "@/lib/domains/domain-normalization";
 
@@ -26,6 +28,21 @@ const credentialSchema = providerIdSchema.extend({
   credentialReference: z.string().regex(/^env:[A-Z][A-Z0-9_]{2,127}$/).max(132),
 }).strict();
 const trustedTenant = (context: any) => ({ userId: context.userId as string, tenant: context.tenant });
+
+function nextRetryOperation(domain: TenantDomainRecord): DomainOperationType {
+  switch (domain.status) {
+    case "pending_ownership_verification": return "observe_ownership_dns";
+    case "ownership_verified": return "prepare_dns_configuration";
+    case "pending_dns_configuration": return "observe_required_dns";
+    case "pending_cloudflare_provisioning": return "provision_provider_binding";
+    case "pending_ssl":
+    case "active":
+    case "degraded": return "reconcile_domain";
+    case "removal_pending": return "cleanup_domain";
+    default:
+      throw new DomainError("domain_transition_forbidden", `No deterministic retry operation exists for ${domain.status}`);
+  }
+}
 
 export const registerCloudflareProviderAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -142,18 +159,23 @@ export const retryDomainOperationAsImpersonatedTenant = createServerFn({ method:
     if (!authority.isSuperAdmin || authority.origin !== "impersonation") {
       throw new DomainError("domain_authority_denied", "Explicit Super Admin impersonation is required");
     }
-    const domain = await getTenantDomain(authority.tenantId, data.domainId);
-    const operationType = domain.status === "pending_ownership_verification" ? "observe_ownership_dns"
-      : domain.status === "ownership_verified" ? "prepare_dns_configuration"
-      : domain.status === "pending_dns_configuration" ? "observe_required_dns"
-      : domain.status === "pending_cloudflare_provisioning" ? "provision_provider_binding"
-      : domain.status === "removal_pending" ? "cleanup_domain"
-      : "reconcile_domain";
+    let domain = await getTenantDomain(authority.tenantId, data.domainId);
+    if (domain.status === "failed") {
+      if (!domain.resumeState || domain.resumeState === "failed" || domain.resumeState === "revoked") {
+        throw new DomainError("domain_transition_forbidden", "Failed domain has no explicit recoverable resume state");
+      }
+      domain = await transitionTenantDomain({
+        authority,
+        domain,
+        to: domain.resumeState,
+        recoveryTarget: domain.resumeState,
+      });
+    }
     return enqueueDomainJob({
       authority,
       domain,
-      operationType,
-      payload: { impersonatedRetryRequestedAt: new Date().toISOString() },
+      operationType: nextRetryOperation(domain),
+      payload: { impersonatedRetryRequestedAt: new Date().toISOString(), recoveredFromFailed: true },
     });
   });
 
