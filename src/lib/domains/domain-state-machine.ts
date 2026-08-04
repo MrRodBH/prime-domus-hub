@@ -11,7 +11,6 @@ export const DOMAIN_TRANSITIONS: Readonly<Record<DomainActivationStatus, readonl
   pending_ownership_verification: ["ownership_verified", "removal_pending", "failed"],
   ownership_verified: ["pending_dns_configuration", "removal_pending", "failed"],
   pending_dns_configuration: ["pending_cloudflare_provisioning", "removal_pending", "failed"],
-  pending_cloudflare_provisioning: ["pending_ssl", "removal_pending", "failed"],
   pending_ssl: ["active", "removal_pending", "failed"],
   active: ["degraded", "removal_pending"],
   degraded: ["active", "pending_cloudflare_provisioning", "pending_ssl", "removal_pending", "failed"],
@@ -28,17 +27,15 @@ export const DOMAIN_TRANSITIONS: Readonly<Record<DomainActivationStatus, readonl
   revoked: [],
 });
 
-export const DOMAIN_PREDECESSORS: Readonly<Record<DomainActivationStatus, readonly DomainActivationStatus[]>> = Object.freeze(
-  DOMAIN_ACTIVATION_STATUSES.reduce<Record<DomainActivationStatus, readonly DomainActivationStatus[]>>(
-    (accumulator, status) => {
-      accumulator[status] = DOMAIN_ACTIVATION_STATUSES.filter((candidate) =>
-        DOMAIN_TRANSITIONS[candidate].includes(status),
-      );
-      return accumulator;
-    },
-    {} as Record<DomainActivationStatus, readonly DomainActivationStatus[]>,
-  ),
-);
+const domainPredecessors = {} as Record<DomainActivationStatus, readonly DomainActivationStatus[]>;
+for (const status of DOMAIN_ACTIVATION_STATUSES) {
+  domainPredecessors[status] = DOMAIN_ACTIVATION_STATUSES.filter((candidate) =>
+    DOMAIN_TRANSITIONS[candidate].includes(status),
+  );
+}
+
+export const DOMAIN_PREDECESSORS: Readonly<Record<DomainActivationStatus, readonly DomainActivationStatus[]>> =
+  Object.freeze(domainPredecessors);
 
 export const STATUS_PRESERVING_DOMAIN_COMMANDS = Object.freeze([
   "issue_ownership_challenge",
