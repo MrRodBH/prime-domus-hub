@@ -47,16 +47,13 @@ export const registerCloudflareProviderAccount = createServerFn({ method: "POST"
       throw new DomainError("domain_provider_configuration_invalid", "At least one server-owned zone binding is required");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await (supabaseAdmin as any).from("domain_provider_accounts").upsert({
-      provider_code: "cloudflare",
-      account_identifier: data.accountIdentifier,
-      credential_reference: data.credentialReference,
-      enabled: true,
-      capabilities: { zones: normalizedZones, custom_hostnames: true, ssl_observation: true },
-      health_status: "unknown",
-      health_detail_sanitized: { reason: "provider_account_registered" },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "provider_code,account_identifier" }).select("id, provider_code, account_identifier, enabled, capabilities, health_status");
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("register_domain_provider_account", {
+      _account_identifier: data.accountIdentifier,
+      _credential_reference: data.credentialReference,
+      _zones: normalizedZones,
+      _actor_user_id: context.userId,
+      _authority_origin: "super_admin",
+    });
     if (error) throw toSafeDomainError(error);
     if (!rows || rows.length !== 1) throw new DomainError("domain_ambiguous", "Provider account was not resolved exactly once");
     return { ...rows[0], credentialReference: "[redacted]" };
@@ -109,12 +106,12 @@ export const rotateProviderCredentialReference = createServerFn({ method: "POST"
   .handler(async ({ context, data }) => {
     await assertGlobalSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await (supabaseAdmin as any).from("domain_provider_accounts").update({
-      credential_reference: data.credentialReference,
-      health_status: "unknown",
-      health_detail_sanitized: { reason: "credential_reference_rotated" },
-      updated_at: new Date().toISOString(),
-    }).eq("id", data.providerAccountId).select("id");
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("rotate_domain_provider_credential_reference", {
+      _provider_account_id: data.providerAccountId,
+      _credential_reference: data.credentialReference,
+      _actor_user_id: context.userId,
+      _authority_origin: "super_admin",
+    });
     if (error) throw toSafeDomainError(error);
     if (!rows || rows.length !== 1) throw new DomainError("domain_not_found", "Provider account was not resolved exactly once");
     return { updated: true, credentialReference: "[redacted]" };
@@ -126,12 +123,12 @@ export const setProviderAccountAvailability = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertGlobalSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await (supabaseAdmin as any).from("domain_provider_accounts").update({
-      enabled: data.enabled,
-      health_status: data.enabled ? "unknown" : "disabled",
-      health_detail_sanitized: { reason: data.enabled ? "explicit_enable" : "explicit_disable" },
-      updated_at: new Date().toISOString(),
-    }).eq("id", data.providerAccountId).select("id");
+    const { data: rows, error } = await (supabaseAdmin as any).rpc("set_domain_provider_account_availability", {
+      _provider_account_id: data.providerAccountId,
+      _enabled: data.enabled,
+      _actor_user_id: context.userId,
+      _authority_origin: "super_admin",
+    });
     if (error) throw toSafeDomainError(error);
     if (!rows || rows.length !== 1) throw new DomainError("domain_not_found", "Provider account was not resolved exactly once");
     return { updated: true, enabled: data.enabled };
