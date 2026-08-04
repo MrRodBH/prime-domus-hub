@@ -134,19 +134,19 @@ export function selectExactlyOneTenant(
   return rows?.length === 1 ? rows[0] : null;
 }
 
-function selectExactlyOneResolvedDomain(rows: any[] | null | undefined): PublicTenantIdentity | ActivePublicDomainIdentity | null {
+function selectExactlyOneResolvedDomain(rows: any[] | null | undefined): ActivePublicDomainIdentity | null {
   if (!rows || rows.length !== 1) return null;
   const row = rows[0];
-  if (!row.tenant_id || !row.tenant_slug || !row.tenant_name) return null;
-  if (row.authority_mode === "legacy") {
-    if (row.domain_id !== null || Number(row.generation) !== 0) return null;
-    return { id: row.tenant_id, slug: row.tenant_slug, nome: row.tenant_name };
-  }
   if (row.authority_mode !== "tenant_domains"
+    || !row.tenant_id
+    || !row.tenant_slug
+    || !row.tenant_name
     || !row.domain_id
     || !row.hostname
     || !row.canonical_hostname
-    || !["canonical", "alias"].includes(row.hostname_kind)) {
+    || !["canonical", "alias"].includes(row.hostname_kind)
+    || !Number.isSafeInteger(Number(row.generation))
+    || Number(row.generation) < 1) {
     return null;
   }
   return {
@@ -192,7 +192,10 @@ export async function resolveCanonicalRedirectByHost(
   if (!result.data || result.data.length === 0) return null;
   if (result.data.length !== 1) throw new Error("Canonical redirect resolution is ambiguous");
   const row = result.data[0];
-  if (row.alias_hostname !== authority.domain || row.alias_hostname === row.canonical_hostname) {
+  if (row.alias_hostname !== authority.domain
+    || row.alias_hostname === row.canonical_hostname
+    || !Number.isSafeInteger(Number(row.generation))
+    || Number(row.generation) < 1) {
     throw new Error("Canonical redirect contract violation");
   }
   return {
