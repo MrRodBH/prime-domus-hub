@@ -1,0 +1,6 @@
+import { PUBLIC_SUFFIX_RULES_06_01 } from "./part-06-01";
+import { PUBLIC_SUFFIX_RULES_06_02 } from "./part-06-02";
+import { PUBLIC_SUFFIX_RULES_06_03 } from "./part-06-03";
+import { PUBLIC_SUFFIX_RULES_06_04 } from "./part-06-04";
+
+export const PUBLIC_SUFFIX_RULES_06 = [...PUBLIC_SUFFIX_RULES_06_01, ...PUBLIC_SUFFIX_RULES_06_02, ...PUBLIC_SUFFIX_RULES_06_03, ...PUBLIC_SUFFIX_RULES_06_04];
