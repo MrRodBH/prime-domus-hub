@@ -1,0 +1,34 @@
+// Generated from the official Public Suffix List snapshot. Do not edit manually.
+export const PUBLIC_SUFFIX_RULES_08_04 = `zama.kanagawa.jp
+zamami.okinawa.jp
+zao.miyagi.jp
+zap.cloud
+zaporizhzhe.ua
+zaporizhzhia.ua
+zappos
+zapto.org
+zara
+zarow.pl
+zeabur.app
+zentsuji.kagawa.jp
+zero
+zgierz.pl
+zgora.pl
+zgorzelec.pl
+zhitomir.ua
+zhytomyr.ua
+zicp.fun
+zip
+zj.cn
+zlg.br
+zm
+zombie.jp
+zone
+zone.id
+zp.gov.pl
+zp.ua
+zpisdn.gov.pl
+zt.ua
+zuerich
+zushi.kanagawa.jp
+zw`.split("\n").filter(Boolean);
