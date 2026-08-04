@@ -11,6 +11,7 @@ export const DOMAIN_TRANSITIONS: Readonly<Record<DomainActivationStatus, readonl
   pending_ownership_verification: ["ownership_verified", "removal_pending", "failed"],
   ownership_verified: ["pending_dns_configuration", "removal_pending", "failed"],
   pending_dns_configuration: ["pending_cloudflare_provisioning", "removal_pending", "failed"],
+  pending_cloudflare_provisioning: ["pending_ssl", "removal_pending", "failed"],
   pending_ssl: ["active", "removal_pending", "failed"],
   active: ["degraded", "removal_pending"],
   degraded: ["active", "pending_cloudflare_provisioning", "pending_ssl", "removal_pending", "failed"],
