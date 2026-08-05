@@ -87,11 +87,7 @@ jobs:
           else
             : > .wri01-entry-preview.txt
           fi
-          if [ -f wrangler.jsonc ]; then
-            cp wrangler.jsonc .wri01-root-wrangler.jsonc
-          else
-            : > .wri01-root-wrangler.jsonc
-          fi
+          cp wrangler.jsonc .wri01-root-wrangler.jsonc
           if [ -f dist/server/wrangler.json ]; then
             cp dist/server/wrangler.json .wri01-generated-wrangler.json
           else
@@ -99,12 +95,8 @@ jobs:
           fi
           server_count=0
           client_count=0
-          if [ -d dist/server ]; then
-            server_count="$(find dist/server -type f | wc -l | tr -d ' ')"
-          fi
-          if [ -d dist/client ]; then
-            client_count="$(find dist/client -type f | wc -l | tr -d ' ')"
-          fi
+          if [ -d dist/server ]; then server_count="$(find dist/server -type f | wc -l | tr -d ' ')"; fi
+          if [ -d dist/client ]; then client_count="$(find dist/client -type f | wc -l | tr -d ' ')"; fi
           {
             printf 'HEAD=%s\n' "${{ github.event.pull_request.head.sha || github.sha }}"
             for pair in \
@@ -117,11 +109,7 @@ jobs:
               "DOT_OUTPUT_EXISTS:.output"; do
               name="${pair%%:*}"
               path="${pair#*:}"
-              if [ -e "${path}" ]; then
-                printf '%s=true\n' "${name}"
-              else
-                printf '%s=false\n' "${name}"
-              fi
+              if [ -e "${path}" ]; then printf '%s=true\n' "${name}"; else printf '%s=false\n' "${name}"; fi
             done
             printf 'SERVER_FILE_COUNT=%s\n' "${server_count}"
             printf 'CLIENT_FILE_COUNT=%s\n' "${client_count}"
@@ -153,7 +141,12 @@ jobs:
         shell: bash
         run: |
           set +e
-          bun run wri01:dry-run > .wri01-dry-run.log 2>&1
+          bunx wrangler@4.114.0 deploy \
+            --config dist/server/wrangler.json \
+            --dry-run \
+            --outdir ../../../.wri01-dry-run \
+            --env homologation \
+            > .wri01-dry-run.log 2>&1
           status=$?
           printf 'WRANGLER_DRY_RUN_EXIT_CODE=%s\n' "${status}" > .wri01-dry-run-facts.txt
           if [ -d .wri01-dry-run ]; then
@@ -184,6 +177,7 @@ jobs:
           set -euo pipefail
           LOG_FILE="${RUNNER_TEMP}/wri01-workerd.log"
           bunx wrangler@4.114.0 dev \
+            --config dist/server/wrangler.json \
             --local \
             --test-scheduled \
             --env homologation \
@@ -200,20 +194,11 @@ jobs:
           trap cleanup EXIT
           READY=false
           for _ in $(seq 1 45); do
-            if grep -Eq "Ready on|Ready at|Listening" "${LOG_FILE}"; then
-              READY=true
-              break
-            fi
-            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then
-              cat "${LOG_FILE}"
-              exit 1
-            fi
+            if grep -Eq "Ready on|Ready at|Listening" "${LOG_FILE}"; then READY=true; break; fi
+            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then cat "${LOG_FILE}"; exit 1; fi
             sleep 1
           done
-          if [ "${READY}" != "true" ]; then
-            cat "${LOG_FILE}"
-            exit 1
-          fi
+          if [ "${READY}" != "true" ]; then cat "${LOG_FILE}"; exit 1; fi
           curl --fail-with-body --silent --show-error \
             "http://127.0.0.1:8788/__scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A" \
             -o "${RUNNER_TEMP}/wri01-scheduled-response.txt"
