@@ -197,14 +197,12 @@ jobs:
 
           READY=false
           PROCESS_EXITED_BEFORE_READY=false
-          READY_HTTP_CODE=000
           for _ in $(seq 1 60); do
             if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then
               PROCESS_EXITED_BEFORE_READY=true
               break
             fi
-            READY_HTTP_CODE="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 2 http://127.0.0.1:8788/ 2>/dev/null)"
-            if [ "${READY_HTTP_CODE}" != "000" ]; then
+            if grep -Eq "Ready on http://(localhost|127\.0\.0\.1):8788" "${LOG_FILE}"; then
               READY=true
               break
             fi
@@ -220,7 +218,7 @@ jobs:
               --output "${RESPONSE_FILE}" \
               --write-out '%{http_code}' \
               --max-time 30 \
-              "http://127.0.0.1:8788/__scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A")"
+              "http://127.0.0.1:8788/cdn-cgi/handler/scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A&format=json")"
             CURL_EXIT_CODE=$?
           fi
 
@@ -244,8 +242,9 @@ jobs:
           cp "${RESPONSE_FILE}" .wri01-scheduled-response.txt
           {
             printf 'READY=%s\n' "${READY}"
-            printf 'READY_HTTP_CODE=%s\n' "${READY_HTTP_CODE}"
+            printf 'READY_SOURCE=wrangler_log\n'
             printf 'PROCESS_EXITED_BEFORE_READY=%s\n' "${PROCESS_EXITED_BEFORE_READY}"
+            printf 'SCHEDULED_ENDPOINT=/cdn-cgi/handler/scheduled\n'
             printf 'SCHEDULED_HTTP_CODE=%s\n' "${SCHEDULED_HTTP_CODE}"
             printf 'CURL_EXIT_CODE=%s\n' "${CURL_EXIT_CODE}"
             printf 'SCHEDULED_LOG_EVIDENCE=%s\n' "${SCHEDULED_LOG_EVIDENCE}"
@@ -254,6 +253,7 @@ jobs:
 
           cat .wri01-workerd.log
           cat .wri01-workerd-facts.txt
+          cat .wri01-scheduled-response.txt
 
           if [ "${READY}" != "true" ]; then exit 1; fi
           if [ "${CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
