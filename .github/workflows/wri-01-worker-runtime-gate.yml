@@ -145,7 +145,6 @@ jobs:
             --config dist/server/wrangler.json \
             --dry-run \
             --outdir ../../../.wri01-dry-run \
-            --env homologation \
             > .wri01-dry-run.log 2>&1
           status=$?
           printf 'WRANGLER_DRY_RUN_EXIT_CODE=%s\n' "${status}" > .wri01-dry-run-facts.txt
@@ -180,7 +179,6 @@ jobs:
             --config dist/server/wrangler.json \
             --local \
             --test-scheduled \
-            --env homologation \
             --port 8788 \
             --var SUPABASE_URL:http://127.0.0.1:9 \
             --var SUPABASE_SERVICE_ROLE_KEY:wri01-local-proof \
