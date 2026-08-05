@@ -24,6 +24,11 @@ export default defineConfig({
   vite: {
     nitro: {
       plugins: [wri01RuntimePlugin],
+      output: {
+        dir: "dist",
+        serverDir: "dist/server",
+        publicDir: "dist/client",
+      },
     },
   },
 });
