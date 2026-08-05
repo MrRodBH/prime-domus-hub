@@ -67,6 +67,15 @@ jobs:
       - name: Compiled Worker bundle audit
         run: bun run wri01:bundle-audit
 
+      - name: Preserve bundle-audit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wri-01-bundle-audit-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .wri01-bundle-audit-diagnostic.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Wrangler deterministic dry-run
         run: bun run wri01:dry-run
 
