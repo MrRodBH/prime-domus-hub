@@ -136,6 +136,7 @@ jobs:
             .wri01-entry-preview.txt
             .wri01-root-wrangler.jsonc
             .wri01-bundle-audit-diagnostic.json
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
 
