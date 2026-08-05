@@ -1,8 +1,9 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — WRI-01 planning Accepted / Merged / Closed; implementation blocked pending explicit authorization
+**Status:** Ratificado — WRI-01 implementation Accepted — Ready for Product Owner Merge Decision; PR #70 open, draft and unmerged
 **Authority:** Single Source of Future Evolution
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
+**Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 
 ## Current authority
 
@@ -32,23 +33,34 @@ WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
 WRI01_SELECTED_STRATEGY = Strategy A
-WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
-WRI01_IMPLEMENTATION_AUTHORIZED = false
-WRI01_IMPLEMENTATION_STARTED = false
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_AUTHORIZED = true
+WRI01_IMPLEMENTATION_STARTED = true
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
+WRI01_PR_OPEN = true
+WRI01_PR_DRAFT = true
+WRI01_PR_MERGED = false
+WRI01_AUTO_MERGE_ENABLED = false
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
 
 BCA01_STATE = Planned — Blocked by DCA-01 and WRI-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
 CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
 CRON_TRIGGER_CREATED = false
 CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
 SSL_PROVISIONING_EXECUTED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 AUTO_MERGE_ENABLED = false
@@ -100,6 +112,37 @@ SERVER_MODULE_FILES = 381
 ```
 
 This evidence invalidates the prior assumption that source presence alone proved a platform-native scheduler. DCA-01 cannot continue to external proof while the compiled scheduler is unreachable or the request boundary lacks authoritative Cloudflare runtime context.
+
+## WRI-01 accepted repository evidence
+
+PR #70 repairs the compiled-runtime defect while preserving Strategy A. The exact implementation code HEAD `cba0d1756d596c44b993b95e8288ea4474b326a0` proved:
+
+```text
+WRI01_WORKFLOW_RUN = 31051403004
+RELEASE_GATE_RUN = 31051402682
+PRM2_GATE_RUN = 31051402593
+FROZEN_INSTALL = passed
+WRI01_DETERMINISTIC_ASSERTIONS = 57
+DCA01_REGRESSION_ASSERTIONS = 174
+EXACT_BUILD = passed
+TYPECHECK = passed
+WRANGLER_DRY_RUN_EXIT_CODE = 0
+WORKER_ENTRY = dist/server/index.mjs
+STATIC_ASSETS = dist/client
+DEFAULT_EXPORT_COUNT = 1
+FETCH_REACHABLE = true
+SCHEDULED_REACHABLE = true
+CLOUDFLARE_SCHEDULED_HOOK_REACHABLE = true
+SERVER_UNCOMPRESSED_BYTES = 8797258
+SERVER_TEXT_GZIP_BYTES = 1855352
+REACHABLE_MODULE_COUNT = 355
+LOCAL_WORKERD_READY = true
+FETCH_CONTEXT_NEGATIVE_PATH_PROVED = true
+FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED = true
+ZERO_ORPHAN_PROCESSES_PROVED = true
+```
+
+Repository acceptance does not authorize deploy, managed migration, DNS, route, remote Cron Trigger, fallback-origin activation, Custom Hostname creation or DCA-01 external proof.
 
 ## WRI-01 architecture decision
 
@@ -214,6 +257,7 @@ The original rejected DCA-01 planning submission remains historical at `b6974aac
 ## WRI-01 protected planning merge reconciliation
 
 ```text
+AUTHORITY_SCOPE = historical_planning_snapshot
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted / Merged / Closed — planning-only; implementation blocked pending explicit Product Owner authorization**
+**Planning Accepted / Merged / Closed; implementation Accepted — Ready for Product Owner Merge Decision; PR #70 open, draft and unmerged**
 
 ```text
 STAGE_ID = WRI-01
@@ -10,7 +10,12 @@ STAGE_NAME = Cloudflare Worker Runtime Integration
 STAGE_TYPE = finite_runtime_integration_recovery_gate
 PLANNING_BASELINE_MAIN = 9157f1e19e455d20b8272951bed25eb8ddd0572d
 PREDECESSOR = DCA-01 Worker Runtime Preflight — Rejected
-IMPLEMENTATION_STARTED = false
+IMPLEMENTATION_STARTED = true
+IMPLEMENTATION_AUTHORIZED = true
+IMPLEMENTATION_PR = 70
+IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
+IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+IMPLEMENTATION_AUDIT = Accepted
 DEPLOY_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
 CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
@@ -428,9 +433,10 @@ External rollback order:
 
 No rollback may restore tenant-default or legacy request-time fallback logic.
 
-## 17. Planning conclusion
+## 17. Planning conclusion — historical snapshot
 
 ```text
+AUTHORITY_SCOPE = historical_planning_snapshot
 SELECTED_STRATEGY = A
 SINGLE_BUILD_AUTHORITY = @lovable.dev/vite-tanstack-config + Nitro cloudflare-module
 SINGLE_DEPLOY_AUTHORITY = versioned wrangler.jsonc
@@ -449,7 +455,7 @@ PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-WRI-01 planning is Accepted / Merged / Closed. Implementation remains blocked until a separate explicit Product Owner authorization.
+At planning closure, implementation remained blocked until separate Product Owner authorization. That historical condition was later satisfied; current implementation authority is recorded in section 20.
 
 ## 18. Normative references
 
@@ -462,6 +468,7 @@ WRI-01 planning is Accepted / Merged / Closed. Implementation remains blocked un
 ## 19. Protected planning merge reconciliation
 
 ```text
+AUTHORITY_SCOPE = historical_planning_snapshot
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
@@ -480,3 +487,44 @@ NO_AUTOMATIC_SUCCESSOR = true
 ```
 
 No runtime, deploy, migration, DNS, Worker Route, Cron Trigger, Custom Hostname, fallback-origin activation, provider API operation, BCA-01 or PR-M3 was executed by the planning merge or this reconciliation.
+
+## 20. Implementation exact-head audit
+
+The accepted implementation is PR #70 at code HEAD `cba0d1756d596c44b993b95e8288ea4474b326a0`, based directly on `main@fc7ceb19a7389364aa69c5d5b6f33c8b478d3625` with no concurrent-main divergence.
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
+SELECTED_STRATEGY = Strategy A
+SINGLE_BUILD_PIPELINE = true
+SINGLE_WORKER_ENTRY = true
+SINGLE_ASSETS_AUTHORITY = true
+SINGLE_BINDINGS_AUTHORITY = true
+SINGLE_RUNTIME_CONTEXT_BRIDGE = true
+SCHEDULED_HOOK_CONSUMER_COUNT = 1
+PUBLIC_HTTP_SCHEDULER_ROUTE = false
+WRI01_WORKFLOW_RUN = 31051403004
+RELEASE_GATE_RUN = 31051402682
+PRM2_GATE_RUN = 31051402593
+WRANGLER_DRY_RUN_EXIT_CODE = 0
+SERVER_TEXT_GZIP_BYTES = 1855352
+LOCAL_WORKERD_READY = true
+FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED = true
+ZERO_ORPHAN_PROCESSES_PROVED = true
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
+```
+
+The prior Cloudflare fallback observation `Pending Deployment (Error)` has not been replaced by direct provider evidence. Fallback Origin, wildcard route and Custom Hostname remain external prerequisites for a separately authorized DCA-01 proof; they are not WRI-01 repository defects and were not mutated in this execution.

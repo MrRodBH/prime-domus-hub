@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted / Merged / Closed — planning contract; implementation not authorized**
+**Planning Accepted / Merged / Closed; implementation Accepted — Ready for Product Owner Merge Decision; PR #70 open, draft and unmerged**
 
 ```text
 STAGE_ID = WRI-01
@@ -14,8 +14,12 @@ PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 PLANNING_AUDIT = Accepted
 PREDECESSOR = DCA-01 Worker Runtime Preflight — Rejected
 SELECTED_STRATEGY = A
-IMPLEMENTATION_AUTHORIZED = false
-IMPLEMENTATION_STARTED = false
+IMPLEMENTATION_AUTHORIZED = true
+IMPLEMENTATION_STARTED = true
+IMPLEMENTATION_PR = 70
+IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
+IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+IMPLEMENTATION_AUDIT = Accepted
 AUTO_MERGE = false
 ```
 
@@ -508,18 +512,24 @@ WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
-WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
-WRI01_IMPLEMENTATION_AUTHORIZED = false
-WRI01_IMPLEMENTATION_STARTED = false
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_AUTHORIZED = true
+WRI01_IMPLEMENTATION_STARTED = true
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
+NEXT_STAGE_AUTHORIZED = none
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
 PRODUCTION_CUTOVER_EXECUTED = false
 ```
 
 ## 25. Planning merge authority
 
 ```text
+AUTHORITY_SCOPE = historical_planning_snapshot
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
@@ -538,3 +548,38 @@ NO_AUTOMATIC_SUCCESSOR = true
 ```
 
 This section records planning authority only. It does not authorize implementation or any external mutation.
+
+## 26. Implementation completion authority
+
+The separately authorized principal implementation cycle is complete and directly audited on PR #70. The planning authority above remains historical; this section is the current implementation authority.
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
+WRI01_WORKFLOW_RUN = 31051403004
+RELEASE_GATE_RUN = 31051402682
+PRM2_GATE_RUN = 31051402593
+STRATEGY_A_PRESERVED = true
+WRI01_PR_OPEN = true
+WRI01_PR_DRAFT = true
+WRI01_PR_MERGED = false
+AUTO_MERGE = false
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
+```
+
+No repository acceptance in WRI-01 authorizes external Cloudflare or Supabase operations. The exact future external sequence remains: workers.dev proof; zone exclusions; fallback-origin correction and activation; wildcard route proof; then Custom Hostname proof under a separate DCA-01 authorization.
