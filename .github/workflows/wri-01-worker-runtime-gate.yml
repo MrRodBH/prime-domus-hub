@@ -64,6 +64,21 @@ jobs:
       - name: Typecheck after deterministic route generation
         run: bun run typecheck
 
+      - name: Capture exact compiled-output manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          find dist -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-dist-manifest.txt
+          head -c 4000 dist/server/index.mjs > .wri01-entry-preview.txt
+          cp wrangler.jsonc .wri01-root-wrangler.jsonc
+          {
+            printf 'HEAD=%s\n' "${{ github.event.pull_request.head.sha || github.sha }}"
+            printf 'DIST_NITRO_JSON_EXISTS='; test -f dist/nitro.json && echo true || echo false
+            printf 'GENERATED_WRANGLER_EXISTS='; test -f dist/server/wrangler.json && echo true || echo false
+            printf 'SERVER_FILE_COUNT='; find dist/server -type f | wc -l
+            printf 'CLIENT_FILE_COUNT='; find dist/client -type f | wc -l
+          } > .wri01-build-facts.txt
+
       - name: Compiled Worker bundle audit
         run: bun run wri01:bundle-audit
 
@@ -72,8 +87,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wri-01-bundle-audit-${{ github.event.pull_request.head.sha || github.sha }}
-          path: .wri01-bundle-audit-diagnostic.json
-          if-no-files-found: warn
+          path: |
+            .wri01-build-facts.txt
+            .wri01-dist-manifest.txt
+            .wri01-entry-preview.txt
+            .wri01-root-wrangler.jsonc
+            .wri01-bundle-audit-diagnostic.json
+          if-no-files-found: error
           retention-days: 14
 
       - name: Wrangler deterministic dry-run
