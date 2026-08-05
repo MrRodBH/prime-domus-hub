@@ -1,8 +1,10 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 implementation Accepted — Ready for Product Owner Merge Decision; PR #70 open, draft and unmerged
+**Status:** Active governance — WRI-01 implementation Accepted / Merged / Closed; PR #70 merged
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
+**Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
+**Implementation merge SHA:** `81bfd7ba821187861dd1e183ac1c99198afdd43e`
 
 ## Current stage map
 
@@ -15,8 +17,8 @@
 | 5 | DCA-01 repository implementation | Accepted / Merged / Closed | Worker runtime proof |
 | 6 | DCA-01 Worker Runtime Preflight | Rejected | WRI-01 planning and correction |
 | 7 | WRI-01 planning | Accepted / Merged / Closed | no automatic successor |
-| 8 | WRI-01 implementation | Accepted — Ready for Product Owner Merge Decision | protected Product Owner merge decision |
-| 9 | DCA-01 controlled external proof | Blocked | WRI-01 terminal acceptance plus safe external prerequisites |
+| 8 | WRI-01 implementation | Accepted / Merged / Closed | no automatic successor |
+| 9 | DCA-01 controlled external proof | Blocked | safe external prerequisites plus separate authorization |
 | 10 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
 | 11 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
 | 12 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
@@ -48,17 +50,20 @@ WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
 WRI01_SELECTED_STRATEGY = Strategy A
-WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_AUTHORIZED = true
 WRI01_IMPLEMENTATION_STARTED = true
 WRI01_IMPLEMENTATION_PR = 70
 WRI01_IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
 WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_POST_MERGE_RECONCILIATION = completed
 WRI01_IMPLEMENTATION_AUDIT = Accepted
-WRI01_PR_OPEN = true
-WRI01_PR_DRAFT = true
-WRI01_PR_MERGED = false
-PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
+WRI01_PR_OPEN = false
+WRI01_PR_DRAFT = false
+WRI01_PR_MERGED = true
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
@@ -127,7 +132,8 @@ DCA-01 exact-build Worker Runtime Preflight
 → one principal implementation PR = #70
 → compiled-bundle, workerd and dry-run gates = passed
 → direct exact-head implementation audit = Accepted
-→ Product Owner merge decision = pending
+→ protected exact-head squash merge = completed
+→ post-merge reconciliation = completed
 → controlled workers.dev proof only after separate authorization
 → controlled zone route and fallback proof only after separate authorization
 → WRI-01 terminal audit
@@ -251,11 +257,14 @@ WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
 WRI01_SELECTED_STRATEGY = Strategy A
-WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_AUTHORIZED = true
 WRI01_IMPLEMENTATION_STARTED = true
 WRI01_IMPLEMENTATION_PR = 70
 WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_POST_MERGE_RECONCILIATION = completed
 WRI01_IMPLEMENTATION_AUDIT = Accepted
 DCA01_CURRENT_STATE = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
@@ -263,5 +272,32 @@ NEXT_STAGE_AUTHORIZED = none
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
-PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 ```
+
+## Protected exact-head merge and post-merge reconciliation
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_IMPLEMENTATION_AUDIT = Accepted
+WRI01_STRATEGY_A_PRESERVED = true
+WRI01_POST_MERGE_RECONCILIATION = completed
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+AUTO_MERGE_ENABLED = false
+```
+
+Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This merge and reconciliation authorize no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.

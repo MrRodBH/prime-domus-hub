@@ -17,6 +17,17 @@ CRON_EXPRESSION = */5 * * * * UTC
 MAX_JOBS_PER_CYCLE = 20
 ```
 
+## Current merged authority
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_POST_MERGE_RECONCILIATION = completed
+NEXT_STAGE_AUTHORIZED = none
+```
+
 Do not add `@cloudflare/vite-plugin`, a second Worker entry, a second assets/bindings authority, a public application scheduler route or a second Wrangler configuration authority.
 
 ## Repository verification
@@ -92,3 +103,30 @@ Repository rollback is Git reversion. External rollback, when separately authori
 8. leave backend data and unrelated DNS unchanged.
 
 Rollback must never restore tenant default, request-time legacy fallback, dual path or client authority.
+
+## Protected exact-head merge and post-merge reconciliation
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_IMPLEMENTATION_AUDIT = Accepted
+WRI01_STRATEGY_A_PRESERVED = true
+WRI01_POST_MERGE_RECONCILIATION = completed
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+AUTO_MERGE_ENABLED = false
+```
+
+Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This merge and reconciliation authorize no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.

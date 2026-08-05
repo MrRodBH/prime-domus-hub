@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planning Accepted / Merged / Closed; implementation Accepted — Ready for Product Owner Merge Decision; PR #70 open, draft and unmerged**
+**Planning Accepted / Merged / Closed; implementation Accepted / Merged / Closed; PR #70 merged**
 
 ```text
 STAGE_ID = WRI-01
@@ -23,7 +23,7 @@ IMPLEMENTATION_AUDIT = Accepted
 AUTO_MERGE = false
 ```
 
-This envelope is the Accepted / Merged / Closed WRI-01 planning contract. It remains non-executable until the Product Owner separately and explicitly authorizes implementation.
+This envelope preserves the Accepted / Merged / Closed WRI-01 planning contract. Its historical implementation precondition was satisfied; current merged authority is recorded in sections 26 and 27.
 
 ## 1. Objective
 
@@ -512,17 +512,20 @@ WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
-WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_AUTHORIZED = true
 WRI01_IMPLEMENTATION_STARTED = true
 WRI01_IMPLEMENTATION_PR = 70
 WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_POST_MERGE_RECONCILIATION = completed
 WRI01_IMPLEMENTATION_AUDIT = Accepted
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
 NEXT_STAGE_AUTHORIZED = none
-PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 ```
 
@@ -554,18 +557,21 @@ This section records planning authority only. It does not authorize implementati
 The separately authorized principal implementation cycle is complete and directly audited on PR #70. The planning authority above remains historical; this section is the current implementation authority.
 
 ```text
-WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_PR = 70
 WRI01_IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
 WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_POST_MERGE_RECONCILIATION = completed
 WRI01_IMPLEMENTATION_AUDIT = Accepted
-WRI01_WORKFLOW_RUN = 31051403004
-RELEASE_GATE_RUN = 31051402682
-PRM2_GATE_RUN = 31051402593
+WRI01_WORKFLOW_RUN = 31051976386
+RELEASE_GATE_RUN = 31051976436
+PRM2_GATE_RUN = 31051978946
 STRATEGY_A_PRESERVED = true
-WRI01_PR_OPEN = true
-WRI01_PR_DRAFT = true
-WRI01_PR_MERGED = false
+WRI01_PR_OPEN = false
+WRI01_PR_DRAFT = false
+WRI01_PR_MERGED = true
 AUTO_MERGE = false
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
@@ -579,7 +585,34 @@ DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 BCA01_STARTED = false
 PRM3_STARTED = false
 NEXT_STAGE_AUTHORIZED = none
-PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 ```
 
 No repository acceptance in WRI-01 authorizes external Cloudflare or Supabase operations. The exact future external sequence remains: workers.dev proof; zone exclusions; fallback-origin correction and activation; wildcard route proof; then Custom Hostname proof under a separate DCA-01 authorization.
+
+## 27. Protected exact-head merge reconciliation
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_IMPLEMENTATION_AUDIT = Accepted
+WRI01_STRATEGY_A_PRESERVED = true
+WRI01_POST_MERGE_RECONCILIATION = completed
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+AUTO_MERGE_ENABLED = false
+```
+
+Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This merge and reconciliation authorize no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
