@@ -69,6 +69,7 @@ const wrangler = JSON.parse(read("wrangler.jsonc")) as Record<string, any>;
 
 match(vite, /@lovable\.dev\/vite-tanstack-config/, "Lovable/TanStack config must remain build authority");
 match(vite, /nitro:\s*\{[\s\S]*plugins:\s*\[wri01RuntimePlugin\]/, "One Nitro bridge must be configured");
+match(vite, /output:\s*\{[\s\S]*dir:\s*"dist"[\s\S]*serverDir:\s*"dist\/server"[\s\S]*publicDir:\s*"dist\/client"/, "Nitro output must match the versioned dist authority");
 equal(vite.includes("@cloudflare/vite-plugin"), false, "Second build authority is prohibited");
 equal(count(vite, "wri-01-cloudflare-nitro-plugin.server.ts"), 1, "Bridge registration cardinality must be one");
 
@@ -90,17 +91,17 @@ equal(plugin.includes("fetch("), false, "Plugin must not create a second Worker 
 match(runtime, /new WeakMap<Request, CloudflareRuntimeContext>/, "Runtime storage must be request-keyed");
 equal(runtime.includes("let current"), false, "Global mutable current-context authority is prohibited");
 
-for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: ".output/server/index.mjs", workers_dev: true, no_bundle: true })) {
+for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", workers_dev: true, no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
 }
-equal(wrangler.assets?.directory, ".output/public", "Assets directory must match the observed Nitro output");
+equal(wrangler.assets?.directory, "dist/client", "Assets directory must match Nitro output");
 equal(wrangler.assets?.binding, "ASSETS", "Assets binding must be explicit");
 equal(wrangler.compatibility_flags?.includes("nodejs_compat"), true, "nodejs_compat must be enabled");
 equal(wrangler.observability?.enabled, true, "Observability must be enabled");
 equal(wrangler.triggers?.crons?.[0], "*/5 * * * *", "Cron expression must remain exact UTC contract");
 equal(wrangler.routes?.length, 0, "Repository implementation must contain no zone route");
 equal(wrangler.env?.homologation?.routes?.length, 0, "Homologation must contain no zone route");
-equal(wrangler.env?.homologation?.assets?.directory, ".output/public", "Homologation assets must use the same Nitro output authority");
+equal(wrangler.env?.homologation?.assets?.directory, "dist/client", "Homologation assets must preserve the same output authority");
 
 ok(pkg.scripts["test:wri-01"], "WRI-01 test script must exist");
 ok(pkg.scripts["wri01:bundle-audit"], "WRI-01 bundle audit script must exist");
