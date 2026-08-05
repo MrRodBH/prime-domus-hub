@@ -184,6 +184,7 @@ jobs:
           : > "${FETCH_RESPONSE_FILE}"
           : > "${SCHEDULED_RESPONSE_FILE}"
 
+          set -m
           (
             cd dist/server
             exec bunx wrangler@4.114.0 dev \
@@ -196,6 +197,23 @@ jobs:
               --var CLOUDFLARE_API_TOKEN_DCA01_HML:wri01-local-proof
           ) >"${LOG_FILE}" 2>&1 &
           WRANGLER_PID=$!
+          set +m
+
+          WRANGLER_PGID=""
+          for _ in $(seq 1 10); do
+            WRANGLER_PGID="$(ps -o pgid= -p "${WRANGLER_PID}" 2>/dev/null | tr -d ' ' || true)"
+            if [ -n "${WRANGLER_PGID}" ]; then break; fi
+            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          PROCESS_GROUP_CAPTURED=false
+          if [ -n "${WRANGLER_PGID}" ] && [ "${WRANGLER_PGID}" = "${WRANGLER_PID}" ]; then
+            PROCESS_GROUP_CAPTURED=true
+          fi
+
+          process_group_member_count() {
+            ps -eo pgid= | awk -v target="$1" '$1 == target { count += 1 } END { print count + 0 }'
+          }
 
           READY=false
           PROCESS_EXITED_BEFORE_READY=false
@@ -296,13 +314,47 @@ jobs:
             FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=true
           fi
 
-          if kill -0 "${WRANGLER_PID}" 2>/dev/null; then
-            kill "${WRANGLER_PID}" 2>/dev/null
-            wait "${WRANGLER_PID}" 2>/dev/null
-            WRANGLER_EXIT_CODE=$?
-          else
-            wait "${WRANGLER_PID}" 2>/dev/null
-            WRANGLER_EXIT_CODE=$?
+          TERMINATION_SIGNAL_SENT=false
+          TERMINATION_ESCALATED_TO_KILL=false
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ] \
+            && kill -0 -- "-${WRANGLER_PGID}" 2>/dev/null; then
+            TERMINATION_SIGNAL_SENT=true
+            kill -TERM -- "-${WRANGLER_PGID}" 2>/dev/null
+          elif kill -0 "${WRANGLER_PID}" 2>/dev/null; then
+            TERMINATION_SIGNAL_SENT=true
+            kill -TERM "${WRANGLER_PID}" 2>/dev/null
+          fi
+
+          wait "${WRANGLER_PID}" 2>/dev/null
+          WRANGLER_EXIT_CODE=$?
+
+          PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM=0
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ]; then
+            for _ in $(seq 1 50); do
+              PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM="$(process_group_member_count "${WRANGLER_PGID}")"
+              if [ "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM}" -eq 0 ]; then break; fi
+              sleep 0.2
+            done
+            if [ "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM}" -ne 0 ]; then
+              TERMINATION_ESCALATED_TO_KILL=true
+              kill -KILL -- "-${WRANGLER_PGID}" 2>/dev/null
+              sleep 1
+            fi
+          fi
+
+          PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION=0
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ]; then
+            PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION="$(process_group_member_count "${WRANGLER_PGID}")"
+          fi
+          WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION="$(
+            ps -eo comm=,args= \
+              | awk '$1 == "workerd" && index($0, "8788") { count += 1 } END { print count + 0 }'
+          )"
+          ZERO_ORPHAN_PROCESSES_PROVED=false
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ] \
+            && [ "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION}" -eq 0 ] \
+            && [ "${WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION}" -eq 0 ]; then
+            ZERO_ORPHAN_PROCESSES_PROVED=true
           fi
 
           cp "${LOG_FILE}" .wri01-workerd.log
@@ -328,6 +380,13 @@ jobs:
             printf 'POSITIVE_SCHEDULED_PATH_PROVED=%s\n' "${POSITIVE_SCHEDULED_PATH_PROVED}"
             printf 'FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=%s\n' "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}"
             printf 'NEGATIVE_PATH_DEPENDENCY=SUPABASE_URL_http_127.0.0.1_port_9\n'
+            printf 'WRANGLER_PROCESS_GROUP_ID=%s\n' "${WRANGLER_PGID}"
+            printf 'PROCESS_GROUP_CAPTURED=%s\n' "${PROCESS_GROUP_CAPTURED}"
+            printf 'TERMINATION_SIGNAL_SENT=%s\n' "${TERMINATION_SIGNAL_SENT}"
+            printf 'TERMINATION_ESCALATED_TO_KILL=%s\n' "${TERMINATION_ESCALATED_TO_KILL}"
+            printf 'PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION=%s\n' "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION}"
+            printf 'WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION=%s\n' "${WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION}"
+            printf 'ZERO_ORPHAN_PROCESSES_PROVED=%s\n' "${ZERO_ORPHAN_PROCESSES_PROVED}"
             printf 'WRANGLER_EXIT_CODE_AFTER_TERMINATION=%s\n' "${WRANGLER_EXIT_CODE}"
           } > .wri01-workerd-facts.txt
 
@@ -339,6 +398,8 @@ jobs:
           if [ "${READY}" != "true" ]; then exit 1; fi
           if [ "${FETCH_CONTEXT_NEGATIVE_PATH_PROVED}" != "true" ]; then exit 1; fi
           if [ "${SCHEDULED_CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
+          if [ "${PROCESS_GROUP_CAPTURED}" != "true" ]; then exit 1; fi
+          if [ "${ZERO_ORPHAN_PROCESSES_PROVED}" != "true" ]; then exit 1; fi
           if [ "${POSITIVE_SCHEDULED_PATH_PROVED}" != "true" ] \
             && [ "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}" != "true" ]; then
             exit 1
