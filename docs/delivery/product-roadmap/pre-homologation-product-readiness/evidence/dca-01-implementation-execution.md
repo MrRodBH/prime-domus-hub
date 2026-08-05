@@ -2,18 +2,18 @@
 
 ## Status
 
-**Implementation complete — concise exact-head pre-merge audit pending**
+**Repository implementation Accepted / Merged / Closed — controlled external proof Blocked External**
 
 ```text
 STAGE_ID = DCA-01
 IMPLEMENTATION_BASELINE_MAIN = 623f94f98174478af19b130cda9896c64f256f14
 IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
 IMPLEMENTATION_PR = 65
-IMPLEMENTATION_PR_DRAFT = true
+IMPLEMENTATION_PR_DRAFT = false
 AUTO_MERGE = false
-PREMERGE_AUDIT = pending
-IMPLEMENTATION_MERGE_AUTHORIZED = false
-TERMINAL_DCA01_STATE = not reached
+PREMERGE_AUDIT = Accepted
+IMPLEMENTATION_MERGE_AUTHORIZED = executed
+TERMINAL_DCA01_STATE = Blocked External
 
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
@@ -253,3 +253,29 @@ No external operation has been executed. After an Accepted pre-merge audit and p
 - exact-release cutover preflight.
 
 Repository success is not external-provider success. Production cutover remains unauthorized.
+
+## Protected merge and external-proof disposition
+
+```text
+CORRECTIVE_BASE_HEAD = 7dc42c163c0ab5bca415f3f689c2dc9617a06f19
+CORRECTIVE_HEAD = c6a5b93c0869d38b1e03eba903e88513879e9402
+CORRECTIVE_COMMITS = 1
+CORRECTIVE_FILES = 13
+FILES_OUTSIDE_CORRECTIVE_SCOPE = 0
+REMOTE_RELEASE_GATE = success
+REMOTE_CONSOLIDATED_GATE = success
+PREMERGE_AUDIT = Accepted
+IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
+REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
+MANAGED_MIGRATION_EXECUTED = false
+DEPLOY_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+REAL_SECRET_USED = false
+PRODUCTION_CUTOVER_EXECUTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+```
+
+The repository implementation is accepted and merged. DCA-01 remains terminally Blocked External until an explicitly authorized non-production proof verifies migration, DNS ownership, Cloudflare Custom Hostname, SSL, activation, degradation/recovery, atomic replacement and removal.

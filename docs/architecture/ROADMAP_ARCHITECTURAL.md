@@ -1,8 +1,8 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — DCA-01 implementation complete in principal draft PR; concise exact-head pre-merge audit pending
+**Status:** Ratificado — DCA-01 repository implementation merged; controlled external proof Blocked External
 **Authority:** Single Source of Future Evolution
-**Audited implementation baseline:** `623f94f98174478af19b130cda9896c64f256f14`
+**Audited repository implementation merge:** `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`
 
 ## Current authority
 
@@ -20,25 +20,25 @@ DCA01_INITIAL_REJECTED_PLANNING_AUTHORITY = historical only
 DCA01_INTEGRATION_MODEL = HYBRID
 DCA01_SUPPORTED_MODES = manual_assisted, api_automated
 
-DCA01_IMPLEMENTATION_STATE = Implementation complete — concise exact-head pre-merge audit pending
+DCA01_IMPLEMENTATION_STATE = Accepted / Merged / Closed — repository implementation
 DCA01_IMPLEMENTATION_STARTED = true
 DCA01_IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
 DCA01_IMPLEMENTATION_PR = 65
-DCA01_IMPLEMENTATION_PR_DRAFT = true
+DCA01_IMPLEMENTATION_PR_DRAFT = false
 DCA01_IMPLEMENTATION_BASELINE = 623f94f98174478af19b130cda9896c64f256f14
-DCA01_LAST_EXACT_HEAD_VALIDATED = 1cc8732cdc67b7d0ce537ec319d9a2123e59686d
+DCA01_LAST_EXACT_HEAD_VALIDATED = c6a5b93c0869d38b1e03eba903e88513879e9402
 DCA01_LAST_EXACT_HEAD_RELEASE_GATE = success
 DCA01_LAST_EXACT_HEAD_CONSOLIDATED_GATE = success
-DCA01_PREMERGE_AUDIT = pending
-DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = false
-DCA01_EXTERNAL_PROOF_STATE = pending safe prerequisites and protected implementation merge
-DCA01_TERMINAL_STATE = not reached
+DCA01_PREMERGE_AUDIT = Accepted
+DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = executed
+DCA01_EXTERNAL_PROOF_STATE = Blocked External — prerequisites and live authorization absent
+DCA01_TERMINAL_STATE = Blocked External
 
 BCA01_STATE = Planned — Blocked by DCA-01 terminal acceptance
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = concise exact-head DCA-01 implementation pre-merge audit only
+NEXT_STAGE_AUTHORIZED = controlled external non-production proof only after explicit prerequisite authorization
 
 CLOUDFLARE_API_CALL_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
@@ -144,3 +144,19 @@ Repository implementation evidence does not prove an external domain lifecycle. 
 The PR-M2 terminal roadmap is preserved at commit `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
 The original DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` remains rejected historical evidence. The corrected accepted planning was merged at `623f94f98174478af19b130cda9896c64f256f14` and is the binding implementation contract.
+
+## DCA-01 post-merge reconciliation
+
+```text
+DCA01_IMPLEMENTATION_PR = 65
+DCA01_CORRECTIVE_BASE_HEAD = 7dc42c163c0ab5bca415f3f689c2dc9617a06f19
+DCA01_CORRECTIVE_HEAD = c6a5b93c0869d38b1e03eba903e88513879e9402
+DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
+DCA01_REPOSITORY_IMPLEMENTATION_AUDIT = Accepted
+DCA01_EXTERNAL_PROOF_STATE = Blocked External
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+The repository implementation is merged and closed. No managed migration, deploy, DNS mutation, Cloudflare API call, real credential, live-domain proof or production cutover was executed.
