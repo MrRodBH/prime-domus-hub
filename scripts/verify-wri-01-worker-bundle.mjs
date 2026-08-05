@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { extname, join, resolve } from "node:path";
+import { dirname, extname, join, relative, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
 const root = process.cwd();
@@ -26,34 +26,76 @@ function walk(directory) {
   return result;
 }
 
+function resolveLocalModule(importer, specifier) {
+  if (!specifier.startsWith(".")) return null;
+  const candidate = resolve(dirname(importer), specifier);
+  const candidates = [candidate, `${candidate}.mjs`, `${candidate}.js`, join(candidate, "index.mjs")];
+  return candidates.find((path) => existsSync(path) && statSync(path).isFile()) ?? null;
+}
+
+function reachableModuleGraph(entryFile) {
+  const visited = new Set();
+  const queue = [entryFile];
+  const importPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
+
+  while (queue.length > 0) {
+    const file = queue.shift();
+    if (!file || visited.has(file)) continue;
+    visited.add(file);
+    const source = readFileSync(file, "utf8");
+    importPattern.lastIndex = 0;
+    for (const match of source.matchAll(importPattern)) {
+      const resolved = resolveLocalModule(file, match[1] ?? match[2]);
+      if (resolved && !visited.has(resolved)) queue.push(resolved);
+    }
+  }
+
+  return [...visited];
+}
+
+function hasWorkerHandler(source, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const methodForm = new RegExp(`\\b${escaped}\\s*\\([^)]*\\)\\s*\\{`);
+  const asyncMethodForm = new RegExp(`\\basync\\s+${escaped}\\s*\\([^)]*\\)\\s*\\{`);
+  const propertyForm = new RegExp(`\\b${escaped}\\s*:\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>|\\b${escaped}\\s*:\\s*async\\s+function|\\b${escaped}\\s*:\\s*function`);
+  return methodForm.test(source) || asyncMethodForm.test(source) || propertyForm.test(source);
+}
+
 const serverFiles = walk(serverDir);
 const moduleFiles = serverFiles.filter((path) => [".mjs", ".js", ".wasm"].includes(extname(path)));
 const textModuleFiles = serverFiles.filter((path) => [".mjs", ".js", ".json"].includes(extname(path)));
 const entry = readFileSync(entryPath, "utf8");
+const reachableFiles = reachableModuleGraph(entryPath);
+const reachableText = reachableFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 const serverText = textModuleFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 const rootWrangler = JSON.parse(readFileSync(rootWranglerPath, "utf8"));
 
-assert.match(entry, /fetch\s*\(/, "Final Worker entry must expose fetch");
-assert.match(entry, /scheduled\s*\(/, "Final Worker entry must expose scheduled");
+assert.equal(
+  (entry.match(/export\s+default/g) ?? []).length,
+  1,
+  "Final Worker entry must have exactly one default export authority",
+);
+assert.ok(hasWorkerHandler(reachableText, "fetch"), "Reachable Worker module graph must expose fetch");
+assert.ok(hasWorkerHandler(reachableText, "scheduled"), "Reachable Worker module graph must expose scheduled");
 assert.ok(
-  serverText.includes("cloudflare:scheduled"),
-  "Compiled bundle must contain the Nitro Cloudflare scheduled hook",
+  reachableText.includes("cloudflare:scheduled"),
+  "Reachable compiled graph must contain the Nitro Cloudflare scheduled hook",
 );
 assert.ok(
-  serverText.includes("cloudflare_runtime_context_missing"),
-  "Compiled bundle must contain fail-closed runtime-context enforcement",
+  reachableText.includes("cloudflare_runtime_context_missing"),
+  "Reachable compiled graph must contain fail-closed runtime-context enforcement",
 );
 assert.ok(
-  serverText.includes("Runtime context temporarily unavailable"),
-  "Compiled bundle must contain the sanitized 503 runtime response",
+  reachableText.includes("Runtime context temporarily unavailable"),
+  "Reachable compiled graph must contain the sanitized 503 runtime response",
 );
 assert.ok(
-  serverText.includes("[DCA-01] scheduled reconciliation completed"),
-  "Compiled bundle must contain the DCA-01 scheduled delegate",
+  reachableText.includes("[DCA-01] scheduled reconciliation completed"),
+  "Reachable compiled graph must contain the DCA-01 scheduled delegate",
 );
 assert.ok(
-  serverText.includes("[DCA-01] canonical redirect resolution failed closed"),
-  "Canonical redirect must remain before SSR and fail closed",
+  reachableText.includes("[DCA-01] canonical redirect resolution failed closed"),
+  "Canonical redirect must remain reachable before SSR and fail closed",
 );
 assert.equal(
   serverText.includes("@cloudflare/vite-plugin"),
@@ -82,10 +124,13 @@ const clientBytes = clientFiles.reduce((total, path) => total + statSync(path).s
 assert.ok(moduleFiles.length > 0, "Worker bundle must contain modules");
 assert.ok(uncompressedBytes > 0, "Worker bundle must not be empty");
 assert.ok(gzipBytes > 0, "Gzip measurement must be available");
+assert.ok(reachableFiles.length > 1, "Worker entry must reach its generated module graph");
 
 console.log(JSON.stringify({
   WRI01_BUNDLE_AUDIT: "passed",
   WORKER_ENTRY: "dist/server/index.mjs",
+  REACHABLE_MODULE_COUNT: reachableFiles.length,
+  REACHABLE_MODULES: reachableFiles.map((path) => relative(root, path)),
   MODULE_COUNT: moduleFiles.length,
   SERVER_UNCOMPRESSED_BYTES: uncompressedBytes,
   SERVER_TEXT_GZIP_BYTES: gzipBytes,
