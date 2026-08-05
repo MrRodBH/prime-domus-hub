@@ -1,7 +1,8 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 planning Accepted / Merged / Closed; implementation blocked pending explicit authorization
+**Status:** Active governance — WRI-01 implementation Accepted — Ready for Product Owner Merge Decision; PR #70 open, draft and unmerged
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
+**Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 
 ## Current stage map
 
@@ -14,7 +15,7 @@
 | 5 | DCA-01 repository implementation | Accepted / Merged / Closed | Worker runtime proof |
 | 6 | DCA-01 Worker Runtime Preflight | Rejected | WRI-01 planning and correction |
 | 7 | WRI-01 planning | Accepted / Merged / Closed | no automatic successor |
-| 8 | WRI-01 implementation | Planned — Blocked pending explicit Product Owner authorization | explicit Product Owner authorization |
+| 8 | WRI-01 implementation | Accepted — Ready for Product Owner Merge Decision | protected Product Owner merge decision |
 | 9 | DCA-01 controlled external proof | Blocked | WRI-01 terminal acceptance plus safe external prerequisites |
 | 10 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
 | 11 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
@@ -47,15 +48,23 @@ WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
 WRI01_SELECTED_STRATEGY = Strategy A
-WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
-WRI01_IMPLEMENTATION_AUTHORIZED = false
-WRI01_IMPLEMENTATION_STARTED = false
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_AUTHORIZED = true
+WRI01_IMPLEMENTATION_STARTED = true
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
+WRI01_PR_OPEN = true
+WRI01_PR_DRAFT = true
+WRI01_PR_MERGED = false
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -65,6 +74,7 @@ CLOUDFLARE_API_CALL_EXECUTED = false
 CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
 CRON_TRIGGER_CREATED = false
 CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
 SSL_PROVISIONING_EXECUTED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 AUTO_MERGE_ENABLED = false
@@ -113,10 +123,11 @@ DCA-01 exact-build Worker Runtime Preflight
 → Strategy A selected
 → direct planning audit = Accepted
 → protected planning merge = completed
-→ WRI-01 implementation = Planned / Blocked pending explicit Product Owner authorization
-→ one principal implementation PR
-→ compiled-bundle, workerd and dry-run gates
-→ direct exact-head implementation audit
+→ WRI-01 implementation authorization = granted
+→ one principal implementation PR = #70
+→ compiled-bundle, workerd and dry-run gates = passed
+→ direct exact-head implementation audit = Accepted
+→ Product Owner merge decision = pending
 → controlled workers.dev proof only after separate authorization
 → controlled zone route and fallback proof only after separate authorization
 → WRI-01 terminal audit
@@ -231,7 +242,7 @@ The PR-M2 terminal state is preserved at `fad8874bfeef85683445f52d21611e7d8760c1
 
 DCA-01 corrected planning was merged at `623f94f98174478af19b130cda9896c64f256f14`. Repository implementation was merged at `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`. The Worker runtime defect was confirmed against `9157f1e19e455d20b8272951bed25eb8ddd0572d`.
 
-## WRI-01 post-merge authority
+## WRI-01 current implementation authority
 
 ```text
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
@@ -240,13 +251,17 @@ WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
 WRI01_SELECTED_STRATEGY = Strategy A
-WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
-WRI01_IMPLEMENTATION_AUTHORIZED = false
-WRI01_IMPLEMENTATION_STARTED = false
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_AUTHORIZED = true
+WRI01_IMPLEMENTATION_STARTED = true
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
 DCA01_CURRENT_STATE = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+NEXT_STAGE_AUTHORIZED = none
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
+PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = true
 ```

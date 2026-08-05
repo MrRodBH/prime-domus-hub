@@ -2,7 +2,7 @@
 
 ## Status
 
-**Repository implementation Accepted / Merged / Closed — Worker Runtime Preflight Rejected — external proof not executable**
+**Repository implementation Accepted / Merged / Closed — WRI-01 repository runtime Accepted and awaiting merge decision — DCA-01 external proof not executable**
 
 ```text
 STAGE_ID = DCA-01
@@ -22,9 +22,12 @@ WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
-WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
-WRI01_IMPLEMENTATION_AUTHORIZED = false
-WRI01_IMPLEMENTATION_STARTED = false
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_AUTHORIZED = true
+WRI01_IMPLEMENTATION_STARTED = true
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
 
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
@@ -277,9 +280,12 @@ WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
 WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
 WRI01_PLANNING_AUDIT = Accepted
 WRI01_SELECTED_STRATEGY = Strategy A
-WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
-WRI01_IMPLEMENTATION_AUTHORIZED = false
-WRI01_IMPLEMENTATION_STARTED = false
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_AUTHORIZED = true
+WRI01_IMPLEMENTATION_STARTED = true
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_IMPLEMENTATION_AUDIT = Accepted
 LOVABLE_IMPLEMENTATION_AUTHORIZED = false
 WORKER_DEPLOY_AUTHORIZED = false
 DNS_MUTATION_AUTHORIZED = false
@@ -292,11 +298,12 @@ WRI-01 planning is documented in:
 - `docs/architecture/impact-analysis/WRI-01-cloudflare-worker-runtime-integration-impact-analysis.md`;
 - `docs/architecture/governance/WRI-01-cloudflare-worker-runtime-integration-execution-envelope.md`.
 
-Planning is Accepted / Merged / Closed. No implementation or external operation may begin without a separate explicit Product Owner authorization.
+Planning is Accepted / Merged / Closed. Repository implementation is Accepted and awaits the protected Product Owner merge decision. External operations remain unauthorized.
 
 ## 15. WRI-01 planning merge evidence
 
 ```text
+AUTHORITY_SCOPE = historical_planning_snapshot
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
@@ -315,3 +322,27 @@ NO_AUTOMATIC_SUCCESSOR = true
 ```
 
 The planning merge and this reconciliation changed documentation only.
+
+## 16. WRI-01 repository runtime recovery evidence
+
+PR #70 preserves the DCA-01 domain lifecycle and repairs only the compiled Worker integration boundary.
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted — Ready for Product Owner Merge Decision
+WRI01_IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
+WRI01_WORKFLOW_RUN = 31051403004
+RELEASE_GATE_RUN = 31051402682
+PRM2_GATE_RUN = 31051402593
+FETCH_REACHABLE = true
+SCHEDULED_REACHABLE = true
+CLOUDFLARE_SCHEDULED_HOOK_REACHABLE = true
+LOCAL_WORKERD_READY = true
+FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED = true
+ZERO_ORPHAN_PROCESSES_PROVED = true
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+FALLBACK_ORIGIN_CONFIGURED = false
+CUSTOM_HOSTNAME_CREATED = false
+NEXT_STAGE_AUTHORIZED = none
+```
+
+DCA-01 external proof remains non-executable until PR #70 is protectively merged and a separate external-operation authorization confirms the Worker deploy, route exclusions, fallback-origin state and Custom Hostname prerequisites directly in Cloudflare.

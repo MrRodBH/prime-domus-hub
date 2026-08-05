@@ -1,0 +1,421 @@
+name: WRI-01 Worker Runtime Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "vite.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - "wrangler.jsonc"
+      - "src/server.ts"
+      - "src/lib/runtime/**"
+      - "src/types/cloudflare-runtime.d.ts"
+      - "scripts/verify-wri-01-worker-bundle.mjs"
+      - "scripts/verify-release.mjs"
+      - "run-wri-01-cloudflare-worker-runtime-specs.ts"
+      - ".github/workflows/wri-01-worker-runtime-gate.yml"
+      - "docs/architecture/impact-analysis/WRI-01-cloudflare-worker-runtime-integration-impact-analysis.md"
+      - "docs/architecture/governance/WRI-01-cloudflare-worker-runtime-integration-execution-envelope.md"
+      - "docs/architecture/ROADMAP_ARCHITECTURAL.md"
+      - "docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md"
+      - "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/dca-01-implementation-execution.md"
+      - "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/wri-01-implementation-execution.md"
+      - "docs/operations/WRI-01-cloudflare-worker-runtime-runbook.md"
+  push:
+    branches:
+      - "agent/wri-01-cloudflare-worker-runtime"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wri-01-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  worker-runtime-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact event head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Frozen install
+        run: bun install --frozen-lockfile
+
+      - name: WRI-01 deterministic specifications
+        run: bun run test:wri-01
+
+      - name: DCA-01 regression specifications
+        run: bun run test:dca-01
+
+      - name: Exact production build
+        run: bun run build
+
+      - name: Typecheck after deterministic route generation
+        run: bun run typecheck
+
+      - name: Capture exact compiled-output manifest
+        shell: bash
+        run: |
+          set -u
+          : > .wri01-dist-manifest.txt
+          if [ -d dist ]; then
+            find dist -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-dist-manifest.txt
+          fi
+          find . \
+            -path './.git' -prune -o \
+            -path './node_modules' -prune -o \
+            -path './.wri01-dry-run' -prune -o \
+            -type f -printf '%p\t%s\n' \
+            | sort > .wri01-workspace-manifest.txt
+          find . -maxdepth 4 -type d \
+            -not -path './.git*' \
+            -not -path './node_modules*' \
+            | sort > .wri01-directory-manifest.txt
+          if [ -f dist/server/index.mjs ]; then
+            head -c 4000 dist/server/index.mjs > .wri01-entry-preview.txt
+          else
+            : > .wri01-entry-preview.txt
+          fi
+          cp wrangler.jsonc .wri01-root-wrangler.jsonc
+          if [ -f dist/server/wrangler.json ]; then
+            cp dist/server/wrangler.json .wri01-generated-wrangler.json
+          else
+            : > .wri01-generated-wrangler.json
+          fi
+          server_count=0
+          client_count=0
+          if [ -d dist/server ]; then server_count="$(find dist/server -type f | wc -l | tr -d ' ')"; fi
+          if [ -d dist/client ]; then client_count="$(find dist/client -type f | wc -l | tr -d ' ')"; fi
+          {
+            printf 'HEAD=%s\n' "${{ github.event.pull_request.head.sha || github.sha }}"
+            for pair in \
+              "DIST_EXISTS:dist" \
+              "SERVER_DIRECTORY_EXISTS:dist/server" \
+              "CLIENT_DIRECTORY_EXISTS:dist/client" \
+              "WORKER_ENTRY_EXISTS:dist/server/index.mjs" \
+              "NITRO_JSON_EXISTS:dist/nitro.json" \
+              "GENERATED_WRANGLER_EXISTS:dist/server/wrangler.json" \
+              "DOT_OUTPUT_EXISTS:.output"; do
+              name="${pair%%:*}"
+              path="${pair#*:}"
+              if [ -e "${path}" ]; then printf '%s=true\n' "${name}"; else printf '%s=false\n' "${name}"; fi
+            done
+            printf 'SERVER_FILE_COUNT=%s\n' "${server_count}"
+            printf 'CLIENT_FILE_COUNT=%s\n' "${client_count}"
+          } > .wri01-build-facts.txt
+
+      - name: Compiled Worker bundle audit
+        run: bun run wri01:bundle-audit
+
+      - name: Preserve bundle-audit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wri-01-bundle-audit-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            .wri01-build-facts.txt
+            .wri01-dist-manifest.txt
+            .wri01-workspace-manifest.txt
+            .wri01-directory-manifest.txt
+            .wri01-entry-preview.txt
+            .wri01-root-wrangler.jsonc
+            .wri01-generated-wrangler.json
+            .wri01-bundle-audit-diagnostic.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Wrangler deterministic dry-run
+        id: wrangler-dry-run
+        shell: bash
+        run: |
+          set +e
+          (
+            cd dist/server
+            bunx wrangler@4.114.0 deploy \
+              --config wrangler.json \
+              --dry-run \
+              --outdir ../../../.wri01-dry-run
+          ) > .wri01-dry-run.log 2>&1
+          status=$?
+          printf 'WRANGLER_DRY_RUN_EXIT_CODE=%s\n' "${status}" > .wri01-dry-run-facts.txt
+          if [ -d .wri01-dry-run ]; then
+            find .wri01-dry-run -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-dry-run-manifest.txt
+          else
+            : > .wri01-dry-run-manifest.txt
+          fi
+          cat .wri01-dry-run.log
+          exit "${status}"
+
+      - name: Preserve Wrangler dry-run diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wri-01-wrangler-dry-run-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            .wri01-dry-run.log
+            .wri01-dry-run-facts.txt
+            .wri01-dry-run-manifest.txt
+            .wri01-dry-run/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Local workerd fetch-context and scheduled-event proof
+        id: workerd-proof
+        shell: bash
+        run: |
+          set +e
+          LOG_FILE="${RUNNER_TEMP}/wri01-workerd.log"
+          FETCH_RESPONSE_FILE="${RUNNER_TEMP}/wri01-fetch-response.txt"
+          SCHEDULED_RESPONSE_FILE="${RUNNER_TEMP}/wri01-scheduled-response.txt"
+          : > "${LOG_FILE}"
+          : > "${FETCH_RESPONSE_FILE}"
+          : > "${SCHEDULED_RESPONSE_FILE}"
+
+          set -m
+          (
+            cd dist/server
+            exec bunx wrangler@4.114.0 dev \
+              --config wrangler.json \
+              --local \
+              --test-scheduled \
+              --port 8788 \
+              --var SUPABASE_URL:http://127.0.0.1:9 \
+              --var SUPABASE_SERVICE_ROLE_KEY:wri01-local-proof \
+              --var CLOUDFLARE_API_TOKEN_DCA01_HML:wri01-local-proof
+          ) >"${LOG_FILE}" 2>&1 &
+          WRANGLER_PID=$!
+          set +m
+
+          WRANGLER_PGID=""
+          for _ in $(seq 1 10); do
+            WRANGLER_PGID="$(ps -o pgid= -p "${WRANGLER_PID}" 2>/dev/null | tr -d ' ' || true)"
+            if [ -n "${WRANGLER_PGID}" ]; then break; fi
+            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          PROCESS_GROUP_CAPTURED=false
+          if [ -n "${WRANGLER_PGID}" ] && [ "${WRANGLER_PGID}" = "${WRANGLER_PID}" ]; then
+            PROCESS_GROUP_CAPTURED=true
+          fi
+
+          process_group_member_count() {
+            ps -eo pgid= | awk -v target="$1" '$1 == target { count += 1 } END { print count + 0 }'
+          }
+
+          READY=false
+          PROCESS_EXITED_BEFORE_READY=false
+          for _ in $(seq 1 60); do
+            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then
+              PROCESS_EXITED_BEFORE_READY=true
+              break
+            fi
+            if grep -Eq "Ready on http://(localhost|127\.0\.0\.1):8788" "${LOG_FILE}"; then
+              READY=true
+              break
+            fi
+            sleep 1
+          done
+
+          FETCH_CURL_EXIT_CODE=99
+          FETCH_HTTP_CODE=000
+          SCHEDULED_CURL_EXIT_CODE=99
+          SCHEDULED_HTTP_CODE=000
+          if [ "${READY}" = "true" ]; then
+            FETCH_HTTP_CODE="$(curl \
+              --silent \
+              --show-error \
+              --output "${FETCH_RESPONSE_FILE}" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "http://127.0.0.1:8788/")"
+            FETCH_CURL_EXIT_CODE=$?
+
+            SCHEDULED_HTTP_CODE="$(curl \
+              --silent \
+              --show-error \
+              --output "${SCHEDULED_RESPONSE_FILE}" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "http://127.0.0.1:8788/cdn-cgi/handler/scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A&format=json")"
+            SCHEDULED_CURL_EXIT_CODE=$?
+          fi
+
+          sleep 10
+
+          if grep -Eq "\[WRI-01\] Cloudflare runtime context unavailable" "${LOG_FILE}"; then
+            FETCH_RUNTIME_CONTEXT_ERROR_LOG=true
+          else
+            FETCH_RUNTIME_CONTEXT_ERROR_LOG=false
+          fi
+          if grep -Eq "\[DCA-01\] canonical redirect resolution failed closed" "${LOG_FILE}"; then
+            FETCH_DOMAIN_FAIL_CLOSED_LOG=true
+          else
+            FETCH_DOMAIN_FAIL_CLOSED_LOG=false
+          fi
+          if grep -Fxq "Domain resolution temporarily unavailable" "${FETCH_RESPONSE_FILE}"; then
+            FETCH_DOMAIN_FAIL_CLOSED_RESPONSE=true
+          else
+            FETCH_DOMAIN_FAIL_CLOSED_RESPONSE=false
+          fi
+
+          FETCH_CONTEXT_NEGATIVE_PATH_PROVED=false
+          if [ "${FETCH_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${FETCH_HTTP_CODE}" -eq 503 ] \
+            && [ "${FETCH_RUNTIME_CONTEXT_ERROR_LOG}" = "false" ] \
+            && [ "${FETCH_DOMAIN_FAIL_CLOSED_LOG}" = "true" ] \
+            && [ "${FETCH_DOMAIN_FAIL_CLOSED_RESPONSE}" = "true" ]; then
+            FETCH_CONTEXT_NEGATIVE_PATH_PROVED=true
+          fi
+
+          if grep -Eq "\[DCA-01\] scheduled reconciliation completed" "${LOG_FILE}"; then
+            SCHEDULED_COMPLETED_LOG=true
+          else
+            SCHEDULED_COMPLETED_LOG=false
+          fi
+          if grep -Eq "\[DCA-01\] scheduled reconciliation failed closed" "${LOG_FILE}"; then
+            SCHEDULED_FAILED_CLOSED_LOG=true
+          else
+            SCHEDULED_FAILED_CLOSED_LOG=false
+          fi
+          if grep -Eq '"outcome":"ok"' "${SCHEDULED_RESPONSE_FILE}"; then
+            OUTCOME_OK=true
+          else
+            OUTCOME_OK=false
+          fi
+          if grep -Eq '"outcome":"exception"' "${SCHEDULED_RESPONSE_FILE}"; then
+            OUTCOME_EXCEPTION=true
+          else
+            OUTCOME_EXCEPTION=false
+          fi
+
+          POSITIVE_SCHEDULED_PATH_PROVED=false
+          FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=false
+          if [ "${SCHEDULED_HTTP_CODE}" -ge 200 ] && [ "${SCHEDULED_HTTP_CODE}" -lt 300 ] \
+            && [ "${SCHEDULED_COMPLETED_LOG}" = "true" ] \
+            && [ "${OUTCOME_OK}" = "true" ]; then
+            POSITIVE_SCHEDULED_PATH_PROVED=true
+          fi
+          if [ "${SCHEDULED_HTTP_CODE}" -eq 500 ] \
+            && [ "${SCHEDULED_FAILED_CLOSED_LOG}" = "true" ] \
+            && [ "${OUTCOME_EXCEPTION}" = "true" ]; then
+            FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=true
+          fi
+
+          TERMINATION_SIGNAL_SENT=false
+          TERMINATION_ESCALATED_TO_KILL=false
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ] \
+            && kill -0 -- "-${WRANGLER_PGID}" 2>/dev/null; then
+            TERMINATION_SIGNAL_SENT=true
+            kill -TERM -- "-${WRANGLER_PGID}" 2>/dev/null
+          elif kill -0 "${WRANGLER_PID}" 2>/dev/null; then
+            TERMINATION_SIGNAL_SENT=true
+            kill -TERM "${WRANGLER_PID}" 2>/dev/null
+          fi
+
+          wait "${WRANGLER_PID}" 2>/dev/null
+          WRANGLER_EXIT_CODE=$?
+
+          PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM=0
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ]; then
+            for _ in $(seq 1 50); do
+              PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM="$(process_group_member_count "${WRANGLER_PGID}")"
+              if [ "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM}" -eq 0 ]; then break; fi
+              sleep 0.2
+            done
+            if [ "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERM}" -ne 0 ]; then
+              TERMINATION_ESCALATED_TO_KILL=true
+              kill -KILL -- "-${WRANGLER_PGID}" 2>/dev/null
+              sleep 1
+            fi
+          fi
+
+          PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION=0
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ]; then
+            PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION="$(process_group_member_count "${WRANGLER_PGID}")"
+          fi
+          WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION="$(
+            ps -eo comm=,args= \
+              | awk '$1 == "workerd" && index($0, "8788") { count += 1 } END { print count + 0 }'
+          )"
+          ZERO_ORPHAN_PROCESSES_PROVED=false
+          if [ "${PROCESS_GROUP_CAPTURED}" = "true" ] \
+            && [ "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION}" -eq 0 ] \
+            && [ "${WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION}" -eq 0 ]; then
+            ZERO_ORPHAN_PROCESSES_PROVED=true
+          fi
+
+          cp "${LOG_FILE}" .wri01-workerd.log
+          cp "${FETCH_RESPONSE_FILE}" .wri01-fetch-response.txt
+          cp "${SCHEDULED_RESPONSE_FILE}" .wri01-scheduled-response.txt
+          {
+            printf 'READY=%s\n' "${READY}"
+            printf 'READY_SOURCE=wrangler_log\n'
+            printf 'PROCESS_EXITED_BEFORE_READY=%s\n' "${PROCESS_EXITED_BEFORE_READY}"
+            printf 'FETCH_HTTP_CODE=%s\n' "${FETCH_HTTP_CODE}"
+            printf 'FETCH_CURL_EXIT_CODE=%s\n' "${FETCH_CURL_EXIT_CODE}"
+            printf 'FETCH_RUNTIME_CONTEXT_ERROR_LOG=%s\n' "${FETCH_RUNTIME_CONTEXT_ERROR_LOG}"
+            printf 'FETCH_DOMAIN_FAIL_CLOSED_LOG=%s\n' "${FETCH_DOMAIN_FAIL_CLOSED_LOG}"
+            printf 'FETCH_DOMAIN_FAIL_CLOSED_RESPONSE=%s\n' "${FETCH_DOMAIN_FAIL_CLOSED_RESPONSE}"
+            printf 'FETCH_CONTEXT_NEGATIVE_PATH_PROVED=%s\n' "${FETCH_CONTEXT_NEGATIVE_PATH_PROVED}"
+            printf 'SCHEDULED_ENDPOINT=/cdn-cgi/handler/scheduled\n'
+            printf 'SCHEDULED_HTTP_CODE=%s\n' "${SCHEDULED_HTTP_CODE}"
+            printf 'SCHEDULED_CURL_EXIT_CODE=%s\n' "${SCHEDULED_CURL_EXIT_CODE}"
+            printf 'SCHEDULED_COMPLETED_LOG=%s\n' "${SCHEDULED_COMPLETED_LOG}"
+            printf 'SCHEDULED_FAILED_CLOSED_LOG=%s\n' "${SCHEDULED_FAILED_CLOSED_LOG}"
+            printf 'OUTCOME_OK=%s\n' "${OUTCOME_OK}"
+            printf 'OUTCOME_EXCEPTION=%s\n' "${OUTCOME_EXCEPTION}"
+            printf 'POSITIVE_SCHEDULED_PATH_PROVED=%s\n' "${POSITIVE_SCHEDULED_PATH_PROVED}"
+            printf 'FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=%s\n' "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}"
+            printf 'NEGATIVE_PATH_DEPENDENCY=SUPABASE_URL_http_127.0.0.1_port_9\n'
+            printf 'WRANGLER_PROCESS_GROUP_ID=%s\n' "${WRANGLER_PGID}"
+            printf 'PROCESS_GROUP_CAPTURED=%s\n' "${PROCESS_GROUP_CAPTURED}"
+            printf 'TERMINATION_SIGNAL_SENT=%s\n' "${TERMINATION_SIGNAL_SENT}"
+            printf 'TERMINATION_ESCALATED_TO_KILL=%s\n' "${TERMINATION_ESCALATED_TO_KILL}"
+            printf 'PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION=%s\n' "${PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION}"
+            printf 'WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION=%s\n' "${WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION}"
+            printf 'ZERO_ORPHAN_PROCESSES_PROVED=%s\n' "${ZERO_ORPHAN_PROCESSES_PROVED}"
+            printf 'WRANGLER_EXIT_CODE_AFTER_TERMINATION=%s\n' "${WRANGLER_EXIT_CODE}"
+          } > .wri01-workerd-facts.txt
+
+          cat .wri01-workerd.log
+          cat .wri01-workerd-facts.txt
+          cat .wri01-fetch-response.txt
+          cat .wri01-scheduled-response.txt
+
+          if [ "${READY}" != "true" ]; then exit 1; fi
+          if [ "${FETCH_CONTEXT_NEGATIVE_PATH_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${SCHEDULED_CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
+          if [ "${PROCESS_GROUP_CAPTURED}" != "true" ]; then exit 1; fi
+          if [ "${ZERO_ORPHAN_PROCESSES_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${POSITIVE_SCHEDULED_PATH_PROVED}" != "true" ] \
+            && [ "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}" != "true" ]; then
+            exit 1
+          fi
+          exit 0
+
+      - name: Preserve local workerd proof diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wri-01-workerd-proof-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            .wri01-workerd.log
+            .wri01-workerd-facts.txt
+            .wri01-fetch-response.txt
+            .wri01-scheduled-response.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,49 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rm-prime-wri01-hml",
+  "main": "dist/server/index.mjs",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "no_bundle": true,
+  "observability": {
+    "enabled": true
+  },
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["**/*.mjs"],
+      "fallthrough": true
+    },
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"],
+      "fallthrough": true
+    }
+  ],
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS"
+  },
+  "routes": [],
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "env": {
+    "homologation": {
+      "name": "rm-prime-wri01-hml",
+      "workers_dev": true,
+      "observability": {
+        "enabled": true
+      },
+      "assets": {
+        "directory": "dist/client",
+        "binding": "ASSETS"
+      },
+      "routes": [],
+      "triggers": {
+        "crons": ["*/5 * * * *"]
+      }
+    }
+  }
+}

@@ -4,13 +4,17 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { resolveCanonicalRedirectByHost } from "./lib/tenant.server";
 import { processScheduledDomainJobs } from "./lib/domains/domain-jobs.server";
+import {
+  isCloudflareRuntimeRequest,
+  readAuthoritativeCloudflareRuntimeContext,
+  type CloudflareExecutionContext,
+  type CloudflareRuntimeEnv,
+  type CloudflareScheduledController,
+} from "./lib/runtime/cloudflare-runtime-context.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
-
-type RuntimeEnv = Record<string, unknown>;
-type ExecutionContextLike = { waitUntil(promise: Promise<unknown>): void };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
@@ -41,10 +45,12 @@ function websocketOrigin(httpOrigin: string): string {
 }
 
 function trackingSecurityHeaders(request: Request, env: unknown): HeadersInit {
-  const runtimeEnv = typeof env === "object" && env !== null ? env as RuntimeEnv : {};
+  const runtimeEnv = typeof env === "object" && env !== null ? env as CloudflareRuntimeEnv : {};
+  const localSupabaseOrigin = isCloudflareRuntimeRequest(request)
+    ? undefined
+    : process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   const supabaseOrigin = parseExactOrigin(
-    runtimeEnv.SUPABASE_URL ?? runtimeEnv.VITE_SUPABASE_URL ??
-    process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL,
+    runtimeEnv.SUPABASE_URL ?? runtimeEnv.VITE_SUPABASE_URL ?? localSupabaseOrigin,
   );
   const connectOrigins = [
     "'self'",
@@ -104,8 +110,30 @@ function applyTrackingSecurityHeaders(request: Request, env: unknown, response: 
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+function requirePublicCloudflareHost(request: Request, host: string | null): void {
+  if (!isCloudflareRuntimeRequest(request)) return;
+  if (!host) throw new Error("cloudflare_public_host_missing");
+
+  let hostname: string;
+  try {
+    hostname = new URL(`http://${host}`).hostname.toLowerCase();
+  } catch {
+    throw new Error("cloudflare_public_host_invalid");
+  }
+
+  if (
+    hostname === "localhost"
+    || hostname === "127.0.0.1"
+    || hostname === "0.0.0.0"
+    || hostname === "[::1]"
+  ) {
+    throw new Error("cloudflare_public_host_invalid");
+  }
+}
+
 async function canonicalRedirect(request: Request): Promise<Response | null> {
   const host = request.headers.get("host");
+  requirePublicCloudflareHost(request, host);
   const redirect = await resolveCanonicalRedirectByHost(host);
   if (!redirect) return null;
   const target = new URL(request.url);
@@ -141,54 +169,90 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
-export default {
-  async fetch(request: Request, env: unknown, ctx: unknown) {
-    try {
-      const redirect = await canonicalRedirect(request);
-      if (redirect) return redirect;
-    } catch (error) {
-      console.error("[DCA-01] canonical redirect resolution failed closed", {
-        name: error instanceof Error ? error.name : "unknown",
-      });
-      return new Response("Domain resolution temporarily unavailable", {
-        status: 503,
-        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
-      });
-    }
+function resolveRuntimeContext(
+  request: Request,
+  env: unknown,
+  ctx: unknown,
+): { env: unknown; ctx: unknown } {
+  if (!isCloudflareRuntimeRequest(request)) return { env, ctx };
 
-    try {
-      const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      const normalized = await normalizeCatastrophicSsrResponse(response);
-      return applyTrackingSecurityHeaders(request, env, normalized);
-    } catch (error) {
-      console.error(error);
-      return applyTrackingSecurityHeaders(request, env, new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      }));
-    }
-  },
+  const runtime = readAuthoritativeCloudflareRuntimeContext(request);
+  if (!runtime) {
+    throw new Error("cloudflare_runtime_context_missing");
+  }
+  return { env: runtime.env, ctx: runtime.ctx };
+}
 
-  async scheduled(
-    _controller: unknown,
-    env: RuntimeEnv,
-    ctx: ExecutionContextLike,
-  ): Promise<void> {
-    const execution = processScheduledDomainJobs({ runtimeEnv: env, limit: 20 }).then((result) => {
-      console.log("[DCA-01] scheduled reconciliation completed", {
-        leased: result.leased,
-        succeeded: result.succeeded,
-        retried: result.retried,
-        failed: result.failed,
-      });
-      return result;
-    }).catch((error) => {
-      console.error("[DCA-01] scheduled reconciliation failed closed", {
-        name: error instanceof Error ? error.name : "unknown",
-      });
-      throw error;
+export async function fetch(request: Request, env: unknown, ctx: unknown): Promise<Response> {
+  let runtime: { env: unknown; ctx: unknown };
+  try {
+    runtime = resolveRuntimeContext(request, env, ctx);
+  } catch (error) {
+    console.error("[WRI-01] Cloudflare runtime context unavailable", {
+      name: error instanceof Error ? error.name : "unknown",
     });
-    ctx.waitUntil(execution);
+    return new Response("Runtime context temporarily unavailable", {
+      status: 503,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+
+  try {
+    const redirect = await canonicalRedirect(request);
+    if (redirect) return redirect;
+  } catch (error) {
+    console.error("[DCA-01] canonical redirect resolution failed closed", {
+      name: error instanceof Error ? error.name : "unknown",
+    });
+    return new Response("Domain resolution temporarily unavailable", {
+      status: 503,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+    });
+  }
+
+  try {
+    const handler = await getServerEntry();
+    const response = await handler.fetch(request, runtime.env, runtime.ctx);
+    const normalized = await normalizeCatastrophicSsrResponse(response);
+    return applyTrackingSecurityHeaders(request, runtime.env, normalized);
+  } catch (error) {
+    console.error(error);
+    return applyTrackingSecurityHeaders(request, runtime.env, new Response(renderErrorPage(), {
+      status: 500,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    }));
+  }
+}
+
+export async function scheduled(
+  _controller: CloudflareScheduledController,
+  env: CloudflareRuntimeEnv,
+  ctx: CloudflareExecutionContext,
+): Promise<void> {
+  const execution = processScheduledDomainJobs({ runtimeEnv: env, limit: 20 }).then((result) => {
+    console.log("[DCA-01] scheduled reconciliation completed", {
+      leased: result.leased,
+      succeeded: result.succeeded,
+      retried: result.retried,
+      failed: result.failed,
+    });
+    return result;
+  }).catch((error) => {
+    console.error("[DCA-01] scheduled reconciliation failed closed", {
+      name: error instanceof Error ? error.name : "unknown",
+    });
+    throw error;
+  });
+  ctx.waitUntil(execution);
+}
+
+export default {
+  fetch,
+  async scheduled(
+    controller: CloudflareScheduledController,
+    env: CloudflareRuntimeEnv,
+    ctx: CloudflareExecutionContext,
+  ): Promise<void> {
+    return scheduled(controller, env, ctx);
   },
 };
