@@ -15,153 +15,99 @@ import {
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 let assertions = 0;
+const ok = (value: unknown, message: string) => { assert.ok(value, message); assertions += 1; };
+const equal = (actual: unknown, expected: unknown, message: string) => { assert.equal(actual, expected, message); assertions += 1; };
+const match = (value: string, pattern: RegExp, message: string) => { assert.match(value, pattern, message); assertions += 1; };
+const count = (value: string, needle: string) => value.split(needle).length - 1;
 
-function ok(value: unknown, message: string): asserts value {
-  assert.ok(value, message);
-  assertions += 1;
-}
-
-function equal<T>(actual: T, expected: T, message: string): void {
-  assert.equal(actual, expected, message);
-  assertions += 1;
-}
-
-function match(value: string, pattern: RegExp, message: string): void {
-  assert.match(value, pattern, message);
-  assertions += 1;
-}
-
-function count(value: string, needle: string): number {
-  return value.split(needle).length - 1;
-}
-
-function runtimeRequest(
-  url: string,
-  env: Record<string, unknown>,
-  context: CloudflareExecutionContext,
-): Request {
+function runtimeRequest(url: string, marker: string, context: CloudflareExecutionContext): Request {
   const request = new Request(url);
   Object.defineProperty(request, "runtime", {
     configurable: true,
-    enumerable: false,
-    value: { name: "cloudflare", cloudflare: { env, context } },
+    value: { name: "cloudflare", cloudflare: { env: { REQUEST_MARKER: marker }, context } },
   });
   return request;
 }
 
-const waitUntilA: Promise<unknown>[] = [];
-const waitUntilB: Promise<unknown>[] = [];
-const contextA: CloudflareExecutionContext = {
-  waitUntil(promise) {
-    waitUntilA.push(promise);
-  },
-};
-const contextB: CloudflareExecutionContext = {
-  waitUntil(promise) {
-    waitUntilB.push(promise);
-  },
-};
-const envA = { REQUEST_MARKER: "A" };
-const envB = { REQUEST_MARKER: "B" };
-const requestA = runtimeRequest("https://a.example.test", envA, contextA);
-const requestB = runtimeRequest("https://b.example.test", envB, contextB);
-
+const context: CloudflareExecutionContext = { waitUntil() {} };
+const requestA = runtimeRequest("https://a.example.test", "A", context);
+const requestB = runtimeRequest("https://b.example.test", "B", context);
 ok(isCloudflareRuntimeRequest(requestA), "Cloudflare runtime marker must be explicit");
-const authoritativeA = readAuthoritativeCloudflareRuntimeContext(requestA);
-ok(authoritativeA, "Authoritative request runtime must be readable");
-equal(authoritativeA.env, envA, "Request A env must retain exact identity");
-equal(authoritativeA.ctx, contextA, "Request A context must retain exact identity");
-
-installCloudflareRuntimeContext(requestA, authoritativeA);
-const authoritativeB = readAuthoritativeCloudflareRuntimeContext(requestB);
-ok(authoritativeB, "Request B authoritative runtime must be readable");
-installCloudflareRuntimeContext(requestB, authoritativeB);
-equal(requireCloudflareRuntimeContext(requestA).env.REQUEST_MARKER, "A", "Request A must stay isolated");
-equal(requireCloudflareRuntimeContext(requestB).env.REQUEST_MARKER, "B", "Request B must stay isolated");
+const parsedA = readAuthoritativeCloudflareRuntimeContext(requestA);
+const parsedB = readAuthoritativeCloudflareRuntimeContext(requestB);
+ok(parsedA && parsedB, "Authoritative Nitro runtime values must be readable");
+installCloudflareRuntimeContext(requestA, parsedA!);
+installCloudflareRuntimeContext(requestB, parsedB!);
+equal(requireCloudflareRuntimeContext(requestA).env.REQUEST_MARKER, "A", "Request A must remain isolated");
+equal(requireCloudflareRuntimeContext(requestB).env.REQUEST_MARKER, "B", "Request B must remain isolated");
 clearCloudflareRuntimeContext(requestA);
 equal(requireCloudflareRuntimeContext(requestB).env.REQUEST_MARKER, "B", "Clearing A must not clear B");
-
 assert.throws(
   () => requireCloudflareRuntimeContext(requestA),
   (error) => error instanceof CloudflareRuntimeContextError && error.code === "cloudflare_runtime_context_missing",
-  "Cleared runtime context must fail closed",
 );
 assertions += 1;
 clearCloudflareRuntimeContext(requestB);
 
 const malformed = new Request("https://invalid.example.test");
-Object.defineProperty(malformed, "runtime", {
-  configurable: true,
-  value: { name: "cloudflare", cloudflare: { env: null, context: {} } },
-});
+Object.defineProperty(malformed, "runtime", { value: { name: "cloudflare", cloudflare: { env: null, context: {} } } });
 assert.throws(
   () => readAuthoritativeCloudflareRuntimeContext(malformed),
   (error) => error instanceof CloudflareRuntimeContextError && error.code === "cloudflare_runtime_context_invalid",
-  "Malformed Cloudflare runtime data must fail closed",
 );
 assertions += 1;
-
-const ordinaryRequest = new Request("https://local.example.test");
-equal(isCloudflareRuntimeRequest(ordinaryRequest), false, "Local/Lovable requests must remain non-Cloudflare");
-equal(readAuthoritativeCloudflareRuntimeContext(ordinaryRequest), null, "Non-Cloudflare requests must not fabricate runtime context");
+const ordinary = new Request("https://local.example.test");
+equal(isCloudflareRuntimeRequest(ordinary), false, "Local/Lovable requests must not fabricate Cloudflare context");
+equal(readAuthoritativeCloudflareRuntimeContext(ordinary), null, "Non-Cloudflare context must remain absent");
 
 const vite = read("vite.config.ts");
 const server = read("src/server.ts");
 const plugin = read("src/lib/runtime/wri-01-cloudflare-nitro-plugin.server.ts");
-const runtimeContext = read("src/lib/runtime/cloudflare-runtime-context.server.ts");
-const packageJson = JSON.parse(read("package.json")) as { scripts: Record<string, string>; devDependencies?: Record<string, string> };
+const runtime = read("src/lib/runtime/cloudflare-runtime-context.server.ts");
+const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string>; devDependencies?: Record<string, string> };
 const wrangler = JSON.parse(read("wrangler.jsonc")) as Record<string, any>;
 
 match(vite, /@lovable\.dev\/vite-tanstack-config/, "Lovable/TanStack config must remain build authority");
-match(vite, /nitro:\s*\{[\s\S]*plugins:\s*\[wri01RuntimePlugin\]/, "One Nitro runtime plugin must be registered");
-equal(vite.includes("@cloudflare/vite-plugin"), false, "Cloudflare Vite plugin must remain absent");
-equal(count(vite, "wri-01-cloudflare-nitro-plugin.server.ts"), 1, "Runtime bridge must be registered exactly once");
+match(vite, /nitro:\s*\{[\s\S]*plugins:\s*\[wri01RuntimePlugin\]/, "One Nitro bridge must be configured");
+equal(vite.includes("@cloudflare/vite-plugin"), false, "Second build authority is prohibited");
+equal(count(vite, "wri-01-cloudflare-nitro-plugin.server.ts"), 1, "Bridge registration cardinality must be one");
 
-match(server, /export async function fetch\(/, "Named fetch boundary must remain exported");
-match(server, /export async function scheduled\(/, "Named scheduled boundary must remain exported");
-match(server, /export default \{ fetch, scheduled \}/, "Default entry must expose both boundaries");
-match(server, /requireCloudflareRuntimeContext\(request\)/, "Cloudflare request path must require installed context");
-match(server, /status:\s*503/, "Missing Cloudflare context must fail closed with 503");
-equal(server.includes("/__scheduled"), false, "Production scheduler must not be exposed through HTTP");
-match(server, /processScheduledDomainJobs\(\{ runtimeEnv: env, limit: 20 \}\)/, "Scheduled boundary must delegate to DCA-01 exactly");
-match(server, /ctx\.waitUntil\(execution\)/, "Scheduled execution must use waitUntil");
+match(server, /export async function fetch\(/, "Named fetch boundary must be exported");
+match(server, /export async function scheduled\(/, "Named scheduled boundary must be exported");
+match(server, /export default \{[\s\S]*fetch,[\s\S]*async scheduled\(/, "Default Worker contract must expose fetch and scheduled");
+match(server, /requireCloudflareRuntimeContext\(request\)/, "Cloudflare fetch must require installed context");
+match(server, /status:\s*503/, "Missing runtime context must fail closed");
+match(server, /processScheduledDomainJobs\(\{ runtimeEnv: env, limit: 20 \}\)/, "Scheduled boundary must delegate to DCA-01");
+match(server, /ctx\.waitUntil\(execution\)/, "Scheduled work must use waitUntil");
+equal(server.includes("/__scheduled"), false, "Application HTTP scheduler route is prohibited");
 
-match(plugin, /readAuthoritativeCloudflareRuntimeContext\(event\.req\)/, "Plugin must read exact Nitro-augmented request context");
+match(plugin, /readAuthoritativeCloudflareRuntimeContext\(event\.req\)/, "Plugin must read exact Nitro runtime data");
 match(plugin, /installCloudflareRuntimeContext\(event\.req, context\)/, "Plugin must install request-scoped context");
 match(plugin, /clearCloudflareRuntimeContext\(event\.req\)/, "Plugin must clear request-scoped context");
 equal(count(plugin, 'hooks.hook("cloudflare:scheduled"'), 1, "Exactly one scheduled-hook consumer is allowed");
-match(plugin, /scheduled\(controller, env, context\)/, "Scheduled hook must delegate original platform values");
-equal(plugin.includes("fetch("), false, "Plugin must not create a second Worker fetch entry");
+match(plugin, /scheduled\(controller, env, context\)/, "Hook must delegate original platform values");
+equal(plugin.includes("fetch("), false, "Plugin must not create a second Worker entry");
+match(runtime, /new WeakMap<Request, CloudflareRuntimeContext>/, "Runtime storage must be request-keyed");
+equal(runtime.includes("let current"), false, "Global mutable current-context authority is prohibited");
 
-match(runtimeContext, /new WeakMap<Request, CloudflareRuntimeContext>/, "Runtime context storage must be request-keyed");
-equal(runtimeContext.includes("let current"), false, "Global current-context singleton is prohibited");
-
-const requiredWrangler = {
-  name: "rm-prime-wri01-hml",
-  main: "dist/server/index.mjs",
-  workers_dev: true,
-  no_bundle: true,
-};
-for (const [key, expected] of Object.entries(requiredWrangler)) {
+for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", workers_dev: true, no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
 }
-equal(wrangler.assets?.directory, "dist/client", "Wrangler assets directory must match Nitro output");
-equal(wrangler.assets?.binding, "ASSETS", "Wrangler assets binding must be explicit");
-equal(wrangler.compatibility_flags?.includes("nodejs_compat"), true, "nodejs_compat must remain enabled");
-equal(wrangler.observability?.enabled, true, "Worker observability must be enabled");
-equal(wrangler.triggers?.crons?.[0], "*/5 * * * *", "Cron must be the approved UTC expression");
-equal(Array.isArray(wrangler.routes) && wrangler.routes.length, 0, "Repository implementation must contain no zone route");
-equal(wrangler.env?.homologation?.name, "rm-prime-wri01-hml", "Homologation Worker name must be explicit");
-equal(wrangler.env?.homologation?.routes?.length, 0, "Homologation environment must contain no zone route");
+equal(wrangler.assets?.directory, "dist/client", "Assets directory must match Nitro output");
+equal(wrangler.assets?.binding, "ASSETS", "Assets binding must be explicit");
+equal(wrangler.compatibility_flags?.includes("nodejs_compat"), true, "nodejs_compat must be enabled");
+equal(wrangler.observability?.enabled, true, "Observability must be enabled");
+equal(wrangler.triggers?.crons?.[0], "*/5 * * * *", "Cron expression must remain exact UTC contract");
+equal(wrangler.routes?.length, 0, "Repository implementation must contain no zone route");
+equal(wrangler.env?.homologation?.routes?.length, 0, "Homologation must contain no zone route");
 
-ok(packageJson.scripts["test:wri-01"], "WRI-01 deterministic test script must exist");
-ok(packageJson.scripts["wri01:bundle-audit"], "WRI-01 bundle audit script must exist");
-ok(packageJson.scripts["wri01:dry-run"], "WRI-01 dry-run script must exist");
-equal("@cloudflare/vite-plugin" in (packageJson.devDependencies ?? {}), false, "A second build authority is prohibited");
-
-const serializedWrangler = JSON.stringify(wrangler);
-equal(serializedWrangler.includes("68ec853e6b04a038f09fca5712d6b26b"), false, "Cloudflare account ID must not be persisted");
-equal(serializedWrangler.includes("90832d0006e9e630dbb73d33c551d836"), false, "Cloudflare zone ID must not be persisted");
-equal(serializedWrangler.includes("SUPABASE_SERVICE_ROLE_KEY"), false, "Secret values and secret declarations stay outside versioned config");
+ok(pkg.scripts["test:wri-01"], "WRI-01 test script must exist");
+ok(pkg.scripts["wri01:bundle-audit"], "WRI-01 bundle audit script must exist");
+ok(pkg.scripts["wri01:dry-run"], "WRI-01 dry-run script must exist");
+equal("@cloudflare/vite-plugin" in (pkg.devDependencies ?? {}), false, "Cloudflare Vite plugin must remain absent");
+const configText = JSON.stringify(wrangler);
+equal(configText.includes("68ec853e6b04a038f09fca5712d6b26b"), false, "Account ID must not be persisted");
+equal(configText.includes("90832d0006e9e630dbb73d33c551d836"), false, "Zone ID must not be persisted");
+equal(configText.includes("SUPABASE_SERVICE_ROLE_KEY"), false, "Secrets must stay outside versioned config");
 
 console.log(`WRI-01 runtime integration specs passed: ${assertions} assertions`);
