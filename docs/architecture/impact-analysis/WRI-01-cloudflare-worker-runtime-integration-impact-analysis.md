@@ -21,15 +21,15 @@ FALLBACK_ORIGIN_ACTIVATED = false
 
 ## 1. Executive decision
 
-WRI-01 adopts one build and runtime authority:
+WRI-01 selects one build and runtime architecture:
 
 > **Strategy A — preserve `@lovable.dev/vite-tanstack-config` and the Nitro `cloudflare-module` preset, then add one narrow Cloudflare runtime bridge and one versioned Wrangler authority.**
 
-Strategy B, which disables Nitro and migrates the application to `@cloudflare/vite-plugin`, is rejected for WRI-01 because it replaces the currently validated build authority, changes Lovable preview/build behavior, expands the regression surface beyond the proven defects, and would require a broader product-runtime migration.
+Strategy B, which disables Nitro and migrates the application to `@cloudflare/vite-plugin`, is rejected for WRI-01 because it replaces the validated build authority, changes Lovable preview/build behavior, and expands the regression surface beyond the two compiled-runtime defects actually proven.
 
 Strategy C, a parallel or hybrid Nitro plus Cloudflare Vite pipeline, is rejected because it would create two Worker entries, two asset authorities, two binding authorities and potentially two deploy outputs.
 
-The selected strategy is not permission to deploy. It is the architecture for a later implementation gate.
+Strategy B may be reconsidered only through a new architecture decision if Strategy A cannot pass bundle-level and workerd tests without private or unstable framework internals.
 
 ## 2. Binding factual evidence
 
@@ -68,9 +68,9 @@ PREVIEW_AND_PUBLISHED_SHARE_BACKEND = true
 FALLBACK_ORIGIN_LAST_OBSERVED_STATUS = Pending Deployment (Error)
 ```
 
-The source implementation and structural tests previously proved that `src/server.ts` contains `fetch` and `scheduled`. They did not prove that the compiled top-level Worker invokes both handlers. The compiled bundle is the runtime authority for this finding.
+The compiled bundle is the runtime authority. Source-level function presence is not sufficient evidence of platform reachability.
 
-## 3. Authority and safety invariants
+## 3. Permanent invariants
 
 ```text
 SERVER_IS_TENANT_AUTHORITY = true
@@ -95,7 +95,7 @@ FAIL_FAST = true
 FAIL_CLOSED = true
 ```
 
-Super Admin tenant-scoped operations continue to require explicit impersonation. No Worker route, hostname, account ID, zone ID, request header or provider response becomes tenant authority.
+Super Admin tenant-scoped operations continue to require explicit impersonation. Account ID, zone ID, Worker route, request header, hostname and provider response are transport or evidence only, never tenant authority.
 
 ## 4. Strategy comparison
 
@@ -103,18 +103,14 @@ Super Admin tenant-scoped operations continue to require explicit impersonation.
 |---|---|---|---|
 | Preserves exact validated build | Yes | No | Partially |
 | Preserves Lovable preview contract | Yes | Unproven | Unproven |
-| Solves `scheduled` reachability | Yes, through one Nitro hook bridge | Yes, through a custom Worker entry | Potentially, but with duplicate authority |
-| Solves `env`/`ctx` propagation | Yes, through one runtime-context bridge | Yes, directly in Worker entry | Ambiguous |
-| Requires build-authority replacement | No | Yes | Yes/partial |
+| Repairs scheduler reachability | Yes, through one Nitro hook bridge | Yes, through a new custom entry | Ambiguous |
+| Repairs `env`/`ctx` propagation | Yes, through one runtime-context bridge | Yes, directly | Ambiguous |
+| Replaces build authority | No | Yes | Partially |
 | Produces one deploy artifact | Yes | Yes | Not guaranteed |
-| Architectural blast radius | Bounded | High | Unacceptable |
+| Blast radius | Bounded | High | Unacceptable |
 | Decision | **Selected** | Rejected for WRI-01 | Rejected |
 
-Strategy B may be reconsidered only through a new explicit architecture decision if Strategy A cannot satisfy bundle-level tests without private or unstable framework internals.
-
 ## 5. Selected build architecture
-
-The future implementation must preserve this single chain:
 
 ```text
 source
@@ -126,50 +122,49 @@ source
 → one Cloudflare Worker
 ```
 
-The generated `dist/server/wrangler.json` is evidence, not final configuration authority. The repository must add one root `wrangler.jsonc` that points to the exact built entry and assets and is validated against the generated build metadata.
+The generated `dist/server/wrangler.json` is build evidence, not final deploy authority. The repository must add one root `wrangler.jsonc` and validate it against generated build metadata.
 
-The Cloudflare Vite plugin must not be added while Nitro remains enabled.
+`@cloudflare/vite-plugin` must not be added while Nitro remains enabled.
 
-## 6. Worker entry and runtime bridge
+## 6. Worker entry and runtime context
 
-The top-level Worker exported by Nitro already has platform-native `fetch(request, env, ctx)` and `scheduled(controller, env, ctx)` handlers. WRI-01 must make the application boundaries reachable without creating a second Worker entry.
-
-The future implementation shall provide:
+The top-level Nitro Worker already exposes platform-native `fetch(request, env, ctx)` and `scheduled(controller, env, ctx)`. WRI-01 must connect those handlers to the existing application boundaries without creating a second entry.
 
 ```text
 TOP_LEVEL_WORKER_ENTRY = Nitro cloudflare-module default export
 REQUEST_APPLICATION_BOUNDARY = src/server.ts::fetch
 SCHEDULED_APPLICATION_BOUNDARY = src/server.ts::scheduled
-SCHEDULED_BRIDGE = one registered Nitro cloudflare:scheduled hook consumer
+SCHEDULED_BRIDGE = exactly one cloudflare:scheduled hook consumer
 PUBLIC_HTTP_SCHEDULER = prohibited
 ```
 
 ### 6.1 Request path
 
 1. Cloudflare invokes Nitro `fetch(request, env, ctx)`.
-2. One WRI-01 runtime bridge obtains the Cloudflare `env` and `ExecutionContext` from the platform event made available by the Nitro Cloudflare preset.
-3. The bridge installs a request-scoped `CloudflareRuntimeContext` before SSR/server-function execution.
-4. `src/server.ts::fetch` obtains bindings through `requireCloudflareRuntimeContext()`.
-5. Missing or ambiguous context returns a deterministic `503` and never falls through to another tenant or provider mode.
-6. `process.env` may remain only as explicitly tested compatibility for non-secret values. Provider secrets and server authority must use the Cloudflare binding map.
+2. One WRI-01 bridge obtains the Cloudflare environment and execution context from the platform event exposed by the pinned Nitro preset.
+3. The bridge installs a request-scoped `CloudflareRuntimeContext` before SSR and server functions execute.
+4. `src/server.ts::fetch` uses `requireCloudflareRuntimeContext()`.
+5. Missing or ambiguous context produces a sanitized `503` and never falls through to another tenant or provider mode.
+6. Provider secrets and server authority use the Cloudflare binding map; `process.env` is not provider-secret authority.
+7. Concurrent requests must prove runtime-context isolation.
 
-The implementation must prove the exact Nitro event-context shape against the pinned package version. An undocumented property path cannot be accepted without a compiled-bundle and workerd test.
+The exact Nitro event-context shape must be proven against the pinned dependency and compiled bundle. If a stable, testable context is unavailable, Strategy A fails and implementation terminates as Rejected rather than rewriting generated files.
 
 ### 6.2 Scheduled path
 
 1. Cloudflare invokes Nitro `scheduled(controller, env, ctx)`.
 2. Nitro emits `cloudflare:scheduled`.
-3. Exactly one WRI-01 plugin consumes that hook.
+3. Exactly one WRI-01 plugin consumes the hook.
 4. The plugin delegates the original controller, environment and execution context to `src/server.ts::scheduled`.
-5. `src/server.ts::scheduled` calls the existing `processScheduledDomainJobs({ runtimeEnv: env, limit: 20 })` boundary.
-6. The returned promise is registered through `ctx.waitUntil`.
-7. No HTTP route can invoke the production scheduler.
+5. `src/server.ts::scheduled` calls `processScheduledDomainJobs({ runtimeEnv: env, limit: 20 })`.
+6. The promise is registered through `ctx.waitUntil`.
+7. No deployed HTTP route invokes the scheduler.
 
-A compiled handler without a registered hook consumer remains a failure.
+A compiled function without a registered consumer remains a failure.
 
 ## 7. Versioned Wrangler contract
 
-The future `wrangler.jsonc` is the final deploy configuration authority and must contain:
+The future `wrangler.jsonc` must explicitly define:
 
 ```text
 name = rm-prime-wri01-hml
@@ -179,27 +174,27 @@ assets.binding = ASSETS
 compatibility_flags = [nodejs_compat]
 compatibility_date = pinned implementation date
 observability.enabled = true
-workers_dev = true for initial preflight
+workers_dev = true
+routes = [] for the initial workers.dev proof
 no_bundle = true only if verified against Nitro output
-rules = exact ES module inclusion required by the build
+rules = exact module rules required by the build
+env.homologation.name = rm-prime-wri01-hml
 ```
 
-It must also define an explicit `homologation` environment. Production environment and production routes remain absent or disabled until a separate production decision.
+No production environment or route is permitted in WRI-01.
 
-The deploy script must be deterministic:
+Deterministic command chain:
 
 ```text
 bun run build
 → bun run wri01:bundle-audit
 → wrangler deploy --dry-run --outdir .wri01-dry-run --env homologation
-→ explicit authorized deploy command only after all gates pass
+→ explicit authorized deploy only after all repository gates pass
 ```
 
-No command may deploy implicitly as part of `build`, `test`, `verify:release` or ordinary Lovable preview.
+Build, test, Release Gate and Lovable preview must never deploy implicitly.
 
 ## 8. Cron contract
-
-The planned homologation schedule is:
 
 ```text
 CRON_EXPRESSION = */5 * * * *
@@ -211,17 +206,15 @@ RETRY = existing bounded operation taxonomy
 PUBLIC_HTTP_TRIGGER = false
 ```
 
-The five-minute interval is a conservative non-production default. Any frequency change requires an explicit documented reason and provider-rate-limit analysis.
+Local proof uses `wrangler dev --test-scheduled`. Its development-only endpoint is not a production application route.
 
-Local proof must use `wrangler dev --test-scheduled`. The local test endpoint is development-only and must not be exposed by the deployed production router.
+Remote proof must observe one real platform Cron invocation. If the DCA migration remains unauthorized, the remote event may prove reachability through a deterministic fail-closed empty/missing-boundary result; it must not fabricate job success.
 
-Remote proof must verify one real Cron invocation through Cloudflare observability without directly mutating job state.
-
-Rollback removes the Cron Trigger before removing the Worker route or Worker.
+Rollback disables Cron before removing routes or the Worker.
 
 ## 9. Zone routing analysis
 
-Observed SaaS zone:
+Observed non-production SaaS zone:
 
 ```text
 ZONE_NAME = mrrod.com.br
@@ -229,11 +222,11 @@ CLOUDFLARE_FOR_SAAS_ENABLED = true
 FALLBACK_ORIGIN_CONFIGURED = false
 ```
 
-The operator-supplied account and zone IDs are transport inputs only and must be revalidated by the server/provider API before any mutation.
+Operator-supplied account and zone IDs must be revalidated before mutation.
 
-A Worker-as-origin wildcard route `*/*` captures both custom-hostname traffic and ordinary traffic entering the zone. Therefore `mrrod.com.br` is **conditionally acceptable only for the controlled non-production proof**, with all exclusion routes created and verified before the wildcard route.
+A `*/*` Worker route captures custom-hostname traffic and ordinary traffic in the zone. Therefore `mrrod.com.br` is conditionally acceptable only for controlled non-production proof with all more-specific no-Worker routes active first.
 
-Required no-Worker exclusions:
+Required exclusions:
 
 ```text
 mrrod.com.br/* → no Worker
@@ -241,27 +234,23 @@ www.mrrod.com.br/* → no Worker
 notify.mrrod.com.br/* → no Worker
 ```
 
-Wildcard Worker route:
+Planned wildcard route:
 
 ```text
 */* → rm-prime-wri01-hml
 ```
 
-Routing outcome:
+Expected routing:
 
 ```text
 fallback.mrrod.com.br/* → WRI-01 Worker
 customers.mrrod.com.br/* → WRI-01 Worker
-dca-hml.mrrod.com.br/* → WRI-01 Worker through Custom Hostname traffic
+controlled Custom Hostname traffic → WRI-01 Worker
 ```
 
-More specific exclusions must be confirmed active before the wildcard route. The route transaction must fail closed and roll back immediately if apex, `www` or `notify` no longer resolve to their preflight responses.
-
-For production, a dedicated SaaS apex remains the lower-risk architecture. Selecting or purchasing that apex is outside WRI-01 and requires a separate Product Owner decision.
+Any mismatch on apex, `www` or `notify` causes immediate wildcard-route rollback. A dedicated SaaS apex remains the lower-risk production architecture and requires a separate Product Owner decision.
 
 ## 10. Fallback origin contract
-
-The exact non-production contract is:
 
 ```text
 FALLBACK_HOSTNAME = fallback.mrrod.com.br
@@ -273,32 +262,31 @@ WORKER_ROUTE_REQUIRED = true
 EXPECTED_FALLBACK_STATUS = active
 ```
 
-The current failed/pending fallback designation must be deleted or confirmed absent before creating the originless DNS record.
+The failed/pending fallback designation must be deleted or confirmed absent before creating the originless record.
 
 Activation order:
 
-1. capture existing DNS and route state;
-2. deploy the Worker to `workers.dev` without zone routes;
-3. prove `fetch`, assets, `scheduled`, bindings and bundle limits;
-4. create no-Worker exclusion routes;
-5. create the originless proxied `AAAA fallback → 100::` record;
-6. set `fallback.mrrod.com.br` as the fallback origin;
-7. wait for fallback status `active`;
-8. add `*/*` to the Worker;
-9. verify exclusions and controlled hostname traffic;
-10. stop before Custom Hostname creation unless the later DCA external-proof gate explicitly authorizes it.
+1. capture existing DNS/routes and baseline HTTP/TLS evidence;
+2. deploy Worker to `workers.dev` without zone routes;
+3. prove handlers, assets, bindings and bundle limits;
+4. create and verify no-Worker exclusions;
+5. create proxied originless `AAAA fallback → 100::`;
+6. designate the fallback origin and wait for `active`;
+7. add wildcard route;
+8. re-prove exclusions and controlled traffic;
+9. stop before Custom Hostname creation unless a later DCA proof authorization exists.
 
-Teardown order is the reverse, beginning with Cron disablement and wildcard route removal. Existing apex, `www`, `notify`, DMARC and Lovable verification records must not be modified.
+Teardown reverses the sequence, beginning with Cron disablement and wildcard-route removal. Existing apex, `www`, `notify`, DMARC and Lovable verification records are protected.
 
 ## 11. Bundle and Cloudflare plan gates
 
-The uncompressed build size does not determine Cloudflare eligibility. The future implementation must execute:
+Required command:
 
 ```text
 wrangler deploy --dry-run --outdir .wri01-dry-run --env homologation
 ```
 
-It must record:
+Required evidence:
 
 ```text
 UNCOMPRESSED_UPLOAD_BYTES
@@ -309,42 +297,54 @@ ACCOUNT_PLAN_LIMIT
 LIMIT_MARGIN_BYTES
 ```
 
-Gate rules:
+Rules:
 
-- account plan must be read from Cloudflare, not inferred;
-- gzip size must be below the applicable plan limit with an explicit margin;
-- startup time must be below the current Cloudflare limit;
-- failures require dependency analysis, lazy loading or an explicitly planned service split;
-- no test may claim success from the 8,586,058-byte uncompressed value alone.
+- read the account plan from Cloudflare; do not infer it;
+- gzip size must remain below the applicable plan limit with explicit margin;
+- startup time must remain below the current platform limit;
+- the 8,586,058-byte uncompressed figure alone cannot pass or fail the gate;
+- classify large spreadsheet, formatting and charting modules as required, client-only or removable from the server graph.
 
-Known large server chunks such as spreadsheet, formatting and charting dependencies must be classified as request-required, client-only or removable from the server graph.
+## 12. Same-Backend Homologation Cell and explicit tenant
 
-## 12. Same-Backend Homologation Cell
+No external Supabase project or database branch may be introduced.
 
-The Worker will use the canonical backend. No second Supabase project or database branch may be introduced as fallback.
+The explicitly identified technical tenant candidate is:
 
-The non-production Worker must:
+```text
+TECHNICAL_TENANT_CANDIDATE_ID = 8c9f696d-47a4-4098-a723-e281803e17ab
+TECHNICAL_TENANT_CANDIDATE_NAME = SCP-012.0.2.1 harness
+OBSERVED_MEMBER_COUNT = 0
+OBSERVED_ACTIVE_MEMBER_COUNT = 0
+CANDIDATE_AUTHORITY = false until server-side revalidation
+REAL_CUSTOMER_DATA_AUTHORIZED = false
+REAL_CUSTOMER_TRAFFIC_AUTHORIZED = false
+```
 
-- use only a dedicated technical tenant with no real customer traffic;
-- never mutate the `RM Prime Imóveis` tenant during WRI-01;
-- reject missing explicit tenant/impersonation context;
-- remain on `workers.dev` until route authorization;
-- avoid migration, DCA domain creation and production cutover during runtime-integration proof;
-- prove scheduler wiring using deterministic fixtures or fail-closed empty queues before DCA-01 migration authorization.
+This candidate was previously observed read-only as an existing zero-member harness tenant. Before any implementation or remote proof, the server must revalidate:
 
-The exact technical tenant is selected by a separate read-only database preflight and then recorded as an explicit implementation input.
+1. exact tenant ID and row cardinality;
+2. zero active and total members;
+3. no real customer data or traffic;
+4. no domain, billing or operational authority attached;
+5. explicit Super Admin impersonation boundary;
+6. no concurrent use by another test gate.
+
+Any divergence invalidates the candidate and blocks execution. Selection of a replacement tenant requires a documented read-only preflight; it must never default to `RM Prime Imóveis` or the first tenant.
+
+The Worker must remain on `workers.dev` until route authorization and must avoid migration, DCA domain creation and production cutover during WRI-01 runtime-integration proof.
 
 ## 13. Secrets and bindings
 
-The runtime provider credential reference remains:
+Runtime provider reference:
 
 ```text
 CREDENTIAL_REFERENCE = env:CLOUDFLARE_API_TOKEN_DCA01_HML
 ```
 
-The secret currently stored in Lovable is not automatically a Cloudflare Worker secret. Future deployment must provision secrets in the Cloudflare Worker environment without reading or printing their values.
+The Lovable secret is not automatically a Cloudflare Worker secret. Future deployment must provision Worker secrets without reading or printing values.
 
-Required binding names include, subject to read-only preflight:
+Required binding names, subject to read-only preflight:
 
 ```text
 SUPABASE_URL
@@ -352,40 +352,39 @@ SUPABASE_SERVICE_ROLE_KEY
 CLOUDFLARE_API_TOKEN_DCA01_HML
 ```
 
-A distinct deploy credential must be used for Wrangler/CI:
+Distinct deployment credential:
 
 ```text
 CLOUDFLARE_DEPLOY_API_TOKEN_WRI01_HML
 ```
 
-The deploy token and the runtime provider token must not be the same secret. No secret value may appear in GitHub, documentation, logs, PR comments, build artifacts or client bundles.
+Deploy and runtime-provider tokens must be separate. No secret value may enter GitHub, docs, logs, PR comments, artifacts or client bundles.
 
 ## 14. Mandatory future implementation tests
 
-The future implementation is not accepted until tests prove:
+The future implementation must prove:
 
-1. frozen install and build on the exact HEAD;
-2. final Worker export contains reachable `fetch` and `scheduled`;
-3. real `env` propagation to the application boundary;
+1. frozen install and build on exact HEAD;
+2. final Worker export with reachable `fetch` and `scheduled`;
+3. real `env` propagation;
 4. real `ctx` propagation and functional `waitUntil`;
-5. `wrangler dev --test-scheduled` invokes `processScheduledDomainJobs` exactly once;
-6. deployed Cron has no public HTTP production trigger;
-7. assets are served from the configured binding;
-8. canonical redirect executes before SSR;
-9. unknown hostname fails closed;
-10. no dual domain authority or tenant default exists;
-11. absent runtime secret fails closed without secret disclosure;
-12. dry-run gzip size is within the observed account plan limit;
-13. startup time is within the current platform limit;
-14. no-Worker exclusions preserve apex, `www` and `notify` byte-equivalent critical responses;
-15. wildcard route reaches fallback and controlled custom-hostname traffic only as planned;
-16. rollback removes Cron, wildcard route and fallback artifacts without touching existing DNS records;
-17. existing Release Gate and DCA-01 deterministic tests remain green;
-18. compiled-bundle tests, not source-string assertions, prove runtime reachability.
+5. `wrangler dev --test-scheduled` invokes `processScheduledDomainJobs` once;
+6. no deployed public HTTP scheduler;
+7. assets served from the configured binding;
+8. canonical redirect before SSR;
+9. unknown host fails closed;
+10. no dual authority or tenant default;
+11. absent secret fails closed without disclosure;
+12. gzip size within observed plan limit;
+13. startup within current limit;
+14. route exclusions preserve apex, `www` and `notify`;
+15. wildcard route reaches only the intended Worker path;
+16. rollback removes Cron, route and fallback artifacts without touching existing DNS;
+17. exact technical-tenant revalidation and isolation;
+18. existing Release Gate and DCA tests remain green;
+19. compiled-bundle evidence, not source strings, proves reachability.
 
-## 15. Future implementation scope
-
-The future WRI-01 implementation may alter only:
+## 15. Future implementation FILES_ALLOWED
 
 ```text
 vite.config.ts
@@ -410,24 +409,24 @@ docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/wri-01
 docs/operations/WRI-01-cloudflare-worker-runtime-runbook.md
 ```
 
-Adding another runtime path requires a new impact analysis. Existing migrations, RLS, tenant middleware, domain state machine and Cloudflare provider adapter are prohibited unless a new directly evidenced defect requires reopening them.
+Adding another runtime path requires a new impact analysis. Existing migrations, RLS, tenant middleware, domain state machine and provider adapter remain prohibited unless new direct evidence requires reopening them.
 
 ## 16. Rollback
 
-Before external deployment, rollback is ordinary Git reversion.
+Repository-only rollback is Git reversion.
 
-After an authorized non-production deployment:
+External rollback order:
 
 1. disable Cron;
 2. remove wildcard Worker route;
 3. verify apex, `www` and `notify` bypass the Worker;
-4. remove fallback-origin designation;
-5. delete only the WRI-01 originless fallback record;
+4. remove fallback designation;
+5. delete only the WRI-01 `AAAA fallback → 100::` record;
 6. remove the non-production Worker;
-7. preserve logs and correlation IDs;
-8. leave the canonical backend, tenants and existing DNS records unchanged.
+7. preserve sanitized evidence;
+8. leave the backend, tenant data and existing DNS unchanged.
 
-No rollback may reactivate legacy tenant or domain fallback logic.
+No rollback may restore tenant-default or legacy request-time fallback logic.
 
 ## 17. Planning conclusion
 
@@ -444,7 +443,7 @@ PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-WRI-01 implementation requires explicit Product Owner authorization after this planning PR is directly audited and accepted.
+WRI-01 implementation requires direct planning acceptance, protected planning merge and separate Product Owner authorization.
 
 ## 18. Normative references
 
@@ -452,4 +451,4 @@ WRI-01 implementation requires explicit Product Owner authorization after this p
 - Cloudflare Workers — Cron Triggers and Scheduled Handler.
 - Cloudflare for SaaS — Workers as fallback origin.
 - Cloudflare Workers — Wrangler configuration and platform limits.
-- Nitro — Cloudflare module preset and runtime hooks as pinned by the repository lockfile.
+- Nitro Cloudflare preset and runtime hooks pinned by the repository lockfile.
