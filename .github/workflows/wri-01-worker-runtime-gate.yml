@@ -173,13 +173,18 @@ jobs:
           retention-days: 14
 
       - name: Local workerd scheduled-event proof
+        id: workerd-proof
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           LOG_FILE="${RUNNER_TEMP}/wri01-workerd.log"
+          RESPONSE_FILE="${RUNNER_TEMP}/wri01-scheduled-response.txt"
+          : > "${LOG_FILE}"
+          : > "${RESPONSE_FILE}"
+
           (
             cd dist/server
-            bunx wrangler@4.114.0 dev \
+            exec bunx wrangler@4.114.0 dev \
               --config wrangler.json \
               --local \
               --test-scheduled \
@@ -189,21 +194,82 @@ jobs:
               --var CLOUDFLARE_API_TOKEN_DCA01_HML:wri01-local-proof
           ) >"${LOG_FILE}" 2>&1 &
           WRANGLER_PID=$!
-          cleanup() {
-            kill "${WRANGLER_PID}" 2>/dev/null || true
-            wait "${WRANGLER_PID}" 2>/dev/null || true
-          }
-          trap cleanup EXIT
+
           READY=false
-          for _ in $(seq 1 45); do
-            if grep -Eq "Ready on|Ready at|Listening" "${LOG_FILE}"; then READY=true; break; fi
-            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then cat "${LOG_FILE}"; exit 1; fi
+          PROCESS_EXITED_BEFORE_READY=false
+          READY_HTTP_CODE=000
+          for _ in $(seq 1 60); do
+            if ! kill -0 "${WRANGLER_PID}" 2>/dev/null; then
+              PROCESS_EXITED_BEFORE_READY=true
+              break
+            fi
+            READY_HTTP_CODE="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 2 http://127.0.0.1:8788/ 2>/dev/null)"
+            if [ "${READY_HTTP_CODE}" != "000" ]; then
+              READY=true
+              break
+            fi
             sleep 1
           done
-          if [ "${READY}" != "true" ]; then cat "${LOG_FILE}"; exit 1; fi
-          curl --fail-with-body --silent --show-error \
-            "http://127.0.0.1:8788/__scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A" \
-            -o "${RUNNER_TEMP}/wri01-scheduled-response.txt"
-          sleep 5
-          cat "${LOG_FILE}"
-          grep -Eq "\[DCA-01\] scheduled reconciliation (completed|failed closed)" "${LOG_FILE}"
+
+          CURL_EXIT_CODE=99
+          SCHEDULED_HTTP_CODE=000
+          if [ "${READY}" = "true" ]; then
+            SCHEDULED_HTTP_CODE="$(curl \
+              --silent \
+              --show-error \
+              --output "${RESPONSE_FILE}" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "http://127.0.0.1:8788/__scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A")"
+            CURL_EXIT_CODE=$?
+          fi
+
+          sleep 10
+          if grep -Eq "\[DCA-01\] scheduled reconciliation (completed|failed closed)" "${LOG_FILE}"; then
+            SCHEDULED_LOG_EVIDENCE=true
+          else
+            SCHEDULED_LOG_EVIDENCE=false
+          fi
+
+          if kill -0 "${WRANGLER_PID}" 2>/dev/null; then
+            kill "${WRANGLER_PID}" 2>/dev/null
+            wait "${WRANGLER_PID}" 2>/dev/null
+            WRANGLER_EXIT_CODE=$?
+          else
+            wait "${WRANGLER_PID}" 2>/dev/null
+            WRANGLER_EXIT_CODE=$?
+          fi
+
+          cp "${LOG_FILE}" .wri01-workerd.log
+          cp "${RESPONSE_FILE}" .wri01-scheduled-response.txt
+          {
+            printf 'READY=%s\n' "${READY}"
+            printf 'READY_HTTP_CODE=%s\n' "${READY_HTTP_CODE}"
+            printf 'PROCESS_EXITED_BEFORE_READY=%s\n' "${PROCESS_EXITED_BEFORE_READY}"
+            printf 'SCHEDULED_HTTP_CODE=%s\n' "${SCHEDULED_HTTP_CODE}"
+            printf 'CURL_EXIT_CODE=%s\n' "${CURL_EXIT_CODE}"
+            printf 'SCHEDULED_LOG_EVIDENCE=%s\n' "${SCHEDULED_LOG_EVIDENCE}"
+            printf 'WRANGLER_EXIT_CODE_AFTER_TERMINATION=%s\n' "${WRANGLER_EXIT_CODE}"
+          } > .wri01-workerd-facts.txt
+
+          cat .wri01-workerd.log
+          cat .wri01-workerd-facts.txt
+
+          if [ "${READY}" != "true" ]; then exit 1; fi
+          if [ "${CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
+          if [ "${SCHEDULED_HTTP_CODE}" -lt 200 ] || [ "${SCHEDULED_HTTP_CODE}" -ge 300 ]; then exit 1; fi
+          if [ "${SCHEDULED_LOG_EVIDENCE}" != "true" ]; then exit 1; fi
+          exit 0
+
+      - name: Preserve local workerd proof diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wri-01-workerd-proof-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            .wri01-workerd.log
+            .wri01-workerd-facts.txt
+            .wri01-scheduled-response.txt
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
