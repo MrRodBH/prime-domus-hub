@@ -1,117 +1,185 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — DCA-01 repository implementation merged; controlled external proof Blocked External
+**Status:** Ratificado — DCA-01 Worker Runtime Preflight Rejected; WRI-01 Planned
 **Authority:** Single Source of Future Evolution
-**Audited repository implementation merge:** `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`
+**Audited baseline:** `9157f1e19e455d20b8272951bed25eb8ddd0572d`
 
 ## Current authority
 
 ```text
 PRM2_STATE = Accepted / Merged / Closed
 PRM2_IMPLEMENTATION_PR = 60
-PRM2_IMPLEMENTATION_HEAD = ef9e22c239c7ce7e5d937bd06c7452ebde47f096
 PRM2_IMPLEMENTATION_MERGE_SHA = ec06a19af44cc988e602d7bc8d0dc7a627db1619
 
 DCA01_PLANNING_STATE = Accepted / Merged / Closed
 DCA01_PLANNING_PR = 64
 DCA01_PLANNING_MERGE_SHA = 623f94f98174478af19b130cda9896c64f256f14
-DCA01_INITIAL_REJECTED_PLANNING_HEAD = b6974aaccc11fbc4118a2af8c15320e2e665233e
-DCA01_INITIAL_REJECTED_PLANNING_AUTHORITY = historical only
 DCA01_INTEGRATION_MODEL = HYBRID
 DCA01_SUPPORTED_MODES = manual_assisted, api_automated
 
-DCA01_IMPLEMENTATION_STATE = Accepted / Merged / Closed — repository implementation
-DCA01_IMPLEMENTATION_STARTED = true
-DCA01_IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
+DCA01_REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 DCA01_IMPLEMENTATION_PR = 65
-DCA01_IMPLEMENTATION_PR_DRAFT = false
-DCA01_IMPLEMENTATION_BASELINE = 623f94f98174478af19b130cda9896c64f256f14
-DCA01_LAST_EXACT_HEAD_VALIDATED = c6a5b93c0869d38b1e03eba903e88513879e9402
-DCA01_LAST_EXACT_HEAD_RELEASE_GATE = success
-DCA01_LAST_EXACT_HEAD_CONSOLIDATED_GATE = success
+DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
 DCA01_PREMERGE_AUDIT = Accepted
-DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = executed
-DCA01_EXTERNAL_PROOF_STATE = Blocked External — prerequisites and live authorization absent
-DCA01_TERMINAL_STATE = Blocked External
 
-BCA01_STATE = Planned — Blocked by DCA-01 terminal acceptance
+DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+DCA01_CURRENT_STATE = Rejected
+
+WRI01_STATE = Planned
+WRI01_PLANNING_BASELINE = 9157f1e19e455d20b8272951bed25eb8ddd0572d
+WRI01_SELECTED_STRATEGY = Strategy A — preserve Lovable/TanStack/Nitro and add one runtime bridge plus versioned Wrangler authority
+WRI01_IMPLEMENTATION_STARTED = false
+
+BCA01_STATE = Planned — Blocked by DCA-01 and WRI-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = controlled external non-production proof only after explicit prerequisite authorization
+NEXT_STAGE_AUTHORIZED = WRI-01 planning audit only
+NO_AUTOMATIC_SUCCESSOR = true
 
-CLOUDFLARE_API_CALL_EXECUTED = false
-DNS_MUTATION_EXECUTED = false
-TXT_RECORD_CREATED = false
-CUSTOM_HOSTNAME_CREATED = false
-SSL_PROVISIONING_EXECUTED = false
-REAL_SECRET_USED = false
-LIVE_DOMAIN_VERIFIED = false
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+SSL_PROVISIONING_EXECUTED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 AUTO_MERGE_ENABLED = false
 ```
 
-## DCA-01 materialized implementation authority
+## DCA-01 repository implementation authority
 
-The principal implementation PR materializes the accepted planning contract through:
+PR #65 remains the accepted repository implementation of the domain lifecycle. It materialized:
 
-- one closed 12-state TypeScript and SQL lifecycle;
-- symmetric `degraded → active` recovery gated by the complete current-generation predicate;
-- atomic, generation-bound ownership challenge issuance, rotation and anti-replay verification;
-- one forward migration with RLS, explicit grants, server RPCs and append-only audit evidence;
-- deterministic IDNA and public-suffix normalization from the pinned official PSL snapshot;
-- a mandatory server-generated legacy import manifest instead of SQL hostname heuristics;
-- one server-only domain repository boundary with explicit version and generation checks;
-- idempotent jobs, leases, attempt records, bounded retries and scheduled reconciliation;
-- explicit `manual_assisted` and `api_automated` operation modes without silent fallback;
-- a narrow Cloudflare adapter with exact-hostname cardinality, opaque credentials and generation-bound metadata;
-- one production resolver over active `tenant_domains`, with no request-time legacy fallback;
-- a separate explicit development host map outside production authority;
-- canonical alias redirect before SSR and the platform-native `scheduled` executor;
-- atomic replacement that preserves the incumbent until commit and prohibits post-commit direct reactivation;
-- removal that closes public authority before asynchronous provider cleanup;
-- tenant and Super Admin operational surfaces that request operations but cannot assert external success;
-- two operational runbooks and deterministic DCA-01 Release Gate specifications.
+- one closed 12-state domain lifecycle;
+- deterministic hostname normalization and pinned Public Suffix List handling;
+- one forward migration with RLS, grants, server-only commands and audit evidence;
+- ownership, DNS, provider, SSL, replacement, removal and reconciliation contracts;
+- exact-hostname Cloudflare adapter with generation-bound metadata;
+- active-domain public resolution with no request-time legacy fallback;
+- canonical redirect before SSR;
+- tenant and Super Admin operational surfaces;
+- deterministic DCA-01 tests and operational runbooks.
 
-## Deterministic evidence
+Repository acceptance did not prove the compiled Worker integration. The later exact-build runtime preflight is therefore authoritative for Worker reachability.
+
+## Worker runtime preflight evidence
+
+The exact build from `main@9157f1e19e455d20b8272951bed25eb8ddd0572d` produced a valid Nitro Cloudflare Worker artifact but proved:
 
 ```text
-DCA01_SPEC_ASSERTIONS = 149
-PSL_VERSION = 2026-07-25_14-20-03_UTC
-PSL_SOURCE_COMMIT = e1b8015c3b2f0f4f8c18659c2480fc1a22c07b20
-PSL_RULE_COUNT = 10239
-PSL_DUPLICATE_COUNT = 0
-REQUEST_TIME_DUAL_AUTHORITY = false
-CLIENT_TENANT_AUTHORITY = false
-DIRECT_CLIENT_STATUS_MUTATION = false
-PLAINTEXT_CREDENTIAL_PERSISTENCE = false
-BUILD_DEV = passed
-BUILD = passed
-TYPECHECK = passed
-GENERATED_ROUTE_TREE_MANUAL_EDIT = false
-GENERATED_ROUTE_TREE_SHA256 = 00ea348d4032a9619fd033fe1d794abc177a74a0f830a8645dcae1c4055d13d8
+EXACT_BUILD_INSTALL = passed
+EXACT_BUILD = passed
+NITRO_PRESET = cloudflare-module
+WORKER_ENTRY = dist/server/index.mjs
+STATIC_ASSETS = dist/client
+NODEJS_COMPAT = true
+
+SRC_SERVER_FETCH_COMPILED = true
+SRC_SERVER_FETCH_REACHABLE = true
+SRC_SERVER_FETCH_RECEIVES_ENV = false
+SRC_SERVER_FETCH_RECEIVES_CTX = false
+
+SRC_SERVER_SCHEDULED_COMPILED = true
+SRC_SERVER_SCHEDULED_REACHABLE = false
+CLOUDFLARE_SCHEDULED_HOOK_CONSUMER = absent
+WRANGLER_CRON_TRIGGER = absent
+WRANGLER_ROUTES = absent
+VERSIONED_WRANGLER_CONFIG = absent
+REPRODUCIBLE_DEPLOY_SCRIPT = absent
+
+SERVER_UNCOMPRESSED_BYTES = 8586058
+SERVER_MODULE_FILES = 381
 ```
 
-The generator-owned `src/routeTree.gen.ts` remains unedited in the branch. Exact builds generated the tenant and Super Admin domain routes deterministically and produced the same route-tree digest across all release cycles.
+This evidence invalidates the prior assumption that source presence alone proved a platform-native scheduler. DCA-01 cannot continue to external proof while the compiled scheduler is unreachable or the request boundary lacks authoritative Cloudflare runtime context.
+
+## WRI-01 architecture decision
+
+WRI-01 selects one architecture:
+
+```text
+BUILD_AUTHORITY = @lovable.dev/vite-tanstack-config + Nitro cloudflare-module
+DEPLOY_AUTHORITY = versioned wrangler.jsonc
+REQUEST_BOUNDARY = src/server.ts::fetch
+SCHEDULED_BOUNDARY = src/server.ts::scheduled
+RUNTIME_BRIDGE = one Nitro Cloudflare runtime-context and scheduled-hook bridge
+```
+
+Rejected strategies:
+
+- replacing Nitro with `@cloudflare/vite-plugin` inside WRI-01, because it changes the validated build and Lovable preview authority;
+- running Nitro and the Cloudflare Vite plugin in parallel, because that creates dual Worker, assets, bindings and deploy authorities.
+
+The official Cloudflare Vite plugin may be reconsidered only through a new explicit architecture decision if the selected Nitro strategy cannot pass compiled-bundle and workerd tests.
+
+## Cloudflare non-production boundary
+
+Operator-supplied context:
+
+```text
+CLOUDFLARE_ZONE_NAME = mrrod.com.br
+CLOUDFLARE_FOR_SAAS_ENABLED = true
+CLOUDFLARE_RUNTIME_SECRET_NAME = CLOUDFLARE_API_TOKEN_DCA01_HML
+FALLBACK_ORIGIN_CONFIGURED = false
+```
+
+Account and zone IDs are transport inputs, not tenant or provider authority. They must be revalidated by the server/provider boundary before mutation.
+
+The `mrrod.com.br` zone is conditionally acceptable only for controlled non-production proof with these no-Worker exclusions established before any wildcard route:
+
+```text
+mrrod.com.br/*
+www.mrrod.com.br/*
+notify.mrrod.com.br/*
+```
+
+Planned Worker route:
+
+```text
+*/* → rm-prime-wri01-hml
+```
+
+Planned fallback origin:
+
+```text
+fallback.mrrod.com.br AAAA 100:: — proxied, originless
+```
+
+No route, DNS record, fallback origin or Custom Hostname is authorized by this planning state.
+
+## Same-Backend Homologation Cell
+
+The Same-Backend Homologation Cell remains binding:
+
+- no external Supabase fallback;
+- no tenant default;
+- no mutation of the `RM Prime Imóveis` tenant during WRI-01;
+- one explicitly selected technical tenant for later controlled proof;
+- preview and published environments continue to share the canonical backend;
+- WRI-01 does not authorize the DCA managed migration.
 
 ## Executable sequence
 
 ```text
 PR-M2 — Accepted / Merged / Closed
 → DCA-01 planning — Accepted / Merged / Closed
-→ DCA-01 implementation — complete in principal PR #65
-→ final exact-head Release Gate after documentation reconciliation
-→ concise direct pre-merge audit
-→ protected implementation merge only if the pre-merge audit is Accepted
-→ controlled external non-production proof only when safe prerequisites exist
-→ terminal DCA-01 audit
-→ Accepted, Accepted with Non-Blocking Backlog, Blocked External or Rejected
+→ DCA-01 repository implementation — Accepted / Merged / Closed
+→ DCA-01 Worker Runtime Preflight — Rejected
+→ WRI-01 planning — current authorized gate
+→ direct WRI-01 planning audit
+→ protected planning merge only after Accepted audit and explicit authorization
+→ WRI-01 implementation only after separate explicit authorization
+→ repository runtime audit
+→ controlled workers.dev proof only after separate external authorization
+→ controlled zone route/fallback proof only after prerequisite authorization
+→ DCA-01 external proof only after WRI-01 terminal acceptance
 → no automatic successor
-→ BCA-01 only after DCA-01 Accepted and explicit Product Owner authorization
+→ BCA-01 only after DCA-01 Accepted and explicit authorization
 → PR-M3 only after BCA-01 Accepted
-→ Pre-Homologation Release Candidate
+→ Release Candidate
 → TH-M1
 → TH-M2
 → LSV-03
@@ -122,41 +190,20 @@ PR-M2 — Accepted / Merged / Closed
 ## Permanent invariants
 
 - Server is the sole tenant, domain, authorization, storage and commercial authority.
-- Client headers, hostnames, paths, account IDs, zone IDs and provider statuses are not authority.
+- Client headers, hostnames, paths, account IDs, zone IDs and provider statuses are never authority.
 - Ambiguity fails fast and closed.
 - Super Admin tenant-scoped mutation requires explicit impersonation.
 - No heuristic fallback, default tenant, dual path or first-row authority.
-- Only `active` domain rows are publicly authoritative after cutover.
-- An incumbent remains active while a replacement candidate is prepared.
-- A committed replacement swap cannot be reversed by `removal_pending → active`.
-- `www` and apex are explicit bindings; neither is inferred as the other.
-- External provider, DNS or SSL success is never inferred from local configuration state.
-- Plaintext provider secrets are prohibited in database, tenant configuration, CI, client payloads and logs.
+- Only active domain rows are publicly authoritative after cutover.
+- External DNS, provider and SSL success require independent observation.
+- Provider secrets remain outside database, client payloads, docs and logs.
+- A platform-native scheduler must be reachable in the compiled Worker, not merely present in source.
+- One build pipeline, one Worker entry, one assets authority and one deploy configuration are mandatory.
 - Same-Backend Homologation Cell remains binding.
-- Fases 2, 3 and 4, LSH-01, LSV-01, LSV-02 and LSR-01 remain closed or superseded and are not reopened.
-
-## External proof boundary
-
-Repository implementation evidence does not prove an external domain lifecycle. DCA-01 cannot reach a terminal accepted state until the authorized non-production proof covers migration application, DNS, Cloudflare Custom Hostname, SSL, activation, degradation/recovery, replacement and removal. Production cutover remains separately prohibited.
+- Fases 2, 3 and 4, LSH-01, LSV-01, LSV-02 and LSR-01 remain closed or superseded and must not be reopened.
 
 ## Historical authority
 
 The PR-M2 terminal roadmap is preserved at commit `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
-The original DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` remains rejected historical evidence. The corrected accepted planning was merged at `623f94f98174478af19b130cda9896c64f256f14` and is the binding implementation contract.
-
-## DCA-01 post-merge reconciliation
-
-```text
-DCA01_IMPLEMENTATION_PR = 65
-DCA01_CORRECTIVE_BASE_HEAD = 7dc42c163c0ab5bca415f3f689c2dc9617a06f19
-DCA01_CORRECTIVE_HEAD = c6a5b93c0869d38b1e03eba903e88513879e9402
-DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
-DCA01_REPOSITORY_IMPLEMENTATION_AUDIT = Accepted
-DCA01_EXTERNAL_PROOF_STATE = Blocked External
-BCA01_STARTED = false
-PRM3_STARTED = false
-NO_AUTOMATIC_SUCCESSOR = true
-```
-
-The repository implementation is merged and closed. No managed migration, deploy, DNS mutation, Cloudflare API call, real credential, live-domain proof or production cutover was executed.
+The original rejected DCA-01 planning submission remains historical at `b6974aaccc11fbc4118a2af8c15320e2e665233e`. Corrected DCA-01 planning was merged at `623f94f98174478af19b130cda9896c64f256f14`; repository implementation was merged at `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`; the Worker runtime defect was confirmed against `9157f1e19e455d20b8272951bed25eb8ddd0572d`.
