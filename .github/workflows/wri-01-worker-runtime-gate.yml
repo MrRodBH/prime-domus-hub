@@ -172,15 +172,17 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Local workerd scheduled-event proof
+      - name: Local workerd fetch-context and scheduled-event proof
         id: workerd-proof
         shell: bash
         run: |
           set +e
           LOG_FILE="${RUNNER_TEMP}/wri01-workerd.log"
-          RESPONSE_FILE="${RUNNER_TEMP}/wri01-scheduled-response.txt"
+          FETCH_RESPONSE_FILE="${RUNNER_TEMP}/wri01-fetch-response.txt"
+          SCHEDULED_RESPONSE_FILE="${RUNNER_TEMP}/wri01-scheduled-response.txt"
           : > "${LOG_FILE}"
-          : > "${RESPONSE_FILE}"
+          : > "${FETCH_RESPONSE_FILE}"
+          : > "${SCHEDULED_RESPONSE_FILE}"
 
           (
             cd dist/server
@@ -209,20 +211,57 @@ jobs:
             sleep 1
           done
 
-          CURL_EXIT_CODE=99
+          FETCH_CURL_EXIT_CODE=99
+          FETCH_HTTP_CODE=000
+          SCHEDULED_CURL_EXIT_CODE=99
           SCHEDULED_HTTP_CODE=000
           if [ "${READY}" = "true" ]; then
+            FETCH_HTTP_CODE="$(curl \
+              --silent \
+              --show-error \
+              --output "${FETCH_RESPONSE_FILE}" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              "http://127.0.0.1:8788/")"
+            FETCH_CURL_EXIT_CODE=$?
+
             SCHEDULED_HTTP_CODE="$(curl \
               --silent \
               --show-error \
-              --output "${RESPONSE_FILE}" \
+              --output "${SCHEDULED_RESPONSE_FILE}" \
               --write-out '%{http_code}' \
               --max-time 30 \
               "http://127.0.0.1:8788/cdn-cgi/handler/scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A&format=json")"
-            CURL_EXIT_CODE=$?
+            SCHEDULED_CURL_EXIT_CODE=$?
           fi
 
           sleep 10
+
+          if grep -Eq "\[WRI-01\] Cloudflare runtime context unavailable" "${LOG_FILE}"; then
+            FETCH_RUNTIME_CONTEXT_ERROR_LOG=true
+          else
+            FETCH_RUNTIME_CONTEXT_ERROR_LOG=false
+          fi
+          if grep -Eq "\[DCA-01\] canonical redirect resolution failed closed" "${LOG_FILE}"; then
+            FETCH_DOMAIN_FAIL_CLOSED_LOG=true
+          else
+            FETCH_DOMAIN_FAIL_CLOSED_LOG=false
+          fi
+          if grep -Fxq "Domain resolution temporarily unavailable" "${FETCH_RESPONSE_FILE}"; then
+            FETCH_DOMAIN_FAIL_CLOSED_RESPONSE=true
+          else
+            FETCH_DOMAIN_FAIL_CLOSED_RESPONSE=false
+          fi
+
+          FETCH_CONTEXT_NEGATIVE_PATH_PROVED=false
+          if [ "${FETCH_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${FETCH_HTTP_CODE}" -eq 503 ] \
+            && [ "${FETCH_RUNTIME_CONTEXT_ERROR_LOG}" = "false" ] \
+            && [ "${FETCH_DOMAIN_FAIL_CLOSED_LOG}" = "true" ] \
+            && [ "${FETCH_DOMAIN_FAIL_CLOSED_RESPONSE}" = "true" ]; then
+            FETCH_CONTEXT_NEGATIVE_PATH_PROVED=true
+          fi
+
           if grep -Eq "\[DCA-01\] scheduled reconciliation completed" "${LOG_FILE}"; then
             SCHEDULED_COMPLETED_LOG=true
           else
@@ -233,28 +272,28 @@ jobs:
           else
             SCHEDULED_FAILED_CLOSED_LOG=false
           fi
-          if grep -Eq '"outcome":"ok"' "${RESPONSE_FILE}"; then
+          if grep -Eq '"outcome":"ok"' "${SCHEDULED_RESPONSE_FILE}"; then
             OUTCOME_OK=true
           else
             OUTCOME_OK=false
           fi
-          if grep -Eq '"outcome":"exception"' "${RESPONSE_FILE}"; then
+          if grep -Eq '"outcome":"exception"' "${SCHEDULED_RESPONSE_FILE}"; then
             OUTCOME_EXCEPTION=true
           else
             OUTCOME_EXCEPTION=false
           fi
 
-          POSITIVE_PATH_PROVED=false
-          FAIL_CLOSED_NEGATIVE_PATH_PROVED=false
+          POSITIVE_SCHEDULED_PATH_PROVED=false
+          FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=false
           if [ "${SCHEDULED_HTTP_CODE}" -ge 200 ] && [ "${SCHEDULED_HTTP_CODE}" -lt 300 ] \
             && [ "${SCHEDULED_COMPLETED_LOG}" = "true" ] \
             && [ "${OUTCOME_OK}" = "true" ]; then
-            POSITIVE_PATH_PROVED=true
+            POSITIVE_SCHEDULED_PATH_PROVED=true
           fi
           if [ "${SCHEDULED_HTTP_CODE}" -eq 500 ] \
             && [ "${SCHEDULED_FAILED_CLOSED_LOG}" = "true" ] \
             && [ "${OUTCOME_EXCEPTION}" = "true" ]; then
-            FAIL_CLOSED_NEGATIVE_PATH_PROVED=true
+            FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=true
           fi
 
           if kill -0 "${WRANGLER_PID}" 2>/dev/null; then
@@ -267,32 +306,41 @@ jobs:
           fi
 
           cp "${LOG_FILE}" .wri01-workerd.log
-          cp "${RESPONSE_FILE}" .wri01-scheduled-response.txt
+          cp "${FETCH_RESPONSE_FILE}" .wri01-fetch-response.txt
+          cp "${SCHEDULED_RESPONSE_FILE}" .wri01-scheduled-response.txt
           {
             printf 'READY=%s\n' "${READY}"
             printf 'READY_SOURCE=wrangler_log\n'
             printf 'PROCESS_EXITED_BEFORE_READY=%s\n' "${PROCESS_EXITED_BEFORE_READY}"
+            printf 'FETCH_HTTP_CODE=%s\n' "${FETCH_HTTP_CODE}"
+            printf 'FETCH_CURL_EXIT_CODE=%s\n' "${FETCH_CURL_EXIT_CODE}"
+            printf 'FETCH_RUNTIME_CONTEXT_ERROR_LOG=%s\n' "${FETCH_RUNTIME_CONTEXT_ERROR_LOG}"
+            printf 'FETCH_DOMAIN_FAIL_CLOSED_LOG=%s\n' "${FETCH_DOMAIN_FAIL_CLOSED_LOG}"
+            printf 'FETCH_DOMAIN_FAIL_CLOSED_RESPONSE=%s\n' "${FETCH_DOMAIN_FAIL_CLOSED_RESPONSE}"
+            printf 'FETCH_CONTEXT_NEGATIVE_PATH_PROVED=%s\n' "${FETCH_CONTEXT_NEGATIVE_PATH_PROVED}"
             printf 'SCHEDULED_ENDPOINT=/cdn-cgi/handler/scheduled\n'
             printf 'SCHEDULED_HTTP_CODE=%s\n' "${SCHEDULED_HTTP_CODE}"
-            printf 'CURL_EXIT_CODE=%s\n' "${CURL_EXIT_CODE}"
+            printf 'SCHEDULED_CURL_EXIT_CODE=%s\n' "${SCHEDULED_CURL_EXIT_CODE}"
             printf 'SCHEDULED_COMPLETED_LOG=%s\n' "${SCHEDULED_COMPLETED_LOG}"
             printf 'SCHEDULED_FAILED_CLOSED_LOG=%s\n' "${SCHEDULED_FAILED_CLOSED_LOG}"
             printf 'OUTCOME_OK=%s\n' "${OUTCOME_OK}"
             printf 'OUTCOME_EXCEPTION=%s\n' "${OUTCOME_EXCEPTION}"
-            printf 'POSITIVE_PATH_PROVED=%s\n' "${POSITIVE_PATH_PROVED}"
-            printf 'FAIL_CLOSED_NEGATIVE_PATH_PROVED=%s\n' "${FAIL_CLOSED_NEGATIVE_PATH_PROVED}"
+            printf 'POSITIVE_SCHEDULED_PATH_PROVED=%s\n' "${POSITIVE_SCHEDULED_PATH_PROVED}"
+            printf 'FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=%s\n' "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}"
             printf 'NEGATIVE_PATH_DEPENDENCY=SUPABASE_URL_http_127.0.0.1_port_9\n'
             printf 'WRANGLER_EXIT_CODE_AFTER_TERMINATION=%s\n' "${WRANGLER_EXIT_CODE}"
           } > .wri01-workerd-facts.txt
 
           cat .wri01-workerd.log
           cat .wri01-workerd-facts.txt
+          cat .wri01-fetch-response.txt
           cat .wri01-scheduled-response.txt
 
           if [ "${READY}" != "true" ]; then exit 1; fi
-          if [ "${CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
-          if [ "${POSITIVE_PATH_PROVED}" != "true" ] \
-            && [ "${FAIL_CLOSED_NEGATIVE_PATH_PROVED}" != "true" ]; then
+          if [ "${FETCH_CONTEXT_NEGATIVE_PATH_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${SCHEDULED_CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
+          if [ "${POSITIVE_SCHEDULED_PATH_PROVED}" != "true" ] \
+            && [ "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}" != "true" ]; then
             exit 1
           fi
           exit 0
@@ -305,6 +353,7 @@ jobs:
           path: |
             .wri01-workerd.log
             .wri01-workerd-facts.txt
+            .wri01-fetch-response.txt
             .wri01-scheduled-response.txt
           include-hidden-files: true
           if-no-files-found: error
