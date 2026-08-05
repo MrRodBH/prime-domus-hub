@@ -64,6 +64,7 @@ const vite = read("vite.config.ts");
 const server = read("src/server.ts");
 const plugin = read("src/lib/runtime/wri-01-cloudflare-nitro-plugin.server.ts");
 const runtime = read("src/lib/runtime/cloudflare-runtime-context.server.ts");
+const workflow = read(".github/workflows/wri-01-worker-runtime-gate.yml");
 const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string>; devDependencies?: Record<string, string> };
 const wrangler = JSON.parse(read("wrangler.jsonc")) as Record<string, any>;
 
@@ -91,6 +92,13 @@ match(plugin, /scheduled\(controller, env, context\)/, "Hook must delegate origi
 equal(plugin.includes("fetch("), false, "Plugin must not create a second Worker entry");
 match(runtime, /new WeakMap<Request, CloudflareRuntimeContext>/, "Runtime storage must be request-keyed");
 equal(runtime.includes("let current"), false, "Global mutable current-context authority is prohibited");
+
+match(workflow, /set -m[\s\S]*WRANGLER_PID=\$![\s\S]*set \+m/, "Local workerd proof must create a dedicated process group");
+match(workflow, /kill -TERM -- "-\$\{WRANGLER_PGID\}"/, "Workerd process group must receive controlled termination");
+match(workflow, /PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION/, "Process-group residue must be measured and published");
+match(workflow, /WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION/, "Residual workerd processes must be measured and published");
+match(workflow, /ZERO_ORPHAN_PROCESSES_PROVED/, "Zero-orphan result must be explicit and auditable");
+match(workflow, /if \[ "\$\{ZERO_ORPHAN_PROCESSES_PROVED\}" != "true" \]; then exit 1; fi/, "Local proof must fail closed when orphan cleanup is not proved");
 
 for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", workers_dev: true, no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
