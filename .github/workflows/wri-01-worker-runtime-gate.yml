@@ -67,16 +67,59 @@ jobs:
       - name: Capture exact compiled-output manifest
         shell: bash
         run: |
-          set -euo pipefail
-          find dist -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-dist-manifest.txt
-          head -c 4000 dist/server/index.mjs > .wri01-entry-preview.txt
-          cp wrangler.jsonc .wri01-root-wrangler.jsonc
+          set -u
+
+          : > .wri01-dist-manifest.txt
+          if [ -d dist ]; then
+            find dist -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-dist-manifest.txt
+          fi
+
+          if [ -f dist/server/index.mjs ]; then
+            head -c 4000 dist/server/index.mjs > .wri01-entry-preview.txt
+          else
+            : > .wri01-entry-preview.txt
+          fi
+
+          if [ -f wrangler.jsonc ]; then
+            cp wrangler.jsonc .wri01-root-wrangler.jsonc
+          else
+            : > .wri01-root-wrangler.jsonc
+          fi
+
+          server_count=0
+          client_count=0
+          public_count=0
+          if [ -d dist/server ]; then
+            server_count="$(find dist/server -type f | wc -l | tr -d ' ')"
+          fi
+          if [ -d dist/client ]; then
+            client_count="$(find dist/client -type f | wc -l | tr -d ' ')"
+          fi
+          if [ -d dist/public ]; then
+            public_count="$(find dist/public -type f | wc -l | tr -d ' ')"
+          fi
+
           {
             printf 'HEAD=%s\n' "${{ github.event.pull_request.head.sha || github.sha }}"
-            printf 'DIST_NITRO_JSON_EXISTS='; test -f dist/nitro.json && echo true || echo false
-            printf 'GENERATED_WRANGLER_EXISTS='; test -f dist/server/wrangler.json && echo true || echo false
-            printf 'SERVER_FILE_COUNT='; find dist/server -type f | wc -l
-            printf 'CLIENT_FILE_COUNT='; find dist/client -type f | wc -l
+            for pair in \
+              "DIST_EXISTS:dist" \
+              "SERVER_DIRECTORY_EXISTS:dist/server" \
+              "CLIENT_DIRECTORY_EXISTS:dist/client" \
+              "PUBLIC_DIRECTORY_EXISTS:dist/public" \
+              "WORKER_ENTRY_EXISTS:dist/server/index.mjs" \
+              "DIST_NITRO_JSON_EXISTS:dist/nitro.json" \
+              "GENERATED_WRANGLER_EXISTS:dist/server/wrangler.json"; do
+              name="${pair%%:*}"
+              path="${pair#*:}"
+              if [ -e "${path}" ]; then
+                printf '%s=true\n' "${name}"
+              else
+                printf '%s=false\n' "${name}"
+              fi
+            done
+            printf 'SERVER_FILE_COUNT=%s\n' "${server_count}"
+            printf 'CLIENT_FILE_COUNT=%s\n' "${client_count}"
+            printf 'PUBLIC_FILE_COUNT=%s\n' "${public_count}"
           } > .wri01-build-facts.txt
 
       - name: Compiled Worker bundle audit
