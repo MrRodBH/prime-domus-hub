@@ -68,65 +68,53 @@ jobs:
         shell: bash
         run: |
           set -u
-
-          : > .wri01-output-manifest.txt
-          if [ -d .output ]; then
-            find .output -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-output-manifest.txt
+          : > .wri01-dist-manifest.txt
+          if [ -d dist ]; then
+            find dist -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-dist-manifest.txt
           fi
-
           find . \
             -path './.git' -prune -o \
             -path './node_modules' -prune -o \
             -path './.wri01-dry-run' -prune -o \
             -type f -printf '%p\t%s\n' \
             | sort > .wri01-workspace-manifest.txt
-
           find . -maxdepth 4 -type d \
             -not -path './.git*' \
             -not -path './node_modules*' \
             | sort > .wri01-directory-manifest.txt
-
-          if [ -f .output/server/index.mjs ]; then
-            head -c 4000 .output/server/index.mjs > .wri01-entry-preview.txt
+          if [ -f dist/server/index.mjs ]; then
+            head -c 4000 dist/server/index.mjs > .wri01-entry-preview.txt
           else
             : > .wri01-entry-preview.txt
           fi
-
           if [ -f wrangler.jsonc ]; then
             cp wrangler.jsonc .wri01-root-wrangler.jsonc
           else
             : > .wri01-root-wrangler.jsonc
           fi
-
-          if [ -f .output/server/wrangler.json ]; then
-            cp .output/server/wrangler.json .wri01-generated-wrangler.json
+          if [ -f dist/server/wrangler.json ]; then
+            cp dist/server/wrangler.json .wri01-generated-wrangler.json
           else
             : > .wri01-generated-wrangler.json
           fi
-
           server_count=0
-          public_count=0
-          if [ -d .output/server ]; then
-            server_count="$(find .output/server -type f | wc -l | tr -d ' ')"
+          client_count=0
+          if [ -d dist/server ]; then
+            server_count="$(find dist/server -type f | wc -l | tr -d ' ')"
           fi
-          if [ -d .output/public ]; then
-            public_count="$(find .output/public -type f | wc -l | tr -d ' ')"
+          if [ -d dist/client ]; then
+            client_count="$(find dist/client -type f | wc -l | tr -d ' ')"
           fi
-
           {
             printf 'HEAD=%s\n' "${{ github.event.pull_request.head.sha || github.sha }}"
             for pair in \
-              "DOT_OUTPUT_EXISTS:.output" \
-              "SERVER_DIRECTORY_EXISTS:.output/server" \
-              "PUBLIC_DIRECTORY_EXISTS:.output/public" \
-              "WORKER_ENTRY_EXISTS:.output/server/index.mjs" \
-              "NITRO_JSON_EXISTS:.output/nitro.json" \
-              "GENERATED_WRANGLER_EXISTS:.output/server/wrangler.json" \
               "DIST_EXISTS:dist" \
-              "VERCEL_OUTPUT_EXISTS:.vercel/output" \
-              "BUILD_EXISTS:build" \
-              "OUTPUT_EXISTS:output" \
-              "DOT_NITRO_EXISTS:.nitro"; do
+              "SERVER_DIRECTORY_EXISTS:dist/server" \
+              "CLIENT_DIRECTORY_EXISTS:dist/client" \
+              "WORKER_ENTRY_EXISTS:dist/server/index.mjs" \
+              "NITRO_JSON_EXISTS:dist/nitro.json" \
+              "GENERATED_WRANGLER_EXISTS:dist/server/wrangler.json" \
+              "DOT_OUTPUT_EXISTS:.output"; do
               name="${pair%%:*}"
               path="${pair#*:}"
               if [ -e "${path}" ]; then
@@ -136,7 +124,7 @@ jobs:
               fi
             done
             printf 'SERVER_FILE_COUNT=%s\n' "${server_count}"
-            printf 'PUBLIC_FILE_COUNT=%s\n' "${public_count}"
+            printf 'CLIENT_FILE_COUNT=%s\n' "${client_count}"
           } > .wri01-build-facts.txt
 
       - name: Compiled Worker bundle audit
@@ -149,7 +137,7 @@ jobs:
           name: wri-01-bundle-audit-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             .wri01-build-facts.txt
-            .wri01-output-manifest.txt
+            .wri01-dist-manifest.txt
             .wri01-workspace-manifest.txt
             .wri01-directory-manifest.txt
             .wri01-entry-preview.txt
@@ -183,7 +171,6 @@ jobs:
             wait "${WRANGLER_PID}" 2>/dev/null || true
           }
           trap cleanup EXIT
-
           READY=false
           for _ in $(seq 1 45); do
             if grep -Eq "Ready on|Ready at|Listening" "${LOG_FILE}"; then
@@ -200,7 +187,6 @@ jobs:
             cat "${LOG_FILE}"
             exit 1
           fi
-
           curl --fail-with-body --silent --show-error \
             "http://127.0.0.1:8788/__scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A" \
             -o "${RUNNER_TEMP}/wri01-scheduled-response.txt"
