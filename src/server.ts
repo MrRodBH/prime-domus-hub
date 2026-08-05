@@ -110,8 +110,30 @@ function applyTrackingSecurityHeaders(request: Request, env: unknown, response: 
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+function requirePublicCloudflareHost(request: Request, host: string | null): void {
+  if (!isCloudflareRuntimeRequest(request)) return;
+  if (!host) throw new Error("cloudflare_public_host_missing");
+
+  let hostname: string;
+  try {
+    hostname = new URL(`http://${host}`).hostname.toLowerCase();
+  } catch {
+    throw new Error("cloudflare_public_host_invalid");
+  }
+
+  if (
+    hostname === "localhost"
+    || hostname === "127.0.0.1"
+    || hostname === "0.0.0.0"
+    || hostname === "[::1]"
+  ) {
+    throw new Error("cloudflare_public_host_invalid");
+  }
+}
+
 async function canonicalRedirect(request: Request): Promise<Response | null> {
   const host = request.headers.get("host");
+  requirePublicCloudflareHost(request, host);
   const redirect = await resolveCanonicalRedirectByHost(host);
   if (!redirect) return null;
   const target = new URL(request.url);
