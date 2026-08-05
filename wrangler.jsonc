@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rm-prime-wri01-hml",
-  "main": "dist/server/index.mjs",
+  "main": ".output/server/index.mjs",
   "compatibility_date": "2026-08-05",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
@@ -22,7 +22,7 @@
     }
   ],
   "assets": {
-    "directory": "dist/client",
+    "directory": ".output/public",
     "binding": "ASSETS"
   },
   "routes": [],
@@ -37,7 +37,7 @@
         "enabled": true
       },
       "assets": {
-        "directory": "dist/client",
+        "directory": ".output/public",
         "binding": "ASSETS"
       },
       "routes": [],
