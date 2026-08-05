@@ -1,7 +1,7 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — DCA-01 Worker Runtime Preflight Rejected; WRI-01 Planned
-**Audited baseline:** `9157f1e19e455d20b8272951bed25eb8ddd0572d`
+**Status:** Active governance — WRI-01 planning Accepted / Merged / Closed; implementation blocked pending explicit authorization
+**Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 
 ## Current stage map
 
@@ -13,8 +13,8 @@
 | 4 | PR-M2 | Accepted / Merged / Closed | no automatic successor |
 | 5 | DCA-01 repository implementation | Accepted / Merged / Closed | Worker runtime proof |
 | 6 | DCA-01 Worker Runtime Preflight | Rejected | WRI-01 planning and correction |
-| 7 | WRI-01 planning | Planned — current authorized gate | direct Accepted planning audit and protected planning merge |
-| 8 | WRI-01 implementation | Blocked | explicit authorization after planning acceptance/merge |
+| 7 | WRI-01 planning | Accepted / Merged / Closed | no automatic successor |
+| 8 | WRI-01 implementation | Planned — Blocked pending explicit Product Owner authorization | explicit Product Owner authorization |
 | 9 | DCA-01 controlled external proof | Blocked | WRI-01 terminal acceptance plus safe external prerequisites |
 | 10 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
 | 11 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
@@ -41,16 +41,21 @@ DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 DCA01_CURRENT_STATE = Rejected
 
-WRI01_STATE = Planned
-WRI01_PLANNING_BASELINE = 9157f1e19e455d20b8272951bed25eb8ddd0572d
-WRI01_SELECTED_STRATEGY = A
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = WRI-01 planning audit only
+NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -105,11 +110,10 @@ DCA-01 exact-build Worker Runtime Preflight
 → internal compiled-runtime defect confirmed
 → DCA-01 state = Rejected
 → WRI-01 planning-only impact analysis
-→ one selected strategy
-→ direct planning audit
-→ Accepted or Rejected
-→ protected planning merge only after Accepted audit and explicit authorization
-→ separate explicit WRI-01 implementation authorization
+→ Strategy A selected
+→ direct planning audit = Accepted
+→ protected planning merge = completed
+→ WRI-01 implementation = Planned / Blocked pending explicit Product Owner authorization
 → one principal implementation PR
 → compiled-bundle, workerd and dry-run gates
 → direct exact-head implementation audit
@@ -226,3 +230,23 @@ DCA01_MANAGED_MIGRATION_AUTHORIZED = false
 The PR-M2 terminal state is preserved at `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
 DCA-01 corrected planning was merged at `623f94f98174478af19b130cda9896c64f256f14`. Repository implementation was merged at `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`. The Worker runtime defect was confirmed against `9157f1e19e455d20b8272951bed25eb8ddd0572d`.
+
+## WRI-01 post-merge authority
+
+```text
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
+WRI01_IMPLEMENTATION_STARTED = false
+DCA01_CURRENT_STATE = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```

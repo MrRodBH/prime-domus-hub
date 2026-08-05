@@ -2,12 +2,16 @@
 
 ## Status
 
-**Planned — implementation not authorized**
+**Accepted / Merged / Closed — planning contract; implementation not authorized**
 
 ```text
 STAGE_ID = WRI-01
 STAGE_NAME = Cloudflare Worker Runtime Integration
 PLANNING_BASELINE_MAIN = 9157f1e19e455d20b8272951bed25eb8ddd0572d
+PLANNING_PR = 68
+PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+PLANNING_AUDIT = Accepted
 PREDECESSOR = DCA-01 Worker Runtime Preflight — Rejected
 SELECTED_STRATEGY = A
 IMPLEMENTATION_AUTHORIZED = false
@@ -15,7 +19,7 @@ IMPLEMENTATION_STARTED = false
 AUTO_MERGE = false
 ```
 
-This envelope is the finite implementation contract proposed by the WRI-01 planning analysis. It becomes executable only after the planning PR is directly audited as Accepted, merged through a protected flow, and the Product Owner explicitly authorizes implementation.
+This envelope is the Accepted / Merged / Closed WRI-01 planning contract. It remains non-executable until the Product Owner separately and explicitly authorizes implementation.
 
 ## 1. Objective
 
@@ -499,10 +503,38 @@ Repository acceptance does not authorize the external Worker deployment or DCA-0
 DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 DCA01_CURRENT_STATE = Rejected
-WRI01_STATE = Planned
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
 PRODUCTION_CUTOVER_EXECUTED = false
 ```
+
+## 25. Planning merge authority
+
+```text
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
+WRI01_IMPLEMENTATION_STARTED = false
+DCA01_CURRENT_STATE = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+This section records planning authority only. It does not authorize implementation or any external mutation.

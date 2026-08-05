@@ -1,8 +1,8 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — DCA-01 Worker Runtime Preflight Rejected; WRI-01 Planned
+**Status:** Ratificado — WRI-01 planning Accepted / Merged / Closed; implementation blocked pending explicit authorization
 **Authority:** Single Source of Future Evolution
-**Audited baseline:** `9157f1e19e455d20b8272951bed25eb8ddd0572d`
+**Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 
 ## Current authority
 
@@ -26,16 +26,21 @@ DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 DCA01_CURRENT_STATE = Rejected
 
-WRI01_STATE = Planned
-WRI01_PLANNING_BASELINE = 9157f1e19e455d20b8272951bed25eb8ddd0572d
-WRI01_SELECTED_STRATEGY = Strategy A — preserve Lovable/TanStack/Nitro and add one runtime bridge plus versioned Wrangler authority
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
 
 BCA01_STATE = Planned — Blocked by DCA-01 and WRI-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = WRI-01 planning audit only
+NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -168,10 +173,8 @@ PR-M2 — Accepted / Merged / Closed
 → DCA-01 planning — Accepted / Merged / Closed
 → DCA-01 repository implementation — Accepted / Merged / Closed
 → DCA-01 Worker Runtime Preflight — Rejected
-→ WRI-01 planning — current authorized gate
-→ direct WRI-01 planning audit
-→ protected planning merge only after Accepted audit and explicit authorization
-→ WRI-01 implementation only after separate explicit authorization
+→ WRI-01 planning — Accepted / Merged / Closed
+→ WRI-01 implementation — Planned / Blocked pending explicit Product Owner authorization
 → repository runtime audit
 → controlled workers.dev proof only after separate external authorization
 → controlled zone route/fallback proof only after prerequisite authorization
@@ -207,3 +210,23 @@ PR-M2 — Accepted / Merged / Closed
 The PR-M2 terminal roadmap is preserved at commit `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
 The original rejected DCA-01 planning submission remains historical at `b6974aaccc11fbc4118a2af8c15320e2e665233e`. Corrected DCA-01 planning was merged at `623f94f98174478af19b130cda9896c64f256f14`; repository implementation was merged at `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`; the Worker runtime defect was confirmed against `9157f1e19e455d20b8272951bed25eb8ddd0572d`.
+
+## WRI-01 protected planning merge reconciliation
+
+```text
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
+WRI01_IMPLEMENTATION_STARTED = false
+DCA01_CURRENT_STATE = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
