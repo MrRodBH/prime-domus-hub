@@ -4,9 +4,9 @@ import { dirname, extname, join, relative, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
 const root = process.cwd();
-const outputDir = resolve(root, ".output");
+const outputDir = resolve(root, "dist");
 const serverDir = resolve(outputDir, "server");
-const publicDir = resolve(outputDir, "public");
+const clientDir = resolve(outputDir, "client");
 const entryPath = resolve(serverDir, "index.mjs");
 const nitroPath = resolve(outputDir, "nitro.json");
 const rootWranglerPath = resolve(root, "wrangler.jsonc");
@@ -16,11 +16,11 @@ const diagnosticPath = resolve(root, ".wri01-bundle-audit-diagnostic.json");
 const diagnostic = {
   WRI01_BUNDLE_AUDIT: "started",
   PHASE: "startup",
-  OUTPUT_AUTHORITY: ".output",
+  OUTPUT_AUTHORITY: "dist",
   REQUIRED_PATHS: {
     OUTPUT_DIRECTORY: existsSync(outputDir),
     SERVER_DIRECTORY: existsSync(serverDir),
-    PUBLIC_DIRECTORY: existsSync(publicDir),
+    CLIENT_DIRECTORY: existsSync(clientDir),
     WORKER_ENTRY: existsSync(entryPath),
     NITRO_METADATA: existsSync(nitroPath),
     ROOT_WRANGLER: existsSync(rootWranglerPath),
@@ -32,8 +32,6 @@ function persistDiagnostic(extra = {}) {
   Object.assign(diagnostic, extra);
   writeFileSync(diagnosticPath, `${JSON.stringify(diagnostic, null, 2)}\n`);
 }
-
-persistDiagnostic();
 
 function walk(directory) {
   const result = [];
@@ -49,15 +47,14 @@ function walk(directory) {
 function resolveLocalModule(importer, specifier) {
   if (!specifier.startsWith(".")) return null;
   const candidate = resolve(dirname(importer), specifier);
-  const candidates = [candidate, `${candidate}.mjs`, `${candidate}.js`, join(candidate, "index.mjs")];
-  return candidates.find((path) => existsSync(path) && statSync(path).isFile()) ?? null;
+  return [candidate, `${candidate}.mjs`, `${candidate}.js`, join(candidate, "index.mjs")]
+    .find((path) => existsSync(path) && statSync(path).isFile()) ?? null;
 }
 
 function reachableModuleGraph(entryFile) {
   const visited = new Set();
   const queue = [entryFile];
   const importPattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']|import\s*\(\s*["']([^"']+)["']\s*\)/g;
-
   while (queue.length > 0) {
     const file = queue.shift();
     if (!file || visited.has(file)) continue;
@@ -69,32 +66,32 @@ function reachableModuleGraph(entryFile) {
       if (resolved && !visited.has(resolved)) queue.push(resolved);
     }
   }
-
   return [...visited];
 }
 
 function hasWorkerHandler(source, name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const methodForm = new RegExp(`\\b${escaped}\\s*\\([^)]*\\)\\s*\\{`);
-  const asyncMethodForm = new RegExp(`\\basync\\s+${escaped}\\s*\\([^)]*\\)\\s*\\{`);
-  const propertyForm = new RegExp(`\\b${escaped}\\s*:\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>|\\b${escaped}\\s*:\\s*async\\s+function|\\b${escaped}\\s*:\\s*function`);
-  return methodForm.test(source) || asyncMethodForm.test(source) || propertyForm.test(source);
+  return [
+    new RegExp(`\\b${escaped}\\s*\\([^)]*\\)\\s*\\{`),
+    new RegExp(`\\basync\\s+${escaped}\\s*\\([^)]*\\)\\s*\\{`),
+    new RegExp(`\\b${escaped}\\s*:\\s*(?:async\\s*)?\\([^)]*\\)\\s*=>|\\b${escaped}\\s*:\\s*async\\s+function|\\b${escaped}\\s*:\\s*function`),
+  ].some((pattern) => pattern.test(source));
 }
 
 function defaultExportCount(source) {
-  const direct = source.match(/\bexport\s+default\b/g) ?? [];
-  const aliased = source.match(/\bexport\s*\{[^}]*\bas\s+default\b[^}]*\}/g) ?? [];
-  return direct.length + aliased.length;
+  return (source.match(/\bexport\s+default\b/g) ?? []).length
+    + (source.match(/\bexport\s*\{[^}]*\bas\s+default\b[^}]*\}/g) ?? []).length;
 }
+
+persistDiagnostic();
 
 try {
   diagnostic.PHASE = "required-path-validation";
   persistDiagnostic();
-
   for (const [name, path] of Object.entries({
     OUTPUT_DIRECTORY: outputDir,
     SERVER_DIRECTORY: serverDir,
-    PUBLIC_DIRECTORY: publicDir,
+    CLIENT_DIRECTORY: clientDir,
     WORKER_ENTRY: entryPath,
     NITRO_METADATA: nitroPath,
     ROOT_WRANGLER: rootWranglerPath,
@@ -105,7 +102,6 @@ try {
 
   diagnostic.PHASE = "module-graph-analysis";
   persistDiagnostic();
-
   const serverFiles = walk(serverDir);
   const moduleFiles = serverFiles.filter((path) => [".mjs", ".js", ".wasm"].includes(extname(path)));
   const textModuleFiles = serverFiles.filter((path) => [".mjs", ".js", ".json"].includes(extname(path)));
@@ -125,8 +121,8 @@ try {
   const generatedWrangler = JSON.parse(readFileSync(generatedWranglerPath, "utf8"));
   const uncompressedBytes = serverFiles.reduce((total, path) => total + statSync(path).size, 0);
   const gzipBytes = gzipSync(Buffer.from(serverText)).byteLength;
-  const publicFiles = walk(publicDir);
-  const publicBytes = publicFiles.reduce((total, path) => total + statSync(path).size, 0);
+  const clientFiles = walk(clientDir);
+  const clientBytes = clientFiles.reduce((total, path) => total + statSync(path).size, 0);
 
   const checks = {
     DEFAULT_EXPORT_COUNT: defaultExportCount(entry),
@@ -138,8 +134,8 @@ try {
     DCA_SCHEDULED_DELEGATE_REACHABLE: reachableText.includes("[DCA-01] scheduled reconciliation completed"),
     CANONICAL_REDIRECT_REACHABLE: reachableText.includes("[DCA-01] canonical redirect resolution failed closed"),
     CLOUDFLARE_VITE_PLUGIN_ABSENT: !serverText.includes("@cloudflare/vite-plugin"),
-    ROOT_WRANGLER_MAIN_MATCH: rootWrangler.main === ".output/server/index.mjs",
-    ROOT_ASSETS_DIRECTORY_MATCH: rootWrangler.assets?.directory === ".output/public",
+    ROOT_WRANGLER_MAIN_MATCH: rootWrangler.main === "dist/server/index.mjs",
+    ROOT_ASSETS_DIRECTORY_MATCH: rootWrangler.assets?.directory === "dist/client",
     ROOT_ASSETS_BINDING_MATCH: rootWrangler.assets?.binding === "ASSETS",
     ROOT_ROUTES_EMPTY: Array.isArray(rootWrangler.routes) && rootWrangler.routes.length === 0,
     HOMOLOGATION_ROUTES_EMPTY: Array.isArray(rootWrangler.env?.homologation?.routes) && rootWrangler.env.homologation.routes.length === 0,
@@ -159,34 +155,17 @@ try {
     MODULE_COUNT: moduleFiles.length,
     SERVER_UNCOMPRESSED_BYTES: uncompressedBytes,
     SERVER_TEXT_GZIP_BYTES: gzipBytes,
-    PUBLIC_FILE_COUNT: publicFiles.length,
-    PUBLIC_BYTES: publicBytes,
+    CLIENT_FILE_COUNT: clientFiles.length,
+    CLIENT_BYTES: clientBytes,
     GENERATED_WRANGLER: generatedWrangler,
     CHECKS: checks,
   });
 
   assert.equal(checks.DEFAULT_EXPORT_COUNT, 1, "Final Worker entry must have exactly one default export authority");
-  assert.ok(checks.FETCH_REACHABLE, "Reachable Worker module graph must expose fetch");
-  assert.ok(checks.SCHEDULED_REACHABLE, "Reachable Worker module graph must expose scheduled");
-  assert.ok(checks.CLOUDFLARE_SCHEDULED_HOOK_REACHABLE, "Reachable compiled graph must contain the Nitro Cloudflare scheduled hook");
-  assert.ok(checks.FAIL_CLOSED_CONTEXT_REACHABLE, "Reachable compiled graph must contain fail-closed runtime-context enforcement");
-  assert.ok(checks.SANITIZED_503_REACHABLE, "Reachable compiled graph must contain the sanitized 503 runtime response");
-  assert.ok(checks.DCA_SCHEDULED_DELEGATE_REACHABLE, "Reachable compiled graph must contain the DCA-01 scheduled delegate");
-  assert.ok(checks.CANONICAL_REDIRECT_REACHABLE, "Canonical redirect must remain reachable before SSR and fail closed");
-  assert.ok(checks.CLOUDFLARE_VITE_PLUGIN_ABSENT, "Compiled output must not contain a second Cloudflare Vite build authority");
-  assert.ok(checks.ROOT_WRANGLER_MAIN_MATCH, "Versioned Wrangler main must match the observed Nitro output");
-  assert.ok(checks.ROOT_ASSETS_DIRECTORY_MATCH, "Versioned assets directory must match the observed Nitro output");
-  assert.ok(checks.ROOT_ASSETS_BINDING_MATCH, "Versioned assets binding must remain explicit");
-  assert.ok(checks.ROOT_ROUTES_EMPTY, "Repository implementation must not contain a zone route");
-  assert.ok(checks.HOMOLOGATION_ROUTES_EMPTY, "Homologation must not contain a zone route");
-  assert.ok(checks.CRON_EXPRESSION_MATCH, "Approved UTC Cron must remain exact");
-  assert.ok(checks.GENERATED_WRANGLER_MAIN_MATCH, "Nitro-generated Wrangler main must point at its local entry");
-  assert.ok(checks.GENERATED_NO_BUNDLE_MATCH, "Nitro Cloudflare module output must remain no_bundle");
-  assert.ok(checks.GENERATED_ASSETS_BINDING_MATCH, "Generated assets binding must agree with root authority");
-  assert.ok(checks.MODULE_COUNT_POSITIVE, "Worker bundle must contain modules");
-  assert.ok(checks.SERVER_BYTES_POSITIVE, "Worker bundle must not be empty");
-  assert.ok(checks.GZIP_BYTES_POSITIVE, "Gzip measurement must be available");
-  assert.ok(checks.REACHABLE_GRAPH_NONTRIVIAL, "Worker entry must reach its generated module graph");
+  for (const [name, passed] of Object.entries(checks)) {
+    if (name === "DEFAULT_EXPORT_COUNT") continue;
+    assert.ok(passed, `WRI-01 compiled bundle check failed: ${name}`);
+  }
 
   persistDiagnostic({ WRI01_BUNDLE_AUDIT: "passed", PHASE: "complete" });
   console.log(JSON.stringify(diagnostic, null, 2));
