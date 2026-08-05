@@ -44,14 +44,16 @@ DCA01_LAST_EXACT_HEAD_RELEASE_GATE = success
 DCA01_LAST_EXACT_HEAD_CONSOLIDATED_GATE = success
 DCA01_PREMERGE_AUDIT = Accepted
 DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = executed
-DCA01_EXTERNAL_NON_PRODUCTION_PROOF_AUTHORIZED = after protected implementation merge and safe-prerequisite confirmation
-DCA01_TERMINAL_STATE = not reached
+DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
+DCA01_EXTERNAL_NON_PRODUCTION_PROOF_AUTHORIZED = false — requires explicit safe-prerequisite authorization
+DCA01_EXTERNAL_PROOF_STATE = Blocked External
+DCA01_TERMINAL_STATE = Blocked External
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = concise exact-head DCA-01 implementation pre-merge audit only
+NEXT_STAGE_AUTHORIZED = controlled external non-production proof only after explicit safe-prerequisite authorization
 
 CLOUDFLARE_API_CALL_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
@@ -76,13 +78,14 @@ Architecture First planning submission
 → planning audit = Accepted
 → protected planning merge = completed
 → implementation preflight = completed
-→ one principal implementation PR #65 = open as draft
+→ one principal implementation PR #65 = Accepted / Merged / Closed
 → deterministic implementation and consolidated internal correction = completed
-→ final exact-head documentation gate
-→ concise direct pre-merge audit
-→ protected implementation merge only when pre-merge state = Accepted
-→ controlled external non-production proof when safe prerequisites exist
-→ terminal DCA-01 audit
+→ final exact-head documentation gate = completed
+→ concise direct pre-merge audit = Accepted
+→ protected implementation merge = completed
+→ post-merge canonical reconciliation = completed
+→ controlled external non-production proof = Blocked External pending explicit safe-prerequisite authorization
+→ terminal DCA-01 audit after external proof
 → Accepted, Accepted with Non-Blocking Backlog, Blocked External or Rejected
 → no automatic successor
 ```
@@ -122,7 +125,7 @@ OPAQUE_PROVIDER_CREDENTIAL_REFERENCE = implemented
 TENANT_OPERATIONAL_SURFACE = implemented
 SUPER_ADMIN_GLOBAL_OPERATIONAL_SURFACE = implemented
 TWO_OPERATIONAL_RUNBOOKS = implemented
-CONTROLLED_EXTERNAL_PROOF = pending and required before terminal acceptance
+CONTROLLED_EXTERNAL_PROOF = Blocked External and required before terminal acceptance
 ```
 
 ## Deterministic gate evidence
@@ -139,13 +142,13 @@ GENERATED_ROUTE_TREE_MANUAL_EDIT = false
 GENERATED_ROUTE_TREE_SHA256 = 00ea348d4032a9619fd033fe1d794abc177a74a0f830a8645dcae1c4055d13d8
 ```
 
-The generator-owned route tree is validated through three deterministic build cycles. Its branch source is not manually edited.
+The generator-owned route tree was validated through three deterministic build cycles. Its implementation source was not manually edited.
 
 ## Governance
 
-- The implementation remains in one principal PR and no auto-merge is enabled.
-- Direct GitHub evidence, not local reports, is the pre-merge authority.
-- Implementation merge requires an `Accepted` concise exact-head pre-merge audit.
+- The repository implementation was delivered through one principal PR and merged by protected squash; auto-merge was not enabled.
+- Direct exact-head GitHub evidence, not local reports, was the final pre-merge authority.
+- The implementation merge completed only after an `Accepted` concise exact-head pre-merge audit.
 - Managed migration, deploy, DNS mutation, Cloudflare API calls and production cutover remain unexecuted.
 - Controlled external proof is limited to a non-production domain, Same-Backend Homologation Cell and safe external prerequisites.
 - Repository implementation success is not external-provider proof.
