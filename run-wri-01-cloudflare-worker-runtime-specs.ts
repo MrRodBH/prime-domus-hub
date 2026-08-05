@@ -90,16 +90,17 @@ equal(plugin.includes("fetch("), false, "Plugin must not create a second Worker 
 match(runtime, /new WeakMap<Request, CloudflareRuntimeContext>/, "Runtime storage must be request-keyed");
 equal(runtime.includes("let current"), false, "Global mutable current-context authority is prohibited");
 
-for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", workers_dev: true, no_bundle: true })) {
+for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: ".output/server/index.mjs", workers_dev: true, no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
 }
-equal(wrangler.assets?.directory, "dist/client", "Assets directory must match Nitro output");
+equal(wrangler.assets?.directory, ".output/public", "Assets directory must match the observed Nitro output");
 equal(wrangler.assets?.binding, "ASSETS", "Assets binding must be explicit");
 equal(wrangler.compatibility_flags?.includes("nodejs_compat"), true, "nodejs_compat must be enabled");
 equal(wrangler.observability?.enabled, true, "Observability must be enabled");
 equal(wrangler.triggers?.crons?.[0], "*/5 * * * *", "Cron expression must remain exact UTC contract");
 equal(wrangler.routes?.length, 0, "Repository implementation must contain no zone route");
 equal(wrangler.env?.homologation?.routes?.length, 0, "Homologation must contain no zone route");
+equal(wrangler.env?.homologation?.assets?.directory, ".output/public", "Homologation assets must use the same Nitro output authority");
 
 ok(pkg.scripts["test:wri-01"], "WRI-01 test script must exist");
 ok(pkg.scripts["wri01:bundle-audit"], "WRI-01 bundle audit script must exist");
