@@ -1,0 +1,508 @@
+# WRI-01 — Cloudflare Worker Runtime Integration Execution Envelope
+
+## Status
+
+**Planned — implementation not authorized**
+
+```text
+STAGE_ID = WRI-01
+STAGE_NAME = Cloudflare Worker Runtime Integration
+PLANNING_BASELINE_MAIN = 9157f1e19e455d20b8272951bed25eb8ddd0572d
+PREDECESSOR = DCA-01 Worker Runtime Preflight — Rejected
+SELECTED_STRATEGY = A
+IMPLEMENTATION_AUTHORIZED = false
+IMPLEMENTATION_STARTED = false
+AUTO_MERGE = false
+```
+
+This envelope is the finite implementation contract proposed by the WRI-01 planning analysis. It becomes executable only after the planning PR is directly audited as Accepted, merged through a protected flow, and the Product Owner explicitly authorizes implementation.
+
+## 1. Objective
+
+Materialize one deterministic Cloudflare Worker runtime for the RM Prime TanStack Start application while preserving the existing Lovable/TanStack/Nitro build pipeline.
+
+The implementation must repair the two runtime defects proven by the exact build:
+
+1. `src/server.ts::scheduled` is compiled but unreachable from the top-level Worker;
+2. `src/server.ts::fetch` does not receive an authoritative Cloudflare `env` or `ExecutionContext`.
+
+It must also add one versioned Wrangler configuration, deterministic bundle gates, a non-production Cron contract and a controlled Worker-as-fallback-origin routing plan.
+
+## 2. Entry gate
+
+Before any implementation mutation:
+
+1. confirm the current `main` and accepted WRI-01 planning-merge HEAD;
+2. confirm no competing WRI-01 implementation branch or PR exists;
+3. confirm DCA-01 remains Rejected and its external proof remains non-executable;
+4. confirm BCA-01 and PR-M3 remain blocked and unstarted;
+5. confirm no managed DCA migration, Worker deploy, Cron, route or fallback activation occurred outside governance;
+6. confirm the Cloudflare secret name exists without reading its value;
+7. confirm the Cloudflare account plan and applicable compressed Worker limit;
+8. confirm the exact technical tenant candidate through read-only database inspection;
+9. stop fail-closed on any conflicting runtime, route, DNS or provider state.
+
+## 3. Architecture authority
+
+```text
+BUILD_AUTHORITY = @lovable.dev/vite-tanstack-config + Nitro cloudflare-module
+DEPLOY_CONFIGURATION_AUTHORITY = versioned wrangler.jsonc
+WORKER_ENTRY_AUTHORITY = dist/server/index.mjs generated from the pinned source HEAD
+REQUEST_BOUNDARY = src/server.ts::fetch
+SCHEDULER_BOUNDARY = src/server.ts::scheduled
+RUNTIME_CONTEXT_AUTHORITY = Cloudflare platform env and ExecutionContext
+SCHEDULER_AUTHORITY = Cloudflare platform-native Cron Trigger
+```
+
+Prohibited:
+
+```text
+@cloudflare/vite-plugin while Nitro remains enabled
+second Worker entry
+second assets pipeline
+HTTP scheduler endpoint in deployed environments
+process.env as provider-secret authority
+implicit deploy during build or test
+request-time dual domain authority
+tenant default or first-row authority
+```
+
+## 4. Branch and PR contract
+
+```text
+IMPLEMENTATION_BRANCH = agent/wri-01-cloudflare-worker-runtime
+IMPLEMENTATION_PR = one principal draft pull request
+BASE_BRANCH = main
+AUTO_MERGE = false
+MERGE_METHOD = protected squash only after direct Accepted audit
+PROMPT_BUDGET = one principal implementation cycle plus at most one consolidated corrective pass
+ARTIFICIAL_SUBSTAGES = prohibited
+```
+
+Internal deterministic development commits do not create additional stages or budgets.
+
+## 5. FILES_ALLOWED
+
+```text
+vite.config.ts
+package.json
+bun.lock
+wrangler.jsonc
+src/server.ts
+src/lib/runtime/cloudflare-runtime-context.server.ts
+src/lib/runtime/wri-01-cloudflare-nitro-plugin.server.ts
+src/types/cloudflare-runtime.d.ts
+scripts/verify-wri-01-worker-bundle.mjs
+scripts/verify-release.mjs
+run-wri-01-cloudflare-worker-runtime-specs.ts
+.github/workflows/wri-01-worker-runtime-gate.yml
+
+docs/architecture/impact-analysis/WRI-01-cloudflare-worker-runtime-integration-impact-analysis.md
+docs/architecture/governance/WRI-01-cloudflare-worker-runtime-integration-execution-envelope.md
+docs/architecture/ROADMAP_ARCHITECTURAL.md
+docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/dca-01-implementation-execution.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/wri-01-implementation-execution.md
+docs/operations/WRI-01-cloudflare-worker-runtime-runbook.md
+```
+
+A listed path may be omitted when preflight proves it unnecessary. Adding another runtime path requires a new impact analysis.
+
+## 6. FILES_PROHIBITED
+
+Unless a new impact analysis proves direct necessity, do not alter:
+
+```text
+supabase/**
+historical migrations
+DCA-01 state machine
+DCA-01 repository and provider adapter
+tenant middleware
+impersonation architecture
+RLS or grants
+billing or commercial runtime
+CMS, CRM, portal or marketing runtime
+storage contracts
+Lovable secret values
+Cloudflare token values
+existing DNS records for apex, www, notify, DMARC or Lovable verification
+production domain configuration
+```
+
+## 7. Build implementation contract
+
+The future implementation must keep the existing `defineConfig` wrapper and Nitro Cloudflare preset as the sole build pipeline.
+
+`vite.config.ts` may add only the minimum Nitro configuration needed to register the WRI-01 runtime bridge. It must not add `@cloudflare/vite-plugin` or a second Nitro plugin instance.
+
+The build must continue to produce:
+
+```text
+dist/server/index.mjs
+dist/client/**
+dist/nitro.json
+```
+
+The root `wrangler.jsonc` must reference the exact generated output and must not be silently replaced by the generated `dist/server/wrangler.json`.
+
+## 8. Runtime-context contract
+
+`src/lib/runtime/cloudflare-runtime-context.server.ts` must provide a request-scoped, fail-closed port:
+
+```text
+installCloudflareRuntimeContext
+requireCloudflareRuntimeContext
+clearCloudflareRuntimeContext
+```
+
+The stored value is limited to:
+
+```text
+env: typed Cloudflare bindings
+ctx: ExecutionContext
+requestId/correlationId: sanitized identifiers
+```
+
+Requirements:
+
+- request isolation is mandatory;
+- no global mutable singleton may leak one request context into another;
+- missing context throws a typed server-only error;
+- provider secrets are never copied into logs, DTOs or client payloads;
+- `process.env` is not the authoritative provider-secret path;
+- tests must run concurrent requests with distinct bindings and prove isolation.
+
+## 9. Nitro bridge contract
+
+`src/lib/runtime/wri-01-cloudflare-nitro-plugin.server.ts` must register exactly one consumer for the platform hooks used by the pinned Nitro Cloudflare preset.
+
+### Request integration
+
+The plugin must install the Cloudflare environment and execution context before application SSR/server-function execution and remove request-scoped state after completion.
+
+If the pinned Nitro version does not expose the required request context through a stable, testable hook, implementation must stop as Rejected. It must not reach into generated files or use fragile string rewriting.
+
+### Scheduled integration
+
+The plugin must consume exactly one `cloudflare:scheduled` event and delegate to the named scheduler boundary exported by `src/server.ts`.
+
+```text
+SCHEDULED_DELEGATE_COUNT = 1
+PUBLIC_HTTP_DELEGATE_COUNT = 0
+WAIT_UNTIL_REQUIRED = true
+MAX_JOBS_PER_CYCLE = 20
+```
+
+The plugin must not duplicate lease, retry or provider logic already owned by DCA-01.
+
+## 10. `src/server.ts` contract
+
+`src/server.ts` remains the application integration point and must expose named, testable boundaries while preserving the default TanStack server export contract.
+
+Required behavior:
+
+```text
+fetch(request, runtime context) → canonical redirect before SSR → SSR response
+scheduled(controller, env, ctx) → processScheduledDomainJobs → ctx.waitUntil
+```
+
+The default export may delegate to the named functions, but the bundle must prove that the top-level Worker reaches them.
+
+Any missing runtime context must fail closed with a sanitized `503`. It must never bypass custom-domain authority and fall through to a default tenant.
+
+## 11. Wrangler contract
+
+The versioned `wrangler.jsonc` must define a non-production environment with:
+
+```text
+name = rm-prime-wri01-hml
+main = dist/server/index.mjs
+assets.directory = dist/client
+assets.binding = ASSETS
+compatibility_flags = [nodejs_compat]
+compatibility_date = pinned
+observability.enabled = true
+workers_dev = true
+triggers.crons = ["*/5 * * * *"]
+```
+
+It must preserve any exact module rules required by the Nitro `no_bundle` output.
+
+A production environment or production routes are prohibited in WRI-01.
+
+The Cloudflare account ID and zone ID may be provided to deployment tooling as protected environment inputs. They are never domain or tenant authority.
+
+## 12. Secret contract
+
+Runtime secret reference:
+
+```text
+CREDENTIAL_REFERENCE = env:CLOUDFLARE_API_TOKEN_DCA01_HML
+```
+
+Required Cloudflare Worker secrets/bindings:
+
+```text
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+CLOUDFLARE_API_TOKEN_DCA01_HML
+```
+
+Deployment credential:
+
+```text
+CLOUDFLARE_DEPLOY_API_TOKEN_WRI01_HML
+```
+
+The deployment credential and runtime provider credential must be separate.
+
+No tool, test or report may read or echo secret values. Secret presence may be tested only as a boolean or redacted binding name.
+
+## 13. Bundle gates
+
+Before any remote deploy:
+
+```text
+bun install --frozen-lockfile
+bun run verify:release
+bun run test:dca-01
+bun run test:wri-01
+bun run build
+wrangler deploy --dry-run --outdir .wri01-dry-run --env homologation
+```
+
+The WRI-01 bundle verifier must inspect the generated output and prove:
+
+- one top-level Worker default export;
+- reachable `fetch` and `scheduled` handlers;
+- one registered scheduled-hook consumer;
+- expected assets binding;
+- exact main path;
+- exact Cron expression;
+- no production route;
+- no plaintext secrets;
+- compressed size below the observed account plan limit;
+- startup time below the current platform limit;
+- no manual edits to generated route-tree output.
+
+Source-string presence alone is insufficient.
+
+## 14. Local runtime proof
+
+Local tests must use the pinned Wrangler version and workerd runtime.
+
+Required proofs:
+
+1. `wrangler dev --test-scheduled` starts successfully;
+2. a scheduled test invokes the DCA scheduler once;
+3. `env` reaches the request runtime context;
+4. `ctx.waitUntil` is called and awaited by the harness;
+5. absent secret fails closed;
+6. assets remain served;
+7. canonical redirects occur before SSR;
+8. concurrent requests do not share runtime context;
+9. the scheduler is not exposed through application routes.
+
+The Wrangler development-only scheduled endpoint must not be treated as a production HTTP contract.
+
+## 15. Remote non-production deployment gate
+
+A remote deploy is a separate explicit authorization after repository implementation acceptance.
+
+Initial deployment conditions:
+
+```text
+TARGET = workers.dev only
+ZONE_ROUTE = none
+DNS_MUTATION = none
+FALLBACK_ORIGIN = none
+CUSTOM_HOSTNAME = none
+MANAGED_MIGRATION = none
+PRODUCTION_TRAFFIC = none
+```
+
+The Worker must first prove health, assets, bindings and one platform-native scheduled event on `workers.dev`.
+
+Only after that evidence may a later explicitly authorized operation configure zone exclusions, fallback DNS and the wildcard route.
+
+## 16. Zone route transaction
+
+The zone `mrrod.com.br` is permitted only for controlled non-production proof.
+
+Required no-Worker exclusions:
+
+```text
+mrrod.com.br/*
+www.mrrod.com.br/*
+notify.mrrod.com.br/*
+```
+
+Wildcard route:
+
+```text
+*/* → rm-prime-wri01-hml
+```
+
+Transaction requirements:
+
+1. capture pre-change DNS and HTTP/TLS evidence;
+2. create and verify all more-specific exclusions;
+3. prove apex, `www` and `notify` bypass the Worker;
+4. add the wildcard route;
+5. immediately re-prove excluded hostnames;
+6. remove the wildcard route on any mismatch;
+7. preserve all unrelated DNS records.
+
+The wildcard route is external configuration and is not authorized by repository implementation alone.
+
+## 17. Fallback-origin transaction
+
+Authorized future sequence:
+
+```text
+remove/confirm absence of failed fallback designation
+→ create proxied AAAA fallback.mrrod.com.br = 100::
+→ designate fallback.mrrod.com.br
+→ wait for active
+→ add wildcard Worker route after exclusions
+```
+
+Prohibited:
+
+- A, AAAA and CNAME coexistence at `fallback`;
+- DNS-only fallback record;
+- fallback pointing to itself;
+- use of apex or `www` as fallback;
+- Custom Hostname creation before fallback and Worker route proof.
+
+Teardown must remove only WRI-01-created route and fallback artifacts.
+
+## 18. Same-Backend Homologation Cell
+
+No external Supabase project may be created.
+
+The future implementation and remote proof must use one explicitly selected zero-member technical tenant. The `RM Prime Imóveis` tenant is prohibited for WRI-01 runtime tests.
+
+Before any database-affecting remote scheduler proof:
+
+1. confirm the technical tenant server-side;
+2. confirm no real customer data or traffic;
+3. confirm explicit Super Admin impersonation where tenant-scoped;
+4. confirm the DCA migration state;
+5. use deterministic empty-queue/fail-closed proof if the migration is not authorized.
+
+WRI-01 does not authorize the DCA managed migration.
+
+## 19. Observability
+
+Required sanitized evidence:
+
+```text
+WORKER_VERSION_ID
+DEPLOYED_COMMIT_SHA
+WRANGLER_VERSION
+WORKER_ENVIRONMENT
+CRON_EXPRESSION
+SCHEDULED_EVENT_TIMESTAMP
+CORRELATION_ID
+LEASED_JOB_COUNT
+SUCCEEDED_JOB_COUNT
+RETRIED_JOB_COUNT
+FAILED_JOB_COUNT
+BUNDLE_GZIP_BYTES
+STARTUP_TIME_MS
+ROUTE_CHANGE_IDS
+ROLLBACK_RESULT
+```
+
+Logs must not contain JWTs, cookies, database credentials, Cloudflare token values, service-role keys or ownership challenge plaintext.
+
+## 20. Rollback
+
+Repository-only rollback is Git reversion.
+
+External rollback order:
+
+1. disable Cron Trigger;
+2. remove wildcard Worker route;
+3. verify apex, `www` and `notify` responses;
+4. remove fallback designation;
+5. delete only `fallback.mrrod.com.br AAAA 100::` created by WRI-01;
+6. remove the non-production Worker;
+7. preserve sanitized evidence;
+8. leave backend data and existing DNS unchanged.
+
+No rollback may restore tenant-default or legacy request-time fallback logic.
+
+## 21. Deterministic tests
+
+`run-wri-01-cloudflare-worker-runtime-specs.ts` must cover at least:
+
+1. selected Strategy A lock;
+2. rejection of Cloudflare Vite plugin duplication;
+3. one build entry and one assets authority;
+4. request runtime-context propagation;
+5. concurrent request isolation;
+6. missing context fail-closed;
+7. scheduled-hook consumer exact cardinality;
+8. scheduled delegation to DCA boundary;
+9. `waitUntil` invocation;
+10. Cron expression and UTC semantics;
+11. no public production scheduler route;
+12. versioned Wrangler config fields;
+13. no production environment/routes;
+14. provider/deploy token separation;
+15. secret redaction;
+16. dry-run compressed-size gate;
+17. startup-time gate;
+18. route exclusion contract;
+19. fallback originless record contract;
+20. rollback ordering;
+21. Same-Backend and technical-tenant constraints;
+22. existing DCA and Release Gate regression protection;
+23. bundle-level reachability evidence.
+
+Tests may not be weakened to obtain green status.
+
+## 22. Definition of Done
+
+WRI-01 implementation is complete only when:
+
+1. one build pipeline remains;
+2. one versioned Wrangler authority exists;
+3. top-level Worker reaches both `src/server.ts` boundaries;
+4. authoritative `env` and `ctx` reach request and scheduler code;
+5. local workerd scheduled proof passes;
+6. bundle gzip and startup gates pass for the observed account plan;
+7. all existing Release Gate and DCA tests pass;
+8. exactly the allowed files changed;
+9. no deploy, route, DNS or fallback mutation occurred unless separately authorized;
+10. exact-head remote gates succeed;
+11. direct GitHub audit is Accepted;
+12. auto-merge remains disabled;
+13. BCA-01 and PR-M3 remain blocked.
+
+## 23. Terminal states
+
+```text
+Accepted
+Accepted with Non-Blocking Backlog
+Blocked External
+Rejected
+```
+
+Repository acceptance does not authorize the external Worker deployment or DCA-01 external proof.
+
+## 24. Current state
+
+```text
+DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+DCA01_CURRENT_STATE = Rejected
+WRI01_STATE = Planned
+WRI01_IMPLEMENTATION_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+PRODUCTION_CUTOVER_EXECUTED = false
+```

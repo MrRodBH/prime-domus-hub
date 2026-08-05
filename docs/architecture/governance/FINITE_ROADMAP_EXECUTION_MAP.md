@@ -1,7 +1,7 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — DCA-01 repository implementation merged; controlled external proof Blocked External
-**Audited repository implementation merge:** `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`
+**Status:** Active governance — DCA-01 Worker Runtime Preflight Rejected; WRI-01 Planned
+**Audited baseline:** `9157f1e19e455d20b8272951bed25eb8ddd0572d`
 
 ## Current stage map
 
@@ -11,166 +11,218 @@
 | 2 | LSH-01 | Accepted / Closed | do not reopen |
 | 3 | LSV-01, LSV-02, LSR-01 | Superseded / terminal | do not reopen |
 | 4 | PR-M2 | Accepted / Merged / Closed | no automatic successor |
-| 5 | DCA-01 | Blocked External — repository implementation Accepted / Merged / Closed; controlled external proof pending | explicit safe-prerequisite authorization and external proof |
-| 6 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
-| 7 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
-| 8 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
-| 9 | TH-M1 | Blocked by Release Candidate | internal UAT |
-| 10 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
-| 11 | LSV-03 | Planned — Blocked by TH-M2 | controlled Same-Backend validation |
-| 12 | Formal Homologation | Blocked by LSV-03 | explicit authorization |
-| 13 | Production | Blocked by Formal Homologation | explicit production decision |
+| 5 | DCA-01 repository implementation | Accepted / Merged / Closed | Worker runtime proof |
+| 6 | DCA-01 Worker Runtime Preflight | Rejected | WRI-01 planning and correction |
+| 7 | WRI-01 planning | Planned — current authorized gate | direct Accepted planning audit and protected planning merge |
+| 8 | WRI-01 implementation | Blocked | explicit authorization after planning acceptance/merge |
+| 9 | DCA-01 controlled external proof | Blocked | WRI-01 terminal acceptance plus safe external prerequisites |
+| 10 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
+| 11 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
+| 12 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
+| 13 | TH-M1 | Blocked by Release Candidate | internal UAT |
+| 14 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
+| 15 | LSV-03 | Planned — Blocked by TH-M2 | controlled Same-Backend validation |
+| 16 | Formal Homologation | Blocked by LSV-03 | explicit authorization |
+| 17 | Production | Blocked by Formal Homologation | explicit production decision |
 
-## DCA-01 factual state
+## Current factual state
 
 ```text
 DCA01_PLANNING_STATE = Accepted / Merged / Closed
 DCA01_PLANNING_PR = 64
 DCA01_PLANNING_MERGE_SHA = 623f94f98174478af19b130cda9896c64f256f14
-DCA01_INITIAL_REJECTED_PLANNING_HEAD = b6974aaccc11fbc4118a2af8c15320e2e665233e
-DCA01_INITIAL_REJECTED_PLANNING_AUTHORITY = historical only
-DCA01_INTEGRATION_MODEL = HYBRID
-DCA01_SUPPORTED_MODES = manual_assisted, api_automated
 
-DCA01_IMPLEMENTATION_STATE = Accepted / Merged / Closed — repository implementation
-DCA01_IMPLEMENTATION_AUTHORIZED = true
-DCA01_IMPLEMENTATION_STARTED = true
-DCA01_IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
+DCA01_REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 DCA01_IMPLEMENTATION_PR = 65
-DCA01_IMPLEMENTATION_PR_DRAFT = false
-DCA01_IMPLEMENTATION_BASELINE = 623f94f98174478af19b130cda9896c64f256f14
-DCA01_LAST_EXACT_HEAD_VALIDATED = c6a5b93c0869d38b1e03eba903e88513879e9402
-DCA01_LAST_EXACT_HEAD_RELEASE_GATE = success
-DCA01_LAST_EXACT_HEAD_CONSOLIDATED_GATE = success
-DCA01_PREMERGE_AUDIT = Accepted
-DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = executed
 DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
-DCA01_EXTERNAL_NON_PRODUCTION_PROOF_AUTHORIZED = false — requires explicit safe-prerequisite authorization
-DCA01_EXTERNAL_PROOF_STATE = Blocked External
-DCA01_TERMINAL_STATE = Blocked External
+DCA01_PREMERGE_AUDIT = Accepted
+
+DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+DCA01_CURRENT_STATE = Rejected
+
+WRI01_STATE = Planned
+WRI01_PLANNING_BASELINE = 9157f1e19e455d20b8272951bed25eb8ddd0572d
+WRI01_SELECTED_STRATEGY = A
+WRI01_IMPLEMENTATION_STARTED = false
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = controlled external non-production proof only after explicit safe-prerequisite authorization
+NEXT_STAGE_AUTHORIZED = WRI-01 planning audit only
+NO_AUTOMATIC_SUCCESSOR = true
 
-CLOUDFLARE_API_CALL_EXECUTED = false
-DNS_MUTATION_EXECUTED = false
-TXT_RECORD_CREATED = false
-CUSTOM_HOSTNAME_CREATED = false
-SSL_PROVISIONING_EXECUTED = false
-REAL_SECRET_USED = false
-LIVE_DOMAIN_VERIFIED = false
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+SSL_PROVISIONING_EXECUTED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 AUTO_MERGE_ENABLED = false
 ```
 
-## Finite DCA-01 path
+## Runtime-preflight evidence
 
 ```text
-Architecture First planning submission
-→ direct external planning audit = Rejected
-→ one consolidated planning correction
-→ exceptional narrow correction limited to three state-machine contradictions
-→ planning audit = Accepted
-→ protected planning merge = completed
-→ implementation preflight = completed
-→ one principal implementation PR #65 = Accepted / Merged / Closed
-→ deterministic implementation and consolidated internal correction = completed
-→ final exact-head documentation gate = completed
-→ concise direct pre-merge audit = Accepted
-→ protected implementation merge = completed
-→ post-merge canonical reconciliation = completed
-→ controlled external non-production proof = Blocked External pending explicit safe-prerequisite authorization
-→ terminal DCA-01 audit after external proof
-→ Accepted, Accepted with Non-Blocking Backlog, Blocked External or Rejected
+EXACT_BUILD_INSTALL = passed
+EXACT_BUILD = passed
+NITRO_PRESET = cloudflare-module
+WORKER_ENTRY = dist/server/index.mjs
+STATIC_ASSETS = dist/client
+NODEJS_COMPAT = true
+
+SRC_SERVER_FETCH_COMPILED = true
+SRC_SERVER_FETCH_REACHABLE = true
+SRC_SERVER_FETCH_RECEIVES_ENV = false
+SRC_SERVER_FETCH_RECEIVES_CTX = false
+
+SRC_SERVER_SCHEDULED_COMPILED = true
+SRC_SERVER_SCHEDULED_REACHABLE = false
+CLOUDFLARE_SCHEDULED_HOOK_CONSUMER = absent
+WRANGLER_CRON_TRIGGER = absent
+WRANGLER_ROUTES = absent
+VERSIONED_WRANGLER_CONFIG = absent
+REPRODUCIBLE_DEPLOY_SCRIPT = absent
+
+SERVER_UNCOMPRESSED_BYTES = 8586058
+SERVER_MODULE_FILES = 381
+CLOUDFLARE_SECRET_EXISTS = true
+SEPARATE_TEST_BACKEND = false
+PREVIEW_AND_PUBLISHED_SHARE_BACKEND = true
+FALLBACK_ORIGIN_LAST_OBSERVED_STATUS = Pending Deployment (Error)
+```
+
+Source-level presence of `fetch` and `scheduled` is not runtime acceptance. The compiled Worker must prove both handlers are reachable and receive authoritative platform context.
+
+## WRI-01 finite path
+
+```text
+DCA-01 exact-build Worker Runtime Preflight
+→ internal compiled-runtime defect confirmed
+→ DCA-01 state = Rejected
+→ WRI-01 planning-only impact analysis
+→ one selected strategy
+→ direct planning audit
+→ Accepted or Rejected
+→ protected planning merge only after Accepted audit and explicit authorization
+→ separate explicit WRI-01 implementation authorization
+→ one principal implementation PR
+→ compiled-bundle, workerd and dry-run gates
+→ direct exact-head implementation audit
+→ controlled workers.dev proof only after separate authorization
+→ controlled zone route and fallback proof only after separate authorization
+→ WRI-01 terminal audit
+→ DCA-01 external proof may resume only after WRI-01 Accepted
 → no automatic successor
 ```
 
-This remains one finite stage. Internal commits, generated PSL segments, server repository modules and gate-driven corrections do not create artificial stages, sublots or additional prompt budgets.
+WRI-01 remains one finite recovery stage. It may use one principal implementation cycle and at most one consolidated corrective pass. Artificial lots, sublots and decimal successor stages are prohibited.
 
-## Materialized architecture gates
+## Selected architecture
 
 ```text
-CLOSED_STATE_MACHINE = implemented
-ALL_PREDECESSORS_ENUMERATED = implemented
-DEGRADED_ACTIVE_TRANSITION_SYMMETRIC = true
-DEGRADED_ACTIVE_REQUIRES_FULL_CURRENT_GENERATION_PREDICATE = true
-OWNERSHIP_ROTATION_STATUS_PRESERVING = true
-OWNERSHIP_VERIFICATION_ANTI_REPLAY = true
-PENDING_OWNERSHIP_SELF_TRANSITION = prohibited
-POST_SWAP_DIRECT_REACTIVATION = prohibited
-ROLLBACK_BOUNDARY = transaction abort before commit only
-POST_COMMIT_RECOVERY = new explicit replacement generation
-VALID_LEGACY_IMPORT_STATE = pending_ownership_verification
-LEGACY_IMPORT_PSL_HEURISTIC_IN_SQL = prohibited
-LEGACY_IMPORT_SERVER_MANIFEST = implemented
-PUBLICLY_AUTHORITATIVE_STATE = active only
-INCUMBENT_AUTHORITY_DURING_REPLACEMENT = preserved
-CANDIDATE_AUTHORITY_BEFORE_SWAP = false
-ATOMIC_REPLACEMENT_SWAP = implemented
-REMOVAL_CLOSES_PUBLIC_AUTHORITY_BEFORE_CLEANUP = true
-GLOBAL_CUTOVER_PREFLIGHT = implemented
-OLD_AUTHORITY_PRESERVED_ON_PREFLIGHT_FAILURE = true
-REQUEST_TIME_DUAL_QUERY = prohibited
-PRODUCTION_SLUG_FALLBACK = prohibited
-DEVELOPMENT_HOST_MAP = preserved outside production authority
-CANONICAL_REDIRECT_ENTRYPOINT = src/server.ts::fetch before SSR
-SCHEDULED_EXECUTOR_ENTRYPOINT = src/server.ts::scheduled
+SELECTED_STRATEGY = Strategy A
+BUILD_AUTHORITY = @lovable.dev/vite-tanstack-config + Nitro cloudflare-module
+DEPLOY_AUTHORITY = versioned wrangler.jsonc
+TOP_LEVEL_WORKER_ENTRY = dist/server/index.mjs
+REQUEST_APPLICATION_BOUNDARY = src/server.ts::fetch
+SCHEDULED_APPLICATION_BOUNDARY = src/server.ts::scheduled
+RUNTIME_CONTEXT_BRIDGE = one request-scoped Cloudflare bridge
+SCHEDULED_HOOK_CONSUMER_COUNT = exactly one
 PUBLIC_HTTP_JOB_TRIGGER = prohibited
-OPAQUE_PROVIDER_CREDENTIAL_REFERENCE = implemented
-TENANT_OPERATIONAL_SURFACE = implemented
-SUPER_ADMIN_GLOBAL_OPERATIONAL_SURFACE = implemented
-TWO_OPERATIONAL_RUNBOOKS = implemented
-CONTROLLED_EXTERNAL_PROOF = Blocked External and required before terminal acceptance
 ```
 
-## Deterministic gate evidence
+Rejected:
 
 ```text
-DCA01_SPEC_ASSERTIONS = 149
-BUILD_DEV_PASSED = true
-BUILD_PASSED = true
-TYPECHECK_PASSED = true
-PRM2_CONSOLIDATED_CORRECTIVE_GATE_PASSED = true
-PSL_RULE_COUNT = 10239
-PSL_DUPLICATE_COUNT = 0
-GENERATED_ROUTE_TREE_MANUAL_EDIT = false
-GENERATED_ROUTE_TREE_SHA256 = 00ea348d4032a9619fd033fe1d794abc177a74a0f830a8645dcae1c4055d13d8
+STRATEGY_B = replacing Nitro with @cloudflare/vite-plugin in WRI-01
+STRATEGY_C = parallel or hybrid Nitro/Cloudflare Vite pipelines
+SECOND_WORKER_ENTRY = prohibited
+SECOND_ASSETS_AUTHORITY = prohibited
+SECOND_BINDING_AUTHORITY = prohibited
 ```
 
-The generator-owned route tree was validated through three deterministic build cycles. Its implementation source was not manually edited.
+## Non-production Cloudflare contract
+
+```text
+ZONE_NAME = mrrod.com.br
+CLOUDFLARE_FOR_SAAS_ENABLED = true
+FALLBACK_ORIGIN_CONFIGURED = false
+RUNTIME_SECRET_NAME = CLOUDFLARE_API_TOKEN_DCA01_HML
+
+WORKER_NAME = rm-prime-wri01-hml
+INITIAL_TARGET = workers.dev
+CRON = */5 * * * * UTC
+MAX_JOBS_PER_CYCLE = 20
+```
+
+Required no-Worker route exclusions before any wildcard Worker route:
+
+```text
+mrrod.com.br/*
+www.mrrod.com.br/*
+notify.mrrod.com.br/*
+```
+
+Planned wildcard route:
+
+```text
+*/* → rm-prime-wri01-hml
+```
+
+Planned originless fallback:
+
+```text
+fallback.mrrod.com.br AAAA 100:: — proxied
+```
+
+None of these external mutations is authorized by planning or repository implementation alone.
+
+## Bundle gates
+
+```text
+FROZEN_INSTALL_REQUIRED = true
+RELEASE_GATE_REQUIRED = true
+DCA01_REGRESSION_GATE_REQUIRED = true
+WRI01_RUNTIME_GATE_REQUIRED = true
+WRANGLER_DRY_RUN_REQUIRED = true
+COMPRESSED_SIZE_GATE_REQUIRED = true
+STARTUP_TIME_GATE_REQUIRED = true
+COMPILED_HANDLER_REACHABILITY_REQUIRED = true
+```
+
+The account plan and applicable compressed-size limit must be obtained from Cloudflare at execution time. The uncompressed byte count cannot be used to infer success or failure.
+
+## Same-Backend Homologation Cell
+
+```text
+SAME_BACKEND_HOMOLOGATION_CELL = binding
+EXTERNAL_SUPABASE_FALLBACK = prohibited
+REAL_TENANT_USE = prohibited
+RM_PRIME_IMOVEIS_TENANT_USE = prohibited
+TECHNICAL_TENANT_REQUIRED = true
+EXPLICIT_IMPERSONATION_REQUIRED = true
+DCA01_MANAGED_MIGRATION_AUTHORIZED = false
+```
 
 ## Governance
 
-- The repository implementation was delivered through one principal PR and merged by protected squash; auto-merge was not enabled.
-- Direct exact-head GitHub evidence, not local reports, was the final pre-merge authority.
-- The implementation merge completed only after an `Accepted` concise exact-head pre-merge audit.
-- Managed migration, deploy, DNS mutation, Cloudflare API calls and production cutover remain unexecuted.
-- Controlled external proof is limited to a non-production domain, Same-Backend Homologation Cell and safe external prerequisites.
-- Repository implementation success is not external-provider proof.
-- DCA-01 acceptance does not automatically authorize BCA-01.
+- GitHub `main` audited state is the final technical authority.
+- WRI-01 planning changes documentation only.
+- Lovable may not implement or publish WRI-01 under this planning gate.
+- No Worker, route, Cron, DNS, fallback origin, Custom Hostname or migration is created.
+- Account ID and zone ID are transport inputs only and must be revalidated server-side before mutation.
+- Runtime and deploy credentials are distinct and remain secret.
+- A green source-level test without compiled-bundle proof is insufficient.
+- WRI-01 acceptance does not automatically authorize DCA-01 external proof or BCA-01.
 - No successor starts without explicit Product Owner authorization.
-- No heuristic fallback, request-time dual domain authority, direct client status authority or silent mode fallback is permitted.
 
 ## Historical authority
 
-The PR-M2 terminal finite map is preserved at commit `fad8874bfeef85683445f52d21611e7d8760c1a0`.
+The PR-M2 terminal state is preserved at `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
-The DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` remains rejected historical evidence. The corrected accepted planning was merged at `623f94f98174478af19b130cda9896c64f256f14` and remains the binding implementation contract.
-
-## Post-merge DCA-01 authority
-
-```text
-DCA01_CORRECTIVE_HEAD = c6a5b93c0869d38b1e03eba903e88513879e9402
-DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
-DCA01_REPOSITORY_IMPLEMENTATION_AUDIT = Accepted
-DCA01_EXTERNAL_PROOF_STATE = Blocked External
-DCA01_TERMINAL_STATE = Blocked External
-BCA01_STARTED = false
-PRM3_STARTED = false
-NO_AUTOMATIC_SUCCESSOR = true
-```
+DCA-01 corrected planning was merged at `623f94f98174478af19b130cda9896c64f256f14`. Repository implementation was merged at `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`. The Worker runtime defect was confirmed against `9157f1e19e455d20b8272951bed25eb8ddd0572d`.
