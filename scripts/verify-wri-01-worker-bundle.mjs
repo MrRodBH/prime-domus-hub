@@ -4,10 +4,11 @@ import { dirname, extname, join, relative, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
 const root = process.cwd();
-const serverDir = resolve(root, "dist/server");
-const clientDir = resolve(root, "dist/client");
+const outputDir = resolve(root, ".output");
+const serverDir = resolve(outputDir, "server");
+const publicDir = resolve(outputDir, "public");
 const entryPath = resolve(serverDir, "index.mjs");
-const nitroPath = resolve(root, "dist/nitro.json");
+const nitroPath = resolve(outputDir, "nitro.json");
 const rootWranglerPath = resolve(root, "wrangler.jsonc");
 const generatedWranglerPath = resolve(serverDir, "wrangler.json");
 const diagnosticPath = resolve(root, ".wri01-bundle-audit-diagnostic.json");
@@ -15,9 +16,11 @@ const diagnosticPath = resolve(root, ".wri01-bundle-audit-diagnostic.json");
 const diagnostic = {
   WRI01_BUNDLE_AUDIT: "started",
   PHASE: "startup",
+  OUTPUT_AUTHORITY: ".output",
   REQUIRED_PATHS: {
+    OUTPUT_DIRECTORY: existsSync(outputDir),
     SERVER_DIRECTORY: existsSync(serverDir),
-    CLIENT_DIRECTORY: existsSync(clientDir),
+    PUBLIC_DIRECTORY: existsSync(publicDir),
     WORKER_ENTRY: existsSync(entryPath),
     NITRO_METADATA: existsSync(nitroPath),
     ROOT_WRANGLER: existsSync(rootWranglerPath),
@@ -89,11 +92,13 @@ try {
   persistDiagnostic();
 
   for (const [name, path] of Object.entries({
+    OUTPUT_DIRECTORY: outputDir,
     SERVER_DIRECTORY: serverDir,
-    CLIENT_DIRECTORY: clientDir,
+    PUBLIC_DIRECTORY: publicDir,
     WORKER_ENTRY: entryPath,
     NITRO_METADATA: nitroPath,
     ROOT_WRANGLER: rootWranglerPath,
+    GENERATED_WRANGLER: generatedWranglerPath,
   })) {
     assert.ok(existsSync(path), `Required WRI-01 build artifact is missing: ${name}=${path}`);
   }
@@ -117,13 +122,11 @@ try {
   });
 
   const rootWrangler = JSON.parse(readFileSync(rootWranglerPath, "utf8"));
-  const generatedWrangler = existsSync(generatedWranglerPath)
-    ? JSON.parse(readFileSync(generatedWranglerPath, "utf8"))
-    : null;
+  const generatedWrangler = JSON.parse(readFileSync(generatedWranglerPath, "utf8"));
   const uncompressedBytes = serverFiles.reduce((total, path) => total + statSync(path).size, 0);
   const gzipBytes = gzipSync(Buffer.from(serverText)).byteLength;
-  const clientFiles = walk(clientDir);
-  const clientBytes = clientFiles.reduce((total, path) => total + statSync(path).size, 0);
+  const publicFiles = walk(publicDir);
+  const publicBytes = publicFiles.reduce((total, path) => total + statSync(path).size, 0);
 
   const checks = {
     DEFAULT_EXPORT_COUNT: defaultExportCount(entry),
@@ -135,15 +138,15 @@ try {
     DCA_SCHEDULED_DELEGATE_REACHABLE: reachableText.includes("[DCA-01] scheduled reconciliation completed"),
     CANONICAL_REDIRECT_REACHABLE: reachableText.includes("[DCA-01] canonical redirect resolution failed closed"),
     CLOUDFLARE_VITE_PLUGIN_ABSENT: !serverText.includes("@cloudflare/vite-plugin"),
-    ROOT_WRANGLER_MAIN_MATCH: rootWrangler.main === "dist/server/index.mjs",
-    ROOT_ASSETS_DIRECTORY_MATCH: rootWrangler.assets?.directory === "dist/client",
+    ROOT_WRANGLER_MAIN_MATCH: rootWrangler.main === ".output/server/index.mjs",
+    ROOT_ASSETS_DIRECTORY_MATCH: rootWrangler.assets?.directory === ".output/public",
     ROOT_ASSETS_BINDING_MATCH: rootWrangler.assets?.binding === "ASSETS",
     ROOT_ROUTES_EMPTY: Array.isArray(rootWrangler.routes) && rootWrangler.routes.length === 0,
     HOMOLOGATION_ROUTES_EMPTY: Array.isArray(rootWrangler.env?.homologation?.routes) && rootWrangler.env.homologation.routes.length === 0,
     CRON_EXPRESSION_MATCH: rootWrangler.triggers?.crons?.[0] === "*/5 * * * *",
-    GENERATED_WRANGLER_MAIN_MATCH: generatedWrangler === null || generatedWrangler.main === "index.mjs",
-    GENERATED_NO_BUNDLE_MATCH: generatedWrangler === null || generatedWrangler.no_bundle === true,
-    GENERATED_ASSETS_BINDING_MATCH: generatedWrangler === null || generatedWrangler.assets?.binding === "ASSETS",
+    GENERATED_WRANGLER_MAIN_MATCH: generatedWrangler.main === "index.mjs",
+    GENERATED_NO_BUNDLE_MATCH: generatedWrangler.no_bundle === true,
+    GENERATED_ASSETS_BINDING_MATCH: generatedWrangler.assets?.binding === "ASSETS",
     MODULE_COUNT_POSITIVE: moduleFiles.length > 0,
     SERVER_BYTES_POSITIVE: uncompressedBytes > 0,
     GZIP_BYTES_POSITIVE: gzipBytes > 0,
@@ -156,8 +159,9 @@ try {
     MODULE_COUNT: moduleFiles.length,
     SERVER_UNCOMPRESSED_BYTES: uncompressedBytes,
     SERVER_TEXT_GZIP_BYTES: gzipBytes,
-    CLIENT_FILE_COUNT: clientFiles.length,
-    CLIENT_BYTES: clientBytes,
+    PUBLIC_FILE_COUNT: publicFiles.length,
+    PUBLIC_BYTES: publicBytes,
+    GENERATED_WRANGLER: generatedWrangler,
     CHECKS: checks,
   });
 
@@ -170,8 +174,8 @@ try {
   assert.ok(checks.DCA_SCHEDULED_DELEGATE_REACHABLE, "Reachable compiled graph must contain the DCA-01 scheduled delegate");
   assert.ok(checks.CANONICAL_REDIRECT_REACHABLE, "Canonical redirect must remain reachable before SSR and fail closed");
   assert.ok(checks.CLOUDFLARE_VITE_PLUGIN_ABSENT, "Compiled output must not contain a second Cloudflare Vite build authority");
-  assert.ok(checks.ROOT_WRANGLER_MAIN_MATCH, "Versioned Wrangler main must match the bundle");
-  assert.ok(checks.ROOT_ASSETS_DIRECTORY_MATCH, "Versioned assets directory must match the bundle");
+  assert.ok(checks.ROOT_WRANGLER_MAIN_MATCH, "Versioned Wrangler main must match the observed Nitro output");
+  assert.ok(checks.ROOT_ASSETS_DIRECTORY_MATCH, "Versioned assets directory must match the observed Nitro output");
   assert.ok(checks.ROOT_ASSETS_BINDING_MATCH, "Versioned assets binding must remain explicit");
   assert.ok(checks.ROOT_ROUTES_EMPTY, "Repository implementation must not contain a zone route");
   assert.ok(checks.HOMOLOGATION_ROUTES_EMPTY, "Homologation must not contain a zone route");
