@@ -76,7 +76,8 @@ equal(count(vite, "wri-01-cloudflare-nitro-plugin.server.ts"), 1, "Bridge regist
 match(server, /export async function fetch\(/, "Named fetch boundary must be exported");
 match(server, /export async function scheduled\(/, "Named scheduled boundary must be exported");
 match(server, /export default \{[\s\S]*fetch,[\s\S]*async scheduled\(/, "Default Worker contract must expose fetch and scheduled");
-match(server, /requireCloudflareRuntimeContext\(request\)/, "Cloudflare fetch must require installed context");
+match(server, /readAuthoritativeCloudflareRuntimeContext\(request\)/, "Cloudflare fetch must read Nitro's exact platform context directly");
+equal(server.includes("requireCloudflareRuntimeContext(request)"), false, "Fetch boundary must not depend on a later Nitro request hook");
 match(server, /status:\s*503/, "Missing runtime context must fail closed");
 match(server, /processScheduledDomainJobs\(\{ runtimeEnv: env, limit: 20 \}\)/, "Scheduled boundary must delegate to DCA-01");
 match(server, /ctx\.waitUntil\(execution\)/, "Scheduled work must use waitUntil");
@@ -94,6 +95,7 @@ equal(runtime.includes("let current"), false, "Global mutable current-context au
 for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", workers_dev: true, no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
 }
+equal(wrangler.compatibility_date, "2026-07-29", "Compatibility date must remain pinned to the tested workerd support ceiling");
 equal(wrangler.assets?.directory, "dist/client", "Assets directory must match Nitro output");
 equal(wrangler.assets?.binding, "ASSETS", "Assets binding must be explicit");
 equal(wrangler.compatibility_flags?.includes("nodejs_compat"), true, "nodejs_compat must be enabled");
