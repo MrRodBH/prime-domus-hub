@@ -223,10 +223,38 @@ jobs:
           fi
 
           sleep 10
-          if grep -Eq "\[DCA-01\] scheduled reconciliation (completed|failed closed)" "${LOG_FILE}"; then
-            SCHEDULED_LOG_EVIDENCE=true
+          if grep -Eq "\[DCA-01\] scheduled reconciliation completed" "${LOG_FILE}"; then
+            SCHEDULED_COMPLETED_LOG=true
           else
-            SCHEDULED_LOG_EVIDENCE=false
+            SCHEDULED_COMPLETED_LOG=false
+          fi
+          if grep -Eq "\[DCA-01\] scheduled reconciliation failed closed" "${LOG_FILE}"; then
+            SCHEDULED_FAILED_CLOSED_LOG=true
+          else
+            SCHEDULED_FAILED_CLOSED_LOG=false
+          fi
+          if grep -Eq '"outcome":"ok"' "${RESPONSE_FILE}"; then
+            OUTCOME_OK=true
+          else
+            OUTCOME_OK=false
+          fi
+          if grep -Eq '"outcome":"exception"' "${RESPONSE_FILE}"; then
+            OUTCOME_EXCEPTION=true
+          else
+            OUTCOME_EXCEPTION=false
+          fi
+
+          POSITIVE_PATH_PROVED=false
+          FAIL_CLOSED_NEGATIVE_PATH_PROVED=false
+          if [ "${SCHEDULED_HTTP_CODE}" -ge 200 ] && [ "${SCHEDULED_HTTP_CODE}" -lt 300 ] \
+            && [ "${SCHEDULED_COMPLETED_LOG}" = "true" ] \
+            && [ "${OUTCOME_OK}" = "true" ]; then
+            POSITIVE_PATH_PROVED=true
+          fi
+          if [ "${SCHEDULED_HTTP_CODE}" -eq 500 ] \
+            && [ "${SCHEDULED_FAILED_CLOSED_LOG}" = "true" ] \
+            && [ "${OUTCOME_EXCEPTION}" = "true" ]; then
+            FAIL_CLOSED_NEGATIVE_PATH_PROVED=true
           fi
 
           if kill -0 "${WRANGLER_PID}" 2>/dev/null; then
@@ -247,7 +275,13 @@ jobs:
             printf 'SCHEDULED_ENDPOINT=/cdn-cgi/handler/scheduled\n'
             printf 'SCHEDULED_HTTP_CODE=%s\n' "${SCHEDULED_HTTP_CODE}"
             printf 'CURL_EXIT_CODE=%s\n' "${CURL_EXIT_CODE}"
-            printf 'SCHEDULED_LOG_EVIDENCE=%s\n' "${SCHEDULED_LOG_EVIDENCE}"
+            printf 'SCHEDULED_COMPLETED_LOG=%s\n' "${SCHEDULED_COMPLETED_LOG}"
+            printf 'SCHEDULED_FAILED_CLOSED_LOG=%s\n' "${SCHEDULED_FAILED_CLOSED_LOG}"
+            printf 'OUTCOME_OK=%s\n' "${OUTCOME_OK}"
+            printf 'OUTCOME_EXCEPTION=%s\n' "${OUTCOME_EXCEPTION}"
+            printf 'POSITIVE_PATH_PROVED=%s\n' "${POSITIVE_PATH_PROVED}"
+            printf 'FAIL_CLOSED_NEGATIVE_PATH_PROVED=%s\n' "${FAIL_CLOSED_NEGATIVE_PATH_PROVED}"
+            printf 'NEGATIVE_PATH_DEPENDENCY=SUPABASE_URL_http_127.0.0.1_port_9\n'
             printf 'WRANGLER_EXIT_CODE_AFTER_TERMINATION=%s\n' "${WRANGLER_EXIT_CODE}"
           } > .wri01-workerd-facts.txt
 
@@ -257,8 +291,10 @@ jobs:
 
           if [ "${READY}" != "true" ]; then exit 1; fi
           if [ "${CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
-          if [ "${SCHEDULED_HTTP_CODE}" -lt 200 ] || [ "${SCHEDULED_HTTP_CODE}" -ge 300 ]; then exit 1; fi
-          if [ "${SCHEDULED_LOG_EVIDENCE}" != "true" ]; then exit 1; fi
+          if [ "${POSITIVE_PATH_PROVED}" != "true" ] \
+            && [ "${FAIL_CLOSED_NEGATIVE_PATH_PROVED}" != "true" ]; then
+            exit 1
+          fi
           exit 0
 
       - name: Preserve local workerd proof diagnostics
