@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planning — Accepted for Protected Merge**
+**Repository implementation Accepted / Merged / Closed — controlled external proof Blocked External**
 
 ```text
 STAGE_ID = DCA-01
@@ -714,3 +714,20 @@ BCA01_STARTED = false
 PRM3_STARTED = false
 NEXT_STAGE_AUTHORIZED = DCA-01 implementation after protected planning merge
 ```
+
+## Repository implementation closure and external-proof gate
+
+```text
+PLANNING_MERGE_SHA = 623f94f98174478af19b130cda9896c64f256f14
+IMPLEMENTATION_PR = 65
+CORRECTIVE_HEAD = c6a5b93c0869d38b1e03eba903e88513879e9402
+IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
+REPOSITORY_IMPLEMENTATION_AUDIT = Accepted
+REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+This closure does not authorize managed migration, deploy, DNS mutation, provider operations, live proof or production cutover. The controlled external proof requires a separate explicit authorization with all safety prerequisites.

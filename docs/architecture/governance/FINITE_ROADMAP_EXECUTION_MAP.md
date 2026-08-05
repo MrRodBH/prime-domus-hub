@@ -1,7 +1,7 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — DCA-01 implementation complete in principal draft PR; concise exact-head pre-merge audit pending
-**Audited implementation baseline:** `623f94f98174478af19b130cda9896c64f256f14`
+**Status:** Active governance — DCA-01 repository implementation merged; controlled external proof Blocked External
+**Audited repository implementation merge:** `e807b76f4428dd34fbdb01a9e547a8dd8c90f68b`
 
 ## Current stage map
 
@@ -11,7 +11,7 @@
 | 2 | LSH-01 | Accepted / Closed | do not reopen |
 | 3 | LSV-01, LSV-02, LSR-01 | Superseded / terminal | do not reopen |
 | 4 | PR-M2 | Accepted / Merged / Closed | no automatic successor |
-| 5 | DCA-01 | Implementation complete in principal draft PR #65; exact-head pre-merge audit pending | Accepted pre-merge audit, protected merge and controlled external proof |
+| 5 | DCA-01 | Blocked External — repository implementation Accepted / Merged / Closed; controlled external proof pending | explicit safe-prerequisite authorization and external proof |
 | 6 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
 | 7 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
 | 8 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
@@ -32,18 +32,18 @@ DCA01_INITIAL_REJECTED_PLANNING_AUTHORITY = historical only
 DCA01_INTEGRATION_MODEL = HYBRID
 DCA01_SUPPORTED_MODES = manual_assisted, api_automated
 
-DCA01_IMPLEMENTATION_STATE = Implementation complete — concise exact-head pre-merge audit pending
+DCA01_IMPLEMENTATION_STATE = Accepted / Merged / Closed — repository implementation
 DCA01_IMPLEMENTATION_AUTHORIZED = true
 DCA01_IMPLEMENTATION_STARTED = true
 DCA01_IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
 DCA01_IMPLEMENTATION_PR = 65
-DCA01_IMPLEMENTATION_PR_DRAFT = true
+DCA01_IMPLEMENTATION_PR_DRAFT = false
 DCA01_IMPLEMENTATION_BASELINE = 623f94f98174478af19b130cda9896c64f256f14
-DCA01_LAST_EXACT_HEAD_VALIDATED = 1cc8732cdc67b7d0ce537ec319d9a2123e59686d
+DCA01_LAST_EXACT_HEAD_VALIDATED = c6a5b93c0869d38b1e03eba903e88513879e9402
 DCA01_LAST_EXACT_HEAD_RELEASE_GATE = success
 DCA01_LAST_EXACT_HEAD_CONSOLIDATED_GATE = success
-DCA01_PREMERGE_AUDIT = pending
-DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = false
+DCA01_PREMERGE_AUDIT = Accepted
+DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = executed
 DCA01_EXTERNAL_NON_PRODUCTION_PROOF_AUTHORIZED = after protected implementation merge and safe-prerequisite confirmation
 DCA01_TERMINAL_STATE = not reached
 
@@ -158,3 +158,16 @@ The generator-owned route tree is validated through three deterministic build cy
 The PR-M2 terminal finite map is preserved at commit `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
 The DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` remains rejected historical evidence. The corrected accepted planning was merged at `623f94f98174478af19b130cda9896c64f256f14` and remains the binding implementation contract.
+
+## Post-merge DCA-01 authority
+
+```text
+DCA01_CORRECTIVE_HEAD = c6a5b93c0869d38b1e03eba903e88513879e9402
+DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
+DCA01_REPOSITORY_IMPLEMENTATION_AUDIT = Accepted
+DCA01_EXTERNAL_PROOF_STATE = Blocked External
+DCA01_TERMINAL_STATE = Blocked External
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
