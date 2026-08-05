@@ -220,4 +220,13 @@ export async function scheduled(
   ctx.waitUntil(execution);
 }
 
-export default { fetch, scheduled };
+export default {
+  fetch,
+  async scheduled(
+    controller: CloudflareScheduledController,
+    env: CloudflareRuntimeEnv,
+    ctx: CloudflareExecutionContext,
+  ): Promise<void> {
+    return scheduled(controller, env, ctx);
+  },
+};
