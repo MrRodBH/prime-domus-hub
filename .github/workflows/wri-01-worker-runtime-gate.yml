@@ -74,6 +74,18 @@ jobs:
             find dist -maxdepth 5 -type f -printf '%p\t%s\n' | sort > .wri01-dist-manifest.txt
           fi
 
+          find . \
+            -path './.git' -prune -o \
+            -path './node_modules' -prune -o \
+            -path './.wri01-dry-run' -prune -o \
+            -type f -printf '%p\t%s\n' \
+            | sort > .wri01-workspace-manifest.txt
+
+          find . -maxdepth 4 -type d \
+            -not -path './.git*' \
+            -not -path './node_modules*' \
+            | sort > .wri01-directory-manifest.txt
+
           if [ -f dist/server/index.mjs ]; then
             head -c 4000 dist/server/index.mjs > .wri01-entry-preview.txt
           else
@@ -108,7 +120,14 @@ jobs:
               "PUBLIC_DIRECTORY_EXISTS:dist/public" \
               "WORKER_ENTRY_EXISTS:dist/server/index.mjs" \
               "DIST_NITRO_JSON_EXISTS:dist/nitro.json" \
-              "GENERATED_WRANGLER_EXISTS:dist/server/wrangler.json"; do
+              "GENERATED_WRANGLER_EXISTS:dist/server/wrangler.json" \
+              "DOT_OUTPUT_EXISTS:.output" \
+              "DOT_OUTPUT_SERVER_EXISTS:.output/server" \
+              "DOT_OUTPUT_PUBLIC_EXISTS:.output/public" \
+              "VERCEL_OUTPUT_EXISTS:.vercel/output" \
+              "BUILD_EXISTS:build" \
+              "OUTPUT_EXISTS:output" \
+              "DOT_NITRO_EXISTS:.nitro"; do
               name="${pair%%:*}"
               path="${pair#*:}"
               if [ -e "${path}" ]; then
@@ -133,6 +152,8 @@ jobs:
           path: |
             .wri01-build-facts.txt
             .wri01-dist-manifest.txt
+            .wri01-workspace-manifest.txt
+            .wri01-directory-manifest.txt
             .wri01-entry-preview.txt
             .wri01-root-wrangler.jsonc
             .wri01-bundle-audit-diagnostic.json
