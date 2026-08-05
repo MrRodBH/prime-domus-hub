@@ -9,6 +9,7 @@
 // rewriting plugin are permitted.
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import type {} from "nitro/vite";
 
 const wri01RuntimePlugin = fileURLToPath(
   new URL("./src/lib/runtime/wri-01-cloudflare-nitro-plugin.server.ts", import.meta.url),
