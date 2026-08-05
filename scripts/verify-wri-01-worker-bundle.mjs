@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
@@ -10,6 +10,7 @@ const entryPath = resolve(serverDir, "index.mjs");
 const nitroPath = resolve(root, "dist/nitro.json");
 const rootWranglerPath = resolve(root, "wrangler.jsonc");
 const generatedWranglerPath = resolve(serverDir, "wrangler.json");
+const diagnosticPath = resolve(root, ".wri01-bundle-audit-diagnostic.json");
 
 for (const path of [serverDir, clientDir, entryPath, nitroPath, rootWranglerPath]) {
   assert.ok(existsSync(path), `Required WRI-01 build artifact is missing: ${path}`);
@@ -61,6 +62,12 @@ function hasWorkerHandler(source, name) {
   return methodForm.test(source) || asyncMethodForm.test(source) || propertyForm.test(source);
 }
 
+function defaultExportCount(source) {
+  const direct = source.match(/\bexport\s+default\b/g) ?? [];
+  const aliased = source.match(/\bexport\s*\{[^}]*\bas\s+default\b[^}]*\}/g) ?? [];
+  return direct.length + aliased.length;
+}
+
 const serverFiles = walk(serverDir);
 const moduleFiles = serverFiles.filter((path) => [".mjs", ".js", ".wasm"].includes(extname(path)));
 const textModuleFiles = serverFiles.filter((path) => [".mjs", ".js", ".json"].includes(extname(path)));
@@ -69,66 +76,43 @@ const reachableFiles = reachableModuleGraph(entryPath);
 const reachableText = reachableFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 const serverText = textModuleFiles.map((path) => readFileSync(path, "utf8")).join("\n");
 const rootWrangler = JSON.parse(readFileSync(rootWranglerPath, "utf8"));
-
-assert.equal(
-  (entry.match(/export\s+default/g) ?? []).length,
-  1,
-  "Final Worker entry must have exactly one default export authority",
-);
-assert.ok(hasWorkerHandler(reachableText, "fetch"), "Reachable Worker module graph must expose fetch");
-assert.ok(hasWorkerHandler(reachableText, "scheduled"), "Reachable Worker module graph must expose scheduled");
-assert.ok(
-  reachableText.includes("cloudflare:scheduled"),
-  "Reachable compiled graph must contain the Nitro Cloudflare scheduled hook",
-);
-assert.ok(
-  reachableText.includes("cloudflare_runtime_context_missing"),
-  "Reachable compiled graph must contain fail-closed runtime-context enforcement",
-);
-assert.ok(
-  reachableText.includes("Runtime context temporarily unavailable"),
-  "Reachable compiled graph must contain the sanitized 503 runtime response",
-);
-assert.ok(
-  reachableText.includes("[DCA-01] scheduled reconciliation completed"),
-  "Reachable compiled graph must contain the DCA-01 scheduled delegate",
-);
-assert.ok(
-  reachableText.includes("[DCA-01] canonical redirect resolution failed closed"),
-  "Canonical redirect must remain reachable before SSR and fail closed",
-);
-assert.equal(
-  serverText.includes("@cloudflare/vite-plugin"),
-  false,
-  "Compiled output must not contain a second Cloudflare Vite build authority",
-);
-assert.equal(rootWrangler.main, "dist/server/index.mjs", "Versioned Wrangler main must match the bundle");
-assert.equal(rootWrangler.assets?.directory, "dist/client", "Versioned assets directory must match the bundle");
-assert.equal(rootWrangler.assets?.binding, "ASSETS", "Versioned assets binding must remain explicit");
-assert.deepEqual(rootWrangler.routes, [], "Repository implementation must not contain a zone route");
-assert.deepEqual(rootWrangler.env?.homologation?.routes, [], "Homologation must not contain a zone route");
-assert.equal(rootWrangler.triggers?.crons?.[0], "*/5 * * * *", "Approved UTC Cron must remain exact");
-
-if (existsSync(generatedWranglerPath)) {
-  const generatedWrangler = JSON.parse(readFileSync(generatedWranglerPath, "utf8"));
-  assert.equal(generatedWrangler.main, "index.mjs", "Nitro-generated Wrangler main must point at its local entry");
-  assert.equal(generatedWrangler.no_bundle, true, "Nitro Cloudflare module output must remain no_bundle");
-  assert.equal(generatedWrangler.assets?.binding, "ASSETS", "Generated assets binding must agree with root authority");
-}
-
+const generatedWrangler = existsSync(generatedWranglerPath)
+  ? JSON.parse(readFileSync(generatedWranglerPath, "utf8"))
+  : null;
 const uncompressedBytes = serverFiles.reduce((total, path) => total + statSync(path).size, 0);
 const gzipBytes = gzipSync(Buffer.from(serverText)).byteLength;
 const clientFiles = walk(clientDir);
 const clientBytes = clientFiles.reduce((total, path) => total + statSync(path).size, 0);
 
-assert.ok(moduleFiles.length > 0, "Worker bundle must contain modules");
-assert.ok(uncompressedBytes > 0, "Worker bundle must not be empty");
-assert.ok(gzipBytes > 0, "Gzip measurement must be available");
-assert.ok(reachableFiles.length > 1, "Worker entry must reach its generated module graph");
+const checks = {
+  DEFAULT_EXPORT_COUNT: defaultExportCount(entry),
+  FETCH_REACHABLE: hasWorkerHandler(reachableText, "fetch"),
+  SCHEDULED_REACHABLE: hasWorkerHandler(reachableText, "scheduled"),
+  CLOUDFLARE_SCHEDULED_HOOK_REACHABLE: reachableText.includes("cloudflare:scheduled"),
+  FAIL_CLOSED_CONTEXT_REACHABLE: reachableText.includes("cloudflare_runtime_context_missing"),
+  SANITIZED_503_REACHABLE: reachableText.includes("Runtime context temporarily unavailable"),
+  DCA_SCHEDULED_DELEGATE_REACHABLE: reachableText.includes("[DCA-01] scheduled reconciliation completed"),
+  CANONICAL_REDIRECT_REACHABLE: reachableText.includes("[DCA-01] canonical redirect resolution failed closed"),
+  CLOUDFLARE_VITE_PLUGIN_ABSENT: !serverText.includes("@cloudflare/vite-plugin"),
+  ROOT_WRANGLER_MAIN_MATCH: rootWrangler.main === "dist/server/index.mjs",
+  ROOT_ASSETS_DIRECTORY_MATCH: rootWrangler.assets?.directory === "dist/client",
+  ROOT_ASSETS_BINDING_MATCH: rootWrangler.assets?.binding === "ASSETS",
+  ROOT_ROUTES_EMPTY: Array.isArray(rootWrangler.routes) && rootWrangler.routes.length === 0,
+  HOMOLOGATION_ROUTES_EMPTY: Array.isArray(rootWrangler.env?.homologation?.routes) && rootWrangler.env.homologation.routes.length === 0,
+  CRON_EXPRESSION_MATCH: rootWrangler.triggers?.crons?.[0] === "*/5 * * * *",
+  GENERATED_WRANGLER_MAIN_MATCH: generatedWrangler === null || generatedWrangler.main === "index.mjs",
+  GENERATED_NO_BUNDLE_MATCH: generatedWrangler === null || generatedWrangler.no_bundle === true,
+  GENERATED_ASSETS_BINDING_MATCH: generatedWrangler === null || generatedWrangler.assets?.binding === "ASSETS",
+  MODULE_COUNT_POSITIVE: moduleFiles.length > 0,
+  SERVER_BYTES_POSITIVE: uncompressedBytes > 0,
+  GZIP_BYTES_POSITIVE: gzipBytes > 0,
+  REACHABLE_GRAPH_NONTRIVIAL: reachableFiles.length > 1,
+};
 
-console.log(JSON.stringify({
-  WRI01_BUNDLE_AUDIT: "passed",
+const diagnostic = {
+  WRI01_BUNDLE_AUDIT: "diagnostic",
   WORKER_ENTRY: "dist/server/index.mjs",
+  ENTRY_PREVIEW: entry.slice(0, 4000),
   REACHABLE_MODULE_COUNT: reachableFiles.length,
   REACHABLE_MODULES: reachableFiles.map((path) => relative(root, path)),
   MODULE_COUNT: moduleFiles.length,
@@ -136,6 +120,32 @@ console.log(JSON.stringify({
   SERVER_TEXT_GZIP_BYTES: gzipBytes,
   CLIENT_FILE_COUNT: clientFiles.length,
   CLIENT_BYTES: clientBytes,
-  ROUTES_CONFIGURED: 0,
-  CRON_EXPRESSION: "*/5 * * * *",
-}, null, 2));
+  CHECKS: checks,
+};
+writeFileSync(diagnosticPath, `${JSON.stringify(diagnostic, null, 2)}\n`);
+console.log(JSON.stringify(diagnostic, null, 2));
+
+assert.equal(checks.DEFAULT_EXPORT_COUNT, 1, "Final Worker entry must have exactly one default export authority");
+assert.ok(checks.FETCH_REACHABLE, "Reachable Worker module graph must expose fetch");
+assert.ok(checks.SCHEDULED_REACHABLE, "Reachable Worker module graph must expose scheduled");
+assert.ok(checks.CLOUDFLARE_SCHEDULED_HOOK_REACHABLE, "Reachable compiled graph must contain the Nitro Cloudflare scheduled hook");
+assert.ok(checks.FAIL_CLOSED_CONTEXT_REACHABLE, "Reachable compiled graph must contain fail-closed runtime-context enforcement");
+assert.ok(checks.SANITIZED_503_REACHABLE, "Reachable compiled graph must contain the sanitized 503 runtime response");
+assert.ok(checks.DCA_SCHEDULED_DELEGATE_REACHABLE, "Reachable compiled graph must contain the DCA-01 scheduled delegate");
+assert.ok(checks.CANONICAL_REDIRECT_REACHABLE, "Canonical redirect must remain reachable before SSR and fail closed");
+assert.ok(checks.CLOUDFLARE_VITE_PLUGIN_ABSENT, "Compiled output must not contain a second Cloudflare Vite build authority");
+assert.ok(checks.ROOT_WRANGLER_MAIN_MATCH, "Versioned Wrangler main must match the bundle");
+assert.ok(checks.ROOT_ASSETS_DIRECTORY_MATCH, "Versioned assets directory must match the bundle");
+assert.ok(checks.ROOT_ASSETS_BINDING_MATCH, "Versioned assets binding must remain explicit");
+assert.ok(checks.ROOT_ROUTES_EMPTY, "Repository implementation must not contain a zone route");
+assert.ok(checks.HOMOLOGATION_ROUTES_EMPTY, "Homologation must not contain a zone route");
+assert.ok(checks.CRON_EXPRESSION_MATCH, "Approved UTC Cron must remain exact");
+assert.ok(checks.GENERATED_WRANGLER_MAIN_MATCH, "Nitro-generated Wrangler main must point at its local entry");
+assert.ok(checks.GENERATED_NO_BUNDLE_MATCH, "Nitro Cloudflare module output must remain no_bundle");
+assert.ok(checks.GENERATED_ASSETS_BINDING_MATCH, "Generated assets binding must agree with root authority");
+assert.ok(checks.MODULE_COUNT_POSITIVE, "Worker bundle must contain modules");
+assert.ok(checks.SERVER_BYTES_POSITIVE, "Worker bundle must not be empty");
+assert.ok(checks.GZIP_BYTES_POSITIVE, "Gzip measurement must be available");
+assert.ok(checks.REACHABLE_GRAPH_NONTRIVIAL, "Worker entry must reach its generated module graph");
+
+console.log(JSON.stringify({ ...diagnostic, WRI01_BUNDLE_AUDIT: "passed" }, null, 2));
