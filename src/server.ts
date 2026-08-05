@@ -6,7 +6,7 @@ import { resolveCanonicalRedirectByHost } from "./lib/tenant.server";
 import { processScheduledDomainJobs } from "./lib/domains/domain-jobs.server";
 import {
   isCloudflareRuntimeRequest,
-  requireCloudflareRuntimeContext,
+  readAuthoritativeCloudflareRuntimeContext,
   type CloudflareExecutionContext,
   type CloudflareRuntimeEnv,
   type CloudflareScheduledController,
@@ -153,7 +153,11 @@ function resolveRuntimeContext(
   ctx: unknown,
 ): { env: unknown; ctx: unknown } {
   if (!isCloudflareRuntimeRequest(request)) return { env, ctx };
-  const runtime = requireCloudflareRuntimeContext(request);
+
+  const runtime = readAuthoritativeCloudflareRuntimeContext(request);
+  if (!runtime) {
+    throw new Error("cloudflare_runtime_context_missing");
+  }
   return { env: runtime.env, ctx: runtime.ctx };
 }
 
