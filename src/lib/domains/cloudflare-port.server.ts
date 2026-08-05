@@ -24,7 +24,8 @@ export interface CloudflarePort {
   }): Promise<CloudflareCustomHostnameObservation>;
   observeCustomHostname(input: {
     provider: CloudflareProviderContext;
-    customHostnameId: string;
+    domain: TenantDomainRecord;
+    expectedCustomHostnameId: string;
   }): Promise<CloudflareCustomHostnameObservation>;
   removeCustomHostname(input: {
     provider: CloudflareProviderContext;

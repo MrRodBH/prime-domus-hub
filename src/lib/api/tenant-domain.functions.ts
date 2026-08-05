@@ -4,6 +4,7 @@ import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { authorizeTenantDomainOperation } from "@/lib/domains/domain-authority.server";
 import {
   cancelCancellableDomainJob,
+  changeTenantDomainExecutionMode,
   createTenantDomainRequest,
   enqueueDomainJob,
   getCurrentOwnershipChallenge,
@@ -15,7 +16,7 @@ import {
   transitionTenantDomain,
 } from "@/lib/domains/domain-repository.server";
 import type { DomainOperationType, TenantDomainRecord } from "@/lib/domains/domain-contracts";
-import { DomainError } from "@/lib/domains/domain-errors";
+import { DomainError, toSafeDomainError } from "@/lib/domains/domain-errors";
 
 const trusted = (context: any) => ({ userId: context.userId as string, tenant: context.tenant });
 const domainIdSchema = z.object({ domainId: z.string().uuid() }).strict();
@@ -30,6 +31,10 @@ const replacementSchema = z.object({
   incumbentDomainId: z.string().uuid(),
 }).strict();
 const cancelSchema = z.object({ jobId: z.string().uuid() }).strict();
+const modeChangeSchema = z.object({
+  domainId: z.string().uuid(),
+  executionMode: z.enum(["manual_assisted", "api_automated"]),
+}).strict();
 
 function nextOperationFor(domain: TenantDomainRecord): DomainOperationType {
   switch (domain.status) {
@@ -177,17 +182,86 @@ export const requestDomainReplacement = createServerFn({ method: "POST" })
     });
     domain = await transitionTenantDomain({ authority, domain, to: "pending_ownership_verification" });
     const { challenge, proofValue } = await issueOwnershipChallenge({ authority, domain });
+    const aliasCandidates = (await listTenantDomains(authority.tenantId)).filter((candidateAlias) =>
+      candidateAlias.hostnameKind === "alias"
+      && candidateAlias.generation === domain.generation
+      && candidateAlias.replacementOf !== null
+      && candidateAlias.status === "pending_ownership_verification",
+    );
+    const aliasChallenges: Array<{
+      domainId: string;
+      hostname: string;
+      id: string;
+      recordName: string;
+      proofValue: string;
+      expiresAt: string;
+      challengeVersion: number;
+    }> = [];
+    const aliasChallengeFailures: Array<{
+      domainId: string;
+      hostname: string;
+      errorCode: string;
+    }> = [];
+    for (const candidateAlias of aliasCandidates) {
+      try {
+        const issued = await issueOwnershipChallenge({ authority, domain: candidateAlias });
+        aliasChallenges.push({
+          domainId: candidateAlias.id,
+          hostname: candidateAlias.normalizedHostname,
+          id: issued.challenge.id,
+          recordName: issued.challenge.recordName,
+          proofValue: issued.proofValue,
+          expiresAt: issued.challenge.expiresAt,
+          challengeVersion: issued.challenge.challengeVersion,
+        });
+      } catch (error) {
+        const safe = toSafeDomainError(error);
+        aliasChallengeFailures.push({
+          domainId: candidateAlias.id,
+          hostname: candidateAlias.normalizedHostname,
+          errorCode: safe.code,
+        });
+      }
+    }
     return {
       domain,
       challenge: {
+        domainId: domain.id,
+        hostname: domain.normalizedHostname,
         id: challenge.id,
         recordName: challenge.recordName,
         proofValue,
         expiresAt: challenge.expiresAt,
         challengeVersion: challenge.challengeVersion,
       },
+      aliasChallenges,
+      aliasChallengeFailures,
       incumbentAuthorityPreserved: true,
+      aliasAuthorityPreparedForAtomicSwap: true,
     };
+  });
+
+export const changeDomainExecutionMode = createServerFn({ method: "POST" })
+  .middleware([requireTenant])
+  .inputValidator((data: unknown) => modeChangeSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const authority = await authorizeTenantDomainOperation(trusted(context), "operate");
+    const current = await getTenantDomain(authority.tenantId, data.domainId);
+    const domain = await changeTenantDomainExecutionMode({
+      authority,
+      domain: current,
+      executionMode: data.executionMode,
+    });
+    let job = null;
+    if (!["draft", "replacement_pending", "failed"].includes(domain.status)) {
+      job = await enqueueDomainJob({
+        authority,
+        domain,
+        operationType: nextOperationFor(domain),
+        payload: { executionModeChangedAt: new Date().toISOString() },
+      });
+    }
+    return { domain, job, modeChangeVersionedAndAudited: true, silentFallback: false };
   });
 
 export const requestDomainRemoval = createServerFn({ method: "POST" })

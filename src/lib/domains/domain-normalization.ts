@@ -53,34 +53,34 @@ function validIpv4(hostname: string): boolean {
 }
 
 function matchingPublicSuffix(labels: readonly string[]): string {
-  let bestRule = "*";
-  let bestLength = 1;
-  let exception: string | null = null;
+  // PSL algorithm: the prevailing rule is the longest exact or wildcard match.
+  // A wildcard consumes the concrete left-most label (for example, *.ck makes
+  // a.ck itself a public suffix). Exception rules remove exactly their first label.
+  let prevailingLength = 1; // implicit "*" rule
 
   for (let index = 0; index < labels.length; index += 1) {
-    const suffix = labels.slice(index).join(".");
-    const exact = suffix;
-    const wildcard = index + 1 < labels.length ? `*.${labels.slice(index + 1).join(".")}` : null;
-    const exceptionRule = `!${suffix}`;
-
+    const concreteSuffixLabels = labels.slice(index);
+    const concreteSuffix = concreteSuffixLabels.join(".");
+    const exceptionRule = `!${concreteSuffix}`;
     if (PUBLIC_SUFFIX_RULES.has(exceptionRule)) {
-      exception = suffix;
-      break;
+      return concreteSuffixLabels.slice(1).join(".");
     }
-    const exactLength = labels.length - index;
-    if (PUBLIC_SUFFIX_RULES.has(exact) && exactLength > bestLength) {
-      bestRule = exact;
-      bestLength = exactLength;
+
+    const concreteLength = concreteSuffixLabels.length;
+    if (PUBLIC_SUFFIX_RULES.has(concreteSuffix) && concreteLength > prevailingLength) {
+      prevailingLength = concreteLength;
     }
-    if (wildcard && PUBLIC_SUFFIX_RULES.has(wildcard) && exactLength > bestLength) {
-      bestRule = wildcard;
-      bestLength = exactLength;
+
+    if (index + 1 < labels.length) {
+      const wildcardRule = `*.${labels.slice(index + 1).join(".")}`;
+      if (PUBLIC_SUFFIX_RULES.has(wildcardRule) && concreteLength > prevailingLength) {
+        // Return the concrete suffix, not the textual wildcard base.
+        prevailingLength = concreteLength;
+      }
     }
   }
 
-  if (exception) return exception.split(".").slice(1).join(".");
-  if (bestRule === "*") return labels.at(-1) ?? "";
-  return bestRule.startsWith("*.") ? bestRule.slice(2) : bestRule;
+  return labels.slice(-prevailingLength).join(".");
 }
 
 export function normalizeDomainHostname(input: string): NormalizedDomainName {

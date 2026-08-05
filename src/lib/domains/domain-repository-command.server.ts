@@ -38,6 +38,37 @@ export async function getTenantDomain(tenantId: string, domainId: string): Promi
   return mapDomain(data[0]);
 }
 
+export async function isDomainHostnameReservationValid(domain: TenantDomainRecord): Promise<boolean> {
+  const { data, error } = await db.rpc("dca01_hostname_reservation_valid", {
+    _domain_id: domain.id,
+  });
+  if (error) throw toSafeDomainError(error);
+  if (typeof data !== "boolean") {
+    throw new DomainError("domain_ambiguous", "Global hostname reservation validation returned no boolean authority");
+  }
+  return data;
+}
+
+export async function changeTenantDomainExecutionMode(input: {
+  authority: DomainCommandAuthority;
+  domain: TenantDomainRecord;
+  executionMode: DomainExecutionMode;
+}): Promise<TenantDomainRecord> {
+  if (input.executionMode === input.domain.executionMode) return input.domain;
+  const { data, error } = await db.rpc("change_tenant_domain_execution_mode", {
+    _tenant_id: input.authority.tenantId,
+    _domain_id: input.domain.id,
+    _expected_lock_version: input.domain.lockVersion,
+    _execution_mode: input.executionMode,
+    _actor_user_id: input.authority.userId,
+    _authority_origin: input.authority.origin,
+  });
+  if (error) throw toSafeDomainError(error);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new DomainError("domain_version_conflict", "Execution-mode command returned no domain row");
+  return mapDomain(row);
+}
+
 export async function createTenantDomainRequest(input: {
   authority: DomainCommandAuthority;
   hostname: string;

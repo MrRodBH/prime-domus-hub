@@ -178,12 +178,19 @@ export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}
     },
 
     async observeCustomHostname(input) {
-      const result = await cloudflareRequest<CloudflareHostnameResult>({
-        method: "GET",
-        path: `/zones/${encodeURIComponent(input.provider.zoneId)}/custom_hostnames/${encodeURIComponent(input.customHostnameId)}`,
+      // The supplied provider object id is a non-authoritative hint. Resolve by
+      // the server-owned hostname, then require exact id and generation metadata.
+      const result = await findExactCustomHostname({
         provider: input.provider,
+        hostname: input.domain.normalizedHostname,
         runtimeEnv,
       });
+      if (!result || result.id !== input.expectedCustomHostnameId) {
+        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare object hint did not resolve to the exact authoritative hostname", {
+          safeDetail: { hostname: input.domain.normalizedHostname },
+        });
+      }
+      assertExistingObjectOwnedByDomain(result, input.domain);
       return mapObservation(result);
     },
 
@@ -199,6 +206,7 @@ export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}
           safeDetail: { hostname: input.domain.normalizedHostname },
         });
       }
+      assertExistingObjectOwnedByDomain(existing, input.domain);
       const result = await cloudflareRequest<{ id: string }>({
         method: "DELETE",
         path: `/zones/${encodeURIComponent(input.provider.zoneId)}/custom_hostnames/${encodeURIComponent(input.customHostnameId)}`,

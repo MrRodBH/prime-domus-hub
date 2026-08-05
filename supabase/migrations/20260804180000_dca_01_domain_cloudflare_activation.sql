@@ -60,6 +60,7 @@ create table public.tenant_domains (
   requested_by uuid not null,
   activated_at timestamptz null,
   revoked_at timestamptz null,
+  hostname_reusable_after timestamptz null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint tenant_domains_id_tenant_unique unique (id, tenant_id),
@@ -83,6 +84,10 @@ create table public.tenant_domains (
   ),
   constraint tenant_domains_candidate_shape check (
     incumbent_domain_id is null or hostname_kind = 'canonical'
+  ),
+  constraint tenant_domains_reuse_cooldown_shape check (
+    (status = 'revoked' and hostname_reusable_after is not null)
+    or (status <> 'revoked' and hostname_reusable_after is null)
   )
 );
 
@@ -98,14 +103,17 @@ alter table public.tenant_domains
   references public.tenant_domains(id, tenant_id)
   deferrable initially immediate;
 
-create unique index tenant_domains_global_hostname_reservation_uq
+create index tenant_domains_hostname_lookup_idx
   on public.tenant_domains(normalized_hostname);
+create unique index tenant_domains_one_active_hostname_global_uq
+  on public.tenant_domains(normalized_hostname)
+  where status = 'active' and enabled;
 create unique index tenant_domains_one_active_canonical_per_tenant_uq
   on public.tenant_domains(tenant_id)
   where status = 'active' and enabled and hostname_kind = 'canonical';
-create unique index tenant_domains_one_live_candidate_per_incumbent_uq
-  on public.tenant_domains(incumbent_domain_id)
-  where incumbent_domain_id is not null and status not in ('failed', 'revoked');
+create unique index tenant_domains_one_live_candidate_per_replaced_domain_uq
+  on public.tenant_domains(replacement_of)
+  where replacement_of is not null and status not in ('failed', 'revoked', 'removal_pending');
 create index tenant_domains_tenant_created_idx on public.tenant_domains(tenant_id, created_at);
 create index tenant_domains_status_idx on public.tenant_domains(status, enabled);
 
@@ -283,7 +291,6 @@ begin
      or old.normalized_hostname is distinct from new.normalized_hostname
      or old.registrable_domain is distinct from new.registrable_domain
      or old.hostname_kind is distinct from new.hostname_kind
-     or old.execution_mode is distinct from new.execution_mode
      or old.generation is distinct from new.generation
      or old.replacement_of is distinct from new.replacement_of
      or old.incumbent_domain_id is distinct from new.incumbent_domain_id
@@ -291,7 +298,13 @@ begin
     raise exception using errcode = '42501', message = 'dca01_immutable_domain_authority_field';
   end if;
 
-  if (old.status is distinct from new.status or old.enabled is distinct from new.enabled)
+  if old.execution_mode is distinct from new.execution_mode
+     and coalesce(current_setting('app.dca01_mode_write', true), '') <> 'on' then
+    raise exception using errcode = '42501', message = 'dca01_direct_execution_mode_mutation_prohibited';
+  end if;
+  if (old.status is distinct from new.status
+      or old.enabled is distinct from new.enabled
+      or old.hostname_reusable_after is distinct from new.hostname_reusable_after)
      and coalesce(current_setting('app.dca01_status_write', true), '') <> 'on' then
     raise exception using errcode = '42501', message = 'dca01_direct_status_mutation_prohibited';
   end if;
@@ -377,6 +390,114 @@ as $$
      and coalesce((_evidence ->> 'reconciliationCurrentGenerationSuccess')::boolean, false);
 $$;
 
+-- Global hostname reservation is serialized by a hostname-scoped advisory lock.
+-- Linked replacement candidates may coexist with their incumbent lineage, while
+-- unrelated reuse requires every tombstone cooldown to have elapsed.
+create or replace function public.dca01_hostname_request_available(
+  _tenant_id uuid,
+  _normalized_hostname text,
+  _replacement_of uuid
+) returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  _target public.tenant_domains%rowtype;
+begin
+  if _replacement_of is null then
+    return not exists (
+      select 1 from public.tenant_domains d
+      where d.normalized_hostname = _normalized_hostname
+        and not (
+          d.status = 'revoked'
+          and d.hostname_reusable_after is not null
+          and d.hostname_reusable_after <= now()
+        )
+    );
+  end if;
+
+  select * into _target from public.tenant_domains
+  where id = _replacement_of and tenant_id = _tenant_id
+  for share;
+  if not found or _target.status <> 'active' or not _target.enabled then
+    return false;
+  end if;
+
+  if _target.normalized_hostname <> _normalized_hostname then
+    return not exists (
+      select 1 from public.tenant_domains d
+      where d.normalized_hostname = _normalized_hostname
+        and not (
+          d.status = 'revoked'
+          and d.hostname_reusable_after is not null
+          and d.hostname_reusable_after <= now()
+        )
+    );
+  end if;
+
+  return not exists (
+    with recursive lineage(id, replacement_of) as (
+      select _target.id, _target.replacement_of
+      union all
+      select d.id, d.replacement_of
+      from public.tenant_domains d
+      join lineage l on d.id = l.replacement_of
+    )
+    select 1 from public.tenant_domains d
+    where d.normalized_hostname = _normalized_hostname
+      and d.id <> _target.id
+      and not (
+        (d.id in (select id from lineage) and d.tenant_id = _tenant_id)
+        or (
+          d.status = 'revoked'
+          and d.hostname_reusable_after is not null
+          and d.hostname_reusable_after <= now()
+        )
+      )
+  );
+end;
+$$;
+
+create or replace function public.dca01_hostname_reservation_valid(_domain_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  _domain public.tenant_domains%rowtype;
+begin
+  select * into _domain from public.tenant_domains where id = _domain_id;
+  if not found then return false; end if;
+
+  return not exists (
+    with recursive ancestors(id, replacement_of) as (
+      select d.id, d.replacement_of
+      from public.tenant_domains d where d.id = _domain.id
+      union all
+      select p.id, p.replacement_of
+      from public.tenant_domains p
+      join ancestors a on p.id = a.replacement_of
+    )
+    select 1 from public.tenant_domains other
+    where other.normalized_hostname = _domain.normalized_hostname
+      and other.id <> _domain.id
+      and not (
+        (other.id in (select id from ancestors) and other.tenant_id = _domain.tenant_id)
+        or (other.replacement_of = _domain.id and other.tenant_id = _domain.tenant_id and other.status <> 'active')
+        or (
+          other.status = 'revoked'
+          and other.hostname_reusable_after is not null
+          and other.hostname_reusable_after <= now()
+        )
+      )
+  );
+end;
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Atomic server command functions.
 -- ---------------------------------------------------------------------------
@@ -403,6 +524,8 @@ declare
   _generation bigint;
   _status public.domain_activation_status;
   _created public.tenant_domains%rowtype;
+  _alias public.tenant_domains%rowtype;
+  _alias_candidate public.tenant_domains%rowtype;
 begin
   if _tenant_id is null or _requested_by is null then
     raise exception using errcode = '22023', message = 'dca01_missing_authority';
@@ -420,6 +543,9 @@ begin
     raise exception using errcode = '22023', message = 'dca01_invalid_registrable_domain';
   end if;
 
+  -- Domain mutations are low-frequency control-plane operations. One global
+  -- reservation lock avoids cross-tenant multi-host deadlocks during aggregate replacement.
+  perform pg_advisory_xact_lock(hashtextextended('dca01-host-reservation-global', 1101));
   perform pg_advisory_xact_lock(hashtextextended(_tenant_id::text, 0));
   perform 1 from public.tenants where id = _tenant_id for share;
   if not found then
@@ -461,6 +587,11 @@ begin
     _status := 'draft';
   end if;
 
+  perform pg_advisory_xact_lock(hashtextextended('dca01-host:' || _normalized_hostname, 1101));
+  if not public.dca01_hostname_request_available(_tenant_id, _normalized_hostname, _incumbent_domain_id) then
+    raise exception using errcode = '23505', message = 'dca01_hostname_reservation_conflict';
+  end if;
+
   perform set_config('app.dca01_domain_insert', 'on', true);
   insert into public.tenant_domains (
     tenant_id, normalized_hostname, registrable_domain, hostname_kind,
@@ -471,6 +602,58 @@ begin
     _execution_mode, _status, true, _generation, _incumbent_domain_id,
     _incumbent_domain_id, _requested_by, coalesce(_metadata, '{}'::jsonb)
   ) returning * into _created;
+
+  if _incumbent_domain_id is not null then
+    for _alias in
+      select * from public.tenant_domains
+      where tenant_id = _tenant_id
+        and generation = _incumbent.generation
+        and hostname_kind = 'alias'
+        and status = 'active'
+        and enabled
+      order by id
+      for update
+    loop
+      perform pg_advisory_xact_lock(hashtextextended('dca01-host:' || _alias.normalized_hostname, 1101));
+      if not public.dca01_hostname_request_available(_tenant_id, _alias.normalized_hostname, _alias.id) then
+        raise exception using errcode = '23505', message = 'dca01_replacement_alias_reservation_conflict';
+      end if;
+
+      perform set_config('app.dca01_domain_insert', 'on', true);
+      insert into public.tenant_domains (
+        tenant_id, normalized_hostname, registrable_domain, hostname_kind,
+        execution_mode, status, enabled, generation, replacement_of,
+        incumbent_domain_id, requested_by, metadata
+      ) values (
+        _tenant_id, _alias.normalized_hostname, _alias.registrable_domain, 'alias',
+        _execution_mode, 'replacement_pending', true, _generation, _alias.id,
+        null, _requested_by,
+        jsonb_build_object(
+          'public_suffix', _alias.metadata ->> 'public_suffix',
+          'authority_origin', _authority_origin,
+          'candidate_canonical_id', _created.id,
+          'replacement_alias_of', _alias.id
+        )
+      ) returning * into _alias_candidate;
+
+      perform set_config('app.dca01_status_write', 'on', true);
+      update public.tenant_domains
+      set status = 'pending_ownership_verification', lock_version = lock_version + 1, updated_at = now()
+      where id = _alias_candidate.id
+      returning * into _alias_candidate;
+
+      insert into public.domain_audit_events (
+        tenant_id, domain_id, generation, actor_user_id, authority_origin,
+        correlation_id, event_type, before_status, after_status, detail_sanitized
+      ) values
+        (_tenant_id, _alias_candidate.id, _alias_candidate.generation, _requested_by, _authority_origin,
+          coalesce(_correlation_id, gen_random_uuid()), 'replacement_alias_candidate_created', null, 'replacement_pending',
+          jsonb_build_object('replacement_alias_of', _alias.id, 'candidate_canonical_id', _created.id)),
+        (_tenant_id, _alias_candidate.id, _alias_candidate.generation, _requested_by, _authority_origin,
+          coalesce(_correlation_id, gen_random_uuid()), 'domain_status_transitioned', 'replacement_pending', 'pending_ownership_verification',
+          jsonb_build_object('atomic_replacement_alias_preparation', true));
+    end loop;
+  end if;
 
   insert into public.domain_audit_events (
     tenant_id, domain_id, generation, actor_user_id, authority_origin,
@@ -524,7 +707,9 @@ begin
     raise exception using errcode = '22023', message = 'dca01_transition_forbidden';
   end if;
   if _to_status = 'active' then
-    if _from_status not in ('pending_ssl', 'degraded') or not public.dca01_active_evidence_complete(coalesce(_active_evidence, '{}'::jsonb)) then
+    if _from_status not in ('pending_ssl', 'degraded')
+       or not public.dca01_active_evidence_complete(coalesce(_active_evidence, '{}'::jsonb))
+       or not public.dca01_hostname_reservation_valid(_domain.id) then
       raise exception using errcode = '22023', message = 'dca01_active_predicate_incomplete';
     end if;
   end if;
@@ -560,6 +745,10 @@ begin
       resume_state = _next_resume,
       activated_at = case when _to_status = 'active' then coalesce(activated_at, now()) else activated_at end,
       revoked_at = case when _to_status = 'revoked' then now() else revoked_at end,
+      hostname_reusable_after = case
+        when _to_status = 'revoked' then now() + interval '30 days'
+        else hostname_reusable_after
+      end,
       updated_at = now()
   where id = _domain.id
   returning * into _updated;
@@ -587,6 +776,75 @@ begin
       'failure_code', case when _to_status = 'failed' then _failure_code else null end)
   );
 
+  return next _updated;
+end;
+$$;
+
+
+create or replace function public.change_tenant_domain_execution_mode(
+  _tenant_id uuid,
+  _domain_id uuid,
+  _expected_lock_version bigint,
+  _execution_mode public.domain_execution_mode,
+  _actor_user_id uuid,
+  _authority_origin text
+) returns setof public.tenant_domains
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  _domain public.tenant_domains%rowtype;
+  _updated public.tenant_domains%rowtype;
+begin
+  if _authority_origin not in ('selection', 'single-membership', 'impersonation') then
+    raise exception using errcode = '42501', message = 'dca01_invalid_tenant_authority_origin';
+  end if;
+  select * into _domain from public.tenant_domains
+  where id = _domain_id and tenant_id = _tenant_id for update;
+  if not found or _domain.lock_version <> _expected_lock_version then
+    raise exception using errcode = '40001', message = 'dca01_domain_version_conflict';
+  end if;
+  if _domain.status not in (
+    'draft', 'replacement_pending', 'pending_ownership_verification',
+    'ownership_verified', 'pending_dns_configuration', 'failed'
+  ) then
+    raise exception using errcode = '22023', message = 'dca01_execution_mode_change_requires_pre_provider_state';
+  end if;
+  if _domain.status = 'failed' and _domain.resume_state not in (
+    'pending_ownership_verification', 'pending_dns_configuration'
+  ) then
+    raise exception using errcode = '22023', message = 'dca01_execution_mode_change_failed_resume_state_forbidden';
+  end if;
+  if _domain.execution_mode = _execution_mode then
+    return next _domain;
+    return;
+  end if;
+
+  update public.domain_operation_jobs
+  set status = 'cancelled', lease_owner = null, lease_expires_at = null,
+      result_sanitized = jsonb_build_object('reason', 'execution_mode_changed'), updated_at = now()
+  where domain_id = _domain.id and tenant_id = _tenant_id and generation = _domain.generation
+    and status in ('pending', 'retry_wait');
+
+  perform set_config('app.dca01_mode_write', 'on', true);
+  update public.tenant_domains
+  set execution_mode = _execution_mode, lock_version = lock_version + 1, updated_at = now()
+  where id = _domain.id and lock_version = _expected_lock_version
+  returning * into _updated;
+  if _updated.id is null then
+    raise exception using errcode = '40001', message = 'dca01_domain_version_conflict';
+  end if;
+
+  insert into public.domain_audit_events (
+    tenant_id, domain_id, generation, actor_user_id, authority_origin,
+    event_type, detail_sanitized
+  ) values (
+    _tenant_id, _domain.id, _domain.generation, _actor_user_id, _authority_origin,
+    'domain_execution_mode_changed',
+    jsonb_build_object('from', _domain.execution_mode, 'to', _execution_mode,
+      'lock_version_before', _expected_lock_version, 'lock_version_after', _updated.lock_version)
+  );
   return next _updated;
 end;
 $$;
@@ -765,6 +1023,9 @@ declare
   _authority_mode text;
   _cleanup public.tenant_domains%rowtype;
   _idempotency text;
+  _incumbent_alias_count integer;
+  _candidate_alias_count integer;
+  _activated_alias_count integer;
 begin
   select * into _incumbent from public.tenant_domains
   where id = _incumbent_domain_id and tenant_id = _tenant_id for update;
@@ -780,6 +1041,64 @@ begin
      or _candidate.lock_version <> _candidate_expected_lock_version
      or not public.dca01_active_evidence_complete(coalesce(_candidate_evidence, '{}'::jsonb)) then
     raise exception using errcode = '40001', message = 'dca01_replacement_precondition_failed';
+  end if;
+
+  select count(*) into _incumbent_alias_count
+  from public.tenant_domains
+  where tenant_id = _tenant_id and generation = _incumbent.generation
+    and hostname_kind = 'alias' and status = 'active' and enabled;
+
+  select count(*) into _candidate_alias_count
+  from public.tenant_domains candidate_alias
+  join public.tenant_domains incumbent_alias
+    on incumbent_alias.id = candidate_alias.replacement_of
+   and incumbent_alias.tenant_id = candidate_alias.tenant_id
+  where candidate_alias.tenant_id = _tenant_id
+    and candidate_alias.generation = _candidate.generation
+    and candidate_alias.hostname_kind = 'alias'
+    and candidate_alias.status = 'pending_ssl'
+    and candidate_alias.enabled
+    and incumbent_alias.generation = _incumbent.generation
+    and incumbent_alias.hostname_kind = 'alias'
+    and incumbent_alias.status = 'active'
+    and incumbent_alias.enabled
+    and candidate_alias.normalized_hostname = incumbent_alias.normalized_hostname;
+
+  if _candidate_alias_count <> _incumbent_alias_count
+     or exists (
+       select 1
+       from public.tenant_domains candidate_alias
+       join public.tenant_domains incumbent_alias on incumbent_alias.id = candidate_alias.replacement_of
+       where candidate_alias.tenant_id = _tenant_id
+         and candidate_alias.generation = _candidate.generation
+         and candidate_alias.hostname_kind = 'alias'
+         and (
+           incumbent_alias.generation <> _incumbent.generation
+           or incumbent_alias.status <> 'active'
+           or not incumbent_alias.enabled
+           or candidate_alias.status <> 'pending_ssl'
+           or not candidate_alias.enabled
+           or not public.dca01_hostname_reservation_valid(candidate_alias.id)
+           or not exists (
+             select 1 from public.domain_verification_challenges c
+             where c.domain_id = candidate_alias.id and c.tenant_id = _tenant_id
+               and c.generation = candidate_alias.generation and c.status = 'verified'
+           )
+           or coalesce((candidate_alias.metadata ->> 'required_dns_observed')::boolean, false) is not true
+           or coalesce((candidate_alias.metadata ->> 'required_dns_generation')::bigint, 0) <> candidate_alias.generation
+           or not exists (
+             select 1 from public.domain_provider_bindings b
+             where b.domain_id = candidate_alias.id and b.tenant_id = _tenant_id
+               and b.generation = candidate_alias.generation
+               and b.custom_hostname_id is not null
+               and b.provider_status = 'active'
+               and b.ssl_status = 'active'
+           )
+           or coalesce((candidate_alias.metadata ->> 'last_reconciliation_success')::boolean, false) is not true
+           or coalesce((candidate_alias.metadata ->> 'last_reconciliation_generation')::bigint, 0) <> candidate_alias.generation
+         )
+     ) then
+    raise exception using errcode = '40001', message = 'dca01_replacement_alias_precondition_failed';
   end if;
 
   perform set_config('app.dca01_status_write', 'on', true);
@@ -806,6 +1125,37 @@ begin
   if _candidate.id is null or _candidate.status <> 'active' then
     raise exception using errcode = '40001', message = 'dca01_replacement_candidate_activation_conflict';
   end if;
+
+  update public.tenant_domains candidate_alias
+  set status = 'active', enabled = true, lock_version = candidate_alias.lock_version + 1,
+      activated_at = coalesce(candidate_alias.activated_at, now()), updated_at = now()
+  from public.tenant_domains incumbent_alias
+  where candidate_alias.tenant_id = _tenant_id
+    and candidate_alias.generation = _candidate.generation
+    and candidate_alias.hostname_kind = 'alias'
+    and candidate_alias.status = 'pending_ssl'
+    and candidate_alias.replacement_of = incumbent_alias.id
+    and incumbent_alias.tenant_id = _tenant_id
+    and incumbent_alias.generation = _incumbent.generation
+    and incumbent_alias.hostname_kind = 'alias';
+  get diagnostics _activated_alias_count = row_count;
+  if _activated_alias_count <> _incumbent_alias_count then
+    raise exception using errcode = '40001', message = 'dca01_replacement_alias_activation_conflict';
+  end if;
+
+  insert into public.domain_audit_events (
+    tenant_id, domain_id, generation, actor_user_id, authority_origin,
+    event_type, before_status, after_status, detail_sanitized
+  )
+  select candidate_alias.tenant_id, candidate_alias.id, candidate_alias.generation,
+    _actor_user_id, _authority_origin, 'replacement_alias_activated',
+    'pending_ssl', 'active', jsonb_build_object('candidate_canonical_id', _candidate.id)
+  from public.tenant_domains candidate_alias
+  where candidate_alias.tenant_id = _tenant_id
+    and candidate_alias.generation = _candidate.generation
+    and candidate_alias.hostname_kind = 'alias'
+    and candidate_alias.status = 'active'
+    and candidate_alias.replacement_of is not null;
 
   select authority_mode into _authority_mode from public.domain_authority_control where singleton = true;
   if _authority_mode = 'tenant_domains' then
@@ -1452,9 +1802,12 @@ revoke all on function public.dca01_guard_tenant_domain_projection() from public
 revoke all on function public.dca01_guard_audit_immutability() from public, anon, authenticated;
 revoke all on function public.dca01_transition_allowed(public.domain_activation_status,public.domain_activation_status) from public, anon, authenticated;
 revoke all on function public.dca01_active_evidence_complete(jsonb) from public, anon, authenticated;
+revoke all on function public.dca01_hostname_request_available(uuid,text,uuid) from public, anon, authenticated;
+revoke all on function public.dca01_hostname_reservation_valid(uuid) from public, anon, authenticated;
 
 revoke all on function public.create_tenant_domain_request(uuid,text,text,public.domain_hostname_kind,public.domain_execution_mode,uuid,uuid,text,jsonb,uuid) from public, anon, authenticated;
 revoke all on function public.transition_tenant_domain(uuid,uuid,bigint,public.domain_activation_status,public.domain_activation_status,uuid,text,jsonb,text,jsonb,public.domain_activation_status) from public, anon, authenticated;
+revoke all on function public.change_tenant_domain_execution_mode(uuid,uuid,bigint,public.domain_execution_mode,uuid,text) from public, anon, authenticated;
 revoke all on function public.issue_domain_ownership_challenge(uuid,uuid,bigint,uuid,text,text,text,text,timestamptz,uuid) from public, anon, authenticated;
 revoke all on function public.verify_domain_ownership_challenge(uuid,uuid,bigint,uuid,bigint,text[],text,uuid,text,uuid) from public, anon, authenticated;
 revoke all on function public.activate_domain_replacement(uuid,uuid,uuid,bigint,bigint,uuid,text,jsonb) from public, anon, authenticated;
@@ -1467,6 +1820,8 @@ revoke all on function public.activate_authoritative_domain_resolution(bigint,uu
 
 grant execute on function public.create_tenant_domain_request(uuid,text,text,public.domain_hostname_kind,public.domain_execution_mode,uuid,uuid,text,jsonb,uuid) to service_role;
 grant execute on function public.transition_tenant_domain(uuid,uuid,bigint,public.domain_activation_status,public.domain_activation_status,uuid,text,jsonb,text,jsonb,public.domain_activation_status) to service_role;
+grant execute on function public.change_tenant_domain_execution_mode(uuid,uuid,bigint,public.domain_execution_mode,uuid,text) to service_role;
+grant execute on function public.dca01_hostname_reservation_valid(uuid) to service_role;
 grant execute on function public.issue_domain_ownership_challenge(uuid,uuid,bigint,uuid,text,text,text,text,timestamptz,uuid) to service_role;
 grant execute on function public.verify_domain_ownership_challenge(uuid,uuid,bigint,uuid,bigint,text[],text,uuid,text,uuid) to service_role;
 grant execute on function public.activate_domain_replacement(uuid,uuid,uuid,bigint,bigint,uuid,text,jsonb) to service_role;
@@ -1488,3 +1843,5 @@ comment on function public.resolve_public_tenant_by_host(text) is
   'Single production authority: active tenant_domains only. Returns zero rows on absence or ambiguity.';
 comment on column public.domain_provider_accounts.credential_reference is
   'Opaque server-side environment reference. Plaintext credentials are prohibited.';
+comment on column public.tenant_domains.hostname_reusable_after is
+  'Server-owned anti-takeover cooldown. Revoked hostname reuse is prohibited for at least 30 days and always restarts the full verification lifecycle.';

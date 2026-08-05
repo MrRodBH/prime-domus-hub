@@ -33,6 +33,7 @@ export function mapDomain(row: any): TenantDomainRecord {
     requestedBy: row.requested_by,
     activatedAt: row.activated_at ?? null,
     revokedAt: row.revoked_at ?? null,
+    hostnameReusableAfter: row.hostname_reusable_after ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

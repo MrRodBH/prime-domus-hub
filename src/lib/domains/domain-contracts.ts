@@ -83,6 +83,7 @@ export interface TenantDomainRecord {
   requestedBy: string;
   activatedAt: string | null;
   revokedAt: string | null;
+  hostnameReusableAfter: string | null;
   createdAt: string;
   updatedAt: string;
 }

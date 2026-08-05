@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  changeDomainExecutionMode,
   getTenantDomainState,
   requestDomainOperationRetry,
   requestDomainRemoval,
@@ -26,6 +27,8 @@ import type {
 } from "@/lib/domains/domain-contracts";
 
 type ProofView = {
+  domainId?: string;
+  hostname?: string;
   recordName: string;
   proofValue: string;
   expiresAt: string;
@@ -36,7 +39,8 @@ type DomainAction =
   | { kind: "verify"; domainId: string }
   | { kind: "retry"; domainId: string }
   | { kind: "remove"; domainId: string }
-  | { kind: "rotate"; domainId: string };
+  | { kind: "rotate"; domainId: string }
+  | { kind: "changeMode"; domainId: string; executionMode: DomainExecutionMode };
 
 const STATUS_LABELS: Record<DomainActivationStatus, string> = {
   draft: "Rascunho",
@@ -66,7 +70,7 @@ export function TenantDomainWorkspace() {
   const [executionMode, setExecutionMode] = useState<DomainExecutionMode>("manual_assisted");
   const [hostnameKind, setHostnameKind] = useState<DomainHostnameKind>("canonical");
   const [replacementHostname, setReplacementHostname] = useState("");
-  const [proof, setProof] = useState<ProofView | null>(null);
+  const [proofs, setProofs] = useState<ProofView[]>([]);
 
   const stateQuery = useQuery({
     queryKey: ["tenant-domains"],
@@ -78,7 +82,7 @@ export function TenantDomainWorkspace() {
   const createMutation = useMutation({
     mutationFn: () => requestTenantDomain({ data: { hostname, executionMode, hostnameKind } }),
     onSuccess: (result) => {
-      setProof(result.challenge);
+      setProofs([result.challenge]);
       setHostname("");
       toast.success("Solicitação de domínio criada. Publique o TXT exibido abaixo.");
       void invalidate();
@@ -91,9 +95,12 @@ export function TenantDomainWorkspace() {
       data: { hostname: replacementHostname, executionMode, incumbentDomainId },
     }),
     onSuccess: (result) => {
-      setProof(result.challenge);
+      setProofs([result.challenge, ...result.aliasChallenges]);
       setReplacementHostname("");
       toast.success("Candidato de substituição criado. O domínio atual permanece autoritativo.");
+      if (result.aliasChallengeFailures.length > 0) {
+        toast.warning(`${result.aliasChallengeFailures.length} alias(es) exigem emissão manual do TXT pela ação Rotacionar TXT.`);
+      }
       void invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -104,11 +111,18 @@ export function TenantDomainWorkspace() {
       if (action.kind === "verify") return requestDomainVerificationCheck({ data: { domainId: action.domainId } });
       if (action.kind === "retry") return requestDomainOperationRetry({ data: { domainId: action.domainId } });
       if (action.kind === "remove") return requestDomainRemoval({ data: { domainId: action.domainId } });
+      if (action.kind === "changeMode") return changeDomainExecutionMode({ data: { domainId: action.domainId, executionMode: action.executionMode } });
       return rotateDomainOwnershipChallenge({ data: { domainId: action.domainId } });
     },
     onSuccess: (result, action) => {
-      if (action.kind === "rotate" && "challenge" in result) setProof(result.challenge);
-      toast.success(action.kind === "remove" ? "Autoridade pública encerrada; cleanup enfileirado." : "Operação enfileirada com autoridade do servidor.");
+      if (action.kind === "rotate" && "challenge" in result) setProofs([result.challenge]);
+      toast.success(
+        action.kind === "remove"
+          ? "Autoridade pública encerrada; cleanup enfileirado."
+          : action.kind === "changeMode"
+            ? "Modo alterado por comando versionado e auditado."
+            : "Operação enfileirada com autoridade do servidor.",
+      );
       void invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -151,7 +165,7 @@ export function TenantDomainWorkspace() {
         </Card>
       </div>
 
-      {proof ? <Card className="space-y-3 border-primary/30 p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Prova TXT — exibida uma única vez</h2><p className="text-sm text-muted-foreground">Versão {proof.challengeVersion}; expira em {new Date(proof.expiresAt).toLocaleString("pt-BR")}.</p></div><ShieldCheck className="size-5 text-primary" /></div><ProofRow label="Nome" value={proof.recordName} /><ProofRow label="Valor" value={proof.proofValue} /></Card> : null}
+      {proofs.length > 0 ? <div className="space-y-3">{proofs.map((proof) => <Card key={`${proof.domainId ?? proof.recordName}:${proof.challengeVersion}`} className="space-y-3 border-primary/30 p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Prova TXT — exibida uma única vez</h2>{proof.hostname ? <p className="font-mono text-xs">{proof.hostname}</p> : null}<p className="text-sm text-muted-foreground">Versão {proof.challengeVersion}; expira em {new Date(proof.expiresAt).toLocaleString("pt-BR")}.</p></div><ShieldCheck className="size-5 text-primary" /></div><ProofRow label="Nome" value={proof.recordName} /><ProofRow label="Valor" value={proof.proofValue} /></Card>)}</div> : null}
 
       {stateQuery.isPending ? <Card className="p-10 text-center text-sm text-muted-foreground">Carregando autoridade de domínios…</Card> : stateQuery.isError ? <Card className="border-destructive/40 p-6 text-sm text-destructive">{stateQuery.error.message}</Card> : (
         <div className="space-y-4">
@@ -176,5 +190,7 @@ function DomainCard({ domain, challenge, busy, onAction }: {
   const canVerify = domain.status === "pending_ownership_verification";
   const canRetry = !["draft", "replacement_pending", "revoked", "removal_pending"].includes(domain.status);
   const canRemove = !["revoked", "removal_pending"].includes(domain.status);
-  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2">{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Retry</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => onAction({ kind: "remove", domainId: domain.id })}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div></Card>;
+  const canChangeMode = ["draft", "replacement_pending", "pending_ownership_verification", "ownership_verified", "pending_dns_configuration", "failed"].includes(domain.status);
+  const [modeDraft, setModeDraft] = useState<DomainExecutionMode>(domain.executionMode);
+  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2">{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">manual_assisted</SelectItem><SelectItem value="api_automated">api_automated</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Retry</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => onAction({ kind: "remove", domainId: domain.id })}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div></Card>;
 }

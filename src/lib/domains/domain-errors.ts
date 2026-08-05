@@ -44,7 +44,8 @@ const SECRET_KEY_RE = /(secret|token|credential|authorization|cookie|password|ap
 export function sanitizeDomainDetail(value: unknown, depth = 0): DomainJsonValue {
   if (depth > 6) return "[depth-limit]";
   if (value === undefined) return null;
-  if (value === null || typeof value === "boolean") return value;
+  if (value === null) return null;
+  if (typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value === "string") return value.length > 500 ? `${value.slice(0, 500)}…` : value;
   if (Array.isArray(value)) return value.slice(0, 50).map((item) => sanitizeDomainDetail(item, depth + 1));

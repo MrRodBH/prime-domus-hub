@@ -15,6 +15,7 @@ import {
   upsertDomainProviderBinding,
   getProviderAccountForDomain,
   getTenantDomain,
+  isDomainHostnameReservationValid,
 } from "./domain-repository.server";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
 import { DomainError, sanitizeDomainObject } from "./domain-errors";
@@ -29,24 +30,28 @@ export async function buildCurrentGenerationEvidence(domain: TenantDomainRecord)
     normalizedHostnameValid = false;
   }
 
-  const [challenge, binding, siblings] = await Promise.all([
+  const [challenge, binding, siblings, globalHostnameReservationValid] = await Promise.all([
     getCurrentOwnershipChallenge(domain),
     getDomainProviderBinding(domain),
     listTenantDomains(domain.tenantId),
+    isDomainHostnameReservationValid(domain),
   ]);
   const canonicalOrAliasBindingValid = domain.hostnameKind === "canonical"
     ? true
     : siblings.filter((row) =>
       row.hostnameKind === "canonical"
       && row.generation === domain.generation
-      && row.status === "active"
-      && row.enabled,
+      && row.enabled
+      && (
+        (row.status === "active")
+        || (domain.replacementOf !== null && row.incumbentDomainId !== null && row.status === "pending_ssl")
+      ),
     ).length === 1;
   const metadata = domain.metadata;
 
   return {
     normalizedHostnameValid,
-    globalHostnameReservationValid: siblings.filter((row) => row.normalizedHostname === domain.normalizedHostname).length === 1,
+    globalHostnameReservationValid,
     ownershipVerified: challenge?.status === "verified" && challenge.generation === domain.generation,
     requiredDnsObserved:
       metadata.required_dns_generation === domain.generation
@@ -79,7 +84,8 @@ export async function reconcileDomain(input: {
         zoneId: provider.zoneId,
         credentialReference: provider.credentialReference,
       },
-      customHostnameId: binding.customHostnameId,
+      domain: current,
+      expectedCustomHostnameId: binding.customHostnameId,
     });
     if (observation.hostname.toLowerCase().replace(/\.$/, "") !== current.normalizedHostname) {
       throw new DomainError("domain_provider_configuration_invalid", "Observed provider object does not match the authoritative hostname");
@@ -129,6 +135,11 @@ export async function reconcileDomain(input: {
     return { domain: active, evidence, changed: true };
   }
   if (current.status === "pending_ssl" && Object.values(evidence).every((value) => value === true)) {
+    if (current.hostnameKind === "alias" && current.replacementOf) {
+      // Replacement aliases are fully prepared but cannot become publicly
+      // authoritative before the canonical aggregate swap commits atomically.
+      return { domain: current, evidence, changed: false };
+    }
     if (current.incumbentDomainId) {
       const incumbent = await getTenantDomain(current.tenantId, current.incumbentDomainId);
       const swapped = await activateReplacement({

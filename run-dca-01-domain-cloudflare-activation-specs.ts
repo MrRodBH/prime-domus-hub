@@ -103,6 +103,7 @@ const baseDomain: TenantDomainRecord = {
   requestedBy: "00000000-0000-4000-8000-000000000020",
   activatedAt: new Date(0).toISOString(),
   revokedAt: null,
+  hostnameReusableAfter: null,
   createdAt: new Date(0).toISOString(),
   updatedAt: new Date(0).toISOString(),
 };
@@ -130,6 +131,13 @@ const normalizedUk = normalizeDomainHostname("portal.example-real.co.uk");
 equal(normalizedUk.registrableDomain, "example-real.co.uk", "PSL must derive co.uk registrable domain");
 equal(normalizedUk.publicSuffix, "co.uk", "PSL must identify co.uk");
 throws(() => normalizeDomainHostname("com.br"), /public suffix/i, "public suffix only must fail");
+const wildcardSuffix = normalizeDomainHostname("a.b.ck");
+equal(wildcardSuffix.publicSuffix, "b.ck", "PSL wildcard must consume the concrete left-most label");
+equal(wildcardSuffix.registrableDomain, "a.b.ck", "PSL wildcard registrable domain must retain one label above the concrete suffix");
+throws(() => normalizeDomainHostname("a.ck"), /public suffix/i, "wildcard public suffix itself must fail");
+const exceptionSuffix = normalizeDomainHostname("a.www.ck");
+equal(exceptionSuffix.publicSuffix, "ck", "PSL exception must remove exactly its left-most label");
+equal(exceptionSuffix.registrableDomain, "www.ck", "PSL exception registrable domain must follow the exception rule");
 throws(() => normalizeDomainHostname("example.com"), /Reserved/i, "reserved example domain must fail");
 throws(() => normalizeDomainHostname("https://example-real.com/path"), /Only a hostname/i, "URL input must fail");
 throws(() => normalizeDomainHostname("*.example-real.com"), /Wildcard/i, "wildcard must fail");
@@ -167,6 +175,8 @@ for (const table of [
 for (const rpc of [
   "create_tenant_domain_request",
   "transition_tenant_domain",
+  "change_tenant_domain_execution_mode",
+  "dca01_hostname_reservation_valid",
   "issue_domain_ownership_challenge",
   "verify_domain_ownership_challenge",
   "activate_domain_replacement",
@@ -186,11 +196,21 @@ ok(migration.includes("dca01_direct_status_mutation_prohibited"), "database must
 ok(migration.includes("dca01_direct_domain_projection_write_prohibited"), "legacy projection must be server-maintained");
 ok(migration.includes("dca01_audit_event_is_append_only"), "audit events must be append-only");
 ok(migration.includes("dca01_active_predicate_incomplete"), "SQL active transition must enforce full predicate");
+ok(migration.includes("dca01_direct_execution_mode_mutation_prohibited"), "execution mode must be mutable only through the named server command");
+ok(migration.includes("domain_execution_mode_changed"), "mode changes must be versioned and audited");
+ok(migration.includes("hostname_reusable_after"), "revoked hostname cooldown must be persisted server-side");
+ok(migration.includes("interval '30 days'"), "revoked hostname reuse must enforce the documented minimum cooldown");
+ok(migration.includes("tenant_domains_one_active_hostname_global_uq"), "global active hostname authority must remain unique");
+ok(migration.includes("pg_advisory_xact_lock(hashtextextended('dca01-host:'"), "hostname reservation must serialize globally");
 const replacementStart = migration.indexOf("create or replace function public.activate_domain_replacement");
 const replacementEnd = migration.indexOf("create or replace function public.lease_domain_operation_jobs", replacementStart);
 const replacementBody = migration.slice(replacementStart, replacementEnd);
 ok(replacementStart >= 0 && replacementEnd > replacementStart, "replacement RPC body must be discoverable");
 ok(replacementBody.indexOf("set status = 'removal_pending'") < replacementBody.indexOf("set status = 'active'"), "replacement must retire old authority before promoting the candidate in the same transaction");
+ok(replacementBody.includes("dca01_replacement_alias_precondition_failed"), "replacement must fail closed unless every incumbent alias has a ready candidate");
+ok(replacementBody.includes("replacement_alias_activated"), "replacement must activate candidate aliases in the same transaction");
+ok(replacementBody.includes("_activated_alias_count <> _incumbent_alias_count"), "replacement must prove alias cardinality continuity");
+ok(migration.includes("replacement_alias_candidate_created"), "replacement request must create linked alias candidates");
 ok(migration.includes("domain_verification_challenges c"), "cutover SQL must verify current-generation ownership evidence");
 ok(migration.includes("domain_provider_bindings b"), "cutover SQL must verify provider and SSL evidence");
 ok(migration.includes("legacy_source_sha256"), "cutover continuity must bind the legacy source without SQL normalization heuristics");
@@ -232,6 +252,9 @@ ok(jobs.includes('recoveryTarget: current.status === "failed" ? "removal_pending
 ok(adapter.includes("hostname.exact="), "Cloudflare provisioning must preflight exact hostname cardinality");
 ok(adapter.includes("exact.length > 1"), "Cloudflare ambiguity must fail closed");
 ok(adapter.includes("custom_metadata"), "Cloudflare object ownership must be generation-bound");
+ok(adapter.includes("assertExistingObjectOwnedByDomain(result, input.domain)"), "every observed provider object must match tenant, domain and generation metadata");
+ok(adapter.includes("result.id !== input.expectedCustomHostnameId"), "manual-assisted provider id must remain a compared hint, not authority");
+ok(adapter.includes("assertExistingObjectOwnedByDomain(existing, input.domain)"), "destructive provider cleanup must validate generation ownership before delete");
 ok(adapter.includes('credentialReference: "[redacted]"'), "adapter errors must redact credential references");
 ok(!adapter.includes("x-idempotency-key"), "adapter must not invent undocumented Cloudflare transport headers");
 ok(superFunctions.includes('.rpc("register_domain_provider_account"'), "provider registration must be atomic and audited");
@@ -240,9 +263,14 @@ ok(superFunctions.includes('.rpc("set_domain_provider_account_availability"'), "
 ok(!superFunctions.includes("credential_reference: data.credentialReference"), "global API must not directly persist provider secrets");
 ok(tenantFunctions.includes('to: "removal_pending"'), "removal request must close public authority synchronously");
 ok(tenantFunctions.includes('publicAuthorityClosed: true'), "removal API must report that public authority was closed");
+ok(tenantFunctions.includes("changeTenantDomainExecutionMode"), "tenant surface must expose a named versioned mode-change command");
+ok(tenantFunctions.includes("aliasChallenges"), "replacement surface must return one-time proofs for every alias candidate");
+ok(tenantFunctions.includes("aliasAuthorityPreparedForAtomicSwap: true"), "replacement surface must declare aggregate alias preparation");
 ok(superFunctions.includes("transitionTenantDomain"), "impersonated failed retry must recover before enqueuing work");
 ok(reconciliation.includes("buildCurrentGenerationEvidence(domain)"), "cutover preflight must evaluate the full current-generation predicate");
 ok(reconciliation.includes('reason: "active_predicate_incomplete"'), "cutover preflight must report incomplete evidence fail-closed");
+ok(reconciliation.includes("Replacement aliases are fully prepared"), "replacement aliases must wait for the canonical aggregate swap");
+ok(jobs.includes("waitingForAtomicReplacementSwap"), "ready replacement aliases must terminate their observation job without individual activation");
 
 console.log(JSON.stringify({
   status: "PASS",

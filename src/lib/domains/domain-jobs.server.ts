@@ -165,7 +165,8 @@ async function provisionProvider(
       })
     : await adapter.observeCustomHostname({
         provider: providerContext,
-        customHostnameId: typeof job.payload.providerObjectIdHint === "string"
+        domain,
+        expectedCustomHostnameId: typeof job.payload.providerObjectIdHint === "string"
           ? job.payload.providerObjectIdHint
           : (() => { throw new DomainError("domain_external_prerequisite_missing", "Manual-assisted provider object hint is unavailable"); })(),
       });
@@ -264,13 +265,22 @@ async function executeLeasedDomainJob(
     case "reconcile_domain": {
       const result = await reconcileDomain({ authority: jobAuthority(job), domain, runtimeEnv });
       const evidence = sanitizeDomainObject(result.evidence);
-      if (result.domain.status === "pending_ssl" || result.domain.status === "degraded") {
+      const replacementAliasReady = result.domain.hostnameKind === "alias"
+        && result.domain.replacementOf !== null
+        && result.domain.status === "pending_ssl"
+        && Object.values(result.evidence).every((value) => value === true);
+      if ((result.domain.status === "pending_ssl" && !replacementAliasReady) || result.domain.status === "degraded") {
         throw new DomainError("domain_provider_unavailable", "Current-generation reconciliation evidence is incomplete", {
           retryable: true,
           safeDetail: { status: result.domain.status, evidence },
         });
       }
-      return { changed: result.changed, status: result.domain.status, evidence };
+      return {
+        changed: result.changed,
+        status: result.domain.status,
+        evidence,
+        waitingForAtomicReplacementSwap: replacementAliasReady,
+      };
     }
     case "remove_domain":
     case "cleanup_domain":
