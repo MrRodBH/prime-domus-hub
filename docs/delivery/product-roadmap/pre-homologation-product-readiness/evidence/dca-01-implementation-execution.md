@@ -17,7 +17,13 @@ WORKER_RUNTIME_PREFLIGHT = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 DCA01_CURRENT_STATE = Rejected
 
-WRI01_STATE = Planned
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
 
 DEPLOY_EXECUTED = false
@@ -265,8 +271,14 @@ This reclassification does not undo the historical protected repository merge. I
 ## 14. WRI-01 disposition
 
 ```text
-WRI01_STATE = Planned
-WRI01_SELECTED_STRATEGY = preserve Lovable/TanStack/Nitro and add one runtime bridge plus versioned Wrangler authority
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
 LOVABLE_IMPLEMENTATION_AUTHORIZED = false
 WORKER_DEPLOY_AUTHORIZED = false
@@ -280,4 +292,26 @@ WRI-01 planning is documented in:
 - `docs/architecture/impact-analysis/WRI-01-cloudflare-worker-runtime-integration-impact-analysis.md`;
 - `docs/architecture/governance/WRI-01-cloudflare-worker-runtime-integration-execution-envelope.md`.
 
-No implementation or external operation may begin without a direct Accepted planning audit, protected planning merge and separate Product Owner authorization.
+Planning is Accepted / Merged / Closed. No implementation or external operation may begin without a separate explicit Product Owner authorization.
+
+## 15. WRI-01 planning merge evidence
+
+```text
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
+WRI01_IMPLEMENTATION_STARTED = false
+DCA01_CURRENT_STATE = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+The planning merge and this reconciliation changed documentation only.

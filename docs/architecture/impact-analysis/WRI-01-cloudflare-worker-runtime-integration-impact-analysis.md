@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planned — Architecture First / planning-only**
+**Accepted / Merged / Closed — planning-only; implementation blocked pending explicit Product Owner authorization**
 
 ```text
 STAGE_ID = WRI-01
@@ -436,14 +436,20 @@ SINGLE_BUILD_AUTHORITY = @lovable.dev/vite-tanstack-config + Nitro cloudflare-mo
 SINGLE_DEPLOY_AUTHORITY = versioned wrangler.jsonc
 DCA01_CURRENT_STATE = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-WRI01_STATE = Planned
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-WRI-01 implementation requires direct planning acceptance, protected planning merge and separate Product Owner authorization.
+WRI-01 planning is Accepted / Merged / Closed. Implementation remains blocked until a separate explicit Product Owner authorization.
 
 ## 18. Normative references
 
@@ -452,3 +458,25 @@ WRI-01 implementation requires direct planning acceptance, protected planning me
 - Cloudflare for SaaS — Workers as fallback origin.
 - Cloudflare Workers — Wrangler configuration and platform limits.
 - Nitro Cloudflare preset and runtime hooks pinned by the repository lockfile.
+
+## 19. Protected planning merge reconciliation
+
+```text
+WRI01_PLANNING_STATE = Accepted / Merged / Closed
+WRI01_PLANNING_PR = 68
+WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
+WRI01_PLANNING_MERGE_SHA = a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca
+WRI01_PLANNING_AUDIT = Accepted
+WRI01_SELECTED_STRATEGY = Strategy A
+WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
+WRI01_IMPLEMENTATION_AUTHORIZED = false
+WRI01_IMPLEMENTATION_STARTED = false
+DCA01_CURRENT_STATE = Rejected
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+No runtime, deploy, migration, DNS, Worker Route, Cron Trigger, Custom Hostname, fallback-origin activation, provider API operation, BCA-01 or PR-M3 was executed by the planning merge or this reconciliation.
