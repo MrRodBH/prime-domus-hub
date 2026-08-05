@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rm-prime-wri01-hml",
   "main": "dist/server/index.mjs",
-  "compatibility_date": "2026-08-05",
+  "compatibility_date": "2026-07-29",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "no_bundle": true,
