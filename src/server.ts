@@ -2,12 +2,15 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { resolveCanonicalRedirectByHost } from "./lib/tenant.server";
+import { processScheduledDomainJobs } from "./lib/domains/domain-jobs.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
 type RuntimeEnv = Record<string, unknown>;
+type ExecutionContextLike = { waitUntil(promise: Promise<unknown>): void };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
@@ -101,6 +104,24 @@ function applyTrackingSecurityHeaders(request: Request, env: unknown, response: 
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
+async function canonicalRedirect(request: Request): Promise<Response | null> {
+  const host = request.headers.get("host");
+  const redirect = await resolveCanonicalRedirectByHost(host);
+  if (!redirect) return null;
+  const target = new URL(request.url);
+  target.protocol = "https:";
+  target.hostname = redirect.canonicalHostname;
+  target.port = "";
+  return new Response(null, {
+    status: 308,
+    headers: {
+      location: target.toString(),
+      "cache-control": "public, max-age=300",
+      "x-rm-prime-domain-generation": String(redirect.generation),
+    },
+  });
+}
+
 // h3 swallows in-handler throws into a normal 500 Response with body
 // {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
@@ -123,6 +144,19 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const redirect = await canonicalRedirect(request);
+      if (redirect) return redirect;
+    } catch (error) {
+      console.error("[DCA-01] canonical redirect resolution failed closed", {
+        name: error instanceof Error ? error.name : "unknown",
+      });
+      return new Response("Domain resolution temporarily unavailable", {
+        status: 503,
+        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
+
+    try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
@@ -134,5 +168,27 @@ export default {
         headers: { "content-type": "text/html; charset=utf-8" },
       }));
     }
+  },
+
+  async scheduled(
+    _controller: unknown,
+    env: RuntimeEnv,
+    ctx: ExecutionContextLike,
+  ): Promise<void> {
+    const execution = processScheduledDomainJobs({ runtimeEnv: env, limit: 20 }).then((result) => {
+      console.log("[DCA-01] scheduled reconciliation completed", {
+        leased: result.leased,
+        succeeded: result.succeeded,
+        retried: result.retried,
+        failed: result.failed,
+      });
+      return result;
+    }).catch((error) => {
+      console.error("[DCA-01] scheduled reconciliation failed closed", {
+        name: error instanceof Error ? error.name : "unknown",
+      });
+      throw error;
+    });
+    ctx.waitUntil(execution);
   },
 };

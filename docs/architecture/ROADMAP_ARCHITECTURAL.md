@@ -1,8 +1,8 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — DCA-01 planning Accepted for protected merge
+**Status:** Ratificado — DCA-01 implementation complete in principal draft PR; concise exact-head pre-merge audit pending
 **Authority:** Single Source of Future Evolution
-**Audited main baseline:** `fad8874bfeef85683445f52d21611e7d8760c1a0`
+**Audited implementation baseline:** `623f94f98174478af19b130cda9896c64f256f14`
 
 ## Current authority
 
@@ -12,28 +12,33 @@ PRM2_IMPLEMENTATION_PR = 60
 PRM2_IMPLEMENTATION_HEAD = ef9e22c239c7ce7e5d937bd06c7452ebde47f096
 PRM2_IMPLEMENTATION_MERGE_SHA = ec06a19af44cc988e602d7bc8d0dc7a627db1619
 
-DCA01_INITIAL_PLANNING_HEAD = b6974aaccc11fbc4118a2af8c15320e2e665233e
-DCA01_INITIAL_PLANNING_AUDIT = Rejected
-DCA01_INITIAL_PLANNING_HEAD_AUTHORITY = historical only
-DCA01_ORDINARY_CORRECTIVE_BUDGET = consumed
-DCA01_EXCEPTIONAL_NARROW_CORRECTION = authorized and executed
-DCA01_PLANNING_STATE = Accepted
-DCA01_PLANNING_BRANCH = agent/dca-01-planning
+DCA01_PLANNING_STATE = Accepted / Merged / Closed
 DCA01_PLANNING_PR = 64
-DCA01_PLANNING_BASELINE = fad8874bfeef85683445f52d21611e7d8760c1a0
+DCA01_PLANNING_MERGE_SHA = 623f94f98174478af19b130cda9896c64f256f14
+DCA01_INITIAL_REJECTED_PLANNING_HEAD = b6974aaccc11fbc4118a2af8c15320e2e665233e
+DCA01_INITIAL_REJECTED_PLANNING_AUTHORITY = historical only
 DCA01_INTEGRATION_MODEL = HYBRID
 DCA01_SUPPORTED_MODES = manual_assisted, api_automated
-DCA01_IMPLEMENTATION_STATE = Planned — Blocked until protected planning merge
-DCA01_IMPLEMENTATION_AUTHORIZED = conditionally_after_planning_merge
-DCA01_IMPLEMENTATION_STARTED = false
-DCA01_PLANNING_MERGE_READY = true
-DCA01_PLANNING_MERGE_AUTHORIZED = true
 
-BCA01_STATE = Planned — Blocked by DCA-01
+DCA01_IMPLEMENTATION_STATE = Implementation complete — concise exact-head pre-merge audit pending
+DCA01_IMPLEMENTATION_STARTED = true
+DCA01_IMPLEMENTATION_BRANCH = agent/dca-01-domain-cloudflare-activation
+DCA01_IMPLEMENTATION_PR = 65
+DCA01_IMPLEMENTATION_PR_DRAFT = true
+DCA01_IMPLEMENTATION_BASELINE = 623f94f98174478af19b130cda9896c64f256f14
+DCA01_LAST_EXACT_HEAD_VALIDATED = 1cc8732cdc67b7d0ce537ec319d9a2123e59686d
+DCA01_LAST_EXACT_HEAD_RELEASE_GATE = success
+DCA01_LAST_EXACT_HEAD_CONSOLIDATED_GATE = success
+DCA01_PREMERGE_AUDIT = pending
+DCA01_IMPLEMENTATION_MERGE_AUTHORIZED = false
+DCA01_EXTERNAL_PROOF_STATE = pending safe prerequisites and protected implementation merge
+DCA01_TERMINAL_STATE = not reached
+
+BCA01_STATE = Planned — Blocked by DCA-01 terminal acceptance
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = DCA-01 implementation after protected planning merge
+NEXT_STAGE_AUTHORIZED = concise exact-head DCA-01 implementation pre-merge audit only
 
 CLOUDFLARE_API_CALL_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
@@ -44,47 +49,65 @@ REAL_SECRET_USED = false
 LIVE_DOMAIN_VERIFIED = false
 DEPLOY_EXECUTED = false
 MANAGED_MIGRATION_EXECUTED = false
+PRODUCTION_CUTOVER_EXECUTED = false
 AUTO_MERGE_ENABLED = false
 ```
 
-## DCA-01 accepted planning authority
+## DCA-01 materialized implementation authority
 
-The accepted planning defines one authoritative lifecycle for custom domains and Cloudflare:
+The principal implementation PR materializes the accepted planning contract through:
 
-- one closed 12-state machine with explicit predecessors, successors, commands, recovery and public-authority behavior;
-- symmetric `degraded → active` recovery gated by the complete current-generation active predicate;
-- ownership challenge issuance, rotation and non-conclusive observations as audited status-preserving commands, without a persisted self-transition;
-- replacement rollback restricted to transaction abort before commit, with post-commit recovery requiring a new candidate generation;
-- valid legacy import into `pending_ownership_verification` with server-owned metadata;
-- one composite current-generation active predicate;
-- distinct active incumbent and non-authoritative replacement candidate;
-- atomic canonical/alias replacement swap;
-- global cutover preflight preserving old authority on failure;
-- one production active-domain resolver with no request-time dual query or fallback;
-- explicit preservation of the development/preview host map outside production authority;
-- server-only tenant, domain, provider-account, transition, canonical-host and cutover authority;
-- ownership challenge expiry, rotation and anti-replay;
-- independent DNS, provider and SSL observation;
-- `src/server.ts::fetch` as the canonical redirect consumer before SSR;
-- `src/server.ts::scheduled` as the platform-native job/reconciliation executor;
-- idempotent jobs, leases, bounded retries and periodic reconciliation;
-- opaque server-side provider credential references;
-- two mandatory operational runbooks;
-- controlled external non-production proof before terminal DCA-01 acceptance.
+- one closed 12-state TypeScript and SQL lifecycle;
+- symmetric `degraded → active` recovery gated by the complete current-generation predicate;
+- atomic, generation-bound ownership challenge issuance, rotation and anti-replay verification;
+- one forward migration with RLS, explicit grants, server RPCs and append-only audit evidence;
+- deterministic IDNA and public-suffix normalization from the pinned official PSL snapshot;
+- a mandatory server-generated legacy import manifest instead of SQL hostname heuristics;
+- one server-only domain repository boundary with explicit version and generation checks;
+- idempotent jobs, leases, attempt records, bounded retries and scheduled reconciliation;
+- explicit `manual_assisted` and `api_automated` operation modes without silent fallback;
+- a narrow Cloudflare adapter with exact-hostname cardinality, opaque credentials and generation-bound metadata;
+- one production resolver over active `tenant_domains`, with no request-time legacy fallback;
+- a separate explicit development host map outside production authority;
+- canonical alias redirect before SSR and the platform-native `scheduled` executor;
+- atomic replacement that preserves the incumbent until commit and prohibits post-commit direct reactivation;
+- removal that closes public authority before asynchronous provider cleanup;
+- tenant and Super Admin operational surfaces that request operations but cannot assert external success;
+- two operational runbooks and deterministic DCA-01 Release Gate specifications.
+
+## Deterministic evidence
+
+```text
+DCA01_SPEC_ASSERTIONS = 149
+PSL_VERSION = 2026-07-25_14-20-03_UTC
+PSL_SOURCE_COMMIT = e1b8015c3b2f0f4f8c18659c2480fc1a22c07b20
+PSL_RULE_COUNT = 10239
+PSL_DUPLICATE_COUNT = 0
+REQUEST_TIME_DUAL_AUTHORITY = false
+CLIENT_TENANT_AUTHORITY = false
+DIRECT_CLIENT_STATUS_MUTATION = false
+PLAINTEXT_CREDENTIAL_PERSISTENCE = false
+BUILD_DEV = passed
+BUILD = passed
+TYPECHECK = passed
+GENERATED_ROUTE_TREE_MANUAL_EDIT = false
+GENERATED_ROUTE_TREE_SHA256 = 00ea348d4032a9619fd033fe1d794abc177a74a0f830a8645dcae1c4055d13d8
+```
+
+The generator-owned `src/routeTree.gen.ts` remains unedited in the branch. Exact builds generated the tenant and Super Admin domain routes deterministically and produced the same route-tree digest across all release cycles.
 
 ## Executable sequence
 
 ```text
 PR-M2 — Accepted / Merged / Closed
-→ DCA-01 planning Accepted
-→ protected DCA-01 planning merge authorized
-→ DCA-01 implementation authorized after planning merge
-→ one principal implementation PR and at most one consolidated internal corrective pass
-→ concise exact-head pre-merge audit
-→ protected implementation merge when Accepted
-→ controlled external non-production proof when safe prerequisites exist
+→ DCA-01 planning — Accepted / Merged / Closed
+→ DCA-01 implementation — complete in principal PR #65
+→ final exact-head Release Gate after documentation reconciliation
+→ concise direct pre-merge audit
+→ protected implementation merge only if the pre-merge audit is Accepted
+→ controlled external non-production proof only when safe prerequisites exist
 → terminal DCA-01 audit
-→ DCA-01 Accepted, Accepted with Non-Blocking Backlog, Blocked External or Rejected
+→ Accepted, Accepted with Non-Blocking Backlog, Blocked External or Rejected
 → no automatic successor
 → BCA-01 only after DCA-01 Accepted and explicit Product Owner authorization
 → PR-M3 only after BCA-01 Accepted
@@ -112,10 +135,12 @@ PR-M2 — Accepted / Merged / Closed
 - Same-Backend Homologation Cell remains binding.
 - Fases 2, 3 and 4, LSH-01, LSV-01, LSV-02 and LSR-01 remain closed or superseded and are not reopened.
 
+## External proof boundary
+
+Repository implementation evidence does not prove an external domain lifecycle. DCA-01 cannot reach a terminal accepted state until the authorized non-production proof covers migration application, DNS, Cloudflare Custom Hostname, SSL, activation, degradation/recovery, replacement and removal. Production cutover remains separately prohibited.
+
 ## Historical authority
 
 The PR-M2 terminal roadmap is preserved at commit `fad8874bfeef85683445f52d21611e7d8760c1a0`.
 
-The original DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` was externally audited as `Rejected`. Its exact-head evidence remains valid historical evidence, but its planning text is superseded by the accepted correction and cannot return as current authority.
-
-This roadmap authorizes the protected planning merge and, after its confirmation, the finite DCA-01 implementation. It does not authorize BCA-01, PR-M3, formal homologation or production cutover.
+The original DCA-01 planning submission at `b6974aaccc11fbc4118a2af8c15320e2e665233e` remains rejected historical evidence. The corrected accepted planning was merged at `623f94f98174478af19b130cda9896c64f256f14` and is the binding implementation contract.

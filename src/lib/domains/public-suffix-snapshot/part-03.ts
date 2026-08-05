@@ -1,0 +1,17 @@
+import { PUBLIC_SUFFIX_RULES_03_01 } from "./part-03-01";
+import { PUBLIC_SUFFIX_RULES_03_02 } from "./part-03-02";
+import { PUBLIC_SUFFIX_RULES_03_03 } from "./part-03-03";
+import { PUBLIC_SUFFIX_RULES_03_04 } from "./part-03-04";
+import { PUBLIC_SUFFIX_RULES_03_05 } from "./part-03-05";
+import { PUBLIC_SUFFIX_RULES_03_06 } from "./part-03-06";
+import { PUBLIC_SUFFIX_RULES_03_07 } from "./part-03-07";
+
+export const PUBLIC_SUFFIX_RULES_03 = [
+  ...PUBLIC_SUFFIX_RULES_03_01,
+  ...PUBLIC_SUFFIX_RULES_03_02,
+  ...PUBLIC_SUFFIX_RULES_03_03,
+  ...PUBLIC_SUFFIX_RULES_03_04,
+  ...PUBLIC_SUFFIX_RULES_03_05,
+  ...PUBLIC_SUFFIX_RULES_03_06,
+  ...PUBLIC_SUFFIX_RULES_03_07,
+];
