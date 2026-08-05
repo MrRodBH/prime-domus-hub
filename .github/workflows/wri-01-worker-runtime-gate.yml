@@ -58,11 +58,11 @@ jobs:
       - name: DCA-01 regression specifications
         run: bun run test:dca-01
 
-      - name: Typecheck
-        run: bun run typecheck
-
       - name: Exact production build
         run: bun run build
+
+      - name: Typecheck after deterministic route generation
+        run: bun run typecheck
 
       - name: Compiled Worker bundle audit
         run: bun run wri01:bundle-audit
