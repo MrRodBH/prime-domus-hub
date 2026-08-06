@@ -46,7 +46,7 @@ bun run wri01:bundle-audit
 bun run wri01:dry-run
 ```
 
-The top-level `wrangler.jsonc` is already the resolved homologation authority for `rm-prime-wri01-hml`. The dry-run must not pass `--env`, and both the root and generated redirected Wrangler configurations must omit `env`. This preserves one deployment authority and keeps `dist/server/wrangler.json` valid for Wrangler's generated-configuration redirect.
+The top-level `wrangler.jsonc` is already the resolved homologation authority for `rm-prime-wri01-hml`. The dry-run must not pass `--env`, and both the root and generated redirected Wrangler configurations must omit `env`. The CI gate must invoke the same root package script and must not bypass the redirect with a direct generated-config shortcut. This preserves one deployment authority and keeps `dist/server/wrangler.json` valid for Wrangler's generated-configuration redirect.
 
 Repository acceptance also requires the WRI-01, Release Gate and PR-M2 workflows to succeed on the same exact HEAD. The local workerd artifact must prove readiness, the development scheduled event, DCA-01 delegation, controlled fail-closed behavior and zero orphan processes.
 
