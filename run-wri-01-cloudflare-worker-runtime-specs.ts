@@ -110,12 +110,16 @@ equal(wrangler.compatibility_flags?.includes("nodejs_compat"), true, "nodejs_com
 equal(wrangler.observability?.enabled, true, "Observability must be enabled");
 equal(wrangler.triggers?.crons?.[0], "*/5 * * * *", "Cron expression must remain exact UTC contract");
 equal(wrangler.routes?.length, 0, "Repository implementation must contain no zone route");
-equal(wrangler.env?.homologation?.routes?.length, 0, "Homologation must contain no zone route");
-equal(wrangler.env?.homologation?.assets?.directory, "dist/client", "Homologation assets must preserve the same output authority");
+equal("env" in wrangler, false, "Resolved homologation authority must not define a named Wrangler environment");
 
 ok(pkg.scripts["test:wri-01"], "WRI-01 test script must exist");
 ok(pkg.scripts["wri01:bundle-audit"], "WRI-01 bundle audit script must exist");
-ok(pkg.scripts["wri01:dry-run"], "WRI-01 dry-run script must exist");
+equal(pkg.scripts["wri01:dry-run"].includes("--env"), false, "WRI-01 dry-run must not select a named environment");
+equal(
+  pkg.scripts["wri01:dry-run"],
+  "bunx wrangler@4.114.0 deploy --dry-run --outdir .wri01-dry-run",
+  "WRI-01 dry-run must use the resolved generated config without a named environment",
+);
 equal("@cloudflare/vite-plugin" in (pkg.devDependencies ?? {}), false, "Cloudflare Vite plugin must remain absent");
 const configText = JSON.stringify(wrangler);
 equal(configText.includes("68ec853e6b04a038f09fca5712d6b26b"), false, "Account ID must not be persisted");
