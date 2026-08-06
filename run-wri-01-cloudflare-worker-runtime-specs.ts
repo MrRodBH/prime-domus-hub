@@ -99,6 +99,9 @@ match(workflow, /PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION/, "Process-group r
 match(workflow, /WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION/, "Residual workerd processes must be measured and published");
 match(workflow, /ZERO_ORPHAN_PROCESSES_PROVED/, "Zero-orphan result must be explicit and auditable");
 match(workflow, /if \[ "\$\{ZERO_ORPHAN_PROCESSES_PROVED\}" != "true" \]; then exit 1; fi/, "Local proof must fail closed when orphan cleanup is not proved");
+const dryRunWorkflowStep = workflow.match(/- name: Wrangler deterministic dry-run[\s\S]*?- name: Preserve Wrangler dry-run diagnostics/)?.[0] ?? "";
+match(dryRunWorkflowStep, /bun run wri01:dry-run/, "CI must exercise the same root redirected-config dry-run as the runbook");
+equal(dryRunWorkflowStep.includes("--config wrangler.json"), false, "CI dry-run must not bypass the redirected-config path with a generated-config shortcut");
 
 for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", workers_dev: true, no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
