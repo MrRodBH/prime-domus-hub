@@ -28,22 +28,5 @@
   "routes": [],
   "triggers": {
     "crons": ["*/5 * * * *"]
-  },
-  "env": {
-    "homologation": {
-      "name": "rm-prime-wri01-hml",
-      "workers_dev": true,
-      "observability": {
-        "enabled": true
-      },
-      "assets": {
-        "directory": "dist/client",
-        "binding": "ASSETS"
-      },
-      "routes": [],
-      "triggers": {
-        "crons": ["*/5 * * * *"]
-      }
-    }
   }
 }

@@ -141,13 +141,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          (
-            cd dist/server
-            bunx wrangler@4.114.0 deploy \
-              --config wrangler.json \
-              --dry-run \
-              --outdir ../../../.wri01-dry-run
-          ) > .wri01-dry-run.log 2>&1
+          bun run wri01:dry-run > .wri01-dry-run.log 2>&1
           status=$?
           printf 'WRANGLER_DRY_RUN_EXIT_CODE=%s\n' "${status}" > .wri01-dry-run-facts.txt
           if [ -d .wri01-dry-run ]; then
