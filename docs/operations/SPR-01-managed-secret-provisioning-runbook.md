@@ -2,7 +2,7 @@
 
 ## Status and use restriction
 
-**Planning runbook — not executable until the SPR-01 planning merge is Accepted and the Product Owner separately authorizes implementation and each external mutation.**
+**Planning runbook — not executable until the SPR-01 planning merge is Accepted and the Product Owner authorizes the finite implementation sequence end-to-end. After that authorization, internal gates proceed continuously; pause only for an external Owner action or a material stop condition.**
 
 ```text
 SPR01_PLANNING_STATE = Ready for External Audit
@@ -26,7 +26,7 @@ The runbook stops before workers.dev, Preview URLs, Cron, routes, DNS, fallback 
 | Operator | Permitted responsibility | Prohibited responsibility |
 |---|---|---|
 | Product Owner | authorize finite gates; create/revoke temporary Cloudflare token through provider UI; confirm sanitized results | view, copy or paste Supabase administrative material |
-| ChatGPT GitHub-native | audit source/head; prepare documentation; perform separately authorized undeployed Worker/source-version creation and read-only verification | receive or transport secret values |
+| ChatGPT GitHub-native | audit source/head; prepare documentation; perform the authorized undeployed Worker/source-version creation and read-only verification continuously through the finite sequence | receive or transport secret values |
 | Lovable | implement, deploy, invoke and disable the managed Edge Function capability; optionally undeploy its runtime while preserving auditable source; read server-only managed secrets | expose values in report, code, log or frontend |
 | Cloudflare | store encrypted bindings; create versions and deployments | become tenant or application authorization authority |
 
@@ -62,6 +62,8 @@ Stop before mutation when any of these is true:
 - the Worker state differs from the expected phase;
 - workers.dev, Preview URLs, a route or Cron is already active unexpectedly;
 - a required managed environment variable is absent;
+- the dedicated ceremony-control migration, RLS/grant proof or atomic claim contract is absent;
+- no authenticated Super Admin invocation path exists without exposing a JWT/token to the Owner, browser logs or chat;
 - the provisioner token has permissions outside the approved account/Workers Scripts scope;
 - the current OpenAPI does not prove resource creation plus complete inactive-version creation without deployment;
 - the Worker ID, source version and source digest cannot be pinned uniquely;
@@ -134,7 +136,7 @@ The Product Owner may handle this temporary Cloudflare token. This does not auth
 
 ## 7. Phase 2 — undeployed Worker resource and source version
 
-This phase is executed only under separate Cloudflare resource/version authorization.
+This phase is executed under the single authorized end-to-end SPR-01 implementation sequence. It does not require another confirmation unless an external Owner action or a material stop condition occurs.
 
 ### 7.1 Exact-head gates
 
@@ -214,8 +216,8 @@ The implementation must:
 
 1. create `spr-01-managed-secret-provisioner` as a one-shot Edge Function;
 2. keep JWT verification enabled;
-3. verify authenticated global Super Admin authority server-side;
-4. use a server-owned expiring one-time ceremony state;
+8. verify authenticated global Super Admin authority server-side;
+4. use a server-owned expiring one-time ceremony state persisted by the dedicated migration;
 5. read the four allowed environment variables only inside the function;
 6. pin exact account, Worker ID/name, source version/digest, zero deployments and Git HEAD;
 7. accept no secret value and no tenant authority from the caller;
@@ -226,6 +228,10 @@ The implementation must:
 12. implement replay, concurrency and ambiguous-timeout protection;
 13. return only the sanitized evidence contract;
 14. remove the provisioner secret after success and prove the function cannot perform another Cloudflare call.
+
+The dedicated migration must create only `public.spr01_managed_secret_ceremonies` plus its constraints/indexes and minimum grants. It must enable RLS, create no client policy, revoke all access from `PUBLIC`, `anon` and `authenticated`, grant only minimum `service_role` access, and contain no secret/token/request-body column.
+
+Before its first provider mutation, the function atomically inserts the exact server-owned ceremony tuple with state `executing` and a lease expiry. A uniqueness conflict, active lease, expired ceremony or terminal row fails before any Cloudflare request. After ambiguous interruption, recovery may enter `reconciling` only after lease expiry and remains read-only until remote annotations conclusively classify the operation.
 
 Lovable's final report must include the Audit Package, exact files changed, exact test results, sanitized provider actions, teardown and zero secret values.
 
@@ -333,7 +339,8 @@ Only names and identifiers may be recorded.
 If the mutation response is lost or times out:
 
 1. do not retry;
-2. list versions using the ceremony annotation;
+2. keep the durable row in `executing` until its lease expires, then atomically enter `reconciling`;
+3. list versions using the ceremony annotation;
 3. list deployments;
 4. list secret names;
 5. classify the operation as applied, not applied or ambiguous;
@@ -400,6 +407,9 @@ BRIDGE_CAPABILITY_DISABLED
 PROVISIONER_SECRET_REMOVED
 PROVISIONER_TOKEN_REVOKED
 REVOKED_TOKEN_AUTHENTICATION_FAILED
+CEREMONY_CONTROL_STATE
+ATOMIC_CLAIM_RESULT
+REPLAY_AND_CONCURRENCY_RESULT
 FILES_CHANGED
 FILES_OUTSIDE_ALLOWED
 TEST_RESULTS
@@ -415,6 +425,7 @@ No response body, token, JWT, cookie, URL credential, Supabase administrative va
 | Repository gate fails | no external operation; fix only through authorized repository workflow |
 | Worker/source version exposes ingress | disable ingress or remove exact Worker; no secret transmission |
 | Managed variable missing | stop; do not ask Owner for Supabase material |
+| Durable control or atomic claim fails | no provider mutation; keep the Worker inactive and correct within the SPR-01 budget |
 | Token scope too broad | reject token; create a narrower temporary token |
 | OpenAPI semantics differ | stop before secret transmission; return to planning |
 | Final version creation fails conclusively | keep Worker undeployed; teardown bridge/token |
