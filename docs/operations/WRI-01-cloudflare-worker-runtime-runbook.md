@@ -76,6 +76,7 @@ ZONE_ROUTE = not created
 FALLBACK_ORIGIN = not configured
 CUSTOM_HOSTNAME = not created
 DCA01_MANAGED_MIGRATION = not executed
+SPR01_MANAGED_SECRET_PROVISIONING = not executed
 ```
 
 The last repository-recorded fallback observation is `Pending Deployment (Error)`. Before any Custom Hostname proof, a separately authorized operator must:
@@ -101,6 +102,22 @@ CLOUDFLARE_API_TOKEN_DCA01_HML
 ```
 
 The deploy credential `CLOUDFLARE_DEPLOY_API_TOKEN_WRI01_HML` is separate from the runtime provider credential. Never print, persist or return secret values. Account ID and zone ID are transport inputs, never tenant or domain authority.
+
+The Product Owner has no direct Supabase dashboard access and must not receive or transport `SUPABASE_SERVICE_ROLE_KEY`. The accepted names above do not authorize an Owner-operated `--secrets-file` deployment.
+
+The required custody and provisioning path is defined by SPR-01:
+
+```text
+exact GitHub artifact
+→ undeployed Worker resource
+→ exact inactive source version
+→ one-shot Lovable-managed Edge Function
+→ complete inactive canary and secret-bearing versions
+→ deployment count remains zero
+→ bridge capability disablement and provisioner-token revocation
+```
+
+Legacy script-secret endpoints, `wrangler secret put`, sequential secret writes and any immediately deployed primitive are prohibited. Future execution must verify the live Cloudflare OpenAPI and prove that deployment count remains zero before SPR-01 can be accepted.
 
 ## Rollback
 
@@ -188,4 +205,6 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The local PowerShell proof on the correction merge HEAD passed `bun install --frozen-lockfile`, `bun run build`, `bun run wri01:bundle-audit` and `bun run wri01:dry-run`. The next operation is not part of this runbook execution: a separately authorized DCA-01 controlled `workers.dev` proof after current Cloudflare prerequisites are confirmed.
+The local PowerShell proof on the correction merge HEAD passed `bun install --frozen-lockfile`, `bun run build`, `bun run wri01:bundle-audit` and `bun run wri01:dry-run`.
+
+The next workstream is SPR-01 planning audit. After a protected Accepted planning merge, the Lovable-managed bridge implementation plus undeployed Worker/source-version creation still require separate authorization. The DCA-01 controlled `workers.dev` proof remains blocked until SPR-01 is terminally accepted and separately authorized for handoff.

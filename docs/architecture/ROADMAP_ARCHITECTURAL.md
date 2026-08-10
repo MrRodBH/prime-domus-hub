@@ -1,6 +1,6 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — WRI-01 implementation and redirected-Wrangler correction Accepted / Merged / Closed; PRs #70 and #72 merged
+**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Ready for External Audit
 **Authority:** Single Source of Future Evolution
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
@@ -27,9 +27,10 @@ DCA01_IMPLEMENTATION_PR = 65
 DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
 DCA01_PREMERGE_AUDIT = Accepted
 
-DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
+DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
+DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
 
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
@@ -73,12 +74,21 @@ WRI01_LOCAL_PROOF_HEAD = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
 WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
 WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
 
+SPR01_PLANNING_BASELINE_MAIN = cc45ec8c334bdea3965830426992a705271b1103
+SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_SELECTED_STRATEGY = managed two-operator zero-deployment provisioning
+SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_IMPLEMENTATION_AUTHORIZED = false
+SPR01_IMPLEMENTATION_STARTED = false
+SPR01_OWNER_SERVICE_ROLE_ACCESS = false
+SPR01_LOVABLE_MANAGED_BRIDGE_REQUIRED = true
+
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
 DCA01_EXTERNAL_PROOF_STARTED = false
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -251,6 +261,9 @@ PR-M2 — Accepted / Merged / Closed
 → repository runtime audit — Accepted
 → redirected Wrangler configuration correction — PR #72 Accepted / Merged / Closed
 → terminal post-correction documentation reconciliation — completed
+→ SPR-01 managed secret provisioning planning — Ready for External Audit
+→ SPR-01 implementation only after protected planning merge and separate authorization
+→ inactive secret-bearing Worker version with bridge disablement and token revocation
 → controlled workers.dev proof only after separate external authorization
 → controlled zone route/fallback proof only after prerequisite authorization
 → DCA-01 external proof only after WRI-01 terminal acceptance
@@ -264,6 +277,28 @@ PR-M2 — Accepted / Merged / Closed
 → Formal Homologation
 → Production
 ```
+
+## SPR-01 managed secret provisioning prerequisite
+
+The DCA-01 controlled external proof is blocked by an operational custody gap, not by the repaired WRI-01 runtime. The Product Owner has no direct Supabase dashboard access and may not receive or transport `SUPABASE_SERVICE_ROLE_KEY`.
+
+SPR-01 selects one managed path:
+
+```text
+GitHub exact source artifact
+→ undeployed Cloudflare Worker resource
+→ exact inactive source version
+→ one-shot Lovable Edge Function
+→ complete inactive canary and secret-bearing versions
+→ deployment count remains zero
+→ bridge capability disablement and provisioner-token revocation
+```
+
+Future execution must verify the resource-oriented Worker/version API against the live OpenAPI before transmitting any secret. Legacy script-secret endpoints, sequential writes and any primitive that creates a deployment are prohibited.
+
+Lovable remains authorized and required for the later managed bridge implementation because it is the existing server-side secret custodian. This planning materialization is GitHub-native only because it changes documentation and does not need managed runtime access.
+
+SPR-01 does not authorize Worker creation, deployment, secrets, Cron, DNS, routes, fallback origin, Custom Hostnames, migration, BCA-01 or PR-M3.
 
 ## Permanent invariants
 
@@ -299,7 +334,7 @@ WRI01_SELECTED_STRATEGY = Strategy A
 WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
 WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CURRENT_STATE_AT_WRI01_PLANNING = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
 BCA01_STARTED = false
@@ -382,4 +417,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The next roadmap workstream is DCA-01 Controlled External Proof, beginning with a controlled `workers.dev` proof only after a separate Product Owner authorization and direct confirmation of Cloudflare prerequisites. No successor is authorized by this reconciliation.
+The next roadmap workstream is the direct external audit of SPR-01 planning. Its implementation requires a protected planning merge and separate Product Owner authorization. DCA-01 Controlled External Proof remains blocked and no successor is authorized by this planning materialization.
