@@ -103,15 +103,17 @@ const dryRunWorkflowStep = workflow.match(/- name: Wrangler deterministic dry-ru
 match(dryRunWorkflowStep, /bun run wri01:dry-run/, "CI must exercise the same root redirected-config dry-run as the runbook");
 equal(dryRunWorkflowStep.includes("--config wrangler.json"), false, "CI dry-run must not bypass the redirected-config path with a generated-config shortcut");
 
-for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", workers_dev: true, no_bundle: true })) {
+for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
 }
+equal(wrangler.workers_dev, false, "SPR-03 bootstrap authority must keep workers.dev disabled");
+equal(wrangler.preview_urls, false, "SPR-03 bootstrap authority must keep Preview URLs disabled");
 equal(wrangler.compatibility_date, "2026-07-29", "Compatibility date must remain pinned to the tested workerd support ceiling");
 equal(wrangler.assets?.directory, "dist/client", "Assets directory must match Nitro output");
 equal(wrangler.assets?.binding, "ASSETS", "Assets binding must be explicit");
 equal(wrangler.compatibility_flags?.includes("nodejs_compat"), true, "nodejs_compat must be enabled");
 equal(wrangler.observability?.enabled, true, "Observability must be enabled");
-equal(wrangler.triggers?.crons?.[0], "*/5 * * * *", "Cron expression must remain exact UTC contract");
+equal(wrangler.triggers?.crons?.length, 0, "SPR-03 bootstrap authority must contain zero Cron triggers");
 equal(wrangler.routes?.length, 0, "Repository implementation must contain no zone route");
 equal("env" in wrangler, false, "Resolved homologation authority must not define a named Wrangler environment");
 
