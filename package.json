@@ -51,7 +51,7 @@
     "test:dca-01": "tsx --tsconfig tsconfig.json ./run-dca-01-domain-cloudflare-activation-specs.ts",
     "test:wri-01": "tsx --tsconfig tsconfig.json ./run-wri-01-cloudflare-worker-runtime-specs.ts",
     "test:spr-03": "tsx --tsconfig tsconfig.json ./run-spr-03-worker-bootstrap-managed-secret-recovery-specs.ts",
-    "wri01:bundle-audit": "bun ./scripts/verify-wri-01-worker-bundle.mjs",
+    "wri01:bundle-audit": "bun run test:spr-03 && bun ./scripts/verify-wri-01-worker-bundle.mjs",
     "wri01:dry-run": "bunx wrangler@4.114.0 deploy --dry-run --outdir .wri01-dry-run"
   },
   "dependencies": {
