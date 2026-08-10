@@ -2,7 +2,7 @@
 
 ## Status
 
-**Planning Accepted / Merged / Closed; implementation Accepted / Merged / Closed; PR #70 merged**
+**Planning Accepted / Merged / Closed; implementation and redirected-Wrangler correction Accepted / Merged / Closed; PRs #70 and #72 merged**
 
 ```text
 STAGE_ID = WRI-01
@@ -16,6 +16,13 @@ IMPLEMENTATION_PR = 70
 IMPLEMENTATION_BASELINE_MAIN = fc7ceb19a7389364aa69c5d5b6f33c8b478d3625
 IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
 IMPLEMENTATION_AUDIT = Accepted
+IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+CORRECTION_PR = 72
+CORRECTION_HEAD = 61893694c00ceb846d3de3e0cf6862c94dc386a4
+CORRECTION_MERGE_SHA = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+CORRECTION_AUDIT = Accepted
+POST_CORRECTION_RECONCILIATION = completed
 DEPLOY_EXECUTED = false
 DNS_MUTATION_EXECUTED = false
 CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
@@ -169,7 +176,7 @@ A compiled function without a registered consumer remains a failure.
 
 ## 7. Versioned Wrangler contract
 
-The future `wrangler.jsonc` must explicitly define:
+The accepted `wrangler.jsonc` is the resolved top-level homologation authority and explicitly defines:
 
 ```text
 name = rm-prime-wri01-hml
@@ -183,17 +190,17 @@ workers_dev = true
 routes = [] for the initial workers.dev proof
 no_bundle = true only if verified against Nitro output
 rules = exact module rules required by the build
-env.homologation.name = rm-prime-wri01-hml
+env = absent
 ```
 
-No production environment or route is permitted in WRI-01.
+A named Wrangler environment, production environment or production route is prohibited by the accepted redirected generated-configuration contract.
 
 Deterministic command chain:
 
 ```text
 bun run build
 → bun run wri01:bundle-audit
-→ wrangler deploy --dry-run --outdir .wri01-dry-run --env homologation
+→ bun run wri01:dry-run
 → explicit authorized deploy only after all repository gates pass
 ```
 
@@ -288,7 +295,7 @@ Teardown reverses the sequence, beginning with Cron disablement and wildcard-rou
 Required command:
 
 ```text
-wrangler deploy --dry-run --outdir .wri01-dry-run --env homologation
+bun run wri01:dry-run
 ```
 
 Required evidence:
@@ -558,3 +565,51 @@ AUTO_MERGE_ENABLED = false
 ```
 
 Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This merge and reconciliation authorize no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
+
+## 22. Terminal redirected-Wrangler correction authority
+
+The implementation history remains anchored in PR #70 and the prior reconciliation in PR #71. PR #72 is the accepted later correction that removes named environments from the redirected generated configuration and proves root dry-run parity.
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_PR = 71
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_SHA = 7d24bc22346a664b846c8345ffe172d73f52f11b
+WRI01_CORRECTION_STATE = Accepted / Merged / Closed
+WRI01_CORRECTION_PR = 72
+WRI01_CORRECTION_HEAD = 61893694c00ceb846d3de3e0cf6862c94dc386a4
+WRI01_CORRECTION_MERGE_SHA = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_CORRECTION_AUDIT = Accepted
+WRI01_GATE_RUN = 31175025946
+WRI01_GATE_RESULT = success
+RELEASE_GATE_RUN = 31175025588
+RELEASE_GATE_RESULT = success
+PRM2_GATE_RUN = 31176940812
+PRM2_GATE_RESULT = success
+WRI01_LOCAL_POWERSHELL_PROOF = PASS
+WRI01_LOCAL_PROOF_HEAD = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
+WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
+WRI01_POST_CORRECTION_RECONCILIATION = completed
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+SSL_PROVISIONING_EXECUTED = false
+PRODUCTION_CUTOVER_EXECUTED = false
+AUTO_MERGE_ENABLED = false
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+DCA-01 Controlled External Proof remains the next workstream, with its controlled `workers.dev` proof blocked pending separate authorization and current Cloudflare prerequisite verification.

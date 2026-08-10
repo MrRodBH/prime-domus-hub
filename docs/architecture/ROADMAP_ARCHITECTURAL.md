@@ -1,11 +1,13 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — WRI-01 implementation Accepted / Merged / Closed; PR #70 merged
+**Status:** Ratificado — WRI-01 implementation and redirected-Wrangler correction Accepted / Merged / Closed; PRs #70 and #72 merged
 **Authority:** Single Source of Future Evolution
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 **Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
 **Implementation merge SHA:** `81bfd7ba821187861dd1e183ac1c99198afdd43e`
+**Audited correction HEAD:** `61893694c00ceb846d3de3e0cf6862c94dc386a4`
+**Correction merge SHA:** `2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a`
 
 ## Current authority
 
@@ -45,16 +47,36 @@ WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
 WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
 WRI01_POST_MERGE_RECONCILIATION = completed
 WRI01_IMPLEMENTATION_AUDIT = Accepted
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_PR = 71
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_SHA = 7d24bc22346a664b846c8345ffe172d73f52f11b
+WRI01_CORRECTION_STATE = Accepted / Merged / Closed
+WRI01_CORRECTION_PR = 72
+WRI01_CORRECTION_HEAD = 61893694c00ceb846d3de3e0cf6862c94dc386a4
+WRI01_CORRECTION_MERGE_SHA = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_CORRECTION_AUDIT = Accepted
+WRI01_POST_CORRECTION_RECONCILIATION = completed
 WRI01_PR_OPEN = false
 WRI01_PR_DRAFT = false
 WRI01_PR_MERGED = true
 WRI01_AUTO_MERGE_ENABLED = false
 PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 
+WRI01_GATE_RUN = 31175025946
+WRI01_GATE_RESULT = success
+RELEASE_GATE_RUN = 31175025588
+RELEASE_GATE_RESULT = success
+PRM2_GATE_RUN = 31176940812
+PRM2_GATE_RESULT = success
+WRI01_LOCAL_POWERSHELL_PROOF = PASS
+WRI01_LOCAL_PROOF_HEAD = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
+WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
+
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
+DCA01_EXTERNAL_PROOF_STARTED = false
 NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 
@@ -70,6 +92,8 @@ SSL_PROVISIONING_EXECUTED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 AUTO_MERGE_ENABLED = false
 ```
+
+The current WRI-01 authority preserves the complete chain: principal implementation PR #70, prior post-merge reconciliation PR #71, and redirected Wrangler correction PR #72. The local PowerShell proof was executed on the exact correction merge HEAD and passed the frozen install, build, bundle audit and root redirected-config dry-run without mutating the owner clone.
 
 ## DCA-01 repository implementation authority
 
@@ -224,6 +248,8 @@ PR-M2 — Accepted / Merged / Closed
 → WRI-01 planning — Accepted / Merged / Closed
 → WRI-01 implementation — Accepted / Merged / Closed
 → repository runtime audit — Accepted
+→ redirected Wrangler configuration correction — PR #72 Accepted / Merged / Closed
+→ terminal post-correction documentation reconciliation — completed
 → controlled workers.dev proof only after separate external authorization
 → controlled zone route/fallback proof only after prerequisite authorization
 → DCA-01 external proof only after WRI-01 terminal acceptance
@@ -306,3 +332,52 @@ AUTO_MERGE_ENABLED = false
 ```
 
 Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This merge and reconciliation authorize no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
+
+## WRI-01 terminal post-correction authority
+
+```text
+WRI01_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_PR = 71
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_SHA = 7d24bc22346a664b846c8345ffe172d73f52f11b
+WRI01_CORRECTION_STATE = Accepted / Merged / Closed
+WRI01_CORRECTION_PR = 72
+WRI01_CORRECTION_HEAD = 61893694c00ceb846d3de3e0cf6862c94dc386a4
+WRI01_CORRECTION_MERGE_SHA = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_CORRECTION_AUDIT = Accepted
+WRI01_GATE_RUN = 31175025946
+WRI01_GATE_RESULT = success
+RELEASE_GATE_RUN = 31175025588
+RELEASE_GATE_RESULT = success
+PRM2_GATE_RUN = 31176940812
+PRM2_GATE_RESULT = success
+WRI01_LOCAL_POWERSHELL_PROOF = PASS
+WRI01_LOCAL_PROOF_HEAD = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
+WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
+WRI01_POST_CORRECTION_RECONCILIATION = completed
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+SSL_PROVISIONING_EXECUTED = false
+PRODUCTION_CUTOVER_EXECUTED = false
+AUTO_MERGE_ENABLED = false
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STATE = Planned — Blocked by DCA-01
+BCA01_STARTED = false
+PRM3_STATE = Planned — Blocked by BCA-01
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+The next roadmap workstream is DCA-01 Controlled External Proof, beginning with a controlled `workers.dev` proof only after a separate Product Owner authorization and direct confirmation of Cloudflare prerequisites. No successor is authorized by this reconciliation.
