@@ -48,7 +48,7 @@ Before any future implementation or external mutation:
 5. confirm no competing SPR-01 implementation branch, PR, Worker or bridge exists;
 6. inspect Cloudflare directly and confirm the target Worker state;
 7. retrieve the current Cloudflare OpenAPI and verify the resource-oriented Worker and complete inactive-version primitives;
-8. confirm the target account plan and current Wrangler version;
+18. confirm the target account plan and current Wrangler version;
 9. confirm the Lovable-managed backend still exposes the required server-only environment variables without revealing values;
 10. confirm a temporary least-privilege provisioner token is available only in Lovable Secrets;
 11. confirm BCA-01 and PR-M3 remain blocked and unstarted;
@@ -92,7 +92,7 @@ AUTO_MERGE = false
 MERGE_METHOD = protected squash only after direct Accepted audit
 ```
 
-External Cloudflare and Lovable operations remain separately authorized even when repository code is accepted.
+The future principal implementation requires one explicit end-to-end SPR-01 authorization. Once granted, every non-Owner operation in this finite sequence proceeds continuously through its internal gates without per-step reconfirmation. Pause is permitted only for an external action that the Product Owner must personally complete or for a material stop condition defined by this envelope.
 
 ## 6. Future FILES_ALLOWED
 
@@ -101,6 +101,7 @@ The future principal implementation may change only:
 ```text
 supabase/functions/spr-01-managed-secret-provisioner/index.ts
 supabase/config.toml
+supabase/migrations/*_spr01_managed_secret_ceremony_control.sql — exactly one dedicated migration
 run-spr-01-managed-secret-provisioning-specs.ts
 package.json
 
@@ -115,14 +116,14 @@ docs/architecture/governance/DCA-01-domain-cloudflare-activation-execution-envel
 docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/dca-01-implementation-execution.md
 ```
 
-`supabase/config.toml` may change only when an exact per-function authentication declaration is required. `package.json` may change only to register one deterministic SPR-01 specification command. No dependency may be added without a new direct impact justification.
+`supabase/config.toml` may change only when an exact per-function authentication declaration is required. The single control migration may create only `public.spr01_managed_secret_ceremonies`, its constraints/indexes and minimum grants. It must enable RLS, create no client policy, revoke all access from `PUBLIC`, `anon` and `authenticated`, grant only minimum `service_role` access, and prohibit secret/token/request-body columns. `package.json` may change only to register one deterministic SPR-01 specification command. No dependency may be added without a new direct impact justification.
 
 ## 7. FILES_PROHIBITED
 
 ```text
-supabase/migrations/**
+supabase/migrations/** except the single `*_spr01_managed_secret_ceremony_control.sql` migration
 historical migrations
-database schema, RLS, grants or policies
+database schema, RLS, grants or policies outside the dedicated ceremony-control contract
 src/**
 frontend routes or components
 wrangler.jsonc
@@ -208,7 +209,7 @@ The one-shot bridge must:
 1. keep JWT verification enabled;
 2. accept only an authenticated user session;
 3. verify global Super Admin authority server-side;
-4. require one server-owned, expiring, single-use ceremony state;
+4. require one server-owned, expiring, single-use ceremony state persisted in the dedicated control table;
 5. accept no tenant ID as authority;
 6. accept no secret value in the request;
 7. pin account ID, Worker name, immutable Worker ID, source version, source digest, zero deployments and Git HEAD;
@@ -284,6 +285,10 @@ RETRY_WITHOUT_RECONCILIATION = prohibited
 ```
 
 Before mutation, list current versions, deployments and secret names. After mutation, list them again. Any unexpected version, deployment, secret, route, subdomain or Cron drift blocks acceptance.
+
+The first provider-mutating invocation must atomically insert the exact server-owned tuple into `public.spr01_managed_secret_ceremonies` with an active lease and state `executing`. Unique conflict, active lease, expired ceremony or terminal state fails before provider access. The table stores only sanitized identifiers, timestamps, status, lease expiry, version IDs/annotations and classification. It stores no URL secret, key, token, JWT, cookie, authorization header or serialized provider body.
+
+If execution becomes ambiguous, no second mutation is allowed while the lease is active. After expiry, an authenticated recovery invocation may atomically enter `reconciling` and perform only read-only Cloudflare inspection until the annotation proves applied, not applied or still ambiguous. A retry is possible only after conclusive non-application and an atomic state transition; otherwise the ceremony remains blocked.
 
 ## 14. Logging, error and response contract
 
@@ -370,9 +375,10 @@ The future implementation specification must cover:
 2. no client secret fields;
 3. JWT and Super Admin checks;
 4. exact Worker/account/source-version/source-digest pinning and zero-deployment precondition;
-5. one-time expiry and replay denial;
-6. concurrency denial;
-7. synthetic canary proves version-only semantics before real-secret transmission;
+5. ceremony migration security: RLS enabled, no client policies, revoked `PUBLIC`/`anon`/`authenticated`, minimum `service_role`, no secret-bearing column;
+6. atomic first claim succeeds once and replay/concurrency fail before provider access;
+7. expired-lease recovery performs read-only reconciliation and no blind retry;
+8. synthetic canary proves version-only semantics before real-secret transmission;
 8. one final complete-version request writes exactly three real secret bindings and omits the canary;
 9. no legacy script-secret endpoint or sequential real-secret write;
 10. request, exception and log redaction;
@@ -409,6 +415,8 @@ SOURCE_VERSION_FROM_EXACT_HEAD = true
 WORKER_INGRESS_DISABLED = true
 COMPLETE_SECRET_VERSION_CREATION = true
 SEMANTIC_CANARY_PASSED = true
+DURABLE_CEREMONY_CONTROL = passed
+ATOMIC_CLAIM_AND_REPLAY_DENIAL = passed
 REAL_SECRET_VERSION_CREATE_REQUEST_COUNT = 1
 SECRET_BEARING_VERSION_DEPLOYED = false
 TOTAL_VERSION_COUNT = 3
