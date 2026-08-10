@@ -15,13 +15,6 @@ on:
       - "scripts/verify-release.mjs"
       - "run-wri-01-cloudflare-worker-runtime-specs.ts"
       - ".github/workflows/wri-01-worker-runtime-gate.yml"
-      - "docs/architecture/impact-analysis/WRI-01-cloudflare-worker-runtime-integration-impact-analysis.md"
-      - "docs/architecture/governance/WRI-01-cloudflare-worker-runtime-integration-execution-envelope.md"
-      - "docs/architecture/ROADMAP_ARCHITECTURAL.md"
-      - "docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md"
-      - "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/dca-01-implementation-execution.md"
-      - "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/wri-01-implementation-execution.md"
-      - "docs/operations/WRI-01-cloudflare-worker-runtime-runbook.md"
   push:
     branches:
       - "agent/wri-01-cloudflare-worker-runtime"
