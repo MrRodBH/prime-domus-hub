@@ -1,0 +1,687 @@
+# SPR-02 — Managed Secret Provisioning Replacement Execution Envelope
+
+## Status
+
+**Ready for External Audit — planning-only**
+
+```text
+STAGE_ID = SPR-02
+STAGE_NAME = Managed Secret Provisioning Replacement Path
+STAGE_TYPE = finite_security_implementation_after_accepted_planning
+BASE_BRANCH = main
+PLANNING_BASELINE_MAIN = 9d7e81a519a16c7365db177dcbd8748df4c84708
+PLANNING_BRANCH = agent/spr-02-managed-secret-provisioning-replacement-planning
+PLANNING_STATE = Ready for External Audit
+SELECTED_STRATEGY = Strategy A
+SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
+IMPLEMENTATION_AUTHORIZED = false
+IMPLEMENTATION_STARTED = false
+AUTO_MERGE = false
+```
+
+This envelope freezes the only permitted future SPR-02 implementation path. It authorizes no runtime change, managed migration, Cloudflare mutation, deployment or external proof during planning.
+
+## 1. Objective
+
+Replace only the rejected SPR-01 secret-transfer executor while preserving the accepted custody and zero-target-deployment invariants.
+
+The finite output of a future authorized implementation is:
+
+```text
+one authenticated one-shot TanStack server route
++ one server-only provisioning helper
++ one sanitized durable ceremony-control table
++ deterministic security/runtime tests
++ one inactive Cloudflare Worker version containing exactly three final secret bindings
++ temporary bridge capability disabled
++ temporary provisioner credential revoked
++ zero target Worker deployments
+```
+
+Final Worker binding names remain exactly:
+
+```text
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+CLOUDFLARE_API_TOKEN_DCA01_HML
+```
+
+## 2. Predecessor and terminal reconciliation
+
+```text
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
+SPR01_PLANNING_PR = 75
+SPR01_PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
+SPR01_IMPLEMENTATION_STATE = Rejected
+SPR01_IMPLEMENTATION_FILES_CHANGED = 0
+SPR01_IMPLEMENTATION_PR = none
+SPR01_PRINCIPAL_PROMPT = consumed
+SPR01_CONSOLIDATED_CORRECTIVE_PROMPT = consumed
+SPR01_IMPLEMENTATION_PROMPT_BUDGET = 2/2 consumed
+SPR01_THIRD_IMPLEMENTATION_PROMPT = prohibited
+
+CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER = revoked_and_removed
+```
+
+SPR-02 is a new finite stage. It is not an SPR-01 decimal corrective and does not reopen the SPR-01 implementation budget.
+
+## 3. Entry gate for future implementation
+
+Before any SPR-02 implementation starts, all of the following must be proven:
+
+1. SPR-02 planning PR is merged through the protected process and directly audited `Accepted`;
+2. current GitHub `main` is directly audited and equals the explicitly authorized implementation baseline;
+3. SPR-01 planning remains historical `Accepted / Merged / Closed`;
+4. SPR-01 implementation remains terminal `Rejected` with budget `2/2 consumed`;
+5. WRI-01 remains `Accepted / Merged / Closed`;
+6. DCA-01 repository implementation remains `Accepted / Merged / Closed`;
+7. DCA-01 controlled external proof remains `Blocked External` and unstarted;
+8. BCA-01 and PR-M3 remain unstarted;
+9. the exact target Worker/source-version/deployment state is directly re-audited in Cloudflare;
+10. current official Cloudflare Version API/OpenAPI semantics are revalidated;
+11. the managed TanStack server runtime still exposes the required server-only environment variables by name without revealing values;
+12. no competing SPR-02 implementation branch, PR, route, migration or ceremony table exists;
+13. any temporary provisioning token required by the selected live Cloudflare endpoint is newly issued for SPR-02 and stored only in the managed server secret store;
+14. stop fail-closed on any mismatch.
+
+## 4. Selected architecture
+
+```text
+SERVER_EXECUTION_BOUNDARY = existing TanStack Start / Nitro application runtime
+CEREMONY_HTTP_BOUNDARY = POST /api/internal/spr-02-managed-secret-provision
+SENSITIVE_LOGIC_BOUNDARY = server-only helper
+AUTHORITY = server only
+CLIENT_AUTHORITY = none
+TENANT_AUTHORITY_INPUT = prohibited
+NEW_SUPABASE_EDGE_FUNCTION = prohibited
+SECOND_APPLICATION_RUNTIME = prohibited
+EXTERNAL_SUPABASE_FALLBACK = prohibited
+```
+
+The route is an operational transport boundary only. Every target identifier received from a request must be revalidated server-side and may not become authority by mere client assertion.
+
+## 5. Future implementation branch and PR
+
+```text
+IMPLEMENTATION_BRANCH = agent/spr-02-managed-secret-provisioning-replacement
+IMPLEMENTATION_PR = one principal draft pull request
+BASE_BRANCH = main
+AUTO_MERGE = false
+MERGE_METHOD = protected squash only after direct Accepted audit
+```
+
+No implementation branch is created by this planning execution.
+
+## 6. FILES_ALLOWED for future implementation
+
+The future principal implementation may change only:
+
+```text
+src/routes/api/internal/spr-02-managed-secret-provision.ts
+src/lib/spr-02/managed-secret-provisioning.server.ts
+supabase/migrations/*_spr02_managed_secret_ceremony_control.sql — exactly one dedicated migration
+run-spr-02-managed-secret-provisioning-specs.ts
+package.json — script registration only; no dependency changes
+
+docs/architecture/impact-analysis/SPR-02-managed-secret-provisioning-replacement-path-impact-analysis.md
+docs/architecture/governance/SPR-02-managed-secret-provisioning-replacement-execution-envelope.md
+docs/operations/SPR-02-managed-secret-provisioning-runbook.md
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/spr-02-managed-secret-provisioning-execution.md
+docs/architecture/ROADMAP_ARCHITECTURAL.md
+docs/architecture/governance/FINITE_ROADMAP_EXECUTION_MAP.md
+```
+
+`src/routeTree.gen.ts` may be regenerated transitively by the official TanStack tooling but:
+
+- it must never be manually edited;
+- it must not contain an intentional functional change beyond deterministic registration of the single authorized route;
+- its generated diff must be separately identified in evidence if the framework requires it to be versioned;
+- if the generated file cannot remain consistent without expanding the intended runtime surface, stop fail-closed and classify the finding before proceeding.
+
+If versioned route-tree output is required by the current repository contract, the implementation audit may classify that generated file as a mechanically required consequence of the one authorized route, not as permission to modify unrelated generated content.
+
+## 7. FILES_PROHIBITED
+
+```text
+supabase/functions/**
+supabase/config.toml
+any migration except the single SPR-02 ceremony-control migration
+historical migrations
+src/integrations/supabase/**
+.env*
+GitHub Actions workflows or secrets
+wrangler.jsonc
+DCA-01 state-machine implementation
+WRI-01 runtime bridge implementation
+tenant middleware
+impersonation architecture
+billing/commercial runtime
+CMS/CRM/portal/storage runtime
+production configuration
+plaintext secret files
+```
+
+No historical SPR-01 document may be rewritten to imply that the rejected Edge Function strategy never existed.
+
+## 8. Migration contract
+
+Exactly one future migration may create only:
+
+```text
+public.spr02_managed_secret_ceremonies
+```
+
+Allowed columns are sanitized identifiers, state, lease timestamps, version IDs/annotations, digests and classification metadata.
+
+Mandatory security:
+
+```text
+RLS_ENABLED = true
+CLIENT_POLICIES = 0
+PUBLIC_PRIVILEGES = revoked
+ANON_PRIVILEGES = revoked
+AUTHENTICATED_PRIVILEGES = revoked
+SERVICE_ROLE_PRIVILEGES = minimum required select/insert/update
+SECRET_VALUE_COLUMNS = 0
+TOKEN_VALUE_COLUMNS = 0
+JWT_OR_AUTH_HEADER_COLUMNS = 0
+PROVIDER_BODY_COLUMNS = 0
+```
+
+The migration may not create triggers, outbound HTTP calls, cron, queues, provider configuration or unrelated schema changes.
+
+## 9. Server route contract
+
+The route must accept only `POST` and return `405` for other methods.
+
+It must reject before provider access when any of these conditions occurs:
+
+```text
+missing Authorization header
+non-Bearer authorization
+invalid/expired token
+missing verified subject
+subject is not exact global super_admin
+unknown request field
+tenant_id present
+secret-like request field present
+unexpected Worker name/account/source/Git head
+missing server environment dependency
+active or conflicting ceremony lease
+replay of terminal ceremony
+provider state drift
+ambiguous precondition
+```
+
+The request schema may carry only sanitized transport identifiers needed for deterministic pinning, such as:
+
+```text
+ceremony_id
+expected_git_head
+expected_worker_id
+expected_source_version_id
+expected_source_digest
+```
+
+The exact Worker name and account allowlist must be server-owned constants/configuration or independently revalidated provider facts. No request field may contain a secret value.
+
+## 10. Authentication and Super Admin proof
+
+The route must follow the repository's established server-side authentication model without editing generated Supabase integration files.
+
+Required sequence:
+
+1. read the Bearer token from the request;
+2. validate it server-side against canonical Supabase Auth using the server-only `SUPABASE_URL` and publishable-key path or equivalent current accepted Auth primitive;
+3. resolve the authenticated `sub` from verified claims;
+4. use server-side authority to query the exact global role assignment;
+5. require exactly `super_admin`;
+6. never accept user ID or role from the client;
+7. proceed to ceremony claim only after authentication and global authorization succeed.
+
+This global platform operation does not create tenant-scoped authority and does not use `x-tenant-id`.
+
+## 11. Secret source contract
+
+Sensitive values may be read only at request time from the managed server environment.
+
+Exact allowed names:
+
+```text
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+CLOUDFLARE_API_TOKEN_DCA01_HML
+CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER
+```
+
+The implementation may also read the existing non-secret/publishable Supabase configuration needed to validate authentication.
+
+Prohibited:
+
+```text
+VITE_ prefix for sensitive values
+environment enumeration
+secret return values
+secret comparison output
+secret serialization
+secret persistence
+secret logging
+secret transfer through client request
+```
+
+## 12. Temporary SPR-02 provisioner token
+
+The old token is terminally unavailable:
+
+```text
+CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER = prohibited_to_reuse
+```
+
+A new token may be created only if the current live Cloudflare API proves it is necessary.
+
+Name:
+
+```text
+CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER
+```
+
+Requirements:
+
+- exact Cloudflare account scope;
+- minimum Workers Scripts read/write permissions required by the verified endpoint;
+- no DNS permission;
+- no Worker Routes permission;
+- no Custom Hostname permission;
+- no zone-settings permission;
+- no billing/membership/token-administration permission;
+- stored only in the managed server secret store;
+- never a target Worker binding;
+- removed from the managed store after successful sanitized proof;
+- revoked at Cloudflare before terminal acceptance.
+
+`CLOUDFLARE_API_TOKEN_DCA01_HML` remains a final Worker runtime binding and must not be repurposed as provisioning authority unless a direct permission audit proves that doing so is both least-privilege and within the frozen contract. Absence of that proof means a distinct temporary SPR-02 token is required.
+
+## 13. Ceremony claim, replay and lease contract
+
+Before the first provider-mutating request, the server must atomically claim the exact sanitized ceremony tuple.
+
+Minimum states:
+
+```text
+executing
+reconciling
+completed
+failed
+```
+
+Rules:
+
+```text
+FIRST_CLAIM = atomic insert or equivalent unique claim
+CONCURRENT_CLAIM = reject before provider access
+ACTIVE_LEASE = reject before provider access
+TERMINAL_REPLAY = reject before provider access
+AMBIGUOUS_TIMEOUT = no blind retry
+EXPIRED_LEASE = read-only provider reconciliation first
+RETRY_AFTER_AMBIGUITY = only after conclusive non-application and atomic state transition
+```
+
+The local table is the exclusion/lease authority; remote version annotations are the provider reconciliation authority.
+
+## 14. Cloudflare pre-mutation semantic gate
+
+Immediately before any real-secret transmission, retrieve and validate the current official Cloudflare API contract.
+
+Mandatory proofs:
+
+```text
+CURRENT_CLOUDFLARE_API_CONTRACT_RETRIEVED = true
+VERSION_UPLOAD_WITHOUT_DEPLOY_SUPPORTED = true
+COMPLETE_VERSION_BINDING_TRANSACTION_SUPPORTED = true
+REQUIRED_SECRET_BINDING_PRIMITIVE_SUPPORTED = true
+SOURCE_PROVENANCE_CAN_BE_PRESERVED = true
+DEPLOYMENT_COUNT_CAN_REMAIN_ZERO = true
+```
+
+If the live API contract differs materially, stop before real-secret transmission. Do not fall back to sequential secret writes or an immediately deployed primitive.
+
+## 15. Synthetic semantic canary
+
+Before any real secret is transmitted, create exactly one synthetic, unmistakably non-secret version-only canary using the same versioning primitive and pinned source/configuration contract.
+
+The canary must prove:
+
+```text
+CANARY_CONTAINS_REAL_SECRET = false
+CANARY_VERSION_CREATED = true
+CANARY_VERSION_DEPLOYED = false
+TARGET_DEPLOYMENT_COUNT_REMAINS_ZERO = true
+SOURCE_PROVENANCE_PRESERVED = true
+ASSET_BINDING_PROVENANCE_PRESERVED = true
+PUBLIC_INGRESS_UNCHANGED = true
+SCHEDULED_INGRESS_UNCHANGED = true
+```
+
+Any failure stops the ceremony before real-secret transmission.
+
+## 16. Final inactive secret-bearing version
+
+After the canary succeeds, perform at most one real-secret version creation request.
+
+The resulting complete version must contain exactly these final secret names:
+
+```text
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+CLOUDFLARE_API_TOKEN_DCA01_HML
+```
+
+Mandatory outcomes:
+
+```text
+REAL_SECRET_VERSION_CREATE_REQUEST_COUNT = 1
+FINAL_SECRET_VERSION_CREATED = true
+FINAL_SECRET_VERSION_DEPLOYED = false
+TARGET_DEPLOYMENT_COUNT = 0
+SECRET_VALUES_RETURNED = false
+REQUIRED_SECRET_NAME_COUNT = 3
+UNEXPECTED_SECRET_NAME_COUNT = 0
+SOURCE_PROVENANCE_PRESERVED = true
+COMPATIBILITY_SETTINGS_PRESERVED = true
+PUBLIC_INGRESS_UNCHANGED = true
+SCHEDULED_INGRESS_UNCHANGED = true
+```
+
+No HTTP or scheduled execution against the secret-bearing target Worker version occurs in SPR-02.
+
+## 17. Logging and response allowlist
+
+Generic request/response/error/environment dumping is prohibited.
+
+Sanitized output may contain only:
+
+```text
+ceremony_id
+expected_git_head
+worker_name
+worker_id
+source_version_id
+canary_version_id
+final_version_id
+non-secret version annotation
+required secret names
+deployment count
+workers.dev disabled boolean
+preview disabled boolean
+route count
+Cron count
+bridge capability disabled boolean
+temporary provisioner secret removed boolean
+temporary provisioner token revoked boolean
+sanitized error classification
+```
+
+No secret value is evidence.
+
+## 18. Bridge disablement and teardown
+
+Before terminal acceptance:
+
+1. prove the final inactive version exists and deployment count is zero;
+2. remove `CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER` from the managed server secret store;
+3. invoke or inspect the route in a manner proving it fails closed before any Cloudflare request when that dependency is absent;
+4. revoke the temporary Cloudflare token;
+5. prove the revoked token no longer authenticates using a sanitized read-only verification;
+6. preserve the server route/helper source in GitHub for direct audit;
+7. retain only sanitized evidence;
+8. leave the target Worker version inactive and ingress unchanged.
+
+Removing the temporary token is the capability kill switch. Deleting auditable source is not required.
+
+## 19. Provider and deployment prohibitions
+
+SPR-02 implementation must not:
+
+```text
+create a Cloudflare deployment
+enable workers.dev
+enable Cloudflare Preview URLs
+create or change Worker routes
+create Cron Triggers
+mutate DNS
+configure fallback origin
+create Custom Hostnames
+invoke DCA-01 controlled external proof
+apply DCA-01 managed migration
+start BCA-01
+start PR-M3
+```
+
+If creation of the undeployed target Worker/source version is still pending, it may occur only within the exact separately evidenced zero-deployment prerequisite preserved from SPR-01 and only after implementation authorization. It may not activate traffic.
+
+## 20. Deterministic tests required
+
+The future implementation must provide deterministic tests for at least:
+
+### 20.1 Static/source security
+
+```text
+exact server-only secret-name allowlist
+zero VITE_ use for sensitive names
+zero secret-like request fields
+zero environment enumeration
+zero generic request/response dumping
+no Supabase Edge Function creation
+no GitHub secret/workflow path
+no external Supabase fallback
+```
+
+### 20.2 Authentication/authorization
+
+```text
+missing bearer rejected
+malformed bearer rejected
+invalid token rejected
+missing subject rejected
+non-super-admin rejected
+verified super-admin accepted into pre-provider gate
+tenant_id rejected/ignored as authority according to exact schema
+client-supplied role rejected
+```
+
+### 20.3 Ceremony control
+
+```text
+first atomic claim succeeds exactly once
+duplicate claim rejected
+concurrent claim rejected
+active lease rejected
+expired lease enters read-only reconciliation
+terminal replay rejected
+ambiguous timeout does not auto-retry
+```
+
+### 20.4 Provider request safety
+
+```text
+unexpected account rejected
+unexpected Worker rejected
+unexpected source version rejected
+unexpected Git head rejected
+unexpected source digest rejected
+non-zero deployment precondition rejected
+unknown API semantics rejected before secret read/transmission
+canary required before final mutation
+exactly one real-secret version request allowed
+exact final secret-name set enforced
+```
+
+### 20.5 Teardown
+
+```text
+missing SPR02 provisioner token fails before provider access
+post-removal invocation fails closed
+revoked-token verification sanitized
+secret patterns absent from persisted evidence
+```
+
+### 20.6 Repository regression
+
+Run at minimum:
+
+```text
+bun run typecheck
+bun run build:dev
+bun run build
+bun run test:wri-01
+bun run test:dca-01
+bun run test:spr-02
+```
+
+If the current repository's release gate mandates additional tests, those gates remain binding.
+
+## 21. Evidence artifact
+
+Create:
+
+```text
+docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/spr-02-managed-secret-provisioning-execution.md
+```
+
+It must contain only sanitized facts and at minimum:
+
+```text
+IMPLEMENTATION_START_HEAD
+IMPLEMENTATION_HEAD
+FILES_CHANGED
+FILES_OUTSIDE_ALLOWED
+AUTH_TEST_RESULTS
+SUPER_ADMIN_TEST_RESULTS
+CEREMONY_CONTROL_TEST_RESULTS
+CLOUDFLARE_SEMANTIC_GATE_RESULTS
+CANARY_RESULTS
+FINAL_VERSION_ID
+FINAL_SECRET_NAMES
+TARGET_DEPLOYMENT_COUNT
+INGRESS_STATE
+TEARDOWN_RESULTS
+TYPECHECK_RESULT
+BUILD_DEV_RESULT
+BUILD_RESULT
+WRI01_REGRESSION_RESULT
+DCA01_REGRESSION_RESULT
+SECRET_VALUE_EXPOSED = false
+```
+
+Do not store provider request bodies, Authorization headers, cookies, JWTs, token values or secret values.
+
+## 22. Prompt budget
+
+```text
+SPR02_IMPLEMENTATION_PRINCIPAL_PROMPT = available
+SPR02_IMPLEMENTATION_CONSOLIDATED_CORRECTIVE_PROMPT = available
+SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+SPR02_MAX_IMPLEMENTATION_PROMPTS = 2
+SPR02_THIRD_IMPLEMENTATION_PROMPT = prohibited
+ARTIFICIAL_SUBSTAGES = prohibited
+```
+
+A read-only factual capability check does not consume this budget. Runtime/code changes do.
+
+## 23. Definition of Done for future principal implementation
+
+The principal implementation may reach only `Ready for External Audit` when all are true:
+
+```text
+SELECTED_STRATEGY = Strategy A
+SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
+NEW_SUPABASE_EDGE_FUNCTION_CREATED = false
+SECOND_RUNTIME_AUTHORITY_CREATED = false
+EXTERNAL_SUPABASE_FALLBACK_USED = false
+
+SERVER_SIDE_SECRET_ACCESS_PROVEN = true
+SECRET_VALUE_EXPOSED = false
+AUTHENTICATION_FAIL_CLOSED = true
+GLOBAL_SUPER_ADMIN_AUTHORITY_PROVEN = true
+TENANT_AUTHORITY_INPUT_USED = false
+
+CEREMONY_CONTROL_TABLE_CREATED = true
+CEREMONY_REPLAY_PROTECTION_PROVEN = true
+CEREMONY_LEASE_PROVEN = true
+AMBIGUOUS_RETRY_FAIL_CLOSED = true
+
+CLOUDFLARE_VERSION_ONLY_SEMANTICS_PROVEN = true
+SYNTHETIC_CANARY_PASSED = true
+REAL_SECRET_VERSION_CREATE_REQUEST_COUNT = 1
+FINAL_SECRET_VERSION_CREATED = true
+FINAL_SECRET_VERSION_DEPLOYED = false
+FINAL_SECRET_NAME_SET = exact 3
+TARGET_WORKER_DEPLOYMENT_COUNT = 0
+PUBLIC_INGRESS_UNCHANGED = true
+SCHEDULED_INGRESS_UNCHANGED = true
+
+TEMPORARY_PROVISIONER_SECRET_REMOVED = true
+TEMPORARY_PROVISIONER_TOKEN_REVOKED = true
+POST_REMOVAL_ROUTE_FAIL_CLOSED = true
+
+FILES_OUTSIDE_ALLOWED = 0
+TYPECHECK_PASSED = true
+BUILD_DEV_PASSED = true
+BUILD_PASSED = true
+WRI01_REGRESSION_PASSED = true
+DCA01_REGRESSION_PASSED = true
+EVIDENCE_ARTIFACT_VALID = true
+
+DCA01_EXTERNAL_PROOF_EXECUTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+READY_FOR_FINAL_EXTERNAL_AUDIT = true
+```
+
+The implementation executor must not declare architectural `Accepted`.
+
+## 24. Terminal states
+
+After direct final audit, SPR-02 must receive exactly one finite terminal state:
+
+```text
+Accepted
+Accepted with Non-Blocking Backlog
+Blocked External
+Rejected
+Superseded
+```
+
+If the principal plus one consolidated corrective cannot satisfy the frozen contract, a third implementation prompt is prohibited.
+
+## 25. Successor
+
+```text
+SUCCESSOR = DCA-01 controlled external proof
+SUCCESSOR_AUTOMATIC = false
+```
+
+Even terminal `Accepted` SPR-02 does not start DCA-01 external proof. DCA-01 requires a separate direct prerequisite audit and explicit proof authorization.
+
+BCA-01 remains blocked by DCA-01. PR-M3 remains blocked by BCA-01.
+
+## 26. State ceiling of this planning execution
+
+This planning materialization may establish only:
+
+```text
+SPR01_IMPLEMENTATION_STATE = Rejected
+SPR01_IMPLEMENTATION_PROMPT_BUDGET = 2/2 consumed
+SPR02_PLANNING_STATE = Ready for External Audit
+SPR02_SELECTED_STRATEGY = Strategy A
+SPR02_SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
+SPR02_IMPLEMENTATION_AUTHORIZED = false
+SPR02_IMPLEMENTATION_STARTED = false
+SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+```
+
+No runtime implementation starts in the same execution that creates this planning envelope.
