@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; PR #77 merged
+**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 implementation gate Accepted; principal implementation Ready for Execution
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 **Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
@@ -23,7 +23,7 @@
 | 9 | SPR-01 managed secret provisioning planning | Accepted / Merged / Closed | PR #75 historical planning authority |
 | 10 | SPR-01 implementation | Rejected | terminal; principal + corrective consumed; no third prompt |
 | 11 | SPR-02 replacement-path planning | Accepted / Merged / Closed | PR #77; protected squash merge completed; audit Accepted |
-| 12 | SPR-02 implementation | Planned — Blocked | implementation gate preparation/direct audit, then explicit implementation authorization |
+| 12 | SPR-02 implementation | Ready for Execution | principal implementation authorized; Strategy A capability gate Accepted; temporary provisioner available |
 | 13 | DCA-01 controlled external proof | Blocked External by SPR-02 | terminal Accepted SPR-02 implementation plus separate DCA-01 authorization |
 | 14 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
 | 15 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
@@ -121,7 +121,15 @@ SPR02_PLANNING_AUDIT = Accepted
 SPR02_PLANNING_STATE = Accepted / Merged / Closed
 SPR02_SELECTED_STRATEGY = Strategy A
 SPR02_SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
-SPR02_IMPLEMENTATION_AUTHORIZED = false
+SPR02_IMPLEMENTATION_GATE = Accepted
+SPR02_STRATEGY_A_EXECUTABLE = true
+SPR02_EXTERNAL_BLOCKER_RESOLVED = true
+SPR02_TEMPORARY_PROVISIONER_REQUIRED = true
+CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER = owner_confirmed_created_and_stored_in_lovable
+SPR02_PROVISIONER_PERMISSION = Workers Scripts Edit only
+SPR02_PROVISIONER_ACCOUNT_SETTINGS_READ = not_granted
+SPR02_PROVISIONER_ZONE_PERMISSIONS = none
+SPR02_IMPLEMENTATION_AUTHORIZED = true
 SPR02_IMPLEMENTATION_STARTED = false
 SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
 SPR02_NEW_SUPABASE_EDGE_FUNCTION = prohibited
@@ -131,7 +139,7 @@ BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
+NEXT_STAGE_AUTHORIZED = SPR-02 principal implementation
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -201,8 +209,9 @@ DCA-01 exact-build Worker Runtime Preflight
 → SPR-01 managed secret provisioning planning = Accepted / Merged / Closed; PR #75
 → SPR-01 implementation = Rejected; 2/2 implementation prompts consumed; zero files changed
 → SPR-02 replacement-path planning = Accepted / Merged / Closed; PR #77
-→ SPR-02 implementation gate preparation/direct audit = current authorized workstream
-→ SPR-02 implementation only after separate authorization
+→ SPR-02 implementation capability gate = Accepted; Strategy A executable
+→ temporary provisioner external dependency = satisfied
+→ SPR-02 principal implementation = current authorized workstream
 → inactive secret-bearing Worker version with replacement bridge disablement and temporary token revocation
 → DCA-01 controlled external proof only after terminal Accepted SPR-02 implementation and separate authorization
 → no automatic successor
@@ -331,7 +340,7 @@ TARGET_WORKER_DEPLOYMENT_DURING_PROVISIONING = prohibited
 
 Direct GitHub inspection proves the repository already contains server-only service-role access, Bearer-authenticated TanStack server middleware, exact global Super Admin checks and one TanStack/Nitro server entry. A project-specific read-only Lovable audit confirmed that unprefixed Lovable Secrets are available to this same server runtime and that no analogous policy blocks TanStack server-route code.
 
-The future bridge must:
+The bridge must:
 
 - accept no secret value and no tenant authority input;
 - validate Bearer authentication server-side;
@@ -344,26 +353,27 @@ The future bridge must:
 - prove target Worker deployment count remains zero;
 - remove and revoke any temporary stage-specific provisioner credential before terminal acceptance.
 
-If a temporary token is required, its only permitted future name is:
+The temporary token name is:
 
 ```text
 CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER
 ```
 
-It is never a target Worker binding and is not created by this planning execution.
+The Owner has confirmed that it is now stored in Lovable with `Workers Scripts: Edit`, no `Account Settings: Read`, and no Zone permissions. It remains never a target Worker binding, and the implementation must fail closed if its presence/capability cannot be proved without exposing the value.
 
-The SPR-02 Impact Analysis and Execution Envelope remain exact pre-merge planning snapshots and may retain `Ready for External Audit`. Current terminal planning authority is this execution map plus `ROADMAP_ARCHITECTURAL.md`, which record PR #77 as Accepted / Merged / Closed.
+The SPR-02 Impact Analysis and Execution Envelope remain exact pre-merge planning snapshots and may retain `Ready for External Audit`. Current terminal planning and execution-gate authority is this execution map plus `ROADMAP_ARCHITECTURAL.md`.
 
 ## Governance
 
 - GitHub `main` audited state is the final technical authority.
 - SPR-02 planning is terminally Accepted / Merged / Closed through PR #77.
-- No runtime implementation, Worker, route, Cron, DNS, fallback origin, Custom Hostname or managed migration is created by planning or its post-merge reconciliation.
+- SPR-02 implementation capability gate is Accepted; Strategy A is executable and the external token dependency has been satisfied by the Owner.
+- Principal SPR-02 implementation is the only current authorized runtime workstream.
+- No Worker deployment, route, Cron, DNS, fallback origin, Custom Hostname or DCA-01 external proof is authorized by the implementation gate itself.
 - Account ID, Worker ID, source version ID and Git identifiers are transport/pinning data and must be revalidated server-side before mutation.
 - Runtime and temporary provisioning credentials remain distinct and secret.
 - No secret value is valid audit evidence.
 - A green source-level test without compiled/runtime proof is insufficient.
-- SPR-02 planning acceptance does not automatically authorize SPR-02 implementation, DCA-01 external proof or BCA-01.
 - No successor starts automatically.
 
 ## Historical authority
@@ -377,6 +387,7 @@ SPR-01 planning remains Accepted through PR #75 and merge `5c4562531247f3c9b85b9
 ## WRI-01 current implementation authority
 
 ```text
+AUTHORITY_SCOPE = historical_wri01_terminal_snapshot
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
@@ -407,6 +418,7 @@ PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 ## Protected exact-head merge and post-merge reconciliation
 
 ```text
+AUTHORITY_SCOPE = historical_wri01_merge_snapshot
 WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_PR = 70
 WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
@@ -429,11 +441,12 @@ NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit 
 AUTO_MERGE_ENABLED = false
 ```
 
-Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This planning reconciliation authorizes no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
+Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This historical planning reconciliation authorized no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
 
 ## WRI-01 terminal post-correction authority
 
 ```text
+AUTHORITY_SCOPE = historical_wri01_post_correction_snapshot
 WRI01_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_PR = 70
@@ -482,6 +495,7 @@ NO_AUTOMATIC_SUCCESSOR = true
 ## SPR-02 protected planning merge reconciliation
 
 ```text
+AUTHORITY_SCOPE = historical_planning_reconciliation
 SPR02_PLANNING_BASELINE_MAIN = 9d7e81a519a16c7365db177dcbd8748df4c84708
 SPR02_PLANNING_PR = 77
 SPR02_PLANNING_HEAD = 61f7368266052ca21ae8dbb2b98fa6a564b61543
@@ -501,4 +515,31 @@ NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit 
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-SPR-01 planning remains terminally Accepted / Merged / Closed through PR #75; its implementation remains terminally Rejected. SPR-02 planning is terminally Accepted / Merged / Closed through PR #77. Runtime implementation, managed migration, provider mutation and DCA-01 controlled external proof remain unstarted.
+## SPR-02 implementation gate reconciliation
+
+```text
+AUTHORITY_SCOPE = current_execution_gate
+SPR02_IMPLEMENTATION_GATE_BASELINE = d0f120d9ffad018a9d1d944cf34e3266c8ca5c71
+SPR02_IMPLEMENTATION_GATE = Accepted
+SPR02_STRATEGY_A_EXECUTABLE = true
+SPR02_RUNTIME_PRIMITIVE_AVAILABLE = true
+SPR02_REQUIRED_SERVER_ENV_AVAILABLE = true
+SPR02_SECOND_RUNTIME_REQUIRED = false
+SPR02_CAPABILITY_MISMATCH_EXCEPTION_USED = false
+SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+SPR02_TEMPORARY_PROVISIONER_REQUIRED = true
+CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER = owner_confirmed_created_and_stored_in_lovable
+SPR02_PROVISIONER_PERMISSION = Workers Scripts Edit only
+SPR02_PROVISIONER_ACCOUNT_SETTINGS_READ = not_granted
+SPR02_PROVISIONER_ZONE_PERMISSIONS = none
+SPR02_EXTERNAL_BLOCKER_RESOLVED = true
+SPR02_IMPLEMENTATION_AUTHORIZED = true
+SPR02_IMPLEMENTATION_STARTED = false
+NEXT_STAGE_AUTHORIZED = SPR-02 principal implementation
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+SPR-01 planning remains terminally Accepted / Merged / Closed through PR #75; its implementation remains terminally Rejected. SPR-02 planning is terminally Accepted / Merged / Closed through PR #77. The principal SPR-02 implementation is now Ready for Execution. DCA-01 controlled external proof, BCA-01 and PR-M3 remain blocked.
