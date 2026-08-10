@@ -1,12 +1,12 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Ready for Direct GitHub Audit  
-**Authority:** Single Source of Future Evolution  
-**Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`  
-**Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`  
-**Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`  
-**Implementation merge SHA:** `81bfd7ba821187861dd1e183ac1c99198afdd43e`  
-**Audited correction HEAD:** `61893694c00ceb846d3de3e0cf6862c94dc386a4`  
+**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Ready for Direct GitHub Audit
+**Authority:** Single Source of Future Evolution
+**Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
+**Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
+**Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
+**Implementation merge SHA:** `81bfd7ba821187861dd1e183ac1c99198afdd43e`
+**Audited correction HEAD:** `61893694c00ceb846d3de3e0cf6862c94dc386a4`
 **Correction merge SHA:** `2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a`
 
 ## Current authority
