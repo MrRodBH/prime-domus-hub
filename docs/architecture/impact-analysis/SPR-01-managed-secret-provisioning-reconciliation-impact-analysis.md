@@ -167,7 +167,7 @@ deployed_on = null
 
 6. upload one complete source version with `wrangler versions upload` against the temporary configuration, containing no runtime secrets and no deployment request;
 7. prove that no deployment, workers.dev URL, Preview URL, zone route or Cron Trigger exists;
-18. record the immutable Worker ID, source version ID, exact Git HEAD, source/configuration digests and sanitized binding inventory.
+8. record the immutable Worker ID, source version ID, exact Git HEAD, source/configuration digests and sanitized binding inventory.
 
 Worker and version creation are external mutations and require future explicit Product Owner authorization. They are not executed by this planning PR.
 
@@ -444,16 +444,16 @@ The future principal implementation must prove at least:
 6. the dedicated control migration enables RLS, creates no client policy, revokes `PUBLIC`/`anon`/`authenticated`, grants only minimum `service_role` access and stores no secret-bearing column;
 7. atomic first claim succeeds once, concurrent/replayed claims fail before provider access, and expired-lease recovery is read-only until conclusively reconciled;
 8. one synthetic canary proves version-only semantics before real-secret transmission;
-8. all three real secrets and the complete non-secret binding inventory are sent in one version-create request and the canary is absent from the final version;
-9. no legacy script-secret or sequential real-secret endpoint is referenced;
-10. request, response, exception and logs are redacted;
-11. deployment count remains zero after both version creations;
-12. assets and code provenance match the pinned source version;
-13. public and scheduled ingress remain disabled;
-14. ambiguous timeout enters read-only reconciliation before retry;
-15. teardown disables bridge capability by removing the provisioner secret;
-16. provisioner-token revocation is evidenced;
-17. existing WRI-01, DCA-01 and Release Gates remain green.
+9. all three real secrets and the complete non-secret binding inventory are sent in one version-create request and the canary is absent from the final version;
+10. no legacy script-secret or sequential real-secret endpoint is referenced;
+11. request, response, exception and logs are redacted;
+12. deployment count remains zero after both version creations;
+13. assets and code provenance match the pinned source version;
+14. public and scheduled ingress remain disabled;
+15. ambiguous timeout enters read-only reconciliation before retry;
+16. teardown disables bridge capability by removing the provisioner secret;
+17. provisioner-token revocation is evidenced;
+18. existing WRI-01, DCA-01 and Release Gates remain green.
 
 ## 15. Definition of Done
 
