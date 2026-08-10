@@ -1,6 +1,6 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; PR #75 merged
+**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Ready for External Audit
 **Authority:** Single Source of Future Evolution
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
@@ -82,17 +82,32 @@ SPR01_PLANNING_AUDIT = Accepted
 SPR01_PLANNING_STATE = Accepted / Merged / Closed
 SPR01_SELECTED_STRATEGY = managed two-operator zero-deployment provisioning
 SPR01_PLANNING_MERGE_AUTHORIZED = true
-SPR01_IMPLEMENTATION_AUTHORIZED = false
-SPR01_IMPLEMENTATION_STARTED = false
+SPR01_IMPLEMENTATION_STATE = Rejected
+SPR01_IMPLEMENTATION_FILES_CHANGED = 0
+SPR01_IMPLEMENTATION_PR = none
+SPR01_PRINCIPAL_PROMPT = consumed
+SPR01_CONSOLIDATED_CORRECTIVE_PROMPT = consumed
+SPR01_IMPLEMENTATION_PROMPT_BUDGET = 2/2 consumed
+SPR01_THIRD_IMPLEMENTATION_PROMPT = prohibited
 SPR01_OWNER_SERVICE_ROLE_ACCESS = false
-SPR01_LOVABLE_MANAGED_BRIDGE_REQUIRED = true
+SPR01_EDGE_FUNCTION_STRATEGY_EXECUTABLE = false under active Lovable executor policy
+CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER = revoked_and_removed
+
+SPR02_PLANNING_BASELINE_MAIN = 9d7e81a519a16c7365db177dcbd8748df4c84708
+SPR02_PLANNING_BRANCH = agent/spr-02-managed-secret-provisioning-replacement-planning
+SPR02_PLANNING_STATE = Ready for External Audit
+SPR02_SELECTED_STRATEGY = Strategy A
+SPR02_SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
+SPR02_IMPLEMENTATION_AUTHORIZED = false
+SPR02_IMPLEMENTATION_STARTED = false
+SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
 DCA01_EXTERNAL_PROOF_STARTED = false
-NEXT_STAGE_AUTHORIZED = none beyond SPR-01 planning terminal reconciliation
+NEXT_STAGE_AUTHORIZED = direct SPR-02 planning audit only
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -266,11 +281,13 @@ PR-M2 — Accepted / Merged / Closed
 → redirected Wrangler configuration correction — PR #72 Accepted / Merged / Closed
 → terminal post-correction documentation reconciliation — completed
 → SPR-01 managed secret provisioning planning — Accepted / Merged / Closed; PR #75
-→ SPR-01 implementation only after one explicit end-to-end implementation authorization
-→ inactive secret-bearing Worker version with bridge disablement and token revocation
+→ SPR-01 implementation — Rejected; implementation budget 2/2 consumed; zero files changed
+→ SPR-02 Managed Secret Provisioning Replacement Path Planning — Ready for External Audit
+→ SPR-02 implementation only after protected planning acceptance and separate implementation authorization
+→ inactive secret-bearing Worker version with bridge disablement and temporary token revocation
 → controlled workers.dev proof only after separate external authorization
 → controlled zone route/fallback proof only after prerequisite authorization
-→ DCA-01 external proof only after WRI-01 terminal acceptance
+→ DCA-01 external proof only after terminal SPR-02 acceptance and separate DCA-01 authorization
 → no automatic successor
 → BCA-01 only after DCA-01 Accepted and explicit authorization
 → PR-M3 only after BCA-01 Accepted
@@ -282,11 +299,11 @@ PR-M2 — Accepted / Merged / Closed
 → Production
 ```
 
-## SPR-01 managed secret provisioning prerequisite
+## SPR-01 historical managed secret provisioning strategy
 
 The DCA-01 controlled external proof is blocked by an operational custody gap, not by the repaired WRI-01 runtime. The Product Owner has no direct Supabase dashboard access and may not receive or transport `SUPABASE_SERVICE_ROLE_KEY`.
 
-SPR-01 selects one managed path:
+SPR-01 planning selected this historical path:
 
 ```text
 GitHub exact source artifact
@@ -298,11 +315,41 @@ GitHub exact source artifact
 → bridge capability disablement and provisioner-token revocation
 ```
 
-Future execution must verify the resource-oriented Worker/version API against the live OpenAPI before transmitting any secret. Legacy script-secret endpoints, sequential writes and any primitive that creates a deployment are prohibited.
+The Cloudflare zero-deployment versioning safety contract remains useful evidence. The Edge Function transfer primitive is no longer executable under the active Lovable executor policy for this TanStack Start project, and the SPR-01 implementation is terminally `Rejected` after consuming its principal and consolidated corrective prompts with zero repository files changed.
 
-Lovable remains authorized and required for the later managed bridge implementation because it is the existing server-side secret custodian. This planning materialization is GitHub-native only because it changes documentation and does not need managed runtime access.
+The temporary `CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER` has been revoked at Cloudflare and removed from the current Lovable Secrets store. It is not available to SPR-02 and must not be reused.
 
-SPR-01 does not authorize Worker creation, deployment, secrets, Cron, DNS, routes, fallback origin, Custom Hostnames, migration, BCA-01 or PR-M3.
+SPR-02 is the new finite replacement authority. It preserves the same-backend custody rule and the target Worker zero-deployment constraint while replacing only the rejected secret-transfer executor.
+
+## SPR-02 managed secret provisioning replacement authority
+
+SPR-02 selects one architecture:
+
+```text
+SPR02_SELECTED_STRATEGY = Strategy A
+SPR02_SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
+APPLICATION_RUNTIME_AUTHORITY = existing Lovable Cloud TanStack Start / Nitro server runtime
+SUPABASE_SECRET_CUSTODIAN = existing managed application server environment
+OWNER_MAY_HANDLE_SUPABASE_SERVICE_ROLE_KEY = false
+NEW_SUPABASE_EDGE_FUNCTION = prohibited
+SECOND_APPLICATION_RUNTIME = prohibited
+EXTERNAL_SUPABASE_FALLBACK = prohibited
+```
+
+The audited repository already has server-only `SUPABASE_SERVICE_ROLE_KEY` access, Bearer-authenticated TanStack server middleware, exact global Super Admin checks and a single TanStack/Nitro server entry. Project-specific read-only Lovable capability inspection additionally confirmed that the managed runtime exposes unprefixed Lovable Secrets to the same server boundary and that the executor policy does not prohibit TanStack server-route implementation.
+
+The future SPR-02 implementation must keep the request transport non-authoritative, reject tenant authority inputs, perform all authentication and global Super Admin authorization server-side, use one sanitized durable ceremony claim with replay/lease controls, prove a synthetic version-only canary, create at most one final real-secret inactive Worker version, and keep target Worker deployment count at zero.
+
+If a Cloudflare provisioning credential is required, it must be a new stage-specific least-privilege token named `CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER`, stored only in the managed server secret store, never used as a Worker binding, removed after the ceremony and revoked before terminal acceptance. The existing `CLOUDFLARE_API_TOKEN_DCA01_HML` remains one of the three final Worker bindings and is not assumed to have provisioning authority.
+
+Planning artifacts:
+
+```text
+docs/architecture/impact-analysis/SPR-02-managed-secret-provisioning-replacement-path-impact-analysis.md
+docs/architecture/governance/SPR-02-managed-secret-provisioning-replacement-execution-envelope.md
+```
+
+SPR-02 planning authorizes no runtime implementation, migration, provider mutation, Worker deployment, DCA-01 external proof, BCA-01 or PR-M3.
 
 ## Permanent invariants
 
@@ -417,8 +464,8 @@ BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = direct SPR-02 planning audit only
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-SPR-01 planning is terminally Accepted / Merged / Closed through PR #75. The next roadmap workstream is SPR-01 implementation, still unstarted and requiring one explicit end-to-end Product Owner authorization. DCA-01 Controlled External Proof remains blocked; no successor is authorized by this terminal reconciliation.
+SPR-01 planning remains historical `Accepted / Merged / Closed`; its implementation is terminally `Rejected` with budget `2/2 consumed`. SPR-02 replacement planning is the current workstream and is `Ready for External Audit`. DCA-01 Controlled External Proof remains blocked, and no runtime successor is authorized by this planning materialization.
