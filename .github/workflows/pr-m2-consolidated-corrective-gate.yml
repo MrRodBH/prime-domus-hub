@@ -143,18 +143,61 @@ jobs:
           COMMIT_COUNT=$commit_count
           EOF
 
+      - name: Classify exact diff scope
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docs_only=false
+          changed_file_count=0
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            mapfile -t changed_files < <(
+              git diff --name-only \
+                "${{ steps.ancestry.outputs.base_sha }}..${{ steps.ancestry.outputs.head_sha }}"
+            )
+            changed_file_count="${#changed_files[@]}"
+            if [[ "$changed_file_count" -gt 0 ]]; then
+              docs_only=true
+              for path in "${changed_files[@]}"; do
+                if [[ "$path" != docs/* ]]; then
+                  docs_only=false
+                  break
+                fi
+              done
+            fi
+          fi
+
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
+          echo "Protected corrective gate docs_only=$docs_only changed_file_count=$changed_file_count"
+
+      - name: Documentation governance validation
+        if: steps.scope.outputs.docs_only == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-documentation-governance.mjs \
+            --base "${{ steps.ancestry.outputs.base_sha }}" \
+            --head "${{ steps.ancestry.outputs.head_sha }}"
+
       - name: Setup Bun
+        if: steps.scope.outputs.docs_only != 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
 
       - name: Install frozen dependencies
+        if: steps.scope.outputs.docs_only != 'true'
         run: bun install --frozen-lockfile
 
       - name: PR-M2 consolidated corrective specifications
+        if: steps.scope.outputs.docs_only != 'true'
         run: bun run test:pr-m2:consolidated-final-corrective
 
       - name: Full composite Release Gate
+        if: steps.scope.outputs.docs_only != 'true'
         run: bun run verify:release
 
       - name: Materialize complete exact-head diff evidence
@@ -168,6 +211,7 @@ jobs:
           BEHIND_BY: ${{ steps.ancestry.outputs.behind_by }}
           COMMIT_COUNT: ${{ steps.ancestry.outputs.commit_count }}
           PR_NUMBER: ${{ steps.expected.outputs.pr_number }}
+          DOCS_ONLY: ${{ steps.scope.outputs.docs_only }}
         run: |
           set -euo pipefail
 
@@ -290,7 +334,8 @@ jobs:
             "commitCount": $COMMIT_COUNT,
             "changedFileCount": $changed_file_count,
             "additions": $additions,
-            "deletions": $deletions
+            "deletions": $deletions,
+            "docsOnly": $DOCS_ONLY
           }
           JSON
 
@@ -318,6 +363,7 @@ jobs:
 
           evidence_dir = Path(os.environ["EVIDENCE_DIR"])
           chunks_dir = Path(os.environ["CHUNKS_DIR"])
+          docs_only = os.environ["DOCS_ONLY"].lower() == "true"
 
           chunks = []
           for path in sorted(chunks_dir.glob("pr-m2-full-index-binary.diff.part-*")):
@@ -358,9 +404,12 @@ jobs:
               "whitespaceFindingsRecorded": (
                   os.environ["WHITESPACE_FINDINGS_RECORDED"].lower() == "true"
               ),
-              "frozenInstallPassed": True,
-              "consolidatedSpecsPassed": True,
-              "verifyReleasePassed": True,
+              "docsOnly": docs_only,
+              "documentationGovernanceValidationPassed": True if docs_only else None,
+              "fullTechnicalGateExecuted": not docs_only,
+              "frozenInstallPassed": None if docs_only else True,
+              "consolidatedSpecsPassed": None if docs_only else True,
+              "verifyReleasePassed": None if docs_only else True,
               "generatedAtUtc": datetime.now(timezone.utc).isoformat(),
           }
 
@@ -402,6 +451,7 @@ jobs:
             "repository": "${{ github.repository }}",
             "runId": "${{ github.run_id }}",
             "job": "${{ github.job }}",
+            "docsOnly": $DOCS_ONLY,
             "diffCheckPassed": $diff_check_passed,
             "diffCheckExitCode": $diff_check_exit_code,
             "whitespaceFindingsRecorded": $whitespace_findings_recorded,
@@ -428,5 +478,6 @@ jobs:
             exact-head-metadata.txt
             pr-m2-consolidated-corrective-gate.json
             release-gate-evidence.json
+            documentation-governance-evidence.json
           if-no-files-found: error
           retention-days: 14
