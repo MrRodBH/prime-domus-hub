@@ -1,6 +1,6 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Ready for External Audit
+**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; PR #75 merged
 **Authority:** Single Source of Future Evolution
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
@@ -75,9 +75,13 @@ WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
 WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
 
 SPR01_PLANNING_BASELINE_MAIN = cc45ec8c334bdea3965830426992a705271b1103
-SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_PLANNING_PR = 75
+SPR01_PLANNING_HEAD = 0d2ad969b3109b6da2b4dd37307b3b8f12a517f7
+SPR01_PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
+SPR01_PLANNING_AUDIT = Accepted
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
 SPR01_SELECTED_STRATEGY = managed two-operator zero-deployment provisioning
-SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_PLANNING_MERGE_AUTHORIZED = true
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 SPR01_IMPLEMENTATION_STARTED = false
 SPR01_OWNER_SERVICE_ROLE_ACCESS = false
@@ -88,7 +92,7 @@ BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
 DCA01_EXTERNAL_PROOF_STARTED = false
-NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
+NEXT_STAGE_AUTHORIZED = none beyond SPR-01 planning terminal reconciliation
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -261,8 +265,8 @@ PR-M2 — Accepted / Merged / Closed
 → repository runtime audit — Accepted
 → redirected Wrangler configuration correction — PR #72 Accepted / Merged / Closed
 → terminal post-correction documentation reconciliation — completed
-→ SPR-01 managed secret provisioning planning — Ready for External Audit
-→ SPR-01 implementation only after protected planning merge and separate authorization
+→ SPR-01 managed secret provisioning planning — Accepted / Merged / Closed; PR #75
+→ SPR-01 implementation only after one explicit end-to-end implementation authorization
 → inactive secret-bearing Worker version with bridge disablement and token revocation
 → controlled workers.dev proof only after separate external authorization
 → controlled zone route/fallback proof only after prerequisite authorization
@@ -417,4 +421,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The next roadmap workstream is the direct external audit of SPR-01 planning. Its implementation requires a protected planning merge and separate Product Owner authorization. DCA-01 Controlled External Proof remains blocked and no successor is authorized by this planning materialization.
+SPR-01 planning is terminally Accepted / Merged / Closed through PR #75. The next roadmap workstream is SPR-01 implementation, still unstarted and requiring one explicit end-to-end Product Owner authorization. DCA-01 Controlled External Proof remains blocked; no successor is authorized by this terminal reconciliation.
