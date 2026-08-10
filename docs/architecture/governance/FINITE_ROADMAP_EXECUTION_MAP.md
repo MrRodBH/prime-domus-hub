@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Ready for Direct GitHub Audit
+**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Accepted / Merged / Closed
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 **Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
@@ -24,17 +24,18 @@
 | 10 | SPR-01 implementation | Rejected | terminal; principal + corrective consumed; no third prompt |
 | 11 | SPR-02 replacement-path planning | Accepted / Merged / Closed | PR #77 historical planning authority |
 | 12 | SPR-02 principal implementation | Rejected | principal consumed; corrective unused and unauthorized; no GitHub implementation PR; Supabase residue preserved; zero Cloudflare mutation |
-| 13 | SPR-03 Worker Bootstrap & Managed Secret Provisioning Recovery Planning | Ready for Direct GitHub Audit | protected planning audit/merge only; implementation unauthorized |
-| 14 | SPR-03 implementation | Planned — Blocked | accepted planning + separate capability gate + explicit implementation authorization |
-| 15 | DCA-01 controlled external proof | Blocked External by SPR-03 | terminal Accepted SPR-03 implementation plus separate DCA-01 authorization |
-| 16 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
-| 17 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
-| 18 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
-| 19 | TH-M1 | Blocked by Release Candidate | internal UAT |
-| 20 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
-| 21 | LSV-03 | Planned — Blocked by TH-M2 | controlled Same-Backend validation |
-| 22 | Formal Homologation | Blocked by LSV-03 | explicit authorization |
-| 23 | Production | Blocked by Formal Homologation | explicit production decision |
+| 13 | SPR-03 Worker Bootstrap & Managed Secret Provisioning Recovery Planning | Accepted / Merged / Closed | PR #81; Strategy D + R2 frozen |
+| 14 | SPR-03 implementation capability gate | Authorized — read-only | must prove exact current provider/runtime capabilities before implementation authorization |
+| 15 | SPR-03 implementation | Planned — Blocked | Accepted capability gate + explicit implementation authorization |
+| 16 | DCA-01 controlled external proof | Blocked External by SPR-03 | terminal Accepted SPR-03 implementation plus separate DCA-01 authorization |
+| 17 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
+| 18 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
+| 19 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
+| 20 | TH-M1 | Blocked by Release Candidate | internal UAT |
+| 21 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
+| 22 | LSV-03 | Planned — Blocked by TH-M2 | controlled Same-Backend validation |
+| 23 | Formal Homologation | Blocked by LSV-03 | explicit authorization |
+| 24 | Production | Blocked by Formal Homologation | explicit production decision |
 
 ## Current factual state
 
@@ -114,7 +115,11 @@ SPR02_TEMPORARY_PROVISIONER_TEARDOWN = pending Owner removal from Lovable Secret
 
 SPR03_PLANNING_BASELINE_MAIN = b430b6cb5033cec66902031394b7cb4406206c81
 SPR03_PLANNING_BRANCH = agent/spr-03-worker-bootstrap-managed-secret-recovery-planning
-SPR03_PLANNING_STATE = Ready for Direct GitHub Audit
+SPR03_PLANNING_PR = 81
+SPR03_PLANNING_HEAD = 4fc1372604f703600f3722f868e89c19339fbca9
+SPR03_PLANNING_MERGE_SHA = 9deced9acede14192dcf794cc8bff3cbe02e8c54
+SPR03_PLANNING_AUDIT = Accepted
+SPR03_PLANNING_STATE = Accepted / Merged / Closed
 SPR03_SELECTED_STRATEGY = Strategy D
 SPR03_SELECTED_PRIMITIVE = controlled first Wrangler deployment with zero ingress, followed by version-only canary and final secret-bearing inactive version
 SPR03_RESIDUE_STRATEGY = R2 — Forward Historical Parity Materialization
@@ -127,7 +132,7 @@ BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = direct GitHub audit of SPR-03 planning only
+NEXT_STAGE_AUTHORIZED = SPR-03 implementation capability gate and direct audit only
 NO_AUTOMATIC_SUCCESSOR = true
 
 CANONICAL_CLOUDFLARE_DEPLOY_EXECUTED = false
@@ -194,10 +199,8 @@ DCA-01 exact-build Worker Runtime Preflight
 → SPR-02 planning PR #77 Accepted / Merged / Closed
 → SPR-02 capability gate historical Accepted
 → SPR-02 principal implementation Rejected; principal consumed; corrective unused; Supabase residue; zero Cloudflare mutation
-→ SPR-03 Worker Bootstrap & Managed Secret Provisioning Recovery Planning
-→ direct exact-head planning audit
-→ protected planning merge only if Accepted
-→ separate SPR-03 implementation capability gate
+→ SPR-03 planning PR #81 Accepted / Merged / Closed
+→ SPR-03 implementation capability gate = current authorized read-only gate
 → future SPR-03 implementation only after gate acceptance
 → controlled bootstrap Worker deployment with zero public/scheduled ingress
 → inactive canary + inactive final secret-bearing Version
@@ -433,9 +436,9 @@ DATABASE_REPLAY_DURING_PARITY = prohibited
 - Documentation/planning work is executed GitHub-native by ChatGPT; Lovable is not a documentation executor.
 - Lovable may be used only where a future authorized step genuinely requires Supabase execution or frontend UX/UI work.
 - SPR-02 implementation is terminally Rejected; its corrective remains unused but unauthorized and is not a substitute for SPR-03.
-- SPR-03 planning is the only current workstream.
-- SPR-03 implementation remains unauthorized until protected planning acceptance and a separate capability gate.
-- No Worker deployment, Version upload, route, Cron, DNS, fallback origin, Custom Hostname or DCA-01 external proof is authorized by this planning state.
+- SPR-03 planning is terminally Accepted / Merged / Closed through PR #81.
+- SPR-03 implementation remains unauthorized until the separate capability gate is Accepted.
+- No Worker deployment, Version upload, route, Cron, DNS, fallback origin, Custom Hostname or DCA-01 external proof is authorized by planning acceptance.
 - Account ID, Worker ID, source version ID and Git identifiers are transport/pinning data and must be revalidated server-side before mutation.
 - Runtime and temporary provisioning credentials remain distinct and secret.
 - No secret value is valid audit evidence.
@@ -534,13 +537,17 @@ NEXT_STAGE_AUTHORIZED = SPR-03 planning only
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-## SPR-03 planning authority
+## SPR-03 protected planning merge reconciliation
 
 ```text
-AUTHORITY_SCOPE = current_spr03_planning
+AUTHORITY_SCOPE = current_spr03_planning_terminal
 SPR03_PLANNING_BASELINE_MAIN = b430b6cb5033cec66902031394b7cb4406206c81
 SPR03_PLANNING_BRANCH = agent/spr-03-worker-bootstrap-managed-secret-recovery-planning
-SPR03_PLANNING_STATE = Ready for Direct GitHub Audit
+SPR03_PLANNING_PR = 81
+SPR03_PLANNING_HEAD = 4fc1372604f703600f3722f868e89c19339fbca9
+SPR03_PLANNING_MERGE_SHA = 9deced9acede14192dcf794cc8bff3cbe02e8c54
+SPR03_PLANNING_AUDIT = Accepted
+SPR03_PLANNING_STATE = Accepted / Merged / Closed
 SPR03_SELECTED_STRATEGY = Strategy D
 SPR03_SELECTED_PRIMITIVE = controlled first Wrangler deployment with zero ingress, followed by version-only canary and final secret-bearing inactive version
 SPR03_RESIDUE_STRATEGY = R2 — Forward Historical Parity Materialization
@@ -551,8 +558,8 @@ SPR03_THIRD_IMPLEMENTATION_PROMPT = prohibited
 DCA01_EXTERNAL_PROOF_STARTED = false
 BCA01_STARTED = false
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = direct GitHub audit of SPR-03 planning only
+NEXT_STAGE_AUTHORIZED = SPR-03 implementation capability gate and direct audit only
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-SPR-03 planning is documentation-only. It authorizes no implementation, database mutation, Cloudflare mutation, deploy, Worker Version upload, route, Cron, DNS, fallback origin, Custom Hostname, DCA-01 external proof, BCA-01 or PR-M3.
+SPR-03 planning is terminally Accepted / Merged / Closed. It authorizes no implementation, database mutation, Cloudflare mutation, deploy, Worker Version upload, route, Cron, DNS, fallback origin, Custom Hostname, DCA-01 external proof, BCA-01 or PR-M3. The only current workstream is the read-only SPR-03 implementation capability gate.
