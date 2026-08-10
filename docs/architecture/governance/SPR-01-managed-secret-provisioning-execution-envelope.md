@@ -48,7 +48,7 @@ Before any future implementation or external mutation:
 5. confirm no competing SPR-01 implementation branch, PR, Worker or bridge exists;
 6. inspect Cloudflare directly and confirm the target Worker state;
 7. retrieve the current Cloudflare OpenAPI and verify the resource-oriented Worker and complete inactive-version primitives;
-18. confirm the target account plan and current Wrangler version;
+8. confirm the target account plan and current Wrangler version;
 9. confirm the Lovable-managed backend still exposes the required server-only environment variables without revealing values;
 10. confirm a temporary least-privilege provisioner token is available only in Lovable Secrets;
 11. confirm BCA-01 and PR-M3 remain blocked and unstarted;
@@ -379,16 +379,16 @@ The future implementation specification must cover:
 6. atomic first claim succeeds once and replay/concurrency fail before provider access;
 7. expired-lease recovery performs read-only reconciliation and no blind retry;
 8. synthetic canary proves version-only semantics before real-secret transmission;
-8. one final complete-version request writes exactly three real secret bindings and omits the canary;
-9. no legacy script-secret endpoint or sequential real-secret write;
-10. request, exception and log redaction;
-11. deployment count remains zero across both new versions;
-12. version-annotation idempotency;
-13. assets/code/compatibility preservation;
-14. no public or scheduled ingress;
-15. ambiguous-timeout reconciliation;
-16. bridge capability disablement and token revocation;
-17. WRI-01, DCA-01 and Release Gate regression suites.
+9. one final complete-version request writes exactly three real secret bindings and omits the canary;
+10. no legacy script-secret endpoint or sequential real-secret write;
+11. request, exception and log redaction;
+12. deployment count remains zero across both new versions;
+13. version-annotation idempotency;
+14. assets/code/compatibility preservation;
+15. no public or scheduled ingress;
+16. ambiguous-timeout reconciliation;
+17. bridge capability disablement and token revocation;
+18. WRI-01, DCA-01 and Release Gate regression suites.
 
 Tests may not use real secret values. Test fixtures must use unmistakably synthetic material and prove redaction.
 
