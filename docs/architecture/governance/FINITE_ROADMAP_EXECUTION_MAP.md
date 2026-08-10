@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Accepted / Merged / Closed
+**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Accepted / Merged / Closed; SPR-03 implementation capability gate Blocked External
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 **Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
@@ -25,7 +25,7 @@
 | 11 | SPR-02 replacement-path planning | Accepted / Merged / Closed | PR #77 historical planning authority |
 | 12 | SPR-02 principal implementation | Rejected | principal consumed; corrective unused and unauthorized; no GitHub implementation PR; Supabase residue preserved; zero Cloudflare mutation |
 | 13 | SPR-03 Worker Bootstrap & Managed Secret Provisioning Recovery Planning | Accepted / Merged / Closed | PR #81; Strategy D + R2 frozen |
-| 14 | SPR-03 implementation capability gate | Authorized — read-only | must prove exact current provider/runtime capabilities before implementation authorization |
+| 14 | SPR-03 implementation capability gate | Blocked External | SPR-02 provisioner teardown + direct Cloudflare read-only connectivity; then resume same gate |
 | 15 | SPR-03 implementation | Planned — Blocked | Accepted capability gate + explicit implementation authorization |
 | 16 | DCA-01 controlled external proof | Blocked External by SPR-03 | terminal Accepted SPR-03 implementation plus separate DCA-01 authorization |
 | 17 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
@@ -123,6 +123,13 @@ SPR03_PLANNING_STATE = Accepted / Merged / Closed
 SPR03_SELECTED_STRATEGY = Strategy D
 SPR03_SELECTED_PRIMITIVE = controlled first Wrangler deployment with zero ingress, followed by version-only canary and final secret-bearing inactive version
 SPR03_RESIDUE_STRATEGY = R2 — Forward Historical Parity Materialization
+SPR03_IMPLEMENTATION_GATE = Blocked External
+SPR03_STATIC_CLOUDFLARE_CAPABILITIES = Accepted
+SPR03_GITHUB_CAPABILITY_STATE = Accepted
+SPR03_SUPABASE_RESIDUE_CAPABILITY_STATE = Accepted
+SPR03_CURRENT_CLOUDFLARE_ACCOUNT_STATE = unresolved
+SPR03_DIRECT_CLOUDFLARE_CONNECTION_AVAILABLE = false
+SPR03_SPR02_TOKEN_TEARDOWN_CONFIRMED = false
 SPR03_IMPLEMENTATION_AUTHORIZED = false
 SPR03_IMPLEMENTATION_STARTED = false
 SPR03_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
@@ -132,14 +139,14 @@ BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = SPR-03 implementation capability gate and direct audit only
+NEXT_STAGE_AUTHORIZED = resume same SPR-03 capability gate only after SPR-02 credential teardown and direct Cloudflare read-only connectivity
 NO_AUTOMATIC_SUCCESSOR = true
 
-CANONICAL_CLOUDFLARE_DEPLOY_EXECUTED = false
+CANONICAL_CLOUDFLARE_DEPLOY_EXECUTED = unresolved-current; last accepted evidence had none
 SPR02_MANAGED_MIGRATION_RESIDUE_EXECUTED = true
-DNS_MUTATION_EXECUTED = false
-CLOUDFLARE_PROVIDER_MUTATION_EXECUTED = false
-CLOUDFLARE_READ_ONLY_API_CHECKS_EXECUTED = true
+DNS_MUTATION_EXECUTED = false in SPR-03 gate
+CLOUDFLARE_PROVIDER_MUTATION_EXECUTED = false in SPR-03 gate
+CLOUDFLARE_READ_ONLY_API_CHECKS_EXECUTED = false in current gate because direct connector unavailable
 CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
 CRON_TRIGGER_CREATED = false
 CUSTOM_HOSTNAME_CREATED = false
@@ -200,7 +207,9 @@ DCA-01 exact-build Worker Runtime Preflight
 → SPR-02 capability gate historical Accepted
 → SPR-02 principal implementation Rejected; principal consumed; corrective unused; Supabase residue; zero Cloudflare mutation
 → SPR-03 planning PR #81 Accepted / Merged / Closed
-→ SPR-03 implementation capability gate = current authorized read-only gate
+→ SPR-03 implementation capability gate = Blocked External
+→ external prerequisites = rejected SPR-02 credential teardown + direct Cloudflare read-only connectivity
+→ resume same SPR-03 implementation capability gate
 → future SPR-03 implementation only after gate acceptance
 → controlled bootstrap Worker deployment with zero public/scheduled ingress
 → inactive canary + inactive final secret-bearing Version
@@ -261,7 +270,7 @@ www.mrrod.com.br/*
 notify.mrrod.com.br/*
 ```
 
-None of those external activation mutations is authorized by SPR-03 planning.
+None of those external activation mutations is authorized by SPR-03 planning or its capability gate.
 
 ## Bundle gates
 
@@ -407,12 +416,13 @@ SPR-01/SPR-02 provisioner credentials may not be reused.
 
 ## SPR-02 Supabase residue parity gate
 
-Expected read-only historical facts before any future migration operation:
+Expected live facts were revalidated read-only during the current gate:
 
 ```text
 TABLE = public.spr02_managed_secret_ceremonies
 RLS_ENABLED = true
 CLIENT_POLICY_COUNT = 0
+ROW_COUNT = 0
 APPLIED_MIGRATION_RECORD_COUNT = 2
 APPLIED_VERSION_1 = 20260810220152
 APPLIED_NAME_1 = 1ee179b2-60f0-4ce1-b259-06762002733b
@@ -435,12 +445,12 @@ DATABASE_REPLAY_DURING_PARITY = prohibited
 - GitHub `main` audited state is the final technical authority.
 - Documentation/planning work is executed GitHub-native by ChatGPT; Lovable is not a documentation executor.
 - Lovable may be used only where a future authorized step genuinely requires Supabase execution or frontend UX/UI work.
+- Cloudflare provider operations must be executed/audited by ChatGPT through a direct official Cloudflare connection, not through Lovable.
 - SPR-02 implementation is terminally Rejected; its corrective remains unused but unauthorized and is not a substitute for SPR-03.
 - SPR-03 planning is terminally Accepted / Merged / Closed through PR #81.
-- SPR-03 implementation remains unauthorized until the separate capability gate is Accepted.
-- No Worker deployment, Version upload, route, Cron, DNS, fallback origin, Custom Hostname or DCA-01 external proof is authorized by planning acceptance.
-- Account ID, Worker ID, source version ID and Git identifiers are transport/pinning data and must be revalidated server-side before mutation.
-- Runtime and temporary provisioning credentials remain distinct and secret.
+- SPR-03 implementation capability gate is Blocked External until exact current Cloudflare account state can be independently observed and the rejected SPR-02 provisioner teardown is confirmed.
+- SPR-03 implementation remains unauthorized and budget remains `0/2 consumed`.
+- No Worker deployment, Version upload, route, Cron, DNS, fallback origin, Custom Hostname or DCA-01 external proof is authorized by the current gate state.
 - No secret value is valid audit evidence.
 - No successor starts automatically.
 
@@ -562,4 +572,30 @@ NEXT_STAGE_AUTHORIZED = SPR-03 implementation capability gate and direct audit o
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-SPR-03 planning is terminally Accepted / Merged / Closed. It authorizes no implementation, database mutation, Cloudflare mutation, deploy, Worker Version upload, route, Cron, DNS, fallback origin, Custom Hostname, DCA-01 external proof, BCA-01 or PR-M3. The only current workstream is the read-only SPR-03 implementation capability gate.
+## SPR-03 implementation capability gate
+
+```text
+AUTHORITY_SCOPE = current_spr03_capability_gate
+SPR03_IMPLEMENTATION_GATE = Blocked External
+SPR03_STATIC_CLOUDFLARE_CAPABILITIES = Accepted
+SPR03_GITHUB_CAPABILITY_STATE = Accepted
+SPR03_SUPABASE_RESIDUE_CAPABILITY_STATE = Accepted
+SPR03_CURRENT_CLOUDFLARE_ACCOUNT_STATE = unresolved
+SPR03_DIRECT_CLOUDFLARE_CONNECTION_AVAILABLE = false
+SPR03_SPR02_TOKEN_TEARDOWN_CONFIRMED = false
+SPR03_IMPLEMENTATION_AUTHORIZED = false
+SPR03_IMPLEMENTATION_STARTED = false
+SPR03_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+CAPABILITY_MISMATCH_EXCEPTION_USED = false
+DATABASE_MUTATION_BY_GATE = 0
+CLOUDFLARE_MUTATION_BY_GATE = 0
+RUNTIME_CHANGE_BY_GATE = 0
+SECRET_EXPOSED = false
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = resume same gate only after external prerequisites
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+External prerequisites: (1) confirm removal of `CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER` from Lovable Secrets and revocation at Cloudflare; (2) establish direct official Cloudflare read-only connectivity for ChatGPT. Historical SPR-02 provider observations are not promoted to current gate evidence.
