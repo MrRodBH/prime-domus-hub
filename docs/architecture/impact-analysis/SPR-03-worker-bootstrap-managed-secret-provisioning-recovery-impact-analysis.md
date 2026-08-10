@@ -460,3 +460,55 @@ SPR03_R2_CHANGED = false
 SPR03_ADDITIONAL_RUNTIME_AUTHORITY = false
 SPR03_ADDITIONAL_DEPLOY_AUTHORITY = false
 ```
+
+## 16. Consolidated corrective scope after principal exact-head CI
+
+The principal implementation began on `main@a4ad289b11adcdc76d9bc58d8b21535d1862e3d3` and consumed the principal implementation budget. Exact-head PR #85 CI on principal HEAD `e0b3d0698d4370e37f1cd329dc7c0a77c8d26a88` established:
+
+```text
+PRM2_CONSOLIDATED_CORRECTIVE_GATE = success
+RELEASE_GATE = success
+WRI01_FROZEN_INSTALL = success
+WRI01_DETERMINISTIC_SPECS = success
+DCA01_REGRESSION_SPECS = success
+WRI01_EXACT_BUILD = success
+WRI01_TYPECHECK = success
+WRI01_BUNDLE_AUDIT = failure
+WRI01_BUNDLE_AUDIT_FAILURE = CRON_EXPRESSION_MATCH
+CLOUDFLARE_MUTATION_OCCURRED = false
+DATABASE_MUTATION_OCCURRED = false
+SECRET_EXPOSED = false
+```
+
+The failure is a second historical WRI-01 activation assertion: `scripts/verify-wri-01-worker-bundle.mjs` still requires root Cron `*/5 * * * *`, while SPR-03 deliberately requires Cron count zero before bootstrap. The generated Nitro Wrangler produced by the same successful build already matches the SPR-03 zero-ingress policy (`workers_dev=false`, `preview_urls=false`, `triggers.crons=[]`), proving this is an audit-contract residue rather than a compiled-runtime defect.
+
+The single consolidated corrective therefore adds exactly one technical file to the SPR-03 allowed surface:
+
+```text
+scripts/verify-wri-01-worker-bundle.mjs
+```
+
+The corrective may also further modify the already-allowed `package.json`, but only to ensure the existing WRI-01 gate executes `bun run test:spr-03` without changing `.github/**`. The only authorized orchestration change is:
+
+```text
+wri01:bundle-audit = bun run test:spr-03 && bun ./scripts/verify-wri-01-worker-bundle.mjs
+```
+
+Corrective requirements:
+
+1. replace the obsolete positive Cron assertion with fail-closed zero-ingress assertions for both canonical root and generated Wrangler: `workers_dev=false`, `preview_urls=false`, routes zero, Cron zero;
+2. preserve all existing bundle reachability, handler, Nitro, assets, module-count, size and single-authority assertions;
+3. run `test:spr-03` inside the existing WRI gate without editing `.github/**`;
+4. introduce no dependency change, second runtime, second build/deploy authority or provider shortcut;
+5. do not touch Cloudflare or Supabase during the corrective;
+6. re-run all exact-head protected technical gates before any provider mutation;
+7. after this corrective begins, `SPR03_IMPLEMENTATION_PROMPT_BUDGET = 2/2 consumed` and no third implementation correction is permitted.
+
+```text
+SPR03_CONSOLIDATED_CORRECTIVE = authorized_and_started
+SPR03_IMPLEMENTATION_PROMPT_BUDGET = 2/2 consumed
+SPR03_THIRD_IMPLEMENTATION_PROMPT = prohibited
+SPR03_STRATEGY_D_CHANGED = false
+SPR03_R2_CHANGED = false
+SPR03_CLOUDFLARE_MUTATION_BEFORE_CORRECTIVE_ACCEPTANCE = 0
+```
