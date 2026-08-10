@@ -216,7 +216,7 @@ The implementation must:
 
 1. create `spr-01-managed-secret-provisioner` as a one-shot Edge Function;
 2. keep JWT verification enabled;
-8. verify authenticated global Super Admin authority server-side;
+3. verify authenticated global Super Admin authority server-side;
 4. use a server-owned expiring one-time ceremony state persisted by the dedicated migration;
 5. read the four allowed environment variables only inside the function;
 6. pin exact account, Worker ID/name, source version/digest, zero deployments and Git HEAD;
@@ -341,11 +341,11 @@ If the mutation response is lost or times out:
 1. do not retry;
 2. keep the durable row in `executing` until its lease expires, then atomically enter `reconciling`;
 3. list versions using the ceremony annotation;
-3. list deployments;
-4. list secret names;
-5. classify the operation as applied, not applied or ambiguous;
-6. retry only when non-application is conclusively proven;
-7. otherwise keep ingress disabled and stop for audit.
+4. list deployments;
+5. list secret names;
+6. classify the operation as applied, not applied or ambiguous;
+7. retry only when non-application is conclusively proven;
+8. otherwise keep ingress disabled and stop for audit.
 
 ## 12. Phase 7 — mandatory teardown
 
