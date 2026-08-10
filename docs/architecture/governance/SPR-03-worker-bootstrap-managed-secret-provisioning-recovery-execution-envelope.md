@@ -1,10 +1,10 @@
 # SPR-03 — Worker Bootstrap & Managed Secret Provisioning Recovery Execution Envelope
 
-**Status:** Planning — Ready for Direct GitHub Audit  
-**Stage:** SPR-03  
-**Planning baseline:** `main@b430b6cb5033cec66902031394b7cb4406206c81`  
-**Selected strategy:** Strategy D — Controlled Bootstrap Deployment with Zero Ingress  
-**Residue strategy:** R2 — Forward Historical Parity Materialization  
+**Status:** Planning — Ready for Direct GitHub Audit
+**Stage:** SPR-03
+**Planning baseline:** `main@b430b6cb5033cec66902031394b7cb4406206c81`
+**Selected strategy:** Strategy D — Controlled Bootstrap Deployment with Zero Ingress
+**Residue strategy:** R2 — Forward Historical Parity Materialization
 **Implementation authorized by this envelope:** false
 
 ## 1. Purpose
