@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Ready for External Audit
+**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; PR #77 merged
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 **Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
@@ -22,9 +22,9 @@
 | 8 | WRI-01 implementation and redirected-Wrangler correction | Accepted / Merged / Closed | no automatic successor |
 | 9 | SPR-01 managed secret provisioning planning | Accepted / Merged / Closed | PR #75 historical planning authority |
 | 10 | SPR-01 implementation | Rejected | terminal; principal + corrective consumed; no third prompt |
-| 11 | SPR-02 replacement-path planning | Ready for External Audit | direct planning audit, protected planning merge, then separate implementation authorization |
-| 12 | SPR-02 implementation | Planned — Blocked | Accepted SPR-02 planning plus explicit implementation authorization |
-| 13 | DCA-01 controlled external proof | Blocked External by SPR-02 | terminal Accepted SPR-02 plus separate DCA-01 authorization |
+| 11 | SPR-02 replacement-path planning | Accepted / Merged / Closed | PR #77; protected squash merge completed; audit Accepted |
+| 12 | SPR-02 implementation | Planned — Blocked | implementation gate preparation/direct audit, then explicit implementation authorization |
+| 13 | DCA-01 controlled external proof | Blocked External by SPR-02 | terminal Accepted SPR-02 implementation plus separate DCA-01 authorization |
 | 14 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
 | 15 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
 | 16 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
@@ -114,7 +114,11 @@ CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER = revoked_and_removed
 
 SPR02_PLANNING_BASELINE_MAIN = 9d7e81a519a16c7365db177dcbd8748df4c84708
 SPR02_PLANNING_BRANCH = agent/spr-02-managed-secret-provisioning-replacement-planning
-SPR02_PLANNING_STATE = Ready for External Audit
+SPR02_PLANNING_PR = 77
+SPR02_PLANNING_HEAD = 61f7368266052ca21ae8dbb2b98fa6a564b61543
+SPR02_PLANNING_MERGE_SHA = ae1e8fdf344ca6757b0aef15edbeda65ea0d42f5
+SPR02_PLANNING_AUDIT = Accepted
+SPR02_PLANNING_STATE = Accepted / Merged / Closed
 SPR02_SELECTED_STRATEGY = Strategy A
 SPR02_SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
 SPR02_IMPLEMENTATION_AUTHORIZED = false
@@ -127,7 +131,7 @@ BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = direct SPR-02 planning audit only
+NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -196,11 +200,11 @@ DCA-01 exact-build Worker Runtime Preflight
 → terminal post-correction documentation reconciliation = completed
 → SPR-01 managed secret provisioning planning = Accepted / Merged / Closed; PR #75
 → SPR-01 implementation = Rejected; 2/2 implementation prompts consumed; zero files changed
-→ SPR-02 replacement-path planning = Ready for External Audit
-→ protected SPR-02 planning merge only after direct Accepted audit
+→ SPR-02 replacement-path planning = Accepted / Merged / Closed; PR #77
+→ SPR-02 implementation gate preparation/direct audit = current authorized workstream
 → SPR-02 implementation only after separate authorization
 → inactive secret-bearing Worker version with replacement bridge disablement and temporary token revocation
-→ DCA-01 controlled external proof only after terminal Accepted SPR-02 and separate authorization
+→ DCA-01 controlled external proof only after terminal Accepted SPR-02 implementation and separate authorization
 → no automatic successor
 ```
 
@@ -348,16 +352,18 @@ CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER
 
 It is never a target Worker binding and is not created by this planning execution.
 
+The SPR-02 Impact Analysis and Execution Envelope remain exact pre-merge planning snapshots and may retain `Ready for External Audit`. Current terminal planning authority is this execution map plus `ROADMAP_ARCHITECTURAL.md`, which record PR #77 as Accepted / Merged / Closed.
+
 ## Governance
 
 - GitHub `main` audited state is the final technical authority.
-- SPR-02 planning is documentation-only.
-- No runtime implementation, Worker, route, Cron, DNS, fallback origin, Custom Hostname or managed migration is created by planning.
+- SPR-02 planning is terminally Accepted / Merged / Closed through PR #77.
+- No runtime implementation, Worker, route, Cron, DNS, fallback origin, Custom Hostname or managed migration is created by planning or its post-merge reconciliation.
 - Account ID, Worker ID, source version ID and Git identifiers are transport/pinning data and must be revalidated server-side before mutation.
 - Runtime and temporary provisioning credentials remain distinct and secret.
 - No secret value is valid audit evidence.
 - A green source-level test without compiled/runtime proof is insufficient.
-- SPR-02 acceptance does not automatically authorize DCA-01 external proof or BCA-01.
+- SPR-02 planning acceptance does not automatically authorize SPR-02 implementation, DCA-01 external proof or BCA-01.
 - No successor starts automatically.
 
 ## Historical authority
@@ -391,7 +397,7 @@ DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
 DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
 DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-NEXT_STAGE_AUTHORIZED = direct SPR-02 planning audit only
+NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
@@ -419,7 +425,7 @@ FALLBACK_ORIGIN_CONFIGURED = false
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 BCA01_STARTED = false
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = direct SPR-02 planning audit only
+NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
 AUTO_MERGE_ENABLED = false
 ```
 
@@ -469,8 +475,30 @@ BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = direct SPR-02 planning audit only
+NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-SPR-01 planning remains terminally Accepted / Merged / Closed through PR #75; its implementation is terminally Rejected. SPR-02 replacement-path planning is the current workstream and is Ready for External Audit. Runtime implementation, managed migration, provider mutation and DCA-01 controlled external proof remain unstarted.
+## SPR-02 protected planning merge reconciliation
+
+```text
+SPR02_PLANNING_BASELINE_MAIN = 9d7e81a519a16c7365db177dcbd8748df4c84708
+SPR02_PLANNING_PR = 77
+SPR02_PLANNING_HEAD = 61f7368266052ca21ae8dbb2b98fa6a564b61543
+SPR02_PLANNING_MERGE_SHA = ae1e8fdf344ca6757b0aef15edbeda65ea0d42f5
+SPR02_PLANNING_AUDIT = Accepted
+SPR02_PLANNING_STATE = Accepted / Merged / Closed
+SPR02_SELECTED_STRATEGY = Strategy A
+SPR02_SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
+SPR02_IMPLEMENTATION_AUTHORIZED = false
+SPR02_IMPLEMENTATION_STARTED = false
+SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+SPR-01 planning remains terminally Accepted / Merged / Closed through PR #75; its implementation remains terminally Rejected. SPR-02 planning is terminally Accepted / Merged / Closed through PR #77. Runtime implementation, managed migration, provider mutation and DCA-01 controlled external proof remain unstarted.
