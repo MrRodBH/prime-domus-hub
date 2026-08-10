@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted / Merged / Closed; PR #70 merged**
+**Accepted / Merged / Closed; principal implementation PR #70 and redirected-Wrangler correction PR #72 merged**
 
 ```text
 STAGE_ID = WRI-01
@@ -14,6 +14,14 @@ IMPLEMENTATION_CODE_HEAD = cba0d1756d596c44b993b95e8288ea4474b326a0
 IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
 IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
 POST_MERGE_RECONCILIATION = completed
+PRIOR_POST_MERGE_RECONCILIATION_PR = 71
+PRIOR_POST_MERGE_RECONCILIATION_SHA = 7d24bc22346a664b846c8345ffe172d73f52f11b
+CORRECTION_STATE = Accepted / Merged / Closed
+CORRECTION_PR = 72
+CORRECTION_HEAD = 61893694c00ceb846d3de3e0cf6862c94dc386a4
+CORRECTION_MERGE_SHA = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+CORRECTION_AUDIT = Accepted
+POST_CORRECTION_RECONCILIATION = completed
 IMPLEMENTATION_STATE = Accepted / Merged / Closed
 IMPLEMENTATION_AUDIT = Accepted
 PR_OPEN = false
@@ -38,7 +46,8 @@ The implementation preserves:
 - exactly one request-scoped runtime-context bridge;
 - exactly one `cloudflare:scheduled` consumer;
 - one versioned Wrangler authority;
-- empty root and homologation `routes` arrays.
+- empty root and generated redirected-config `routes` arrays;
+- no named Wrangler `env` in either root or generated redirected configuration.
 
 `@cloudflare/vite-plugin`, account ID, zone ID, secret values, second Worker entry, application scheduler route and production route are absent.
 
@@ -88,7 +97,9 @@ FAIL_CLOSED_CONTEXT_REACHABLE = true
 DCA_SCHEDULED_DELEGATE_REACHABLE = true
 CLOUDFLARE_VITE_PLUGIN_ABSENT = true
 ROOT_ROUTES_EMPTY = true
-HOMOLOGATION_ROUTES_EMPTY = true
+ROOT_ENV_ABSENT = true
+GENERATED_ROUTES_EMPTY = true
+GENERATED_ENV_ABSENT = true
 CRON_EXPRESSION_MATCH = true
 ```
 
@@ -175,3 +186,51 @@ AUTO_MERGE_ENABLED = false
 ```
 
 Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This merge and reconciliation authorize no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
+
+## 8. Terminal post-correction evidence
+
+PR #72 preserves the accepted Strategy A runtime and corrects only the redirected Wrangler configuration and root dry-run parity. The PowerShell proof ran on the exact correction merge HEAD in an isolated clone and did not alter the owner's preserved clone or its generated route-tree diagnostic state.
+
+```text
+WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+WRI01_IMPLEMENTATION_PR = 70
+WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
+WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_PR = 71
+WRI01_PRIOR_POST_MERGE_RECONCILIATION_SHA = 7d24bc22346a664b846c8345ffe172d73f52f11b
+WRI01_CORRECTION_STATE = Accepted / Merged / Closed
+WRI01_CORRECTION_PR = 72
+WRI01_CORRECTION_HEAD = 61893694c00ceb846d3de3e0cf6862c94dc386a4
+WRI01_CORRECTION_MERGE_SHA = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_CORRECTION_AUDIT = Accepted
+WRI01_GATE_RUN = 31175025946
+WRI01_GATE_RESULT = success
+RELEASE_GATE_RUN = 31175025588
+RELEASE_GATE_RESULT = success
+PRM2_GATE_RUN = 31176940812
+PRM2_GATE_RESULT = success
+WRI01_LOCAL_POWERSHELL_PROOF = PASS
+WRI01_LOCAL_PROOF_HEAD = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
+WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
+WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
+WRI01_POST_CORRECTION_RECONCILIATION = completed
+DEPLOY_EXECUTED = false
+MANAGED_MIGRATION_EXECUTED = false
+DNS_MUTATION_EXECUTED = false
+CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
+CRON_TRIGGER_CREATED = false
+CUSTOM_HOSTNAME_CREATED = false
+FALLBACK_ORIGIN_CONFIGURED = false
+SSL_PROVISIONING_EXECUTED = false
+PRODUCTION_CUTOVER_EXECUTED = false
+AUTO_MERGE_ENABLED = false
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = none
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+WRI-01 is terminally reconciled. DCA-01 Controlled External Proof remains unstarted; its first controlled `workers.dev` proof requires separate authorization.
