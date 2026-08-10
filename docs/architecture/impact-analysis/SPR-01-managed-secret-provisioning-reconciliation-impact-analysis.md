@@ -167,7 +167,7 @@ deployed_on = null
 
 6. upload one complete source version with `wrangler versions upload` against the temporary configuration, containing no runtime secrets and no deployment request;
 7. prove that no deployment, workers.dev URL, Preview URL, zone route or Cron Trigger exists;
-8. record the immutable Worker ID, source version ID, exact Git HEAD, source/configuration digests and sanitized binding inventory.
+18. record the immutable Worker ID, source version ID, exact Git HEAD, source/configuration digests and sanitized binding inventory.
 
 Worker and version creation are external mutations and require future explicit Product Owner authorization. They are not executed by this planning PR.
 
@@ -201,6 +201,23 @@ ONE_TIME_CEREMONY_ID
 ```
 
 No request input may contain a secret value.
+
+The one-time control cannot live only in Edge Function memory. The future implementation must add exactly one dedicated control migration and one durable row contract:
+
+```text
+CONTROL_TABLE = public.spr01_managed_secret_ceremonies
+CONTROL_DATA = sanitized identifiers and state only
+SECRET_OR_TOKEN_VALUES = prohibited
+PRIMARY_KEY = ceremony_id
+STATE = executing | reconciling | completed | failed
+LEASE_EXPIRY = required
+RLS = enabled
+CLIENT_POLICIES = none
+PUBLIC_ANON_AUTHENTICATED_PRIVILEGES = revoked
+SERVICE_ROLE_ACCESS = minimum required select/insert/update
+```
+
+The first provider-mutating invocation must atomically insert the exact server-owned ceremony tuple with state `executing`. A uniqueness conflict, active lease or terminal row is replay/concurrency and must fail before a Cloudflare mutation. After an ambiguous interruption, a later invocation may enter read-only reconciliation only after the lease expires; it may not recreate a version unless non-application is conclusively proven. The row may store version IDs, annotations and sanitized results, never credentials or request bodies.
 
 ### 6.3 Phase C — complete immutable version creation
 
@@ -295,7 +312,7 @@ No SPR-01 operation enables workers.dev, Preview URLs, Cron, DNS, routes, fallba
 ```text
 DOCUMENTATION_AND_GITHUB_PLANNING = ChatGPT GitHub-native
 REPOSITORY_READ_ONLY_AUDIT = ChatGPT GitHub-native
-CLOUDFLARE_RESOURCE_SOURCE_VERSION_AND_AUDIT = separately authorized Cloudflare operator
+CLOUDFLARE_RESOURCE_SOURCE_VERSION_AND_AUDIT = operator covered by the single authorized SPR-01 implementation sequence
 MANAGED_SECRET_BRIDGE_IMPLEMENTATION = Lovable
 SUPABASE_SECRET_ACCESS = Lovable Edge Function only
 PRODUCT_OWNER_SECRET_HANDLING = prohibited for Supabase administrative material
@@ -329,7 +346,7 @@ WORKER_NAME_DRIFT = fail closed
 ACCOUNT_DRIFT = fail closed
 ```
 
-An ambiguous timeout is not retried blindly. The auditor first lists versions, deployments and secret names using the ceremony annotation. A retry is permitted only when non-application is proven.
+The durable control row is the local exclusion authority; Cloudflare version annotations are the remote reconciliation authority. An ambiguous timeout is not retried blindly. After lease expiry, the auditor first transitions the row to `reconciling`, lists versions, deployments and secret names using the ceremony annotation, and records the sanitized classification. A retry is permitted only when non-application is conclusively proven and the row is atomically returned to an executable state.
 
 ## 10. Logging and response contract
 
@@ -398,6 +415,7 @@ The later implementation may alter only a tightly bounded bridge and its evidenc
 ```text
 supabase/functions/spr-01-managed-secret-provisioner/index.ts
 supabase/config.toml only if an explicit function-level auth declaration is required
+supabase/migrations/*_spr01_managed_secret_ceremony_control.sql — exactly one dedicated migration
 run-spr-01-managed-secret-provisioning-specs.ts
 package.json only for the deterministic SPR-01 test command
 
@@ -412,7 +430,7 @@ docs/architecture/governance/DCA-01-domain-cloudflare-activation-execution-envel
 docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/dca-01-implementation-execution.md
 ```
 
-No migration, schema, RLS, grant, tenant resolver, domain state machine, Worker application code, `wrangler.jsonc`, frontend route or production setting belongs to the bridge implementation.
+No migration, schema, RLS or grant belongs to the bridge implementation except the single dedicated ceremony-control migration defined above. It may create only the control table, constraints, indexes and minimum grants needed for atomic exclusion and sanitized state; it must not create a tenant authority, policy, domain state machine or reusable generic job framework. Tenant resolver, Worker application code, `wrangler.jsonc`, frontend route and production settings remain out of scope.
 
 ## 14. Required deterministic tests
 
@@ -423,8 +441,9 @@ The future principal implementation must prove at least:
 3. exact account, Worker and source-version IDs and digests are required;
 4. non-Super-Admin invocation fails;
 5. missing/expired ceremony fails;
-6. replay and concurrency fail;
-7. one synthetic canary proves version-only semantics before real-secret transmission;
+6. the dedicated control migration enables RLS, creates no client policy, revokes `PUBLIC`/`anon`/`authenticated`, grants only minimum `service_role` access and stores no secret-bearing column;
+7. atomic first claim succeeds once, concurrent/replayed claims fail before provider access, and expired-lease recovery is read-only until conclusively reconciled;
+8. one synthetic canary proves version-only semantics before real-secret transmission;
 8. all three real secrets and the complete non-secret binding inventory are sent in one version-create request and the canary is absent from the final version;
 9. no legacy script-secret or sequential real-secret endpoint is referenced;
 10. request, response, exception and logs are redacted;
@@ -438,7 +457,7 @@ The future principal implementation must prove at least:
 
 ## 15. Definition of Done
 
-SPR-01 may become terminally Accepted only when a separately authorized implementation proves:
+SPR-01 may become terminally Accepted only when one explicitly authorized end-to-end implementation sequence proves:
 
 ```text
 SAME_BACKEND_HOMOLOGATION_CELL_PRESERVED = true
@@ -449,6 +468,8 @@ WORKER_PUBLIC_INGRESS = false
 WORKER_SCHEDULED_INGRESS = false
 COMPLETE_SECRET_VERSION_CREATION = true
 SEMANTIC_CANARY_PASSED = true
+DURABLE_CEREMONY_CONTROL = passed
+ATOMIC_CLAIM_AND_REPLAY_DENIAL = passed
 REAL_SECRET_VERSION_CREATE_REQUEST_COUNT = 1
 REQUIRED_SECRET_NAMES = exact set of 3
 SECRET_VALUES_EXPOSED = false
