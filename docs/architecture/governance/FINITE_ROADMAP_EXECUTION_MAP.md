@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 implementation and redirected-Wrangler correction Accepted / Merged / Closed; PRs #70 and #72 merged
+**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Ready for External Audit
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 **Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
@@ -20,15 +20,17 @@
 | 6 | DCA-01 Worker Runtime Preflight | Rejected | WRI-01 planning and correction |
 | 7 | WRI-01 planning | Accepted / Merged / Closed | no automatic successor |
 | 8 | WRI-01 implementation and redirected-Wrangler correction | Accepted / Merged / Closed | no automatic successor |
-| 9 | DCA-01 controlled external proof | Blocked | safe external prerequisites plus separate authorization |
-| 10 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
-| 11 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
-| 12 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
-| 13 | TH-M1 | Blocked by Release Candidate | internal UAT |
-| 14 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
-| 15 | LSV-03 | Planned — Blocked by TH-M2 | controlled Same-Backend validation |
-| 16 | Formal Homologation | Blocked by LSV-03 | explicit authorization |
-| 17 | Production | Blocked by Formal Homologation | explicit production decision |
+| 9 | SPR-01 managed secret provisioning planning | Ready for External Audit | direct audit, protected planning merge and separate implementation authorization |
+| 10 | SPR-01 implementation | Planned — Blocked | Accepted planning merge plus explicit authorization |
+| 11 | DCA-01 controlled external proof | Blocked External by SPR-01 | terminal SPR-01 plus separate DCA-01 authorization |
+| 12 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
+| 13 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
+| 14 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
+| 15 | TH-M1 | Blocked by Release Candidate | internal UAT |
+| 16 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
+| 17 | LSV-03 | Planned — Blocked by TH-M2 | controlled Same-Backend validation |
+| 18 | Formal Homologation | Blocked by LSV-03 | explicit authorization |
+| 19 | Production | Blocked by Formal Homologation | explicit production decision |
 
 ## Current factual state
 
@@ -42,9 +44,10 @@ DCA01_IMPLEMENTATION_PR = 65
 DCA01_IMPLEMENTATION_MERGE_SHA = e807b76f4428dd34fbdb01a9e547a8dd8c90f68b
 DCA01_PREMERGE_AUDIT = Accepted
 
-DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
+DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
+DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
 
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
@@ -87,12 +90,21 @@ WRI01_LOCAL_PROOF_HEAD = 2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a
 WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
 WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
 
+SPR01_PLANNING_BASELINE_MAIN = cc45ec8c334bdea3965830426992a705271b1103
+SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_SELECTED_STRATEGY = managed two-operator zero-deployment provisioning
+SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_IMPLEMENTATION_AUTHORIZED = false
+SPR01_IMPLEMENTATION_STARTED = false
+SPR01_LOVABLE_MANAGED_BRIDGE_REQUIRED = true
+SPR01_OWNER_SERVICE_ROLE_ACCESS = false
+
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
 DCA01_EXTERNAL_PROOF_STARTED = false
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -159,6 +171,10 @@ DCA-01 exact-build Worker Runtime Preflight
 → post-merge reconciliation = completed
 → redirected Wrangler configuration correction PR #72 = Accepted / Merged / Closed
 → terminal post-correction documentation reconciliation = completed
+→ SPR-01 managed secret provisioning planning = Ready for External Audit
+→ protected SPR-01 planning merge only after direct Accepted audit
+→ Lovable-managed bridge implementation only after separate authorization
+→ inactive secret-bearing Worker version, bridge disablement and token revocation
 → controlled workers.dev proof only after separate authorization
 → controlled zone route and fallback proof only after separate authorization
 → WRI-01 terminal audit
@@ -255,6 +271,24 @@ EXPLICIT_IMPERSONATION_REQUIRED = true
 DCA01_MANAGED_MIGRATION_AUTHORIZED = false
 ```
 
+## SPR-01 custody gate
+
+```text
+OWNER_SUPABASE_DASHBOARD_ACCESS = false
+OWNER_MAY_HANDLE_SUPABASE_SERVICE_ROLE_KEY = false
+SUPABASE_SECRET_CUSTODY = Lovable-managed backend only
+DOCUMENTATION_EXECUTOR = ChatGPT GitHub-native
+FUTURE_BRIDGE_EXECUTOR = Lovable
+TARGET_WORKER = rm-prime-wri01-hml
+TARGET_WORKER_EXISTS_AT_PLANNING = false
+PRIMARY_SECRET_PRIMITIVE = complete inactive Worker version creation after live semantic verification
+SECRET_BEARING_VERSION_DEPLOYED = false
+```
+
+SPR-01 separates undeployed Worker/source-version creation from managed secret provisioning. The one-shot Lovable Edge Function must create a complete synthetic-canary version and then one complete version containing the exact three Worker secrets, prove deployment count remains zero, then become fail-closed through removal of its temporary Cloudflare provisioner secret. The provisioner token must be revoked before acceptance.
+
+No SPR-01 planning or implementation acceptance enables workers.dev, Preview URLs, Cron, DNS, routes, fallback origin or Custom Hostnames. DCA-01 external proof remains separately authorized.
+
 ## Governance
 
 - GitHub `main` audited state is the final technical authority.
@@ -291,7 +325,10 @@ WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
 WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
 WRI01_POST_MERGE_RECONCILIATION = completed
 WRI01_IMPLEMENTATION_AUDIT = Accepted
-DCA01_CURRENT_STATE = Rejected
+DCA01_REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
+DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 NEXT_STAGE_AUTHORIZED = none
 BCA01_STARTED = false
@@ -375,4 +412,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The next workstream remains DCA-01 Controlled External Proof. Its first operation is a separately authorized controlled `workers.dev` proof; this terminal documentation reconciliation neither starts nor authorizes it.
+The next workstream is the direct external audit of SPR-01 planning. No implementation, managed bridge, Worker/source-version creation or DCA-01 external proof starts without the next explicit authorization.

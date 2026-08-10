@@ -235,4 +235,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-WRI-01 is terminally reconciled. DCA-01 Controlled External Proof remains unstarted; its first controlled `workers.dev` proof requires separate authorization.
+WRI-01 is terminally reconciled. SPR-01 managed secret provisioning planning is the next prerequisite workstream. DCA-01 Controlled External Proof remains unstarted and blocked until SPR-01 is terminally Accepted and its first controlled `workers.dev` proof receives separate authorization.

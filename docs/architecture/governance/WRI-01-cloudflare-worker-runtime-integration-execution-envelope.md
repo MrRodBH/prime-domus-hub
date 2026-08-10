@@ -517,9 +517,13 @@ Repository acceptance does not authorize the external Worker deployment or DCA-0
 ## 24. Current state
 
 ```text
-DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
+DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
+DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
+DCA01_REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
+SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
 WRI01_PLANNING_HEAD = 750aa95b24262021a73a3a37e06fdbcc3bd3f196
@@ -537,7 +541,7 @@ WRI01_IMPLEMENTATION_AUDIT = Accepted
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
-NEXT_STAGE_AUTHORIZED = none
+NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
 PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 ```
@@ -555,7 +559,7 @@ WRI01_SELECTED_STRATEGY = Strategy A
 WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
 WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CURRENT_STATE_AT_WRI01_PLANNING = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
 BCA01_STARTED = false
@@ -677,4 +681,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The next workstream is DCA-01 Controlled External Proof, beginning with a controlled `workers.dev` proof only under a separate Product Owner authorization.
+The next workstream is the direct external audit of SPR-01 planning. WRI-01 remains terminally Accepted / Merged / Closed. The DCA-01 controlled `workers.dev` proof remains blocked until SPR-01 is terminally Accepted and separately authorized for handoff.

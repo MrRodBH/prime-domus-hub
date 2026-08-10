@@ -448,7 +448,7 @@ AUTHORITY_SCOPE = historical_planning_snapshot
 SELECTED_STRATEGY = A
 SINGLE_BUILD_AUTHORITY = @lovable.dev/vite-tanstack-config + Nitro cloudflare-module
 SINGLE_DEPLOY_AUTHORITY = versioned wrangler.jsonc
-DCA01_CURRENT_STATE = Rejected
+DCA01_CURRENT_STATE_AT_WRI01_PLANNING = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
@@ -486,7 +486,7 @@ WRI01_SELECTED_STRATEGY = Strategy A
 WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
 WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CURRENT_STATE_AT_WRI01_PLANNING = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
 BCA01_STARTED = false
@@ -614,4 +614,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-DCA-01 Controlled External Proof remains the next workstream, with its controlled `workers.dev` proof blocked pending separate authorization and current Cloudflare prerequisite verification.
+SPR-01 managed secret provisioning planning is the next prerequisite workstream. WRI-01 remains terminally Accepted / Merged / Closed. DCA-01 Controlled External Proof and its controlled `workers.dev` proof remain blocked until SPR-01 is terminally Accepted and a separate Product Owner authorization is issued.

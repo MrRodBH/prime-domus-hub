@@ -731,3 +731,35 @@ NO_AUTOMATIC_SUCCESSOR = true
 ```
 
 This closure does not authorize managed migration, deploy, DNS mutation, provider operations, live proof or production cutover. The controlled external proof requires a separate explicit authorization with all safety prerequisites.
+
+## 28. SPR-01 secret-custody prerequisite
+
+The post-WRI-01 authority separates the historical runtime-preflight result from the current DCA-01 scopes:
+
+```text
+DCA01_REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
+DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
+DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
+DCA01_EXTERNAL_PROOF_EXECUTABLE = false
+
+SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_IMPLEMENTATION_AUTHORIZED = false
+SPR01_IMPLEMENTATION_STARTED = false
+```
+
+The current external blocker is the absence of an accepted managed secret-provisioning ceremony compatible with:
+
+```text
+OWNER_SUPABASE_DASHBOARD_ACCESS = false
+OWNER_MAY_HANDLE_SUPABASE_SERVICE_ROLE_KEY = false
+SUPABASE_SECRET_CUSTODY = Lovable-managed backend only
+SAME_BACKEND_HOMOLOGATION_CELL = binding
+```
+
+SPR-01 must create an undeployed Worker resource and exact inactive source version, use one one-shot Lovable Edge Function to create a complete synthetic-canary version and then one complete version containing the exact three required Worker secrets, prove deployment count remains zero, then remove the temporary provisioner secret, prove the bridge capability is disabled and revoke the token before acceptance.
+
+SPR-01 does not apply the DCA-01 migration, invoke the scheduled executor, create a domain row, enable workers.dev, create a Cron Trigger, mutate DNS/routes, configure a fallback origin or create a Custom Hostname.
+
+The DCA-01 controlled external proof may resume only after SPR-01 becomes terminally Accepted and the Product Owner issues a new explicit DCA-01 proof authorization.

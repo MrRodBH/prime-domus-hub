@@ -13,9 +13,10 @@ PREMERGE_AUDIT = Accepted
 REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 
 WORKER_RUNTIME_PREFLIGHT_BASELINE = 9157f1e19e455d20b8272951bed25eb8ddd0572d
-WORKER_RUNTIME_PREFLIGHT = Rejected
+WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
+DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
 
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
@@ -275,9 +276,9 @@ WRI-01 must not create an external Supabase fallback or apply the DCA migration.
 The exact-build preflight discovered an internal compiled-runtime defect. The prior state `Blocked External` is no longer sufficient.
 
 ```text
-DCA01_WORKER_RUNTIME_PREFLIGHT = Rejected
+DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CURRENT_STATE_AT_RUNTIME_PREFLIGHT = Rejected
 NEXT_RECOVERY_GATE = WRI-01
 ```
 
@@ -301,7 +302,7 @@ WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
 WRI01_IMPLEMENTATION_MERGE_SHA = 81bfd7ba821187861dd1e183ac1c99198afdd43e
 WRI01_POST_MERGE_RECONCILIATION = completed
 WRI01_IMPLEMENTATION_AUDIT = Accepted
-LOVABLE_IMPLEMENTATION_AUTHORIZED = false
+WRI01_LOVABLE_IMPLEMENTATION_AUTHORIZED = false
 WORKER_DEPLOY_AUTHORIZED = false
 DNS_MUTATION_AUTHORIZED = false
 CLOUDFLARE_ROUTE_MUTATION_AUTHORIZED = false
@@ -328,7 +329,7 @@ WRI01_SELECTED_STRATEGY = Strategy A
 WRI01_IMPLEMENTATION_STATE = Planned — Blocked pending explicit Product Owner authorization
 WRI01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_IMPLEMENTATION_STARTED = false
-DCA01_CURRENT_STATE = Rejected
+DCA01_CURRENT_STATE_AT_WRI01_PLANNING = Rejected
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 NEXT_STAGE_AUTHORIZED = none without explicit Product Owner authorization
 BCA01_STARTED = false
@@ -433,4 +434,29 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The next DCA-01 operation is the controlled `workers.dev` proof. It remains unstarted and requires a separate Product Owner authorization after direct Cloudflare prerequisite confirmation.
+The next DCA-01 external operation remains blocked by SPR-01 managed secret provisioning. No controlled `workers.dev` proof can start until SPR-01 is terminally Accepted and the Product Owner issues a separate DCA-01 proof authorization.
+
+## 19. SPR-01 custody-gap discovery and planning handoff
+
+The aborted Owner-operated deployment attempt exposed a missing operational contract without accessing or disclosing any Supabase administrative material.
+
+```text
+OWNER_SUPABASE_DASHBOARD_ACCESS = false
+OWNER_MAY_HANDLE_SUPABASE_SERVICE_ROLE_KEY = false
+SUPABASE_SECRET_CUSTODY = Lovable-managed backend only
+TARGET_WORKER_EXISTS = false
+DEPLOY_EXECUTED = false
+SECRET_ACCESSED = false
+SECRET_EXPOSED = false
+
+SPR01_PLANNING_BASELINE_MAIN = cc45ec8c334bdea3965830426992a705271b1103
+SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_SELECTED_STRATEGY = managed two-operator zero-deployment provisioning
+SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_IMPLEMENTATION_AUTHORIZED = false
+SPR01_IMPLEMENTATION_STARTED = false
+```
+
+SPR-01 preserves WRI-01 as `Accepted / Merged / Closed` and does not reclassify the accepted DCA-01 repository implementation. The old Worker Runtime Preflight remains historical `Rejected` evidence; its compiled-runtime defect was resolved by WRI-01. The current DCA-01 controlled external proof is `Blocked External` pending a safe secret-provisioning ceremony.
+
+The selected path requires an undeployed Cloudflare Worker resource, one exact inactive source version and a one-shot Lovable-managed Edge Function. The function must create a complete synthetic-canary version and then one complete secret-bearing version, leave deployment count at zero, then become fail-closed through removal of its temporary Cloudflare provisioner credential. No secret value may enter this evidence artifact.
