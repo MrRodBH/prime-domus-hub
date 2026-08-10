@@ -1,6 +1,6 @@
 # FINITE ROADMAP EXECUTION MAP — RM Prime SaaS
 
-**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Ready for External Audit
+**Status:** Active governance — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; PR #75 merged
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
 **Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
 **Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
@@ -20,8 +20,8 @@
 | 6 | DCA-01 Worker Runtime Preflight | Rejected | WRI-01 planning and correction |
 | 7 | WRI-01 planning | Accepted / Merged / Closed | no automatic successor |
 | 8 | WRI-01 implementation and redirected-Wrangler correction | Accepted / Merged / Closed | no automatic successor |
-| 9 | SPR-01 managed secret provisioning planning | Ready for External Audit | direct audit, protected planning merge and separate implementation authorization |
-| 10 | SPR-01 implementation | Planned — Blocked | Accepted planning merge plus explicit authorization |
+| 9 | SPR-01 managed secret provisioning planning | Accepted / Merged / Closed | PR #75, audit Accepted, protected squash merge completed |
+| 10 | SPR-01 implementation | Planned — Blocked | one explicit end-to-end Product Owner authorization |
 | 11 | DCA-01 controlled external proof | Blocked External by SPR-01 | terminal SPR-01 plus separate DCA-01 authorization |
 | 12 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
 | 13 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
@@ -91,9 +91,13 @@ WRI01_REDIRECTED_WRANGLER_CONFIG_PROVED = true
 WRI01_ROOT_DRY_RUN_PARITY_PROVED = true
 
 SPR01_PLANNING_BASELINE_MAIN = cc45ec8c334bdea3965830426992a705271b1103
-SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_PLANNING_PR = 75
+SPR01_PLANNING_HEAD = 0d2ad969b3109b6da2b4dd37307b3b8f12a517f7
+SPR01_PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
+SPR01_PLANNING_AUDIT = Accepted
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
 SPR01_SELECTED_STRATEGY = managed two-operator zero-deployment provisioning
-SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_PLANNING_MERGE_AUTHORIZED = true
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 SPR01_IMPLEMENTATION_STARTED = false
 SPR01_LOVABLE_MANAGED_BRIDGE_REQUIRED = true
@@ -104,7 +108,7 @@ BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
 DCA01_EXTERNAL_PROOF_STARTED = false
-NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
+NEXT_STAGE_AUTHORIZED = none beyond SPR-01 planning terminal reconciliation
 NO_AUTOMATIC_SUCCESSOR = true
 
 DEPLOY_EXECUTED = false
@@ -171,8 +175,8 @@ DCA-01 exact-build Worker Runtime Preflight
 → post-merge reconciliation = completed
 → redirected Wrangler configuration correction PR #72 = Accepted / Merged / Closed
 → terminal post-correction documentation reconciliation = completed
-→ SPR-01 managed secret provisioning planning = Ready for External Audit
-→ protected SPR-01 planning merge only after direct Accepted audit
+→ SPR-01 managed secret provisioning planning = Accepted / Merged / Closed; PR #75
+→ protected SPR-01 planning merge = completed by squash at 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
 → Lovable-managed bridge implementation only after separate authorization
 → inactive secret-bearing Worker version, bridge disablement and token revocation
 → controlled workers.dev proof only after separate authorization
@@ -412,4 +416,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The next workstream is the direct external audit of SPR-01 planning. No implementation, managed bridge, Worker/source-version creation or DCA-01 external proof starts without the next explicit authorization.
+SPR-01 planning is terminally Accepted / Merged / Closed through PR #75. The next workstream is SPR-01 implementation, which remains unstarted until one explicit end-to-end authorization. Managed bridge execution, Worker/source-version creation and DCA-01 external proof remain unstarted.

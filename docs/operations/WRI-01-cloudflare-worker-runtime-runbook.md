@@ -207,4 +207,4 @@ NO_AUTOMATIC_SUCCESSOR = true
 
 The local PowerShell proof on the correction merge HEAD passed `bun install --frozen-lockfile`, `bun run build`, `bun run wri01:bundle-audit` and `bun run wri01:dry-run`.
 
-The next workstream is SPR-01 planning audit. After a protected Accepted planning merge, the Lovable-managed bridge implementation plus undeployed Worker/source-version creation still require separate authorization. The DCA-01 controlled `workers.dev` proof remains blocked until SPR-01 is terminally accepted and separately authorized for handoff.
+SPR-01 planning is Accepted / Merged / Closed through PR #75. The Lovable-managed bridge implementation plus undeployed Worker/source-version creation remain unstarted and require one explicit end-to-end SPR-01 authorization. The DCA-01 controlled `workers.dev` proof remains blocked until SPR-01 implementation is terminally Accepted and separately handed off.

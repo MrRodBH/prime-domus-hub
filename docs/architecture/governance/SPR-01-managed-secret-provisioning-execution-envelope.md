@@ -2,7 +2,7 @@
 
 ## Status
 
-**Ready for External Audit — planning-only**
+**Accepted / Merged / Closed — planning-only**
 
 ```text
 STAGE_ID = SPR-01
@@ -11,9 +11,12 @@ STAGE_TYPE = finite_planning_then_controlled_external_security_gate
 BASE_BRANCH = main
 PLANNING_BASELINE_MAIN = cc45ec8c334bdea3965830426992a705271b1103
 PLANNING_BRANCH = agent/spr-01-managed-secret-provisioning-planning
-PLANNING_PR = one draft documentation-only pull request
-PLANNING_STATE = Ready for External Audit
-PLANNING_MERGE_AUTHORIZED = false
+PLANNING_PR = 75
+PLANNING_HEAD = 0d2ad969b3109b6da2b4dd37307b3b8f12a517f7
+PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
+PLANNING_AUDIT = Accepted
+PLANNING_STATE = Accepted / Merged / Closed
+PLANNING_MERGE_AUTHORIZED = true
 IMPLEMENTATION_AUTHORIZED = false
 IMPLEMENTATION_STARTED = false
 AUTO_MERGE = false
@@ -435,17 +438,17 @@ PRM3_STARTED = false
 
 ## 21. State ceiling
 
-This planning PR may reach only:
+The merged planning authority establishes only:
 
 ```text
-SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 SPR01_IMPLEMENTATION_STARTED = false
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
+NEXT_STAGE_AUTHORIZED = none beyond SPR-01 planning terminal reconciliation
 ```
 
-After a protected planning merge and a new Product Owner authorization, the principal implementation may begin. Even a terminally Accepted SPR-01 does not activate the Worker or authorize DCA-01 external proof.
+The protected planning merge is Accepted through PR #75. The principal implementation remains unstarted and may begin only after one explicit end-to-end Product Owner authorization. Even terminal planning acceptance does not activate the Worker or authorize DCA-01 external proof.
 
 ## 22. Planning non-execution record
 
