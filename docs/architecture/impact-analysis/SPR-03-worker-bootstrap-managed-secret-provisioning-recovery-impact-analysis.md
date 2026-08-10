@@ -1,10 +1,10 @@
 # SPR-03 — Worker Bootstrap & Managed Secret Provisioning Recovery Impact Analysis
 
-**Status:** Planning — Ready for Direct GitHub Audit  
-**Stage:** SPR-03  
-**Repository:** `MrRodBH/prime-domus-hub`  
-**Planning baseline:** `main@b430b6cb5033cec66902031394b7cb4406206c81`  
-**Execution model:** ChatGPT GitHub-native for planning/documentation; no Lovable documentation execution  
+**Status:** Planning — Ready for Direct GitHub Audit
+**Stage:** SPR-03
+**Repository:** `MrRodBH/prime-domus-hub`
+**Planning baseline:** `main@b430b6cb5033cec66902031394b7cb4406206c81`
+**Execution model:** ChatGPT GitHub-native for planning/documentation; no Lovable documentation execution
 **Runtime implementation authorized by this document:** false
 
 ## 1. Purpose
