@@ -1,12 +1,12 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
-**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 implementation gate Accepted; implementation Ready for Execution
-**Authority:** Single Source of Future Evolution
-**Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`
-**Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`
-**Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`
-**Implementation merge SHA:** `81bfd7ba821187861dd1e183ac1c99198afdd43e`
-**Audited correction HEAD:** `61893694c00ceb846d3de3e0cf6862c94dc386a4`
+**Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Ready for Direct GitHub Audit  
+**Authority:** Single Source of Future Evolution  
+**Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`  
+**Audited implementation code HEAD:** `cba0d1756d596c44b993b95e8288ea4474b326a0`  
+**Audited final implementation HEAD:** `8d03b1cc4fcf023224fc198f897008905956b5d6`  
+**Implementation merge SHA:** `81bfd7ba821187861dd1e183ac1c99198afdd43e`  
+**Audited correction HEAD:** `61893694c00ceb846d3de3e0cf6862c94dc386a4`  
 **Correction merge SHA:** `2d4074e7aec0f8fb7d9bdedd0a84c813ac8ac29a`
 
 ## Current authority
@@ -31,6 +31,7 @@ DCA01_WORKER_RUNTIME_PREFLIGHT_HISTORICAL = Rejected
 DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
+DCA01_EXTERNAL_PROOF_STARTED = false
 
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
@@ -102,30 +103,48 @@ SPR02_PLANNING_AUDIT = Accepted
 SPR02_PLANNING_STATE = Accepted / Merged / Closed
 SPR02_SELECTED_STRATEGY = Strategy A
 SPR02_SELECTED_PRIMITIVE = authenticated TanStack server route + server-only helper
-SPR02_IMPLEMENTATION_GATE = Accepted
-SPR02_STRATEGY_A_EXECUTABLE = true
-SPR02_EXTERNAL_BLOCKER_RESOLVED = true
-SPR02_TEMPORARY_PROVISIONER_REQUIRED = true
-CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER = owner_confirmed_created_and_stored_in_lovable
-SPR02_PROVISIONER_PERMISSION = Workers Scripts Edit only
-SPR02_PROVISIONER_ACCOUNT_SETTINGS_READ = not_granted
-SPR02_PROVISIONER_ZONE_PERMISSIONS = none
-SPR02_IMPLEMENTATION_AUTHORIZED = true
-SPR02_IMPLEMENTATION_STARTED = false
-SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+SPR02_IMPLEMENTATION_GATE_HISTORICAL = Accepted
+SPR02_PRINCIPAL_IMPLEMENTATION_AUDIT = Rejected
+SPR02_IMPLEMENTATION_STATE = Rejected
+SPR02_IMPLEMENTATION_PRINCIPAL_PROMPT = consumed
+SPR02_IMPLEMENTATION_PROMPT_BUDGET = 1/2 consumed
+SPR02_CONSOLIDATED_CORRECTIVE = unused
+SPR02_CONSOLIDATED_CORRECTIVE_AUTHORIZED = false
+SPR02_CAPABILITY_MISMATCH_EXCEPTION = not_applicable
+SPR02_GITHUB_IMPLEMENTATION_PR = none
+SPR02_GITHUB_IMPLEMENTATION_FILES = 0
+SPR02_CLOUDFLARE_MUTATIONS = 0
+SPR02_SECRET_VALUE_EXPOSED = false
+SPR02_SUPABASE_MUTATION_OCCURRED = true
+SPR02_APPLIED_MIGRATION_RECORD_COUNT = 2
+SPR02_TARGET_WORKER = rm-prime-wri01-hml
+SPR02_TARGET_WORKER_EXISTS = false
+SPR02_TEMPORARY_PROVISIONER_TEARDOWN = pending Owner removal from Lovable Secrets and Cloudflare revocation
+CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER = rejected-stage credential; reuse prohibited
+
+SPR03_PLANNING_BASELINE_MAIN = b430b6cb5033cec66902031394b7cb4406206c81
+SPR03_PLANNING_BRANCH = agent/spr-03-worker-bootstrap-managed-secret-recovery-planning
+SPR03_PLANNING_STATE = Ready for Direct GitHub Audit
+SPR03_SELECTED_STRATEGY = Strategy D
+SPR03_SELECTED_PRIMITIVE = controlled first Wrangler deployment with zero ingress, followed by version-only canary and final secret-bearing inactive version
+SPR03_RESIDUE_STRATEGY = R2 — Forward Historical Parity Materialization
+SPR03_IMPLEMENTATION_AUTHORIZED = false
+SPR03_IMPLEMENTATION_STARTED = false
+SPR03_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+SPR03_THIRD_IMPLEMENTATION_PROMPT = prohibited
 
 BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-DCA01_EXTERNAL_PROOF_STARTED = false
-NEXT_STAGE_AUTHORIZED = SPR-02 principal implementation
+NEXT_STAGE_AUTHORIZED = direct GitHub audit of SPR-03 planning only
 NO_AUTOMATIC_SUCCESSOR = true
 
-DEPLOY_EXECUTED = false
-MANAGED_MIGRATION_EXECUTED = false
+DEPLOY_EXECUTED = false on canonical Cloudflare target as of SPR-03 planning
+SPR02_MANAGED_MIGRATION_RESIDUE_EXECUTED = true outside GitHub main during rejected principal attempt
 DNS_MUTATION_EXECUTED = false
-CLOUDFLARE_API_CALL_EXECUTED = false
+CLOUDFLARE_PROVIDER_MUTATION_EXECUTED = false
+CLOUDFLARE_READ_ONLY_API_CHECKS_EXECUTED = true
 CLOUDFLARE_ROUTE_MUTATION_EXECUTED = false
 CRON_TRIGGER_CREATED = false
 CUSTOM_HOSTNAME_CREATED = false
@@ -295,12 +314,17 @@ PR-M2 — Accepted / Merged / Closed
 → SPR-01 managed secret provisioning planning — Accepted / Merged / Closed; PR #75
 → SPR-01 implementation — Rejected; implementation budget 2/2 consumed; zero files changed
 → SPR-02 Managed Secret Provisioning Replacement Path Planning — Accepted / Merged / Closed; PR #77
-→ SPR-02 implementation capability gate — Accepted; Strategy A executable; external token blocker resolved
-→ SPR-02 principal implementation — current authorized workstream
-→ inactive secret-bearing Worker version with bridge disablement and temporary token revocation
-→ controlled workers.dev proof only after separate external authorization
-→ controlled zone route/fallback proof only after prerequisite authorization
-→ DCA-01 external proof only after terminal SPR-02 acceptance and separate DCA-01 authorization
+→ SPR-02 implementation capability gate — historical Accepted
+→ SPR-02 principal implementation — Rejected; principal consumed; zero GitHub implementation files; Supabase residue preserved; zero Cloudflare mutation
+→ SPR-03 Worker Bootstrap & Managed Secret Provisioning Recovery Planning — current planning workstream
+→ direct exact-head planning audit
+→ protected planning merge only if Accepted
+→ separate SPR-03 implementation capability gate
+→ SPR-03 implementation only after explicit gate acceptance
+→ controlled first synthetic Worker deployment with zero public/scheduled ingress
+→ inactive canary and final secret-bearing Versions
+→ temporary provisioner teardown
+→ DCA-01 external proof only after terminal SPR-03 acceptance and separate authorization
 → no automatic successor
 → BCA-01 only after DCA-01 Accepted and explicit authorization
 → PR-M3 only after BCA-01 Accepted
@@ -328,15 +352,15 @@ GitHub exact source artifact
 → bridge capability disablement and provisioner-token revocation
 ```
 
-The Cloudflare zero-deployment versioning safety contract remains useful evidence. The Edge Function transfer primitive is no longer executable under the active Lovable executor policy for this TanStack Start project, and the SPR-01 implementation is terminally `Rejected` after consuming its principal and consolidated corrective prompts with zero repository files changed.
+The Edge Function transfer primitive became non-executable under the active Lovable executor policy for this TanStack Start project, and the SPR-01 implementation is terminally `Rejected` after consuming its principal and consolidated corrective prompts with zero repository files changed.
 
-The temporary `CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER` has been revoked at Cloudflare and removed from the current Lovable Secrets store. It is not available to SPR-02 and must not be reused.
+The temporary `CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER` was revoked at Cloudflare and removed from Lovable Secrets. It must not be reused.
 
-SPR-02 is the new finite replacement authority. It preserves the same-backend custody rule and the target Worker zero-deployment constraint while replacing only the rejected secret-transfer executor.
+The earlier assumption that the absent Worker resource could begin with an undeployed Version is now superseded by SPR-03 planning after direct verification of current Cloudflare first-upload semantics.
 
-## SPR-02 managed secret provisioning replacement authority
+## SPR-02 historical replacement authority and terminal implementation audit
 
-SPR-02 selects one architecture:
+SPR-02 planning selected:
 
 ```text
 SPR02_SELECTED_STRATEGY = Strategy A
@@ -349,24 +373,74 @@ SECOND_APPLICATION_RUNTIME = prohibited
 EXTERNAL_SUPABASE_FALLBACK = prohibited
 ```
 
-The audited repository already has server-only `SUPABASE_SERVICE_ROLE_KEY` access, Bearer-authenticated TanStack server middleware, exact global Super Admin checks and a single TanStack/Nitro server entry. Project-specific read-only Lovable capability inspection additionally confirmed that the managed runtime exposes unprefixed Lovable Secrets to the same server boundary and that the executor policy does not prohibit TanStack server-route implementation.
+SPR-02 planning remains Accepted / Merged / Closed. Its implementation capability gate is preserved as a historical snapshot of the server-route/executor capability that was proven at the time.
 
-The SPR-02 implementation gate has now established that Strategy A is executable in this exact project. The only external blocker identified by the gate was the absence of a Workers Scripts provisioning credential. The Owner subsequently created and stored `CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER` in Lovable with `Workers Scripts: Edit`, no `Account Settings: Read`, and no Zone permissions. The implementation must still verify presence and fail closed before any provider call; no secret value is audit evidence.
+The principal implementation is terminally Rejected because direct audit found independent implementation defects, including:
 
-The SPR-02 implementation must keep the request transport non-authoritative, reject tenant authority inputs, perform all authentication and global Super Admin authorization server-side, use one sanitized durable ceremony claim with replay/lease controls, prove a synthetic version-only canary, create at most one final real-secret inactive Worker version, and keep target Worker deployment count at zero.
+- no GitHub implementation PR/branch materialized as required;
+- repository scope drift in the Lovable workspace;
+- two durable Supabase migration-history records instead of the planned single migration;
+- no canary mutation implementation;
+- no final secret-bearing Version mutation implementation;
+- unreachable `completed` path;
+- semantic gate weaker than the frozen official-contract requirement.
 
-The temporary provisioning credential is stage-specific, stored only in the managed server secret store, never a Worker binding, and must be removed after the ceremony and revoked before terminal acceptance. The existing `CLOUDFLARE_API_TOKEN_DCA01_HML` remains one of the three final Worker bindings and is not provisioning authority.
+The implementation stopped before Cloudflare mutation, so no Worker, Version or deployment exists. The Supabase residue is preserved fail-closed and must not be hidden or manually removed from migration history.
 
-Planning artifacts:
+The old `TARGET_WORKER_DEPLOYMENT_COUNT = 0 from resource birth` assumption is superseded only by the SPR-03 selected bootstrap strategy. No other SPR-02 security invariant is revived as implementation authority.
+
+Historical planning artifacts remain:
 
 ```text
 docs/architecture/impact-analysis/SPR-02-managed-secret-provisioning-replacement-path-impact-analysis.md
 docs/architecture/governance/SPR-02-managed-secret-provisioning-replacement-execution-envelope.md
 ```
 
-Those two planning artifacts preserve the exact pre-merge submission snapshot and may continue to state `Ready for External Audit`. Current terminal planning and execution-gate authority is established by this roadmap and `FINITE_ROADMAP_EXECUTION_MAP.md`.
+## SPR-03 worker bootstrap and managed secret recovery authority
 
-SPR-02 planning itself authorized no runtime implementation, migration, provider mutation, Worker deployment, DCA-01 external proof, BCA-01 or PR-M3. Runtime implementation is authorized only by the later accepted implementation gate reconciliation recorded below.
+SPR-03 planning compares the current Cloudflare first-upload lifecycle and selects exactly one recovery architecture:
+
+```text
+SPR03_SELECTED_STRATEGY = Strategy D
+SPR03_SELECTED_PRIMITIVE = controlled first Wrangler deployment with zero ingress, followed by version-only canary and final secret-bearing inactive version
+SPR03_RESIDUE_STRATEGY = R2 — Forward Historical Parity Materialization
+TARGET_WORKER = rm-prime-wri01-hml
+DEPLOY_AUTHORITY = versioned wrangler.jsonc only
+APPLICATION_RUNTIME_AUTHORITY = existing TanStack Start / Nitro runtime only
+SECOND_DEPLOY_AUTHORITY = prohibited
+SECOND_APPLICATION_RUNTIME = prohibited
+EXTERNAL_SUPABASE_FALLBACK = prohibited
+```
+
+Current official Cloudflare semantics establish that `wrangler versions upload` / the Version API can upload a new Version without deployment only after the Worker resource exists; the first Worker creation requires the initial deployment lifecycle. Cloudflare also documents `workers_dev = false`, explicit `preview_urls = false`, and route-free configuration as mechanisms for keeping Internet HTTP ingress absent.
+
+The current `wrangler.jsonc` is not bootstrap-safe because it has `workers_dev: true` and Cron `*/5 * * * *`. A future SPR-03 implementation may change only activation-facing settings necessary to make the first deployment safe while preserving WRI-01 build/runtime authority.
+
+The selected pre-DCA bootstrap invariant is:
+
+```text
+BOOTSTRAP_DEPLOYMENT_COUNT = exactly 1 after bootstrap
+BOOTSTRAP_DEPLOYED_VERSION_SECRET_COUNT = 0
+WORKERS_DEV_ENABLED = false
+PREVIEW_URLS_ENABLED = false
+CUSTOM_ROUTE_COUNT = 0
+CRON_COUNT = 0
+PUBLIC_HTTP_INGRESS = 0
+SCHEDULED_INGRESS = 0
+FINAL_SECRET_VERSION_DEPLOYED = false
+DCA01_EXTERNAL_PROOF_STARTED = false
+```
+
+The safe SPR-02 Supabase residue is preserved. Before any future database migration, repository parity must represent both already-applied migration records without manual migration-ledger mutation or replay.
+
+Planning artifacts:
+
+```text
+docs/architecture/impact-analysis/SPR-03-worker-bootstrap-managed-secret-provisioning-recovery-impact-analysis.md
+docs/architecture/governance/SPR-03-worker-bootstrap-managed-secret-provisioning-recovery-execution-envelope.md
+```
+
+SPR-03 planning does not authorize implementation, deploy, database mutation, Worker Version upload, DNS, route, Cron, fallback origin, Custom Hostname, DCA-01 external proof, BCA-01 or PR-M3.
 
 ## Permanent invariants
 
@@ -413,6 +487,7 @@ NO_AUTOMATIC_SUCCESSOR = true
 ## Protected exact-head merge and post-merge reconciliation
 
 ```text
+AUTHORITY_SCOPE = historical_wri01_merge_snapshot
 WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_PR = 70
 WRI01_IMPLEMENTATION_HEAD = 8d03b1cc4fcf023224fc198f897008905956b5d6
@@ -435,11 +510,12 @@ NEXT_STAGE_AUTHORIZED = none
 AUTO_MERGE_ENABLED = false
 ```
 
-Custom Hostname and Fallback Origin remain unproved and unconfigured. The last canonical provider observation remains `Pending Deployment (Error)`. This merge and reconciliation authorize no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
+Custom Hostname and Fallback Origin remain unproved and unconfigured. This historical WRI-01 merge snapshot authorized no deploy, managed migration, DNS, Worker Route, remote Cron Trigger, provider API operation, DCA-01 external proof, BCA-01 or PR-M3.
 
 ## WRI-01 terminal post-correction authority
 
 ```text
+AUTHORITY_SCOPE = historical_wri01_post_correction_snapshot
 WRI01_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 WRI01_IMPLEMENTATION_PR = 70
@@ -481,7 +557,7 @@ BCA01_STATE = Planned — Blocked by DCA-01
 BCA01_STARTED = false
 PRM3_STATE = Planned — Blocked by BCA-01
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
+NEXT_STAGE_AUTHORIZED = historical only
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
@@ -504,35 +580,78 @@ DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
 DCA01_EXTERNAL_PROOF_STARTED = false
 BCA01_STARTED = false
 PRM3_STARTED = false
-NEXT_STAGE_AUTHORIZED = SPR-02 implementation gate preparation and direct audit only
+NEXT_STAGE_AUTHORIZED = historical SPR-02 capability gate only
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
 ## SPR-02 implementation gate reconciliation
 
 ```text
-AUTHORITY_SCOPE = current_execution_gate
+AUTHORITY_SCOPE = historical_execution_gate
 SPR02_IMPLEMENTATION_GATE_BASELINE = d0f120d9ffad018a9d1d944cf34e3266c8ca5c71
 SPR02_IMPLEMENTATION_GATE = Accepted
-SPR02_STRATEGY_A_EXECUTABLE = true
+SPR02_STRATEGY_A_EXECUTABLE = true for server-route primitive only
 SPR02_RUNTIME_PRIMITIVE_AVAILABLE = true
 SPR02_REQUIRED_SERVER_ENV_AVAILABLE = true
 SPR02_SECOND_RUNTIME_REQUIRED = false
 SPR02_CAPABILITY_MISMATCH_EXCEPTION_USED = false
-SPR02_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+SPR02_IMPLEMENTATION_PROMPT_BUDGET_AT_GATE = 0/2 consumed
 SPR02_TEMPORARY_PROVISIONER_REQUIRED = true
-CLOUDFLARE_API_TOKEN_SPR02_PROVISIONER = owner_confirmed_created_and_stored_in_lovable
 SPR02_PROVISIONER_PERMISSION = Workers Scripts Edit only
 SPR02_PROVISIONER_ACCOUNT_SETTINGS_READ = not_granted
 SPR02_PROVISIONER_ZONE_PERMISSIONS = none
-SPR02_EXTERNAL_BLOCKER_RESOLVED = true
-SPR02_IMPLEMENTATION_AUTHORIZED = true
-SPR02_IMPLEMENTATION_STARTED = false
-NEXT_STAGE_AUTHORIZED = SPR-02 principal implementation
-DCA01_EXTERNAL_PROOF_STARTED = false
-BCA01_STARTED = false
-PRM3_STARTED = false
+SPR02_IMPLEMENTATION_AUTHORIZED_AT_GATE = true
+SPR02_IMPLEMENTATION_STARTED_AT_GATE = false
+NEXT_STAGE_AUTHORIZED_AT_GATE = SPR-02 principal implementation
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The principal SPR-02 implementation is the only current authorized runtime workstream. It must perform an initial fail-closed presence/capability check for the temporary provisioner secret without logging or returning its value. DCA-01 controlled external proof, BCA-01 and PR-M3 remain blocked until the required predecessor gates are terminally accepted.
+This gate remains historical evidence only. It did not prove that a first version-only upload could create an absent Worker resource.
+
+## SPR-02 principal implementation terminal audit
+
+```text
+AUTHORITY_SCOPE = terminal_spr02_implementation_audit
+SPR02_PRINCIPAL_IMPLEMENTATION_AUDIT = Rejected
+SPR02_IMPLEMENTATION_STATE = Rejected
+SPR02_IMPLEMENTATION_PRINCIPAL_PROMPT = consumed
+SPR02_IMPLEMENTATION_PROMPT_BUDGET = 1/2 consumed
+SPR02_CONSOLIDATED_CORRECTIVE = unused
+SPR02_CONSOLIDATED_CORRECTIVE_AUTHORIZED = false
+SPR02_CAPABILITY_MISMATCH_EXCEPTION = not_applicable
+SPR02_GITHUB_IMPLEMENTATION_PR = none
+SPR02_GITHUB_IMPLEMENTATION_FILES = 0
+SPR02_CLOUDFLARE_MUTATIONS = 0
+SPR02_SECRET_VALUE_EXPOSED = false
+SPR02_SUPABASE_MUTATION_OCCURRED = true
+SPR02_APPLIED_MIGRATION_RECORD_COUNT = 2
+SPR02_TARGET_WORKER_EXISTS = false
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = SPR-03 planning only
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+## SPR-03 planning authority
+
+```text
+AUTHORITY_SCOPE = current_spr03_planning
+SPR03_PLANNING_BASELINE_MAIN = b430b6cb5033cec66902031394b7cb4406206c81
+SPR03_PLANNING_BRANCH = agent/spr-03-worker-bootstrap-managed-secret-recovery-planning
+SPR03_PLANNING_STATE = Ready for Direct GitHub Audit
+SPR03_SELECTED_STRATEGY = Strategy D
+SPR03_SELECTED_PRIMITIVE = controlled first Wrangler deployment with zero ingress, followed by version-only canary and final secret-bearing inactive version
+SPR03_RESIDUE_STRATEGY = R2 — Forward Historical Parity Materialization
+SPR03_IMPLEMENTATION_AUTHORIZED = false
+SPR03_IMPLEMENTATION_STARTED = false
+SPR03_IMPLEMENTATION_PROMPT_BUDGET = 0/2 consumed
+SPR03_THIRD_IMPLEMENTATION_PROMPT = prohibited
+DCA01_EXTERNAL_PROOF_STARTED = false
+BCA01_STARTED = false
+PRM3_STARTED = false
+NEXT_STAGE_AUTHORIZED = direct GitHub audit of SPR-03 planning only
+NO_AUTOMATIC_SUCCESSOR = true
+```
+
+The SPR-03 planning branch is documentation-only. No runtime implementation, database mutation, Cloudflare mutation, deploy, Worker Version upload, route, Cron, DNS, fallback origin, Custom Hostname, DCA-01 external proof, BCA-01 or PR-M3 is authorized by this planning state.
