@@ -522,7 +522,11 @@ DCA01_RUNTIME_DEFECT_RESOLUTION = WRI-01 Accepted / Merged / Closed
 DCA01_REPOSITORY_IMPLEMENTATION_STATE = Accepted / Merged / Closed
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
 DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
-SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
+SPR01_PLANNING_PR = 75
+SPR01_PLANNING_HEAD = 0d2ad969b3109b6da2b4dd37307b3b8f12a517f7
+SPR01_PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
+SPR01_PLANNING_AUDIT = Accepted
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 WRI01_PLANNING_STATE = Accepted / Merged / Closed
 WRI01_PLANNING_PR = 68
@@ -541,7 +545,7 @@ WRI01_IMPLEMENTATION_AUDIT = Accepted
 BCA01_STARTED = false
 PRM3_STARTED = false
 NO_AUTOMATIC_SUCCESSOR = true
-NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
+NEXT_STAGE_AUTHORIZED = none beyond SPR-01 planning terminal reconciliation
 PRODUCT_OWNER_MERGE_AUTHORIZATION_REQUIRED = false
 PRODUCTION_CUTOVER_EXECUTED = false
 ```
@@ -681,4 +685,4 @@ NEXT_STAGE_AUTHORIZED = none
 NO_AUTOMATIC_SUCCESSOR = true
 ```
 
-The next workstream is the direct external audit of SPR-01 planning. WRI-01 remains terminally Accepted / Merged / Closed. The DCA-01 controlled `workers.dev` proof remains blocked until SPR-01 is terminally Accepted and separately authorized for handoff.
+SPR-01 planning is terminally Accepted / Merged / Closed through PR #75. WRI-01 remains terminally Accepted / Merged / Closed. SPR-01 implementation remains unstarted, and the DCA-01 controlled `workers.dev` proof remains blocked until SPR-01 implementation is terminally Accepted and separately handed off.
