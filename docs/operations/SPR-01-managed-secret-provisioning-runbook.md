@@ -2,10 +2,14 @@
 
 ## Status and use restriction
 
-**Planning runbook — not executable until the SPR-01 planning merge is Accepted and the Product Owner authorizes the finite implementation sequence end-to-end. After that authorization, internal gates proceed continuously; pause only for an external Owner action or a material stop condition.**
+**Accepted planning runbook — implementation remains non-executable until the Product Owner authorizes the finite SPR-01 sequence end-to-end. After that authorization, internal gates proceed continuously; pause only for an external Owner action or a material stop condition.**
 
 ```text
-SPR01_PLANNING_STATE = Ready for External Audit
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
+SPR01_PLANNING_PR = 75
+SPR01_PLANNING_HEAD = 0d2ad969b3109b6da2b4dd37307b3b8f12a517f7
+SPR01_PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
+SPR01_PLANNING_AUDIT = Accepted
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 SPR01_EXTERNAL_OPERATION_AUTHORIZED = false
 TARGET_WORKER = rm-prime-wri01-hml
