@@ -2,7 +2,7 @@
 
 ## Status
 
-**Ready for External Audit — planning-only — implementation and every external operation remain unauthorized**
+**Accepted / Merged / Closed — planning-only — implementation and every external operation remain unauthorized**
 
 ```text
 STAGE_ID = SPR-01
@@ -10,8 +10,12 @@ STAGE_NAME = Managed Secret Provisioning Reconciliation
 STAGE_TYPE = finite_security_and_external-operation_prerequisite
 PLANNING_BASELINE_MAIN = cc45ec8c334bdea3965830426992a705271b1103
 PLANNING_BRANCH = agent/spr-01-managed-secret-provisioning-planning
-SPR01_PLANNING_STATE = Ready for External Audit
-SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_PLANNING_PR = 75
+SPR01_PLANNING_HEAD = 0d2ad969b3109b6da2b4dd37307b3b8f12a517f7
+SPR01_PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
+SPR01_PLANNING_AUDIT = Accepted
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
+SPR01_PLANNING_MERGE_AUTHORIZED = true
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 SPR01_IMPLEMENTATION_STARTED = false
 
@@ -513,13 +517,13 @@ FIRST_WORKER_DEPLOYMENT_REQUIRED = false
 LOVABLE_MANAGED_BRIDGE_REQUIRED = true
 OWNER_MAY_HANDLE_SUPABASE_SERVICE_ROLE_KEY = false
 
-SPR01_PLANNING_STATE = Ready for External Audit
-SPR01_PLANNING_MERGE_AUTHORIZED = false
+SPR01_PLANNING_STATE = Accepted / Merged / Closed
+SPR01_PLANNING_MERGE_AUTHORIZED = true
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 SPR01_IMPLEMENTATION_STARTED = false
 DCA01_CONTROLLED_EXTERNAL_PROOF_STATE = Blocked External
 DCA01_EXTERNAL_PROOF_EXECUTABLE = false
-NEXT_STAGE_AUTHORIZED = none beyond direct SPR-01 planning audit
+NEXT_STAGE_AUTHORIZED = none beyond SPR-01 planning terminal reconciliation
 ```
 
-This planning materialization changes documentation only. It does not create a Worker, version, deployment, Edge Function, token, secret, Cron, route, DNS record, fallback origin or Custom Hostname.
+This planning materialization is Accepted / Merged / Closed through PR #75. It changed documentation only and did not create a Worker, version, deployment, Edge Function, token, secret, Cron, route, DNS record, fallback origin or Custom Hostname. SPR-01 implementation remains unstarted and requires one explicit end-to-end Product Owner authorization.
