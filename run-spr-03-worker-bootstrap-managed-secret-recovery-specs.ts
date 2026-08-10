@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
-const md5 = (value: string) => createHash("md5").update(value).digest("hex");
+const canonicalSql = (value: string) => value.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trimEnd();
 let assertions = 0;
 const ok = (value: unknown, message: string) => { assert.ok(value, message); assertions += 1; };
 const equal = (actual: unknown, expected: unknown, message: string) => { assert.equal(actual, expected, message); assertions += 1; };
@@ -18,6 +17,37 @@ const helper = read("src/lib/spr-03/managed-secret-provisioning.server.ts");
 const route = read("src/routes/api/internal/spr-03-managed-secret-provision.ts");
 const migration1 = read("supabase/migrations/20260810220152_1ee179b2-60f0-4ce1-b259-06762002733b.sql");
 const migration2 = read("supabase/migrations/20260810220939_b80a4010-1d42-48a9-bbcd-7d2d9e0ea84b.sql");
+
+const EXPECTED_MIGRATION_1 = `CREATE TABLE public.spr02_managed_secret_ceremonies (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  ceremony_id text NOT NULL UNIQUE,
+  state text NOT NULL DEFAULT 'executing' CHECK (state IN ('executing','reconciling','completed','failed')),
+  expected_git_head text NOT NULL,
+  expected_worker_id text NOT NULL,
+  expected_source_version_id text,
+  expected_source_digest text,
+  canary_version_id text,
+  final_version_id text,
+  classification text,
+  annotation text,
+  lease_started_at timestamp with time zone NOT NULL DEFAULT now(),
+  lease_expires_at timestamp with time zone NOT NULL DEFAULT now() + interval '15 minutes',
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+REVOKE ALL ON public.spr02_managed_secret_ceremonies FROM PUBLIC;
+REVOKE ALL ON public.spr02_managed_secret_ceremonies FROM anon;
+REVOKE ALL ON public.spr02_managed_secret_ceremonies FROM authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.spr02_managed_secret_ceremonies TO service_role;
+
+ALTER TABLE public.spr02_managed_secret_ceremonies ENABLE ROW LEVEL SECURITY;`;
+
+const EXPECTED_MIGRATION_2 = `REVOKE ALL ON public.spr02_managed_secret_ceremonies FROM PUBLIC;
+REVOKE ALL ON public.spr02_managed_secret_ceremonies FROM anon;
+REVOKE ALL ON public.spr02_managed_secret_ceremonies FROM authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.spr02_managed_secret_ceremonies TO service_role;
+ALTER TABLE public.spr02_managed_secret_ceremonies ENABLE ROW LEVEL SECURITY;`;
 
 // Bootstrap-safe single deploy authority.
 equal(wrangler.name, "rm-prime-wri01-hml", "Canonical Worker name must remain frozen");
@@ -40,9 +70,13 @@ equal(wri.includes('"*/5 * * * *"'), false, "Historical Cron activation must not
 match(wri, /@lovable\.dev\/vite-tanstack-config/, "WRI-01 build authority assertion must remain present");
 match(wri, /wri-01-cloudflare-nitro-plugin\.server\.ts/, "WRI-01 Nitro bridge assertion must remain present");
 
-// R2: repository files must byte-match the exact already-applied migration statements.
-equal(md5(migration1), "fc5049e9d04a8ed9c88cf371a2a8515f", "First historical migration must exactly match live migration history");
-equal(md5(migration2), "66b234196163d12edb8a32fe18f5e15e", "Second historical migration must exactly match live migration history");
+// R2: exact SQL semantics are frozen against the live history captured read-only.
+// Git checkout/storage layers may normalize line endings; only BOM/line-ending/final-newline
+// normalization is tolerated. SQL tokens, order, grants and effects must remain byte-identical otherwise.
+equal(canonicalSql(migration1), canonicalSql(EXPECTED_MIGRATION_1), "First historical migration must exactly match live migration history after transport-only newline normalization");
+equal(canonicalSql(migration2), canonicalSql(EXPECTED_MIGRATION_2), "Second historical migration must exactly match live migration history after transport-only newline normalization");
+equal(Buffer.byteLength(canonicalSql(migration1), "utf8"), 1143, "First historical migration canonical byte length must match live history");
+equal(Buffer.byteLength(canonicalSql(migration2), "utf8"), 368, "Second historical migration canonical byte length must match live history");
 match(migration1, /ENABLE ROW LEVEL SECURITY/, "Historical control table must preserve RLS enablement");
 match(migration1, /REVOKE ALL ON public\.spr02_managed_secret_ceremonies FROM anon/, "Historical migration must preserve anon revoke");
 match(migration1, /REVOKE ALL ON public\.spr02_managed_secret_ceremonies FROM authenticated/, "Historical migration must preserve authenticated revoke");
