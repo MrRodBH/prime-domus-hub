@@ -137,6 +137,14 @@ match(helper, /versions\.length !== 1 \|\| versions\[0\]\?\.percentage !== 100/,
 match(helper, /subdomain\?\.enabled !== false \|\| subdomain\?\.previews_enabled !== false/, "Provider revalidation must require workers.dev and Preview URLs disabled");
 match(helper, /scheduleList\.length !== 0/, "Provider revalidation must require zero Cron schedules");
 
+// Provider version-list reconciliation: Cloudflare returns result.items, never a silent empty fallback.
+match(helper, /const items = result\?\.items/, "Version list parser must read exact Cloudflare result.items authority");
+match(helper, /if \(!Array\.isArray\(items\)\)/, "Unknown version list shape must fail closed");
+match(helper, /spr03_version_list_shape/, "Version list shape failure must have an explicit fail-closed error code");
+match(helper, /spr03_version_list_item_shape/, "Version list entries must be validated before reconciliation");
+match(helper, /return versionListItems\(result\)/, "listVersions must use the validated provider response parser");
+equal(helper.includes("return Array.isArray(result) ? result : []"), false, "Version-list provider drift must never degrade to an empty reconciliation set");
+
 // Provider source snapshot reconstruction: no multipart metadata heuristic is allowed.
 match(helper, /const SOURCE_MAIN_MODULE = "index\.mjs"/, "Cloudflare source main module must be frozen to the exact provider part name");
 match(helper, /content\/v2/, "content/v2 must remain the source-module authority");
