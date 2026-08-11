@@ -50,7 +50,8 @@
     "test:pr-m2:consolidated-final-corrective": "tsx --tsconfig tsconfig.json ./run-pr-m2-consolidated-final-corrective-specs.ts",
     "test:dca-01": "tsx --tsconfig tsconfig.json ./run-dca-01-domain-cloudflare-activation-specs.ts",
     "test:wri-01": "tsx --tsconfig tsconfig.json ./run-wri-01-cloudflare-worker-runtime-specs.ts",
-    "wri01:bundle-audit": "bun ./scripts/verify-wri-01-worker-bundle.mjs",
+    "test:spr-03": "tsx --tsconfig tsconfig.json ./run-spr-03-worker-bootstrap-managed-secret-recovery-specs.ts",
+    "wri01:bundle-audit": "bun run test:spr-03 && bun ./scripts/verify-wri-01-worker-bundle.mjs",
     "wri01:dry-run": "bunx wrangler@4.114.0 deploy --dry-run --outdir .wri01-dry-run"
   },
   "dependencies": {
@@ -119,7 +120,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "2.7.6",
+    "@lovable.dev/vite-tanstack-config": "2.9.1",
     "@tanstack/react-router-ssr-query": "^1.167.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",

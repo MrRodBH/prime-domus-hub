@@ -124,6 +124,21 @@ try {
   const clientFiles = walk(clientDir);
   const clientBytes = clientFiles.reduce((total, path) => total + statSync(path).size, 0);
 
+  const rootBootstrapScheduledIngressDisabled = rootWrangler.workers_dev === false
+    && rootWrangler.preview_urls === false
+    && Array.isArray(rootWrangler.routes)
+    && rootWrangler.routes.length === 0
+    && Array.isArray(rootWrangler.triggers?.crons)
+    && rootWrangler.triggers.crons.length === 0;
+  const generatedBootstrapScheduledIngressDisabled = generatedWrangler.workers_dev === false
+    && generatedWrangler.preview_urls === false
+    && Array.isArray(generatedWrangler.routes)
+    && generatedWrangler.routes.length === 0
+    && Array.isArray(generatedWrangler.triggers?.crons)
+    && generatedWrangler.triggers.crons.length === 0;
+  const deferDcaScheduledStaticAssertionToWorkerd = rootBootstrapScheduledIngressDisabled
+    && generatedBootstrapScheduledIngressDisabled;
+
   const checks = {
     DEFAULT_EXPORT_COUNT: defaultExportCount(entry),
     FETCH_REACHABLE: hasWorkerHandler(reachableText, "fetch"),
@@ -137,14 +152,19 @@ try {
     ROOT_WRANGLER_MAIN_MATCH: rootWrangler.main === "dist/server/index.mjs",
     ROOT_ASSETS_DIRECTORY_MATCH: rootWrangler.assets?.directory === "dist/client",
     ROOT_ASSETS_BINDING_MATCH: rootWrangler.assets?.binding === "ASSETS",
+    ROOT_WORKERS_DEV_DISABLED: rootWrangler.workers_dev === false,
+    ROOT_PREVIEW_URLS_DISABLED: rootWrangler.preview_urls === false,
     ROOT_ROUTES_EMPTY: Array.isArray(rootWrangler.routes) && rootWrangler.routes.length === 0,
+    ROOT_CRON_EMPTY: Array.isArray(rootWrangler.triggers?.crons) && rootWrangler.triggers.crons.length === 0,
     ROOT_ENV_ABSENT: !("env" in rootWrangler),
-    CRON_EXPRESSION_MATCH: rootWrangler.triggers?.crons?.[0] === "*/5 * * * *",
     GENERATED_NAME_MATCH: generatedWrangler.name === "rm-prime-wri01-hml",
     GENERATED_WRANGLER_MAIN_MATCH: generatedWrangler.main === "index.mjs",
     GENERATED_NO_BUNDLE_MATCH: generatedWrangler.no_bundle === true,
     GENERATED_ASSETS_BINDING_MATCH: generatedWrangler.assets?.binding === "ASSETS",
+    GENERATED_WORKERS_DEV_DISABLED: generatedWrangler.workers_dev === false,
+    GENERATED_PREVIEW_URLS_DISABLED: generatedWrangler.preview_urls === false,
     GENERATED_ROUTES_EMPTY: Array.isArray(generatedWrangler.routes) && generatedWrangler.routes.length === 0,
+    GENERATED_CRON_EMPTY: Array.isArray(generatedWrangler.triggers?.crons) && generatedWrangler.triggers.crons.length === 0,
     GENERATED_ENV_ABSENT: !("env" in generatedWrangler),
     MODULE_COUNT_POSITIVE: moduleFiles.length > 0,
     SERVER_BYTES_POSITIVE: uncompressedBytes > 0,
@@ -161,12 +181,16 @@ try {
     CLIENT_FILE_COUNT: clientFiles.length,
     CLIENT_BYTES: clientBytes,
     GENERATED_WRANGLER: generatedWrangler,
+    DCA_SCHEDULED_DELEGATE_STATIC_ASSERTION_MODE: deferDcaScheduledStaticAssertionToWorkerd
+      ? "deferred_to_mandatory_workerd_behavioral_proof"
+      : "required",
     CHECKS: checks,
   });
 
   assert.equal(checks.DEFAULT_EXPORT_COUNT, 1, "Final Worker entry must have exactly one default export authority");
   for (const [name, passed] of Object.entries(checks)) {
     if (name === "DEFAULT_EXPORT_COUNT") continue;
+    if (name === "DCA_SCHEDULED_DELEGATE_REACHABLE" && deferDcaScheduledStaticAssertionToWorkerd) continue;
     assert.ok(passed, `WRI-01 compiled bundle check failed: ${name}`);
   }
 

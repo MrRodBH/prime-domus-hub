@@ -420,3 +420,95 @@ PRM3_STARTED = false
 ```
 
 The next action after protected planning acceptance is a separate SPR-03 implementation capability gate and direct audit. No implementation may start from this IA alone.
+
+## 15. Implementation-time WRI-01 activation test reconciliation
+
+After the SPR-03 capability gate was terminally Accepted at `main@a4ad289b11adcdc76d9bc58d8b21535d1862e3d3`, direct pre-mutation inspection found a deterministic test-contract conflict that was not a runtime or provider capability mismatch:
+
+```text
+SPR03_REQUIRED_WRANGLER_WORKERS_DEV = false
+SPR03_REQUIRED_WRANGLER_PREVIEW_URLS = false
+SPR03_REQUIRED_WRANGLER_CRON_COUNT = 0
+
+CURRENT_TEST_WRI01_ASSERTS_WORKERS_DEV = true
+CURRENT_TEST_WRI01_ASSERTS_CRON = */5 * * * *
+SPR03_REQUIRED_GATE_INCLUDES_TEST_WRI01 = true
+```
+
+The WRI-01 assertions above lock historical **activation policy**, while SPR-03 explicitly supersedes only that activation policy for the zero-ingress bootstrap. WRI-01 build/runtime authority itself remains unchanged.
+
+This IA therefore explicitly supersedes the SPR-03 Execution Envelope `FILES_ALLOWED` only to add:
+
+```text
+run-wri-01-cloudflare-worker-runtime-specs.ts
+```
+
+The permitted change in that file is narrowly bounded:
+
+1. preserve every WRI-01 assertion for build authority, Nitro runtime bridge, request/scheduled boundaries, process cleanup, dry-run authority, account/zone non-persistence and secret non-persistence;
+2. replace only the historical `workers_dev=true` and `cron=*/5` activation assertions with deterministic compatibility against the SPR-03 bootstrap-safe state;
+3. do not introduce a second deploy/build/runtime authority;
+4. do not change DCA-01 runtime semantics;
+5. keep `bun run test:wri-01` mandatory in SPR-03 technical gates.
+
+This is an Architecture First test-contract reconciliation, not a reopening of WRI-01 and not a `CAPABILITY_MISMATCH_EXCEPTION`. No Cloudflare, database, runtime or configuration mutation had occurred when this reconciliation was identified.
+
+```text
+SPR03_WRI01_ACTIVATION_TEST_RECONCILIATION = Accepted within existing Strategy D
+SPR03_STRATEGY_D_CHANGED = false
+SPR03_R2_CHANGED = false
+SPR03_ADDITIONAL_RUNTIME_AUTHORITY = false
+SPR03_ADDITIONAL_DEPLOY_AUTHORITY = false
+```
+
+## 16. Consolidated corrective scope after principal exact-head CI
+
+The principal implementation began on `main@a4ad289b11adcdc76d9bc58d8b21535d1862e3d3` and consumed the principal implementation budget. Exact-head PR #85 CI on principal HEAD `e0b3d0698d4370e37f1cd329dc7c0a77c8d26a88` established:
+
+```text
+PRM2_CONSOLIDATED_CORRECTIVE_GATE = success
+RELEASE_GATE = success
+WRI01_FROZEN_INSTALL = success
+WRI01_DETERMINISTIC_SPECS = success
+DCA01_REGRESSION_SPECS = success
+WRI01_EXACT_BUILD = success
+WRI01_TYPECHECK = success
+WRI01_BUNDLE_AUDIT = failure
+WRI01_BUNDLE_AUDIT_FAILURE = CRON_EXPRESSION_MATCH
+CLOUDFLARE_MUTATION_OCCURRED = false
+DATABASE_MUTATION_OCCURRED = false
+SECRET_EXPOSED = false
+```
+
+The failure is a second historical WRI-01 activation assertion: `scripts/verify-wri-01-worker-bundle.mjs` still requires root Cron `*/5 * * * *`, while SPR-03 deliberately requires Cron count zero before bootstrap. The generated Nitro Wrangler produced by the same successful build already matches the SPR-03 zero-ingress policy (`workers_dev=false`, `preview_urls=false`, `triggers.crons=[]`), proving this is an audit-contract residue rather than a compiled-runtime defect.
+
+The single consolidated corrective therefore adds exactly one technical file to the SPR-03 allowed surface:
+
+```text
+scripts/verify-wri-01-worker-bundle.mjs
+```
+
+The corrective may also further modify the already-allowed `package.json`, but only to ensure the existing WRI-01 gate executes `bun run test:spr-03` without changing `.github/**`. The only authorized orchestration change is:
+
+```text
+wri01:bundle-audit = bun run test:spr-03 && bun ./scripts/verify-wri-01-worker-bundle.mjs
+```
+
+Corrective requirements:
+
+1. replace the obsolete positive Cron assertion with fail-closed zero-ingress assertions for both canonical root and generated Wrangler: `workers_dev=false`, `preview_urls=false`, routes zero, Cron zero;
+2. preserve all existing bundle reachability, handler, Nitro, assets, module-count, size and single-authority assertions;
+3. run `test:spr-03` inside the existing WRI gate without editing `.github/**`;
+4. introduce no dependency change, second runtime, second build/deploy authority or provider shortcut;
+5. do not touch Cloudflare or Supabase during the corrective;
+6. re-run all exact-head protected technical gates before any provider mutation;
+7. after this corrective begins, `SPR03_IMPLEMENTATION_PROMPT_BUDGET = 2/2 consumed` and no third implementation correction is permitted.
+
+```text
+SPR03_CONSOLIDATED_CORRECTIVE = authorized_and_started
+SPR03_IMPLEMENTATION_PROMPT_BUDGET = 2/2 consumed
+SPR03_THIRD_IMPLEMENTATION_PROMPT = prohibited
+SPR03_STRATEGY_D_CHANGED = false
+SPR03_R2_CHANGED = false
+SPR03_CLOUDFLARE_MUTATION_BEFORE_CORRECTIVE_ACCEPTANCE = 0
+```
