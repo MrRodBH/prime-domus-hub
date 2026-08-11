@@ -145,7 +145,7 @@ match(helper, /versionDetail\(expectedBootstrapVersionId, provisioner\)/, "Pinne
 match(helper, /bootstrapDetail\?\.resources\?\.script_runtime/, "Runtime metadata must come from resources.script_runtime");
 match(helper, /runtime\?\.compatibility_date/, "compatibility_date must come from bootstrap script_runtime");
 match(helper, /runtime\?\.compatibility_flags/, "compatibility_flags must come from bootstrap script_runtime");
-match(helper, /bootstrapDetail\?\.resources\?\.bindings/, "Bindings must come from bootstrap Version Detail");
+ok(helper.includes("bootstrapDetail?.resources?.bindings"), "Bindings must come from bootstrap Version Detail");
 match(helper, /sourceBindings\.length !== 1[\s\S]*bindingName\(sourceBindings\[0\]\) !== "ASSETS"[\s\S]*sourceBindings\[0\]\?\.type !== "assets"/, "Bootstrap binding must be exactly ASSETS/assets");
 match(helper, /sourceBindings\.some\(\(binding: any\) => binding\?\.type === "secret_text" \|\| binding\?\.type === "secret_key"\)/, "Bootstrap secret bindings must fail closed");
 match(helper, /mainModuleMatches = parts\.filter\(\(part\) => part\.field === SOURCE_MAIN_MODULE && part\.filename === SOURCE_MAIN_MODULE\)/, "Main module resolution must use exact field+filename equality");
