@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 const CLOUDFLARE_ACCOUNT_ID = "68ec853e6b04a038f09fca5712d6b26b";
 const TARGET_WORKER = "rm-prime-wri01-hml";
 const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
+const SOURCE_MAIN_MODULE = "index.mjs";
 const FINAL_SECRET_NAMES = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -56,7 +57,9 @@ interface SourcePart {
 }
 
 interface WorkerSourceSnapshot {
-  metadata: Record<string, any>;
+  mainModule: string;
+  compatibilityDate: string;
+  compatibilityFlags: string[];
   parts: SourcePart[];
   nonSecretBindings: Array<Record<string, any>>;
   fingerprint: string;
@@ -265,11 +268,27 @@ async function findTaggedVersion(tag: string, provisioner: string): Promise<{ id
   return null;
 }
 
-async function textPart(value: FormDataEntryValue): Promise<string> {
-  return typeof value === "string" ? value : value.text();
-}
+async function readWorkerSource(provisioner: string, expectedBootstrapVersionId: string): Promise<WorkerSourceSnapshot> {
+  const bootstrapDetail = await versionDetail(expectedBootstrapVersionId, provisioner);
+  const runtime = bootstrapDetail?.resources?.script_runtime;
+  const compatibilityDate = runtime?.compatibility_date;
+  const compatibilityFlags = runtime?.compatibility_flags;
+  if (typeof compatibilityDate !== "string" || !compatibilityDate) {
+    throw new Spr03ProvisioningError("spr03_compatibility_date_missing", "Bootstrap compatibility_date is missing", 502);
+  }
+  if (!Array.isArray(compatibilityFlags) || compatibilityFlags.some((flag: unknown) => typeof flag !== "string")) {
+    throw new Spr03ProvisioningError("spr03_compatibility_flags_invalid", "Bootstrap compatibility_flags are invalid", 502);
+  }
 
-async function readWorkerSource(provisioner: string): Promise<WorkerSourceSnapshot> {
+  const sourceBindings = Array.isArray(bootstrapDetail?.resources?.bindings) ? bootstrapDetail.resources.bindings : [];
+  if (sourceBindings.some((binding: any) => binding?.type === "secret_text" || binding?.type === "secret_key")) {
+    throw new Spr03ProvisioningError("spr03_bootstrap_secret_detected", "Bootstrap Version unexpectedly contains a secret binding", 409);
+  }
+  if (sourceBindings.length !== 1 || bindingName(sourceBindings[0]) !== "ASSETS" || sourceBindings[0]?.type !== "assets") {
+    throw new Spr03ProvisioningError("spr03_bootstrap_binding_mismatch", "Bootstrap Version must expose exactly the ASSETS/assets binding", 409);
+  }
+  const nonSecretBindings = sourceBindings.map((binding: any) => ({ ...binding }));
+
   const response = await fetch(
     `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/content/v2`,
     { method: "GET", headers: providerHeaders(provisioner), cache: "no-store" },
@@ -280,40 +299,25 @@ async function readWorkerSource(provisioner: string): Promise<WorkerSourceSnapsh
     throw new Spr03ProvisioningError("spr03_source_format_unexpected", "Worker source must be returned as multipart form data", 502);
   }
   const form = await response.formData();
-  const metadataEntry = form.get("metadata");
-  if (!metadataEntry) throw new Spr03ProvisioningError("spr03_source_metadata_missing", "Worker source metadata is missing", 502);
-
-  let metadata: Record<string, any>;
-  try {
-    metadata = JSON.parse(await textPart(metadataEntry)) as Record<string, any>;
-  } catch {
-    throw new Spr03ProvisioningError("spr03_source_metadata_invalid", "Worker source metadata is invalid", 502);
-  }
-  if (typeof metadata.main_module !== "string" || !metadata.main_module) {
-    throw new Spr03ProvisioningError("spr03_main_module_missing", "Worker source main_module is missing", 502);
-  }
-
-  const sourceBindings = Array.isArray(metadata.bindings) ? metadata.bindings : [];
-  if (sourceBindings.some((binding: any) => binding?.type === "secret_text" || binding?.type === "secret_key")) {
-    throw new Spr03ProvisioningError("spr03_bootstrap_secret_detected", "Bootstrap source unexpectedly contains a secret binding", 409);
-  }
-  const nonSecretBindings = sourceBindings.map((binding: any) => ({ ...binding }));
-
   const parts: SourcePart[] = [];
   for (const [field, value] of form.entries()) {
-    if (field === "metadata" || typeof value === "string") continue;
+    if (typeof value === "string") {
+      throw new Spr03ProvisioningError("spr03_source_part_shape", "Worker source multipart must contain module File parts only", 502);
+    }
     const filename = typeof (value as any).name === "string" && (value as any).name ? (value as any).name : field;
     parts.push({ field, filename, blob: value });
   }
   if (parts.length === 0) throw new Spr03ProvisioningError("spr03_source_parts_missing", "Worker source contains no module parts", 502);
-  if (!parts.some((part) => part.field === metadata.main_module || part.filename === metadata.main_module)) {
-    throw new Spr03ProvisioningError("spr03_main_module_part_missing", "Worker main module is not present in source parts", 502);
+
+  const mainModuleMatches = parts.filter((part) => part.field === SOURCE_MAIN_MODULE && part.filename === SOURCE_MAIN_MODULE);
+  if (mainModuleMatches.length !== 1) {
+    throw new Spr03ProvisioningError("spr03_main_module_cardinality", "Worker source must contain exactly one root index.mjs main module", 502);
   }
 
   const hash = createHash("sha256");
-  hash.update(metadata.main_module);
-  hash.update(JSON.stringify(metadata.compatibility_date ?? null));
-  hash.update(JSON.stringify(metadata.compatibility_flags ?? []));
+  hash.update(SOURCE_MAIN_MODULE);
+  hash.update(compatibilityDate);
+  hash.update(JSON.stringify(compatibilityFlags));
   hash.update(JSON.stringify(nonSecretBindings.map((binding) => ({ name: bindingName(binding), type: binding.type ?? null })).sort((a, b) => a.name.localeCompare(b.name))));
   const sorted = [...parts].sort((a, b) => `${a.field}:${a.filename}`.localeCompare(`${b.field}:${b.filename}`));
   for (const part of sorted) {
@@ -322,25 +326,33 @@ async function readWorkerSource(provisioner: string): Promise<WorkerSourceSnapsh
     hash.update(new Uint8Array(await part.blob.arrayBuffer()));
   }
 
-  return { metadata, parts, nonSecretBindings, fingerprint: hash.digest("hex") };
+  return {
+    mainModule: SOURCE_MAIN_MODULE,
+    compatibilityDate,
+    compatibilityFlags: [...compatibilityFlags],
+    parts,
+    nonSecretBindings,
+    fingerprint: hash.digest("hex"),
+  };
 }
 
 function cloneMetadata(source: WorkerSourceSnapshot, tag: string, secrets: Array<{ name: string; text: string }>): Record<string, any> {
-  const metadata = { ...source.metadata };
-  delete metadata.assets;
-  delete metadata.annotations;
-  metadata.keep_assets = true;
-  metadata.bindings = [
-    ...source.nonSecretBindings,
-    ...secrets.map(({ name, text }) => ({ type: "secret_text", name, text })),
-  ];
-  metadata.annotations = {
-    "workers/tag": tag,
-    "workers/message": tag.startsWith("spr03-canary-")
-      ? "SPR-03 synthetic inactive canary"
-      : "SPR-03 final inactive managed-secret version",
+  return {
+    main_module: source.mainModule,
+    compatibility_date: source.compatibilityDate,
+    compatibility_flags: source.compatibilityFlags,
+    keep_assets: true,
+    bindings: [
+      ...source.nonSecretBindings,
+      ...secrets.map(({ name, text }) => ({ type: "secret_text", name, text })),
+    ],
+    annotations: {
+      "workers/tag": tag,
+      "workers/message": tag.startsWith("spr03-canary-")
+        ? "SPR-03 synthetic inactive canary"
+        : "SPR-03 final inactive managed-secret version",
+    },
   };
-  return metadata;
 }
 
 async function uploadInactiveVersion(
@@ -398,7 +410,7 @@ export async function executeSpr03Provisioning(request: Request, rawBody: unknow
     throw new Spr03ProvisioningError("spr03_final_already_exists", "Final version already exists for this ceremony", 409);
   }
 
-  const source = await readWorkerSource(provisioner);
+  const source = await readWorkerSource(provisioner, input.expected_bootstrap_version_id);
 
   if (input.phase === "canary") {
     const existingCanary = await findTaggedVersion(canaryTag, provisioner);
