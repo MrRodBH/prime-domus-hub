@@ -100,9 +100,11 @@ equal(helper.includes("ORDER BY"), false, "No first-row heuristic authority may 
 equal(helper.includes("LIMIT 1"), false, "No LIMIT 1 authority may be introduced");
 
 // Managed provisioner must be server-only and required before provider access.
-const provisionerIndex = helper.indexOf('requireEnv("CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER")');
-const providerIndex = helper.indexOf("assertBootstrapProviderState(provisioner");
-ok(provisionerIndex >= 0 && providerIndex > provisionerIndex, "Missing SPR-03 provisioner must fail before Cloudflare access");
+const executeBoundaryStart = helper.indexOf("export async function executeSpr03Provisioning");
+const executeBoundary = executeBoundaryStart >= 0 ? helper.slice(executeBoundaryStart) : "";
+const provisionerIndex = executeBoundary.indexOf('requireEnv("CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER")');
+const providerIndex = executeBoundary.indexOf("assertBootstrapProviderState(provisioner");
+ok(executeBoundaryStart >= 0 && provisionerIndex >= 0 && providerIndex > provisionerIndex, "Missing SPR-03 provisioner must fail before Cloudflare access");
 equal(JSON.stringify(wrangler).includes("CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER"), false, "Provisioner must never be a Worker binding");
 
 // Provider ceremony: one active bootstrap, one inactive canary, at most one inactive final version.
