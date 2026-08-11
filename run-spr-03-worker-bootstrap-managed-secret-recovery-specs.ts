@@ -136,12 +136,33 @@ equal(helper.includes("deployments.length !== 1"), false, "Historical deployment
 match(helper, /versions\.length !== 1 \|\| versions\[0\]\?\.percentage !== 100/, "Active deployment must pin exactly one version at 100%");
 match(helper, /subdomain\?\.enabled !== false \|\| subdomain\?\.previews_enabled !== false/, "Provider revalidation must require workers.dev and Preview URLs disabled");
 match(helper, /scheduleList\.length !== 0/, "Provider revalidation must require zero Cron schedules");
+
+// Provider source snapshot reconstruction: no multipart metadata heuristic is allowed.
+match(helper, /const SOURCE_MAIN_MODULE = "index\.mjs"/, "Cloudflare source main module must be frozen to the exact provider part name");
+match(helper, /content\/v2/, "content/v2 must remain the source-module authority");
+equal(helper.includes('form.get("metadata")'), false, "content/v2 must not be assumed to contain a metadata part");
+match(helper, /versionDetail\(expectedBootstrapVersionId, provisioner\)/, "Pinned bootstrap Version Detail must be the runtime metadata authority");
+match(helper, /bootstrapDetail\?\.resources\?\.script_runtime/, "Runtime metadata must come from resources.script_runtime");
+match(helper, /runtime\?\.compatibility_date/, "compatibility_date must come from bootstrap script_runtime");
+match(helper, /runtime\?\.compatibility_flags/, "compatibility_flags must come from bootstrap script_runtime");
+match(helper, /bootstrapDetail\?\.resources\?\.bindings/, "Bindings must come from bootstrap Version Detail");
+match(helper, /sourceBindings\.length !== 1[\s\S]*bindingName\(sourceBindings\[0\]\) !== "ASSETS"[\s\S]*sourceBindings\[0\]\?\.type !== "assets"/, "Bootstrap binding must be exactly ASSETS/assets");
+match(helper, /sourceBindings\.some\(\(binding: any\) => binding\?\.type === "secret_text" \|\| binding\?\.type === "secret_key"\)/, "Bootstrap secret bindings must fail closed");
+match(helper, /mainModuleMatches = parts\.filter\(\(part\) => part\.field === SOURCE_MAIN_MODULE && part\.filename === SOURCE_MAIN_MODULE\)/, "Main module resolution must use exact field+filename equality");
+match(helper, /mainModuleMatches\.length !== 1/, "Main module exact match must have cardinality exactly one");
+equal(helper.includes('endsWith("index.mjs")'), false, "Suffix-based main-module selection is prohibited");
+equal(helper.includes('includes("index.mjs")'), false, "Substring-based main-module selection is prohibited");
+equal(helper.includes("path.basename"), false, "Basename heuristic main-module selection is prohibited");
+match(helper, /main_module: source\.mainModule/, "Version upload metadata must explicitly set main_module from the validated snapshot");
+match(helper, /compatibility_date: source\.compatibilityDate/, "Version upload metadata must explicitly set compatibility_date");
+match(helper, /compatibility_flags: source\.compatibilityFlags/, "Version upload metadata must explicitly set compatibility_flags");
+match(helper, /keep_assets: true/, "Version-only source preservation must retain the bootstrap asset set");
+equal(helper.includes("source.metadata"), false, "Version upload metadata must not spread an untrusted downloaded metadata object");
+
 match(helper, /spr03-canary-\$\{input\.ceremony_id\}/, "Canary must carry deterministic reconciliation annotation");
 match(helper, /spr03-final-\$\{input\.ceremony_id\}/, "Final version must carry deterministic reconciliation annotation");
 match(helper, /\/versions`,[\s\S]*method: "POST"/, "Canary/final ceremony must use the version-only upload endpoint");
 match(helper, /active === versionId[\s\S]*spr03_inactive_version_deployed/, "Canary/final versions must fail closed if deployed");
-match(helper, /keep_assets = true/, "Version-only source preservation must retain the bootstrap asset set");
-match(helper, /content\/v2/, "Version uploads must clone current canonical Worker source rather than introduce a second source authority");
 
 const expectedSecrets = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "CLOUDFLARE_API_TOKEN_DCA01_HML"].sort();
 const helperSecretNames = [...helper.matchAll(/"(SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|CLOUDFLARE_API_TOKEN_DCA01_HML)"/g)].map((match) => match[1]);
