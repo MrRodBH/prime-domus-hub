@@ -176,12 +176,14 @@ export function parseSpr03ProvisionRequest(input: unknown): Spr03ProvisionReques
 
 function deploymentVersions(result: any): Array<{ version_id: string; percentage: number }> {
   const deployments = Array.isArray(result?.deployments) ? result.deployments : Array.isArray(result) ? result : [];
-  if (deployments.length !== 1) {
-    throw new Spr03ProvisioningError("spr03_deployment_cardinality", "Exactly one bootstrap deployment must exist", 409);
+  if (deployments.length === 0) {
+    throw new Spr03ProvisioningError("spr03_deployment_cardinality", "At least one deployment record must exist", 409);
   }
-  const versions = Array.isArray(deployments[0]?.versions) ? deployments[0].versions : [];
+  // Cloudflare returns deployment history newest-first; only the first item is the deployment actively serving traffic.
+  const latestDeployment = deployments[0];
+  const versions = Array.isArray(latestDeployment?.versions) ? latestDeployment.versions : [];
   if (versions.length !== 1 || versions[0]?.percentage !== 100 || typeof versions[0]?.version_id !== "string") {
-    throw new Spr03ProvisioningError("spr03_deployment_shape", "Bootstrap deployment must reference exactly one version at 100%", 409);
+    throw new Spr03ProvisioningError("spr03_deployment_shape", "Active deployment must reference exactly one version at 100%", 409);
   }
   return versions;
 }
