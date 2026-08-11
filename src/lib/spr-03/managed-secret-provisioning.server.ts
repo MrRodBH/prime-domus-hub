@@ -287,7 +287,7 @@ async function readWorkerSource(provisioner: string, expectedBootstrapVersionId:
   if (sourceBindings.length !== 1 || bindingName(sourceBindings[0]) !== "ASSETS" || sourceBindings[0]?.type !== "assets") {
     throw new Spr03ProvisioningError("spr03_bootstrap_binding_mismatch", "Bootstrap Version must expose exactly the ASSETS/assets binding", 409);
   }
-  const nonSecretBindings = sourceBindings.map((binding: any) => ({ ...binding }));
+  const nonSecretBindings: Array<Record<string, any>> = sourceBindings.map((binding: any) => ({ ...binding }));
 
   const response = await fetch(
     `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/content/v2`,
