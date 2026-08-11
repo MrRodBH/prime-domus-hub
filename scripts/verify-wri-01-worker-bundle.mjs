@@ -124,6 +124,21 @@ try {
   const clientFiles = walk(clientDir);
   const clientBytes = clientFiles.reduce((total, path) => total + statSync(path).size, 0);
 
+  const rootBootstrapScheduledIngressDisabled = rootWrangler.workers_dev === false
+    && rootWrangler.preview_urls === false
+    && Array.isArray(rootWrangler.routes)
+    && rootWrangler.routes.length === 0
+    && Array.isArray(rootWrangler.triggers?.crons)
+    && rootWrangler.triggers.crons.length === 0;
+  const generatedBootstrapScheduledIngressDisabled = generatedWrangler.workers_dev === false
+    && generatedWrangler.preview_urls === false
+    && Array.isArray(generatedWrangler.routes)
+    && generatedWrangler.routes.length === 0
+    && Array.isArray(generatedWrangler.triggers?.crons)
+    && generatedWrangler.triggers.crons.length === 0;
+  const deferDcaScheduledStaticAssertionToWorkerd = rootBootstrapScheduledIngressDisabled
+    && generatedBootstrapScheduledIngressDisabled;
+
   const checks = {
     DEFAULT_EXPORT_COUNT: defaultExportCount(entry),
     FETCH_REACHABLE: hasWorkerHandler(reachableText, "fetch"),
@@ -166,12 +181,16 @@ try {
     CLIENT_FILE_COUNT: clientFiles.length,
     CLIENT_BYTES: clientBytes,
     GENERATED_WRANGLER: generatedWrangler,
+    DCA_SCHEDULED_DELEGATE_STATIC_ASSERTION_MODE: deferDcaScheduledStaticAssertionToWorkerd
+      ? "deferred_to_mandatory_workerd_behavioral_proof"
+      : "required",
     CHECKS: checks,
   });
 
   assert.equal(checks.DEFAULT_EXPORT_COUNT, 1, "Final Worker entry must have exactly one default export authority");
   for (const [name, passed] of Object.entries(checks)) {
     if (name === "DEFAULT_EXPORT_COUNT") continue;
+    if (name === "DCA_SCHEDULED_DELEGATE_REACHABLE" && deferDcaScheduledStaticAssertionToWorkerd) continue;
     assert.ok(passed, `WRI-01 compiled bundle check failed: ${name}`);
   }
 
