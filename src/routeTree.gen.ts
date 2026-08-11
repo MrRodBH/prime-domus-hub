@@ -28,13 +28,18 @@ import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AuthenticatedSuperRouteImport } from './routes/_authenticated.super'
+import { Route as AuthenticatedInvitationsRouteImport } from './routes/_authenticated.invitations'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
 import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authenticated.super.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
+import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
+import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
+import { Route as AuthenticatedSuperControlPlaneRouteImport } from './routes/_authenticated.super.control-plane'
+import { Route as AuthenticatedAdminTrackingRouteImport } from './routes/_authenticated.admin.tracking'
 import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
 import { Route as AuthenticatedAdminPortaisRouteImport } from './routes/_authenticated.admin.portais'
 import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated.admin.pipeline'
@@ -42,11 +47,16 @@ import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminOrigensRouteImport } from './routes/_authenticated.admin.origens'
 import { Route as AuthenticatedAdminMotivosRouteImport } from './routes/_authenticated.admin.motivos'
 import { Route as AuthenticatedAdminMidiasRouteImport } from './routes/_authenticated.admin.midias'
+import { Route as AuthenticatedAdminMembershipsRouteImport } from './routes/_authenticated.admin.memberships'
+import { Route as AuthenticatedAdminMarketingRouteImport } from './routes/_authenticated.admin.marketing'
 import { Route as AuthenticatedAdminLeadsWorkspaceRouteImport } from './routes/_authenticated.admin.leads-workspace'
 import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
 import { Route as AuthenticatedAdminEquipesRouteImport } from './routes/_authenticated.admin.equipes'
+import { Route as AuthenticatedAdminDomainsRouteImport } from './routes/_authenticated.admin.domains'
+import { Route as AuthenticatedAdminCrmOperacoesRouteImport } from './routes/_authenticated.admin.crm-operacoes'
 import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
 import { Route as AuthenticatedAdminCmsTransferenciaRouteImport } from './routes/_authenticated.admin.cms-transferencia'
+import { Route as AuthenticatedAdminCmsInventarioRouteImport } from './routes/_authenticated.admin.cms-inventario'
 import { Route as AuthenticatedAdminCmsAuditoriaRouteImport } from './routes/_authenticated.admin.cms-auditoria'
 import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authenticated.admin.cidades'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
@@ -169,6 +179,12 @@ const AuthenticatedSuperRoute = AuthenticatedSuperRouteImport.update({
   path: '/super',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedInvitationsRoute =
+  AuthenticatedInvitationsRouteImport.update({
+    id: '/invitations',
+    path: '/invitations',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -194,10 +210,22 @@ const ApiPublicPortalLeadsRoute = ApiPublicPortalLeadsRouteImport.update({
   path: '/api/public/portal-leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInternalSpr03ManagedSecretProvisionRoute =
+  ApiInternalSpr03ManagedSecretProvisionRouteImport.update({
+    id: '/api/internal/spr-03-managed-secret-provision',
+    path: '/api/internal/spr-03-managed-secret-provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSuperObservabilidadeRoute =
   AuthenticatedSuperObservabilidadeRouteImport.update({
     id: '/observabilidade',
     path: '/observabilidade',
+    getParentRoute: () => AuthenticatedSuperRoute,
+  } as any)
+const AuthenticatedSuperDomainsRoute =
+  AuthenticatedSuperDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
     getParentRoute: () => AuthenticatedSuperRoute,
   } as any)
 const AuthenticatedSuperDlqRoute = AuthenticatedSuperDlqRouteImport.update({
@@ -205,6 +233,18 @@ const AuthenticatedSuperDlqRoute = AuthenticatedSuperDlqRouteImport.update({
   path: '/dlq',
   getParentRoute: () => AuthenticatedSuperRoute,
 } as any)
+const AuthenticatedSuperControlPlaneRoute =
+  AuthenticatedSuperControlPlaneRouteImport.update({
+    id: '/control-plane',
+    path: '/control-plane',
+    getParentRoute: () => AuthenticatedSuperRoute,
+  } as any)
+const AuthenticatedAdminTrackingRoute =
+  AuthenticatedAdminTrackingRouteImport.update({
+    id: '/tracking',
+    path: '/tracking',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
   id: '/site',
   path: '/site',
@@ -246,6 +286,18 @@ const AuthenticatedAdminMidiasRoute =
     path: '/midias',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminMembershipsRoute =
+  AuthenticatedAdminMembershipsRouteImport.update({
+    id: '/memberships',
+    path: '/memberships',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminMarketingRoute =
+  AuthenticatedAdminMarketingRouteImport.update({
+    id: '/marketing',
+    path: '/marketing',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminLeadsWorkspaceRoute =
   AuthenticatedAdminLeadsWorkspaceRouteImport.update({
     id: '/leads-workspace',
@@ -263,6 +315,18 @@ const AuthenticatedAdminEquipesRoute =
     path: '/equipes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminDomainsRoute =
+  AuthenticatedAdminDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCrmOperacoesRoute =
+  AuthenticatedAdminCrmOperacoesRouteImport.update({
+    id: '/crm-operacoes',
+    path: '/crm-operacoes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCorretoresRoute =
   AuthenticatedAdminCorretoresRouteImport.update({
     id: '/corretores',
@@ -273,6 +337,12 @@ const AuthenticatedAdminCmsTransferenciaRoute =
   AuthenticatedAdminCmsTransferenciaRouteImport.update({
     id: '/cms-transferencia',
     path: '/cms-transferencia',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCmsInventarioRoute =
+  AuthenticatedAdminCmsInventarioRouteImport.update({
+    id: '/cms-inventario',
+    path: '/cms-inventario',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminCmsAuditoriaRoute =
@@ -448,6 +518,7 @@ export interface FileRoutesByFullPath {
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/invitations': typeof AuthenticatedInvitationsRoute
   '/super': typeof AuthenticatedSuperRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -460,11 +531,16 @@ export interface FileRoutesByFullPath {
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
+  '/admin/cms-inventario': typeof AuthenticatedAdminCmsInventarioRoute
   '/admin/cms-transferencia': typeof AuthenticatedAdminCmsTransferenciaRoute
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
+  '/admin/crm-operacoes': typeof AuthenticatedAdminCrmOperacoesRoute
+  '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/leads-workspace': typeof AuthenticatedAdminLeadsWorkspaceRoute
+  '/admin/marketing': typeof AuthenticatedAdminMarketingRoute
+  '/admin/memberships': typeof AuthenticatedAdminMembershipsRoute
   '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
@@ -472,8 +548,12 @@ export interface FileRoutesByFullPath {
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/admin/tracking': typeof AuthenticatedAdminTrackingRoute
+  '/super/control-plane': typeof AuthenticatedSuperControlPlaneRoute
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
+  '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -513,6 +593,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/invitations': typeof AuthenticatedInvitationsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
@@ -523,11 +604,16 @@ export interface FileRoutesByTo {
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
+  '/admin/cms-inventario': typeof AuthenticatedAdminCmsInventarioRoute
   '/admin/cms-transferencia': typeof AuthenticatedAdminCmsTransferenciaRoute
   '/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
+  '/admin/crm-operacoes': typeof AuthenticatedAdminCrmOperacoesRoute
+  '/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/admin/leads-workspace': typeof AuthenticatedAdminLeadsWorkspaceRoute
+  '/admin/marketing': typeof AuthenticatedAdminMarketingRoute
+  '/admin/memberships': typeof AuthenticatedAdminMembershipsRoute
   '/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/admin/origens': typeof AuthenticatedAdminOrigensRoute
@@ -535,8 +621,12 @@ export interface FileRoutesByTo {
   '/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/admin/tracking': typeof AuthenticatedAdminTrackingRoute
+  '/super/control-plane': typeof AuthenticatedSuperControlPlaneRoute
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
+  '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -579,6 +669,7 @@ export interface FileRoutesById {
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/invitations': typeof AuthenticatedInvitationsRoute
   '/_authenticated/super': typeof AuthenticatedSuperRouteWithChildren
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -591,11 +682,16 @@ export interface FileRoutesById {
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/_authenticated/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/_authenticated/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
+  '/_authenticated/admin/cms-inventario': typeof AuthenticatedAdminCmsInventarioRoute
   '/_authenticated/admin/cms-transferencia': typeof AuthenticatedAdminCmsTransferenciaRoute
   '/_authenticated/admin/corretores': typeof AuthenticatedAdminCorretoresRoute
+  '/_authenticated/admin/crm-operacoes': typeof AuthenticatedAdminCrmOperacoesRoute
+  '/_authenticated/admin/domains': typeof AuthenticatedAdminDomainsRoute
   '/_authenticated/admin/equipes': typeof AuthenticatedAdminEquipesRoute
   '/_authenticated/admin/leads': typeof AuthenticatedAdminLeadsRoute
   '/_authenticated/admin/leads-workspace': typeof AuthenticatedAdminLeadsWorkspaceRoute
+  '/_authenticated/admin/marketing': typeof AuthenticatedAdminMarketingRoute
+  '/_authenticated/admin/memberships': typeof AuthenticatedAdminMembershipsRoute
   '/_authenticated/admin/midias': typeof AuthenticatedAdminMidiasRoute
   '/_authenticated/admin/motivos': typeof AuthenticatedAdminMotivosRoute
   '/_authenticated/admin/origens': typeof AuthenticatedAdminOrigensRoute
@@ -603,8 +699,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/pipeline': typeof AuthenticatedAdminPipelineRoute
   '/_authenticated/admin/portais': typeof AuthenticatedAdminPortaisRoute
   '/_authenticated/admin/site': typeof AuthenticatedAdminSiteRoute
+  '/_authenticated/admin/tracking': typeof AuthenticatedAdminTrackingRoute
+  '/_authenticated/super/control-plane': typeof AuthenticatedSuperControlPlaneRoute
   '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
+  '/_authenticated/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -647,6 +747,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/unsubscribe'
     | '/admin'
+    | '/invitations'
     | '/super'
     | '/blog/$slug'
     | '/email/unsubscribe'
@@ -659,11 +760,16 @@ export interface FileRouteTypes {
     | '/admin/blog'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
+    | '/admin/cms-inventario'
     | '/admin/cms-transferencia'
     | '/admin/corretores'
+    | '/admin/crm-operacoes'
+    | '/admin/domains'
     | '/admin/equipes'
     | '/admin/leads'
     | '/admin/leads-workspace'
+    | '/admin/marketing'
+    | '/admin/memberships'
     | '/admin/midias'
     | '/admin/motivos'
     | '/admin/origens'
@@ -671,8 +777,12 @@ export interface FileRouteTypes {
     | '/admin/pipeline'
     | '/admin/portais'
     | '/admin/site'
+    | '/admin/tracking'
+    | '/super/control-plane'
     | '/super/dlq'
+    | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/admin/'
@@ -712,6 +822,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre'
     | '/unsubscribe'
+    | '/invitations'
     | '/blog/$slug'
     | '/email/unsubscribe'
     | '/imovel/$slug'
@@ -722,11 +833,16 @@ export interface FileRouteTypes {
     | '/admin/bairros'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
+    | '/admin/cms-inventario'
     | '/admin/cms-transferencia'
     | '/admin/corretores'
+    | '/admin/crm-operacoes'
+    | '/admin/domains'
     | '/admin/equipes'
     | '/admin/leads'
     | '/admin/leads-workspace'
+    | '/admin/marketing'
+    | '/admin/memberships'
     | '/admin/midias'
     | '/admin/motivos'
     | '/admin/origens'
@@ -734,8 +850,12 @@ export interface FileRouteTypes {
     | '/admin/pipeline'
     | '/admin/portais'
     | '/admin/site'
+    | '/admin/tracking'
+    | '/super/control-plane'
     | '/super/dlq'
+    | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/admin'
@@ -777,6 +897,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/unsubscribe'
     | '/_authenticated/admin'
+    | '/_authenticated/invitations'
     | '/_authenticated/super'
     | '/blog/$slug'
     | '/email/unsubscribe'
@@ -789,11 +910,16 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/blog'
     | '/_authenticated/admin/cidades'
     | '/_authenticated/admin/cms-auditoria'
+    | '/_authenticated/admin/cms-inventario'
     | '/_authenticated/admin/cms-transferencia'
     | '/_authenticated/admin/corretores'
+    | '/_authenticated/admin/crm-operacoes'
+    | '/_authenticated/admin/domains'
     | '/_authenticated/admin/equipes'
     | '/_authenticated/admin/leads'
     | '/_authenticated/admin/leads-workspace'
+    | '/_authenticated/admin/marketing'
+    | '/_authenticated/admin/memberships'
     | '/_authenticated/admin/midias'
     | '/_authenticated/admin/motivos'
     | '/_authenticated/admin/origens'
@@ -801,8 +927,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/pipeline'
     | '/_authenticated/admin/portais'
     | '/_authenticated/admin/site'
+    | '/_authenticated/admin/tracking'
+    | '/_authenticated/super/control-plane'
     | '/_authenticated/super/dlq'
+    | '/_authenticated/super/domains'
     | '/_authenticated/super/observabilidade'
+    | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
     | '/_authenticated/admin/'
@@ -849,6 +979,7 @@ export interface RootRouteChildren {
   ImovelSlugRoute: typeof ImovelSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiInternalSpr03ManagedSecretProvisionRoute: typeof ApiInternalSpr03ManagedSecretProvisionRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksPortalDlqRetryRoute: typeof ApiPublicHooksPortalDlqRetryRoute
@@ -995,6 +1126,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuperRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/invitations': {
+      id: '/_authenticated/invitations'
+      path: '/invitations'
+      fullPath: '/invitations'
+      preLoaderRoute: typeof AuthenticatedInvitationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -1030,11 +1168,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPortalLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/internal/spr-03-managed-secret-provision': {
+      id: '/api/internal/spr-03-managed-secret-provision'
+      path: '/api/internal/spr-03-managed-secret-provision'
+      fullPath: '/api/internal/spr-03-managed-secret-provision'
+      preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/super/observabilidade': {
       id: '/_authenticated/super/observabilidade'
       path: '/observabilidade'
       fullPath: '/super/observabilidade'
       preLoaderRoute: typeof AuthenticatedSuperObservabilidadeRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/super/domains': {
+      id: '/_authenticated/super/domains'
+      path: '/domains'
+      fullPath: '/super/domains'
+      preLoaderRoute: typeof AuthenticatedSuperDomainsRouteImport
       parentRoute: typeof AuthenticatedSuperRoute
     }
     '/_authenticated/super/dlq': {
@@ -1043,6 +1195,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/super/dlq'
       preLoaderRoute: typeof AuthenticatedSuperDlqRouteImport
       parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/super/control-plane': {
+      id: '/_authenticated/super/control-plane'
+      path: '/control-plane'
+      fullPath: '/super/control-plane'
+      preLoaderRoute: typeof AuthenticatedSuperControlPlaneRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/admin/tracking': {
+      id: '/_authenticated/admin/tracking'
+      path: '/tracking'
+      fullPath: '/admin/tracking'
+      preLoaderRoute: typeof AuthenticatedAdminTrackingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/site': {
       id: '/_authenticated/admin/site'
@@ -1093,6 +1259,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMidiasRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/memberships': {
+      id: '/_authenticated/admin/memberships'
+      path: '/memberships'
+      fullPath: '/admin/memberships'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/marketing': {
+      id: '/_authenticated/admin/marketing'
+      path: '/marketing'
+      fullPath: '/admin/marketing'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/leads-workspace': {
       id: '/_authenticated/admin/leads-workspace'
       path: '/leads-workspace'
@@ -1114,6 +1294,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEquipesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/domains': {
+      id: '/_authenticated/admin/domains'
+      path: '/domains'
+      fullPath: '/admin/domains'
+      preLoaderRoute: typeof AuthenticatedAdminDomainsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/crm-operacoes': {
+      id: '/_authenticated/admin/crm-operacoes'
+      path: '/crm-operacoes'
+      fullPath: '/admin/crm-operacoes'
+      preLoaderRoute: typeof AuthenticatedAdminCrmOperacoesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/corretores': {
       id: '/_authenticated/admin/corretores'
       path: '/corretores'
@@ -1126,6 +1320,13 @@ declare module '@tanstack/react-router' {
       path: '/cms-transferencia'
       fullPath: '/admin/cms-transferencia'
       preLoaderRoute: typeof AuthenticatedAdminCmsTransferenciaRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/cms-inventario': {
+      id: '/_authenticated/admin/cms-inventario'
+      path: '/cms-inventario'
+      fullPath: '/admin/cms-inventario'
+      preLoaderRoute: typeof AuthenticatedAdminCmsInventarioRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/cms-auditoria': {
@@ -1344,11 +1545,16 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRouteWithChildren
   AuthenticatedAdminCidadesRoute: typeof AuthenticatedAdminCidadesRoute
   AuthenticatedAdminCmsAuditoriaRoute: typeof AuthenticatedAdminCmsAuditoriaRoute
+  AuthenticatedAdminCmsInventarioRoute: typeof AuthenticatedAdminCmsInventarioRoute
   AuthenticatedAdminCmsTransferenciaRoute: typeof AuthenticatedAdminCmsTransferenciaRoute
   AuthenticatedAdminCorretoresRoute: typeof AuthenticatedAdminCorretoresRoute
+  AuthenticatedAdminCrmOperacoesRoute: typeof AuthenticatedAdminCrmOperacoesRoute
+  AuthenticatedAdminDomainsRoute: typeof AuthenticatedAdminDomainsRoute
   AuthenticatedAdminEquipesRoute: typeof AuthenticatedAdminEquipesRoute
   AuthenticatedAdminLeadsRoute: typeof AuthenticatedAdminLeadsRoute
   AuthenticatedAdminLeadsWorkspaceRoute: typeof AuthenticatedAdminLeadsWorkspaceRoute
+  AuthenticatedAdminMarketingRoute: typeof AuthenticatedAdminMarketingRoute
+  AuthenticatedAdminMembershipsRoute: typeof AuthenticatedAdminMembershipsRoute
   AuthenticatedAdminMidiasRoute: typeof AuthenticatedAdminMidiasRoute
   AuthenticatedAdminMotivosRoute: typeof AuthenticatedAdminMotivosRoute
   AuthenticatedAdminOrigensRoute: typeof AuthenticatedAdminOrigensRoute
@@ -1356,6 +1562,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminPipelineRoute: typeof AuthenticatedAdminPipelineRoute
   AuthenticatedAdminPortaisRoute: typeof AuthenticatedAdminPortaisRoute
   AuthenticatedAdminSiteRoute: typeof AuthenticatedAdminSiteRoute
+  AuthenticatedAdminTrackingRoute: typeof AuthenticatedAdminTrackingRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminCampanhasIdRoute: typeof AuthenticatedAdminCampanhasIdRoute
   AuthenticatedAdminFormulariosIdRoute: typeof AuthenticatedAdminFormulariosIdRoute
@@ -1377,12 +1584,17 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRouteWithChildren,
   AuthenticatedAdminCidadesRoute: AuthenticatedAdminCidadesRoute,
   AuthenticatedAdminCmsAuditoriaRoute: AuthenticatedAdminCmsAuditoriaRoute,
+  AuthenticatedAdminCmsInventarioRoute: AuthenticatedAdminCmsInventarioRoute,
   AuthenticatedAdminCmsTransferenciaRoute:
     AuthenticatedAdminCmsTransferenciaRoute,
   AuthenticatedAdminCorretoresRoute: AuthenticatedAdminCorretoresRoute,
+  AuthenticatedAdminCrmOperacoesRoute: AuthenticatedAdminCrmOperacoesRoute,
+  AuthenticatedAdminDomainsRoute: AuthenticatedAdminDomainsRoute,
   AuthenticatedAdminEquipesRoute: AuthenticatedAdminEquipesRoute,
   AuthenticatedAdminLeadsRoute: AuthenticatedAdminLeadsRoute,
   AuthenticatedAdminLeadsWorkspaceRoute: AuthenticatedAdminLeadsWorkspaceRoute,
+  AuthenticatedAdminMarketingRoute: AuthenticatedAdminMarketingRoute,
+  AuthenticatedAdminMembershipsRoute: AuthenticatedAdminMembershipsRoute,
   AuthenticatedAdminMidiasRoute: AuthenticatedAdminMidiasRoute,
   AuthenticatedAdminMotivosRoute: AuthenticatedAdminMotivosRoute,
   AuthenticatedAdminOrigensRoute: AuthenticatedAdminOrigensRoute,
@@ -1390,6 +1602,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminPipelineRoute: AuthenticatedAdminPipelineRoute,
   AuthenticatedAdminPortaisRoute: AuthenticatedAdminPortaisRoute,
   AuthenticatedAdminSiteRoute: AuthenticatedAdminSiteRoute,
+  AuthenticatedAdminTrackingRoute: AuthenticatedAdminTrackingRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminCampanhasIdRoute: AuthenticatedAdminCampanhasIdRoute,
   AuthenticatedAdminFormulariosIdRoute: AuthenticatedAdminFormulariosIdRoute,
@@ -1412,13 +1625,17 @@ const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedSuperRouteChildren {
+  AuthenticatedSuperControlPlaneRoute: typeof AuthenticatedSuperControlPlaneRoute
   AuthenticatedSuperDlqRoute: typeof AuthenticatedSuperDlqRoute
+  AuthenticatedSuperDomainsRoute: typeof AuthenticatedSuperDomainsRoute
   AuthenticatedSuperObservabilidadeRoute: typeof AuthenticatedSuperObservabilidadeRoute
   AuthenticatedSuperIndexRoute: typeof AuthenticatedSuperIndexRoute
 }
 
 const AuthenticatedSuperRouteChildren: AuthenticatedSuperRouteChildren = {
+  AuthenticatedSuperControlPlaneRoute: AuthenticatedSuperControlPlaneRoute,
   AuthenticatedSuperDlqRoute: AuthenticatedSuperDlqRoute,
+  AuthenticatedSuperDomainsRoute: AuthenticatedSuperDomainsRoute,
   AuthenticatedSuperObservabilidadeRoute:
     AuthenticatedSuperObservabilidadeRoute,
   AuthenticatedSuperIndexRoute: AuthenticatedSuperIndexRoute,
@@ -1429,11 +1646,13 @@ const AuthenticatedSuperRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedInvitationsRoute: typeof AuthenticatedInvitationsRoute
   AuthenticatedSuperRoute: typeof AuthenticatedSuperRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedInvitationsRoute: AuthenticatedInvitationsRoute,
   AuthenticatedSuperRoute: AuthenticatedSuperRouteWithChildren,
 }
 
@@ -1471,6 +1690,8 @@ const rootRouteChildren: RootRouteChildren = {
   ImovelSlugRoute: ImovelSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiInternalSpr03ManagedSecretProvisionRoute:
+    ApiInternalSpr03ManagedSecretProvisionRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksPortalDlqRetryRoute: ApiPublicHooksPortalDlqRetryRoute,
