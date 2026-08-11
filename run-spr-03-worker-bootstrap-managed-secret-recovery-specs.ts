@@ -1,8 +1,29 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = process.cwd();
+const diagnosticPath = resolve(root, ".wri01-bundle-audit-diagnostic.json");
+process.on("uncaughtExceptionMonitor", (error) => {
+  try {
+    writeFileSync(
+      diagnosticPath,
+      JSON.stringify(
+        {
+          schema_version: 1,
+          producer: "spr-03-spec-preflight",
+          phase: "test:spr-03",
+          error_name: error instanceof Error ? error.name : "UnknownError",
+          assertion_message: error instanceof Error ? error.message : "unknown_preflight_failure",
+        },
+        null,
+        2,
+      ),
+    );
+  } catch {
+    // Diagnostic persistence must never mask the original fail-closed test failure.
+  }
+});
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 const canonicalSql = (value: string) => value.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trimEnd();
 let assertions = 0;
