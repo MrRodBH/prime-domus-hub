@@ -34,6 +34,7 @@ const match = (value: string, pattern: RegExp, message: string) => { assert.matc
 const wrangler = JSON.parse(read("wrangler.jsonc")) as Record<string, any>;
 const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string>; dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
 const wri = read("run-wri-01-cloudflare-worker-runtime-specs.ts");
+const vite = read("vite.config.ts");
 const helper = read("src/lib/spr-03/managed-secret-provisioning.server.ts");
 const route = read("src/routes/api/internal/spr-03-managed-secret-provision.ts");
 const migration1 = read("supabase/migrations/20260810220152_1ee179b2-60f0-4ce1-b259-06762002733b.sql");
@@ -88,7 +89,7 @@ match(wri, /wrangler\.workers_dev, false/, "WRI-01 specs must assert workers.dev
 match(wri, /wrangler\.preview_urls, false/, "WRI-01 specs must assert Preview URLs disabled");
 match(wri, /wrangler\.triggers\?\.crons\?\.length, 0/, "WRI-01 specs must assert zero Cron triggers");
 equal(wri.includes('"*/5 * * * *"'), false, "Historical Cron activation must not remain as a current WRI assertion");
-match(wri, /@lovable\.dev\/vite-tanstack-config/, "WRI-01 build authority assertion must remain present");
+match(vite, /@lovable\.dev\/vite-tanstack-config/, "WRI-01 build authority must remain the canonical Lovable/TanStack Vite config");
 match(wri, /wri-01-cloudflare-nitro-plugin\.server\.ts/, "WRI-01 Nitro bridge assertion must remain present");
 
 // R2: exact SQL semantics are frozen against the live history captured read-only.
