@@ -241,13 +241,34 @@ function readVersionTag(detail: any): string | null {
   return candidates.find((value) => typeof value === "string") ?? null;
 }
 
+function versionListItems(result: any): any[] {
+  const items = result?.items;
+  if (!Array.isArray(items)) {
+    throw new Spr03ProvisioningError(
+      "spr03_version_list_shape",
+      "Cloudflare version list result.items must be an array",
+      502,
+    );
+  }
+  for (const item of items) {
+    if (!item || typeof item !== "object" || typeof item.id !== "string" || !VERSION_ID_RE.test(item.id)) {
+      throw new Spr03ProvisioningError(
+        "spr03_version_list_item_shape",
+        "Cloudflare version list contains an invalid version item",
+        502,
+      );
+    }
+  }
+  return items;
+}
+
 async function listVersions(provisioner: string): Promise<any[]> {
   const response = await fetch(
     `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/versions?per_page=100`,
     { method: "GET", headers: providerHeaders(provisioner), cache: "no-store" },
   );
   const result = await parseCloudflareJson<any>(response);
-  return Array.isArray(result) ? result : [];
+  return versionListItems(result);
 }
 
 async function versionDetail(versionId: string, provisioner: string): Promise<any> {
