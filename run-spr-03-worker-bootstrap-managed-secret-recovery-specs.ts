@@ -129,9 +129,11 @@ const providerIndex = executeBoundary.indexOf("assertBootstrapProviderState(prov
 ok(executeBoundaryStart >= 0 && provisionerIndex >= 0 && providerIndex > provisionerIndex, "Missing SPR-03 provisioner must fail before Cloudflare access");
 equal(JSON.stringify(wrangler).includes("CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER"), false, "Provisioner must never be a Worker binding");
 
-// Provider ceremony: one active bootstrap, one inactive canary, at most one inactive final version.
-match(helper, /deployments\.length !== 1/, "Provider state must require exactly one bootstrap deployment");
-match(helper, /versions\.length !== 1 \|\| versions\[0\]\?\.percentage !== 100/, "Bootstrap deployment must pin exactly one version at 100%");
+// Provider ceremony: latest active deployment is authoritative; older deployment rows are history only.
+match(helper, /deployments\.length === 0/, "Provider state must require at least one deployment record");
+match(helper, /const latestDeployment = deployments\[0\]/, "Provider state must use Cloudflare's first/latest deployment as active authority");
+equal(helper.includes("deployments.length !== 1"), false, "Historical deployment rows must not be misclassified as active cardinality");
+match(helper, /versions\.length !== 1 \|\| versions\[0\]\?\.percentage !== 100/, "Active deployment must pin exactly one version at 100%");
 match(helper, /subdomain\?\.enabled !== false \|\| subdomain\?\.previews_enabled !== false/, "Provider revalidation must require workers.dev and Preview URLs disabled");
 match(helper, /scheduleList\.length !== 0/, "Provider revalidation must require zero Cron schedules");
 match(helper, /spr03-canary-\$\{input\.ceremony_id\}/, "Canary must carry deterministic reconciliation annotation");
