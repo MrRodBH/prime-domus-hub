@@ -2,111 +2,162 @@
 
 ## Status
 
-**Principal repository implementation submitted — database and live provider gates pending**
+**Repository implementation Accepted / Merged — Same-Backend principal migration applied — consolidated privilege corrective in progress — live Cloudflare proof blocked by MCP transport**
 
 ```text
 STAGE_ID = DCA-02
-IMPLEMENTATION_BASELINE_MAIN = c0346085da59f294bb34ad670b887ca653023cae
 SELECTED_STRATEGY = Strategy C — Server-Bound Provider Object Identity
-IMPLEMENTATION_BRANCH = agent/dca-02-provider-object-identity-implementation
-IMPLEMENTATION_PR = pending
-IMPLEMENTATION_HEAD = pending
-FILES_ALLOWED_VIOLATIONS = 0 at submission
+EXECUTION_ENVELOPE_PR = 94
+EXECUTION_ENVELOPE_MERGE_SHA = c0346085da59f294bb34ad670b887ca653023cae
+IMPLEMENTATION_PR = 95
+IMPLEMENTATION_HEAD = 1a8041742335ea78e3bdfa1e4f3b91552c25eaad
+IMPLEMENTATION_MERGE_SHA = f5b5ec4dfbf9458219d332cb30ea96129e2bbcea
+IMPLEMENTATION_FILES_CHANGED = 11
+FILES_ALLOWED_VIOLATIONS = 0
+PREMERGE_RELEASE_GATE = success
+PREMERGE_PRM2_GATE = success
+PREMERGE_WRI01_RUNTIME_GATE = success
+POST_MERGE_RELEASE_GATE = success
 CUSTOM_METADATA_AUTHORITY = false
 HOSTNAME_ONLY_PROVIDER_OBJECT_ADOPTION = false
 PRODUCTION_CUTOVER = false
 REAL_TENANT_PROOF = false
 ```
 
-## 1. Repository changes
+## 1. Principal repository implementation
 
-The principal implementation materializes the accepted execution envelope through:
+The protected implementation materialized:
 
-- one forward-only DCA-02 migration;
-- database serialization before first provider create;
+- one forward-only provider identity migration;
+- database claim serialization before first provider POST;
 - bind-once provider object identity;
-- explicit `claimed`, `bound`, and `ambiguous` provider binding states;
-- direct provider-binding identity DML guard and narrowed service-role table grants;
+- explicit `claimed`, `bound`, and `ambiguous` binding states;
 - exact provider observation/removal by persisted `custom_hostname_id`;
-- Custom Hostname creation without `custom_metadata`;
+- Custom Hostname creation without `custom_metadata` in the request body;
 - collision-only exact-hostname search with no automatic adoption;
-- explicit non-retryable `domain_provider_outcome_ambiguous` classification;
-- exact-ID compensation when provider creation succeeds but server binding cannot be committed;
-- manual-assisted object validation without fallback from automated mode;
+- explicit non-retryable `domain_provider_outcome_ambiguous` handling;
+- exact-ID compensation when provider create succeeds but bind persistence fails;
+- manual-assisted validation without silent automated-to-manual fallback;
 - reconciliation that accepts only immutable `bound` identity;
-- deterministic DCA-02 regression tests integrated into the Release Gate.
+- deterministic DCA-02 regression coverage integrated into the Release Gate.
 
-## 2. Database authority model
+## 2. Same-Backend managed migration
 
-```text
-FIRST_CREATE_SERIALIZATION = domain_provider_bindings claim before provider POST
-CLAIM_KEY = server-owned job idempotency key
-CLAIM_SCOPE = domain_id + generation + provider account + zone
-COMPETING_CLAIM = fail closed
-BOUND_CUSTOM_HOSTNAME_ID = immutable for generation
-BOUND_PROVIDER_ACCOUNT = immutable for generation
-BOUND_ZONE = immutable for generation
-AMBIGUOUS_TO_AUTOMATIC_RETRY = prohibited
-DIRECT_SERVICE_ROLE_BINDING_DML = revoked after migration
-CLIENT_BINDING_DML = prohibited
-```
-
-The migration does not edit historical DCA-01 schema. RLS remains enabled on the existing table and no client policy is introduced.
-
-## 3. Provider operation model
+The exact GitHub migration:
 
 ```text
-FIRST_CREATE_HOSTNAME_QUERY = collision diagnostic only
-EXISTING_UNBOUND_EXACT_HOSTNAME = fail closed / no adoption
-CREATE_CUSTOM_METADATA = omitted
-BOUND_OBSERVATION_LOOKUP = GET by persisted custom_hostname_id
-BOUND_DELETE_TARGET = persisted custom_hostname_id only
-HOSTNAME_SEARCH_REBIND = prohibited
+supabase/migrations/20260812133000_dca_02_provider_object_identity_binding.sql
 ```
 
-A provider-generated ID returned by the successful create call is retained in the current server operation until bind-once persistence succeeds or exact-ID compensation completes.
+was first executed inside `BEGIN ... ROLLBACK` against the real Same-Backend PostgreSQL and passed syntax/function/trigger/grant validation without persistence.
 
-## 4. Ambiguous outcome handling
-
-Post-dispatch transport failures, HTTP 408/429/5xx and malformed successful create outcomes are classified as potentially ambiguous. They do not enter the normal `retry_wait` path.
+It was then applied through the Lovable-managed Supabase migration mechanism after the exact implementation merge synchronized into the Lovable workspace.
 
 ```text
-AMBIGUOUS_ERROR_CODE = domain_provider_outcome_ambiguous
-AMBIGUOUS_RETRYABLE = false
-BLIND_SECOND_POST = prohibited
-DB_BINDING_STATE_AFTER_CONFIRMED_AMBIGUITY = ambiguous
-ORPHAN_RECOVERY = explicit future recovery only
+MANAGED_MIGRATION_VERSION = 20260812133000
+MANAGED_MIGRATION_NAME = 1bbea915-9c52-496e-953b-960aad9654d8
+MIGRATION_RECORDED_COUNT = 1
+DOMAIN_PROVIDER_BINDING_COUNT_AFTER_MIGRATION = 0
+DOMAIN_AUTHORITY_MODE = legacy
+DOMAIN_AUTHORITY_LOCK_VERSION = 0
+REAL_DOMAIN = rmprimeimoveis.com.br
+REAL_DOMAIN_MUTATED = false
 ```
 
-If exact-ID compensation after a known successful create cannot be confirmed, the claim is marked ambiguous and automatic provisioning stops.
-
-## 5. Manual-assisted boundary
-
-Manual-assisted mode remains explicit. The supplied provider object ID is only a hint until the server verifies:
-
-- current verified ownership challenge;
-- exact provider account and zone;
-- exact object retrieval by ID;
-- exact authoritative hostname;
-- creation timestamp not predating current-generation ownership verification when reliable;
-- bind-once database acceptance.
-
-No automated-to-manual silent fallback is introduced.
-
-## 6. Remaining gates
-
-The repository implementation is not terminally Accepted from source alone. Required next gates remain:
+Direct database audit proved:
 
 ```text
-IMPLEMENTATION_DIFF_AUDIT = pending
-RELEASE_GATE = pending
-PROTECTED_IMPLEMENTATION_MERGE = pending
-MANAGED_DCA02_MIGRATION = pending
-DATABASE_BIND_ONCE_FUNCTIONAL_PROOF = pending
-CONTROLLED_CURRENT_PLAN_CLOUDFLARE_PROOF = pending
-SYNTHETIC_TEARDOWN_ZERO_ORPHANS = pending
-GLOBAL_AUTHORITY_MODE = must remain legacy
-REAL_TENANT_MUTATION = prohibited
+DCA02_COLUMNS_PRESENT = 3/3
+DCA02_FUNCTION_COUNT = 6 including guard trigger function
+DCA02_GUARD_TRIGGER_ENABLED = true
+RLS_ENABLED = true
+ANON_DCA02_RPC_EXECUTE = false
+AUTHENTICATED_DCA02_RPC_EXECUTE = false
+SERVICE_ROLE_DCA02_RPC_EXECUTE = true
+SERVICE_ROLE_INSERT = false
+SERVICE_ROLE_UPDATE = false
+SERVICE_ROLE_DELETE = false
 ```
 
-The Cloudflare MCP connection was unavailable during repository implementation. That transport condition cannot be treated as provider acceptance or provider rejection; the live proof remains a separate mandatory gate.
+## 3. Managed migration source-drift finding
+
+The Lovable executor textually reported zero repository edits, but direct `Lovable.get_diff` audit disproved that claim. The managed migration operation generated one platform-derived workspace drift artifact:
+
+```text
+src/integrations/supabase/types.ts
+```
+
+That generated source diff is **not** accepted as canonical repository source and is not present in GitHub `main`. It must be removed through the next GitHub-authoritative `developer_update`; no additional Lovable source-edit prompt is authorized for that reconciliation.
+
+## 4. Same-Backend bind-once functional proof
+
+An all-rollback technical-tenant proof exercised the actual installed RPCs. Two synthetic domain fixtures were created only inside the transaction and all state was rolled back.
+
+Passed predicates:
+
+```text
+CLAIM_SAME_KEY_IDEMPOTENT = true
+COMPETING_CLAIM_REJECTED = true
+BIND_SAME_ID_IDEMPOTENT = true
+REBIND_DIFFERENT_ID_REJECTED = true
+EXACT_ID_OBSERVATION = true
+BOUND_RELEASE_REJECTED = true
+AMBIGUOUS_STATE_PERSISTED_WITHIN_TRANSACTION = true
+AMBIGUOUS_REENTRY_REJECTED = true
+AMBIGUOUS_RELEASE_REJECTED = true
+POST_PROOF_SYNTHETIC_DOMAIN_COUNT = 0
+POST_PROOF_SYNTHETIC_BINDING_COUNT = 0
+GLOBAL_AUTHORITY_MODE = legacy
+REAL_DOMAIN_MUTATED = false
+```
+
+The proof also confirmed `service_role` has no `INSERT`, `UPDATE`, or `DELETE` on the provider binding table.
+
+## 5. Post-migration privilege defect
+
+Direct privilege audit found one blocking security defect after the principal managed migration:
+
+```text
+SERVICE_ROLE_TRUNCATE = true
+SERVICE_ROLE_REFERENCES = true
+SERVICE_ROLE_TRIGGER = true
+```
+
+`TRUNCATE` is not a row-level INSERT/UPDATE/DELETE operation and bypasses the DCA-02 row trigger. It could destroy the immutable provider-object identity ledger and therefore blocks database acceptance.
+
+A separate Architecture First corrective Impact Analysis was created and selected the least-privilege resolution:
+
+```text
+CORRECTIVE_STRATEGY = revoke all table privileges from service_role; grant SELECT only
+CORRECTIVE_HISTORICAL_MIGRATION_EDIT = false
+CORRECTIVE_DATA_MUTATION = false
+```
+
+The corrective is restricted to one new forward migration, the DCA-02 regression test, and this evidence document.
+
+## 6. Cloudflare live proof status
+
+The mandatory current-plan provider proof has **not** executed after the DCA-02 implementation because the explicitly requested `Cloudflare API MCP - RM Prime` developer MCP currently returns:
+
+```text
+FORBIDDEN: This conversation does not support developer MCPs
+```
+
+This is a connector/session transport blocker. It is neither provider acceptance nor provider rejection.
+
+The live proof remains mandatory and must use a new technical synthetic hostname only. It must demonstrate creation without `custom_metadata`, exact returned-ID persistence, idempotent no-second-create behavior, exact-ID observation/removal, SSL observation, teardown, zero synthetic orphans, legacy authority preservation, and zero mutation of the real tenant/root/www/notify.
+
+## 7. Current stage state
+
+```text
+DCA02_REPOSITORY_IMPLEMENTATION = Accepted / Merged
+DCA02_PRINCIPAL_MANAGED_MIGRATION = Applied
+DCA02_BIND_ONCE_DATABASE_PROOF = Passed
+DCA02_PRIVILEGE_CORRECTIVE = In Progress
+DCA02_EXTERNAL_PROVIDER_PROOF = Blocked External by MCP transport
+DCA02_TERMINAL_ACCEPTED = false
+BCA01 = blocked
+PRM3 = blocked
+```
+
+DCA-02 can become terminally Accepted only after the consolidated privilege corrective is applied/audited and the mandatory live Cloudflare synthetic proof succeeds.
