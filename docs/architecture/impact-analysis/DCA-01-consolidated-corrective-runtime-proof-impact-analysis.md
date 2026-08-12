@@ -296,3 +296,76 @@ ONE_TIME_TRANSPORT_INVOCATION_AVAILABLE_AFTER_MERGE = true
 FURTHER_IMPLEMENTATION_PROMPTS = prohibited
 NEXT_ACTION_AFTER_MERGE = invoke exactly one Lovable Cloud managed-migration transport execution for the canonical corrective migration, then audit live state and workspace drift
 ```
+
+## 14. Managed migration transport execution evidence
+
+### 14.1 Managed database result
+
+The one-time transport-only invocation was consumed exactly once after Section 13 became canonical on GitHub `main`. The Lovable Cloud managed migration primitive read the canonical migration from the audited Git commit and applied that SQL as one managed migration.
+
+```text
+TRANSPORT_ONLY_INVOCATION_CONSUMED = true
+TRANSPORT_INVOCATION_COUNT = 1
+SQL_AUTHORITY_HEAD = 97f977302f6a97a77f557034bee4e6ff26000a10
+SOURCE_FILE = supabase/migrations/20260811234800_dca_01_provider_registration_corrective.sql
+SOURCE_FILE_SHA256 = 92ba1f2d0d5cb464e7974f686875ee1ad3383ae38fce7141dc0bb8b2d5d7bdb5
+MANAGED_MIGRATION_RESULT = success
+CORRECTIVE_LIVE_MANAGED_MIGRATION_VERSION = 20260812014256
+CORRECTIVE_LIVE_MANAGED_MIGRATION_NAME = 2e268935-ea5d-48bc-9df6-f4e3a42fb9d0
+BASE_MANAGED_MIGRATION_VERSION = 20260811224106
+BASE_MANAGED_MIGRATION_INTACT = true
+MANUAL_SCHEMA_HISTORY_EDIT = false
+```
+
+Independent read-only database audit after the managed migration confirmed:
+
+- `public.register_domain_provider_account(text,text,jsonb,uuid,text)` contains `ON CONFLICT ON CONSTRAINT domain_provider_accounts_provider_account_uq`;
+- the former ambiguous `ON CONFLICT (provider_code, account_identifier)` target is absent;
+- `LANGUAGE plpgsql`, `SECURITY DEFINER` and fixed `search_path` to `pg_catalog, public` are preserved;
+- `service_role` retains execute permission and `PUBLIC`, `anon`, `authenticated` do not have execute permission;
+- all eight DCA tables remain present with RLS enabled, zero policies and zero client table grants;
+- `domain_authority_control` remains `authority_mode=legacy`, `lock_version=0`, `activated_at=null`;
+- the managed migration itself created no provider account and no synthetic domain row;
+- the real tenant remained unchanged;
+- no global authority cutover occurred.
+
+Functional provider registration and idempotence proof remain a separate post-drift validation gate and are not inferred from migration success alone.
+
+### 14.2 Generated Lovable workspace drift
+
+The transport agent's textual claim of zero effective workspace diff is rejected because direct `Lovable.get_diff` audit of the exact transport execution identified two generated artifacts:
+
+```text
+src/integrations/supabase/types.ts
+supabase/migrations/20260812014256_2e268935-ea5d-48bc-9df6-f4e3a42fb9d0.sql
+```
+
+The generated migration copy contains the same corrective SQL applied through the managed primitive; it is not a second database migration and is not accepted as a second canonical migration file. `src/integrations/supabase/types.ts` reflects platform-generated type regeneration. Neither generated artifact is authorized as an effective source change. `src/routeTree.gen.ts` was not present in the audited generated diff.
+
+```text
+GENERATED_DRIFT_COUNT = 2
+GENERATED_DRIFT_CLASSIFICATION = platform_transport_generated
+GENERATED_DRIFT_CANONICAL_ACCEPTANCE = false
+LOVABLE_EFFECTIVE_DIFF_COUNT = pending_reconciliation
+ROUTE_TREE_GENERATED_DRIFT = false
+ADDITIONAL_DATABASE_MUTATION_FOR_DRIFT_CLEANUP = prohibited
+```
+
+### 14.3 Drift reconciliation mechanism and next gate
+
+The selected reconciliation is a GitHub-authoritative developer sync. This evidence update is GitHub-native and governance/documentation-only. After merge, the resulting exact GitHub `main` must become the Lovable `developer_update` authority and replace the transport-generated workspace tree. No additional Lovable edit prompt and no database mutation are authorized for this reconciliation.
+
+```text
+DRIFT_RECONCILIATION_MECHANISM = GitHub_authoritative_developer_sync
+ADDITIONAL_LOVABLE_EDIT_PROMPT = prohibited
+ADDITIONAL_DATABASE_MUTATION = prohibited
+TARGET_LOVABLE_EFFECTIVE_DIFF_COUNT = 0
+DATABASE_FUNCTIONAL_PROVIDER_REGISTRATION = pending_after_zero_diff
+DCA01_DATABASE_CORRECTIVE_GATE = Pending
+WORKER_CORRECTIVE_PROMOTION = prohibited_until_database_gate_accepted
+CONTROLLED_DOMAIN_PROOF = pending_corrective_gates
+BCA01 = blocked
+PRM3 = blocked
+```
+
+The database corrective gate may become `Accepted` only after the GitHub-authoritative Lovable workspace is proven clean and the canonical provider-registration boundary is exercised successfully and idempotently with all security, redaction, authority, and real-tenant invariants preserved.
