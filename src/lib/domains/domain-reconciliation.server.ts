@@ -8,14 +8,14 @@ import type {
 import {
   activateReplacement,
   getCurrentOwnershipChallenge,
-  getDomainProviderBinding,
-  listTenantDomains,
-  patchDomainMetadata,
-  transitionTenantDomain,
-  upsertDomainProviderBinding,
+  getDomainProviderIdentityBinding,
   getProviderAccountForDomain,
   getTenantDomain,
   isDomainHostnameReservationValid,
+  listTenantDomains,
+  patchDomainMetadata,
+  transitionTenantDomain,
+  updateDomainProviderObservation,
 } from "./domain-repository.server";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
 import { DomainError, sanitizeDomainObject } from "./domain-errors";
@@ -32,7 +32,7 @@ export async function buildCurrentGenerationEvidence(domain: TenantDomainRecord)
 
   const [challenge, binding, siblings, globalHostnameReservationValid] = await Promise.all([
     getCurrentOwnershipChallenge(domain),
-    getDomainProviderBinding(domain),
+    getDomainProviderIdentityBinding(domain),
     listTenantDomains(domain.tenantId),
     isDomainHostnameReservationValid(domain),
   ]);
@@ -58,9 +58,12 @@ export async function buildCurrentGenerationEvidence(domain: TenantDomainRecord)
       && metadata.required_dns_observed === true,
     providerBindingConfirmed:
       binding?.generation === domain.generation
+      && binding.bindingState === "bound"
       && !!binding.customHostnameId
       && binding.providerStatus === "active",
-    sslStatusActive: binding?.sslStatus === "active",
+    sslStatusActive:
+      binding?.bindingState === "bound"
+      && binding.sslStatus === "active",
     canonicalOrAliasBindingValid,
     enabled: domain.enabled,
     reconciliationCurrentGenerationSuccess:
@@ -75,9 +78,25 @@ export async function reconcileDomain(input: {
   runtimeEnv?: Record<string, unknown>;
 }): Promise<{ domain: TenantDomainRecord; evidence: DomainEvidence; changed: boolean }> {
   let current = input.domain;
-  const binding = await getDomainProviderBinding(current);
-  if (binding?.customHostnameId) {
+  const binding = await getDomainProviderIdentityBinding(current);
+  if (binding) {
+    if (binding.bindingState === "ambiguous") {
+      throw new DomainError("domain_provider_outcome_ambiguous", "Provider identity is ambiguous; automatic reconciliation is prohibited", {
+        retryable: false,
+        safeDetail: { bindingId: binding.id },
+      });
+    }
+    if (binding.bindingState !== "bound" || !binding.customHostnameId) {
+      throw new DomainError("domain_provider_configuration_invalid", "Provider identity is not bound and cannot be reconciled", {
+        safeDetail: { bindingId: binding.id, bindingState: binding.bindingState },
+      });
+    }
+
     const provider = await getProviderAccountForDomain(current);
+    if (binding.providerAccountId !== provider.id || binding.zoneId !== provider.zoneId) {
+      throw new DomainError("domain_provider_configuration_invalid", "Persisted provider binding no longer matches the server-owned provider context");
+    }
+
     const observation = await createCloudflareAdapter(input.runtimeEnv).observeCustomHostname({
       provider: {
         accountIdentifier: provider.accountIdentifier,
@@ -87,14 +106,11 @@ export async function reconcileDomain(input: {
       domain: current,
       expectedCustomHostnameId: binding.customHostnameId,
     });
-    if (observation.hostname.toLowerCase().replace(/\.$/, "") !== current.normalizedHostname) {
-      throw new DomainError("domain_provider_configuration_invalid", "Observed provider object does not match the authoritative hostname");
-    }
-    await upsertDomainProviderBinding({
+    await updateDomainProviderObservation({
       domain: current,
       providerAccountId: provider.id,
       zoneId: provider.zoneId,
-      customHostnameId: observation.id,
+      customHostnameId: binding.customHostnameId,
       providerStatus: observation.status,
       sslStatus: observation.sslStatus,
       providerVersion: observation.version,

@@ -19,6 +19,8 @@ type CloudflareEnvelope<T> = {
 type CloudflareHostnameResult = {
   id: string;
   hostname: string;
+  // DCA-02 deliberately ignores custom_metadata as authorization/ownership input.
+  // The optional transport field remains typed for backward provider response compatibility only.
   custom_metadata?: Record<string, string>;
   status?: string;
   ownership_verification?: { type?: string; name?: string; value?: string };
@@ -51,7 +53,10 @@ function assertProviderContext(provider: CloudflareProviderContext): void {
   }
 }
 
-function mapObservation(result: CloudflareHostnameResult, errors: readonly { code: number | string; message: string }[] = []): CloudflareCustomHostnameObservation {
+function mapObservation(
+  result: CloudflareHostnameResult,
+  errors: readonly { code: number | string; message: string }[] = [],
+): CloudflareCustomHostnameObservation {
   const verification = result.ownership_verification;
   return {
     id: result.id,
@@ -64,7 +69,33 @@ function mapObservation(result: CloudflareHostnameResult, errors: readonly { cod
         : null,
     errors,
     version: result.modified_at ?? result.created_at ?? null,
+    createdAt: result.created_at ?? null,
   };
+}
+
+function normalizedProviderHostname(value: string): string {
+  return value.toLowerCase().replace(/\.$/, "");
+}
+
+/**
+ * Historical DCA-01 marker retained with DCA-02 semantics: the generation is
+ * proven by the server-owned binding before this adapter is called. At this
+ * boundary the provider object must still match the authoritative hostname.
+ * custom_metadata is intentionally not inspected.
+ */
+function assertExistingObjectOwnedByDomain(
+  result: CloudflareHostnameResult,
+  domain: TenantDomainRecord,
+): void {
+  if (normalizedProviderHostname(result.hostname) !== domain.normalizedHostname) {
+    throw new DomainError("domain_provider_configuration_invalid", "Cloudflare object hostname differs from the authoritative domain", {
+      safeDetail: { customHostnameId: result.id },
+    });
+  }
+}
+
+function ambiguousMutationStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
 }
 
 async function cloudflareRequest<T>(input: {
@@ -73,7 +104,9 @@ async function cloudflareRequest<T>(input: {
   provider: CloudflareProviderContext;
   runtimeEnv?: Record<string, unknown>;
   body?: Record<string, unknown>;
-}): Promise<T> {
+  ambiguousOnTransportFailure?: boolean;
+  allowNotFound?: boolean;
+}): Promise<T | null> {
   assertProviderContext(input.provider);
   const token = resolveCredential(input.provider.credentialReference, input.runtimeEnv);
   const controller = new AbortController();
@@ -89,22 +122,48 @@ async function cloudflareRequest<T>(input: {
       body: input.body ? JSON.stringify(input.body) : undefined,
       signal: controller.signal,
     });
-    const payload = (await response.json()) as CloudflareEnvelope<T>;
+
+    if (input.allowNotFound && response.status === 404) return null;
+
+    let payload: CloudflareEnvelope<T>;
+    try {
+      payload = (await response.json()) as CloudflareEnvelope<T>;
+    } catch (error) {
+      if (input.ambiguousOnTransportFailure) {
+        throw new DomainError("domain_provider_outcome_ambiguous", "Cloudflare mutation returned an unreadable outcome", {
+          retryable: false,
+          safeDetail: { status: response.status, cause: error instanceof Error ? error.name : "unknown" },
+          cause: error,
+        });
+      }
+      throw error;
+    }
+
     if (!response.ok || payload.success !== true || payload.result === undefined) {
       const safeErrors = (payload.errors ?? []).map((error) => ({ code: error.code, message: error.message }));
-      throw new DomainError("domain_provider_unavailable", "Cloudflare operation failed", {
-        retryable: response.status === 408 || response.status === 429 || response.status >= 500,
-        safeDetail: { status: response.status, errors: sanitizeDomainDetail(safeErrors) },
-      });
+      const ambiguous = input.ambiguousOnTransportFailure && ambiguousMutationStatus(response.status);
+      throw new DomainError(
+        ambiguous ? "domain_provider_outcome_ambiguous" : "domain_provider_unavailable",
+        ambiguous ? "Cloudflare mutation outcome is ambiguous" : "Cloudflare operation failed",
+        {
+          retryable: !ambiguous && (response.status === 408 || response.status === 429 || response.status >= 500),
+          safeDetail: { status: response.status, errors: sanitizeDomainDetail(safeErrors) },
+        },
+      );
     }
     return payload.result as T;
   } catch (error) {
     if (error instanceof DomainError) throw error;
-    throw new DomainError("domain_provider_unavailable", "Cloudflare request failed", {
-      retryable: true,
-      safeDetail: { cause: error instanceof Error ? error.name : "unknown" },
-      cause: error,
-    });
+    const ambiguous = input.ambiguousOnTransportFailure === true;
+    throw new DomainError(
+      ambiguous ? "domain_provider_outcome_ambiguous" : "domain_provider_unavailable",
+      ambiguous ? "Cloudflare mutation transport outcome is ambiguous" : "Cloudflare request failed",
+      {
+        retryable: !ambiguous,
+        safeDetail: { cause: error instanceof Error ? error.name : "unknown" },
+        cause: error,
+      },
+    );
   } finally {
     clearTimeout(timeout);
   }
@@ -121,7 +180,9 @@ async function findExactCustomHostname(input: {
     provider: input.provider,
     runtimeEnv: input.runtimeEnv,
   });
-  const exact = results.filter((row) => row.hostname.toLowerCase().replace(/\.$/, "") === input.hostname);
+  const exact = (results ?? []).filter(
+    (row) => normalizedProviderHostname(row.hostname) === input.hostname,
+  );
   if (exact.length > 1) {
     throw new DomainError("domain_provider_configuration_invalid", "Cloudflare returned multiple exact custom hostnames", {
       safeDetail: { hostname: input.hostname, exactMatchCount: exact.length },
@@ -130,32 +191,39 @@ async function findExactCustomHostname(input: {
   return exact[0] ?? null;
 }
 
-function assertExistingObjectOwnedByDomain(result: CloudflareHostnameResult, domain: TenantDomainRecord): void {
-  const metadata = result.custom_metadata ?? {};
-  if (metadata.tenant_id !== domain.tenantId
-    || metadata.domain_id !== domain.id
-    || metadata.generation !== String(domain.generation)) {
-    throw new DomainError("domain_provider_configuration_invalid", "Existing Cloudflare hostname is not owned by the current domain generation", {
-      safeDetail: { hostname: domain.normalizedHostname, customHostnameId: result.id },
-    });
+async function getCustomHostnameById(input: {
+  provider: CloudflareProviderContext;
+  customHostnameId: string;
+  runtimeEnv?: Record<string, unknown>;
+}): Promise<CloudflareHostnameResult | null> {
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(input.customHostnameId)) {
+    throw new DomainError("domain_provider_configuration_invalid", "Cloudflare custom hostname id is invalid");
   }
+  return cloudflareRequest<CloudflareHostnameResult>({
+    method: "GET",
+    path: `/zones/${encodeURIComponent(input.provider.zoneId)}/custom_hostnames/${encodeURIComponent(input.customHostnameId)}`,
+    provider: input.provider,
+    runtimeEnv: input.runtimeEnv,
+    allowNotFound: true,
+  });
 }
 
 export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}): CloudflarePort {
   return {
-    async provisionCustomHostname(input: {
-      provider: CloudflareProviderContext;
-      domain: TenantDomainRecord;
-      idempotencyKey: string;
-    }) {
-      const existing = await findExactCustomHostname({
+    async provisionCustomHostname(input) {
+      // The repository idempotency key is server operation identity only. Cloudflare
+      // does not become authority for it and no provider-side idempotency is assumed.
+      void input.idempotencyKey;
+
+      const collision = await findExactCustomHostname({
         provider: input.provider,
         hostname: input.domain.normalizedHostname,
         runtimeEnv,
       });
-      if (existing) {
-        assertExistingObjectOwnedByDomain(existing, input.domain);
-        return mapObservation(existing);
+      if (collision) {
+        throw new DomainError("domain_provider_configuration_invalid", "An unbound Cloudflare hostname already exists; automatic adoption is prohibited", {
+          safeDetail: { hostname: input.domain.normalizedHostname, exactMatchCount: 1 },
+        });
       }
 
       const result = await cloudflareRequest<CloudflareHostnameResult>({
@@ -163,58 +231,64 @@ export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}
         path: `/zones/${encodeURIComponent(input.provider.zoneId)}/custom_hostnames`,
         provider: input.provider,
         runtimeEnv,
+        ambiguousOnTransportFailure: true,
         body: {
           hostname: input.domain.normalizedHostname,
-          custom_metadata: {
-            tenant_id: input.domain.tenantId,
-            domain_id: input.domain.id,
-            generation: String(input.domain.generation),
-          },
           ssl: { method: "txt", type: "dv" },
         },
       });
-      assertExistingObjectOwnedByDomain(result, input.domain);
+      if (!result || typeof result.id !== "string" || result.id.length < 8 || typeof result.hostname !== "string") {
+        throw new DomainError("domain_provider_outcome_ambiguous", "Cloudflare create response did not provide authoritative object identity", {
+          retryable: false,
+          safeDetail: { hostname: input.domain.normalizedHostname },
+        });
+      }
+      // Hostname equality is deliberately validated by the job layer so a
+      // successful POST with a mismatched hostname can be compensated by the
+      // exact returned id rather than losing that identity in an exception.
       return mapObservation(result);
     },
 
     async observeCustomHostname(input) {
-      // The supplied provider object id is a non-authoritative hint. Resolve by
-      // the server-owned hostname, then require exact id and generation metadata.
-      const result = await findExactCustomHostname({
+      const result = await getCustomHostnameById({
         provider: input.provider,
-        hostname: input.domain.normalizedHostname,
+        customHostnameId: input.expectedCustomHostnameId,
         runtimeEnv,
       });
-      if (!result || result.id !== input.expectedCustomHostnameId) {
-        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare object hint did not resolve to the exact authoritative hostname", {
-          safeDetail: { hostname: input.domain.normalizedHostname },
+      if (!result) {
+        throw new DomainError("domain_provider_configuration_invalid", "The server-bound Cloudflare hostname no longer exists", {
+          safeDetail: { customHostnameId: input.expectedCustomHostnameId },
         });
+      }
+      if (result.id !== input.expectedCustomHostnameId) {
+        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare object id differs from the server-bound provider identity");
       }
       assertExistingObjectOwnedByDomain(result, input.domain);
       return mapObservation(result);
     },
 
     async removeCustomHostname(input) {
-      const existing = await findExactCustomHostname({
+      const existing = await getCustomHostnameById({
         provider: input.provider,
-        hostname: input.domain.normalizedHostname,
+        customHostnameId: input.customHostnameId,
         runtimeEnv,
       });
       if (!existing) return { removed: true as const, alreadyAbsent: true };
       if (existing.id !== input.customHostnameId) {
-        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare hostname id differs from the persisted provider binding", {
-          safeDetail: { hostname: input.domain.normalizedHostname },
-        });
+        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare hostname id differs from the persisted provider binding");
       }
       assertExistingObjectOwnedByDomain(existing, input.domain);
+
       const result = await cloudflareRequest<{ id: string }>({
         method: "DELETE",
         path: `/zones/${encodeURIComponent(input.provider.zoneId)}/custom_hostnames/${encodeURIComponent(input.customHostnameId)}`,
         provider: input.provider,
         runtimeEnv,
+        allowNotFound: true,
       });
+      if (result === null) return { removed: true as const, alreadyAbsent: true };
       if (result.id !== input.customHostnameId) {
-        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare delete response did not match the requested object");
+        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare delete response did not match the server-bound object id");
       }
       return { removed: true as const, alreadyAbsent: false };
     },
