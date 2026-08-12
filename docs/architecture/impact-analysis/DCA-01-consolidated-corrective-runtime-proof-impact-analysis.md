@@ -235,3 +235,64 @@ FURTHER_LOVABLE_PROMPTS = prohibited_for_this_corrective
 GITHUB_NATIVE_COMPLETION = authorized_by_governance_fallback
 NEXT_ACTION = audit repository corrective and run protected CI before live application
 ```
+
+## 13. Managed migration transport governance reconciliation
+
+### 13.1 Impact Analysis of the reconciliation
+
+This subsection reconciles a transport-only governance contradiction after the GitHub-native corrective implementation was merged. It does not reopen the corrective implementation, create a new architectural stage, change runtime architecture, alter database state, modify provider state, mutate tenant state, or authorize production cutover.
+
+```text
+RECONCILIATION_SCOPE = governance_only_documentation
+RUNTIME_EFFECT = none
+DATABASE_EFFECT = none
+PROVIDER_EFFECT = none
+TENANT_EFFECT = none
+ARCHITECTURE_CHANGE = none
+NEW_STAGE_CREATED = false
+IMPLEMENTATION_BUDGET_REOPENED = false
+LOVABLE_PRINCIPAL_PROMPT = consumed_fail_closed
+LOVABLE_CORRECTIVE_PROMPT = consumed_fail_closed
+```
+
+The Section 12 statement `FURTHER_LOVABLE_PROMPTS = prohibited_for_this_corrective` remains binding for implementation, corrective implementation, code generation, file editing, schema redesign, runtime changes, or any scope expansion. It does not classify a managed migration transport invocation as an implementation prompt when that invocation is limited to applying the already-merged immutable migration through the Lovable Cloud migration-aware infrastructure.
+
+### 13.2 One-time transport-only authorization
+
+The Product Owner explicitly authorizes one narrow operational exception:
+
+```text
+TRANSPORT_ONLY_MANAGED_MIGRATION_EXECUTION = authorized_once
+ONE_TIME_MANAGED_MIGRATION_TRANSPORT_INVOCATION = authorized
+TRANSPORT_CLASSIFICATION = operational_only
+THIRD_CORRECTIVE_CREATED = false
+IMPLEMENTATION_PROMPT_BUDGET_CHANGED = false
+SQL_AUTHORITY = GitHub main audited after this reconciliation is merged
+SOURCE_FILE = supabase/migrations/20260811234800_dca_01_provider_registration_corrective.sql
+```
+
+The sole purpose of the invocation is to apply exactly the SQL from `SOURCE_FILE` through the Lovable Cloud managed migration primitive and let the platform create normal managed migration history. The SQL must be obtained from the audited GitHub `main` after this governance reconciliation is merged; it must not be reconstructed, reinterpreted, expanded, or replaced by ad-hoc DDL.
+
+The transport-only invocation must not:
+
+- implement or edit code;
+- edit repository files;
+- generate new application logic;
+- alter schema beyond the exact canonical forward migration;
+- use direct `query_database` DDL as a substitute for the managed migration primitive;
+- manually insert, update, delete, repair, rename, or force migration history/version;
+- touch Cloudflare, DNS, the real tenant, production ingress, or global authority cutover;
+- execute any additional mutation after the managed migration and its immediate read-only verification.
+
+If the managed migration fails before commit, execution must fail closed without blind retry or alternate DDL. If any managed-history entry, partial commit, or ambiguous state is observed, the actual live state must be audited before any consideration of reapplication.
+
+### 13.3 Reconciliation decision
+
+```text
+MANAGED_MIGRATION_TRANSPORT_GOVERNANCE_RECONCILIATION = Accepted
+GOVERNANCE_ONLY_IMPACT = confirmed
+ZERO_RUNTIME_DATABASE_PROVIDER_EFFECT_FROM_THIS_DOCUMENT_CHANGE = true
+ONE_TIME_TRANSPORT_INVOCATION_AVAILABLE_AFTER_MERGE = true
+FURTHER_IMPLEMENTATION_PROMPTS = prohibited
+NEXT_ACTION_AFTER_MERGE = invoke exactly one Lovable Cloud managed-migration transport execution for the canonical corrective migration, then audit live state and workspace drift
+```
