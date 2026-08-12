@@ -4,20 +4,16 @@
 
 **Accepted by explicit Product Owner decision — normative amendment pending protected merge to `main`**
 
-**Repository:** `MrRodBH/prime-domus-hub`  
-**Technical authority:** audited `main`  
-**Decision date:** 2026-08-12  
+**Repository:** `MrRodBH/prime-domus-hub`
+**Technical authority:** audited `main`
+**Decision date:** 2026-08-12
 **Product:** Plataforma SaaS White Label para corretores de imóveis e imobiliárias
 
 ---
 
 ## 1. Decision
 
-The fixed Lovable rule of `1 principal + 1 consolidated corrective = 2 implementation prompts` is superseded prospectively for future Lovable-executed stages and for explicitly authorized recovery stages created after this amendment becomes active.
-
-This amendment changes the unit of finite-delivery control from **message count** to **evidence-qualified materialized execution packets**.
-
-It does not make Lovable execution unlimited. Every stage remains finite, scope-frozen, auditable and Architecture First.
+For future Lovable-executed stages and explicitly authorized recovery stages created after this amendment becomes active, the fixed rule `1 principal + 1 consolidated corrective = 2 implementation prompts` is superseded by finite, evidence-qualified execution packets.
 
 ```text
 PROMPT_COUNT_GOVERNANCE = superseded_for_future_Lovable_stages
@@ -25,7 +21,6 @@ EXECUTION_PACKET_GOVERNANCE = active
 
 DEFAULT_MAX_MATERIALIZED_PACKETS = 4
 HARD_MAX_MATERIALIZED_PACKETS = 6
-
 DEFAULT_MAX_CORRECTIVE_PACKETS = 2
 HARD_MAX_CORRECTIVE_PACKETS = 3
 
@@ -38,59 +33,38 @@ NEW_ARCHITECTURAL_DECISION = replan
 SAME_ROOT_CAUSE_LOOP = stop_or_replan
 ```
 
-The stage-specific packet budget MUST be frozen before the first implementation packet. The hard maximum MUST NOT be increased during execution.
+The stage-specific packet ceiling MUST be frozen before its first implementation packet and MUST NOT grow during execution.
 
 ---
 
 ## 2. Supersession boundary
 
-This amendment supersedes, for applicable future Lovable stages only, every clause that treats the number of natural-language implementation prompts as the controlling finite-delivery budget.
+This amendment supersedes only the prospective Lovable prompt-count ceiling wherever it is repeated in `FINITE_DELIVERY_GOVERNANCE.md`, `FINITE_ROADMAP_EXECUTION_MAP.md`, future templates or future Execution Envelopes.
 
-It specifically supersedes the prospective Lovable applicability of:
-
-```text
-principal: 1
-corrective: 1
-total maximum: 2
-```
-
-where the same requirement is expressed in:
-
-- `FINITE_DELIVERY_GOVERNANCE.md`;
-- `FINITE_ROADMAP_EXECUTION_MAP.md`;
-- stage templates or future Execution Envelopes;
-- historical prompt-budget language copied into future planning documents.
-
-This amendment does **not** supersede:
+It does not supersede:
 
 - Architecture First;
-- mandatory Impact Analysis for structural or runtime-relevant change;
-- accepted ADRs;
-- architectural and security invariants;
+- mandatory Impact Analysis for structural/runtime-relevant changes;
+- accepted ADRs and security invariants;
 - server-only tenant, authorization and commercial authority;
 - fail-fast and fail-closed behavior;
 - `FILES_ALLOWED` and explicit generated-file allowances;
-- migration, RLS and grant boundaries;
-- Same-Backend Homologation Cell;
+- RLS, grants and Same-Backend Homologation Cell boundaries;
 - explicit Super Admin impersonation boundaries;
-- secret custody requirements;
-- direct GitHub diff audit;
-- Release Gate requirements;
+- secret custody rules;
+- direct GitHub diff audit and Release Gate requirements;
 - one active implementation flow per material stage;
-- prohibition of concurrent competing implementations;
 - terminal-state semantics.
 
-Historical stage states remain factual. This amendment MUST NOT retroactively convert an exhausted/rejected historical Lovable attempt into an accepted implementation.
+Historical terminal states remain factual. This amendment MUST NOT retroactively convert a rejected or exhausted Lovable implementation into an accepted one.
 
 ---
 
-## 3. Execution Packet
+## 3. Execution Packet contract
 
-### 3.1 Definition
+An Execution Packet is one bounded Lovable Agent execution unit implementing a causally coherent subset of an already frozen Architecture First Execution Envelope.
 
-An **Execution Packet** is a bounded Lovable Agent execution unit that implements one causally coherent subset of an already frozen Execution Envelope.
-
-A packet MUST declare:
+Every packet MUST declare:
 
 ```text
 PACKET_ID
@@ -111,78 +85,55 @@ EVIDENCE_REQUIRED
 PROHIBITED_SUCCESSORS
 ```
 
-A packet MUST NOT introduce a new architectural decision, enlarge the stage objective, enlarge the global stage `FILES_ALLOWED`, or authorize a successor.
+A packet MUST NOT:
 
-### 3.2 Frozen contract, bounded execution
+- introduce a new architectural decision;
+- enlarge the stage objective or global `FILES_ALLOWED`;
+- authorize a successor;
+- infer mutation authority not expressly declared.
 
-The complete Architecture First contract remains in GitHub and is the authority. Lovable packets SHOULD reference that frozen contract rather than restating its complete narrative on every invocation.
-
-The intended pattern is:
+The governing pattern is:
 
 ```text
-long-lived frozen contract
-→ small bounded execution packet
-→ terminal packet result
+frozen GitHub contract
+→ bounded execution packet
+→ terminal packet observation
 → direct audit
-→ next packet or evidence-qualified correction
+→ next packet or evidence-qualified corrective
 ```
 
-This prevents both failure modes:
-
-- one oversized prompt asking the executor to reason about architecture, database, backend, UI, tests and evidence simultaneously;
-- underspecified short prompts that transfer design authority to the executor.
+The full architectural contract remains in GitHub. Packets SHOULD reference it instead of duplicating its complete narrative on every invocation.
 
 ---
 
-## 4. Packet budget
+## 4. Finite packet budget
 
-### 4.1 Complexity classes
+Before implementation, planning MUST classify complexity and freeze the ceiling.
 
-Before implementation, the planning gate MUST classify the stage complexity and freeze a packet ceiling.
-
-Recommended ceilings:
-
-| Complexity | Materialized execution packets | Corrective packets | Meaning |
+| Complexity | Materialized packets | Corrective packets | Use |
 |---|---:|---:|---|
 | S | 2 | 1 | Localized bounded change |
 | M | 4 | 2 | Multi-file feature or bounded integration |
-| L | 6 | 3 | Database + server + integration/UI or equivalent cross-boundary work |
+| L | 6 | 3 | Cross-boundary database/server/integration/UI work |
 | XL | prohibited | prohibited | Must be decomposed before execution |
 
-The values above are maxima, not quotas.
-
-```text
-DEFAULT_MAX_MATERIALIZED_PACKETS = 4
-HARD_MAX_MATERIALIZED_PACKETS = 6
-DEFAULT_MAX_CORRECTIVE_PACKETS = 2
-HARD_MAX_CORRECTIVE_PACKETS = 3
-```
-
-### 4.2 No dynamic expansion
+The values are maxima, not quotas.
 
 Once the first implementation packet is sent:
 
-- the materialized packet ceiling MUST NOT increase;
-- the corrective packet ceiling MUST NOT increase;
-- new sublots, decimal stages or artificial successor identifiers MUST NOT be created to bypass the ceiling;
-- scope reduction is allowed only when it preserves the stage's accepted objective and Definition of Done;
-- a new architectural decision requires stop/replan.
+- packet ceilings MUST NOT increase;
+- new sublots or decimal identifiers MUST NOT bypass the ceiling;
+- new scope is prohibited;
+- a new architectural decision requires stop/replan;
+- the hard maximum remains six materialized packets and three corrective packets.
 
 ---
 
-## 5. Evidence-qualified consumption
+## 5. Evidence-qualified budget consumption
 
-Natural-language transmission alone does not consume implementation budget.
+Natural-language transmission alone does not consume implementation budget. Each invocation is classified only after factual observation.
 
-Every Lovable invocation MUST be classified after a terminal factual observation.
-
-### 5.1 `TRANSPORT_NOT_ACCEPTED`
-
-Examples:
-
-- connector invocation fails before the platform accepts the message;
-- no Lovable message/execution identifier exists;
-- platform transport rejects the request before execution begins.
+### 5.1 TRANSPORT_NOT_ACCEPTED
 
 ```text
 TRANSPORT_ACCEPTED = false
@@ -191,11 +142,11 @@ DURABLE_MUTATION = 0
 BUDGET_CONSUMED = false
 ```
 
-### 5.2 `ACCEPTED_NO_MATERIALIZATION`
+This includes connector rejection before Lovable accepts an execution.
 
-A Lovable request may be accepted but terminate because of execution-time limits or another executor-side interruption.
+### 5.2 ACCEPTED_NO_MATERIALIZATION
 
-It does **not** consume implementation budget only when direct evidence proves all applicable conditions:
+An accepted request that stops because of executor time limits or another interruption does not consume budget only when direct evidence proves all applicable predicates:
 
 ```text
 FILES_CHANGED = 0
@@ -206,25 +157,19 @@ PROVIDER_MUTATION = 0
 SECRET_MUTATION = 0
 DEPLOYMENT_MUTATION = 0
 OTHER_DURABLE_SIDE_EFFECT = 0
-```
-
-Then:
-
-```text
-EXECUTION_STATE = ACCEPTED_NO_MATERIALIZATION
 BUDGET_CONSUMED = false
 ```
 
-A textual Lovable statement such as `interrompi antes por limite de tempo desta execução` is not sufficient evidence by itself. Direct repository/provider/database inspection controls the classification whenever available.
+A textual Lovable statement such as `interrompi antes por limite de tempo desta execução` is not sufficient evidence. Repository, database and provider inspection control whenever available.
 
-### 5.3 `MATERIALIZED_EXECUTION`
+### 5.3 MATERIALIZED_EXECUTION
 
-An invocation consumes one materialized execution packet when any authorized implementation artifact or durable side effect is produced, including:
+One materialized packet is consumed when any implementation artifact or durable side effect occurs, including:
 
-- repository file creation/modification/deletion;
-- workspace or GitHub commit containing implementation changes;
+- repository/workspace file changes;
+- implementation commit or PR;
 - database DDL or DML;
-- durable external provider mutation;
+- provider mutation;
 - secret/configuration mutation;
 - deployment/version/routing mutation.
 
@@ -233,51 +178,38 @@ MATERIALIZED_EXECUTION = true
 BUDGET_CONSUMED = true
 ```
 
-### 5.4 Partial or out-of-scope materialization
-
-Partial implementation still consumes budget.
-
-Out-of-scope durable mutation also consumes budget and is additionally a governance/security defect.
-
-```text
-DURABLE_PARTIAL_MUTATION = consumes_budget
-OUT_OF_SCOPE_DURABLE_MUTATION = consumes_budget_and_requires_audit
-```
-
-The consumption rule measures execution occurrence, not implementation quality.
+Partial implementation consumes budget. Out-of-scope durable mutation also consumes budget and separately fails scope compliance.
 
 ---
 
-## 6. Timeout and transport discipline
+## 6. Timeout and duplicate-submission discipline
 
-A connector/client timeout MUST NOT be interpreted as proof that the Lovable execution itself failed or completed.
-
-After a request is accepted:
+A connector/client timeout is not proof that the Lovable execution failed or completed.
 
 ```text
 send packet
-→ retain exact Lovable execution/message identity when exposed
-→ if transport/client times out, do not resend automatically
-→ inspect the original execution state
-→ wait for or observe a terminal factual state
+→ retain execution/message identity when exposed
+→ on connector/client timeout, do not automatically resend
+→ inspect original execution state
+→ establish terminal factual observation
 → audit repository/database/provider materialization
-→ only then classify budget consumption
+→ classify budget consumption
 ```
-
-Repeated submission of the same packet while the original accepted execution may still be running is prohibited.
 
 ```text
 AUTOMATIC_DUPLICATE_RESUBMISSION = false
 CLIENT_TIMEOUT_EQUALS_EXECUTOR_FAILURE = false
 ```
 
+The same packet MUST NOT be resubmitted while its original accepted execution may still be running.
+
 ---
 
-## 7. Corrective packets
+## 7. Evidence-qualified corrective packets
 
-A corrective packet is not a generic retry. It is a bounded implementation response to a concrete audited defect inside the frozen scope.
+A corrective packet is not a generic retry. It is a bounded response to an audited defect inside frozen scope.
 
-Every corrective packet MUST declare:
+Every corrective MUST declare:
 
 ```text
 OBSERVATION_ID
@@ -289,113 +221,78 @@ TEST_THAT_MUST_TURN_GREEN
 PREVIOUSLY_GREEN_INVARIANTS_TO_PRESERVE
 ```
 
-A corrective packet MUST NOT be authorized with instructions equivalent to:
-
-- `try again`;
-- `continue from where you stopped` without materialized-state audit;
-- `fix whatever is wrong`;
-- `solve the remaining problems` without exact observations.
-
-If the same root cause recurs after a correction without new diagnostic evidence:
-
-```text
-SAME_ROOT_CAUSE_LOOP = stop_or_replan
-```
-
-If the correction requires a new architectural decision:
-
-```text
-NEW_ARCHITECTURAL_DECISION = replan
-```
-
-If the correction requires new scope:
+Generic instructions such as `try again`, `fix whatever is wrong` or `solve the remaining problems` are prohibited.
 
 ```text
 NEW_SCOPE = prohibited
+NEW_ARCHITECTURAL_DECISION = replan
+SAME_ROOT_CAUSE_LOOP_WITHOUT_NEW_EVIDENCE = stop_or_replan
 ```
 
 ---
 
-## 8. Mutation authority per packet
+## 8. Durable mutation authority per packet
 
-Every packet MUST explicitly declare its durable mutation authority.
-
-Example:
+Every packet MUST explicitly declare:
 
 ```text
-REPOSITORY_WRITE = true
-DATABASE_DDL = false
-DATABASE_DML = false
-EXTERNAL_PROVIDER_WRITE = false
-SECRET_MUTATION = false
-DEPLOY = false
+REPOSITORY_WRITE = true | false
+DATABASE_DDL = true | false
+DATABASE_DML = true | false
+EXTERNAL_PROVIDER_WRITE = true | false
+SECRET_MUTATION = true | false
+DEPLOY = true | false
 ```
 
-A database migration file may be authored in a repository-write packet while Same-Backend application remains prohibited until a separately authorized packet declares the relevant database authority.
+A repository packet may author a migration while `DATABASE_DDL = false`; in that case Same-Backend application is prohibited until a separately authorized packet declares database authority.
 
-No hidden or implied mutation authority exists.
-
-If Lovable performs a durable mutation declared `false`, the packet:
+If Lovable performs a durable mutation declared `false`, that execution:
 
 - consumes one materialized packet;
 - fails scope compliance;
 - triggers direct audit;
-- MUST NOT be automatically compensated or rolled back without an accepted recovery decision when compensation itself is structural/runtime relevant.
+- MUST NOT be automatically compensated or rolled back when compensation is itself structural/runtime relevant; an accepted recovery decision is required.
 
 ---
 
-## 9. Plan mode and implementation mode
+## 9. Plan mode and executor selection
 
-For RM Prime, architecture, roadmap, Impact Analysis, security boundaries and execution-envelope design remain owned by the Architecture First process and audited GitHub state.
+Architecture, roadmap, Impact Analysis, security boundaries and Execution Envelope design remain owned by the Architecture First process and audited GitHub state.
 
 ```text
 LOVABLE_PLAN_MODE_DEFAULT = false
 ```
 
-Lovable planning/exploration MAY be used only when an unresolved question depends specifically on Lovable/platform capability and cannot be answered by direct repository inspection, provider inspection or read-only capability preflight.
+Lovable planning/exploration MAY be used only when an unresolved question depends specifically on Lovable/platform capability and cannot be answered by direct repository/provider inspection or read-only capability preflight.
 
-A planning-only interaction does not consume a materialized implementation packet unless it causes a durable implementation mutation, in which case it is classified by Section 5.
-
----
-
-## 10. Executor selection
-
-Increasing Lovable packet budget does not make Lovable the mandatory executor for every surface.
-
-The planning gate MUST choose executors according to capability, auditability and risk.
-
-Default preference:
+Increasing Lovable packet budget does not make Lovable the mandatory executor for every surface. Default routing is:
 
 | Surface | Preferred execution path |
 |---|---|
 | Architecture / IA / ADR / governance | ChatGPT + GitHub-native |
 | Complex migrations / RLS / grants | GitHub-native when feasible |
 | Server authorization / repositories / security boundaries | GitHub-native when feasible |
-| Deterministic tests / Release Gate integration | GitHub-native when feasible |
+| Deterministic tests / Release Gate | GitHub-native when feasible |
 | Direct repository audit | ChatGPT + GitHub |
 | UI / UX | Lovable |
 | UI integration against frozen backend contracts | Lovable |
 | External provider operations | Dedicated authorized connector/provider path when available |
 
-This table is a default routing policy, not a ban on an executor. Any deviation on a security-critical surface SHOULD be justified in the Execution Envelope.
-
-Existing `GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md` remains controlling for GitHub-native evidence-driven correction mechanics.
+`GITHUB_NATIVE_EXECUTION_GOVERNANCE_AMENDMENT.md` remains controlling for GitHub-native evidence-driven correction mechanics.
 
 ---
 
-## 11. Capability preflight integration
+## 10. Capability preflight
 
 `CAPABILITY_PREFLIGHT_AND_CI_SCOPE_GOVERNANCE_AMENDMENT.md` remains active.
 
-An unproved mandatory external capability MUST NOT be discovered by consuming a materialized execution packet when read-only capability proof is possible.
+An unproved mandatory external capability MUST NOT be discovered by consuming a materialized packet when read-only proof is possible.
 
-The existing capability mismatch exception remains valid and is generalized by this amendment's zero-materialization classifier without weakening its stricter security predicates.
+Its existing capability-mismatch exception remains valid. This amendment generalizes the zero-materialization classifier without weakening stricter security predicates.
 
 ---
 
-## 12. Audit gate after every materialized packet
-
-No materialized packet automatically authorizes the next one.
+## 11. Mandatory audit after materialization
 
 After every materialized packet, direct audit MUST determine:
 
@@ -410,19 +307,19 @@ PACKET_STATE
 NEXT_PACKET_AUTHORIZED = true | false
 ```
 
-The next packet may execute end-to-end without Product Owner re-prompting only when:
+The next packet may execute without a new Product Owner message when all are true:
 
 - the Product Owner already authorized end-to-end execution for the parent stage/sequence;
-- the audit proves the packet stayed inside the frozen envelope;
+- the packet stayed inside the frozen envelope;
 - no new architectural decision is required;
 - no unsafe factual divergence exists;
 - no physical Owner action or unavailable mandatory connector is required.
 
-This preserves delegated end-to-end execution while retaining fail-closed gates.
+This preserves delegated `EXECUTION_MODE = END-TO-END` while retaining fail-closed audit gates.
 
 ---
 
-## 13. Terminal states
+## 12. Terminal states and anti-loop boundary
 
 Terminal states remain:
 
@@ -432,22 +329,15 @@ Terminal states remain:
 - `Rejected`;
 - `Superseded`.
 
-Packet exhaustion alone is not evidence of acceptance or rejection. The technical state controls.
+If a stage reaches its frozen hard ceiling without proving Definition of Done, no additional Lovable packet may be invented. The audit MUST stop/reject, classify `Blocked External` when appropriate, or explicitly replan/supersede only when a genuinely new Architecture First decision is required.
 
-When a stage reaches its frozen hard packet ceiling without proving the Definition of Done, the audit MUST choose one of:
-
-- stop and `Rejected`;
-- `Blocked External` when repository implementation is complete and only an external dependency remains;
-- `Superseded` through a genuinely new accepted Architecture First decision;
-- executor change inside the same frozen architecture only when explicitly permitted by the Execution Envelope and governance.
-
-No additional Lovable packet may be created beyond the frozen hard ceiling.
+Packet exhaustion does not itself prove acceptance or rejection; the audited technical state controls.
 
 ---
 
-## 14. Historical boundary and BCA-01
+## 13. Historical BCA-01 boundary
 
-The historical BCA-01 terminal evidence remains authoritative:
+The existing terminal evidence remains authoritative:
 
 ```text
 BCA01_PLANNING = Accepted / Merged / Closed
@@ -456,15 +346,13 @@ BCA01_TERMINAL_STATE = Rejected
 BCA01_THIRD_IMPLEMENTATION_PROMPT = historically_prohibited
 ```
 
-This amendment MUST NOT reclassify those historical executions or adopt the rejected Lovable workspace as canonical implementation.
+This amendment MUST NOT adopt the rejected Lovable workspace or reclassify the historical executions.
 
-An explicitly authorized BCA recovery MUST be a new Architecture First recovery stage with its own stage identifier, audited baseline, accepted Impact Analysis, frozen Execution Envelope and packet budget.
-
-Creating that recovery stage is not an artificial sublot because its predecessor is terminally Rejected and the recovery addresses a documented GitHub/Same-Backend divergence under a new prospective governance regime.
+An authorized BCA recovery is a new Architecture First recovery stage with its own non-decimal identifier, audited baseline, Impact Analysis, Execution Envelope and finite packet budget. This is not an artificial sublot because its predecessor is terminally Rejected and the recovery addresses a documented GitHub/Same-Backend divergence under new prospective governance.
 
 ---
 
-## 15. Adoption state
+## 14. Adoption state
 
 Before protected merge:
 
@@ -473,7 +361,7 @@ AMENDMENT_STATE = pending_merge
 CURRENT_MAIN_GOVERNANCE = unchanged
 ```
 
-After protected merge and successful Release Gate:
+After protected merge and successful post-merge Release Gate:
 
 ```text
 AMENDMENT_STATE = Accepted / Merged / Active
@@ -481,4 +369,4 @@ PROMPT_COUNT_GOVERNANCE = superseded_for_future_Lovable_stages
 EXECUTION_PACKET_GOVERNANCE = active
 ```
 
-The first authorized stage to use this amendment is the new Architecture First recovery successor of the terminally Rejected BCA-01.
+The first authorized consumer is the new Architecture First recovery successor of terminally Rejected BCA-01.
