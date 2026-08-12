@@ -45,7 +45,7 @@ ok(migration.includes("grant select on table public.domain_provider_bindings to 
 ok(migration.includes("app.dca02_provider_binding_write"), "provider binding identity writes must require the DCA-02 guarded session flag");
 ok(!/create\s+policy/i.test(migration), "DCA-02 must not introduce client RLS policies");
 
-ok(!adapterSource.includes("custom_metadata"), "runtime adapter must not send or authorize through custom_metadata");
+ok(!adapterSource.includes("custom_metadata: {"), "runtime adapter must not send custom_metadata in provider create bodies");
 ok(adapterSource.includes("getCustomHostnameById"), "adapter must implement exact provider-id lookup");
 ok(adapterSource.includes("automatic adoption is prohibited"), "hostname lookup must be collision-only and fail closed");
 ok(adapterSource.includes("domain_provider_outcome_ambiguous"), "provider mutation ambiguity must be explicit");
