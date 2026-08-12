@@ -56,9 +56,15 @@ ok(providerRepository.includes('db.rpc("dca02_bind_domain_provider_object_identi
 ok(providerRepository.includes('db.rpc("dca02_update_domain_provider_observation"'), "repository observation must use immutable-identity RPC");
 ok(!providerRepository.includes(".upsert("), "provider identity repository must not directly upsert bindings");
 
-const claimIndex = jobs.indexOf("claimDomainProviderBinding({");
-const createIndex = jobs.indexOf("adapter.provisionCustomHostname({");
-ok(claimIndex >= 0 && createIndex > claimIndex, "database binding claim must precede the provider POST path");
+const provisionProviderStart = jobs.indexOf("async function provisionProvider(");
+const provisionProviderEnd = jobs.indexOf("\nasync function cleanupDomain(", provisionProviderStart);
+ok(provisionProviderStart >= 0 && provisionProviderEnd > provisionProviderStart, "provider provisioning function must be structurally resolvable");
+const provisionProviderSource = jobs.slice(provisionProviderStart, provisionProviderEnd);
+const claimIndex = provisionProviderSource.indexOf("claimDomainProviderBinding({");
+const automatedDispatchIndex = provisionProviderSource.indexOf("automatedProviderObservation({");
+const manualDispatchIndex = provisionProviderSource.indexOf("manualProviderObservation({");
+ok(claimIndex >= 0 && automatedDispatchIndex > claimIndex, "database binding claim must precede automated provider dispatch");
+ok(claimIndex >= 0 && manualDispatchIndex > claimIndex, "database binding claim must precede manual-assisted provider dispatch");
 ok(jobs.includes('safe.code !== "domain_provider_outcome_ambiguous"'), "ambiguous provider outcome must never enter retry_wait");
 ok(jobs.includes("compensateCreatedProviderObject"), "create/bind split failure must have exact-id compensation");
 ok(jobs.includes("customHostnameId: observation.id"), "compensation/binding must retain exact create-response provider id");
