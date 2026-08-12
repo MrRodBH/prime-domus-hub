@@ -5,23 +5,28 @@ import type {
   TenantDomainRecord,
 } from "./domain-contracts";
 import {
+  bindDomainProviderObjectIdentity,
+  claimDomainProviderBinding,
   completeDomainJob,
-  getCurrentOwnershipChallenge,
   enqueueDomainJob,
   enqueueScheduledDomainReconciliationJobs,
-  getDomainProviderBinding,
+  getCurrentOwnershipChallenge,
+  getDomainProviderIdentityBinding,
   getProviderAccountForDomain,
   getTenantDomain,
   leaseDomainJobs,
+  markDomainProviderClaimAmbiguous,
   patchDomainMetadata,
+  releaseDomainProviderClaim,
   transitionTenantDomain,
-  upsertDomainProviderBinding,
+  updateDomainProviderObservation,
   verifyOwnershipObservation,
 } from "./domain-repository.server";
 import { observeDnsCname, observeDnsTxt } from "./dns-observation.server";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
 import { reconcileDomain } from "./domain-reconciliation.server";
 import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
+import type { CloudflareCustomHostnameObservation, CloudflareProviderContext } from "./cloudflare-port.server";
 
 function jobAuthority(job: DomainJobRecord): DomainCommandAuthority {
   return {
@@ -142,6 +147,226 @@ async function observeRequiredDns(job: DomainJobRecord, domain: TenantDomainReco
   return { observed: true, target, status: current.status };
 }
 
+function normalizedProviderHostname(value: string): string {
+  return value.toLowerCase().replace(/\.$/, "");
+}
+
+function providerObservationDetail(observation: CloudflareCustomHostnameObservation): DomainJsonObject {
+  return sanitizeDomainObject({
+    errors: observation.errors,
+    ownershipVerificationPresent: !!observation.ownershipVerification,
+  });
+}
+
+async function markAmbiguousAndThrow(input: {
+  domain: TenantDomainRecord;
+  provisioningKey: string;
+  detail: DomainJsonObject;
+  cause?: unknown;
+}): Promise<never> {
+  try {
+    await markDomainProviderClaimAmbiguous({
+      domain: input.domain,
+      provisioningKey: input.provisioningKey,
+      detail: input.detail,
+    });
+  } catch (markError) {
+    const markSafe = toSafeDomainError(markError);
+    throw new DomainError("domain_provider_outcome_ambiguous", "Provider outcome is ambiguous and the ambiguity marker could not be confirmed", {
+      retryable: false,
+      safeDetail: {
+        ...input.detail,
+        ambiguityMarkerError: markSafe.code,
+      },
+      cause: input.cause ?? markError,
+    });
+  }
+  throw new DomainError("domain_provider_outcome_ambiguous", "Provider mutation outcome is ambiguous; automatic retry is prohibited", {
+    retryable: false,
+    safeDetail: input.detail,
+    cause: input.cause,
+  });
+}
+
+async function compensateCreatedProviderObject(input: {
+  domain: TenantDomainRecord;
+  providerContext: CloudflareProviderContext;
+  customHostnameId: string;
+  provisioningKey: string;
+  runtimeEnv: Record<string, unknown>;
+  reason: string;
+  cause?: unknown;
+}): Promise<never> {
+  try {
+    await createCloudflareAdapter(input.runtimeEnv).removeCustomHostname({
+      provider: input.providerContext,
+      domain: input.domain,
+      customHostnameId: input.customHostnameId,
+    });
+    await releaseDomainProviderClaim({
+      domain: input.domain,
+      provisioningKey: input.provisioningKey,
+    });
+  } catch (compensationError) {
+    const safe = toSafeDomainError(compensationError);
+    return markAmbiguousAndThrow({
+      domain: input.domain,
+      provisioningKey: input.provisioningKey,
+      detail: sanitizeDomainObject({
+        reason: input.reason,
+        compensation: "unconfirmed",
+        compensationError: safe.code,
+        customHostnameId: input.customHostnameId,
+      }),
+      cause: input.cause ?? compensationError,
+    });
+  }
+
+  const original = toSafeDomainError(input.cause);
+  throw new DomainError(
+    original.code === "domain_provider_outcome_ambiguous" ? "domain_provider_configuration_invalid" : original.code,
+    "Provider create was compensated before server binding; no provider identity was adopted",
+    {
+      retryable: false,
+      safeDetail: sanitizeDomainObject({
+        reason: input.reason,
+        compensation: "confirmed",
+        customHostnameId: input.customHostnameId,
+        originalError: original.code,
+      }),
+      cause: input.cause,
+    },
+  );
+}
+
+async function automatedProviderObservation(input: {
+  job: DomainJobRecord;
+  domain: TenantDomainRecord;
+  providerId: string;
+  providerZoneId: string;
+  providerContext: CloudflareProviderContext;
+  runtimeEnv: Record<string, unknown>;
+}): Promise<CloudflareCustomHostnameObservation> {
+  const adapter = createCloudflareAdapter(input.runtimeEnv);
+  let observation: CloudflareCustomHostnameObservation;
+  try {
+    observation = await adapter.provisionCustomHostname({
+      provider: input.providerContext,
+      domain: input.domain,
+      idempotencyKey: input.job.idempotencyKey,
+    });
+  } catch (error) {
+    const safe = toSafeDomainError(error);
+    if (safe.code === "domain_provider_outcome_ambiguous") {
+      return markAmbiguousAndThrow({
+        domain: input.domain,
+        provisioningKey: input.job.idempotencyKey,
+        detail: sanitizeDomainObject({ reason: "provider_create_outcome_ambiguous", providerError: safe.safeDetail }),
+        cause: error,
+      });
+    }
+    await releaseDomainProviderClaim({ domain: input.domain, provisioningKey: input.job.idempotencyKey });
+    throw error;
+  }
+
+  if (normalizedProviderHostname(observation.hostname) !== input.domain.normalizedHostname) {
+    return compensateCreatedProviderObject({
+      domain: input.domain,
+      providerContext: input.providerContext,
+      customHostnameId: observation.id,
+      provisioningKey: input.job.idempotencyKey,
+      runtimeEnv: input.runtimeEnv,
+      reason: "provider_create_hostname_mismatch",
+      cause: new DomainError("domain_provider_configuration_invalid", "Created provider object hostname does not match the authoritative domain"),
+    });
+  }
+
+  try {
+    await bindDomainProviderObjectIdentity({
+      domain: input.domain,
+      providerAccountId: input.providerId,
+      zoneId: input.providerZoneId,
+      provisioningKey: input.job.idempotencyKey,
+      customHostnameId: observation.id,
+      providerStatus: observation.status,
+      sslStatus: observation.sslStatus,
+      providerVersion: observation.version,
+      detail: providerObservationDetail(observation),
+    });
+  } catch (bindError) {
+    return compensateCreatedProviderObject({
+      domain: input.domain,
+      providerContext: input.providerContext,
+      customHostnameId: observation.id,
+      provisioningKey: input.job.idempotencyKey,
+      runtimeEnv: input.runtimeEnv,
+      reason: "provider_bind_failed_after_create",
+      cause: bindError,
+    });
+  }
+  return observation;
+}
+
+async function manualProviderObservation(input: {
+  job: DomainJobRecord;
+  domain: TenantDomainRecord;
+  providerId: string;
+  providerZoneId: string;
+  providerContext: CloudflareProviderContext;
+  runtimeEnv: Record<string, unknown>;
+}): Promise<CloudflareCustomHostnameObservation> {
+  const providerObjectIdHint = input.job.payload.providerObjectIdHint;
+  if (typeof providerObjectIdHint !== "string") {
+    await releaseDomainProviderClaim({ domain: input.domain, provisioningKey: input.job.idempotencyKey });
+    throw new DomainError("domain_external_prerequisite_missing", "Manual-assisted provider object hint is unavailable");
+  }
+
+  const challenge = await getCurrentOwnershipChallenge(input.domain);
+  if (!challenge || challenge.status !== "verified" || !challenge.verifiedAt) {
+    await releaseDomainProviderClaim({ domain: input.domain, provisioningKey: input.job.idempotencyKey });
+    throw new DomainError("domain_provider_configuration_invalid", "Manual-assisted provider binding requires verified current-generation ownership");
+  }
+
+  let observation: CloudflareCustomHostnameObservation;
+  try {
+    observation = await createCloudflareAdapter(input.runtimeEnv).observeCustomHostname({
+      provider: input.providerContext,
+      domain: input.domain,
+      expectedCustomHostnameId: providerObjectIdHint,
+    });
+  } catch (error) {
+    await releaseDomainProviderClaim({ domain: input.domain, provisioningKey: input.job.idempotencyKey });
+    throw error;
+  }
+
+  if (observation.createdAt) {
+    const createdAt = Date.parse(observation.createdAt);
+    const verifiedAt = Date.parse(challenge.verifiedAt);
+    if (Number.isFinite(createdAt) && Number.isFinite(verifiedAt) && createdAt < verifiedAt) {
+      await releaseDomainProviderClaim({ domain: input.domain, provisioningKey: input.job.idempotencyKey });
+      throw new DomainError("domain_provider_configuration_invalid", "Manual-assisted provider object predates current-generation ownership verification");
+    }
+  }
+
+  try {
+    await bindDomainProviderObjectIdentity({
+      domain: input.domain,
+      providerAccountId: input.providerId,
+      zoneId: input.providerZoneId,
+      provisioningKey: input.job.idempotencyKey,
+      customHostnameId: observation.id,
+      providerStatus: observation.status,
+      sslStatus: observation.sslStatus,
+      providerVersion: observation.version,
+      detail: providerObservationDetail(observation),
+    });
+  } catch (error) {
+    await releaseDomainProviderClaim({ domain: input.domain, provisioningKey: input.job.idempotencyKey });
+    throw error;
+  }
+  return observation;
+}
+
 async function provisionProvider(
   job: DomainJobRecord,
   domain: TenantDomainRecord,
@@ -151,41 +376,66 @@ async function provisionProvider(
     throw new DomainError("domain_transition_forbidden", "Provider provisioning requires pending_cloudflare_provisioning");
   }
   const provider = await getProviderAccountForDomain(domain);
-  const adapter = createCloudflareAdapter(runtimeEnv);
-  const providerContext = {
+  const providerContext: CloudflareProviderContext = {
     accountIdentifier: provider.accountIdentifier,
     zoneId: provider.zoneId,
     credentialReference: provider.credentialReference,
   };
-  const observation = domain.executionMode === "api_automated"
-    ? await adapter.provisionCustomHostname({
-        provider: providerContext,
-        domain,
-        idempotencyKey: job.idempotencyKey,
-      })
-    : await adapter.observeCustomHostname({
-        provider: providerContext,
-        domain,
-        expectedCustomHostnameId: typeof job.payload.providerObjectIdHint === "string"
-          ? job.payload.providerObjectIdHint
-          : (() => { throw new DomainError("domain_external_prerequisite_missing", "Manual-assisted provider object hint is unavailable"); })(),
-      });
-  if (observation.hostname.toLowerCase().replace(/\.$/, "") !== domain.normalizedHostname) {
-    throw new DomainError("domain_provider_configuration_invalid", "Observed provider object does not match the authoritative hostname");
-  }
-  await upsertDomainProviderBinding({
+
+  const binding = await claimDomainProviderBinding({
     domain,
     providerAccountId: provider.id,
     zoneId: provider.zoneId,
-    customHostnameId: observation.id,
-    providerStatus: observation.status,
-    sslStatus: observation.sslStatus,
-    providerVersion: observation.version,
-    detail: sanitizeDomainObject({
-      errors: observation.errors,
-      ownershipVerificationPresent: !!observation.ownershipVerification,
-    }),
+    provisioningKey: job.idempotencyKey,
   });
+
+  let observation: CloudflareCustomHostnameObservation;
+  if (binding.bindingState === "ambiguous") {
+    throw new DomainError("domain_provider_outcome_ambiguous", "Provider identity claim is ambiguous; automatic provisioning is prohibited", {
+      retryable: false,
+      safeDetail: { bindingId: binding.id },
+    });
+  }
+
+  if (binding.bindingState === "bound") {
+    if (!binding.customHostnameId) {
+      throw new DomainError("domain_provider_configuration_invalid", "Bound provider identity is missing its object id");
+    }
+    observation = await createCloudflareAdapter(runtimeEnv).observeCustomHostname({
+      provider: providerContext,
+      domain,
+      expectedCustomHostnameId: binding.customHostnameId,
+    });
+    await updateDomainProviderObservation({
+      domain,
+      providerAccountId: provider.id,
+      zoneId: provider.zoneId,
+      customHostnameId: binding.customHostnameId,
+      providerStatus: observation.status,
+      sslStatus: observation.sslStatus,
+      providerVersion: observation.version,
+      detail: providerObservationDetail(observation),
+    });
+  } else {
+    observation = domain.executionMode === "api_automated"
+      ? await automatedProviderObservation({
+          job,
+          domain,
+          providerId: provider.id,
+          providerZoneId: provider.zoneId,
+          providerContext,
+          runtimeEnv,
+        })
+      : await manualProviderObservation({
+          job,
+          domain,
+          providerId: provider.id,
+          providerZoneId: provider.zoneId,
+          providerContext,
+          runtimeEnv,
+        });
+  }
+
   const transitioned = await transitionTenantDomain({
     authority: jobAuthority(job),
     domain,
@@ -220,8 +470,19 @@ async function cleanupDomain(
       recoveryTarget: current.status === "failed" ? "removal_pending" : null,
     });
   }
-  const binding = await getDomainProviderBinding(current);
-  if (binding?.customHostnameId) {
+  const binding = await getDomainProviderIdentityBinding(current);
+  if (binding) {
+    if (binding.bindingState === "ambiguous") {
+      throw new DomainError("domain_provider_outcome_ambiguous", "Provider identity is ambiguous; automatic deletion is prohibited", {
+        retryable: false,
+        safeDetail: { bindingId: binding.id },
+      });
+    }
+    if (binding.bindingState !== "bound" || !binding.customHostnameId) {
+      throw new DomainError("domain_provider_configuration_invalid", "Unbound provider claim prevents automatic provider deletion", {
+        safeDetail: { bindingId: binding.id, bindingState: binding.bindingState },
+      });
+    }
     const provider = await getProviderAccountForDomain(current);
     if (binding.providerAccountId !== provider.id || binding.zoneId !== provider.zoneId) {
       throw new DomainError("domain_provider_configuration_invalid", "Persisted provider binding no longer matches the server-owned provider configuration");
@@ -333,7 +594,7 @@ export async function processScheduledDomainJobs(input: {
       } catch {
         // The job outcome below remains authoritative; transition diagnostics are sanitized separately.
       }
-      if (safe.retryable && !exhausted) {
+      if (safe.retryable && safe.code !== "domain_provider_outcome_ambiguous" && !exhausted) {
         await completeDomainJob({
           jobId: job.id,
           leaseOwner,
