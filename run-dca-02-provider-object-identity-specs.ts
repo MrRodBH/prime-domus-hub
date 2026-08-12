@@ -17,6 +17,7 @@ function equal<T>(actual: T, expected: T, message: string): void {
 
 const root = process.cwd();
 const migration = readFileSync(resolve(root, "supabase/migrations/20260812133000_dca_02_provider_object_identity_binding.sql"), "utf8");
+const privilegeCorrective = readFileSync(resolve(root, "supabase/migrations/20260812143000_dca_02_provider_binding_privilege_hardening.sql"), "utf8");
 const adapterSource = readFileSync(resolve(root, "src/lib/domains/cloudflare-adapter.server.ts"), "utf8");
 const providerRepository = readFileSync(resolve(root, "src/lib/domains/domain-repository-provider.server.ts"), "utf8");
 const jobs = readFileSync(resolve(root, "src/lib/domains/domain-jobs.server.ts"), "utf8");
@@ -40,10 +41,13 @@ for (const token of [
 ]) {
   ok(migration.includes(token), `DCA-02 migration must contain ${token}`);
 }
-ok(migration.includes("revoke insert, update, delete on table public.domain_provider_bindings from service_role"), "direct service-role provider identity DML must be revoked");
-ok(migration.includes("grant select on table public.domain_provider_bindings to service_role"), "service role must retain read-only binding observation");
+ok(migration.includes("revoke insert, update, delete on table public.domain_provider_bindings from service_role"), "principal migration must revoke direct service-role provider identity DML");
+ok(migration.includes("grant select on table public.domain_provider_bindings to service_role"), "principal migration must retain read-only binding observation");
 ok(migration.includes("app.dca02_provider_binding_write"), "provider binding identity writes must require the DCA-02 guarded session flag");
 ok(!/create\s+policy/i.test(migration), "DCA-02 must not introduce client RLS policies");
+ok(privilegeCorrective.includes("revoke all privileges on table public.domain_provider_bindings from service_role"), "corrective migration must remove TRUNCATE/REFERENCES/TRIGGER and all direct service-role table authority");
+ok(privilegeCorrective.includes("grant select on table public.domain_provider_bindings to service_role"), "corrective migration must restore SELECT as the only service-role table privilege");
+ok(!/insert\s+into|update\s+public\.domain_provider_bindings|delete\s+from|truncate\s+table/i.test(privilegeCorrective), "privilege corrective must not mutate provider-binding data");
 
 ok(!adapterSource.includes("custom_metadata: {"), "runtime adapter must not send custom_metadata in provider create bodies");
 ok(adapterSource.includes("getCustomHostnameById"), "adapter must implement exact provider-id lookup");
@@ -192,6 +196,7 @@ console.log(JSON.stringify({
   customMetadataAuthority: false,
   providerLookupByPersistedId: true,
   bindOnceDatabaseBoundary: true,
+  serviceRoleBindingTableAuthority: "select-only",
   blindRetryAfterAmbiguity: false,
   hostnameOnlyAdoption: false,
 }, null, 2));
