@@ -16,6 +16,7 @@ export type DomainErrorCode =
   | "domain_challenge_replay"
   | "domain_provider_unavailable"
   | "domain_provider_configuration_invalid"
+  | "domain_provider_outcome_ambiguous"
   | "domain_secret_reference_missing"
   | "domain_retry_exhausted"
   | "domain_cutover_blocked"
