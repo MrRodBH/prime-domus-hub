@@ -19,6 +19,9 @@ type CloudflareEnvelope<T> = {
 type CloudflareHostnameResult = {
   id: string;
   hostname: string;
+  // DCA-02 deliberately ignores custom_metadata as authorization/ownership input.
+  // The optional transport field remains typed for backward provider response compatibility only.
+  custom_metadata?: Record<string, string>;
   status?: string;
   ownership_verification?: { type?: string; name?: string; value?: string };
   ssl?: { status?: string };
@@ -74,19 +77,19 @@ function normalizedProviderHostname(value: string): string {
   return value.toLowerCase().replace(/\.$/, "");
 }
 
-function assertExactProviderIdentity(
+/**
+ * Historical DCA-01 marker retained with DCA-02 semantics: the generation is
+ * proven by the server-owned binding before this adapter is called. At this
+ * boundary the provider object must still match the authoritative hostname.
+ * custom_metadata is intentionally not inspected.
+ */
+function assertExistingObjectOwnedByDomain(
   result: CloudflareHostnameResult,
   domain: TenantDomainRecord,
-  expectedCustomHostnameId: string,
 ): void {
-  if (result.id !== expectedCustomHostnameId) {
-    throw new DomainError("domain_provider_configuration_invalid", "Cloudflare object id differs from the server-bound provider identity", {
-      safeDetail: { hostname: domain.normalizedHostname },
-    });
-  }
   if (normalizedProviderHostname(result.hostname) !== domain.normalizedHostname) {
     throw new DomainError("domain_provider_configuration_invalid", "Cloudflare object hostname differs from the authoritative domain", {
-      safeDetail: { customHostnameId: expectedCustomHostnameId },
+      safeDetail: { customHostnameId: result.id },
     });
   }
 }
@@ -257,7 +260,10 @@ export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}
           safeDetail: { customHostnameId: input.expectedCustomHostnameId },
         });
       }
-      assertExactProviderIdentity(result, input.domain, input.expectedCustomHostnameId);
+      if (result.id !== input.expectedCustomHostnameId) {
+        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare object id differs from the server-bound provider identity");
+      }
+      assertExistingObjectOwnedByDomain(result, input.domain);
       return mapObservation(result);
     },
 
@@ -268,7 +274,10 @@ export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}
         runtimeEnv,
       });
       if (!existing) return { removed: true as const, alreadyAbsent: true };
-      assertExactProviderIdentity(existing, input.domain, input.customHostnameId);
+      if (existing.id !== input.customHostnameId) {
+        throw new DomainError("domain_provider_configuration_invalid", "Cloudflare hostname id differs from the persisted provider binding");
+      }
+      assertExistingObjectOwnedByDomain(existing, input.domain);
 
       const result = await cloudflareRequest<{ id: string }>({
         method: "DELETE",
