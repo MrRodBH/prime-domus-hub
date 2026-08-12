@@ -49,6 +49,34 @@ function singleRpcBinding(data: unknown, message: string): DomainProviderIdentit
   return mapIdentityBinding(rows[0]);
 }
 
+function toDca02RpcError(error: unknown): DomainError {
+  const record = typeof error === "object" && error !== null ? error as Record<string, unknown> : {};
+  const message = [record.message, record.details, record.hint].filter((value) => typeof value === "string").join(" ");
+
+  if (/dca02_provider_(?:claim_ambiguous|ambiguity_claim_conflict)/.test(message)) {
+    return new DomainError("domain_provider_outcome_ambiguous", "Provider identity state is ambiguous; automatic retry is prohibited", {
+      retryable: false,
+      safeDetail: { databaseCode: typeof record.code === "string" ? record.code : null },
+      cause: error,
+    });
+  }
+  if (/dca02_.*(?:conflict|competing_operation)|dca02_provider_identity_rebind_prohibited/.test(message)) {
+    return new DomainError("domain_version_conflict", "Provider identity operation conflicted with authoritative state", {
+      retryable: false,
+      safeDetail: { databaseCode: typeof record.code === "string" ? record.code : null },
+      cause: error,
+    });
+  }
+  if (/dca02_/.test(message)) {
+    return new DomainError("domain_provider_configuration_invalid", "Provider identity operation was rejected by the server-owned database boundary", {
+      retryable: false,
+      safeDetail: { databaseCode: typeof record.code === "string" ? record.code : null },
+      cause: error,
+    });
+  }
+  return toSafeDomainError(error);
+}
+
 export async function getProviderAccountForDomain(domain: TenantDomainRecord): Promise<{
   id: string;
   accountIdentifier: string;
@@ -117,7 +145,7 @@ export async function claimDomainProviderBinding(input: {
     _zone_id: input.zoneId,
     _provisioning_key: input.provisioningKey,
   });
-  if (error) throw toSafeDomainError(error);
+  if (error) throw toDca02RpcError(error);
   return singleRpcBinding(data, "Provider claim did not resolve exactly once");
 }
 
@@ -146,7 +174,7 @@ export async function bindDomainProviderObjectIdentity(input: {
     _provider_version: input.providerVersion,
     _provider_detail_sanitized: sanitizeDomainObject(input.detail ?? {}),
   });
-  if (error) throw toSafeDomainError(error);
+  if (error) throw toDca02RpcError(error);
   return singleRpcBinding(data, "Provider bind did not resolve exactly once");
 }
 
@@ -172,7 +200,7 @@ export async function updateDomainProviderObservation(input: {
     _provider_version: input.providerVersion,
     _provider_detail_sanitized: sanitizeDomainObject(input.detail ?? {}),
   });
-  if (error) throw toSafeDomainError(error);
+  if (error) throw toDca02RpcError(error);
   return singleRpcBinding(data, "Provider observation did not resolve exactly once");
 }
 
@@ -188,7 +216,7 @@ export async function markDomainProviderClaimAmbiguous(input: {
     _provisioning_key: input.provisioningKey,
     _detail_sanitized: sanitizeDomainObject(input.detail ?? {}),
   });
-  if (error) throw toSafeDomainError(error);
+  if (error) throw toDca02RpcError(error);
   return singleRpcBinding(data, "Ambiguous provider claim did not resolve exactly once");
 }
 
@@ -202,7 +230,7 @@ export async function releaseDomainProviderClaim(input: {
     _expected_generation: input.domain.generation,
     _provisioning_key: input.provisioningKey,
   });
-  if (error) throw toSafeDomainError(error);
+  if (error) throw toDca02RpcError(error);
   if (data !== true) throw new DomainError("domain_ambiguous", "Provider claim release was not confirmed");
 }
 
