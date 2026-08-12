@@ -7,14 +7,16 @@ STAGE_ID = DCA-02
 BACKLOG_CLASS = Non-Blocking
 BACKLOG_STATE = Accepted with Non-Blocking Backlog
 SOURCE_BASELINE_MAIN = ad024ec1c3bb0ef5b9d2da51ba85f801fdda28fa
+TERMINAL_PROOF_BASELINE_MAIN = 1a66daf026614e6f57c2701e9a933be6bfaa9738
 DCA02_REPOSITORY_DATABASE_STATE = Accepted / Closed
-DCA02_EXTERNAL_PROVIDER_PROOF = Blocked External — Cloudflare MCP transport unavailable
-DCA02_TERMINAL_ACCEPTED = false
+DCA02_EXTERNAL_PROVIDER_PROOF = Accepted
+DCA02_TERMINAL_ACCEPTED = true
+DCA02_TERMINAL_STATE = Accepted with Non-Blocking Backlog
 ```
 
-This document is the stage-specific non-blocking backlog register for the DCA-02 provider-identity architecture. It does not supersede the GitHub-audited `main`, the accepted DCA-02 Impact Analysis, Execution Envelope, implementation evidence, or terminal live-provider proof when that proof is completed.
+This document is the stage-specific non-blocking backlog register for the DCA-02 provider-identity architecture. It does not supersede the GitHub-audited `main`, the accepted DCA-02 Impact Analysis, Execution Envelope, implementation evidence, or terminal live-provider proof. The terminal live-provider proof is recorded in `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/dca-02-terminal-live-provider-proof-evidence.md`.
 
-The items below do **not** reopen DCA-01, do **not** authorize additional DCA-02 principal/corrective implementation, and do **not** block the mandatory current-plan Cloudflare synthetic proof. Any future implementation that changes runtime, persistence, authorization, recovery semantics, backup policy, or provider operations requires its own Architecture First / Impact Analysis gate against the then-current GitHub `main`.
+The items below do **not** reopen DCA-01, do **not** authorize additional DCA-02 principal/corrective implementation, and did **not** block the now-completed current-plan Cloudflare synthetic proof. Any future implementation that changes runtime, persistence, authorization, recovery semantics, backup policy, or provider operations requires its own Architecture First / Impact Analysis gate against the then-current GitHub `main`.
 
 ## NB-DCA02-01 — Explicit Provider Orphan Recovery
 
@@ -70,10 +72,10 @@ Required future invariants:
 ## Scheduling rule
 
 ```text
-CURRENT_PRIORITY = complete DCA-02 live Cloudflare current-plan synthetic proof and teardown
-BACKLOG_ITEMS_BLOCK_CURRENT_GATE = false
+CURRENT_PRIORITY = DCA-02 terminal provider proof completed; preserve both items as non-blocking backlog
+BACKLOG_ITEMS_BLOCK_DCA02_TERMINAL_ACCEPTANCE = false
 BACKLOG_ITEMS_MAY_START_AUTOMATICALLY = false
-NEXT_STAGE_AFTER_DCA02 = must be resolved from then-current audited GitHub authority
+NEXT_STAGE_AFTER_DCA02 = must be resolved from then-current audited GitHub authority and requires explicit authorization
 ```
 
-These items remain deferred until explicitly prioritized after DCA-02 terminal provider proof or when a new Architecture First gate determines that one of them has become blocking.
+These items remain deferred until explicitly prioritized by a future Architecture First gate. DCA-02 terminal acceptance does not start either backlog item automatically.
