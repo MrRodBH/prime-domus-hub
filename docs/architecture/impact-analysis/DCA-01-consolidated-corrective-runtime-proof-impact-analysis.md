@@ -369,3 +369,84 @@ PRM3 = blocked
 ```
 
 The database corrective gate may become `Accepted` only after the GitHub-authoritative Lovable workspace is proven clean and the canonical provider-registration boundary is exercised successfully and idempotently with all security, redaction, authority, and real-tenant invariants preserved.
+
+## 15. Functional provider-registration proof evidence
+
+### 15.1 Canonical boundary and execution
+
+The repository boundary `src/lib/api/super-domain.functions.ts::registerCloudflareProviderAccount` validates server-owned input, requires authenticated Global Super Admin authority, normalizes zone apexes, and persists exclusively through `public.register_domain_provider_account`. The controlled harness could not materialize an authenticated application session, so the authorized persistence RPC was invoked directly through Supabase PostgREST with the server-side service-role credential. No direct table DML was used.
+
+```text
+PROVIDER_REGISTRATION_BOUNDARY = canonical_rpc
+DIRECT_TABLE_DML = false
+RPC_TRANSPORT = Supabase_PostgREST_service_role
+ACTOR_USER_ID = 1302d850-2a8c-4e17-b7a7-4bef292cd394
+ACTOR_SUPER_ADMIN_REVALIDATED = true
+AUTHORITY_ORIGIN = super_admin
+ACCOUNT_IDENTIFIER = 68ec853e6b04a038f09fca5712d6b26b
+CREDENTIAL_REFERENCE = env:CLOUDFLARE_API_TOKEN_DCA01_HML
+ZONE_NAME = mrrod.com.br
+ZONE_ID = 90832d0006e9e630dbb73d33c551d836
+```
+
+### 15.2 Idempotence and redaction result
+
+Two consecutive invocations with identical canonical parameters completed successfully without PostgreSQL `42702` and returned the same provider account identity.
+
+```text
+RPC_CALL_1 = success_http_200
+RPC_CALL_2 = success_http_200
+POSTGRES_42702 = absent
+PROVIDER_ACCOUNT_ID_CALL_1 = e6bdc745-5370-4e72-ad46-deafc8be18b3
+PROVIDER_ACCOUNT_ID_CALL_2 = e6bdc745-5370-4e72-ad46-deafc8be18b3
+PROVIDER_ACCOUNT_COUNT = 1
+IDEMPOTENT_PROVIDER_IDENTITY = true
+PROVIDER_CODE = cloudflare
+PROVIDER_ENABLED = true
+PROVIDER_HEALTH_STATUS = unknown
+CUSTOM_HOSTNAMES_CAPABILITY = true
+SSL_OBSERVATION_CAPABILITY = true
+OPAQUE_CREDENTIAL_REFERENCE_PRESERVED = true
+PROVIDER_REGISTRATION_AUDIT_EVENT_COUNT = 2
+SANITIZED_AUDIT_EVENT_COUNT = 2
+SUSPICIOUS_AUDIT_SECRET_COUNT = 0
+```
+
+Independent read-only database audit confirmed both audit rows contain the exact actor and `authority_origin=super_admin`, while `detail_sanitized.credential_reference='[redacted]'`. The persisted provider credential reference remains only the opaque environment reference; no token value was persisted.
+
+The same audit confirmed:
+
+```text
+SYNTHETIC_TENANT_DOMAIN_COUNT = 0
+REAL_TENANT_DOMAIN = rmprimeimoveis.com.br
+REAL_TENANT_DOMAIN_COUNT = 1
+AUTHORITY_MODE = legacy
+AUTHORITY_LOCK_VERSION = 0
+AUTHORITY_ACTIVATED_AT = null
+GLOBAL_CUTOVER_EXECUTED = false
+```
+
+### 15.3 Generated types drift and reconciliation
+
+Direct `Lovable.get_diff` audit of the operational proof rejected the agent's textual clean-workspace claim. The proof caused one platform-generated workspace drift artifact:
+
+```text
+src/integrations/supabase/types.ts
+```
+
+No new migration file and no `src/routeTree.gen.ts` drift were present in that execution diff. This generated types change is not accepted as canonical source. This GitHub-native evidence merge is the selected authoritative developer sync for removing it without additional database mutation or Lovable edit prompt.
+
+```text
+FUNCTIONAL_PROOF_GENERATED_DRIFT_COUNT = 1
+FUNCTIONAL_PROOF_GENERATED_DRIFT_CANONICAL_ACCEPTANCE = false
+FUNCTIONAL_PROOF_NEW_MIGRATION_DRIFT = false
+FUNCTIONAL_PROOF_ROUTE_TREE_DRIFT = false
+DRIFT_RECONCILIATION_MECHANISM = GitHub_authoritative_developer_sync
+ADDITIONAL_DATABASE_MUTATION_FOR_RECONCILIATION = prohibited
+ADDITIONAL_LOVABLE_EDIT_PROMPT_FOR_RECONCILIATION = prohibited
+TARGET_LOVABLE_EFFECTIVE_DIFF_COUNT = 0
+DCA01_DATABASE_CORRECTIVE_GATE = Pending_until_post_merge_zero_diff_audit
+WORKER_CORRECTIVE_PROMOTION = prohibited_until_database_gate_accepted
+```
+
+After this evidence merge becomes the completed Lovable `developer_update`, the workspace must be audited directly. Only a zero effective source diff against that exact GitHub `main` authorizes `DCA01_DATABASE_CORRECTIVE_GATE = Accepted` and progression to the Worker corrective gate.
