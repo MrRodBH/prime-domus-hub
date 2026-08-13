@@ -35,21 +35,36 @@ async function admin() {
   return supabaseAdmin as any;
 }
 
-function requireSingleRow<T>(
-  rows: T[] | null | undefined,
+// Quarantined pre-schema row shape. BCR-P5 removes this together with the
+// admin() cast after Same-Backend schema application + deterministic type regen.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UntypedDatabaseRow = Record<string, any>;
+
+function requireSingleRow(
+  rows: UntypedDatabaseRow[] | null | undefined,
   code: string,
-): T {
+): UntypedDatabaseRow {
   if (!rows || rows.length !== 1) throw new BillingRepositoryError(code);
   return rows[0];
 }
 
-function optionalSingleRow<T>(
-  rows: T[] | null | undefined,
+function optionalSingleRow(
+  rows: UntypedDatabaseRow[] | null | undefined,
   ambiguousCode: string,
-): T | null {
+): UntypedDatabaseRow | null {
   if (!rows || rows.length === 0) return null;
   if (rows.length !== 1) throw new BillingRepositoryError(ambiguousCode);
   return rows[0];
+}
+
+function requireDatabaseRecord(
+  value: unknown,
+  code: string,
+): UntypedDatabaseRow {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new BillingRepositoryError(code);
+  }
+  return value as UntypedDatabaseRow;
 }
 
 function asNonEmptyString(value: unknown, code: string): string {
@@ -282,10 +297,10 @@ export async function reserveVerifiedBillingEvent(input: {
     );
   }
 
-  const data = result.data;
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new BillingRepositoryError("bcr01_event_reservation_response_invalid");
-  }
+  const data = requireDatabaseRecord(
+    result.data,
+    "bcr01_event_reservation_response_invalid",
+  );
 
   return {
     reserved: data.reserved === true,
@@ -338,10 +353,10 @@ export async function applyProviderSubscriptionObservation(input: {
     );
   }
 
-  const data = result.data;
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new BillingRepositoryError("bcr01_lifecycle_response_invalid");
-  }
+  const data = requireDatabaseRecord(
+    result.data,
+    "bcr01_lifecycle_response_invalid",
+  );
 
   return {
     applied: data.applied === true,
