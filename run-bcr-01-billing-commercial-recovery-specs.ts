@@ -413,6 +413,36 @@ ok(
   "pre-schema billing bridges must stay explicitly quarantined until P5 type regeneration",
 );
 
+
+ok(
+  port.includes("resolveInvoiceByPaymentRef(") &&
+    stripe.includes("stripe.invoicePayments.list({"),
+  "refund recovery must resolve provider invoice by exact payment reference",
+);
+ok(
+  stripe.includes('payment_intent: providerPaymentRef') &&
+    stripe.includes("bcr01_stripe_payment_invoice_cardinality_ambiguous") &&
+    stripe.includes("payment.fullyRefunded"),
+  "refund recovery must use exact payment-intent lookup, explicit cardinality and full-refund observation",
+);
+ok(
+  stripe.includes("providerInvoiceRef: null") &&
+    stripe.includes("providerPaymentRef: providerObjectId(object.payment_intent)") &&
+    !stripe.includes("providerInvoiceRef: providerObjectId(object.invoice)"),
+  "charge.refunded normalization must not assume a removed Charge.invoice field",
+);
+ok(
+  webhook.includes("provider.resolveInvoiceByPaymentRef(") &&
+    webhook.includes('refundObservation.status !== "paid"') &&
+    webhook.includes('refundObservation.status !== "refunded"'),
+  "charge.refunded webhook handling must re-resolve exact invoice and distinguish partial from full refund",
+);
+ok(
+  reconciliation.includes('case "refunded":') &&
+    stripe.includes('observation.status === "paid" && payment.fullyRefunded'),
+  "non-recurring reconciliation must be able to observe a fully refunded invoice without treating partial refunds as full",
+);
+
 console.log(
   JSON.stringify(
     {

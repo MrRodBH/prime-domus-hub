@@ -1,4 +1,4 @@
-// BCR-01 â€” provider-agnostic billing port. Server-only.
+// BCR-01 - provider-agnostic billing port. Server-only.
 
 import type {
   BillingCheckoutSession,
@@ -88,6 +88,10 @@ export interface BillingProvider {
   normalizeWebhook(
     verified: VerifiedProviderWebhook,
   ): NormalizedBillingEvent;
+
+  resolveInvoiceByPaymentRef(
+    providerPaymentRef: string,
+  ): Promise<string | null>;
 
   retrieveSubscription(
     providerSubscriptionRef: string,

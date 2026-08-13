@@ -1,4 +1,4 @@
-// BCR-01 â€” Stripe test-mode BillingProvider adapter, server-only.
+// BCR-01 - Stripe test-mode BillingProvider adapter, server-only.
 // Uses the pinned official stripe-node SDK. Provider objects are observations/
 // consequences only; internal persisted mappings remain tenant/commercial authority.
 
@@ -209,6 +209,142 @@ function mapInvoiceStatus(value: unknown): ProviderInvoiceObservation["status"] 
   }
 }
 
+async function resolveInvoicePaymentObservation(
+  stripe: Stripe,
+  providerInvoiceRef: string,
+): Promise<{
+  providerPaymentRef: string | null;
+  fullyRefunded: boolean;
+}> {
+  const payments = await stripe.invoicePayments.list({
+    invoice: providerInvoiceRef,
+    limit: 2,
+  });
+
+  if (payments.has_more || payments.data.length > 1) {
+    throw new BillingPortError(
+      "bcr01_stripe_invoice_payment_cardinality_ambiguous",
+    );
+  }
+  if (payments.data.length === 0) {
+    return { providerPaymentRef: null, fullyRefunded: false };
+  }
+
+  const payment = payments.data[0];
+  if (payment.livemode) {
+    throw new BillingPortError("bcr01_stripe_live_object_prohibited");
+  }
+  const invoiceRef = providerObjectId(payment.invoice);
+  if (invoiceRef !== providerInvoiceRef) {
+    throw new BillingPortError(
+      "bcr01_stripe_invoice_payment_identity_mismatch",
+    );
+  }
+
+  if (payment.payment.type === "payment_intent") {
+    const paymentIntentRef = providerObjectId(
+      payment.payment.payment_intent,
+    );
+    if (!paymentIntentRef) {
+      throw new BillingPortError(
+        "bcr01_stripe_invoice_payment_intent_absent",
+      );
+    }
+
+    const paymentIntent = ensureTestModeObject(
+      await stripe.paymentIntents.retrieve(paymentIntentRef),
+    );
+    if (paymentIntent.id !== paymentIntentRef) {
+      throw new BillingPortError(
+        "bcr01_stripe_payment_intent_identity_mismatch",
+      );
+    }
+
+    const chargeRef = providerObjectId(paymentIntent.latest_charge);
+    if (!chargeRef) {
+      return {
+        providerPaymentRef: paymentIntentRef,
+        fullyRefunded: false,
+      };
+    }
+
+    const charge = ensureTestModeObject(
+      await stripe.charges.retrieve(chargeRef),
+    );
+    const chargePaymentIntentRef = providerObjectId(
+      charge.payment_intent,
+    );
+    if (
+      chargePaymentIntentRef &&
+      chargePaymentIntentRef !== paymentIntentRef
+    ) {
+      throw new BillingPortError(
+        "bcr01_stripe_charge_payment_intent_mismatch",
+      );
+    }
+
+    const amount =
+      typeof charge.amount === "number" &&
+      Number.isSafeInteger(charge.amount)
+        ? charge.amount
+        : null;
+    const amountRefunded =
+      typeof charge.amount_refunded === "number" &&
+      Number.isSafeInteger(charge.amount_refunded)
+        ? charge.amount_refunded
+        : null;
+
+    return {
+      providerPaymentRef: paymentIntentRef,
+      fullyRefunded:
+        charge.refunded === true ||
+        (amount !== null &&
+          amount > 0 &&
+          amountRefunded !== null &&
+          amountRefunded === amount),
+    };
+  }
+
+  if (payment.payment.type === "charge") {
+    const chargeRef = providerObjectId(payment.payment.charge);
+    if (!chargeRef) {
+      throw new BillingPortError(
+        "bcr01_stripe_invoice_charge_absent",
+      );
+    }
+    const charge = ensureTestModeObject(
+      await stripe.charges.retrieve(chargeRef),
+    );
+    const amount =
+      typeof charge.amount === "number" &&
+      Number.isSafeInteger(charge.amount)
+        ? charge.amount
+        : null;
+    const amountRefunded =
+      typeof charge.amount_refunded === "number" &&
+      Number.isSafeInteger(charge.amount_refunded)
+        ? charge.amount_refunded
+        : null;
+
+    return {
+      providerPaymentRef: chargeRef,
+      fullyRefunded:
+        charge.refunded === true ||
+        (amount !== null &&
+          amount > 0 &&
+          amountRefunded !== null &&
+          amountRefunded === amount),
+    };
+  }
+
+  return {
+    providerPaymentRef: providerObjectId(
+      payment.payment.payment_record,
+    ),
+    fullyRefunded: false,
+  };
+}
+
 function observationFromInvoice(value: unknown): ProviderInvoiceObservation {
   const invoice = ensureTestModeObject(value);
   const customerRef = providerObjectId(invoice.customer);
@@ -305,8 +441,8 @@ function invoiceRefsFromEvent(
 
   if (eventType === "ChargeRefunded") {
     return {
-      providerInvoiceRef: providerObjectId(object.invoice),
-      providerPaymentRef: providerObjectId(object.id),
+      providerInvoiceRef: null,
+      providerPaymentRef: providerObjectId(object.payment_intent),
     };
   }
 
@@ -568,6 +704,45 @@ export function createStripeBillingProvider(): BillingProvider {
       };
     },
 
+    async resolveInvoiceByPaymentRef(
+      providerPaymentRef: string,
+    ): Promise<string | null> {
+      const stripe = createStripeClient();
+      const payments = await stripe.invoicePayments.list({
+        payment: {
+          type: "payment_intent",
+          payment_intent: providerPaymentRef,
+        },
+        limit: 2,
+      });
+
+      if (payments.has_more || payments.data.length > 1) {
+        throw new BillingPortError(
+          "bcr01_stripe_payment_invoice_cardinality_ambiguous",
+        );
+      }
+      if (payments.data.length === 0) return null;
+
+      const payment = payments.data[0];
+      if (payment.livemode) {
+        throw new BillingPortError("bcr01_stripe_live_object_prohibited");
+      }
+      if (
+        payment.payment.type !== "payment_intent" ||
+        providerObjectId(payment.payment.payment_intent) !==
+          providerPaymentRef
+      ) {
+        throw new BillingPortError(
+          "bcr01_stripe_invoice_payment_identity_mismatch",
+        );
+      }
+
+      return requireString(
+        providerObjectId(payment.invoice),
+        "bcr01_stripe_invoice_payment_invoice_absent",
+      );
+    },
+
     async retrieveSubscription(
       providerSubscriptionRef: string,
     ): Promise<ProviderSubscriptionObservation> {
@@ -583,7 +758,21 @@ export function createStripeBillingProvider(): BillingProvider {
     ): Promise<ProviderInvoiceObservation> {
       const stripe = createStripeClient();
       const invoice = await stripe.invoices.retrieve(providerInvoiceRef);
-      return observationFromInvoice(invoice);
+      const observation = observationFromInvoice(invoice);
+      const payment = await resolveInvoicePaymentObservation(
+        stripe,
+        providerInvoiceRef,
+      );
+
+      return {
+        ...observation,
+        providerPaymentRef:
+          payment.providerPaymentRef ?? observation.providerPaymentRef,
+        status:
+          observation.status === "paid" && payment.fullyRefunded
+            ? "refunded"
+            : observation.status,
+      };
     },
   };
 }

@@ -1,4 +1,4 @@
-// BCR-01 â€” explicit provider reconciliation through the canonical lifecycle.
+// BCR-01 - explicit provider reconciliation through the canonical lifecycle.
 // Server-only. Tenant/provider identity is resolved from persisted mapping.
 
 import { createHash } from "node:crypto";

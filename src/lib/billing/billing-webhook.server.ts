@@ -1,4 +1,4 @@
-// BCR-01 â€” canonical verified Stripe webhook orchestration. Server-only.
+// BCR-01 - canonical verified Stripe webhook orchestration. Server-only.
 //
 // Security order is fixed and tested:
 // raw body -> provider signature/timestamp verification -> normalization ->
@@ -8,6 +8,7 @@
 import type {
   BillingChargeStatus,
   BillingLifecycleApplication,
+  ProviderInvoiceObservation,
   BillingProviderCode,
   NormalizedBillingEvent,
 } from "@/lib/billing/billing-contracts";
@@ -103,8 +104,6 @@ function targetChargeStatus(
       return "paid";
     case "InvoicePaymentFailed":
       return "failed";
-    case "ChargeRefunded":
-      return "refunded";
     default:
       throw new BillingWebhookError(
         "bcr01_provider_invoice_event_type_invalid",
@@ -142,7 +141,53 @@ async function processProviderInvoiceLifecycle(input: {
   provider: BillingProvider;
 }): Promise<BillingWebhookResult> {
   const { event, eventId, provider } = input;
-  if (!event.providerInvoiceRef || !event.occurredAt) {
+  if (!event.occurredAt) {
+    throw new BillingWebhookError(
+      "bcr01_provider_invoice_lifecycle_evidence_incomplete",
+    );
+  }
+
+  let providerInvoiceRef = event.providerInvoiceRef ?? null;
+  let refundObservation: ProviderInvoiceObservation | null = null;
+
+  if (event.eventType === "ChargeRefunded") {
+    if (!event.providerPaymentRef) {
+      throw new BillingWebhookError(
+        "bcr01_refund_payment_reference_required",
+      );
+    }
+
+    const resolvedInvoiceRef = await provider.resolveInvoiceByPaymentRef(
+      event.providerPaymentRef,
+    );
+    if (!resolvedInvoiceRef) {
+      throw new BillingWebhookError(
+        "bcr01_refund_invoice_resolution_absent",
+      );
+    }
+    if (
+      providerInvoiceRef &&
+      providerInvoiceRef !== resolvedInvoiceRef
+    ) {
+      throw new BillingWebhookError(
+        "bcr01_refund_invoice_identity_mismatch",
+      );
+    }
+    providerInvoiceRef = resolvedInvoiceRef;
+
+    refundObservation = await provider.retrieveInvoice(
+      providerInvoiceRef,
+    );
+    if (
+      refundObservation.providerInvoiceRef !== providerInvoiceRef
+    ) {
+      throw new BillingWebhookError(
+        "bcr01_refund_invoice_identity_mismatch",
+      );
+    }
+  }
+
+  if (!providerInvoiceRef) {
     throw new BillingWebhookError(
       "bcr01_provider_invoice_lifecycle_evidence_incomplete",
     );
@@ -150,29 +195,13 @@ async function processProviderInvoiceLifecycle(input: {
 
   const charge = await getChargeByProviderInvoice({
     providerCode: event.providerCode,
-    providerInvoiceRef: event.providerInvoiceRef,
+    providerInvoiceRef,
   });
 
-  let providerSubscriptionRef = event.providerSubscriptionRef;
-
-  // charge.refunded may carry only the invoice reference. If this is not a
-  // persisted one-time mapping, resolve the provider invoice solely to obtain
-  // a candidate subscription ref, then revalidate it against persisted mapping.
-  if (
-    !charge &&
-    !providerSubscriptionRef &&
-    event.eventType === "ChargeRefunded"
-  ) {
-    const invoice = await provider.retrieveInvoice(
-      event.providerInvoiceRef,
-    );
-    if (invoice.providerInvoiceRef !== event.providerInvoiceRef) {
-      throw new BillingWebhookError(
-        "bcr01_refund_invoice_identity_mismatch",
-      );
-    }
-    providerSubscriptionRef = invoice.providerSubscriptionRef;
-  }
+  const providerSubscriptionRef =
+    event.providerSubscriptionRef ??
+    refundObservation?.providerSubscriptionRef ??
+    null;
 
   const recurringMapping = providerSubscriptionRef
     ? await getProviderMappingBySubscription({
@@ -188,12 +217,32 @@ async function processProviderInvoiceLifecycle(input: {
   }
 
   if (charge) {
+    let targetStatus: Exclude<BillingChargeStatus, "draft">;
+    let providerPaymentRef = event.providerPaymentRef ?? null;
+
+    if (event.eventType === "ChargeRefunded") {
+      if (
+        !refundObservation ||
+        (refundObservation.status !== "paid" &&
+          refundObservation.status !== "refunded")
+      ) {
+        throw new BillingWebhookError(
+          "bcr01_refund_invoice_observation_invalid",
+        );
+      }
+      targetStatus = refundObservation.status;
+      providerPaymentRef =
+        refundObservation.providerPaymentRef ?? providerPaymentRef;
+    } else {
+      targetStatus = targetChargeStatus(event);
+    }
+
     const lifecycle = await applyProviderInvoiceObservation({
       eventId,
       providerCode: event.providerCode,
-      providerInvoiceRef: event.providerInvoiceRef,
-      providerPaymentRef: event.providerPaymentRef ?? null,
-      targetStatus: targetChargeStatus(event),
+      providerInvoiceRef,
+      providerPaymentRef,
+      targetStatus,
       providerObservedAt: event.occurredAt,
     });
 
