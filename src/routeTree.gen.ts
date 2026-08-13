@@ -35,6 +35,9 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
+import { Route as ApiInternalBillingCheckoutRouteImport } from './routes/api/internal/billing-checkout'
+import { Route as ApiInternalBillingPortalRouteImport } from './routes/api/internal/billing-portal'
+import { Route as ApiInternalBillingReconcileRouteImport } from './routes/api/internal/billing-reconcile'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
 import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
@@ -74,6 +77,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksPortalDlqRetryRouteImport } from './routes/api/public/hooks/portal-dlq-retry'
+import { Route as ApiPublicHooksBillingStripeWebhookRouteImport } from './routes/api/public/hooks/billing-stripe-webhook'
 import { Route as AuthenticatedAdminPaginasIdRouteImport } from './routes/_authenticated.admin.paginas.$id'
 import { Route as AuthenticatedAdminLancamentosNovoRouteImport } from './routes/_authenticated.admin.lancamentos.novo'
 import { Route as AuthenticatedAdminLancamentosIdRouteImport } from './routes/_authenticated.admin.lancamentos.$id'
@@ -216,6 +220,21 @@ const ApiInternalSpr03ManagedSecretProvisionRoute =
     path: '/api/internal/spr-03-managed-secret-provision',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiInternalBillingCheckoutRoute = ApiInternalBillingCheckoutRouteImport.update({
+  id: '/api/internal/billing-checkout',
+  path: '/api/internal/billing-checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalBillingPortalRoute = ApiInternalBillingPortalRouteImport.update({
+  id: '/api/internal/billing-portal',
+  path: '/api/internal/billing-portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalBillingReconcileRoute = ApiInternalBillingReconcileRouteImport.update({
+  id: '/api/internal/billing-reconcile',
+  path: '/api/internal/billing-reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSuperObservabilidadeRoute =
   AuthenticatedSuperObservabilidadeRouteImport.update({
     id: '/observabilidade',
@@ -444,6 +463,12 @@ const ApiPublicHooksPortalDlqRetryRoute =
     path: '/api/public/hooks/portal-dlq-retry',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksBillingStripeWebhookRoute =
+  ApiPublicHooksBillingStripeWebhookRouteImport.update({
+    id: '/api/public/hooks/billing-stripe-webhook',
+    path: '/api/public/hooks/billing-stripe-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminPaginasIdRoute =
   AuthenticatedAdminPaginasIdRouteImport.update({
     id: '/paginas/$id',
@@ -553,6 +578,9 @@ export interface FileRoutesByFullPath {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
+  '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -567,6 +595,7 @@ export interface FileRoutesByFullPath {
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/billing-stripe-webhook': typeof ApiPublicHooksBillingStripeWebhookRoute
   '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -626,6 +655,9 @@ export interface FileRoutesByTo {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
+  '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -640,6 +672,7 @@ export interface FileRoutesByTo {
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/billing-stripe-webhook': typeof ApiPublicHooksBillingStripeWebhookRoute
   '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -704,6 +737,9 @@ export interface FileRoutesById {
   '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/_authenticated/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
+  '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -718,6 +754,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/_authenticated/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/_authenticated/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/billing-stripe-webhook': typeof ApiPublicHooksBillingStripeWebhookRoute
   '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -782,6 +819,9 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/billing-checkout'
+    | '/api/internal/billing-portal'
+    | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -796,6 +836,7 @@ export interface FileRouteTypes {
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
     | '/admin/paginas/$id'
+    | '/api/public/hooks/billing-stripe-webhook'
     | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -855,6 +896,9 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/billing-checkout'
+    | '/api/internal/billing-portal'
+    | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -869,6 +913,7 @@ export interface FileRouteTypes {
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
     | '/admin/paginas/$id'
+    | '/api/public/hooks/billing-stripe-webhook'
     | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -932,6 +977,9 @@ export interface FileRouteTypes {
     | '/_authenticated/super/dlq'
     | '/_authenticated/super/domains'
     | '/_authenticated/super/observabilidade'
+    | '/api/internal/billing-checkout'
+    | '/api/internal/billing-portal'
+    | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -946,6 +994,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/lancamentos/$id'
     | '/_authenticated/admin/lancamentos/novo'
     | '/_authenticated/admin/paginas/$id'
+    | '/api/public/hooks/billing-stripe-webhook'
     | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -979,9 +1028,13 @@ export interface RootRouteChildren {
   ImovelSlugRoute: typeof ImovelSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiInternalBillingCheckoutRoute: typeof ApiInternalBillingCheckoutRoute
+  ApiInternalBillingPortalRoute: typeof ApiInternalBillingPortalRoute
+  ApiInternalBillingReconcileRoute: typeof ApiInternalBillingReconcileRoute
   ApiInternalSpr03ManagedSecretProvisionRoute: typeof ApiInternalSpr03ManagedSecretProvisionRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksBillingStripeWebhookRoute: typeof ApiPublicHooksBillingStripeWebhookRoute
   ApiPublicHooksPortalDlqRetryRoute: typeof ApiPublicHooksPortalDlqRetryRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1173,6 +1226,27 @@ declare module '@tanstack/react-router' {
       path: '/api/internal/spr-03-managed-secret-provision'
       fullPath: '/api/internal/spr-03-managed-secret-provision'
       preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-checkout': {
+      id: '/api/internal/billing-checkout'
+      path: '/api/internal/billing-checkout'
+      fullPath: '/api/internal/billing-checkout'
+      preLoaderRoute: typeof ApiInternalBillingCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-portal': {
+      id: '/api/internal/billing-portal'
+      path: '/api/internal/billing-portal'
+      fullPath: '/api/internal/billing-portal'
+      preLoaderRoute: typeof ApiInternalBillingPortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-reconcile': {
+      id: '/api/internal/billing-reconcile'
+      path: '/api/internal/billing-reconcile'
+      fullPath: '/api/internal/billing-reconcile'
+      preLoaderRoute: typeof ApiInternalBillingReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/super/observabilidade': {
@@ -1441,6 +1515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/billing-stripe-webhook': {
+      id: '/api/public/hooks/billing-stripe-webhook'
+      path: '/api/public/hooks/billing-stripe-webhook'
+      fullPath: '/api/public/hooks/billing-stripe-webhook'
+      preLoaderRoute: typeof ApiPublicHooksBillingStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/portal-dlq-retry': {
       id: '/api/public/hooks/portal-dlq-retry'
       path: '/api/public/hooks/portal-dlq-retry'
@@ -1690,10 +1771,14 @@ const rootRouteChildren: RootRouteChildren = {
   ImovelSlugRoute: ImovelSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiInternalBillingCheckoutRoute: ApiInternalBillingCheckoutRoute,
+  ApiInternalBillingPortalRoute: ApiInternalBillingPortalRoute,
+  ApiInternalBillingReconcileRoute: ApiInternalBillingReconcileRoute,
   ApiInternalSpr03ManagedSecretProvisionRoute:
     ApiInternalSpr03ManagedSecretProvisionRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksBillingStripeWebhookRoute: ApiPublicHooksBillingStripeWebhookRoute,
   ApiPublicHooksPortalDlqRetryRoute: ApiPublicHooksPortalDlqRetryRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
