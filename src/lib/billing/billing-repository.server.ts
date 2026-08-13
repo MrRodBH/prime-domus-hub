@@ -459,3 +459,38 @@ export async function getTenantBillingSnapshot(
       : null,
   };
 }
+export async function getProviderMappingBySubscription(input: {
+  providerCode: BillingProviderCode;
+  providerSubscriptionRef: string;
+}): Promise<TenantProviderMapping | null> {
+  const db = await admin();
+  const result = await db
+    .from("tenant_billing_provider_mappings")
+    .select(
+      "id, tenant_id, provider_code, status, provider_customer_ref, provider_subscription_ref, subscription_id",
+    )
+    .eq("provider_code", input.providerCode)
+    .eq("provider_subscription_ref", input.providerSubscriptionRef);
+
+  if (result.error) {
+    throw new BillingRepositoryError(
+      "bcr01_provider_subscription_mapping_read_failed",
+    );
+  }
+
+  const row = optionalSingleRow(
+    result.data,
+    "bcr01_provider_subscription_mapping_cardinality_ambiguous",
+  );
+  if (!row) return null;
+
+  return {
+    mappingId: asUuid(row.id, "bcr01_invalid_provider_mapping_id"),
+    tenantId: asUuid(row.tenant_id, "bcr01_invalid_mapping_tenant_id"),
+    providerCode: input.providerCode,
+    status: row.status,
+    providerCustomerRef: row.provider_customer_ref ?? null,
+    providerSubscriptionRef: row.provider_subscription_ref ?? null,
+    subscriptionId: row.subscription_id ?? null,
+  };
+}

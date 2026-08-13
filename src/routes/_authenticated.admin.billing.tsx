@@ -6,6 +6,7 @@ import {
   CircleDollarSign,
   ExternalLink,
   Loader2,
+  ReceiptText,
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
@@ -24,8 +25,25 @@ export const Route = createFileRoute("/_authenticated/admin/billing")({
   component: TenantBillingPage,
 });
 
-async function billingMutation<T>(
-  path: "/api/internal/billing-portal" | "/api/internal/billing-reconcile",
+type TenantChargeView = {
+  chargeIntentId: string;
+  chargeType: "setup" | "milestone" | "customization" | "on_demand";
+  status: "draft" | "open" | "paid" | "failed" | "void" | "refunded";
+  currency: string;
+  amountTotalMinor: number;
+  providerStatus: "draft" | "open" | "paid" | "failed" | "void" | "refunded" | null;
+};
+
+type BillingApiPath =
+  | "/api/internal/billing-charges"
+  | "/api/internal/billing-invoice"
+  | "/api/internal/billing-portal"
+  | "/api/internal/billing-reconcile";
+
+async function billingRequest<T>(
+  path: BillingApiPath,
+  method: "GET" | "POST",
+  body?: Record<string, unknown>,
 ): Promise<T> {
   const { data, error } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -41,13 +59,13 @@ async function billingMutation<T>(
   });
 
   const response = await fetch(path, {
-    method: "POST",
+    method,
     headers: {
       Authorization: `Bearer ${token}`,
       "content-type": "application/json",
       ...tenantHeaders,
     },
-    body: "{}",
+    body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
   });
 
   let payload: unknown;
@@ -92,27 +110,50 @@ function TenantBillingPage() {
     staleTime: 15_000,
     retry: false,
   });
+  const charges = useQuery({
+    queryKey: ["tenant-billing-charges", "bcr-01"],
+    queryFn: async () => {
+      const result = await billingRequest<{
+        ok: true;
+        charges: TenantChargeView[];
+      }>("/api/internal/billing-charges", "GET");
+      return result.charges;
+    },
+    staleTime: 15_000,
+    retry: false,
+  });
 
   const portal = useMutation({
     mutationFn: () =>
-      billingMutation<{ ok: true; redirectUrl: string }>(
+      billingRequest<{ ok: true; redirectUrl: string }>(
         "/api/internal/billing-portal",
+        "POST",
       ),
     onSuccess: (data) => window.location.assign(data.redirectUrl),
   });
 
   const reconcile = useMutation({
     mutationFn: () =>
-      billingMutation<{ ok: true; applied: boolean; eventStatus: string }>(
+      billingRequest<{ ok: true; applied: boolean; eventStatus: string }>(
         "/api/internal/billing-reconcile",
+        "POST",
       ),
     onSuccess: () => {
       void summary.refetch();
       void health.refetch();
     },
   });
+  const invoice = useMutation({
+    mutationFn: (chargeIntentId: string) =>
+      billingRequest<{ ok: true; redirectUrl: string }>(
+        "/api/internal/billing-invoice",
+        "POST",
+        { chargeIntentId },
+      ),
+    onSuccess: (data) => window.location.assign(data.redirectUrl),
+  });
 
-  if (summary.isLoading || health.isLoading) {
+  if (summary.isLoading || health.isLoading || charges.isLoading) {
     return (
       <StateCard
         icon={<Loader2 className="size-5 animate-spin" />}
@@ -122,18 +163,26 @@ function TenantBillingPage() {
     );
   }
 
-  if (summary.isError || health.isError || !summary.data || !health.data) {
+  if (
+    summary.isError ||
+    health.isError ||
+    charges.isError ||
+    !summary.data ||
+    !health.data ||
+    !charges.data
+  ) {
     return (
       <StateCard
         icon={<AlertTriangle className="size-5" />}
         title="Billing indisponível"
-        description={safeErrorCode(summary.error ?? health.error)}
+        description={safeErrorCode(summary.error ?? health.error ?? charges.error)}
         action={
           <Button
             variant="outline"
             onClick={() => {
               void summary.refetch();
               void health.refetch();
+              void charges.refetch();
             }}
           >
             <RefreshCw className="mr-2 size-4" />
@@ -148,7 +197,7 @@ function TenantBillingPage() {
   const billing = health.data;
   const providerConfigured = commercial.billingProvider.configured;
   const providerLinked = commercial.billingProvider.status === "linked";
-  const operationError = portal.error ?? reconcile.error;
+  const operationError = portal.error ?? reconcile.error ?? invoice.error;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-12">
@@ -172,6 +221,7 @@ function TenantBillingPage() {
             onClick={() => {
               void summary.refetch();
               void health.refetch();
+              void charges.refetch();
             }}
             disabled={summary.isFetching || health.isFetching}
           >
@@ -247,6 +297,68 @@ function TenantBillingPage() {
         </div>
       </section>
 
+      <section className="rounded-lg border bg-card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-medium">Cobranças não recorrentes</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Setup, marcos, customizações e demandas avulsas são resolvidos
+              pelo servidor. O client recebe somente identidades e valores
+              internos sanitizados; referências Stripe não são expostas.
+            </p>
+          </div>
+          <ReceiptText className="size-5 text-muted-foreground" />
+        </div>
+
+        {charges.data.length === 0 ? (
+          <div className="mt-4 rounded-md border bg-muted/20 p-4 text-sm text-muted-foreground">
+            Nenhuma cobrança não recorrente registrada para este tenant.
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {charges.data.map((charge) => {
+              const invoiceable =
+                charge.status === "draft" ||
+                charge.status === "open" ||
+                charge.status === "failed";
+              return (
+                <div
+                  key={charge.chargeIntentId}
+                  className="flex flex-col gap-3 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">
+                        {chargeTypeLabel(charge.chargeType)}
+                      </span>
+                      <Badge variant="outline">{charge.status}</Badge>
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {formatMoney(
+                        charge.currency,
+                        charge.amountTotalMinor,
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!invoiceable || invoice.isPending}
+                    onClick={() => invoice.mutate(charge.chargeIntentId)}
+                  >
+                    {invoice.isPending ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="mr-2 size-4" />
+                    )}
+                    Abrir cobrança de teste
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
       <section className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
         <div className="rounded-lg border bg-card p-5">
           <h2 className="font-medium">Lifecycle e health</h2>
@@ -312,6 +424,37 @@ function TenantBillingPage() {
   );
 }
 
+function chargeTypeLabel(
+  value: TenantChargeView["chargeType"],
+): string {
+  switch (value) {
+    case "setup":
+      return "Setup";
+    case "milestone":
+      return "Marco";
+    case "customization":
+      return "Customização";
+    case "on_demand":
+      return "Sob demanda";
+  }
+}
+
+function formatMoney(currency: string, amountMinor: number): string {
+  if (
+    !/^[A-Z]{3}$/.test(currency) ||
+    !Number.isSafeInteger(amountMinor)
+  ) {
+    return "valor indisponível";
+  }
+  try {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency,
+    }).format(amountMinor / 100);
+  } catch {
+    return `${currency} ${(amountMinor / 100).toFixed(2)}`;
+  }
+}
 function formatDate(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())

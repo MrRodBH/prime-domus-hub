@@ -10,6 +10,7 @@ import {
   BILLING_RETURN_PATHS,
   type BillingAuthorizationContext,
   type BillingCheckoutSession,
+  type BillingHostedInvoice,
   type BillingPortalSession,
   type BillingProviderCode,
   type TenantBillingSnapshot,
@@ -21,7 +22,10 @@ import {
   getTenantName,
   getTenantProviderMapping,
   resolveBillingCatalogPrice,
-} from "@/lib/billing/billing-repository.server";
+} from "@/lib/billing/billing-repository.server";import {
+  bindChargeProviderInvoice,
+  getTenantChargeIntent,
+} from "@/lib/billing/billing-charge-repository.server";
 
 export const ACTIVE_BILLING_PROVIDER: BillingProviderCode = "stripe";
 
@@ -178,4 +182,79 @@ export async function openBillingPortal(
     providerCustomerRef: mapping.providerCustomerRef,
     returnUrl: returnUrl("portal"),
   });
+}
+export async function startBillingInvoice(
+  authorization: BillingAuthorizationContext,
+  chargeIntentId: string,
+): Promise<BillingHostedInvoice> {
+  requireOperation(authorization, "invoice");
+
+  const charge = await getTenantChargeIntent(
+    authorization.tenantId,
+    chargeIntentId,
+    ACTIVE_BILLING_PROVIDER,
+  );
+
+  if (
+    charge.status === "paid" ||
+    charge.status === "void" ||
+    charge.status === "refunded"
+  ) {
+    throw new BillingServiceError("bcr01_charge_not_invoiceable");
+  }
+
+  const customerRef = await ensureProviderCustomerRef(authorization.tenantId);
+  const provider = await resolveBillingProvider(ACTIVE_BILLING_PROVIDER);
+
+  if (charge.providerInvoiceRef) {
+    const observation = await provider.retrieveInvoice(
+      charge.providerInvoiceRef,
+    );
+    if (
+      observation.providerInvoiceRef !== charge.providerInvoiceRef ||
+      observation.providerCustomerRef !== customerRef ||
+      observation.providerSubscriptionRef !== null
+    ) {
+      throw new BillingServiceError(
+        "bcr01_charge_provider_invoice_identity_mismatch",
+      );
+    }
+    if (!observation.hostedInvoiceUrl) {
+      throw new BillingServiceError(
+        "bcr01_charge_provider_invoice_url_absent",
+      );
+    }
+    return {
+      providerInvoiceRef: observation.providerInvoiceRef,
+      redirectUrl: observation.hostedInvoiceUrl,
+    };
+  }
+
+  if (charge.status !== "draft") {
+    throw new BillingServiceError(
+      "bcr01_charge_without_provider_invoice_not_draft",
+    );
+  }
+
+  const hostedInvoice = await provider.createStandaloneInvoice({
+    providerCustomerRef: customerRef,
+    chargeIntentId: charge.chargeIntentId,
+    currency: charge.currency,
+    items: charge.items.map((item) => ({
+      itemId: item.itemId,
+      description: item.description,
+      amountTotalMinor: item.amountTotalMinor,
+    })),
+    idempotencyKey:
+      `bcr01:charge:${charge.chargeIntentId}:${charge.idempotencyKey}`,
+  });
+
+  await bindChargeProviderInvoice({
+    chargeIntentId: charge.chargeIntentId,
+    providerCode: ACTIVE_BILLING_PROVIDER,
+    providerCustomerRef: customerRef,
+    providerInvoiceRef: hostedInvoice.providerInvoiceRef,
+  });
+
+  return hostedInvoice;
 }

@@ -1,10 +1,13 @@
-// BCR-01 — explicit provider reconciliation through the canonical lifecycle.
+// BCR-01 â€” explicit provider reconciliation through the canonical lifecycle.
 // Server-only. Tenant/provider identity is resolved from persisted mapping.
 
 import { createHash } from "node:crypto";
 import type {
   BillingAuthorizationContext,
+  BillingChargeLifecycleApplication,
   BillingLifecycleApplication,
+  NormalizedBillingEventType,
+  ProviderInvoiceObservation,
   ProviderSubscriptionObservation,
 } from "@/lib/billing/billing-contracts";
 import { resolveBillingProvider } from "@/lib/billing/billing-port.server";
@@ -12,6 +15,10 @@ import {
   applyProviderSubscriptionObservation,
   getTenantProviderMapping,
 } from "@/lib/billing/billing-repository.server";
+import {
+  applyProviderInvoiceObservation,
+  getTenantChargeIntent,
+} from "@/lib/billing/billing-charge-repository.server";
 import { reserveReconciliationBillingEvent } from "@/lib/billing/billing-event-repository.server";
 import { ACTIVE_BILLING_PROVIDER } from "@/lib/billing/billing-service.server";
 
@@ -35,12 +42,9 @@ function requireReconcileAuthorization(
   }
 }
 
-function canonicalObservationPayload(
+function canonicalSubscriptionObservationPayload(
   observation: ProviderSubscriptionObservation,
 ): Record<string, unknown> {
-  // Intentionally excludes local observedAt from state identity. Re-running a
-  // reconciliation against the exact same provider state converges on the same
-  // synthetic event ID/hash instead of growing the ledger without state change.
   return {
     providerSubscriptionRef: observation.providerSubscriptionRef,
     providerCustomerRef: observation.providerCustomerRef,
@@ -53,11 +57,40 @@ function canonicalObservationPayload(
   };
 }
 
+function canonicalInvoiceObservationPayload(
+  observation: ProviderInvoiceObservation,
+): Record<string, unknown> {
+  return {
+    providerInvoiceRef: observation.providerInvoiceRef,
+    providerCustomerRef: observation.providerCustomerRef,
+    providerSubscriptionRef: observation.providerSubscriptionRef,
+    providerPaymentRef: observation.providerPaymentRef,
+    status: observation.status,
+    amountPaidMinor: observation.amountPaidMinor,
+    currency: observation.currency,
+  };
+}
+
 function hashCanonicalPayload(payload: Record<string, unknown>): string {
-  // Property insertion order is fixed by canonicalObservationPayload.
   return createHash("sha256")
     .update(JSON.stringify(payload), "utf8")
     .digest("hex");
+}
+
+function reconciliationInvoiceEventType(
+  observation: ProviderInvoiceObservation,
+): NormalizedBillingEventType {
+  switch (observation.status) {
+    case "paid":
+      return "InvoicePaid";
+    case "failed":
+      return "InvoicePaymentFailed";
+    case "refunded":
+      return "ChargeRefunded";
+    case "open":
+    case "void":
+      return "Unknown";
+  }
 }
 
 export async function reconcileTenantBilling(
@@ -94,9 +127,10 @@ export async function reconcileTenantBilling(
     );
   }
 
-  const payload = canonicalObservationPayload(observation);
+  const payload = canonicalSubscriptionObservationPayload(observation);
   const payloadHash = hashCanonicalPayload(payload);
-  const providerEventId = `reconcile:${mapping.providerSubscriptionRef}:${payloadHash}`;
+  const providerEventId =
+    `reconcile:${mapping.providerSubscriptionRef}:${payloadHash}`;
 
   const reservation = await reserveReconciliationBillingEvent({
     providerCode: ACTIVE_BILLING_PROVIDER,
@@ -140,5 +174,114 @@ export async function reconcileTenantBilling(
     currentPeriodStart: observation.currentPeriodStart,
     currentPeriodEnd: observation.currentPeriodEnd,
     canceledAt: observation.canceledAt,
+  });
+}
+
+export async function reconcileTenantCharge(
+  authorization: BillingAuthorizationContext,
+  chargeIntentId: string,
+): Promise<BillingChargeLifecycleApplication> {
+  requireReconcileAuthorization(authorization);
+
+  const charge = await getTenantChargeIntent(
+    authorization.tenantId,
+    chargeIntentId,
+    ACTIVE_BILLING_PROVIDER,
+  );
+  if (!charge.providerInvoiceRef) {
+    throw new BillingReconciliationError(
+      "bcr01_charge_reconciliation_provider_invoice_required",
+    );
+  }
+
+  const mapping = await getTenantProviderMapping(
+    authorization.tenantId,
+    ACTIVE_BILLING_PROVIDER,
+  );
+  if (
+    !mapping ||
+    (mapping.status !== "draft" && mapping.status !== "linked") ||
+    !mapping.providerCustomerRef
+  ) {
+    throw new BillingReconciliationError(
+      "bcr01_charge_reconciliation_customer_mapping_required",
+    );
+  }
+
+  const provider = await resolveBillingProvider(ACTIVE_BILLING_PROVIDER);
+  const observation = await provider.retrieveInvoice(
+    charge.providerInvoiceRef,
+  );
+
+  if (
+    observation.providerInvoiceRef !== charge.providerInvoiceRef ||
+    observation.providerCustomerRef !== mapping.providerCustomerRef ||
+    observation.providerSubscriptionRef !== null
+  ) {
+    throw new BillingReconciliationError(
+      "bcr01_charge_reconciliation_provider_identity_mismatch",
+    );
+  }
+
+  if (
+    observation.currency &&
+    observation.currency !== charge.currency
+  ) {
+    throw new BillingReconciliationError(
+      "bcr01_charge_reconciliation_currency_mismatch",
+    );
+  }
+
+  if (
+    observation.status === "paid" &&
+    observation.amountPaidMinor !== charge.amountTotalMinor
+  ) {
+    throw new BillingReconciliationError(
+      "bcr01_charge_reconciliation_amount_mismatch",
+    );
+  }
+
+  const payload = canonicalInvoiceObservationPayload(observation);
+  const payloadHash = hashCanonicalPayload(payload);
+  const providerEventId =
+    `reconcile:invoice:${charge.providerInvoiceRef}:${payloadHash}`;
+
+  const reservation = await reserveReconciliationBillingEvent({
+    providerCode: ACTIVE_BILLING_PROVIDER,
+    providerEventId,
+    eventType: reconciliationInvoiceEventType(observation),
+    payloadHash,
+    payloadSanitized: {
+      source: "server_reconciliation",
+      providerInvoiceRef: charge.providerInvoiceRef,
+      chargeType: charge.chargeType,
+      status: observation.status,
+    },
+    occurredAt: observation.observedAt,
+  });
+
+  if (
+    reservation.duplicate &&
+    ["processed", "ignored", "reconciled"].includes(
+      reservation.processingStatus,
+    )
+  ) {
+    return {
+      applied: false,
+      reason: "already_terminal",
+      tenantId: authorization.tenantId,
+      chargeIntentId: charge.chargeIntentId,
+      chargeStatus: charge.status,
+      eventStatus: reservation.processingStatus,
+    };
+  }
+
+  return applyProviderInvoiceObservation({
+    eventId: reservation.eventId,
+    providerCode: ACTIVE_BILLING_PROVIDER,
+    providerInvoiceRef: charge.providerInvoiceRef,
+    providerPaymentRef: observation.providerPaymentRef,
+    targetStatus: observation.status,
+    providerObservedAt: observation.observedAt,
   });
 }

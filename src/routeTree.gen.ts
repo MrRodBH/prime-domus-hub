@@ -37,7 +37,9 @@ import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/po
 import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
 import { Route as ApiInternalBillingReconcileRouteImport } from './routes/api/internal/billing-reconcile'
 import { Route as ApiInternalBillingPortalRouteImport } from './routes/api/internal/billing-portal'
+import { Route as ApiInternalBillingInvoiceRouteImport } from './routes/api/internal/billing-invoice'
 import { Route as ApiInternalBillingCheckoutRouteImport } from './routes/api/internal/billing-checkout'
+import { Route as ApiInternalBillingChargesRouteImport } from './routes/api/internal/billing-charges'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
 import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
@@ -233,10 +235,22 @@ const ApiInternalBillingPortalRoute =
     path: '/api/internal/billing-portal',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiInternalBillingInvoiceRoute =
+  ApiInternalBillingInvoiceRouteImport.update({
+    id: '/api/internal/billing-invoice',
+    path: '/api/internal/billing-invoice',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiInternalBillingCheckoutRoute =
   ApiInternalBillingCheckoutRouteImport.update({
     id: '/api/internal/billing-checkout',
     path: '/api/internal/billing-checkout',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingChargesRoute =
+  ApiInternalBillingChargesRouteImport.update({
+    id: '/api/internal/billing-charges',
+    path: '/api/internal/billing-charges',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedSuperObservabilidadeRoute =
@@ -589,7 +603,9 @@ export interface FileRoutesByFullPath {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-charges': typeof ApiInternalBillingChargesRoute
   '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-invoice': typeof ApiInternalBillingInvoiceRoute
   '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
   '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
@@ -667,7 +683,9 @@ export interface FileRoutesByTo {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-charges': typeof ApiInternalBillingChargesRoute
   '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-invoice': typeof ApiInternalBillingInvoiceRoute
   '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
   '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
@@ -750,7 +768,9 @@ export interface FileRoutesById {
   '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/_authenticated/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-charges': typeof ApiInternalBillingChargesRoute
   '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-invoice': typeof ApiInternalBillingInvoiceRoute
   '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
   '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
@@ -833,7 +853,9 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/billing-charges'
     | '/api/internal/billing-checkout'
+    | '/api/internal/billing-invoice'
     | '/api/internal/billing-portal'
     | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
@@ -911,7 +933,9 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/billing-charges'
     | '/api/internal/billing-checkout'
+    | '/api/internal/billing-invoice'
     | '/api/internal/billing-portal'
     | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
@@ -993,7 +1017,9 @@ export interface FileRouteTypes {
     | '/_authenticated/super/dlq'
     | '/_authenticated/super/domains'
     | '/_authenticated/super/observabilidade'
+    | '/api/internal/billing-charges'
     | '/api/internal/billing-checkout'
+    | '/api/internal/billing-invoice'
     | '/api/internal/billing-portal'
     | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
@@ -1044,7 +1070,9 @@ export interface RootRouteChildren {
   ImovelSlugRoute: typeof ImovelSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiInternalBillingChargesRoute: typeof ApiInternalBillingChargesRoute
   ApiInternalBillingCheckoutRoute: typeof ApiInternalBillingCheckoutRoute
+  ApiInternalBillingInvoiceRoute: typeof ApiInternalBillingInvoiceRoute
   ApiInternalBillingPortalRoute: typeof ApiInternalBillingPortalRoute
   ApiInternalBillingReconcileRoute: typeof ApiInternalBillingReconcileRoute
   ApiInternalSpr03ManagedSecretProvisionRoute: typeof ApiInternalSpr03ManagedSecretProvisionRoute
@@ -1258,11 +1286,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInternalBillingPortalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/internal/billing-invoice': {
+      id: '/api/internal/billing-invoice'
+      path: '/api/internal/billing-invoice'
+      fullPath: '/api/internal/billing-invoice'
+      preLoaderRoute: typeof ApiInternalBillingInvoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/internal/billing-checkout': {
       id: '/api/internal/billing-checkout'
       path: '/api/internal/billing-checkout'
       fullPath: '/api/internal/billing-checkout'
       preLoaderRoute: typeof ApiInternalBillingCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-charges': {
+      id: '/api/internal/billing-charges'
+      path: '/api/internal/billing-charges'
+      fullPath: '/api/internal/billing-charges'
+      preLoaderRoute: typeof ApiInternalBillingChargesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/super/observabilidade': {
@@ -1796,7 +1838,9 @@ const rootRouteChildren: RootRouteChildren = {
   ImovelSlugRoute: ImovelSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiInternalBillingChargesRoute: ApiInternalBillingChargesRoute,
   ApiInternalBillingCheckoutRoute: ApiInternalBillingCheckoutRoute,
+  ApiInternalBillingInvoiceRoute: ApiInternalBillingInvoiceRoute,
   ApiInternalBillingPortalRoute: ApiInternalBillingPortalRoute,
   ApiInternalBillingReconcileRoute: ApiInternalBillingReconcileRoute,
   ApiInternalSpr03ManagedSecretProvisionRoute:

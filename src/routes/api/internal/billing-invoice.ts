@@ -7,14 +7,11 @@ import {
   parseExactJsonObject,
 } from "@/lib/billing/billing-http.server";
 import { resolveAuthorizedBillingRequest } from "@/lib/billing/billing-request-context.server";
-import {
-  reconcileTenantBilling,
-  reconcileTenantCharge,
-} from "@/lib/billing/billing-reconciliation.server";
+import { startBillingInvoice } from "@/lib/billing/billing-service.server";
 
 const methodNotAllowed = () => billingMethodNotAllowed("POST");
 
-export const Route = createFileRoute("/api/internal/billing-reconcile")({
+export const Route = createFileRoute("/api/internal/billing-invoice")({
   server: {
     handlers: {
       GET: methodNotAllowed,
@@ -24,23 +21,19 @@ export const Route = createFileRoute("/api/internal/billing-reconcile")({
       POST: async ({ request }) => {
         try {
           const body = await parseExactJsonObject(request, ["chargeIntentId"]);
+          const chargeIntentId = assertChargeIntentId(body.chargeIntentId);
           const { authorization } = await resolveAuthorizedBillingRequest(
             request,
-            "reconcile",
+            "invoice",
           );
-
-          const result =
-            body.chargeIntentId === undefined
-              ? await reconcileTenantBilling(authorization)
-              : await reconcileTenantCharge(
-                  authorization,
-                  assertChargeIntentId(body.chargeIntentId),
-                );
+          const invoice = await startBillingInvoice(
+            authorization,
+            chargeIntentId,
+          );
 
           return billingJson({
             ok: true,
-            applied: result.applied,
-            eventStatus: result.eventStatus,
+            redirectUrl: invoice.redirectUrl,
           });
         } catch (error) {
           return billingErrorResponse(error);

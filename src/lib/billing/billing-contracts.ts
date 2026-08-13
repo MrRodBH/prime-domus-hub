@@ -117,6 +117,7 @@ export type ProviderInvoiceObservation = {
   readonly status: "open" | "paid" | "failed" | "void" | "refunded";
   readonly amountPaidMinor: number | null;
   readonly currency: string | null;
+  readonly hostedInvoiceUrl: string | null;
   readonly observedAt: string;
 };
 
