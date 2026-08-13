@@ -16,6 +16,25 @@ export const BILLING_SUBSCRIPTION_STATES = [
 export type BillingSubscriptionState =
   (typeof BILLING_SUBSCRIPTION_STATES)[number];
 
+export const NON_RECURRING_CHARGE_TYPES = [
+  "setup",
+  "milestone",
+  "customization",
+  "on_demand",
+] as const;
+export type NonRecurringChargeType =
+  (typeof NON_RECURRING_CHARGE_TYPES)[number];
+
+export const BILLING_CHARGE_STATUSES = [
+  "draft",
+  "open",
+  "paid",
+  "failed",
+  "void",
+  "refunded",
+] as const;
+export type BillingChargeStatus = (typeof BILLING_CHARGE_STATUSES)[number];
+
 export const NORMALIZED_BILLING_EVENT_TYPES = [
   "CheckoutCompleted",
   "SubscriptionCreated",
@@ -30,7 +49,12 @@ export const NORMALIZED_BILLING_EVENT_TYPES = [
 export type NormalizedBillingEventType =
   (typeof NORMALIZED_BILLING_EVENT_TYPES)[number];
 
-export type BillingOperation = "view" | "checkout" | "portal" | "reconcile";
+export type BillingOperation =
+  | "view"
+  | "checkout"
+  | "invoice"
+  | "portal"
+  | "reconcile";
 
 /** Produced only after trusted server tenant resolution + billing authorization. */
 export type BillingAuthorizationContext = {
@@ -43,9 +67,15 @@ export type BillingAuthorizationContext = {
     | "explicit_super_admin_impersonation";
 };
 
-/** Public checkout intent: internal catalog identity only. */
+/** Public recurring checkout intent: internal catalog identity only. */
 export type BillingCheckoutIntent = {
   readonly planPriceId: string;
+  readonly returnContext: "admin_billing";
+};
+
+/** Public one-time collection intent: internal charge identity only. */
+export type BillingInvoiceIntent = {
+  readonly chargeIntentId: string;
   readonly returnContext: "admin_billing";
 };
 
@@ -55,6 +85,11 @@ export type BillingCheckoutSession = {
 };
 
 export type BillingPortalSession = {
+  readonly redirectUrl: string;
+};
+
+export type BillingHostedInvoice = {
+  readonly providerInvoiceRef: string;
   readonly redirectUrl: string;
 };
 
@@ -74,6 +109,17 @@ export type ProviderSubscriptionObservation = {
   readonly observedAt: string;
 };
 
+export type ProviderInvoiceObservation = {
+  readonly providerInvoiceRef: string;
+  readonly providerCustomerRef: string;
+  readonly providerSubscriptionRef: string | null;
+  readonly providerPaymentRef: string | null;
+  readonly status: "open" | "paid" | "failed" | "void" | "refunded";
+  readonly amountPaidMinor: number | null;
+  readonly currency: string | null;
+  readonly observedAt: string;
+};
+
 export type NormalizedBillingEvent = {
   readonly providerCode: BillingProviderCode;
   readonly providerEventId: string;
@@ -84,6 +130,8 @@ export type NormalizedBillingEvent = {
   readonly providerCustomerRef: string | null;
   readonly providerSubscriptionRef: string | null;
   readonly providerPriceRef: string | null;
+  readonly providerInvoiceRef: string | null;
+  readonly providerPaymentRef: string | null;
   readonly subscriptionState: BillingSubscriptionState | null;
   readonly requiresReconciliation: boolean;
   readonly currentPeriodStart: string | null;
@@ -103,6 +151,29 @@ export type BillingCatalogPrice = {
   readonly intervalCount: number;
   readonly providerCode: BillingProviderCode;
   readonly providerPriceRef: string;
+};
+
+export type CommercialChargeItem = {
+  readonly itemId: string;
+  readonly linePosition: number;
+  readonly description: string;
+  readonly quantity: number;
+  readonly unitAmountMinor: number;
+  readonly amountTotalMinor: number;
+};
+
+export type CommercialChargeIntent = {
+  readonly chargeIntentId: string;
+  readonly tenantId: string;
+  readonly chargeType: NonRecurringChargeType;
+  readonly status: BillingChargeStatus;
+  readonly currency: string;
+  readonly amountTotalMinor: number;
+  readonly idempotencyKey: string;
+  readonly correlationRef: string | null;
+  readonly items: readonly CommercialChargeItem[];
+  readonly providerInvoiceRef: string | null;
+  readonly providerStatus: BillingChargeStatus | null;
 };
 
 export type TenantProviderMapping = {
@@ -131,6 +202,15 @@ export type BillingLifecycleApplication = {
   readonly planId?: string;
   readonly planPriceId?: string;
   readonly internalStatus?: BillingSubscriptionState;
+  readonly eventStatus: string;
+};
+
+export type BillingChargeLifecycleApplication = {
+  readonly applied: boolean;
+  readonly reason?: string;
+  readonly tenantId?: string;
+  readonly chargeIntentId?: string;
+  readonly chargeStatus?: BillingChargeStatus;
   readonly eventStatus: string;
 };
 
@@ -173,13 +253,21 @@ export function isBillingProviderCode(
 }
 
 export function assertPlanPriceId(value: unknown): string {
+  return assertBillingUuid(value, "bcr01_invalid_plan_price_intent");
+}
+
+export function assertChargeIntentId(value: unknown): string {
+  return assertBillingUuid(value, "bcr01_invalid_charge_intent");
+}
+
+function assertBillingUuid(value: unknown, code: string): string {
   if (
     typeof value !== "string" ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
       value,
     )
   ) {
-    throw new Error("bcr01_invalid_plan_price_intent");
+    throw new Error(code);
   }
   return value;
 }
