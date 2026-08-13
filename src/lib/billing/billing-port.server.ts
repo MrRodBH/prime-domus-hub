@@ -2,12 +2,10 @@
 
 import type {
   BillingCheckoutSession,
-  BillingHostedInvoice,
   BillingPortalSession,
   BillingProviderCode,
   NormalizedBillingEvent,
   ProviderCustomerIdentity,
-  ProviderInvoiceObservation,
   ProviderSubscriptionObservation,
 } from "@/lib/billing/billing-contracts";
 
@@ -41,20 +39,6 @@ export type CreateCustomerPortalSessionInput = {
   readonly returnUrl: string;
 };
 
-export type StandaloneInvoiceLine = {
-  readonly description: string;
-  readonly quantity: number;
-  readonly unitAmountMinor: number;
-};
-
-export type CreateStandaloneInvoiceInput = {
-  readonly providerCustomerRef: string;
-  readonly chargeIntentId: string;
-  readonly currency: string;
-  readonly lines: readonly StandaloneInvoiceLine[];
-  readonly idempotencyKey: string;
-};
-
 export type VerifiedProviderWebhook = {
   readonly providerEventId: string;
   readonly providerEventType: string;
@@ -78,10 +62,6 @@ export interface BillingProvider {
     input: CreateCustomerPortalSessionInput,
   ): Promise<BillingPortalSession>;
 
-  createStandaloneInvoice(
-    input: CreateStandaloneInvoiceInput,
-  ): Promise<BillingHostedInvoice>;
-
   verifyWebhook(
     rawBody: string,
     signatureHeader: string | null,
@@ -94,10 +74,6 @@ export interface BillingProvider {
   retrieveSubscription(
     providerSubscriptionRef: string,
   ): Promise<ProviderSubscriptionObservation>;
-
-  retrieveInvoice(
-    providerInvoiceRef: string,
-  ): Promise<ProviderInvoiceObservation>;
 }
 
 const providerOverrides = new Map<BillingProviderCode, BillingProvider>();
