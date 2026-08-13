@@ -35,9 +35,9 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
-import { Route as ApiInternalBillingCheckoutRouteImport } from './routes/api/internal/billing-checkout'
-import { Route as ApiInternalBillingPortalRouteImport } from './routes/api/internal/billing-portal'
 import { Route as ApiInternalBillingReconcileRouteImport } from './routes/api/internal/billing-reconcile'
+import { Route as ApiInternalBillingPortalRouteImport } from './routes/api/internal/billing-portal'
+import { Route as ApiInternalBillingCheckoutRouteImport } from './routes/api/internal/billing-checkout'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
 import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
@@ -63,6 +63,7 @@ import { Route as AuthenticatedAdminCmsInventarioRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminCmsAuditoriaRouteImport } from './routes/_authenticated.admin.cms-auditoria'
 import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authenticated.admin.cidades'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
+import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated.admin.billing'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated.admin.auditoria'
 import { Route as AuthenticatedAdminPaginasIndexRouteImport } from './routes/_authenticated.admin.paginas.index'
@@ -220,21 +221,24 @@ const ApiInternalSpr03ManagedSecretProvisionRoute =
     path: '/api/internal/spr-03-managed-secret-provision',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiInternalBillingCheckoutRoute = ApiInternalBillingCheckoutRouteImport.update({
-  id: '/api/internal/billing-checkout',
-  path: '/api/internal/billing-checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalBillingPortalRoute = ApiInternalBillingPortalRouteImport.update({
-  id: '/api/internal/billing-portal',
-  path: '/api/internal/billing-portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalBillingReconcileRoute = ApiInternalBillingReconcileRouteImport.update({
-  id: '/api/internal/billing-reconcile',
-  path: '/api/internal/billing-reconcile',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiInternalBillingReconcileRoute =
+  ApiInternalBillingReconcileRouteImport.update({
+    id: '/api/internal/billing-reconcile',
+    path: '/api/internal/billing-reconcile',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingPortalRoute =
+  ApiInternalBillingPortalRouteImport.update({
+    id: '/api/internal/billing-portal',
+    path: '/api/internal/billing-portal',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingCheckoutRoute =
+  ApiInternalBillingCheckoutRouteImport.update({
+    id: '/api/internal/billing-checkout',
+    path: '/api/internal/billing-checkout',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSuperObservabilidadeRoute =
   AuthenticatedSuperObservabilidadeRouteImport.update({
     id: '/observabilidade',
@@ -381,6 +385,12 @@ const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminBillingRoute =
+  AuthenticatedAdminBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBairrosRoute =
   AuthenticatedAdminBairrosRouteImport.update({
     id: '/bairros',
@@ -553,6 +563,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
@@ -631,6 +642,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
   '/admin/cms-inventario': typeof AuthenticatedAdminCmsInventarioRoute
@@ -712,6 +724,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/_authenticated/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/_authenticated/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
@@ -794,6 +807,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/admin/auditoria'
     | '/admin/bairros'
+    | '/admin/billing'
     | '/admin/blog'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
@@ -872,6 +886,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/admin/auditoria'
     | '/admin/bairros'
+    | '/admin/billing'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
     | '/admin/cms-inventario'
@@ -952,6 +967,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/bairros'
+    | '/_authenticated/admin/billing'
     | '/_authenticated/admin/blog'
     | '/_authenticated/admin/cidades'
     | '/_authenticated/admin/cms-auditoria'
@@ -1228,11 +1244,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/internal/billing-checkout': {
-      id: '/api/internal/billing-checkout'
-      path: '/api/internal/billing-checkout'
-      fullPath: '/api/internal/billing-checkout'
-      preLoaderRoute: typeof ApiInternalBillingCheckoutRouteImport
+    '/api/internal/billing-reconcile': {
+      id: '/api/internal/billing-reconcile'
+      path: '/api/internal/billing-reconcile'
+      fullPath: '/api/internal/billing-reconcile'
+      preLoaderRoute: typeof ApiInternalBillingReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/internal/billing-portal': {
@@ -1242,11 +1258,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInternalBillingPortalRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/internal/billing-reconcile': {
-      id: '/api/internal/billing-reconcile'
-      path: '/api/internal/billing-reconcile'
-      fullPath: '/api/internal/billing-reconcile'
-      preLoaderRoute: typeof ApiInternalBillingReconcileRouteImport
+    '/api/internal/billing-checkout': {
+      id: '/api/internal/billing-checkout'
+      path: '/api/internal/billing-checkout'
+      fullPath: '/api/internal/billing-checkout'
+      preLoaderRoute: typeof ApiInternalBillingCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/super/observabilidade': {
@@ -1424,6 +1440,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/billing': {
+      id: '/_authenticated/admin/billing'
+      path: '/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/bairros': {
       id: '/_authenticated/admin/bairros'
       path: '/bairros'
@@ -1515,18 +1538,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/billing-stripe-webhook': {
-      id: '/api/public/hooks/billing-stripe-webhook'
-      path: '/api/public/hooks/billing-stripe-webhook'
-      fullPath: '/api/public/hooks/billing-stripe-webhook'
-      preLoaderRoute: typeof ApiPublicHooksBillingStripeWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/hooks/portal-dlq-retry': {
       id: '/api/public/hooks/portal-dlq-retry'
       path: '/api/public/hooks/portal-dlq-retry'
       fullPath: '/api/public/hooks/portal-dlq-retry'
       preLoaderRoute: typeof ApiPublicHooksPortalDlqRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/billing-stripe-webhook': {
+      id: '/api/public/hooks/billing-stripe-webhook'
+      path: '/api/public/hooks/billing-stripe-webhook'
+      fullPath: '/api/public/hooks/billing-stripe-webhook'
+      preLoaderRoute: typeof ApiPublicHooksBillingStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/paginas/$id': {
@@ -1623,6 +1646,7 @@ const AuthenticatedAdminBlogRouteWithChildren =
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditoriaRoute: typeof AuthenticatedAdminAuditoriaRoute
   AuthenticatedAdminBairrosRoute: typeof AuthenticatedAdminBairrosRoute
+  AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRouteWithChildren
   AuthenticatedAdminCidadesRoute: typeof AuthenticatedAdminCidadesRoute
   AuthenticatedAdminCmsAuditoriaRoute: typeof AuthenticatedAdminCmsAuditoriaRoute
@@ -1662,6 +1686,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditoriaRoute: AuthenticatedAdminAuditoriaRoute,
   AuthenticatedAdminBairrosRoute: AuthenticatedAdminBairrosRoute,
+  AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRouteWithChildren,
   AuthenticatedAdminCidadesRoute: AuthenticatedAdminCidadesRoute,
   AuthenticatedAdminCmsAuditoriaRoute: AuthenticatedAdminCmsAuditoriaRoute,
@@ -1778,7 +1803,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiInternalSpr03ManagedSecretProvisionRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
-  ApiPublicHooksBillingStripeWebhookRoute: ApiPublicHooksBillingStripeWebhookRoute,
+  ApiPublicHooksBillingStripeWebhookRoute:
+    ApiPublicHooksBillingStripeWebhookRoute,
   ApiPublicHooksPortalDlqRetryRoute: ApiPublicHooksPortalDlqRetryRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
