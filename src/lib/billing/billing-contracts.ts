@@ -130,8 +130,9 @@ export type NormalizedBillingEvent = {
   readonly providerCustomerRef: string | null;
   readonly providerSubscriptionRef: string | null;
   readonly providerPriceRef: string | null;
-  readonly providerInvoiceRef: string | null;
-  readonly providerPaymentRef: string | null;
+  /** Hybrid fields are optional until the provider normalizer is extended. */
+  readonly providerInvoiceRef?: string | null;
+  readonly providerPaymentRef?: string | null;
   readonly subscriptionState: BillingSubscriptionState | null;
   readonly requiresReconciliation: boolean;
   readonly currentPeriodStart: string | null;
