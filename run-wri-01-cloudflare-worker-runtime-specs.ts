@@ -107,12 +107,7 @@ for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main:
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
 }
 equal(wrangler.workers_dev, false, "SPR-03 bootstrap authority must keep workers.dev disabled");
-equal(wrangler.preview_urls, true, "BCR-P6 must enable only inactive version Preview URLs");
-equal(
-  wrangler.vars?.BCR01_PUBLIC_BASE_URL,
-  "https://bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev",
-  "BCR-P6 public base URL must stay pinned to the exact homologation Preview URL",
-);
+equal(wrangler.preview_urls, false, "SPR-03 bootstrap authority must keep Preview URLs disabled");
 equal(wrangler.compatibility_date, "2026-07-29", "Compatibility date must remain pinned to the tested workerd support ceiling");
 equal(wrangler.assets?.directory, "dist/client", "Assets directory must match Nitro output");
 equal(wrangler.assets?.binding, "ASSETS", "Assets binding must be explicit");
