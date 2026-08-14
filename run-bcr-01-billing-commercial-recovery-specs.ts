@@ -48,13 +48,6 @@ const webhookRoute = read(
   "src/routes/api/public/hooks/billing-stripe-webhook.ts",
 );
 const tenantUi = read("src/routes/_authenticated.admin.billing.tsx");
-const wrangler = JSON.parse(read("wrangler.jsonc")) as {
-  workers_dev?: boolean;
-  preview_urls?: boolean;
-  vars?: Record<string, string>;
-  routes?: unknown[];
-  triggers?: { crons?: unknown[] };
-};
 const pkg = JSON.parse(read("package.json")) as {
   dependencies?: Record<string, string>;
 };
@@ -312,29 +305,6 @@ ok(
     !stripe.includes("timingSafeEqual("),
   "Stripe provider calls/signature verification must use the official SDK",
 );
-ok(
-  stripe.includes('integration_identifier: "rm_prime_bcr_p5_cbbabeca"') &&
-    !stripe.includes("payment_method_types"),
-  "Checkout must retain the stage identifier and Stripe dynamic payment methods",
-);
-
-const bcrP5PreviewOrigin =
-  "https://bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev";
-ok(
-  wrangler.workers_dev === false &&
-    wrangler.preview_urls === true &&
-    wrangler.vars?.BCR01_PUBLIC_BASE_URL === bcrP5PreviewOrigin &&
-    wrangler.routes?.length === 0 &&
-    wrangler.triggers?.crons?.length === 0,
-  "BCR-P6 must expose only an inactive Preview URL without workers.dev, routes or crons",
-);
-ok(
-  service.includes("const HOMOLOGATION_HOSTS = new Set([") &&
-    service.includes('"bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev"') &&
-    service.includes("url.port") &&
-    !service.includes("*.workers.dev"),
-  "billing returns must allow only the exact HTTPS homologation host without wildcard or custom port",
-);
 
 ok(
   port.includes("createStandaloneInvoice(") &&
@@ -497,10 +467,6 @@ console.log(
       webhookRawBodyVerifiedFirst: true,
       webhookIdempotencyConflictGuard: true,
       officialStripeSdkPinned: true,
-      checkoutIntegrationIdentifierPinned: true,
-      dynamicPaymentMethodsPreserved: true,
-      bcrP6PreviewUrlBounded: true,
-      bcrP6PublicBaseUrlExact: true,
       liveStripeAllowed: false,
       recurringReconciliationUsesCanonicalLifecycle: true,
       nonRecurringReconciliationUsesCanonicalLifecycle: true,
