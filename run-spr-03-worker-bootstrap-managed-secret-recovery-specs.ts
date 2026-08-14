@@ -75,7 +75,12 @@ ALTER TABLE public.spr02_managed_secret_ceremonies ENABLE ROW LEVEL SECURITY;`;
 equal(wrangler.name, "rm-prime-wri01-hml", "Canonical Worker name must remain frozen");
 equal(wrangler.main, "dist/server/index.mjs", "Canonical Nitro Worker entry must remain frozen");
 equal(wrangler.workers_dev, false, "workers.dev must be disabled before bootstrap");
-equal(wrangler.preview_urls, false, "Preview URLs must be explicitly disabled before bootstrap");
+equal(wrangler.preview_urls, true, "BCR-P6 may expose only inactive version Preview URLs");
+equal(
+  wrangler.vars?.BCR01_PUBLIC_BASE_URL,
+  "https://bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev",
+  "BCR-P6 public base URL must stay pinned to the exact homologation Preview URL",
+);
 equal(wrangler.routes?.length, 0, "Worker Routes must remain zero during SPR-03");
 equal(wrangler.triggers?.crons?.length, 0, "Cron triggers must remain zero during SPR-03");
 equal(wrangler.no_bundle, true, "Wrangler must preserve the WRI-01 no_bundle artifact authority");
@@ -86,7 +91,7 @@ equal(JSON.stringify(wranglerAuthorities.sort()), JSON.stringify(["wrangler.json
 
 // WRI-01 regression keeps runtime/build authority but follows SPR-03 activation policy.
 match(wri, /wrangler\.workers_dev, false/, "WRI-01 specs must assert workers.dev disabled");
-match(wri, /wrangler\.preview_urls, false/, "WRI-01 specs must assert Preview URLs disabled");
+match(wri, /wrangler\.preview_urls, true/, "WRI-01 specs must assert bounded Preview URLs enabled");
 match(wri, /wrangler\.triggers\?\.crons\?\.length, 0/, "WRI-01 specs must assert zero Cron triggers");
 equal(wri.includes('"*/5 * * * *"'), false, "Historical Cron activation must not remain as a current WRI assertion");
 match(vite, /@lovable\.dev\/vite-tanstack-config/, "WRI-01 build authority must remain the canonical Lovable/TanStack Vite config");
