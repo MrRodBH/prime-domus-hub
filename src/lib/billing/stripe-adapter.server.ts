@@ -483,7 +483,6 @@ export function createStripeBillingProvider(): BillingProvider {
       const session = await stripe.checkout.sessions.create(
         {
           mode: "subscription",
-          integration_identifier: "rm_prime_bcr_p5_cbbabeca",
           customer: input.providerCustomerRef,
           line_items: [{ price: input.providerPriceRef, quantity: 1 }],
           success_url: input.successUrl,
