@@ -110,6 +110,15 @@ ok(
     ),
   "forward hardening must retire rejected BCA runtime mutations",
 );
+ok(
+  !hardening.includes(
+    "REVOKE ALL ON FUNCTION public.bca01_reserve_billing_event",
+  ) &&
+    !hardening.includes(
+      "REVOKE ALL ON FUNCTION public.bca01_apply_provider_subscription_state",
+    ),
+  "legacy BCA retirement must tolerate already-absent functions in Same-Backend",
+);
 
 const lifecycleStart = hardening.indexOf(
   "CREATE OR REPLACE FUNCTION public.bcr01_apply_provider_subscription_observation(",

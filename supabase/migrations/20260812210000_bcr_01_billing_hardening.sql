@@ -563,15 +563,6 @@ GRANT EXECUTE ON FUNCTION public.bcr01_apply_provider_subscription_observation(
 -- ============================================================
 -- 5) Retire rejected BCA-01 runtime mutation primitives
 -- ============================================================
-REVOKE ALL ON FUNCTION public.bca01_reserve_billing_event(
-  text, text, text, text, jsonb, uuid, timestamptz
-) FROM PUBLIC, anon, authenticated, service_role;
-
-REVOKE ALL ON FUNCTION public.bca01_apply_provider_subscription_state(
-  uuid, uuid, text, text, text, text, boolean, timestamptz,
-  uuid, timestamptz, timestamptz, timestamptz
-) FROM PUBLIC, anon, authenticated, service_role;
-
 DROP FUNCTION IF EXISTS public.bca01_reserve_billing_event(
   text, text, text, text, jsonb, uuid, timestamptz
 );
