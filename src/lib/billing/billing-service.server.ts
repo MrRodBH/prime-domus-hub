@@ -47,6 +47,9 @@ const PRODUCTION_HOSTS = new Set([
   "www.mrrod.com.br",
 ]);
 const DEVELOPMENT_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const HOMOLOGATION_HOSTS = new Set([
+  "bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev",
+]);
 
 function requirePublicBaseUrl(): string {
   const raw =
@@ -63,12 +66,14 @@ function requirePublicBaseUrl(): string {
   }
 
   const hostAllowed =
-    PRODUCTION_HOSTS.has(url.hostname) || DEVELOPMENT_HOSTS.has(url.hostname);
+    PRODUCTION_HOSTS.has(url.hostname) ||
+    DEVELOPMENT_HOSTS.has(url.hostname) ||
+    HOMOLOGATION_HOSTS.has(url.hostname);
   const protocolAllowed =
     url.protocol === "https:" ||
     (url.protocol === "http:" && DEVELOPMENT_HOSTS.has(url.hostname));
 
-  if (!hostAllowed || !protocolAllowed || url.username || url.password) {
+  if (!hostAllowed || !protocolAllowed || url.port || url.username || url.password) {
     throw new BillingServiceError("bcr01_public_base_url_not_allowed");
   }
 
