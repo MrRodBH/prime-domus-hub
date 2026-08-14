@@ -153,10 +153,7 @@ try {
     ROOT_ASSETS_DIRECTORY_MATCH: rootWrangler.assets?.directory === "dist/client",
     ROOT_ASSETS_BINDING_MATCH: rootWrangler.assets?.binding === "ASSETS",
     ROOT_WORKERS_DEV_DISABLED: rootWrangler.workers_dev === false,
-    ROOT_PREVIEW_URLS_BOUNDED:
-      rootWrangler.preview_urls === true &&
-      rootWrangler.vars?.BCR01_PUBLIC_BASE_URL ===
-        "https://bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev",
+    ROOT_PREVIEW_URLS_DISABLED: rootWrangler.preview_urls === false,
     ROOT_ROUTES_EMPTY: Array.isArray(rootWrangler.routes) && rootWrangler.routes.length === 0,
     ROOT_CRON_EMPTY: Array.isArray(rootWrangler.triggers?.crons) && rootWrangler.triggers.crons.length === 0,
     ROOT_ENV_ABSENT: !("env" in rootWrangler),
@@ -165,10 +162,7 @@ try {
     GENERATED_NO_BUNDLE_MATCH: generatedWrangler.no_bundle === true,
     GENERATED_ASSETS_BINDING_MATCH: generatedWrangler.assets?.binding === "ASSETS",
     GENERATED_WORKERS_DEV_DISABLED: generatedWrangler.workers_dev === false,
-    GENERATED_PREVIEW_URLS_BOUNDED:
-      generatedWrangler.preview_urls === true &&
-      generatedWrangler.vars?.BCR01_PUBLIC_BASE_URL ===
-        "https://bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev",
+    GENERATED_PREVIEW_URLS_DISABLED: generatedWrangler.preview_urls === false,
     GENERATED_ROUTES_EMPTY: Array.isArray(generatedWrangler.routes) && generatedWrangler.routes.length === 0,
     GENERATED_CRON_EMPTY: Array.isArray(generatedWrangler.triggers?.crons) && generatedWrangler.triggers.crons.length === 0,
     GENERATED_ENV_ABSENT: !("env" in generatedWrangler),
