@@ -16,8 +16,6 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
-const SECRETLESS_STRIPE_WEBHOOK_PATH = "/api/public/hooks/billing-stripe-webhook";
-
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -136,9 +134,6 @@ function requirePublicCloudflareHost(request: Request, host: string | null): voi
 async function canonicalRedirect(request: Request): Promise<Response | null> {
   const host = request.headers.get("host");
   requirePublicCloudflareHost(request, host);
-  if (new URL(request.url).pathname === SECRETLESS_STRIPE_WEBHOOK_PATH) {
-    return null;
-  }
   const redirect = await resolveCanonicalRedirectByHost(host);
   if (!redirect) return null;
   const target = new URL(request.url);
