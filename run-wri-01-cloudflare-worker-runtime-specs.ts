@@ -84,6 +84,32 @@ match(server, /processScheduledDomainJobs\(\{ runtimeEnv: env, limit: 20 \}\)/, 
 match(server, /ctx\.waitUntil\(execution\)/, "Scheduled work must use waitUntil");
 equal(server.includes("/__scheduled"), false, "Application HTTP scheduler route is prohibited");
 
+const hostValidationIndex = server.indexOf("requirePublicCloudflareHost(request, host)");
+const exactPathBypassIndex = server.indexOf(
+  "new URL(request.url).pathname === SECRETLESS_STRIPE_WEBHOOK_PATH",
+);
+const canonicalLookupIndex = server.indexOf("resolveCanonicalRedirectByHost(host)");
+match(
+  server,
+  /const SECRETLESS_STRIPE_WEBHOOK_PATH = "\/api\/public\/hooks\/billing-stripe-webhook"/,
+  "Secretless webhook bypass path must be pinned exactly",
+);
+ok(
+  hostValidationIndex >= 0 &&
+    exactPathBypassIndex > hostValidationIndex &&
+    canonicalLookupIndex > exactPathBypassIndex,
+  "Cloudflare host validation must precede exact-path bypass and canonical lookup",
+);
+equal(
+  count(server, '"/api/public/hooks/billing-stripe-webhook"'),
+  1,
+  "Exact webhook bypass path must have cardinality one in the Worker boundary",
+);
+equal(server.includes("startsWith("), false, "Generic prefix bypass is prohibited");
+equal(server.includes(".test("), false, "Regex bypass is prohibited");
+equal(server.includes("request.method"), false, "Canonical bypass must not filter by method");
+equal(server.includes("/api/public/*"), false, "Generic public API bypass is prohibited");
+
 match(plugin, /readAuthoritativeCloudflareRuntimeContext\(event\.req\)/, "Plugin must read exact Nitro runtime data");
 match(plugin, /installCloudflareRuntimeContext\(event\.req, context\)/, "Plugin must install request-scoped context");
 match(plugin, /clearCloudflareRuntimeContext\(event\.req\)/, "Plugin must clear request-scoped context");
@@ -99,6 +125,54 @@ match(workflow, /PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION/, "Process-group r
 match(workflow, /WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION/, "Residual workerd processes must be measured and published");
 match(workflow, /ZERO_ORPHAN_PROCESSES_PROVED/, "Zero-orphan result must be explicit and auditable");
 match(workflow, /if \[ "\$\{ZERO_ORPHAN_PROCESSES_PROVED\}" != "true" \]; then exit 1; fi/, "Local proof must fail closed when orphan cleanup is not proved");
+for (const token of [
+  "P8EE_T01_PROVED",
+  "P8EE_T02_PROVED",
+  "P8EE_T03_PROVED",
+  "P8EE_T04_PROVED",
+  "P8EE_T05_PROVED",
+  "P8EE_T06_PROVED",
+  "P8EE_T07_PROVED",
+  "P8EE_T08_PROVED",
+  "P8EE_T09_PROVED",
+]) {
+  match(workflow, new RegExp(token), `Worker runtime matrix must publish ${token}`);
+}
+match(
+  workflow,
+  /P8EE_SUPABASE_CALLS_PROVED_ZERO/,
+  "Exact webhook probes must prove zero Supabase calls",
+);
+match(
+  workflow,
+  /P8EE_STRIPE_API_CALLS_PROVED_ZERO/,
+  "Secretless probes must prove zero Stripe API calls",
+);
+match(
+  workflow,
+  /P8EE_EXACT_PATH_DCA_LOG_DELTA/,
+  "Exact webhook probes must publish the canonical lookup log delta",
+);
+match(
+  workflow,
+  /P8EE_NONEXACT_DCA_LOG_DELTA/,
+  "Non-exact probes must remain in the canonical redirect flow",
+);
+match(
+  workflow,
+  /Host: rm-prime-bcr-p8ef-proof\.workers\.dev/,
+  "Exact path probes must use a valid Cloudflare public host",
+);
+match(
+  workflow,
+  /billing-stripe-webhook-near/,
+  "Similar unauthorized webhook paths must be probed",
+);
+match(
+  workflow,
+  /billing-stripe-webhook\/" valid_worker/,
+  "Trailing-slash webhook path must remain outside the bypass",
+);
 const dryRunWorkflowStep = workflow.match(/- name: Wrangler deterministic dry-run[\s\S]*?- name: Preserve Wrangler dry-run diagnostics/)?.[0] ?? "";
 match(dryRunWorkflowStep, /bun run wri01:dry-run/, "CI must exercise the same root redirected-config dry-run as the runbook");
 equal(dryRunWorkflowStep.includes("--config wrangler.json"), false, "CI dry-run must not bypass the redirected-config path with a generated-config shortcut");

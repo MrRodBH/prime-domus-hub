@@ -47,6 +47,7 @@ const reconcileRoute = read("src/routes/api/internal/billing-reconcile.ts");
 const webhookRoute = read(
   "src/routes/api/public/hooks/billing-stripe-webhook.ts",
 );
+const server = read("src/server.ts");
 const tenantUi = read("src/routes/_authenticated.admin.billing.tsx");
 const wrangler = JSON.parse(read("wrangler.jsonc")) as {
   workers_dev?: boolean;
@@ -268,6 +269,34 @@ ok(
 ok(
   webhookRoute.includes('request.headers.has("x-tenant-id")'),
   "Stripe webhook must reject tenant transport headers",
+);
+for (const method of ["GET", "PUT", "PATCH", "DELETE"]) {
+  ok(
+    webhookRoute.includes(`${method}: methodNotAllowed`),
+    `Stripe webhook must reject ${method} with the POST-only handler`,
+  );
+}
+const absentSignatureIndex = stripe.indexOf(
+  'throw new BillingPortError("bcr01_stripe_signature_absent")',
+);
+const stripeClientIndex = stripe.indexOf("const stripe = createStripeClient()", absentSignatureIndex);
+ok(
+  absentSignatureIndex >= 0 && stripeClientIndex > absentSignatureIndex,
+  "absent Stripe signature must fail before Stripe client or secret access",
+);
+const hostValidationIndex = server.indexOf("requirePublicCloudflareHost(request, host)");
+const exactWebhookBypassIndex = server.indexOf(
+  "new URL(request.url).pathname === SECRETLESS_STRIPE_WEBHOOK_PATH",
+);
+const canonicalLookupIndex = server.indexOf("resolveCanonicalRedirectByHost(host)");
+ok(
+  server.includes(
+    'const SECRETLESS_STRIPE_WEBHOOK_PATH = "/api/public/hooks/billing-stripe-webhook"',
+  ) &&
+    hostValidationIndex >= 0 &&
+    exactWebhookBypassIndex > hostValidationIndex &&
+    canonicalLookupIndex > exactWebhookBypassIndex,
+  "exact Stripe webhook path must bypass canonical lookup only after Cloudflare host validation",
 );
 const verifyIndex = webhook.indexOf("provider.verifyWebhook(");
 const normalizeIndex = webhook.indexOf("provider.normalizeWebhook(");
@@ -495,6 +524,9 @@ console.log(
       persistedMappingTenantAuthority: true,
       persistedMappingInvoiceAuthority: true,
       webhookRawBodyVerifiedFirst: true,
+      webhookPostOnlyMethodsProved: true,
+      absentSignaturePrecedesStripeClient: true,
+      exactWebhookPreRoutingBypassProved: true,
       webhookIdempotencyConflictGuard: true,
       officialStripeSdkPinned: true,
       checkoutIntegrationIdentifierPinned: true,
