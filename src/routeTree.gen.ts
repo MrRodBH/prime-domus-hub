@@ -35,6 +35,11 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
+import { Route as ApiInternalBillingReconcileRouteImport } from './routes/api/internal/billing-reconcile'
+import { Route as ApiInternalBillingPortalRouteImport } from './routes/api/internal/billing-portal'
+import { Route as ApiInternalBillingInvoiceRouteImport } from './routes/api/internal/billing-invoice'
+import { Route as ApiInternalBillingCheckoutRouteImport } from './routes/api/internal/billing-checkout'
+import { Route as ApiInternalBillingChargesRouteImport } from './routes/api/internal/billing-charges'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
 import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
@@ -60,6 +65,7 @@ import { Route as AuthenticatedAdminCmsInventarioRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminCmsAuditoriaRouteImport } from './routes/_authenticated.admin.cms-auditoria'
 import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authenticated.admin.cidades'
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
+import { Route as AuthenticatedAdminBillingRouteImport } from './routes/_authenticated.admin.billing'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated.admin.auditoria'
 import { Route as AuthenticatedAdminPaginasIndexRouteImport } from './routes/_authenticated.admin.paginas.index'
@@ -74,6 +80,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicHooksPortalDlqRetryRouteImport } from './routes/api/public/hooks/portal-dlq-retry'
+import { Route as ApiPublicHooksBillingStripeWebhookRouteImport } from './routes/api/public/hooks/billing-stripe-webhook'
 import { Route as AuthenticatedAdminPaginasIdRouteImport } from './routes/_authenticated.admin.paginas.$id'
 import { Route as AuthenticatedAdminLancamentosNovoRouteImport } from './routes/_authenticated.admin.lancamentos.novo'
 import { Route as AuthenticatedAdminLancamentosIdRouteImport } from './routes/_authenticated.admin.lancamentos.$id'
@@ -214,6 +221,36 @@ const ApiInternalSpr03ManagedSecretProvisionRoute =
   ApiInternalSpr03ManagedSecretProvisionRouteImport.update({
     id: '/api/internal/spr-03-managed-secret-provision',
     path: '/api/internal/spr-03-managed-secret-provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingReconcileRoute =
+  ApiInternalBillingReconcileRouteImport.update({
+    id: '/api/internal/billing-reconcile',
+    path: '/api/internal/billing-reconcile',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingPortalRoute =
+  ApiInternalBillingPortalRouteImport.update({
+    id: '/api/internal/billing-portal',
+    path: '/api/internal/billing-portal',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingInvoiceRoute =
+  ApiInternalBillingInvoiceRouteImport.update({
+    id: '/api/internal/billing-invoice',
+    path: '/api/internal/billing-invoice',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingCheckoutRoute =
+  ApiInternalBillingCheckoutRouteImport.update({
+    id: '/api/internal/billing-checkout',
+    path: '/api/internal/billing-checkout',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalBillingChargesRoute =
+  ApiInternalBillingChargesRouteImport.update({
+    id: '/api/internal/billing-charges',
+    path: '/api/internal/billing-charges',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedSuperObservabilidadeRoute =
@@ -362,6 +399,12 @@ const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminBillingRoute =
+  AuthenticatedAdminBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBairrosRoute =
   AuthenticatedAdminBairrosRouteImport.update({
     id: '/bairros',
@@ -442,6 +485,12 @@ const ApiPublicHooksPortalDlqRetryRoute =
   ApiPublicHooksPortalDlqRetryRouteImport.update({
     id: '/api/public/hooks/portal-dlq-retry',
     path: '/api/public/hooks/portal-dlq-retry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksBillingStripeWebhookRoute =
+  ApiPublicHooksBillingStripeWebhookRouteImport.update({
+    id: '/api/public/hooks/billing-stripe-webhook',
+    path: '/api/public/hooks/billing-stripe-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedAdminPaginasIdRoute =
@@ -528,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
@@ -553,6 +603,11 @@ export interface FileRoutesByFullPath {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-charges': typeof ApiInternalBillingChargesRoute
+  '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-invoice': typeof ApiInternalBillingInvoiceRoute
+  '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
+  '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -567,6 +622,7 @@ export interface FileRoutesByFullPath {
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/billing-stripe-webhook': typeof ApiPublicHooksBillingStripeWebhookRoute
   '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -602,6 +658,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
   '/admin/cms-inventario': typeof AuthenticatedAdminCmsInventarioRoute
@@ -626,6 +683,11 @@ export interface FileRoutesByTo {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-charges': typeof ApiInternalBillingChargesRoute
+  '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-invoice': typeof ApiInternalBillingInvoiceRoute
+  '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
+  '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -640,6 +702,7 @@ export interface FileRoutesByTo {
   '/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/billing-stripe-webhook': typeof ApiPublicHooksBillingStripeWebhookRoute
   '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -679,6 +742,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
+  '/_authenticated/admin/billing': typeof AuthenticatedAdminBillingRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
   '/_authenticated/admin/cidades': typeof AuthenticatedAdminCidadesRoute
   '/_authenticated/admin/cms-auditoria': typeof AuthenticatedAdminCmsAuditoriaRoute
@@ -704,6 +768,11 @@ export interface FileRoutesById {
   '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/_authenticated/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/billing-charges': typeof ApiInternalBillingChargesRoute
+  '/api/internal/billing-checkout': typeof ApiInternalBillingCheckoutRoute
+  '/api/internal/billing-invoice': typeof ApiInternalBillingInvoiceRoute
+  '/api/internal/billing-portal': typeof ApiInternalBillingPortalRoute
+  '/api/internal/billing-reconcile': typeof ApiInternalBillingReconcileRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -718,6 +787,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/lancamentos/$id': typeof AuthenticatedAdminLancamentosIdRoute
   '/_authenticated/admin/lancamentos/novo': typeof AuthenticatedAdminLancamentosNovoRoute
   '/_authenticated/admin/paginas/$id': typeof AuthenticatedAdminPaginasIdRoute
+  '/api/public/hooks/billing-stripe-webhook': typeof ApiPublicHooksBillingStripeWebhookRoute
   '/api/public/hooks/portal-dlq-retry': typeof ApiPublicHooksPortalDlqRetryRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -757,6 +827,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/admin/auditoria'
     | '/admin/bairros'
+    | '/admin/billing'
     | '/admin/blog'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
@@ -782,6 +853,11 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/billing-charges'
+    | '/api/internal/billing-checkout'
+    | '/api/internal/billing-invoice'
+    | '/api/internal/billing-portal'
+    | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -796,6 +872,7 @@ export interface FileRouteTypes {
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
     | '/admin/paginas/$id'
+    | '/api/public/hooks/billing-stripe-webhook'
     | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -831,6 +908,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/admin/auditoria'
     | '/admin/bairros'
+    | '/admin/billing'
     | '/admin/cidades'
     | '/admin/cms-auditoria'
     | '/admin/cms-inventario'
@@ -855,6 +933,11 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/billing-charges'
+    | '/api/internal/billing-checkout'
+    | '/api/internal/billing-invoice'
+    | '/api/internal/billing-portal'
+    | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -869,6 +952,7 @@ export interface FileRouteTypes {
     | '/admin/lancamentos/$id'
     | '/admin/lancamentos/novo'
     | '/admin/paginas/$id'
+    | '/api/public/hooks/billing-stripe-webhook'
     | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -907,6 +991,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/bairros'
+    | '/_authenticated/admin/billing'
     | '/_authenticated/admin/blog'
     | '/_authenticated/admin/cidades'
     | '/_authenticated/admin/cms-auditoria'
@@ -932,6 +1017,11 @@ export interface FileRouteTypes {
     | '/_authenticated/super/dlq'
     | '/_authenticated/super/domains'
     | '/_authenticated/super/observabilidade'
+    | '/api/internal/billing-charges'
+    | '/api/internal/billing-checkout'
+    | '/api/internal/billing-invoice'
+    | '/api/internal/billing-portal'
+    | '/api/internal/billing-reconcile'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -946,6 +1036,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/lancamentos/$id'
     | '/_authenticated/admin/lancamentos/novo'
     | '/_authenticated/admin/paginas/$id'
+    | '/api/public/hooks/billing-stripe-webhook'
     | '/api/public/hooks/portal-dlq-retry'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -979,9 +1070,15 @@ export interface RootRouteChildren {
   ImovelSlugRoute: typeof ImovelSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiInternalBillingChargesRoute: typeof ApiInternalBillingChargesRoute
+  ApiInternalBillingCheckoutRoute: typeof ApiInternalBillingCheckoutRoute
+  ApiInternalBillingInvoiceRoute: typeof ApiInternalBillingInvoiceRoute
+  ApiInternalBillingPortalRoute: typeof ApiInternalBillingPortalRoute
+  ApiInternalBillingReconcileRoute: typeof ApiInternalBillingReconcileRoute
   ApiInternalSpr03ManagedSecretProvisionRoute: typeof ApiInternalSpr03ManagedSecretProvisionRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksBillingStripeWebhookRoute: typeof ApiPublicHooksBillingStripeWebhookRoute
   ApiPublicHooksPortalDlqRetryRoute: typeof ApiPublicHooksPortalDlqRetryRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1175,6 +1272,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/internal/billing-reconcile': {
+      id: '/api/internal/billing-reconcile'
+      path: '/api/internal/billing-reconcile'
+      fullPath: '/api/internal/billing-reconcile'
+      preLoaderRoute: typeof ApiInternalBillingReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-portal': {
+      id: '/api/internal/billing-portal'
+      path: '/api/internal/billing-portal'
+      fullPath: '/api/internal/billing-portal'
+      preLoaderRoute: typeof ApiInternalBillingPortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-invoice': {
+      id: '/api/internal/billing-invoice'
+      path: '/api/internal/billing-invoice'
+      fullPath: '/api/internal/billing-invoice'
+      preLoaderRoute: typeof ApiInternalBillingInvoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-checkout': {
+      id: '/api/internal/billing-checkout'
+      path: '/api/internal/billing-checkout'
+      fullPath: '/api/internal/billing-checkout'
+      preLoaderRoute: typeof ApiInternalBillingCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/billing-charges': {
+      id: '/api/internal/billing-charges'
+      path: '/api/internal/billing-charges'
+      fullPath: '/api/internal/billing-charges'
+      preLoaderRoute: typeof ApiInternalBillingChargesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/super/observabilidade': {
       id: '/_authenticated/super/observabilidade'
       path: '/observabilidade'
@@ -1350,6 +1482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/billing': {
+      id: '/_authenticated/admin/billing'
+      path: '/billing'
+      fullPath: '/admin/billing'
+      preLoaderRoute: typeof AuthenticatedAdminBillingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/bairros': {
       id: '/_authenticated/admin/bairros'
       path: '/bairros'
@@ -1448,6 +1587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPortalDlqRetryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/billing-stripe-webhook': {
+      id: '/api/public/hooks/billing-stripe-webhook'
+      path: '/api/public/hooks/billing-stripe-webhook'
+      fullPath: '/api/public/hooks/billing-stripe-webhook'
+      preLoaderRoute: typeof ApiPublicHooksBillingStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/paginas/$id': {
       id: '/_authenticated/admin/paginas/$id'
       path: '/paginas/$id'
@@ -1542,6 +1688,7 @@ const AuthenticatedAdminBlogRouteWithChildren =
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAuditoriaRoute: typeof AuthenticatedAdminAuditoriaRoute
   AuthenticatedAdminBairrosRoute: typeof AuthenticatedAdminBairrosRoute
+  AuthenticatedAdminBillingRoute: typeof AuthenticatedAdminBillingRoute
   AuthenticatedAdminBlogRoute: typeof AuthenticatedAdminBlogRouteWithChildren
   AuthenticatedAdminCidadesRoute: typeof AuthenticatedAdminCidadesRoute
   AuthenticatedAdminCmsAuditoriaRoute: typeof AuthenticatedAdminCmsAuditoriaRoute
@@ -1581,6 +1728,7 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAuditoriaRoute: AuthenticatedAdminAuditoriaRoute,
   AuthenticatedAdminBairrosRoute: AuthenticatedAdminBairrosRoute,
+  AuthenticatedAdminBillingRoute: AuthenticatedAdminBillingRoute,
   AuthenticatedAdminBlogRoute: AuthenticatedAdminBlogRouteWithChildren,
   AuthenticatedAdminCidadesRoute: AuthenticatedAdminCidadesRoute,
   AuthenticatedAdminCmsAuditoriaRoute: AuthenticatedAdminCmsAuditoriaRoute,
@@ -1690,10 +1838,17 @@ const rootRouteChildren: RootRouteChildren = {
   ImovelSlugRoute: ImovelSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiInternalBillingChargesRoute: ApiInternalBillingChargesRoute,
+  ApiInternalBillingCheckoutRoute: ApiInternalBillingCheckoutRoute,
+  ApiInternalBillingInvoiceRoute: ApiInternalBillingInvoiceRoute,
+  ApiInternalBillingPortalRoute: ApiInternalBillingPortalRoute,
+  ApiInternalBillingReconcileRoute: ApiInternalBillingReconcileRoute,
   ApiInternalSpr03ManagedSecretProvisionRoute:
     ApiInternalSpr03ManagedSecretProvisionRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksBillingStripeWebhookRoute:
+    ApiPublicHooksBillingStripeWebhookRoute,
   ApiPublicHooksPortalDlqRetryRoute: ApiPublicHooksPortalDlqRetryRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
