@@ -45,6 +45,26 @@ jobs:
       - name: Frozen install
         run: bun install --frozen-lockfile
 
+      - name: Prove immutable lockfile and exact Wrangler pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          P8EJ_BUN_LOCK_SHA256="$(sha256sum bun.lock | awk '{print $1}')"
+          P8EJ_EXPECTED_BUN_LOCK_SHA256="9f624a4ad1264bbb5ad4910d4674cc14fc482c85563117b3501c6c1b6e5318ea"
+          P8EJ_TARGET_PIN_PATTERN='wrangler@4.''113.0'
+          P8EJ_REJECTED_PIN_PATTERN='wrangler@4.''114.0'
+          P8EJ_WRANGLER_4_113_CONSUMER_COUNT="$({ grep -RhoF "${P8EJ_TARGET_PIN_PATTERN}" package.json .github/workflows/wri-01-worker-runtime-gate.yml || true; } | wc -l | tr -d ' ')"
+          P8EJ_WRANGLER_4_114_CONSUMER_COUNT="$({ grep -RhoF "${P8EJ_REJECTED_PIN_PATTERN}" package.json .github/workflows/wri-01-worker-runtime-gate.yml || true; } | wc -l | tr -d ' ')"
+          {
+            printf 'P8EJ_BUN_LOCK_SHA256=%s\n' "${P8EJ_BUN_LOCK_SHA256}"
+            printf 'P8EJ_EXPECTED_BUN_LOCK_SHA256=%s\n' "${P8EJ_EXPECTED_BUN_LOCK_SHA256}"
+            printf 'P8EJ_WRANGLER_4_113_CONSUMER_COUNT=%s\n' "${P8EJ_WRANGLER_4_113_CONSUMER_COUNT}"
+            printf 'P8EJ_WRANGLER_4_114_CONSUMER_COUNT=%s\n' "${P8EJ_WRANGLER_4_114_CONSUMER_COUNT}"
+          } > .wri01-p8ej-static-facts.txt
+          if [ "${P8EJ_BUN_LOCK_SHA256}" != "${P8EJ_EXPECTED_BUN_LOCK_SHA256}" ]; then exit 1; fi
+          if [ "${P8EJ_WRANGLER_4_113_CONSUMER_COUNT}" -ne 2 ]; then exit 1; fi
+          if [ "${P8EJ_WRANGLER_4_114_CONSUMER_COUNT}" -ne 0 ]; then exit 1; fi
+
       - name: WRI-01 deterministic specifications
         run: bun run test:wri-01
 
@@ -86,6 +106,10 @@ jobs:
           else
             : > .wri01-generated-wrangler.json
           fi
+          P8EH_GENERATED_RUN_WORKER_FIRST_PROVED=false
+          if node -e 'const fs=require("node:fs"); const expected=["/api/public/hooks/billing-stripe-webhook"]; const root=JSON.parse(fs.readFileSync("wrangler.jsonc","utf8")); const generated=JSON.parse(fs.readFileSync("dist/server/wrangler.json","utf8")); if (JSON.stringify(root.assets?.run_worker_first)!==JSON.stringify(expected)||JSON.stringify(generated.assets?.run_worker_first)!==JSON.stringify(expected)) process.exit(1);'; then
+            P8EH_GENERATED_RUN_WORKER_FIRST_PROVED=true
+          fi
           server_count=0
           client_count=0
           if [ -d dist/server ]; then server_count="$(find dist/server -type f | wc -l | tr -d ' ')"; fi
@@ -106,7 +130,9 @@ jobs:
             done
             printf 'SERVER_FILE_COUNT=%s\n' "${server_count}"
             printf 'CLIENT_FILE_COUNT=%s\n' "${client_count}"
+            printf 'P8EH_GENERATED_RUN_WORKER_FIRST_PROVED=%s\n' "${P8EH_GENERATED_RUN_WORKER_FIRST_PROVED}"
           } > .wri01-build-facts.txt
+          if [ "${P8EH_GENERATED_RUN_WORKER_FIRST_PROVED}" != "true" ]; then exit 1; fi
 
       - name: Compiled Worker bundle audit
         run: bun run wri01:bundle-audit
@@ -159,6 +185,323 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: BCR-P8EJ five fresh workerd cycles
+        id: p8ej-five-cycle-proof
+        shell: bash
+        run: |
+          set +e
+          P8EJ_ROOT="${PWD}"
+          P8EJ_OUTPUT="${PWD}/.wri01-p8ej-cycles"
+          P8EJ_WEBHOOK_PATH="/api/public/hooks/billing-stripe-webhook"
+          P8EJ_WORKER_HOST="rm-prime-bcr-p8ef-proof.workers.dev"
+          P8EJ_WRANGLER_VERSION="4.113.0"
+          FRESH_WORKERD_CYCLE_COUNT=5
+          P8EJ_PASSED_CYCLE_COUNT=0
+          P8EJ_FORBIDDEN_ERROR_COUNT=0
+          P8EJ_ZERO_ORPHAN_CYCLE_COUNT=0
+          rm -rf "${P8EJ_OUTPUT}"
+          mkdir -p "${P8EJ_OUTPUT}"
+
+          p8ej_group_member_count() {
+            ps -eo pgid= | awk -v target="$1" '$1 == target { count += 1 } END { print count + 0 }'
+          }
+
+          for P8EJ_CYCLE in $(seq 1 "${FRESH_WORKERD_CYCLE_COUNT}"); do
+            P8EJ_PORT=$((8790 + P8EJ_CYCLE))
+            P8EJ_CYCLE_DIR="${P8EJ_OUTPUT}/cycle-${P8EJ_CYCLE}"
+            P8EJ_LOG="${P8EJ_CYCLE_DIR}/workerd.log"
+            P8EJ_FACTS="${P8EJ_CYCLE_DIR}/facts.txt"
+            mkdir -p "${P8EJ_CYCLE_DIR}"
+            : > "${P8EJ_LOG}"
+            P8EJ_CYCLE_PASS=true
+            P8EJ_READY=false
+            P8EJ_PROCESS_GROUP_CAPTURED=false
+            P8EJ_LIVENESS_IMMEDIATE=false
+            P8EJ_LIVENESS_LATE=false
+            P8EJ_SCHEDULED_BASELINE=false
+            P8EJ_ZERO_ORPHANS=false
+            P8EJ_DCA_EXACT_DELTA=99
+
+            set -m
+            (
+              cd "${P8EJ_ROOT}/dist/server" || exit 1
+              exec bunx "wrangler@${P8EJ_WRANGLER_VERSION}" dev \
+                --config wrangler.json \
+                --local \
+                --test-scheduled \
+                --port "${P8EJ_PORT}" \
+                --var SUPABASE_URL:http://127.0.0.1:9 \
+                --var SUPABASE_PUBLISHABLE_KEY:wri01-local-proof \
+                --var SUPABASE_SERVICE_ROLE_KEY:wri01-local-proof \
+                --var CLOUDFLARE_API_TOKEN_DCA01_HML:wri01-local-proof
+            ) >"${P8EJ_LOG}" 2>&1 &
+            P8EJ_WRANGLER_PID=$!
+            set +m
+
+            P8EJ_WRANGLER_PGID=""
+            for _ in $(seq 1 10); do
+              P8EJ_WRANGLER_PGID="$(ps -o pgid= -p "${P8EJ_WRANGLER_PID}" 2>/dev/null | tr -d ' ' || true)"
+              if [ -n "${P8EJ_WRANGLER_PGID}" ]; then break; fi
+              if ! kill -0 "${P8EJ_WRANGLER_PID}" 2>/dev/null; then break; fi
+              sleep 0.2
+            done
+            if [ -n "${P8EJ_WRANGLER_PGID}" ] && [ "${P8EJ_WRANGLER_PGID}" = "${P8EJ_WRANGLER_PID}" ]; then
+              P8EJ_PROCESS_GROUP_CAPTURED=true
+            else
+              P8EJ_CYCLE_PASS=false
+            fi
+
+            for _ in $(seq 1 60); do
+              if ! kill -0 "${P8EJ_WRANGLER_PID}" 2>/dev/null; then break; fi
+              if grep -Eq "Ready on http://(localhost|127\.0\.0\.1):${P8EJ_PORT}" "${P8EJ_LOG}"; then
+                P8EJ_READY=true
+                break
+              fi
+              sleep 1
+            done
+            if [ "${P8EJ_READY}" != "true" ]; then P8EJ_CYCLE_PASS=false; fi
+
+            p8ej_probe() {
+              local name="$1"
+              local method="$2"
+              local path="$3"
+              local host_mode="$4"
+              shift 4
+              local host_args=()
+              if [ "${host_mode}" = "valid_worker" ]; then
+                host_args=(--header "Host: ${P8EJ_WORKER_HOST}")
+              fi
+              P8EJ_LAST_HTTP_CODE="$(curl \
+                --silent \
+                --show-error \
+                --output "${P8EJ_CYCLE_DIR}/${name}.body.txt" \
+                --dump-header "${P8EJ_CYCLE_DIR}/${name}.headers.txt" \
+                --write-out '%{http_code}' \
+                --max-time 30 \
+                --request "${method}" \
+                "${host_args[@]}" \
+                "$@" \
+                "http://127.0.0.1:${P8EJ_PORT}${path}")"
+              P8EJ_LAST_CURL_EXIT_CODE=$?
+              printf '%s_HTTP_CODE=%s\n%s_CURL_EXIT_CODE=%s\n' \
+                "${name}" "${P8EJ_LAST_HTTP_CODE}" "${name}" "${P8EJ_LAST_CURL_EXIT_CODE}" >> "${P8EJ_FACTS}"
+            }
+
+            p8ej_dca_log_count() {
+              grep -c "\[DCA-01\] canonical redirect resolution failed closed" "${P8EJ_LOG}" 2>/dev/null || true
+            }
+
+            : > "${P8EJ_FACTS}"
+            if [ "${P8EJ_READY}" = "true" ]; then
+              P8EJ_DCA_BEFORE_EXACT="$(p8ej_dca_log_count)"
+
+              p8ej_probe first_get GET "${P8EJ_WEBHOOK_PATH}" valid_worker
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 405 ] \
+                || ! grep -Fq '"code":"method_not_allowed"' "${P8EJ_CYCLE_DIR}/first_get.body.txt" \
+                || ! grep -Eiq '^allow: POST\r?$' "${P8EJ_CYCLE_DIR}/first_get.headers.txt" \
+                || ! grep -Eiq '^cache-control: no-store\r?$' "${P8EJ_CYCLE_DIR}/first_get.headers.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+              if kill -0 "${P8EJ_WRANGLER_PID}" 2>/dev/null; then P8EJ_LIVENESS_IMMEDIATE=true; fi
+
+              p8ej_probe repeat_get GET "${P8EJ_WEBHOOK_PATH}" valid_worker
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 405 ] \
+                || ! cmp -s "${P8EJ_CYCLE_DIR}/first_get.body.txt" "${P8EJ_CYCLE_DIR}/repeat_get.body.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+              p8ej_probe query_get GET "${P8EJ_WEBHOOK_PATH}?proof=p8ej" valid_worker
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 405 ] \
+                || ! grep -Fq '"code":"method_not_allowed"' "${P8EJ_CYCLE_DIR}/query_get.body.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+
+              for P8EJ_METHOD in PUT PATCH DELETE; do
+                p8ej_probe "method_${P8EJ_METHOD}" "${P8EJ_METHOD}" "${P8EJ_WEBHOOK_PATH}" valid_worker
+                if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                  || [ "${P8EJ_LAST_HTTP_CODE}" -ne 405 ] \
+                  || ! grep -Fq '"code":"method_not_allowed"' "${P8EJ_CYCLE_DIR}/method_${P8EJ_METHOD}.body.txt" \
+                  || ! grep -Eiq '^allow: POST\r?$' "${P8EJ_CYCLE_DIR}/method_${P8EJ_METHOD}.headers.txt"; then
+                  P8EJ_CYCLE_PASS=false
+                fi
+              done
+
+              p8ej_probe post_absent POST "${P8EJ_WEBHOOK_PATH}" valid_worker \
+                --header 'content-type: application/json' --data '{}'
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 400 ] \
+                || ! grep -Fq '"code":"bcr01_stripe_signature_absent"' "${P8EJ_CYCLE_DIR}/post_absent.body.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+              p8ej_probe post_tenant POST "${P8EJ_WEBHOOK_PATH}" valid_worker \
+                --header 'content-type: application/json' --header 'x-tenant-id: forbidden-tenant' --data '{}'
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 400 ] \
+                || ! grep -Fq '"code":"bcr01_webhook_tenant_header_prohibited"' "${P8EJ_CYCLE_DIR}/post_tenant.body.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+              p8ej_probe post_secretless POST "${P8EJ_WEBHOOK_PATH}" valid_worker \
+                --header 'content-type: application/json' --header 'Stripe-Signature: t=0,v1=dummy' --data '{}'
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 400 ] \
+                || ! grep -Fq '"code":"bcr01_stripe_secret_absent"' "${P8EJ_CYCLE_DIR}/post_secretless.body.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+              p8ej_probe post_query POST "${P8EJ_WEBHOOK_PATH}?proof=p8ej" valid_worker \
+                --header 'content-type: application/json' --data '{}'
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 400 ] \
+                || ! grep -Fq '"code":"bcr01_stripe_signature_absent"' "${P8EJ_CYCLE_DIR}/post_query.body.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+
+              sleep 2
+              P8EJ_DCA_AFTER_EXACT="$(p8ej_dca_log_count)"
+              P8EJ_DCA_EXACT_DELTA=$((P8EJ_DCA_AFTER_EXACT - P8EJ_DCA_BEFORE_EXACT))
+              if [ "${P8EJ_DCA_EXACT_DELTA}" -ne 0 ]; then P8EJ_CYCLE_PASS=false; fi
+              if grep -Eiq 'api\.stripe\.com|StripeConnectionError|StripeAPIError' "${P8EJ_LOG}"; then P8EJ_CYCLE_PASS=false; fi
+
+              p8ej_probe robots GET "/robots.txt" valid_worker
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                || [ "${P8EJ_LAST_HTTP_CODE}" -ne 200 ] \
+                || ! cmp -s "${P8EJ_CYCLE_DIR}/robots.body.txt" "${P8EJ_ROOT}/dist/client/robots.txt"; then
+                P8EJ_CYCLE_PASS=false
+              fi
+              for P8EJ_DCA_CASE in similar trailing root invalid_host; do
+                case "${P8EJ_DCA_CASE}" in
+                  similar) P8EJ_DCA_PATH="/api/public/hooks/billing-stripe-webhook-near"; P8EJ_DCA_HOST=valid_worker ;;
+                  trailing) P8EJ_DCA_PATH="/api/public/hooks/billing-stripe-webhook/"; P8EJ_DCA_HOST=valid_worker ;;
+                  root) P8EJ_DCA_PATH="/"; P8EJ_DCA_HOST=valid_worker ;;
+                  invalid_host) P8EJ_DCA_PATH="${P8EJ_WEBHOOK_PATH}"; P8EJ_DCA_HOST=local_host ;;
+                esac
+                p8ej_probe "dca_${P8EJ_DCA_CASE}" GET "${P8EJ_DCA_PATH}" "${P8EJ_DCA_HOST}"
+                if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -ne 0 ] \
+                  || [ "${P8EJ_LAST_HTTP_CODE}" -ne 503 ] \
+                  || ! grep -Fxq 'Domain resolution temporarily unavailable' "${P8EJ_CYCLE_DIR}/dca_${P8EJ_DCA_CASE}.body.txt"; then
+                  P8EJ_CYCLE_PASS=false
+                fi
+              done
+
+              p8ej_probe late_get GET "${P8EJ_WEBHOOK_PATH}" valid_worker
+              if [ "${P8EJ_LAST_CURL_EXIT_CODE}" -eq 0 ] \
+                && [ "${P8EJ_LAST_HTTP_CODE}" -eq 405 ] \
+                && kill -0 "${P8EJ_WRANGLER_PID}" 2>/dev/null; then
+                P8EJ_LIVENESS_LATE=true
+              else
+                P8EJ_CYCLE_PASS=false
+              fi
+
+              P8EJ_SCHEDULED_HTTP_CODE="$(curl \
+                --silent --show-error \
+                --output "${P8EJ_CYCLE_DIR}/scheduled.body.txt" \
+                --write-out '%{http_code}' \
+                --max-time 30 \
+                "http://127.0.0.1:${P8EJ_PORT}/cdn-cgi/handler/scheduled?cron=%2A%2F5+%2A+%2A+%2A+%2A&format=json")"
+              P8EJ_SCHEDULED_CURL_EXIT_CODE=$?
+              sleep 3
+              if [ "${P8EJ_SCHEDULED_CURL_EXIT_CODE}" -eq 0 ] \
+                && { { [ "${P8EJ_SCHEDULED_HTTP_CODE}" -ge 200 ] && [ "${P8EJ_SCHEDULED_HTTP_CODE}" -lt 300 ] \
+                  && grep -Eq '\[DCA-01\] scheduled reconciliation completed' "${P8EJ_LOG}" \
+                  && grep -Eq '"outcome":"ok"' "${P8EJ_CYCLE_DIR}/scheduled.body.txt"; } \
+                  || { [ "${P8EJ_SCHEDULED_HTTP_CODE}" -eq 500 ] \
+                    && grep -Eq '\[DCA-01\] scheduled reconciliation failed closed' "${P8EJ_LOG}" \
+                    && grep -Eq '"outcome":"exception"' "${P8EJ_CYCLE_DIR}/scheduled.body.txt"; }; }; then
+                P8EJ_SCHEDULED_BASELINE=true
+              else
+                P8EJ_CYCLE_PASS=false
+              fi
+            fi
+
+            if [ "${P8EJ_LIVENESS_IMMEDIATE}" != "true" ] || [ "${P8EJ_LIVENESS_LATE}" != "true" ]; then
+              P8EJ_CYCLE_PASS=false
+            fi
+            P8EJ_CYCLE_FORBIDDEN_ERROR_COUNT="$(grep -Eic 'Network connection lost|ECONNREFUSED|Couldn.t connect to server|HTTP 500 proxy' "${P8EJ_LOG}" 2>/dev/null || true)"
+            P8EJ_FORBIDDEN_ERROR_COUNT=$((P8EJ_FORBIDDEN_ERROR_COUNT + P8EJ_CYCLE_FORBIDDEN_ERROR_COUNT))
+            if [ "${P8EJ_CYCLE_FORBIDDEN_ERROR_COUNT}" -ne 0 ]; then P8EJ_CYCLE_PASS=false; fi
+
+            if [ "${P8EJ_PROCESS_GROUP_CAPTURED}" = "true" ] && kill -0 -- "-${P8EJ_WRANGLER_PGID}" 2>/dev/null; then
+              kill -TERM -- "-${P8EJ_WRANGLER_PGID}" 2>/dev/null
+            elif kill -0 "${P8EJ_WRANGLER_PID}" 2>/dev/null; then
+              kill -TERM "${P8EJ_WRANGLER_PID}" 2>/dev/null
+            fi
+            for _ in $(seq 1 50); do
+              if [ "$(p8ej_group_member_count "${P8EJ_WRANGLER_PGID}")" -eq 0 ]; then break; fi
+              sleep 0.2
+            done
+            if [ "$(p8ej_group_member_count "${P8EJ_WRANGLER_PGID}")" -ne 0 ]; then
+              kill -KILL -- "-${P8EJ_WRANGLER_PGID}" 2>/dev/null
+              sleep 1
+            fi
+            wait "${P8EJ_WRANGLER_PID}" 2>/dev/null
+            P8EJ_WRANGLER_EXIT_CODE=$?
+            P8EJ_GROUP_RESIDUAL_COUNT="$(p8ej_group_member_count "${P8EJ_WRANGLER_PGID}")"
+            P8EJ_WORKERD_RESIDUAL_COUNT="$(ps -eo comm=,args= | awk -v port="${P8EJ_PORT}" '$1 == "workerd" && index($0, port) { count += 1 } END { print count + 0 }')"
+            if [ "${P8EJ_PROCESS_GROUP_CAPTURED}" = "true" ] \
+              && [ "${P8EJ_GROUP_RESIDUAL_COUNT}" -eq 0 ] \
+              && [ "${P8EJ_WORKERD_RESIDUAL_COUNT}" -eq 0 ]; then
+              P8EJ_ZERO_ORPHANS=true
+              P8EJ_ZERO_ORPHAN_CYCLE_COUNT=$((P8EJ_ZERO_ORPHAN_CYCLE_COUNT + 1))
+            else
+              P8EJ_CYCLE_PASS=false
+            fi
+
+            {
+              printf 'P8EJ_CYCLE=%s\n' "${P8EJ_CYCLE}"
+              printf 'P8EJ_PORT=%s\n' "${P8EJ_PORT}"
+              printf 'P8EJ_READY=%s\n' "${P8EJ_READY}"
+              printf 'P8EJ_PROCESS_GROUP_CAPTURED=%s\n' "${P8EJ_PROCESS_GROUP_CAPTURED}"
+              printf 'P8EJ_DCA_EXACT_DELTA=%s\n' "${P8EJ_DCA_EXACT_DELTA}"
+              printf 'P8EJ_LIVENESS_IMMEDIATE=%s\n' "${P8EJ_LIVENESS_IMMEDIATE}"
+              printf 'P8EJ_LIVENESS_LATE=%s\n' "${P8EJ_LIVENESS_LATE}"
+              printf 'P8EJ_SCHEDULED_BASELINE=%s\n' "${P8EJ_SCHEDULED_BASELINE}"
+              printf 'P8EJ_FORBIDDEN_ERROR_COUNT=%s\n' "${P8EJ_CYCLE_FORBIDDEN_ERROR_COUNT}"
+              printf 'P8EJ_GROUP_RESIDUAL_COUNT=%s\n' "${P8EJ_GROUP_RESIDUAL_COUNT}"
+              printf 'P8EJ_WORKERD_RESIDUAL_COUNT=%s\n' "${P8EJ_WORKERD_RESIDUAL_COUNT}"
+              printf 'P8EJ_ZERO_ORPHANS=%s\n' "${P8EJ_ZERO_ORPHANS}"
+              printf 'P8EJ_WRANGLER_EXIT_CODE_AFTER_TERMINATION=%s\n' "${P8EJ_WRANGLER_EXIT_CODE}"
+              printf 'P8EJ_CYCLE_PASS=%s\n' "${P8EJ_CYCLE_PASS}"
+            } >> "${P8EJ_FACTS}"
+            if [ "${P8EJ_CYCLE_PASS}" = "true" ]; then
+              P8EJ_PASSED_CYCLE_COUNT=$((P8EJ_PASSED_CYCLE_COUNT + 1))
+            fi
+          done
+
+          P8EJ_J11_FIVE_FRESH_CYCLES_PROVED=false
+          P8EJ_J12_ZERO_ORPHANS_EACH_CYCLE_PROVED=false
+          if [ "${P8EJ_PASSED_CYCLE_COUNT}" -eq "${FRESH_WORKERD_CYCLE_COUNT}" ] \
+            && [ "${P8EJ_FORBIDDEN_ERROR_COUNT}" -eq 0 ]; then
+            P8EJ_J11_FIVE_FRESH_CYCLES_PROVED=true
+          fi
+          if [ "${P8EJ_ZERO_ORPHAN_CYCLE_COUNT}" -eq "${FRESH_WORKERD_CYCLE_COUNT}" ]; then
+            P8EJ_J12_ZERO_ORPHANS_EACH_CYCLE_PROVED=true
+          fi
+          {
+            printf 'FRESH_WORKERD_CYCLE_COUNT=%s\n' "${FRESH_WORKERD_CYCLE_COUNT}"
+            printf 'P8EJ_PASSED_CYCLE_COUNT=%s\n' "${P8EJ_PASSED_CYCLE_COUNT}"
+            printf 'P8EJ_ZERO_ORPHAN_CYCLE_COUNT=%s\n' "${P8EJ_ZERO_ORPHAN_CYCLE_COUNT}"
+            printf 'P8EJ_FORBIDDEN_ERROR_COUNT=%s\n' "${P8EJ_FORBIDDEN_ERROR_COUNT}"
+            printf 'P8EJ_J11_FIVE_FRESH_CYCLES_PROVED=%s\n' "${P8EJ_J11_FIVE_FRESH_CYCLES_PROVED}"
+            printf 'P8EJ_J12_ZERO_ORPHANS_EACH_CYCLE_PROVED=%s\n' "${P8EJ_J12_ZERO_ORPHANS_EACH_CYCLE_PROVED}"
+          } > "${P8EJ_OUTPUT}/summary.txt"
+          find "${P8EJ_OUTPUT}" -maxdepth 2 -type f -print -exec cat {} \;
+          if [ "${P8EJ_J11_FIVE_FRESH_CYCLES_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EJ_J12_ZERO_ORPHANS_EACH_CYCLE_PROVED}" != "true" ]; then exit 1; fi
+          exit 0
+
+      - name: Preserve BCR-P8EJ five-cycle diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wri-01-p8ej-five-cycle-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            .wri01-p8ej-static-facts.txt
+            .wri01-p8ej-cycles/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Local workerd fetch-context and scheduled-event proof
         id: workerd-proof
         shell: bash
@@ -167,19 +510,24 @@ jobs:
           LOG_FILE="${RUNNER_TEMP}/wri01-workerd.log"
           FETCH_RESPONSE_FILE="${RUNNER_TEMP}/wri01-fetch-response.txt"
           SCHEDULED_RESPONSE_FILE="${RUNNER_TEMP}/wri01-scheduled-response.txt"
+          P8EE_RESPONSE_DIRECTORY="${RUNNER_TEMP}/wri01-p8ee-responses"
+          P8EE_WORKER_HOST="rm-prime-bcr-p8ef-proof.workers.dev"
+          P8EE_WEBHOOK_PATH="/api/public/hooks/billing-stripe-webhook"
           : > "${LOG_FILE}"
           : > "${FETCH_RESPONSE_FILE}"
           : > "${SCHEDULED_RESPONSE_FILE}"
+          mkdir -p "${P8EE_RESPONSE_DIRECTORY}"
 
           set -m
           (
             cd dist/server
-            exec bunx wrangler@4.114.0 dev \
+            exec bunx wrangler@4.113.0 dev \
               --config wrangler.json \
               --local \
               --test-scheduled \
               --port 8788 \
               --var SUPABASE_URL:http://127.0.0.1:9 \
+              --var SUPABASE_PUBLISHABLE_KEY:wri01-local-proof \
               --var SUPABASE_SERVICE_ROLE_KEY:wri01-local-proof \
               --var CLOUDFLARE_API_TOKEN_DCA01_HML:wri01-local-proof
           ) >"${LOG_FILE}" 2>&1 &
@@ -216,19 +564,109 @@ jobs:
             sleep 1
           done
 
-          FETCH_CURL_EXIT_CODE=99
-          FETCH_HTTP_CODE=000
+          dca_log_count() {
+            grep -c "\[DCA-01\] canonical redirect resolution failed closed" "${LOG_FILE}" 2>/dev/null || true
+          }
+
+          run_p8ee_probe() {
+            local name="$1"
+            local method="$2"
+            local path="$3"
+            local host_mode="$4"
+            shift 4
+            local body_file="${P8EE_RESPONSE_DIRECTORY}/${name}.body.txt"
+            local headers_file="${P8EE_RESPONSE_DIRECTORY}/${name}.headers.txt"
+            local host_args=()
+            if [ "${host_mode}" = "valid_worker" ]; then
+              host_args=(--header 'Host: rm-prime-bcr-p8ef-proof.workers.dev')
+            fi
+            local http_code
+            http_code="$(curl \
+              --silent \
+              --show-error \
+              --output "${body_file}" \
+              --dump-header "${headers_file}" \
+              --write-out '%{http_code}' \
+              --max-time 30 \
+              --request "${method}" \
+              "${host_args[@]}" \
+              "$@" \
+              "http://127.0.0.1:8788${path}")"
+            local curl_exit_code=$?
+            printf -v "${name}_HTTP_CODE" '%s' "${http_code}"
+            printf -v "${name}_CURL_EXIT_CODE" '%s' "${curl_exit_code}"
+          }
+
+          P8EE_DCA_LOG_COUNT_BEFORE_EXACT=0
+          P8EE_DCA_LOG_COUNT_AFTER_EXACT=0
+          P8EE_DCA_LOG_COUNT_AFTER_NONEXACT=0
+          P8EE_EXACT_PATH_DCA_LOG_DELTA=99
+          P8EE_NONEXACT_DCA_LOG_DELTA=0
+          for probe in T01 T02 T03_GET T03_PUT T03_PATCH T03_DELETE T04 T05 T06 T07 T08 T09 P8EH_REPEAT_GET P8EH_GET_QUERY P8EH_ROBOTS; do
+            printf -v "${probe}_HTTP_CODE" '%s' 000
+            printf -v "${probe}_CURL_EXIT_CODE" '%s' 99
+          done
+          P8EH_A02_WRANGLER_LIVE_AFTER_GET_PROVED=false
+          P8EH_ROBOTS_DCA_LOG_DELTA=99
+          P8EH_INVALID_HOST_DCA_LOG_DELTA=99
           SCHEDULED_CURL_EXIT_CODE=99
           SCHEDULED_HTTP_CODE=000
           if [ "${READY}" = "true" ]; then
-            FETCH_HTTP_CODE="$(curl \
-              --silent \
-              --show-error \
-              --output "${FETCH_RESPONSE_FILE}" \
-              --write-out '%{http_code}' \
-              --max-time 30 \
-              "http://127.0.0.1:8788/")"
-            FETCH_CURL_EXIT_CODE=$?
+            P8EE_DCA_LOG_COUNT_BEFORE_EXACT="$(dca_log_count)"
+
+            run_p8ee_probe T01 POST "${P8EE_WEBHOOK_PATH}" valid_worker \
+              --header 'content-type: application/json' \
+              --data '{}'
+            run_p8ee_probe T02 POST "${P8EE_WEBHOOK_PATH}" valid_worker \
+              --header 'content-type: application/json' \
+              --header 'x-tenant-id: forbidden-tenant' \
+              --data '{}'
+            run_p8ee_probe T03_GET GET "${P8EE_WEBHOOK_PATH}" valid_worker
+            if kill -0 "${WRANGLER_PID}" 2>/dev/null; then
+              P8EH_A02_WRANGLER_LIVE_AFTER_GET_PROVED=true
+            fi
+            run_p8ee_probe P8EH_REPEAT_GET GET "${P8EE_WEBHOOK_PATH}" valid_worker
+            run_p8ee_probe P8EH_GET_QUERY GET "${P8EE_WEBHOOK_PATH}?proof=p8eh-get" valid_worker
+            for method in PUT PATCH DELETE; do
+              run_p8ee_probe "T03_${method}" "${method}" "${P8EE_WEBHOOK_PATH}" valid_worker
+            done
+            run_p8ee_probe T04 POST "${P8EE_WEBHOOK_PATH}" valid_worker \
+              --header 'content-type: application/json' \
+              --header 'Stripe-Signature: t=0,v1=dummy' \
+              --data '{}'
+            run_p8ee_probe T09 POST "${P8EE_WEBHOOK_PATH}?proof=p8ee" valid_worker \
+              --header 'content-type: application/json' \
+              --data '{}'
+
+            sleep 2
+            P8EE_DCA_LOG_COUNT_AFTER_EXACT="$(dca_log_count)"
+            P8EE_EXACT_PATH_DCA_LOG_DELTA=$((P8EE_DCA_LOG_COUNT_AFTER_EXACT - P8EE_DCA_LOG_COUNT_BEFORE_EXACT))
+
+            P8EH_ROBOTS_DCA_LOG_COUNT_BEFORE="$(dca_log_count)"
+            run_p8ee_probe P8EH_ROBOTS GET "/robots.txt" valid_worker
+            sleep 1
+            P8EH_ROBOTS_DCA_LOG_COUNT_AFTER="$(dca_log_count)"
+            P8EH_ROBOTS_DCA_LOG_DELTA=$((P8EH_ROBOTS_DCA_LOG_COUNT_AFTER - P8EH_ROBOTS_DCA_LOG_COUNT_BEFORE))
+            run_p8ee_probe T05 POST "/api/public/hooks/billing-stripe-webhook-near" valid_worker \
+              --header 'content-type: application/json' \
+              --data '{}'
+            run_p8ee_probe T06 POST "/api/public/hooks/billing-stripe-webhook/" valid_worker \
+              --header 'content-type: application/json' \
+              --data '{}'
+            run_p8ee_probe T07 GET "/" valid_worker
+            P8EH_INVALID_HOST_DCA_LOG_COUNT_BEFORE="$(dca_log_count)"
+            run_p8ee_probe T08 POST "${P8EE_WEBHOOK_PATH}" local_host \
+              --header 'content-type: application/json' \
+              --data '{}'
+
+            sleep 2
+            P8EH_INVALID_HOST_DCA_LOG_COUNT_AFTER="$(dca_log_count)"
+            P8EH_INVALID_HOST_DCA_LOG_DELTA=$((P8EH_INVALID_HOST_DCA_LOG_COUNT_AFTER - P8EH_INVALID_HOST_DCA_LOG_COUNT_BEFORE))
+            P8EE_DCA_LOG_COUNT_AFTER_NONEXACT="$(dca_log_count)"
+            P8EE_NONEXACT_DCA_LOG_DELTA=$((P8EE_DCA_LOG_COUNT_AFTER_NONEXACT - P8EE_DCA_LOG_COUNT_AFTER_EXACT))
+            cp "${P8EE_RESPONSE_DIRECTORY}/T07.body.txt" "${FETCH_RESPONSE_FILE}"
+            FETCH_HTTP_CODE="${T07_HTTP_CODE}"
+            FETCH_CURL_EXIT_CODE="${T07_CURL_EXIT_CODE}"
 
             SCHEDULED_HTTP_CODE="$(curl \
               --silent \
@@ -267,6 +705,134 @@ jobs:
             FETCH_CONTEXT_NEGATIVE_PATH_PROVED=true
           fi
 
+          P8EE_T01_PROVED=false
+          if [ "${T01_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T01_HTTP_CODE}" -eq 400 ] \
+            && grep -Fq '"code":"bcr01_stripe_signature_absent"' "${P8EE_RESPONSE_DIRECTORY}/T01.body.txt" \
+            && ! grep -Eiq '^location:' "${P8EE_RESPONSE_DIRECTORY}/T01.headers.txt"; then
+            P8EE_T01_PROVED=true
+          fi
+
+          P8EE_T02_PROVED=false
+          if [ "${T02_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T02_HTTP_CODE}" -eq 400 ] \
+            && grep -Fq '"code":"bcr01_webhook_tenant_header_prohibited"' "${P8EE_RESPONSE_DIRECTORY}/T02.body.txt"; then
+            P8EE_T02_PROVED=true
+          fi
+
+          P8EE_T03_PROVED=true
+          for method in GET PUT PATCH DELETE; do
+            eval "method_curl_exit_code=\${T03_${method}_CURL_EXIT_CODE}"
+            eval "method_http_code=\${T03_${method}_HTTP_CODE}"
+            if [ "${method_curl_exit_code}" -ne 0 ] \
+              || [ "${method_http_code}" -ne 405 ] \
+              || ! grep -Fq '"code":"method_not_allowed"' "${P8EE_RESPONSE_DIRECTORY}/T03_${method}.body.txt" \
+              || ! grep -Eiq '^allow: POST\r?$' "${P8EE_RESPONSE_DIRECTORY}/T03_${method}.headers.txt"; then
+              P8EE_T03_PROVED=false
+            fi
+          done
+
+          P8EE_T04_PROVED=false
+          if [ "${T04_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T04_HTTP_CODE}" -eq 400 ] \
+            && grep -Fq '"code":"bcr01_stripe_secret_absent"' "${P8EE_RESPONSE_DIRECTORY}/T04.body.txt"; then
+            P8EE_T04_PROVED=true
+          fi
+
+          P8EE_T05_PROVED=false
+          if [ "${T05_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T05_HTTP_CODE}" -eq 503 ] \
+            && grep -Fxq "Domain resolution temporarily unavailable" "${P8EE_RESPONSE_DIRECTORY}/T05.body.txt"; then
+            P8EE_T05_PROVED=true
+          fi
+
+          P8EE_T06_PROVED=false
+          if [ "${T06_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T06_HTTP_CODE}" -eq 503 ] \
+            && grep -Fxq "Domain resolution temporarily unavailable" "${P8EE_RESPONSE_DIRECTORY}/T06.body.txt"; then
+            P8EE_T06_PROVED=true
+          fi
+
+          P8EE_T07_PROVED=false
+          if [ "${T07_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T07_HTTP_CODE}" -eq 503 ] \
+            && grep -Fxq "Domain resolution temporarily unavailable" "${P8EE_RESPONSE_DIRECTORY}/T07.body.txt"; then
+            P8EE_T07_PROVED=true
+          fi
+
+          P8EE_T08_PROVED=false
+          if [ "${T08_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T08_HTTP_CODE}" -eq 503 ] \
+            && grep -Fxq "Domain resolution temporarily unavailable" "${P8EE_RESPONSE_DIRECTORY}/T08.body.txt"; then
+            P8EE_T08_PROVED=true
+          fi
+
+          P8EE_T09_PROVED=false
+          if [ "${T09_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T09_HTTP_CODE}" -eq 400 ] \
+            && grep -Fq '"code":"bcr01_stripe_signature_absent"' "${P8EE_RESPONSE_DIRECTORY}/T09.body.txt"; then
+            P8EE_T09_PROVED=true
+          fi
+
+          P8EE_SUPABASE_CALLS_PROVED_ZERO=false
+          if [ "${P8EE_EXACT_PATH_DCA_LOG_DELTA}" -eq 0 ] \
+            && [ "${P8EE_T01_PROVED}" = "true" ] \
+            && [ "${P8EE_T02_PROVED}" = "true" ] \
+            && [ "${P8EE_T03_PROVED}" = "true" ] \
+            && [ "${P8EE_T04_PROVED}" = "true" ] \
+            && [ "${P8EE_T09_PROVED}" = "true" ]; then
+            P8EE_SUPABASE_CALLS_PROVED_ZERO=true
+          fi
+
+          P8EE_STRIPE_API_CALLS_PROVED_ZERO=false
+          if [ "${P8EE_T01_PROVED}" = "true" ] \
+            && [ "${P8EE_T04_PROVED}" = "true" ] \
+            && ! grep -Eiq 'api\.stripe\.com|StripeConnectionError|StripeAPIError' "${LOG_FILE}"; then
+            P8EE_STRIPE_API_CALLS_PROVED_ZERO=true
+          fi
+
+          P8EH_A01_EXACT_GET_METHOD_CONTRACT_PROVED=false
+          if [ "${T03_GET_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${T03_GET_HTTP_CODE}" -eq 405 ] \
+            && grep -Fq '"code":"method_not_allowed"' "${P8EE_RESPONSE_DIRECTORY}/T03_GET.body.txt" \
+            && grep -Eiq '^allow: POST\r?$' "${P8EE_RESPONSE_DIRECTORY}/T03_GET.headers.txt"; then
+            P8EH_A01_EXACT_GET_METHOD_CONTRACT_PROVED=true
+          fi
+
+          P8EH_A03_SECOND_REQUEST_AFTER_GET_PROVED=false
+          if [ "${P8EH_REPEAT_GET_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${P8EH_REPEAT_GET_HTTP_CODE}" -eq 405 ] \
+            && cmp -s "${P8EE_RESPONSE_DIRECTORY}/T03_GET.body.txt" "${P8EE_RESPONSE_DIRECTORY}/P8EH_REPEAT_GET.body.txt" \
+            && grep -Eiq '^allow: POST\r?$' "${P8EE_RESPONSE_DIRECTORY}/P8EH_REPEAT_GET.headers.txt"; then
+            P8EH_A03_SECOND_REQUEST_AFTER_GET_PROVED=true
+          fi
+
+          P8EH_A04_GET_QUERY_STRING_PROVED=false
+          if [ "${P8EH_GET_QUERY_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${P8EH_GET_QUERY_HTTP_CODE}" -eq 405 ] \
+            && grep -Fq '"code":"method_not_allowed"' "${P8EE_RESPONSE_DIRECTORY}/P8EH_GET_QUERY.body.txt" \
+            && grep -Eiq '^allow: POST\r?$' "${P8EE_RESPONSE_DIRECTORY}/P8EH_GET_QUERY.headers.txt"; then
+            P8EH_A04_GET_QUERY_STRING_PROVED=true
+          fi
+
+          P8EH_A05_ROBOTS_ASSET_SERVED_PROVED=false
+          if [ "${P8EH_ROBOTS_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${P8EH_ROBOTS_HTTP_CODE}" -eq 200 ] \
+            && [ "${P8EH_ROBOTS_DCA_LOG_DELTA}" -eq 0 ] \
+            && cmp -s "${P8EE_RESPONSE_DIRECTORY}/P8EH_ROBOTS.body.txt" "dist/client/robots.txt"; then
+            P8EH_A05_ROBOTS_ASSET_SERVED_PROVED=true
+          fi
+
+          P8EH_A06_SIMILAR_PATH_DCA_PROVED="${P8EE_T05_PROVED}"
+          P8EH_A07_TRAILING_SLASH_DCA_PROVED="${P8EE_T06_PROVED}"
+          P8EH_A08_INVALID_HOST_PRECEDENCE_PROVED=false
+          if [ "${P8EE_T08_PROVED}" = "true" ] \
+            && [ "${P8EH_INVALID_HOST_DCA_LOG_DELTA}" -eq 1 ]; then
+            P8EH_A08_INVALID_HOST_PRECEDENCE_PROVED=true
+          fi
+          P8EH_A09_SUPABASE_CALLS_PROVED_ZERO="${P8EE_SUPABASE_CALLS_PROVED_ZERO}"
+          P8EH_A10_STRIPE_CALLS_PROVED_ZERO="${P8EE_STRIPE_API_CALLS_PROVED_ZERO}"
+
           if grep -Eq "\[DCA-01\] scheduled reconciliation completed" "${LOG_FILE}"; then
             SCHEDULED_COMPLETED_LOG=true
           else
@@ -299,6 +865,12 @@ jobs:
             && [ "${SCHEDULED_FAILED_CLOSED_LOG}" = "true" ] \
             && [ "${OUTCOME_EXCEPTION}" = "true" ]; then
             FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=true
+          fi
+          P8EH_A11_SCHEDULED_BASELINE_PROVED=false
+          if [ "${SCHEDULED_CURL_EXIT_CODE}" -eq 0 ] \
+            && { [ "${POSITIVE_SCHEDULED_PATH_PROVED}" = "true" ] \
+              || [ "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}" = "true" ]; }; then
+            P8EH_A11_SCHEDULED_BASELINE_PROVED=true
           fi
 
           TERMINATION_SIGNAL_SENT=false
@@ -343,10 +915,13 @@ jobs:
             && [ "${WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION}" -eq 0 ]; then
             ZERO_ORPHAN_PROCESSES_PROVED=true
           fi
+          P8EH_A12_ZERO_ORPHAN_PROCESSES_PROVED="${ZERO_ORPHAN_PROCESSES_PROVED}"
 
           cp "${LOG_FILE}" .wri01-workerd.log
           cp "${FETCH_RESPONSE_FILE}" .wri01-fetch-response.txt
           cp "${SCHEDULED_RESPONSE_FILE}" .wri01-scheduled-response.txt
+          mkdir -p .wri01-p8ee-responses
+          cp "${P8EE_RESPONSE_DIRECTORY}"/* .wri01-p8ee-responses/ 2>/dev/null || true
           {
             printf 'READY=%s\n' "${READY}"
             printf 'READY_SOURCE=wrangler_log\n'
@@ -357,6 +932,44 @@ jobs:
             printf 'FETCH_DOMAIN_FAIL_CLOSED_LOG=%s\n' "${FETCH_DOMAIN_FAIL_CLOSED_LOG}"
             printf 'FETCH_DOMAIN_FAIL_CLOSED_RESPONSE=%s\n' "${FETCH_DOMAIN_FAIL_CLOSED_RESPONSE}"
             printf 'FETCH_CONTEXT_NEGATIVE_PATH_PROVED=%s\n' "${FETCH_CONTEXT_NEGATIVE_PATH_PROVED}"
+            printf 'P8EE_WORKER_HOST=%s\n' "${P8EE_WORKER_HOST}"
+            printf 'P8EE_WEBHOOK_PATH=%s\n' "${P8EE_WEBHOOK_PATH}"
+            printf 'P8EE_DCA_LOG_COUNT_BEFORE_EXACT=%s\n' "${P8EE_DCA_LOG_COUNT_BEFORE_EXACT}"
+            printf 'P8EE_DCA_LOG_COUNT_AFTER_EXACT=%s\n' "${P8EE_DCA_LOG_COUNT_AFTER_EXACT}"
+            printf 'P8EE_DCA_LOG_COUNT_AFTER_NONEXACT=%s\n' "${P8EE_DCA_LOG_COUNT_AFTER_NONEXACT}"
+            printf 'P8EE_EXACT_PATH_DCA_LOG_DELTA=%s\n' "${P8EE_EXACT_PATH_DCA_LOG_DELTA}"
+            printf 'P8EE_NONEXACT_DCA_LOG_DELTA=%s\n' "${P8EE_NONEXACT_DCA_LOG_DELTA}"
+            printf 'P8EE_T01_PROVED=%s\n' "${P8EE_T01_PROVED}"
+            printf 'P8EE_T02_PROVED=%s\n' "${P8EE_T02_PROVED}"
+            printf 'P8EE_T03_PROVED=%s\n' "${P8EE_T03_PROVED}"
+            printf 'P8EE_T04_PROVED=%s\n' "${P8EE_T04_PROVED}"
+            printf 'P8EE_T05_PROVED=%s\n' "${P8EE_T05_PROVED}"
+            printf 'P8EE_T06_PROVED=%s\n' "${P8EE_T06_PROVED}"
+            printf 'P8EE_T07_PROVED=%s\n' "${P8EE_T07_PROVED}"
+            printf 'P8EE_T08_PROVED=%s\n' "${P8EE_T08_PROVED}"
+            printf 'P8EE_T09_PROVED=%s\n' "${P8EE_T09_PROVED}"
+            printf 'P8EE_SUPABASE_CALLS_PROVED_ZERO=%s\n' "${P8EE_SUPABASE_CALLS_PROVED_ZERO}"
+            printf 'P8EE_STRIPE_API_CALLS_PROVED_ZERO=%s\n' "${P8EE_STRIPE_API_CALLS_PROVED_ZERO}"
+            printf 'P8EH_ROBOTS_DCA_LOG_DELTA=%s\n' "${P8EH_ROBOTS_DCA_LOG_DELTA}"
+            printf 'P8EH_INVALID_HOST_DCA_LOG_DELTA=%s\n' "${P8EH_INVALID_HOST_DCA_LOG_DELTA}"
+            printf 'P8EH_A01_EXACT_GET_METHOD_CONTRACT_PROVED=%s\n' "${P8EH_A01_EXACT_GET_METHOD_CONTRACT_PROVED}"
+            printf 'P8EH_A02_WRANGLER_LIVE_AFTER_GET_PROVED=%s\n' "${P8EH_A02_WRANGLER_LIVE_AFTER_GET_PROVED}"
+            printf 'P8EH_A03_SECOND_REQUEST_AFTER_GET_PROVED=%s\n' "${P8EH_A03_SECOND_REQUEST_AFTER_GET_PROVED}"
+            printf 'P8EH_A04_GET_QUERY_STRING_PROVED=%s\n' "${P8EH_A04_GET_QUERY_STRING_PROVED}"
+            printf 'P8EH_A05_ROBOTS_ASSET_SERVED_PROVED=%s\n' "${P8EH_A05_ROBOTS_ASSET_SERVED_PROVED}"
+            printf 'P8EH_A06_SIMILAR_PATH_DCA_PROVED=%s\n' "${P8EH_A06_SIMILAR_PATH_DCA_PROVED}"
+            printf 'P8EH_A07_TRAILING_SLASH_DCA_PROVED=%s\n' "${P8EH_A07_TRAILING_SLASH_DCA_PROVED}"
+            printf 'P8EH_A08_INVALID_HOST_PRECEDENCE_PROVED=%s\n' "${P8EH_A08_INVALID_HOST_PRECEDENCE_PROVED}"
+            printf 'P8EH_A09_SUPABASE_CALLS_PROVED_ZERO=%s\n' "${P8EH_A09_SUPABASE_CALLS_PROVED_ZERO}"
+            printf 'P8EH_A10_STRIPE_CALLS_PROVED_ZERO=%s\n' "${P8EH_A10_STRIPE_CALLS_PROVED_ZERO}"
+            printf 'P8EH_A11_SCHEDULED_BASELINE_PROVED=%s\n' "${P8EH_A11_SCHEDULED_BASELINE_PROVED}"
+            printf 'P8EH_A12_ZERO_ORPHAN_PROCESSES_PROVED=%s\n' "${P8EH_A12_ZERO_ORPHAN_PROCESSES_PROVED}"
+            for probe in T01 T02 T03_GET T03_PUT T03_PATCH T03_DELETE T04 T05 T06 T07 T08 T09 P8EH_REPEAT_GET P8EH_GET_QUERY P8EH_ROBOTS; do
+              eval "probe_http_code=\${${probe}_HTTP_CODE}"
+              eval "probe_curl_exit_code=\${${probe}_CURL_EXIT_CODE}"
+              printf 'P8EE_%s_HTTP_CODE=%s\n' "${probe}" "${probe_http_code}"
+              printf 'P8EE_%s_CURL_EXIT_CODE=%s\n' "${probe}" "${probe_curl_exit_code}"
+            done
             printf 'SCHEDULED_ENDPOINT=/cdn-cgi/handler/scheduled\n'
             printf 'SCHEDULED_HTTP_CODE=%s\n' "${SCHEDULED_HTTP_CODE}"
             printf 'SCHEDULED_CURL_EXIT_CODE=%s\n' "${SCHEDULED_CURL_EXIT_CODE}"
@@ -381,9 +994,34 @@ jobs:
           cat .wri01-workerd-facts.txt
           cat .wri01-fetch-response.txt
           cat .wri01-scheduled-response.txt
+          find .wri01-p8ee-responses -maxdepth 1 -type f -print -exec cat {} \;
 
           if [ "${READY}" != "true" ]; then exit 1; fi
           if [ "${FETCH_CONTEXT_NEGATIVE_PATH_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T01_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T02_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T03_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T04_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T05_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T06_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T07_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T08_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_T09_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_SUPABASE_CALLS_PROVED_ZERO}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_STRIPE_API_CALLS_PROVED_ZERO}" != "true" ]; then exit 1; fi
+          if [ "${P8EE_NONEXACT_DCA_LOG_DELTA}" -lt 4 ]; then exit 1; fi
+          if [ "${P8EH_A01_EXACT_GET_METHOD_CONTRACT_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A02_WRANGLER_LIVE_AFTER_GET_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A03_SECOND_REQUEST_AFTER_GET_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A04_GET_QUERY_STRING_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A05_ROBOTS_ASSET_SERVED_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A06_SIMILAR_PATH_DCA_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A07_TRAILING_SLASH_DCA_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A08_INVALID_HOST_PRECEDENCE_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A09_SUPABASE_CALLS_PROVED_ZERO}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A10_STRIPE_CALLS_PROVED_ZERO}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A11_SCHEDULED_BASELINE_PROVED}" != "true" ]; then exit 1; fi
+          if [ "${P8EH_A12_ZERO_ORPHAN_PROCESSES_PROVED}" != "true" ]; then exit 1; fi
           if [ "${SCHEDULED_CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
           if [ "${PROCESS_GROUP_CAPTURED}" != "true" ]; then exit 1; fi
           if [ "${ZERO_ORPHAN_PROCESSES_PROVED}" != "true" ]; then exit 1; fi
@@ -403,6 +1041,7 @@ jobs:
             .wri01-workerd-facts.txt
             .wri01-fetch-response.txt
             .wri01-scheduled-response.txt
+            .wri01-p8ee-responses/**
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14

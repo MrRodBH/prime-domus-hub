@@ -27,7 +27,10 @@
   ],
   "assets": {
     "directory": "dist/client",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/public/hooks/billing-stripe-webhook"
+    ]
   },
   "routes": [],
   "triggers": {
