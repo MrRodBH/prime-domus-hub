@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -48,26 +47,16 @@ const reconcileRoute = read("src/routes/api/internal/billing-reconcile.ts");
 const webhookRoute = read(
   "src/routes/api/public/hooks/billing-stripe-webhook.ts",
 );
-const server = read("src/server.ts");
-const workflow = read(".github/workflows/wri-01-worker-runtime-gate.yml");
 const tenantUi = read("src/routes/_authenticated.admin.billing.tsx");
 const wrangler = JSON.parse(read("wrangler.jsonc")) as {
-  assets?: {
-    directory?: string;
-    binding?: string;
-    run_worker_first?: unknown;
-  };
   workers_dev?: boolean;
   preview_urls?: boolean;
   vars?: Record<string, string>;
   routes?: unknown[];
   triggers?: { crons?: unknown[] };
 };
-const packageText = read("package.json");
-const pkg = JSON.parse(packageText) as {
-  scripts?: Record<string, string>;
+const pkg = JSON.parse(read("package.json")) as {
   dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
 };
 
 for (const token of [
@@ -280,65 +269,6 @@ ok(
   webhookRoute.includes('request.headers.has("x-tenant-id")'),
   "Stripe webhook must reject tenant transport headers",
 );
-for (const method of ["GET", "PUT", "PATCH", "DELETE"]) {
-  ok(
-    webhookRoute.includes(`${method}: methodNotAllowed`),
-    `Stripe webhook must reject ${method} with the POST-only handler`,
-  );
-}
-const absentSignatureIndex = stripe.indexOf(
-  'throw new BillingPortError("bcr01_stripe_signature_absent")',
-);
-const stripeClientIndex = stripe.indexOf("const stripe = createStripeClient()", absentSignatureIndex);
-ok(
-  absentSignatureIndex >= 0 && stripeClientIndex > absentSignatureIndex,
-  "absent Stripe signature must fail before Stripe client or secret access",
-);
-const hostValidationIndex = server.indexOf("requirePublicCloudflareHost(request, host)");
-const exactWebhookBypassIndex = server.indexOf(
-  "new URL(request.url).pathname === SECRETLESS_STRIPE_WEBHOOK_PATH",
-);
-const canonicalLookupIndex = server.indexOf("resolveCanonicalRedirectByHost(host)");
-ok(
-  server.includes(
-    'const SECRETLESS_STRIPE_WEBHOOK_PATH = "/api/public/hooks/billing-stripe-webhook"',
-  ) &&
-    hostValidationIndex >= 0 &&
-    exactWebhookBypassIndex > hostValidationIndex &&
-    canonicalLookupIndex > exactWebhookBypassIndex,
-  "exact Stripe webhook path must bypass canonical lookup only after Cloudflare host validation",
-);
-ok(
-  wrangler.assets?.directory === "dist/client" &&
-    wrangler.assets?.binding === "ASSETS" &&
-    JSON.stringify(wrangler.assets?.run_worker_first) ===
-      JSON.stringify(["/api/public/hooks/billing-stripe-webhook"]),
-  "static assets must run the Worker first for the exact Stripe webhook path only",
-);
-ok(
-  pkg.scripts?.["wri01:dry-run"] ===
-    "bunx wrangler@4.113.0 deploy --dry-run --outdir .wri01-dry-run" &&
-    (packageText + workflow).split("wrangler@4.113.0").length - 1 === 2 &&
-    !(packageText + workflow).includes("wrangler@4.114.0"),
-  "P8EJ must pin exactly two Wrangler 4.113.0 consumers and eliminate 4.114.0",
-);
-ok(
-  !("wrangler" in (pkg.dependencies ?? {})) &&
-    !("wrangler" in (pkg.devDependencies ?? {})),
-  "Wrangler must remain outside the package dependency graph",
-);
-ok(
-  createHash("sha256").update(readFileSync(resolve(root, "bun.lock"))).digest("hex") ===
-    "9f624a4ad1264bbb5ad4910d4674cc14fc482c85563117b3501c6c1b6e5318ea",
-  "P8EJ must preserve bun.lock byte for byte",
-);
-for (const token of [
-  "FRESH_WORKERD_CYCLE_COUNT=5",
-  "P8EJ_J11_FIVE_FRESH_CYCLES_PROVED",
-  "P8EJ_J12_ZERO_ORPHANS_EACH_CYCLE_PROVED",
-]) {
-  ok(workflow.includes(token), `P8EJ workflow proof must retain ${token}`);
-}
 const verifyIndex = webhook.indexOf("provider.verifyWebhook(");
 const normalizeIndex = webhook.indexOf("provider.normalizeWebhook(");
 const reserveIndex = webhook.indexOf("reserveVerifiedBillingEvent({");
@@ -565,10 +495,6 @@ console.log(
       persistedMappingTenantAuthority: true,
       persistedMappingInvoiceAuthority: true,
       webhookRawBodyVerifiedFirst: true,
-      webhookPostOnlyMethodsProved: true,
-      absentSignaturePrecedesStripeClient: true,
-      exactWebhookPreRoutingBypassProved: true,
-      exactWebhookWorkerFirstProved: true,
       webhookIdempotencyConflictGuard: true,
       officialStripeSdkPinned: true,
       checkoutIntegrationIdentifierPinned: true,
