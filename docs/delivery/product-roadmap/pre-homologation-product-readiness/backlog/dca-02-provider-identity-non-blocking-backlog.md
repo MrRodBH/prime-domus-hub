@@ -21,12 +21,15 @@ The items below do **not** reopen DCA-01, do **not** authorize additional DCA-02
 ## NB-DCA02-01 — Explicit Provider Orphan Recovery
 
 ```text
-STATE = Non-Blocking Backlog
+STATE = Diagnostic Implementation Materialized — Exact-Head Gates Required
 CLASS = Operational Recovery / Security
-RUNTIME_IMPLEMENTATION_AUTHORIZED = false
+RUNTIME_IMPLEMENTATION_AUTHORIZED = diagnostic_dry_run_only
 AUTO_ADOPTION = prohibited
 HOSTNAME_ONLY_AUTHORITY = prohibited
 FAIL_CLOSED = required
+PROVIDER_WRITES = 0
+DATABASE_WRITES = 0
+ADOPTION_BIND_CLEANUP_DELETE = separately_authorized_future_envelope
 ```
 
 Create a separate, server-owned and audited administrative recovery capability for provider objects associated with DCA-02 `ambiguous` outcomes.
@@ -47,7 +50,7 @@ Required future invariants:
 ## NB-DCA02-02 — Provider Identity Disaster Recovery / Backup Verification
 
 ```text
-STATE = Non-Blocking Backlog
+STATE = Repository Proof Accepted on PR #112
 CLASS = Disaster Recovery / Data Integrity
 RUNTIME_IMPLEMENTATION_AUTHORIZED = false
 PRIMARY_LEDGER = public.domain_provider_bindings
@@ -72,10 +75,12 @@ Required future invariants:
 ## Scheduling rule
 
 ```text
-CURRENT_PRIORITY = DCA-02 terminal provider proof completed; preserve both items as non-blocking backlog
+CURRENT_PRIORITY = qualify DCA-02-BL1 diagnostic exact head; preserve all mutations as future scope
 BACKLOG_ITEMS_BLOCK_DCA02_TERMINAL_ACCEPTANCE = false
-BACKLOG_ITEMS_MAY_START_AUTOMATICALLY = false
-NEXT_STAGE_AFTER_DCA02 = must be resolved from then-current audited GitHub authority and requires explicit authorization
+BL2_TERMINAL_AUTHORITY = PR #112 head a8b41316e6998f1681a018d4ca8bc3e9e712e086 gates success
+BL1_DIAGNOSTIC_MAY_START_AUTOMATICALLY = true
+BL1_PROVIDER_MUTATION_MAY_START_AUTOMATICALLY = false
+NEXT_STAGE_AFTER_BL1 = terminal exact-head audit and successor decision; no provider write implied
 ```
 
-These items remain deferred until explicitly prioritized by a future Architecture First gate. DCA-02 terminal acceptance does not start either backlog item automatically.
+The Architecture First chain authorized BL2 followed by BL1 diagnostic without an intermediate Owner handoff. No current authority permits adoption, bind, cleanup, delete, live provider probe during qualification, database mutation, deploy, merge or production cutover.
