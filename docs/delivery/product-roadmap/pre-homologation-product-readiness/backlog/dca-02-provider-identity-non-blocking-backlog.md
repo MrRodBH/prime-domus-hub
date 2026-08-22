@@ -47,13 +47,19 @@ Required future invariants:
 ## NB-DCA02-02 — Provider Identity Disaster Recovery / Backup Verification
 
 ```text
-STATE = Non-Blocking Backlog
+STATE = Repository Planning/Proof Implemented — Exact-Head Gates Required
 CLASS = Disaster Recovery / Data Integrity
 RUNTIME_IMPLEMENTATION_AUTHORIZED = false
 PRIMARY_LEDGER = public.domain_provider_bindings
 CROSS_SYSTEM_ANCHOR = custom_hostname_id
 HEURISTIC_RECONSTRUCTION = prohibited
 FAIL_CLOSED_ON_BINDING_LOSS = required
+REPOSITORY_PROOF_STATE = implemented / exact-head gates required
+LIVE_BACKUP_SCOPE_VERIFIED = false
+LIVE_PITR_RESTORE_EXECUTED = false
+PROVIDER_WRITES = 0
+DATABASE_WRITES = 0
+NEXT_EXECUTION = DCA-02-BL1 diagnostic/dry-run only
 ```
 
 Verify and formalize backup/PITR recoverability for the authoritative provider-identity ledger because persisted `custom_hostname_id` is now the primary cross-system anchor between RM Prime and Cloudflare.
@@ -72,10 +78,10 @@ Required future invariants:
 ## Scheduling rule
 
 ```text
-CURRENT_PRIORITY = DCA-02 terminal provider proof completed; preserve both items as non-blocking backlog
+CURRENT_PRIORITY = DCA-02-BL2 exact-head repository proof, then DCA-02-BL1 diagnostic/dry-run
 BACKLOG_ITEMS_BLOCK_DCA02_TERMINAL_ACCEPTANCE = false
-BACKLOG_ITEMS_MAY_START_AUTOMATICALLY = false
-NEXT_STAGE_AFTER_DCA02 = must be resolved from then-current audited GitHub authority and requires explicit authorization
+BACKLOG_ITEMS_MAY_START_AUTOMATICALLY = true under the accepted post-BCR chain authority
+NEXT_STAGE_AFTER_DCA02_BL2 = DCA-02-BL1 diagnostic/dry-run only after exact-head terminal success
 ```
 
-These items remain deferred until explicitly prioritized by a future Architecture First gate. DCA-02 terminal acceptance does not start either backlog item automatically.
+The Architecture First analysis identified by SHA-256 `85df4710f766263953020bcad369e145059a09709c5a15d772df7f9194bef703` explicitly prioritized BL2 before BL1 after the BCR-triggered architecture chain. BL2 does not authorize a live restore. BL1 remains diagnostic-only and cannot adopt, bind, clean, or delete a provider object.
