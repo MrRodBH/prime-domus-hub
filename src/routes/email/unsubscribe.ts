@@ -1,12 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
-
-function redactEmail(email: string | null | undefined): string {
-  if (!email) return '***'
-  const [localPart, domain] = email.split('@')
-  if (!localPart || !domain) return '***'
-  return `${localPart[0]}***@${domain}`
-}
+import { structuredLog } from '@/lib/structured-log'
 
 export const Route = createFileRoute("/email/unsubscribe")({
   server: {
@@ -117,7 +111,13 @@ export const Route = createFileRoute("/email/unsubscribe")({
           .maybeSingle()
 
         if (updateError) {
-          console.error('Failed to mark token as used', { error: updateError, token })
+          structuredLog({
+            level: 'error',
+            event: 'email.unsubscribe_mark_failed',
+            code: 'unsubscribe_mark_failed',
+            route: '/email/unsubscribe',
+            error: updateError,
+          })
           return Response.json({ error: 'Failed to process unsubscribe' }, { status: 500 })
         }
 
@@ -134,15 +134,22 @@ export const Route = createFileRoute("/email/unsubscribe")({
           )
 
         if (suppressError) {
-          console.error('Failed to suppress email', {
+          structuredLog({
+            level: 'error',
+            event: 'email.unsubscribe_suppression_failed',
+            code: 'unsubscribe_suppression_failed',
+            route: '/email/unsubscribe',
             error: suppressError,
-            email_redacted: redactEmail(tokenRecord.email),
           })
           return Response.json({ error: 'Failed to process unsubscribe' }, { status: 500 })
         }
 
-        console.log('Email unsubscribed', {
-          email_redacted: redactEmail(tokenRecord.email),
+        structuredLog({
+          level: 'info',
+          event: 'email.unsubscribe_completed',
+          code: 'unsubscribe_completed',
+          route: '/email/unsubscribe',
+          context: { outcome: 'suppressed' },
         })
 
         return Response.json({ success: true })

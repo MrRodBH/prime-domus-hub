@@ -10,6 +10,7 @@ import { MagicLinkEmail } from '@/lib/email-templates/magic-link'
 import { RecoveryEmail } from '@/lib/email-templates/recovery'
 import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
+import { structuredLog } from '@/lib/structured-log'
 
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirm your email',
@@ -36,13 +37,6 @@ const SENDER_DOMAIN = "contato.rmprimeimoveis.com.br"
 const ROOT_DOMAIN = "rmprimeimoveis.com.br"
 const FROM_DOMAIN = "rmprimeimoveis.com.br"
 
-function redactEmail(email: string | null | undefined): string {
-  if (!email) return '***'
-  const [localPart, domain] = email.split('@')
-  if (!localPart || !domain) return '***'
-  return `${localPart[0]}***@${domain}`
-}
-
 export const Route = createFileRoute("/lovable/email/auth/webhook")({
   server: {
     handlers: {
@@ -50,7 +44,13 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
         const apiKey = process.env.LOVABLE_API_KEY
 
         if (!apiKey) {
-          console.error('LOVABLE_API_KEY not configured')
+          structuredLog({
+            level: 'error',
+            event: 'email.auth_configuration_missing',
+            code: 'lovable_api_key_missing',
+            route: '/lovable/email/auth/webhook',
+            context: { source: 'server_environment' },
+          })
           return Response.json(
             { error: 'Server configuration error' },
             { status: 500 }
@@ -75,14 +75,26 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
               case 'missing_timestamp':
               case 'invalid_timestamp':
               case 'stale_timestamp':
-                console.error('Invalid webhook signature', { error: error.message })
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.auth_webhook_rejected',
+                  code: 'invalid_webhook_signature',
+                  route: '/lovable/email/auth/webhook',
+                  error,
+                })
                 return Response.json(
                   { error: 'Invalid signature' },
                   { status: 401 }
                 )
               case 'invalid_payload':
               case 'invalid_json':
-                console.error('Invalid webhook payload', { error: error.message })
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.auth_webhook_rejected',
+                  code: 'invalid_webhook_payload',
+                  route: '/lovable/email/auth/webhook',
+                  error,
+                })
                 return Response.json(
                   { error: 'Invalid webhook payload' },
                   { status: 400 }
@@ -90,7 +102,13 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
             }
           }
 
-          console.error('Webhook verification failed', { error })
+          structuredLog({
+            level: 'warn',
+            event: 'email.auth_webhook_rejected',
+            code: 'webhook_verification_failed',
+            route: '/lovable/email/auth/webhook',
+            error,
+          })
           return Response.json(
             { error: 'Invalid webhook payload' },
             { status: 400 }
@@ -98,7 +116,12 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
         }
 
         if (!run_id) {
-          console.error('Webhook payload missing run_id')
+          structuredLog({
+            level: 'warn',
+            event: 'email.auth_webhook_rejected',
+            code: 'run_id_missing',
+            route: '/lovable/email/auth/webhook',
+          })
           return Response.json(
             { error: 'Invalid webhook payload' },
             { status: 400 }
@@ -106,7 +129,14 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
         }
 
         if (payload.version !== '1') {
-          console.error('Unsupported payload version', { version: payload.version, run_id })
+          structuredLog({
+            level: 'warn',
+            event: 'email.auth_webhook_rejected',
+            code: 'unsupported_payload_version',
+            route: '/lovable/email/auth/webhook',
+            requestId: run_id,
+            context: { version: payload.version },
+          })
           return Response.json(
             { error: `Unsupported payload version: ${payload.version}` },
             { status: 400 }
@@ -116,15 +146,25 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
         // The email action type is in payload.data.action_type (e.g., "signup", "recovery")
         // payload.type is the hook event type ("auth")
         const emailType = payload.data.action_type
-        console.log('Received auth event', {
-          emailType,
-          email_redacted: redactEmail(payload.data.email),
-          run_id,
+        structuredLog({
+          level: 'info',
+          event: 'email.auth_event_received',
+          code: 'auth_event_received',
+          route: '/lovable/email/auth/webhook',
+          requestId: run_id,
+          context: { email_type: emailType },
         })
 
         const EmailTemplate = EMAIL_TEMPLATES[emailType]
         if (!EmailTemplate) {
-          console.error('Unknown email type', { emailType, run_id })
+          structuredLog({
+            level: 'warn',
+            event: 'email.auth_webhook_rejected',
+            code: 'unknown_email_type',
+            route: '/lovable/email/auth/webhook',
+            requestId: run_id,
+            context: { email_type: emailType },
+          })
           return Response.json(
             { error: `Unknown email type: ${emailType}` },
             { status: 400 }
@@ -153,7 +193,14 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
         if (!supabaseUrl || !supabaseServiceKey) {
-          console.error('Missing Supabase environment variables')
+          structuredLog({
+            level: 'error',
+            event: 'email.auth_configuration_missing',
+            code: 'supabase_environment_missing',
+            route: '/lovable/email/auth/webhook',
+            requestId: run_id,
+            context: { source: 'server_environment' },
+          })
           return Response.json(
             { error: 'Server configuration error' },
             { status: 500 }
@@ -189,7 +236,15 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
         })
 
         if (enqueueError) {
-          console.error('Failed to enqueue auth email', { error: enqueueError, run_id, emailType })
+          structuredLog({
+            level: 'error',
+            event: 'email.auth_enqueue_failed',
+            code: 'auth_email_enqueue_failed',
+            route: '/lovable/email/auth/webhook',
+            requestId: run_id,
+            context: { email_type: emailType },
+            error: enqueueError,
+          })
           await supabase.from('email_send_log').insert({
             message_id: messageId,
             template_name: emailType,
@@ -203,10 +258,13 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
           )
         }
 
-        console.log('Auth email enqueued', {
-          emailType,
-          email_redacted: redactEmail(payload.data.email),
-          run_id,
+        structuredLog({
+          level: 'info',
+          event: 'email.auth_enqueued',
+          code: 'auth_email_enqueued',
+          route: '/lovable/email/auth/webhook',
+          requestId: run_id,
+          context: { email_type: emailType },
         })
 
         return Response.json({ success: true, queued: true })
