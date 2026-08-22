@@ -4,6 +4,7 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { resolveCanonicalRedirectByHost } from "./lib/tenant.server";
 import { processScheduledDomainJobs } from "./lib/domains/domain-jobs.server";
+import { structuredLog } from "./lib/structured-log";
 import {
   isCloudflareRuntimeRequest,
   readAuthoritativeCloudflareRuntimeContext,
@@ -162,7 +163,13 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
     return response;
   }
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
+  structuredLog({
+    level: "error",
+    event: "server.ssr_response_failed",
+    code: "h3_unhandled_http_error",
+    route: "server_fetch",
+    error: consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`),
+  });
   return new Response(renderErrorPage(), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
@@ -188,8 +195,13 @@ export async function fetch(request: Request, env: unknown, ctx: unknown): Promi
   try {
     runtime = resolveRuntimeContext(request, env, ctx);
   } catch (error) {
-    console.error("[WRI-01] Cloudflare runtime context unavailable", {
-      name: error instanceof Error ? error.name : "unknown",
+    structuredLog({
+      level: "error",
+      event: "wri.runtime_context_unavailable",
+      code: "cloudflare_runtime_context_missing",
+      route: new URL(request.url).pathname,
+      requestId: request.headers.get("x-request-id"),
+      error,
     });
     return new Response("Runtime context temporarily unavailable", {
       status: 503,
@@ -201,8 +213,14 @@ export async function fetch(request: Request, env: unknown, ctx: unknown): Promi
     const redirect = await canonicalRedirect(request);
     if (redirect) return redirect;
   } catch (error) {
-    console.error("[DCA-01] canonical redirect resolution failed closed", {
-      name: error instanceof Error ? error.name : "unknown",
+    structuredLog({
+      level: "error",
+      event: "dca.canonical_redirect_failed_closed",
+      code: "canonical_redirect_unavailable",
+      route: new URL(request.url).pathname,
+      requestId: request.headers.get("x-request-id"),
+      context: { source: "[DCA-01] canonical redirect resolution failed closed" },
+      error,
     });
     return new Response("Domain resolution temporarily unavailable", {
       status: 503,
@@ -216,7 +234,14 @@ export async function fetch(request: Request, env: unknown, ctx: unknown): Promi
     const normalized = await normalizeCatastrophicSsrResponse(response);
     return applyTrackingSecurityHeaders(request, runtime.env, normalized);
   } catch (error) {
-    console.error(error);
+    structuredLog({
+      level: "error",
+      event: "server.fetch_failed",
+      code: "server_fetch_unhandled_error",
+      route: new URL(request.url).pathname,
+      requestId: request.headers.get("x-request-id"),
+      error,
+    });
     return applyTrackingSecurityHeaders(request, runtime.env, new Response(renderErrorPage(), {
       status: 500,
       headers: { "content-type": "text/html; charset=utf-8" },
@@ -230,16 +255,28 @@ export async function scheduled(
   ctx: CloudflareExecutionContext,
 ): Promise<void> {
   const execution = processScheduledDomainJobs({ runtimeEnv: env, limit: 20 }).then((result) => {
-    console.log("[DCA-01] scheduled reconciliation completed", {
-      leased: result.leased,
-      succeeded: result.succeeded,
-      retried: result.retried,
-      failed: result.failed,
+    structuredLog({
+      level: "info",
+      event: "dca.scheduled_reconciliation_completed",
+      code: "scheduled_reconciliation_completed",
+      route: "cloudflare_scheduled",
+      context: {
+        source: "[DCA-01] scheduled reconciliation completed",
+        leased: result.leased,
+        succeeded: result.succeeded,
+        retried: result.retried,
+        failed: result.failed,
+      },
     });
     return result;
   }).catch((error) => {
-    console.error("[DCA-01] scheduled reconciliation failed closed", {
-      name: error instanceof Error ? error.name : "unknown",
+    structuredLog({
+      level: "error",
+      event: "dca.scheduled_reconciliation_failed_closed",
+      code: "scheduled_reconciliation_failed_closed",
+      route: "cloudflare_scheduled",
+      context: { source: "[DCA-01] scheduled reconciliation failed closed" },
+      error,
     });
     throw error;
   });

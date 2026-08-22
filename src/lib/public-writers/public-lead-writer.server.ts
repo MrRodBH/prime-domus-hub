@@ -4,6 +4,7 @@ import {
   type PublicWriterTenantIdentity,
   selectExactlyOneTenantScopedRow,
 } from "@/lib/public-writers/public-writer-authority.server";
+import { structuredLog } from "@/lib/structured-log";
 
 export interface PublicLeadAttribution {
   utm_source?: string | null;
@@ -247,7 +248,14 @@ async function notifyDirectSiteLead(input: {
       });
     }
   } catch (error) {
-    console.error("Falha ao notificar lead por e-mail:", error);
+    structuredLog({
+      level: "error",
+      event: "lead.notification_failed",
+      code: "lead_email_notification_failed",
+      route: "public_lead_writer",
+      context: { operation: "enqueue_transactional" },
+      error,
+    });
   }
 }
 

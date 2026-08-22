@@ -1,6 +1,7 @@
 import { sendLovableEmail } from '@lovable.dev/email-js'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
+import { structuredLog } from '@/lib/structured-log'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -56,7 +57,14 @@ async function moveToDlq(
     payload,
   })
   if (error) {
-    console.error('Failed to move message to DLQ', { queue, msg_id: msg.msg_id, reason, error })
+    structuredLog({
+      level: 'error',
+      event: 'email.queue_dlq_failed',
+      code: 'queue_dlq_write_failed',
+      route: '/lovable/email/queue/process',
+      context: { queue, message_id: String(msg.msg_id), reason },
+      error,
+    })
   }
 }
 
@@ -69,7 +77,13 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
         if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
-          console.error('Missing required environment variables')
+          structuredLog({
+            level: 'error',
+            event: 'email.queue_configuration_missing',
+            code: 'email_queue_environment_missing',
+            route: '/lovable/email/queue/process',
+            context: { source: 'server_environment' },
+          })
           return Response.json(
             { error: 'Server configuration error' },
             { status: 500 }
@@ -118,7 +132,14 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
           })
 
           if (readError) {
-            console.error('Failed to read email batch', { queue, error: readError })
+            structuredLog({
+              level: 'error',
+              event: 'email.queue_read_failed',
+              code: 'email_batch_read_failed',
+              route: '/lovable/email/queue/process',
+              context: { queue },
+              error: readError,
+            })
             continue
           }
 
@@ -145,8 +166,12 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
               .eq('status', 'failed')
 
             if (failedRowsError) {
-              console.error('Failed to load failed-attempt counters', {
-                queue,
+              structuredLog({
+                level: 'error',
+                event: 'email.queue_attempt_counter_failed',
+                code: 'failed_attempt_counter_read_failed',
+                route: '/lovable/email/queue/process',
+                context: { queue },
                 error: failedRowsError,
               })
             } else {
@@ -177,11 +202,16 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
               const ageMs = Date.now() - new Date(queuedAt).getTime()
               const maxAgeMs = ttlMinutes[queue] * 60 * 1000
               if (ageMs > maxAgeMs) {
-                console.warn('Email expired (TTL exceeded)', {
-                  queue,
-                  msg_id: msg.msg_id,
-                  queued_at: queuedAt,
-                  ttl_minutes: ttlMinutes[queue],
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.queue_message_expired',
+                  code: 'email_ttl_exceeded',
+                  route: '/lovable/email/queue/process',
+                  context: {
+                    queue,
+                    message_id: String(msg.msg_id),
+                    ttl_minutes: ttlMinutes[queue],
+                  },
                 })
                 await moveToDlq(supabase, queue, msg, `TTL exceeded (${ttlMinutes[queue]} minutes)`)
                 continue
@@ -204,17 +234,26 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                 .maybeSingle()
 
               if (alreadySent) {
-                console.warn('Skipping duplicate send (already sent)', {
-                  queue,
-                  msg_id: msg.msg_id,
-                  message_id: payload.message_id,
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.queue_duplicate_skipped',
+                  code: 'email_already_sent',
+                  route: '/lovable/email/queue/process',
+                  context: { queue, message_id: String(msg.msg_id) },
                 })
                 const { error: dupDelError } = await supabase.rpc('delete_email', {
                   queue_name: queue,
                   message_id: msg.msg_id,
                 })
                 if (dupDelError) {
-                  console.error('Failed to delete duplicate message from queue', { queue, msg_id: msg.msg_id, error: dupDelError })
+                  structuredLog({
+                    level: 'error',
+                    event: 'email.queue_duplicate_delete_failed',
+                    code: 'duplicate_queue_delete_failed',
+                    route: '/lovable/email/queue/process',
+                    context: { queue, message_id: String(msg.msg_id) },
+                    error: dupDelError,
+                  })
                 }
                 continue
               }
@@ -253,17 +292,30 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
                 message_id: msg.msg_id,
               })
               if (delError) {
-                console.error('Failed to delete sent message from queue', { queue, msg_id: msg.msg_id, error: delError })
+                structuredLog({
+                  level: 'error',
+                  event: 'email.queue_sent_delete_failed',
+                  code: 'sent_queue_delete_failed',
+                  route: '/lovable/email/queue/process',
+                  context: { queue, message_id: String(msg.msg_id) },
+                  error: delError,
+                })
               }
               totalProcessed++
             } catch (error) {
               const errorMsg = error instanceof Error ? error.message : String(error)
-              console.error('Email send failed', {
-                queue,
-                msg_id: msg.msg_id,
-                read_ct: msg.read_ct,
-                failed_attempts: failedAttempts,
-                error: errorMsg,
+              structuredLog({
+                level: 'error',
+                event: 'email.queue_send_failed',
+                code: 'email_send_failed',
+                route: '/lovable/email/queue/process',
+                context: {
+                  queue,
+                  message_id: String(msg.msg_id),
+                  read_count: msg.read_ct,
+                  failed_attempts: failedAttempts,
+                },
+                error,
               })
 
               if (isRateLimited(error)) {

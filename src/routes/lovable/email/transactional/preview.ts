@@ -2,6 +2,7 @@ import * as React from 'react'
 import { render } from '@react-email/components'
 import { createFileRoute } from '@tanstack/react-router'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { structuredLog } from '@/lib/structured-log'
 
 // Renders all registered templates with their previewData.
 // Gated by LOVABLE_API_KEY — only the Go API calls this.
@@ -67,8 +68,12 @@ export const Route = createFileRoute("/lovable/email/transactional/preview")({
               status: 'ready',
             })
           } catch (err) {
-            console.error('Failed to render template for preview', {
-              template: name,
+            structuredLog({
+              level: 'error',
+              event: 'email.template_preview_failed',
+              code: 'template_render_failed',
+              route: '/lovable/email/transactional/preview',
+              context: { template: name },
               error: err,
             })
             results.push({

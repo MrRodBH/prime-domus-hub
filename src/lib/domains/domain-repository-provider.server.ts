@@ -6,7 +6,7 @@ import type {
   TenantDomainRecord,
 } from "./domain-contracts";
 import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
-import { objectValue } from "./domain-repository-mappers.server";
+import { mapDomain, objectValue } from "./domain-repository-mappers.server";
 const db = supabaseAdmin as any;
 
 export type DomainProviderIdentityBinding = DomainProviderBindingRecord & {
@@ -14,6 +14,18 @@ export type DomainProviderIdentityBinding = DomainProviderBindingRecord & {
   provisioningKey: string;
   identityBoundAt: string | null;
 };
+
+export interface GlobalProviderOrphanDiagnosticTarget {
+  domain: TenantDomainRecord;
+  provider: {
+    id: string;
+    accountIdentifier: string;
+    credentialReference: string;
+    enabled: boolean;
+    zoneId: string;
+  };
+  binding: DomainProviderIdentityBinding | null;
+}
 
 function mapIdentityBinding(row: any): DomainProviderIdentityBinding {
   const state = row.binding_state;
@@ -123,6 +135,19 @@ export async function getDomainProviderIdentityBinding(
   if (!data || data.length === 0) return null;
   if (data.length !== 1) throw new DomainError("domain_ambiguous", "Provider binding cardinality is ambiguous");
   return mapIdentityBinding(data[0]);
+}
+
+/** Global read-only diagnostic target. It never binds, adopts, updates or deletes provider state. */
+export async function getGlobalProviderOrphanDiagnosticTarget(domainId: string): Promise<GlobalProviderOrphanDiagnosticTarget> {
+  const { data, error } = await db.from("tenant_domains").select("*").eq("id", domainId);
+  if (error) throw toSafeDomainError(error);
+  if (!data || data.length !== 1) {
+    throw new DomainError(data?.length ? "domain_ambiguous" : "domain_not_found", "Global diagnostic domain was not resolved exactly once");
+  }
+  const domain = mapDomain(data[0]);
+  const provider = await getProviderAccountForDomain(domain);
+  const binding = await getDomainProviderIdentityBinding(domain);
+  return { domain, provider, binding };
 }
 
 /** Compatibility read only. Runtime identity decisions must use getDomainProviderIdentityBinding. */

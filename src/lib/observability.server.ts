@@ -3,6 +3,8 @@
 // swallowa erros para nunca quebrar o caller). Use dentro de server functions e
 // route handlers via dynamic import: `await import("@/lib/observability.server")`.
 
+import { structuredLog } from "@/lib/structured-log";
+
 export type EventCategory = "api" | "ai" | "portal" | "feed" | "auth" | "rls" | "job" | "storage";
 export type EventSeverity = "info" | "warn" | "error" | "critical";
 
@@ -38,7 +40,14 @@ export async function logEvent(input: LogEventInput): Promise<void> {
     } as never);
   } catch (e) {
     // Nunca propaga — logging é best-effort
-    console.warn("[observability] logEvent failed:", (e as Error)?.message);
+    structuredLog({
+      level: "warn",
+      event: "observability.database_event_failed",
+      code: "log_system_event_failed",
+      route: "observability",
+      context: { operation: "log_system_event" },
+      error: e,
+    });
   }
 }
 
