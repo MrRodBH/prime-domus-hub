@@ -1,11 +1,101 @@
 import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
 
+const UNSUBSCRIBE_LOG_EVENT = 'email_unsubscribe_error'
+const SENSITIVE_LOG_KEY = /(token|authorization|cookie|jwt|secret|password|api[-_]?key)/i
+const SENSITIVE_LOG_VALUE = [
+  /\bBearer\s+\S+/i,
+  /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/,
+  /\bsb_secret_[A-Za-z0-9_-]+\b/i,
+  /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]+\b/i,
+]
+
+type UnsubscribeFailureStage = 'lookup' | 'mark_used' | 'suppress' | 'unexpected'
+
 function redactEmail(email: string | null | undefined): string {
   if (!email) return '***'
   const [localPart, domain] = email.split('@')
   if (!localPart || !domain) return '***'
   return `${localPart[0]}***@${domain}`
+}
+
+export function redactUnsubscribeLogValue(
+  value: unknown,
+  seen = new WeakSet<object>(),
+): unknown {
+  if (typeof value === 'string') {
+    return SENSITIVE_LOG_VALUE.some((pattern) => pattern.test(value))
+      ? '[REDACTED]'
+      : value
+  }
+  if (value === null || typeof value !== 'object') return value
+  if (seen.has(value)) return '[Circular]'
+  seen.add(value)
+  if (Array.isArray(value)) {
+    return value.map((item) => redactUnsubscribeLogValue(item, seen))
+  }
+  const sanitized: Record<string, unknown> = {}
+  for (const [key, nestedValue] of Object.entries(value)) {
+    sanitized[key] = SENSITIVE_LOG_KEY.test(key)
+      ? '[REDACTED]'
+      : redactUnsubscribeLogValue(nestedValue, seen)
+  }
+  return sanitized
+}
+
+function sanitizeErrorClass(error: unknown): string {
+  if (error instanceof TypeError) return 'TypeError'
+  if (error instanceof RangeError) return 'RangeError'
+  if (error instanceof SyntaxError) return 'SyntaxError'
+  if (error instanceof ReferenceError) return 'ReferenceError'
+  if (error instanceof Error) return 'Error'
+  return 'ExternalServiceError'
+}
+
+export function logUnsubscribeFailure(
+  stage: UnsubscribeFailureStage,
+  error: unknown,
+  correlation: Readonly<Record<string, unknown>> = {},
+): void {
+  console.error(UNSUBSCRIBE_LOG_EVENT, {
+    event_code: UNSUBSCRIBE_LOG_EVENT,
+    error_class: sanitizeErrorClass(error),
+    route: '/email/unsubscribe',
+    stage,
+    correlation: redactUnsubscribeLogValue(correlation),
+  })
+}
+
+export async function extractUnsubscribeToken(request: Request): Promise<string | null> {
+  const url = new URL(request.url)
+  let token = url.searchParams.get('token')
+  if (request.method.toUpperCase() !== 'POST') return token
+
+  const contentType = request.headers.get('content-type') ?? ''
+  if (contentType.includes('application/x-www-form-urlencoded')) {
+    const params = new URLSearchParams(await request.text())
+    if (!params.get('List-Unsubscribe')) {
+      token = params.get('token') ?? token
+    }
+    return token
+  }
+
+  try {
+    const body = (await request.json()) as { token?: unknown }
+    if (typeof body.token === 'string' && body.token) token = body.token
+  } catch {
+    // Query-string token remains authoritative when the optional body is absent.
+  }
+  return token
+}
+
+export function createUnsubscribeJsonResponse(
+  body: unknown,
+  init: ResponseInit = {},
+): Response {
+  const headers = new Headers(init.headers)
+  headers.set('Cache-Control', 'no-store')
+  return Response.json(body, { ...init, headers })
 }
 
 export const Route = createFileRoute("/email/unsubscribe")({
@@ -16,35 +106,37 @@ export const Route = createFileRoute("/email/unsubscribe")({
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
         if (!supabaseUrl || !supabaseServiceKey) {
-          return Response.json({ error: 'Server configuration error' }, { status: 500 })
+          return createUnsubscribeJsonResponse({ error: 'Server configuration error' }, { status: 500 })
         }
 
-        // Extract token from query params
-        const url = new URL(request.url)
-        const token = url.searchParams.get('token')
+        const token = await extractUnsubscribeToken(request)
 
         if (!token) {
-          return Response.json({ error: 'Token is required' }, { status: 400 })
+          return createUnsubscribeJsonResponse({ error: 'Token is required' }, { status: 400 })
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        try {
+          const supabase = createClient(supabaseUrl, supabaseServiceKey)
+          const { data: tokenRecord, error: lookupError } = await supabase
+            .from('email_unsubscribe_tokens')
+            .select('*')
+            .eq('token', token)
+            .maybeSingle()
 
-        // Look up the token
-        const { data: tokenRecord, error: lookupError } = await supabase
-          .from('email_unsubscribe_tokens')
-          .select('*')
-          .eq('token', token)
-          .maybeSingle()
+          if (lookupError) logUnsubscribeFailure('lookup', lookupError, { method: 'GET' })
+          if (lookupError || !tokenRecord) {
+            return createUnsubscribeJsonResponse({ error: 'Invalid or expired token' }, { status: 404 })
+          }
 
-        if (lookupError || !tokenRecord) {
-          return Response.json({ error: 'Invalid or expired token' }, { status: 404 })
+          if (tokenRecord.used_at) {
+            return createUnsubscribeJsonResponse({ valid: false, reason: 'already_unsubscribed' })
+          }
+
+          return createUnsubscribeJsonResponse({ valid: true })
+        } catch (error) {
+          logUnsubscribeFailure('unexpected', error, { method: 'GET' })
+          return createUnsubscribeJsonResponse({ error: 'Failed to process unsubscribe' }, { status: 500 })
         }
-
-        if (tokenRecord.used_at) {
-          return Response.json({ valid: false, reason: 'already_unsubscribed' })
-        }
-
-        return Response.json({ valid: true })
       },
 
       POST: async ({ request }) => {
@@ -52,100 +144,70 @@ export const Route = createFileRoute("/email/unsubscribe")({
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
         if (!supabaseUrl || !supabaseServiceKey) {
-          return Response.json({ error: 'Server configuration error' }, { status: 500 })
+          return createUnsubscribeJsonResponse({ error: 'Server configuration error' }, { status: 500 })
         }
 
-        // Extract token from query params (always present for RFC 8058 one-click)
-        const url = new URL(request.url)
-        let token: string | null = url.searchParams.get('token')
-
-        // Detect RFC 8058 one-click unsubscribe: POST with form-encoded body
-        // containing "List-Unsubscribe=One-Click". Email clients (Gmail, Apple Mail,
-        // etc.) send this when the user clicks "Unsubscribe" in the mail UI.
-        const contentType = request.headers.get('content-type') ?? ''
-        if (contentType.includes('application/x-www-form-urlencoded')) {
-          const formText = await request.text()
-          const params = new URLSearchParams(formText)
-          // For one-click, token comes from query param (already set above).
-          // Otherwise, token may be in the form body.
-          if (!params.get('List-Unsubscribe')) {
-            const formToken = params.get('token')
-            if (formToken) {
-              token = formToken
-            }
-          }
-        } else {
-          // JSON body (from the app's unsubscribe page)
-          try {
-            const body = await request.json()
-            if (body.token) {
-              token = body.token
-            }
-          } catch {
-            // Fall through — token stays from query param
-          }
-        }
+        const token = await extractUnsubscribeToken(request)
 
         if (!token) {
-          return Response.json({ error: 'Token is required' }, { status: 400 })
+          return createUnsubscribeJsonResponse({ error: 'Token is required' }, { status: 400 })
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        try {
+          const supabase = createClient(supabaseUrl, supabaseServiceKey)
+          const { data: tokenRecord, error: lookupError } = await supabase
+            .from('email_unsubscribe_tokens')
+            .select('*')
+            .eq('token', token)
+            .maybeSingle()
 
-        // Look up the token
-        const { data: tokenRecord, error: lookupError } = await supabase
-          .from('email_unsubscribe_tokens')
-          .select('*')
-          .eq('token', token)
-          .maybeSingle()
+          if (lookupError) logUnsubscribeFailure('lookup', lookupError, { method: 'POST' })
+          if (lookupError || !tokenRecord) {
+            return createUnsubscribeJsonResponse({ error: 'Invalid or expired token' }, { status: 404 })
+          }
 
-        if (lookupError || !tokenRecord) {
-          return Response.json({ error: 'Invalid or expired token' }, { status: 404 })
-        }
+          if (tokenRecord.used_at) {
+            return createUnsubscribeJsonResponse({ success: false, reason: 'already_unsubscribed' })
+          }
 
-        if (tokenRecord.used_at) {
-          return Response.json({ success: false, reason: 'already_unsubscribed' })
-        }
+          const { data: updated, error: updateError } = await supabase
+            .from('email_unsubscribe_tokens')
+            .update({ used_at: new Date().toISOString() })
+            .eq('token', token)
+            .is('used_at', null)
+            .select()
+            .maybeSingle()
 
-        // Atomic check-and-update to avoid TOCTOU race
-        const { data: updated, error: updateError } = await supabase
-          .from('email_unsubscribe_tokens')
-          .update({ used_at: new Date().toISOString() })
-          .eq('token', token)
-          .is('used_at', null)
-          .select()
-          .maybeSingle()
+          if (updateError) {
+            logUnsubscribeFailure('mark_used', updateError, { method: 'POST' })
+            return createUnsubscribeJsonResponse({ error: 'Failed to process unsubscribe' }, { status: 500 })
+          }
 
-        if (updateError) {
-          console.error('Failed to mark token as used', { error: updateError, token })
-          return Response.json({ error: 'Failed to process unsubscribe' }, { status: 500 })
-        }
+          if (!updated) {
+            return createUnsubscribeJsonResponse({ success: false, reason: 'already_unsubscribed' })
+          }
 
-        if (!updated) {
-          return Response.json({ success: false, reason: 'already_unsubscribed' })
-        }
+          const { error: suppressError } = await supabase
+            .from('suppressed_emails')
+            .upsert(
+              { email: tokenRecord.email.toLowerCase(), reason: 'unsubscribe' },
+              { onConflict: 'email' },
+            )
 
-        // Add email to suppressed list (upsert to handle duplicates)
-        const { error: suppressError } = await supabase
-          .from('suppressed_emails')
-          .upsert(
-            { email: tokenRecord.email.toLowerCase(), reason: 'unsubscribe' },
-            { onConflict: 'email' },
-          )
+          if (suppressError) {
+            logUnsubscribeFailure('suppress', suppressError, { method: 'POST' })
+            return createUnsubscribeJsonResponse({ error: 'Failed to process unsubscribe' }, { status: 500 })
+          }
 
-        if (suppressError) {
-          console.error('Failed to suppress email', {
-            error: suppressError,
+          console.log('Email unsubscribed', {
             email_redacted: redactEmail(tokenRecord.email),
           })
-          return Response.json({ error: 'Failed to process unsubscribe' }, { status: 500 })
+
+          return createUnsubscribeJsonResponse({ success: true })
+        } catch (error) {
+          logUnsubscribeFailure('unexpected', error, { method: 'POST' })
+          return createUnsubscribeJsonResponse({ error: 'Failed to process unsubscribe' }, { status: 500 })
         }
-
-        console.log('Email unsubscribed', {
-          email_redacted: redactEmail(tokenRecord.email),
-        })
-
-        return Response.json({ success: true })
       },
     },
   },
