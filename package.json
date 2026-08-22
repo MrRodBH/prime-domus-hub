@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit --pretty false",
     "verify:release": "bun ./scripts/verify-release.mjs",
     "ci": "bun run verify:release",
+    "test:arch-tenancy-01": "tsx --tsconfig tsconfig.json ./run-arch-tenancy-01-adr-specs.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test:lsh-01:unit": "tsx --tsconfig tsconfig.json ./run-lead-authorization-specs.ts",
