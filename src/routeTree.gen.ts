@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
+import { Route as ApiInternalDca02ProviderOrphanRecoveryRouteImport } from './routes/api/internal/dca-02-provider-orphan-recovery'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
 import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
 import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
@@ -214,6 +215,12 @@ const ApiInternalSpr03ManagedSecretProvisionRoute =
   ApiInternalSpr03ManagedSecretProvisionRouteImport.update({
     id: '/api/internal/spr-03-managed-secret-provision',
     path: '/api/internal/spr-03-managed-secret-provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalDca02ProviderOrphanRecoveryRoute =
+  ApiInternalDca02ProviderOrphanRecoveryRouteImport.update({
+    id: '/api/internal/dca-02-provider-orphan-recovery',
+    path: '/api/internal/dca-02-provider-orphan-recovery',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedSuperObservabilidadeRoute =
@@ -553,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/dca-02-provider-orphan-recovery': typeof ApiInternalDca02ProviderOrphanRecoveryRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -626,6 +634,7 @@ export interface FileRoutesByTo {
   '/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/dca-02-provider-orphan-recovery': typeof ApiInternalDca02ProviderOrphanRecoveryRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -704,6 +713,7 @@ export interface FileRoutesById {
   '/_authenticated/super/dlq': typeof AuthenticatedSuperDlqRoute
   '/_authenticated/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
+  '/api/internal/dca-02-provider-orphan-recovery': typeof ApiInternalDca02ProviderOrphanRecoveryRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -782,6 +792,7 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/dca-02-provider-orphan-recovery'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -855,6 +866,7 @@ export interface FileRouteTypes {
     | '/super/dlq'
     | '/super/domains'
     | '/super/observabilidade'
+    | '/api/internal/dca-02-provider-orphan-recovery'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -932,6 +944,7 @@ export interface FileRouteTypes {
     | '/_authenticated/super/dlq'
     | '/_authenticated/super/domains'
     | '/_authenticated/super/observabilidade'
+    | '/api/internal/dca-02-provider-orphan-recovery'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -979,6 +992,7 @@ export interface RootRouteChildren {
   ImovelSlugRoute: typeof ImovelSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
+  ApiInternalDca02ProviderOrphanRecoveryRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRoute
   ApiInternalSpr03ManagedSecretProvisionRoute: typeof ApiInternalSpr03ManagedSecretProvisionRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -1173,6 +1187,13 @@ declare module '@tanstack/react-router' {
       path: '/api/internal/spr-03-managed-secret-provision'
       fullPath: '/api/internal/spr-03-managed-secret-provision'
       preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/dca-02-provider-orphan-recovery': {
+      id: '/api/internal/dca-02-provider-orphan-recovery'
+      path: '/api/internal/dca-02-provider-orphan-recovery'
+      fullPath: '/api/internal/dca-02-provider-orphan-recovery'
+      preLoaderRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/super/observabilidade': {
@@ -1690,6 +1711,8 @@ const rootRouteChildren: RootRouteChildren = {
   ImovelSlugRoute: ImovelSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
+  ApiInternalDca02ProviderOrphanRecoveryRoute:
+    ApiInternalDca02ProviderOrphanRecoveryRoute,
   ApiInternalSpr03ManagedSecretProvisionRoute:
     ApiInternalSpr03ManagedSecretProvisionRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,

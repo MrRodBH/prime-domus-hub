@@ -10,6 +10,7 @@ import type { Lead, Status, CorretorLite } from "@/adapters/pipeline-legacy";
 import type { PipelineSearch } from "../search-schema";
 import { toast } from "sonner";
 import { LEAD_TRANSITION_ERROR_CODES } from "@/lib/leads/lead-transition.server";
+import { structuredLog } from "@/lib/structured-log";
 
 const KNOWN_CODES = new Set<string>(LEAD_TRANSITION_ERROR_CODES);
 
@@ -100,8 +101,13 @@ export function usePipelineData(search: PipelineSearch) {
       if (known.includes(l.status)) {
         map[l.status].push(l);
       } else if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.warn("[pipeline] dropping lead with unknown status", { id: l.id, status: l.status });
+        structuredLog({
+          level: "warn",
+          event: "browser.pipeline_unknown_status_dropped",
+          code: "pipeline_unknown_status",
+          route: "browser_pipeline",
+          context: { status: l.status },
+        });
       }
     }
     return map;

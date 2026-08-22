@@ -3,6 +3,7 @@ import { render } from '@react-email/components'
 import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { structuredLog } from '@/lib/structured-log'
 
 // Configuration baked in at scaffold time
 const SITE_NAME = "Prime Property Hub"
@@ -12,13 +13,6 @@ const SENDER_DOMAIN = "contato.rmprimeimoveis.com.br"
 // FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
 // Can be the root domain when display_from_root is enabled — this is cosmetic only.
 const FROM_DOMAIN = "rmprimeimoveis.com.br"
-
-function redactEmail(email: string | null | undefined): string {
-  if (!email) return '***'
-  const [localPart, domain] = email.split('@')
-  if (!localPart || !domain) return '***'
-  return `${localPart[0]}***@${domain}`
-}
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
@@ -37,7 +31,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
         if (!supabaseUrl || !supabaseServiceKey) {
-          console.error('Missing required environment variables')
+          structuredLog({
+            level: 'error',
+            event: 'email.transactional_configuration_missing',
+            code: 'transactional_environment_missing',
+            route: '/lovable/email/transactional/send',
+            context: { source: 'server_environment' },
+          })
           return Response.json(
             { error: 'Server configuration error' },
             { status: 500 }
@@ -92,7 +92,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         const template = TEMPLATES[templateName]
 
         if (!template) {
-          console.error('Template not found in registry', { templateName })
+          structuredLog({
+            level: 'warn',
+            event: 'email.transactional_template_missing',
+            code: 'template_not_found',
+            route: '/lovable/email/transactional/send',
+            context: { template: templateName },
+          })
           return Response.json(
             {
               error: `Template '${templateName}' not found. Available: ${Object.keys(TEMPLATES).join(', ')}`,
@@ -123,9 +129,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           .maybeSingle()
 
         if (suppressionError) {
-          console.error('Suppression check failed — refusing to send', {
+          structuredLog({
+            level: 'error',
+            event: 'email.transactional_suppression_check_failed',
+            code: 'suppression_check_failed_closed',
+            route: '/lovable/email/transactional/send',
+            context: { template: templateName },
             error: suppressionError,
-            recipient_redacted: redactEmail(effectiveRecipient),
           })
           return Response.json(
             { error: 'Failed to verify suppression status' },
@@ -142,9 +152,12 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             status: 'suppressed',
           })
 
-          console.log('Email suppressed', {
-            templateName,
-            recipient_redacted: redactEmail(effectiveRecipient),
+          structuredLog({
+            level: 'info',
+            event: 'email.transactional_suppressed',
+            code: 'recipient_suppressed',
+            route: '/lovable/email/transactional/send',
+            context: { template: templateName, outcome: 'suppressed' },
           })
           return Response.json({ success: false, reason: 'email_suppressed' })
         }
@@ -161,9 +174,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           .maybeSingle()
 
         if (tokenLookupError) {
-          console.error('Token lookup failed', {
+          structuredLog({
+            level: 'error',
+            event: 'email.transactional_unsubscribe_lookup_failed',
+            code: 'unsubscribe_token_lookup_failed',
+            route: '/lovable/email/transactional/send',
+            context: { template: templateName },
             error: tokenLookupError,
-            email_redacted: redactEmail(normalizedEmail),
           })
           await supabase.from('email_send_log').insert({
             message_id: messageId,
@@ -192,7 +209,12 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             )
 
           if (tokenError) {
-            console.error('Failed to create unsubscribe token', {
+            structuredLog({
+              level: 'error',
+              event: 'email.transactional_unsubscribe_create_failed',
+              code: 'unsubscribe_token_create_failed',
+              route: '/lovable/email/transactional/send',
+              context: { template: templateName },
               error: tokenError,
             })
             await supabase.from('email_send_log').insert({
@@ -217,9 +239,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             .maybeSingle()
 
           if (reReadError || !storedToken) {
-            console.error('Failed to read back unsubscribe token after upsert', {
+            structuredLog({
+              level: 'error',
+              event: 'email.transactional_unsubscribe_confirm_failed',
+              code: 'unsubscribe_token_confirm_failed',
+              route: '/lovable/email/transactional/send',
+              context: { template: templateName },
               error: reReadError,
-              email_redacted: redactEmail(normalizedEmail),
             })
             await supabase.from('email_send_log').insert({
               message_id: messageId,
@@ -237,8 +263,12 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         } else {
           // Token exists but is already used — email should have been caught by suppression check above.
           // This is a safety fallback; log and skip sending.
-          console.warn('Unsubscribe token already used but email not suppressed', {
-            email_redacted: redactEmail(normalizedEmail),
+          structuredLog({
+            level: 'warn',
+            event: 'email.transactional_suppression_invariant_failed',
+            code: 'used_token_without_suppression',
+            route: '/lovable/email/transactional/send',
+            context: { template: templateName },
           })
           await supabase.from('email_send_log').insert({
             message_id: messageId,
@@ -292,10 +322,14 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         })
 
         if (enqueueError) {
-          console.error('Failed to enqueue email', {
+          structuredLog({
+            level: 'error',
+            event: 'email.transactional_enqueue_failed',
+            code: 'transactional_enqueue_failed',
+            route: '/lovable/email/transactional/send',
+            requestId: messageId,
+            context: { template: templateName },
             error: enqueueError,
-            templateName,
-            recipient_redacted: redactEmail(effectiveRecipient),
           })
 
           await supabase.from('email_send_log').insert({
@@ -312,9 +346,13 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           )
         }
 
-        console.log('Transactional email enqueued', {
-          templateName,
-          recipient_redacted: redactEmail(effectiveRecipient),
+        structuredLog({
+          level: 'info',
+          event: 'email.transactional_enqueued',
+          code: 'transactional_email_enqueued',
+          route: '/lovable/email/transactional/send',
+          requestId: messageId,
+          context: { template: templateName, outcome: 'queued' },
         })
 
         return Response.json({ success: true, queued: true })

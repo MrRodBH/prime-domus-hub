@@ -1,26 +1,61 @@
 import process from "node:process";
 
-// Server-only config. The .server.ts suffix prevents Vite from bundling
-// this file into the client — values here never reach the browser.
-//
-// On Cloudflare Workers, env binds at REQUEST time. Module-scope reads
-// (e.g. `const x = process.env.X`) resolve to undefined — always read
-// process.env INSIDE a function or handler.
-//
-// When to use which env-access pattern:
-//   - .server.ts module (this file): server-only helpers reused across
-//     handlers. Wrap reads in a function so they run per-request.
-//   - inline process.env inside a createServerFn handler: one-off reads
-//     not reused elsewhere.
-//   - import.meta.env.VITE_FOO: PUBLIC config readable from both client
-//     and server (analytics IDs, public URLs). Define in .env with the
-//     VITE_ prefix. Never put secrets here — they ship to the browser.
+// Server-only configuration. The .server.ts suffix prevents Vite from
+// bundling this file into the client. Values are read inside functions so
+// Cloudflare request-time environment bindings are available.
 
-export function getServerConfig() {
+export const SUPABASE_SERVER_CONFIG_NAMES = [
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+] as const;
+
+type SupabaseServerConfigName = (typeof SUPABASE_SERVER_CONFIG_NAMES)[number];
+type Environment = Readonly<Record<string, string | undefined>>;
+
+export class MissingServerConfigError extends Error {
+  readonly code = "missing_required_config";
+  readonly missingNames: readonly SupabaseServerConfigName[];
+
+  constructor(missingNames: readonly SupabaseServerConfigName[]) {
+    super(`Missing required configuration: ${missingNames.join(", ")}`);
+    this.name = "MissingServerConfigError";
+    this.missingNames = [...missingNames];
+  }
+}
+
+function requireNonBlank(
+  environment: Environment,
+  name: SupabaseServerConfigName,
+): string {
+  const value = environment[name]?.trim();
+  if (!value) {
+    throw new MissingServerConfigError([name]);
+  }
+  return value;
+}
+
+export function getRequiredSupabaseServerConfig(
+  environment: Environment = process.env,
+) {
+  const missingNames = SUPABASE_SERVER_CONFIG_NAMES.filter(
+    (name) => !environment[name]?.trim(),
+  );
+
+  if (missingNames.length > 0) {
+    throw new MissingServerConfigError(missingNames);
+  }
+
   return {
-    nodeEnv: process.env.NODE_ENV,
-    // Add server-only values here, e.g.:
-    //   databaseUrl: process.env.DATABASE_URL,
-    //   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
-  };
+    url: requireNonBlank(environment, "SUPABASE_URL"),
+    publishableKey: requireNonBlank(
+      environment,
+      "SUPABASE_PUBLISHABLE_KEY",
+    ),
+  } as const;
+}
+
+export function getServerConfig(environment: Environment = process.env) {
+  return {
+    nodeEnv: environment.NODE_ENV,
+  } as const;
 }

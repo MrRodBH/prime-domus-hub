@@ -7,6 +7,7 @@
  * autoridade paralela.
  */
 import { getRequest, getRequestIP } from "@tanstack/react-start/server";
+import { structuredLog } from "@/lib/structured-log";
 import type { TenantContext } from "@/integrations/supabase/tenant-middleware";
 import {
   authorizeTenantCmsOperation,
@@ -108,6 +109,13 @@ export async function logCmsAudit(
     // Compatibilidade histórica: mutations legadas não falham depois de já
     // persistirem por erro de telemetria. As novas primitives registram audit
     // atomicamente no banco e não dependem deste helper.
-    console.error("[cms-audit] falhou", error);
+    structuredLog({
+      level: "error",
+      event: "cms.audit_event_failed",
+      code: "cms_audit_failed",
+      route: "cms",
+      context: { operation: "legacy_audit" },
+      error,
+    });
   }
 }

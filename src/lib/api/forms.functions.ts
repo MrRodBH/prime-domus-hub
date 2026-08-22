@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { structuredLog } from "@/lib/structured-log";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
   assertTenantScopedCollection,
@@ -331,7 +332,14 @@ export const submeterFormulario = createServerFn({ method: "POST" })
           });
         }
       } catch (error) {
-        console.error("Falha ao notificar submissão:", { tenantId: tenant.id, formId: form.id, error });
+        structuredLog({
+          level: "error",
+          event: "forms.submission_notification_failed",
+          code: "form_notification_failed",
+          route: "public_form_submit",
+          context: { tenant_id: tenant.id, form_id: form.id },
+          error,
+        });
       }
     }
 
