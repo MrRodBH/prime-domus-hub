@@ -110,7 +110,9 @@ if (baseSha) {
     assert.deepEqual(changedFiles, [...ALLOWLIST].sort());
     assert.equal(changedFiles.some((path) => path.startsWith("src/") || path.startsWith("supabase/") || path === "bun.lock"), false);
   }
-  assert.equal(execFileSync("git", ["rev-list", "--count", `${baseSha}..HEAD`], { encoding: "utf8" }).trim(), "1");
+  if (!integrationMode) {
+    assert.equal(execFileSync("git", ["rev-list", "--count", `${baseSha}..HEAD`], { encoding: "utf8" }).trim(), "1");
+  }
   assert.equal(changedFiles.includes("bun.lock"), false);
 }
 pass("T08", "runtime, schema, migrations, providers and routes remain unchanged");

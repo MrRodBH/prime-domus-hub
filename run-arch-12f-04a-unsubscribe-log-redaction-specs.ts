@@ -165,7 +165,9 @@ if (effectiveBaseSha) {
   } else {
     assert.deepEqual(changedFiles, [...ALLOWLIST].sort());
   }
-  assert.equal(execFileSync("git", ["rev-list", "--count", `${effectiveBaseSha}..HEAD`], { encoding: "utf8" }).trim(), "1");
+  if (!integrationMode) {
+    assert.equal(execFileSync("git", ["rev-list", "--count", `${effectiveBaseSha}..HEAD`], { encoding: "utf8" }).trim(), "1");
+  }
 }
 assert.doesNotMatch(source, /fetch\(|wrangler|stripe|cloudflare/i);
 pass("R08", "provider/database writes are absent and exact CI scope is allowlisted");

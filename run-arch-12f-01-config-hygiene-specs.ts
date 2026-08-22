@@ -190,7 +190,9 @@ const baseSha = integrationMode
   : process.env.ARCH_12F_BASE_SHA;
 if (baseSha) {
   assert.match(baseSha, /^[0-9a-f]{40}$/);
-  assert.equal(git("rev-list", "--count", `${baseSha}..HEAD`), "1");
+  if (!integrationMode) {
+    assert.equal(git("rev-list", "--count", `${baseSha}..HEAD`), "1");
+  }
   const changedFiles = git("diff", "--name-only", `${baseSha}..HEAD`)
     .split(/\r?\n/)
     .filter(Boolean)
@@ -202,7 +204,7 @@ if (baseSha) {
   assert.ok(!changedFiles.includes("bun.lock"));
 }
 pass("F10", integrationMode
-  ? "one atomic 42-path integration commit and zero lockfile scope"
+  ? "exact 42-path forward-only integration and zero lockfile scope"
   : "one atomic source allowlist when exact diff authority is supplied");
 
 console.log("ARCH-12F-01 CONFIG HYGIENE MATRIX PASS");

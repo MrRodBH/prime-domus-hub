@@ -143,18 +143,24 @@ jobs:
         if: steps.scope.outputs.arch_12f_01 == 'true'
         env:
           ARCH_12F_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
+          ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:arch-12f-01
 
       - name: Verify ARCH-12F-04A unsubscribe log redaction
         if: steps.scope.outputs.arch_12f_04a == 'true'
         env:
           ARCH_12F_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
+          ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:arch-12f-04a
 
       - name: Verify ARCH-TENANCY-01 Pool ADR
         if: steps.scope.outputs.arch_tenancy_01 == 'true'
         env:
           ARCH_TENANCY_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
+          ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:arch-tenancy-01
 
       - name: Verify release gate
