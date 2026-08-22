@@ -24,6 +24,7 @@ jobs:
       VITE_SUPABASE_URL: https://example.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
       CRON_SECRET: ci-placeholder-secret
+      STRUCTURED_LOG_STACKS: "false"
     steps:
       - name: Checkout exact event head
         uses: actions/checkout@v4

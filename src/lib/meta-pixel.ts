@@ -21,7 +21,14 @@ export function metaTrack(
       window.fbq("track", event, params ?? {});
     }
   } catch (e) {
-    console.error("[fbq]", e);
+    structuredLog({
+      level: "error",
+      event: "browser.meta_pixel_failed",
+      code: "meta_pixel_track_failed",
+      route: "browser",
+      context: { operation: "track", source: "meta_pixel" },
+      error: e,
+    });
   }
 }
 
@@ -41,3 +48,4 @@ export function metaBrowserIds(): { fbp?: string; fbc?: string } {
   };
   return { fbp: match("_fbp"), fbc: match("_fbc") };
 }
+import { structuredLog } from "@/lib/structured-log";

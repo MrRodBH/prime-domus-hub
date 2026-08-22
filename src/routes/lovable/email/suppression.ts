@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { WebhookError, verifyWebhookRequest } from '@lovable.dev/webhooks-js'
 import { createFileRoute } from '@tanstack/react-router'
+import { structuredLog } from '@/lib/structured-log'
 
 // Suppression event payload sent by the Go API when Mailgun reports
 // a bounce, complaint, or unsubscribe.
@@ -60,7 +61,13 @@ export const Route = createFileRoute("/lovable/email/suppression")({
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
         if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
-          console.error('Missing required environment variables')
+          structuredLog({
+            level: 'error',
+            event: 'email.suppression_configuration_missing',
+            code: 'suppression_environment_missing',
+            route: '/lovable/email/suppression',
+            context: { source: 'server_environment' },
+          })
           return Response.json({ error: 'Server configuration error' }, { status: 500 })
         }
 
@@ -77,24 +84,49 @@ export const Route = createFileRoute("/lovable/email/suppression")({
           if (error instanceof WebhookError) {
             switch (error.code) {
               case 'invalid_signature':
-                console.error('Invalid webhook signature')
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.suppression_webhook_rejected',
+                  code: 'invalid_webhook_signature',
+                  route: '/lovable/email/suppression',
+                })
                 return Response.json({ error: 'Invalid signature' }, { status: 401 })
               case 'stale_timestamp':
-                console.error('Stale webhook timestamp')
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.suppression_webhook_rejected',
+                  code: 'stale_webhook_timestamp',
+                  route: '/lovable/email/suppression',
+                })
                 return Response.json({ error: 'Stale timestamp' }, { status: 401 })
               case 'invalid_payload':
               case 'invalid_json':
-                console.error('Invalid payload', { code: error.code })
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.suppression_webhook_rejected',
+                  code: 'invalid_webhook_payload',
+                  route: '/lovable/email/suppression',
+                  error,
+                })
                 return Response.json({ error: 'Invalid payload' }, { status: 400 })
               default:
-                console.error('Webhook verification failed', {
-                  code: error.code,
-                  message: error.message,
+                structuredLog({
+                  level: 'warn',
+                  event: 'email.suppression_webhook_rejected',
+                  code: 'webhook_verification_failed',
+                  route: '/lovable/email/suppression',
+                  error,
                 })
                 return Response.json({ error: 'Verification failed' }, { status: 401 })
             }
           }
-          console.error('Unexpected error during verification', { error })
+          structuredLog({
+            level: 'error',
+            event: 'email.suppression_verification_failed',
+            code: 'unexpected_verification_error',
+            route: '/lovable/email/suppression',
+            error,
+          })
           return Response.json({ error: 'Internal error' }, { status: 500 })
         }
 
@@ -114,9 +146,12 @@ export const Route = createFileRoute("/lovable/email/suppression")({
           )
 
         if (suppressError) {
-          console.error('Failed to upsert suppressed email', {
+          structuredLog({
+            level: 'error',
+            event: 'email.suppression_upsert_failed',
+            code: 'suppression_upsert_failed',
+            route: '/lovable/email/suppression',
             error: suppressError,
-            email_redacted: normalizedEmail[0] + '***@' + normalizedEmail.split('@')[1],
           })
           return Response.json({ error: 'Failed to write suppression' }, { status: 500 })
         }
@@ -138,17 +173,26 @@ export const Route = createFileRoute("/lovable/email/suppression")({
 
         if (insertError) {
           // Non-fatal — log and continue. The suppression was already recorded.
-          console.warn('Failed to insert email_send_log', {
+          structuredLog({
+            level: 'warn',
+            event: 'email.suppression_audit_failed',
+            code: 'email_send_log_insert_failed',
+            route: '/lovable/email/suppression',
             error: insertError,
           })
         }
 
-        console.log('Suppression processed', {
-          email_redacted: normalizedEmail[0] + '***@' + normalizedEmail.split('@')[1],
-          reason: payload.reason,
-          is_retry: payload.is_retry,
-          retry_count: payload.retry_count,
-          has_message_id: !!payload.message_id,
+        structuredLog({
+          level: 'info',
+          event: 'email.suppression_processed',
+          code: 'suppression_processed',
+          route: '/lovable/email/suppression',
+          context: {
+            reason: payload.reason,
+            is_retry: payload.is_retry,
+            retry_count: payload.retry_count,
+            has_message_id: !!payload.message_id,
+          },
         })
 
         return Response.json({ success: true })
