@@ -167,6 +167,12 @@ jobs:
         if: steps.scope.outputs.docs_only != 'true'
         run: bun run test:prm3-p0a
 
+      - name: Verify PR-M3-FVS1 frontend shell
+        if: steps.scope.outputs.docs_only != 'true'
+        env:
+          PR_M3_FVS1_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pr-m3-fvs1
+
       - name: Verify release gate
         if: steps.scope.outputs.docs_only != 'true'
         shell: bash

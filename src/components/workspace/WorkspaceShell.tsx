@@ -85,6 +85,7 @@ export function WorkspaceShell() {
   const active = contextFromPath(path);
   const visibleContexts = CONTEXTS.filter((context) => !context.superOnly || isSuper);
   const isInvitationRoute = path === "/invitations";
+  const routedContent = <Outlet />;
 
   useEffect(() => {
     if (active.superOnly && isSuper === false) {
@@ -95,23 +96,37 @@ export function WorkspaceShell() {
   return (
     <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>
       <DetailPanelProvider>
-        <div className="h-screen w-full flex bg-background text-foreground overflow-hidden">
+        <div
+          className="min-h-dvh w-full flex overflow-hidden bg-workspace-surface text-foreground"
+          data-workspace-shell="single-authenticated-shell"
+        >
+          <a
+            href="#workspace-main"
+            className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+          >
+            Ir para o conteúdo principal
+          </a>
           <NavigationRail isSuper={Boolean(isSuper)} />
 
-          <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex min-w-0 flex-1 flex-col">
             <AppHeader
               isSuper={Boolean(isSuper)}
               impersonating={impersonating}
               onOpenMobileNav={() => setMobileNavOpen(true)}
             />
             <ContextTabs />
-            <main className="flex-1 min-h-0 overflow-y-auto">
-              <div className="p-4 lg:p-6">
+            <main
+              id="workspace-main"
+              className="min-h-0 flex-1 overflow-y-auto bg-workspace-surface"
+              aria-label="Conteúdo principal"
+              tabIndex={-1}
+            >
+              <div className="mx-auto w-full max-w-[var(--workspace-content-max)] p-4 sm:p-5 lg:p-6">
                 {isInvitationRoute ? (
-                  <Outlet />
+                  routedContent
                 ) : (
                   <TenantSelectionGate isSuper={Boolean(isSuper)}>
-                    <Outlet />
+                    {routedContent}
                   </TenantSelectionGate>
                 )}
               </div>
@@ -122,12 +137,14 @@ export function WorkspaceShell() {
           <AiDrawer />
 
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-            <SheetContent side="left" className="w-[260px] p-0">
-              <VisuallyHidden><SheetTitle>Navegação</SheetTitle></VisuallyHidden>
+            <SheetContent side="left" className="w-[min(86vw,280px)] bg-workspace-navigation p-0">
+              <VisuallyHidden>
+                <SheetTitle>Navegação do workspace</SheetTitle>
+              </VisuallyHidden>
               <div className="h-14 px-4 flex items-center border-b text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 Workspace
               </div>
-              <nav className="p-2 space-y-0.5">
+              <nav className="space-y-0.5 p-2" aria-label="Navegação principal móvel">
                 {visibleContexts.map((context) => {
                   const Icon = context.icon;
                   const isActive = context.id === active.id;
@@ -136,7 +153,8 @@ export function WorkspaceShell() {
                       key={context.id}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       to={context.root as any}
-                      className={`flex items-center gap-3 px-3 h-10 rounded-md text-sm ${
+                      aria-current={isActive ? "page" : undefined}
+                      className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors ${
                         isActive
                           ? "bg-primary text-primary-foreground"
                           : "text-foreground/75 hover:bg-foreground/5"
