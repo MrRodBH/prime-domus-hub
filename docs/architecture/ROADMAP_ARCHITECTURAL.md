@@ -1,5 +1,30 @@
 # ROADMAP ARCHITECTURAL — RM Prime SaaS
 
+## Current P0 authority — PRM3-P0A
+
+The block below supersedes historical `PRM3_STATE = Planned — Blocked` status
+snapshots retained later in this document for audit history.
+
+```text
+PRM3_P0A_CURRENT_AUTHORITY = Accepted with Non-Blocking Backlog
+AUTHORITY_BASE_MAIN = 7a63501d8544228d9303952b05923d783ddd5062
+DCA01_TERMINAL = closed through PR #93
+DCA02_TERMINAL = closed through PR #100
+BCA01_TERMINAL = rejected through PR #102; do not reopen
+BCR_P8EL_R2 = TERMINAL_FAIL_CLOSED_UPSTREAM_TIMEOUT
+BCR_P8EL_R3 = FAIL_CLOSED_NEW_SCOPE
+BCR_RUNTIME = BCR_RUNTIME_DEFERRED_UPSTREAM
+BCR_PR_105_MERGE = false
+PRM3_ENTRY = AUTHORIZED_AFTER_PRM3_P0A_MERGE
+PRM3_FIRST_SLICE = DESIGN_TOKENS_APP_SHELL_AND_DETERMINISTIC_UI_STATES
+LOVABLE_ROADMAP_UPDATE = false
+```
+
+PR-M3 consumes only the provider-agnostic commercial contracts already on
+`main`. Billing provider operations remain explicitly unavailable and tracked
+in `backlog/bcr-runtime-deferred-upstream-backlog.md` until a separate accepted
+BCR recovery gate.
+
 **Status:** Ratificado — WRI-01 Accepted / Merged / Closed; SPR-01 planning Accepted / Merged / Closed; SPR-01 implementation Rejected; SPR-02 planning Accepted / Merged / Closed; SPR-02 principal implementation Rejected; SPR-03 planning Accepted / Merged / Closed; SPR-03 implementation capability gate Accepted; SPR-03 principal implementation Authorized / Not Started
 **Authority:** Single Source of Future Evolution
 **Audited planning merge:** `a7dfee49d7e087f6dbdbf35f54414bb2b6e714ca`

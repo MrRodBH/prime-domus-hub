@@ -3,6 +3,7 @@ import { createMiddleware } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
+import { structuredLog } from '@/lib/structured-log'
 
 
 
@@ -18,7 +19,13 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
         ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
       ];
       const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-      console.error(`[Supabase] ${message}`);
+      structuredLog({
+        level: 'error',
+        event: 'supabase.auth_configuration_missing',
+        code: 'supabase_auth_configuration_missing',
+        route: 'auth_middleware',
+        context: { count: missing.length, source: 'server_environment' },
+      });
       throw new Error(message);
     }
     

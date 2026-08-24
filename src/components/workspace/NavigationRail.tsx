@@ -15,10 +15,11 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
   return (
     <TooltipProvider delayDuration={200}>
       <aside
-        className={`shrink-0 hidden md:flex flex-col border-r border-border bg-card transition-[width] duration-150 ${
+        className={`hidden shrink-0 flex-col border-r border-border bg-workspace-navigation transition-[width] duration-150 md:flex ${
           railCollapsed ? "w-[64px]" : "w-[240px]"
         }`}
         aria-label="Navegação principal"
+        data-workspace-navigation="desktop"
       >
         <div className="h-14 flex items-center gap-2 px-3 border-b border-border">
           <img src={logo} alt="RM Prime" className="h-6 w-auto shrink-0" />
@@ -29,7 +30,7 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
           )}
         </div>
 
-        <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Contextos do workspace">
           {visible.map((c) => {
             const Icon = c.icon;
             const isActive = c.id === active.id;
@@ -38,7 +39,8 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
                 key={c.id}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 to={c.root as any}
-                className={`flex items-center gap-3 px-2.5 h-9 rounded-md text-sm transition-colors ${
+                aria-current={isActive ? "page" : undefined}
+                className={`flex h-9 items-center gap-3 rounded-md px-2.5 text-sm transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-foreground/75 hover:bg-foreground/5"
@@ -63,12 +65,16 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
           <button
             type="button"
             onClick={toggleRail}
-            className={`w-full flex items-center gap-3 px-2.5 h-9 rounded-md text-xs text-muted-foreground hover:bg-foreground/5 ${
+            className={`flex h-9 w-full items-center gap-3 rounded-md px-2.5 text-xs text-muted-foreground transition-colors hover:bg-foreground/5 ${
               railCollapsed ? "justify-center" : ""
             }`}
             aria-label={railCollapsed ? "Expandir navegação" : "Colapsar navegação"}
           >
-            {railCollapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+            {railCollapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
             {!railCollapsed && <span>Colapsar</span>}
           </button>
         </div>

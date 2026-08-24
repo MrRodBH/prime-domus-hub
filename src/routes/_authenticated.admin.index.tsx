@@ -33,14 +33,26 @@ import {
   ChartLine,
 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/ui";
+import { WorkspaceState } from "@/components/workspace";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: DashboardCRM,
 });
 
-type Periodo = "hoje" | "ontem" | "7d" | "30d" | "este_mes" | "mes_anterior" | "este_ano" | "custom";
+type Periodo =
+  | "hoje"
+  | "ontem"
+  | "7d"
+  | "30d"
+  | "este_mes"
+  | "mes_anterior"
+  | "este_ano"
+  | "custom";
 
-function rangeFor(p: Periodo, custom?: { ini: string; fim: string }): { inicio: string; fim: string } {
+function rangeFor(
+  p: Periodo,
+  custom?: { ini: string; fim: string },
+): { inicio: string; fim: string } {
   const now = new Date();
   const fim = new Date(now);
   fim.setHours(23, 59, 59, 999);
@@ -94,7 +106,8 @@ const PERIODOS: { id: Periodo; label: string }[] = [
   { id: "custom", label: "Personalizado" },
 ];
 
-const moeda = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const moeda = (n: number) =>
+  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 const STATUS_QUERY_MAP: Record<string, string[]> = {
   Novo: ["novo"],
@@ -142,6 +155,17 @@ function DashboardCRM() {
   });
 
   const d = stats.data;
+  const hasDashboardActivity = Boolean(
+    d &&
+    [
+      d.resumo.leads.atual,
+      d.resumo.visitas.atual,
+      d.resumo.propostas.atual,
+      d.resumo.vendas.atual,
+      ...d.funil.map((item) => item.quantidade),
+      ...d.origens.map((item) => item.quantidade),
+    ].some((value) => value > 0),
+  );
 
   // Base search params carried into every drill-down link.
   // Note: corretorId from this page references corretores.id, while /admin/leads
@@ -168,20 +192,19 @@ function DashboardCRM() {
       {/* Header + filtros globais */}
       <div className="flex flex-col gap-4">
         <div>
-          <AdminPageHeader
-            eyebrow="Principal"
-            title="Dashboard Comercial"
-          />
-<p className="text-sm text-muted-foreground mt-1">
+          <AdminPageHeader eyebrow="Principal" title="Dashboard Comercial" />
+          <p className="text-sm text-muted-foreground mt-1">
             Indicadores em tempo real, gargalos e oportunidades.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3 bg-card border border-foreground/5 rounded-lg p-4">
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Período do dashboard">
             {PERIODOS.map((p) => (
               <button
                 key={p.id}
+                type="button"
                 onClick={() => setPeriodo(p.id)}
+                aria-pressed={periodo === p.id}
                 className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                   periodo === p.id
                     ? "bg-gold/20 border-gold text-gold"
@@ -196,6 +219,7 @@ function DashboardCRM() {
             <div className="flex gap-2 items-center">
               <input
                 type="date"
+                aria-label="Data inicial"
                 value={custom.ini}
                 onChange={(e) => setCustom((c) => ({ ...c, ini: e.target.value }))}
                 className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
@@ -203,6 +227,7 @@ function DashboardCRM() {
               <span className="text-xs text-muted-foreground">até</span>
               <input
                 type="date"
+                aria-label="Data final"
                 value={custom.fim}
                 onChange={(e) => setCustom((c) => ({ ...c, fim: e.target.value }))}
                 className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
@@ -211,6 +236,7 @@ function DashboardCRM() {
           )}
           {d?.isPrivileged && (
             <select
+              aria-label="Filtrar por corretor"
               value={corretorId}
               onChange={(e) => setCorretorId(e.target.value)}
               className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
@@ -224,6 +250,7 @@ function DashboardCRM() {
             </select>
           )}
           <select
+            aria-label="Filtrar por origem"
             value={origemFiltro}
             onChange={(e) => setOrigemFiltro(e.target.value)}
             className="bg-background border border-foreground/10 rounded px-2 py-1 text-sm"
@@ -238,10 +265,34 @@ function DashboardCRM() {
         </div>
       </div>
 
-      {stats.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
-      {stats.error && <p className="text-sm text-destructive">Erro ao carregar indicadores.</p>}
-
-      {d && (
+      {stats.isPending ? (
+        <WorkspaceState
+          kind="loading"
+          title="Carregando dashboard comercial"
+          description="Consultando indicadores autorizados para a organização selecionada."
+        />
+      ) : stats.isError ? (
+        <WorkspaceState
+          kind="error"
+          title="Erro ao carregar indicadores"
+          description="Não foi possível consultar o read model do dashboard. Nenhum dado foi inferido no cliente."
+          action={
+            <button
+              type="button"
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+              onClick={() => void stats.refetch()}
+            >
+              Tentar novamente
+            </button>
+          }
+        />
+      ) : !d || !hasDashboardActivity ? (
+        <WorkspaceState
+          kind="empty"
+          title="Nenhuma atividade no período"
+          description="A organização não possui indicadores comerciais para os filtros selecionados."
+        />
+      ) : (
         <>
           {/* BLOCO 1 — Resumo Executivo */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -249,7 +300,10 @@ function DashboardCRM() {
               label="Leads Recebidos"
               valor={d.resumo.leads.atual}
               extra={
-                <DeltaBadge delta={d.resumo.leads.deltaPct} suffix="em relação ao período anterior" />
+                <DeltaBadge
+                  delta={d.resumo.leads.deltaPct}
+                  suffix="em relação ao período anterior"
+                />
               }
               icon={Users}
               search={buildSearch({})}
@@ -257,14 +311,22 @@ function DashboardCRM() {
             <ResumoCard
               label="Visitas Agendadas"
               valor={d.resumo.visitas.atual}
-              extra={<span className="text-xs text-muted-foreground">{d.resumo.visitas.conversao}% de conversão</span>}
+              extra={
+                <span className="text-xs text-muted-foreground">
+                  {d.resumo.visitas.conversao}% de conversão
+                </span>
+              }
               icon={CalendarCheck}
               search={buildSearch({ status: "visita,proposta,ganho" })}
             />
             <ResumoCard
               label="Propostas Enviadas"
               valor={d.resumo.propostas.atual}
-              extra={<span className="text-xs text-muted-foreground">{d.resumo.propostas.conversao}% de conversão</span>}
+              extra={
+                <span className="text-xs text-muted-foreground">
+                  {d.resumo.propostas.conversao}% de conversão
+                </span>
+              }
               icon={FileText}
               search={buildSearch({ status: "proposta,ganho" })}
             />
@@ -276,7 +338,6 @@ function DashboardCRM() {
               search={buildSearch({ status: "ganho" })}
             />
           </div>
-
 
           {/* BLOCO 2 — IA Comercial */}
           <div className="bg-gradient-to-br from-gold/10 via-card to-card border border-gold/30 rounded-lg p-6">
@@ -313,7 +374,9 @@ function DashboardCRM() {
                     <Link
                       key={etapa.etapa}
                       to="/admin/leads"
-                      search={buildSearch({ status: STATUS_QUERY_MAP[etapa.etapa]?.join(",") }) as never}
+                      search={
+                        buildSearch({ status: STATUS_QUERY_MAP[etapa.etapa]?.join(",") }) as never
+                      }
                       className="block group"
                     >
                       <div className="flex items-center justify-between text-xs mb-1">
@@ -343,10 +406,26 @@ function DashboardCRM() {
                 <Flame className="size-5 text-destructive" /> Alertas
               </h2>
               <div className="space-y-3">
-                <AlertaItem n={d.alertas.semAtendimento} label="Leads sem primeiro contato (+24h)" search={buildSearch({ alerta: "sem_atendimento" })} />
-                <AlertaItem n={d.alertas.semFollowup} label="Clientes sem follow-up (+3 dias)" search={buildSearch({ alerta: "sem_followup" })} />
-                <AlertaItem n={d.alertas.visitasSemFeedback} label="Visitas sem feedback (+3 dias)" search={buildSearch({ alerta: "visitas_sem_feedback" })} />
-                <AlertaItem n={d.alertas.propostasParadas} label="Propostas sem atualização (+5 dias)" search={buildSearch({ alerta: "propostas_paradas" })} />
+                <AlertaItem
+                  n={d.alertas.semAtendimento}
+                  label="Leads sem primeiro contato (+24h)"
+                  search={buildSearch({ alerta: "sem_atendimento" })}
+                />
+                <AlertaItem
+                  n={d.alertas.semFollowup}
+                  label="Clientes sem follow-up (+3 dias)"
+                  search={buildSearch({ alerta: "sem_followup" })}
+                />
+                <AlertaItem
+                  n={d.alertas.visitasSemFeedback}
+                  label="Visitas sem feedback (+3 dias)"
+                  search={buildSearch({ alerta: "visitas_sem_feedback" })}
+                />
+                <AlertaItem
+                  n={d.alertas.propostasParadas}
+                  label="Propostas sem atualização (+5 dias)"
+                  search={buildSearch({ alerta: "propostas_paradas" })}
+                />
               </div>
             </div>
           </div>
@@ -361,7 +440,9 @@ function DashboardCRM() {
                 {(["leads", "visitas", "propostas", "vendas", "vgv"] as const).map((m) => (
                   <button
                     key={m}
+                    type="button"
                     onClick={() => setSerieMetricas((s) => ({ ...s, [m]: !s[m] }))}
+                    aria-pressed={serieMetricas[m]}
                     className={`text-xs px-2 py-1 rounded border ${
                       serieMetricas[m]
                         ? "bg-gold/20 border-gold text-gold"
@@ -380,14 +461,27 @@ function DashboardCRM() {
                   <XAxis dataKey="data" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
                   <Tooltip
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
                   />
                   <Legend />
-                  {serieMetricas.leads && <Line type="monotone" dataKey="leads" stroke="#3b82f6" strokeWidth={2} />}
-                  {serieMetricas.visitas && <Line type="monotone" dataKey="visitas" stroke="#a855f7" strokeWidth={2} />}
-                  {serieMetricas.propostas && <Line type="monotone" dataKey="propostas" stroke="#f59e0b" strokeWidth={2} />}
-                  {serieMetricas.vendas && <Line type="monotone" dataKey="vendas" stroke="#10b981" strokeWidth={2} />}
-                  {serieMetricas.vgv && <Line type="monotone" dataKey="vgv" stroke="#d4af37" strokeWidth={2} />}
+                  {serieMetricas.leads && (
+                    <Line type="monotone" dataKey="leads" stroke="#3b82f6" strokeWidth={2} />
+                  )}
+                  {serieMetricas.visitas && (
+                    <Line type="monotone" dataKey="visitas" stroke="#a855f7" strokeWidth={2} />
+                  )}
+                  {serieMetricas.propostas && (
+                    <Line type="monotone" dataKey="propostas" stroke="#f59e0b" strokeWidth={2} />
+                  )}
+                  {serieMetricas.vendas && (
+                    <Line type="monotone" dataKey="vendas" stroke="#10b981" strokeWidth={2} />
+                  )}
+                  {serieMetricas.vgv && (
+                    <Line type="monotone" dataKey="vgv" stroke="#d4af37" strokeWidth={2} />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -422,12 +516,25 @@ function DashboardCRM() {
                           {d.origens.map((_, i) => (
                             <Cell
                               key={i}
-                              fill={["#d4af37", "#3b82f6", "#10b981", "#f59e0b", "#a855f7", "#ef4444", "#64748b"][i % 7]}
+                              fill={
+                                [
+                                  "#d4af37",
+                                  "#3b82f6",
+                                  "#10b981",
+                                  "#f59e0b",
+                                  "#a855f7",
+                                  "#ef4444",
+                                  "#64748b",
+                                ][i % 7]
+                              }
                             />
                           ))}
                         </Pie>
                         <Tooltip
-                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          contentStyle={{
+                            background: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                          }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -444,7 +551,15 @@ function DashboardCRM() {
                           <span
                             className="size-2 rounded-full"
                             style={{
-                              background: ["#d4af37", "#3b82f6", "#10b981", "#f59e0b", "#a855f7", "#ef4444", "#64748b"][i % 7],
+                              background: [
+                                "#d4af37",
+                                "#3b82f6",
+                                "#10b981",
+                                "#f59e0b",
+                                "#a855f7",
+                                "#ef4444",
+                                "#64748b",
+                              ][i % 7],
                             }}
                           />
                           {o.nome}
@@ -470,7 +585,8 @@ function DashboardCRM() {
                       <div className="flex justify-between text-xs mb-1">
                         <span>{t.label}</span>
                         <span className={atingiu ? "text-gold" : "text-muted-foreground"}>
-                          {t.atual}% <span className="text-muted-foreground/70">/ meta {t.meta}%</span>
+                          {t.atual}%{" "}
+                          <span className="text-muted-foreground/70">/ meta {t.meta}%</span>
                         </span>
                       </div>
                       <div className="h-2 bg-secondary rounded overflow-hidden">
@@ -522,7 +638,8 @@ function DashboardCRM() {
                     {d.ranking.map((r, i) => {
                       const rowSearch = buildSearch({ corretor_id: r.user_id ?? undefined });
                       const goTo = () =>
-                        (window.location.href = "/admin/leads?" + new URLSearchParams(rowSearch).toString());
+                        (window.location.href =
+                          "/admin/leads?" + new URLSearchParams(rowSearch).toString());
                       return (
                         <tr
                           key={r.corretor_id}
@@ -578,12 +695,13 @@ function ResumoCard({
   );
 }
 
-
 function DeltaBadge({ delta, suffix }: { delta: number; suffix: string }) {
   const up = delta >= 0;
   const Icon = up ? TrendingUp : TrendingDown;
   return (
-    <span className={`text-xs flex items-center gap-1 ${up ? "text-emerald-500" : "text-destructive"}`}>
+    <span
+      className={`text-xs flex items-center gap-1 ${up ? "text-emerald-500" : "text-destructive"}`}
+    >
       <Icon className="size-3" />
       {up ? "+" : ""}
       {delta}% <span className="text-muted-foreground">{suffix}</span>
@@ -591,10 +709,22 @@ function DeltaBadge({ delta, suffix }: { delta: number; suffix: string }) {
   );
 }
 
-function AlertaItem({ n, label, search }: { n: number; label: string; search: Record<string, string> }) {
+function AlertaItem({
+  n,
+  label,
+  search,
+}: {
+  n: number;
+  label: string;
+  search: Record<string, string>;
+}) {
   if (n === 0) return null;
   return (
-    <Link to="/admin/leads" search={search as never} className="flex items-center justify-between gap-3 group">
+    <Link
+      to="/admin/leads"
+      search={search as never}
+      className="flex items-center justify-between gap-3 group"
+    >
       <span className="text-sm">{label}</span>
       <span className="bg-destructive/15 text-destructive text-xs font-bold px-2 py-0.5 rounded-full group-hover:bg-destructive/25">
         {n}
@@ -612,7 +742,11 @@ function Mini({ label, v }: { label: string; v: number | string }) {
   );
 }
 
-function InsightIcon({ tipo }: { tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao" }) {
+function InsightIcon({
+  tipo,
+}: {
+  tipo: "performance" | "gargalo" | "oportunidade" | "alerta" | "previsao";
+}) {
   const map = {
     performance: { I: TrendingUp, c: "text-emerald-500" },
     gargalo: { I: TrendingDown, c: "text-amber-500" },
