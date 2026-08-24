@@ -163,6 +163,10 @@ jobs:
           ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:arch-tenancy-01
 
+      - name: Verify PRM3-P0A frontend entry contract
+        if: steps.scope.outputs.docs_only != 'true'
+        run: bun run test:prm3-p0a
+
       - name: Verify release gate
         if: steps.scope.outputs.docs_only != 'true'
         shell: bash
