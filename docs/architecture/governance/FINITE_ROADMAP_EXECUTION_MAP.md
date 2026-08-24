@@ -28,8 +28,8 @@
 | 14 | SPR-03 implementation capability gate | Accepted | same gate revalidated after SPR-02 credential teardown + direct Cloudflare read-only observation |
 | 15 | SPR-03 implementation | Authorized — Not Started | execute principal under frozen Strategy D + R2; budget 0/2 consumed |
 | 16 | DCA-01 controlled external proof | Blocked External by SPR-03 | terminal Accepted SPR-03 implementation plus separate DCA-01 authorization |
-| 17 | BCA-01 | Planned — Blocked by DCA-01 | DCA-01 terminal Accepted and explicit authorization |
-| 18 | PR-M3 | Planned — Blocked by BCA-01 | BCA-01 Accepted |
+| 17 | BCA-01 / BCR-01 provider runtime | BCA-01 Rejected; BCR runtime deferred upstream | non-blocking backlog for PR-M3; P0 before commercial cutover |
+| 18 | PR-M3 | Authorized — Ready | merge PRM3-P0A and start first vertical slice |
 | 19 | Release Candidate | Blocked by PR-M3 | PR-M3 exit gate |
 | 20 | TH-M1 | Blocked by Release Candidate | internal UAT |
 | 21 | TH-M2 | Blocked by TH-M1 | consolidated remediation |
