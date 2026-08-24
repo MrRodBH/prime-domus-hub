@@ -5,11 +5,8 @@
   "compatibility_date": "2026-07-29",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
-  "preview_urls": true,
+  "preview_urls": false,
   "no_bundle": true,
-  "vars": {
-    "BCR01_PUBLIC_BASE_URL": "https://bcr-p5-hml-rm-prime-wri01-hml.rodolfovaz882.workers.dev"
-  },
   "observability": {
     "enabled": true
   },

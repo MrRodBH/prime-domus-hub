@@ -24,6 +24,9 @@ jobs:
       VITE_SUPABASE_URL: https://example.supabase.co
       VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
       CRON_SECRET: ci-placeholder-secret
+      STRUCTURED_LOG_STACKS: "false"
+      DCA02_BL2_LIVE_RESTORE_ALLOWED: "false"
+      DCA02_BL1_PROVIDER_WRITES_ALLOWED: "false"
     steps:
       - name: Checkout exact event head
         uses: actions/checkout@v4
@@ -67,6 +70,10 @@ jobs:
           fi
 
           docs_only=false
+          arch_12f_01=false
+          arch_12f_04a=false
+          arch_tenancy_01=false
+          arch_integration=false
           changed_file_count=0
 
           if [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]] \
@@ -74,6 +81,24 @@ jobs:
             && git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
             mapfile -t changed_files < <(git diff --name-only "$base_sha..$HEAD_SHA")
             changed_file_count="${#changed_files[@]}"
+            if [[ " ${changed_files[*]} " == *" run-arch-12f-01-config-hygiene-specs.ts "* ]]; then
+              arch_12f_01=true
+            fi
+            if [[ " ${changed_files[*]} " == *" run-arch-12f-04a-unsubscribe-log-redaction-specs.ts "* ]]; then
+              arch_12f_04a=true
+            fi
+            if [[ " ${changed_files[*]} " == *" run-arch-tenancy-01-adr-specs.ts "* ]]; then
+              arch_tenancy_01=true
+            fi
+            if [[ "$changed_file_count" -eq 42 ]] \
+              && [[ " ${changed_files[*]} " == *" run-arch-12f-01-config-hygiene-specs.ts "* ]] \
+              && [[ " ${changed_files[*]} " == *" run-arch-12f-04a-unsubscribe-log-redaction-specs.ts "* ]] \
+              && [[ " ${changed_files[*]} " == *" run-arch-tenancy-01-adr-specs.ts "* ]] \
+              && [[ " ${changed_files[*]} " == *" run-arch-12f-04b-structured-log-specs.ts "* ]] \
+              && [[ " ${changed_files[*]} " == *" run-dca-02-bl2-provider-identity-dr-specs.ts "* ]] \
+              && [[ " ${changed_files[*]} " == *" run-dca-02-bl1-provider-orphan-recovery-specs.ts "* ]]; then
+              arch_integration=true
+            fi
             if [[ "$changed_file_count" -gt 0 ]]; then
               docs_only=true
               for path in "${changed_files[@]}"; do
@@ -87,8 +112,12 @@ jobs:
 
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "arch_12f_01=$arch_12f_01" >> "$GITHUB_OUTPUT"
+          echo "arch_12f_04a=$arch_12f_04a" >> "$GITHUB_OUTPUT"
+          echo "arch_tenancy_01=$arch_tenancy_01" >> "$GITHUB_OUTPUT"
+          echo "arch_integration=$arch_integration" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
-          echo "Release Gate docs_only=$docs_only changed_file_count=$changed_file_count"
+          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration changed_file_count=$changed_file_count"
 
       - name: Documentation governance validation
         if: steps.scope.outputs.docs_only == 'true'
@@ -110,9 +139,46 @@ jobs:
         if: steps.scope.outputs.docs_only != 'true'
         run: bun install --frozen-lockfile
 
+      - name: Verify ARCH-12F-01 config hygiene
+        if: steps.scope.outputs.arch_12f_01 == 'true'
+        env:
+          ARCH_12F_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
+          ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:arch-12f-01
+
+      - name: Verify ARCH-12F-04A unsubscribe log redaction
+        if: steps.scope.outputs.arch_12f_04a == 'true'
+        env:
+          ARCH_12F_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
+          ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:arch-12f-04a
+
+      - name: Verify ARCH-TENANCY-01 Pool ADR
+        if: steps.scope.outputs.arch_tenancy_01 == 'true'
+        env:
+          ARCH_TENANCY_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
+          ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:arch-tenancy-01
+
+      - name: Verify PRM3-P0A frontend entry contract
+        if: steps.scope.outputs.docs_only != 'true'
+        run: bun run test:prm3-p0a
+
+      - name: Verify PR-M3-FVS2 authenticated pipeline read-only
+        if: steps.scope.outputs.docs_only != 'true'
+        env:
+          PR_M3_FVS2_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pr-m3-fvs2
+
       - name: Verify release gate
         if: steps.scope.outputs.docs_only != 'true'
         shell: bash
+        env:
+          ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
+          ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: |
           set -o pipefail
           bun run verify:release 2>&1 | tee release-gate.log
