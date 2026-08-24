@@ -167,11 +167,11 @@ jobs:
         if: steps.scope.outputs.docs_only != 'true'
         run: bun run test:prm3-p0a
 
-      - name: Verify PR-M3-FVS1 frontend shell
+      - name: Verify PR-M3-FVS2 authenticated pipeline read-only
         if: steps.scope.outputs.docs_only != 'true'
         env:
-          PR_M3_FVS1_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
-        run: bun run test:pr-m3-fvs1
+          PR_M3_FVS2_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pr-m3-fvs2
 
       - name: Verify release gate
         if: steps.scope.outputs.docs_only != 'true'
