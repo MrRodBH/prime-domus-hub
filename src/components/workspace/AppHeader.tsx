@@ -48,17 +48,25 @@ export function AppHeader({
   }
 
   return (
-    <header className="h-14 shrink-0 border-b border-border bg-card px-3 sm:px-4 flex items-center gap-3 sticky top-0 z-30">
+    <header
+      className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-workspace-elevated px-3 sm:gap-3 sm:px-4"
+      aria-label="Cabeçalho do workspace"
+    >
       <button
         type="button"
-        className="md:hidden -ml-1 p-2 rounded-md hover:bg-foreground/5"
+        className="-ml-1 rounded-md p-2 transition-colors hover:bg-foreground/5 md:hidden"
         onClick={onOpenMobileNav}
         aria-label="Abrir navegação"
+        aria-haspopup="dialog"
       >
         <Menu className="size-5" />
       </button>
 
-      <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+      <div
+        className="hidden min-w-0 items-center gap-2 text-xs text-muted-foreground sm:flex"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <active.icon className="size-3.5 shrink-0" />
         <span className="truncate">{active.label}</span>
       </div>
@@ -67,7 +75,9 @@ export function AppHeader({
         <button
           type="button"
           onClick={openPalette}
-          className="w-full max-w-[520px] flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-background/60 hover:bg-background text-sm text-muted-foreground transition-colors"
+          className="flex h-9 w-full max-w-[520px] items-center gap-2 rounded-md border border-border bg-background/60 px-3 text-sm text-muted-foreground transition-colors hover:bg-background"
+          aria-label="Abrir busca e paleta de comandos"
+          aria-haspopup="dialog"
         >
           <Search className="size-4 shrink-0" />
           <span className="flex-1 text-left truncate">Buscar, navegar ou criar…</span>
@@ -77,7 +87,7 @@ export function AppHeader({
         </button>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1" aria-label="Ações da conta">
         {impersonating ? (
           <span className="hidden lg:inline text-[10px] font-mono px-2 py-1 rounded bg-amber-500/15 text-amber-800 border border-amber-500/30">
             Impersonando {impersonating.slice(0, 8)}…
@@ -117,7 +127,9 @@ export function AppHeader({
             {isSuper ? (
               <>
                 <DropdownMenuItem asChild>
-                  <Link to={CONTEXTS.find((context) => context.id === "operacao")!.root as "/super"}>
+                  <Link
+                    to={CONTEXTS.find((context) => context.id === "operacao")!.root as "/super"}
+                  >
                     Operação (Super)
                   </Link>
                 </DropdownMenuItem>

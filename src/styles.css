@@ -38,6 +38,16 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* Authenticated workspace semantic tokens */
+  --color-workspace-surface: var(--workspace-surface);
+  --color-workspace-elevated: var(--workspace-elevated);
+  --color-workspace-navigation: var(--workspace-navigation);
+  --color-workspace-navigation-active: var(--workspace-navigation-active);
+  --color-state-info: var(--state-info);
+  --color-state-success: var(--state-success);
+  --color-state-warning: var(--state-warning);
+  --color-state-danger: var(--state-danger);
+
   /* Brand tokens */
   --color-petroleum: var(--petroleum);
   --color-gold: var(--gold);
@@ -80,39 +90,81 @@
   --border: oklch(0.36 0.045 207 / 8%);
   --input: oklch(0.36 0.045 207 / 12%);
   --ring: var(--gold);
+
+  /* Workspace surfaces preserve the brand palette while separating hierarchy. */
+  --workspace-surface: oklch(0.982 0.006 80);
+  --workspace-elevated: oklch(1 0 0);
+  --workspace-navigation: oklch(0.955 0.012 80);
+  --workspace-navigation-active: var(--petroleum);
+  --workspace-focus: var(--gold);
+  --workspace-content-max: 90rem;
+
+  /* Deterministic state colors — never used as the only state indicator. */
+  --state-info: oklch(0.55 0.11 225);
+  --state-success: oklch(0.52 0.11 155);
+  --state-warning: oklch(0.58 0.12 75);
+  --state-danger: var(--destructive);
 }
 
 .dark {
   --background: var(--petroleum);
   --foreground: var(--linen);
-  --card: oklch(0.30 0.04 207);
+  --card: oklch(0.3 0.04 207);
   --card-foreground: var(--linen);
-  --popover: oklch(0.30 0.04 207);
+  --popover: oklch(0.3 0.04 207);
   --popover-foreground: var(--linen);
   --primary: var(--linen);
   --primary-foreground: var(--petroleum);
-  --secondary: oklch(0.30 0.04 207);
+  --secondary: oklch(0.3 0.04 207);
   --secondary-foreground: var(--linen);
-  --muted: oklch(0.30 0.04 207);
+  --muted: oklch(0.3 0.04 207);
   --muted-foreground: oklch(0.78 0.02 188);
   --accent: var(--gold);
   --accent-foreground: var(--petroleum);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: var(--gold);
+  --workspace-surface: oklch(0.265 0.038 207);
+  --workspace-elevated: oklch(0.3 0.04 207);
+  --workspace-navigation: oklch(0.235 0.035 207);
+  --workspace-navigation-active: var(--linen);
+  --workspace-focus: var(--gold);
+  --state-info: oklch(0.72 0.1 225);
+  --state-success: oklch(0.72 0.1 155);
+  --state-warning: oklch(0.78 0.11 75);
+  --state-danger: oklch(0.7 0.17 27.325);
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { -webkit-font-smoothing: antialiased; }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
   }
-  h1, h2, h3, h4, .font-display { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.01em; }
-  ::selection { background: color-mix(in oklab, var(--tiffany) 70%, transparent); color: var(--petroleum); }
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--workspace-focus);
+    outline-offset: 2px;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--tiffany) 70%, transparent);
+    color: var(--petroleum);
+  }
 }
 
 @layer utilities {
@@ -126,12 +178,36 @@
   }
   .rule {
     height: 1px;
-    background: linear-gradient(to right, transparent, color-mix(in oklab, var(--petroleum) 20%, transparent), transparent);
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in oklab, var(--petroleum) 20%, transparent),
+      transparent
+    );
   }
 }
 
 @keyframes revealUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.animate-reveal { animation: revealUp 0.9s cubic-bezier(0.19, 1, 0.22, 1) both; }
+.animate-reveal {
+  animation: revealUp 0.9s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
