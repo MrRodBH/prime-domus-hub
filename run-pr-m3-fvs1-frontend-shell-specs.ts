@@ -35,12 +35,19 @@ const allowlist = new Set([
   "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-fvs1-frontend-shell-evidence.md",
 ]);
 
+// Workflows materialize exact-head evidence before running the composite gate.
+// Those runner-owned files are not repository changes; the committed diff below
+// remains the sole remote authority. Local pre-commit execution still audits
+// untracked source files so a twelfth authored path cannot escape the allowlist.
+const localUntracked =
+  process.env.GITHUB_ACTIONS === "true" ? "" : git("ls-files", "--others", "--exclude-standard");
+
 const changed = new Set(
   [
     git("diff", "--name-only", `${baseSha}...HEAD`),
     git("diff", "--name-only"),
     git("diff", "--cached", "--name-only"),
-    git("ls-files", "--others", "--exclude-standard"),
+    localUntracked,
   ]
     .flatMap((output) => output.split("\n"))
     .filter(Boolean),
