@@ -173,6 +173,12 @@ jobs:
           PR_M3_FVS3_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:pr-m3-fvs3
 
+      - name: Verify PR-M3-FVS4 authenticated insights and visual intelligence read-only
+        if: steps.scope.outputs.docs_only != 'true'
+        env:
+          PR_M3_FVS4_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pr-m3-fvs4
+
       - name: Verify release gate
         if: steps.scope.outputs.docs_only != 'true'
         shell: bash
