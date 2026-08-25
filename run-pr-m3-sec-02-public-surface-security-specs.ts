@@ -39,9 +39,7 @@ const allowlist = new Set([
 ]);
 
 const localUntracked =
-  process.env.GITHUB_ACTIONS === "true"
-    ? ""
-    : git("ls-files", "--others", "--exclude-standard");
+  process.env.GITHUB_ACTIONS === "true" ? "" : git("ls-files", "--others", "--exclude-standard");
 const changed = new Set(
   [
     git("diff", "--name-only", `${baseSha}...HEAD`),
@@ -53,13 +51,9 @@ const changed = new Set(
     .filter(Boolean),
 );
 
-for (const path of changed) {
-  ok(allowlist.has(path), `changed path must be allowlisted: ${path}`);
-}
+for (const path of changed) ok(allowlist.has(path), `changed path must be allowlisted: ${path}`);
 equal(changed.size, allowlist.size, "SEC-02 must change exactly eleven frozen paths");
-for (const path of allowlist) {
-  ok(changed.has(path), `SEC-02 exact allowlist path must change: ${path}`);
-}
+for (const path of allowlist) ok(changed.has(path), `SEC-02 exact allowlist path must change: ${path}`);
 
 equal(
   read("bun.lock"),
@@ -68,9 +62,7 @@ equal(
 );
 
 const packageJson = JSON.parse(read("package.json")) as Record<string, unknown>;
-const basePackageJson = JSON.parse(
-  git("show", `${baseSha}:package.json`),
-) as Record<string, unknown>;
+const basePackageJson = JSON.parse(git("show", `${baseSha}:package.json`)) as Record<string, unknown>;
 for (const key of ["dependencies", "devDependencies", "pnpm", "overrides", "resolutions"]) {
   equal(packageJson[key], basePackageJson[key], `${key} must remain unchanged`);
 }
@@ -143,8 +135,7 @@ ok(
   "public title/code search must remain available",
 );
 ok(
-  catalog.indexOf("assertTenantScopedRows") <
-    catalog.indexOf("projectPublicPropertyAddress(dto)"),
+  catalog.indexOf("assertTenantScopedRows") < catalog.indexOf("projectPublicPropertyAddress(dto)"),
   "tenant validation must precede address projection",
 );
 
@@ -191,14 +182,19 @@ for (const required of [
 }
 ok(!migration.includes("sandbox_exec"), "repository migration must not mutate sandbox_exec");
 
+const campaignHandlerStart = campaignApi.indexOf("export const registrarEventoCampanha");
+const campaignHandler =
+  campaignHandlerStart >= 0 ? campaignApi.slice(campaignHandlerStart) : "";
 ok(
-  campaignApi.includes("requirePublicWriterTenantFromRequest") &&
-    campaignApi.includes("recordPublicCampaignEvent") &&
-    !campaignApi.includes('.from("cms_campaign_events").insert'),
+  campaignHandler.includes("requirePublicWriterTenantFromRequest") &&
+    campaignHandler.includes("recordPublicCampaignEvent") &&
+    !campaignHandler.includes("supabaseAdmin") &&
+    !campaignHandler.includes("await publicClient"),
   "public campaign event path must remain host-derived and server-owned",
 );
 ok(
-  campaignWriter.includes("supabaseAdmin") && campaignWriter.includes("tenant.id"),
+  campaignWriter.includes("supabaseAdmin") &&
+    campaignWriter.includes("tenant.id"),
   "campaign writer must retain server-side tenant authority",
 );
 ok(
