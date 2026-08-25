@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "sdk_version": "0.28.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://stmcnvzuzlyqammyycxj.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "rm-prime-saas",
+      "version": "0.1.0",
+      "title": "RM Prime SaaS"
+    },
+    "tools": [
+      {
+        "name": "current_workspace",
+        "title": "Workspace atual",
+        "description": "Retorna o usuário autenticado e a imobiliária (tenant) cujo contexto será usado pelas demais ferramentas.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_imoveis",
+        "title": "Listar imóveis",
+        "description": "Lista imóveis da imobiliária do usuário autenticado, com busca por título/código e filtros de status e finalidade.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Texto para buscar no título ou código."
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Filtra pelo status do imóvel (ex.: publicado)."
+            },
+            "finalidade": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Filtra pela finalidade (ex.: venda, locacao)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Máximo de imóveis retornados."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_imovel",
+        "title": "Detalhar imóvel",
+        "description": "Retorna o detalhe completo de um imóvel pelo id ou pelo slug.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Identificador do imóvel."
+            },
+            "slug": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "description": "Slug do imóvel."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_leads",
+        "title": "Listar leads",
+        "description": "Lista os leads do CRM visíveis para o usuário autenticado, com filtro por status e busca por nome, e-mail ou telefone.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Texto para buscar em nome, e-mail ou telefone."
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Filtra pelo status do lead no pipeline."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "description": "Máximo de leads retornados."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_lead",
+        "title": "Criar lead manual",
+        "description": "Cria um lead manual no CRM da imobiliária do usuário autenticado, usando a rotina oficial de cadastro do sistema.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "nome": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 200,
+              "description": "Nome do lead."
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 320,
+              "description": "E-mail do lead."
+            },
+            "telefone": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 40,
+              "description": "Telefone do lead."
+            },
+            "imovel_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Imóvel de interesse."
+            },
+            "observacoes": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "Observações iniciais."
+            }
+          },
+          "required": [
+            "nome"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

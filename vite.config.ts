@@ -9,6 +9,7 @@
 // rewriting plugin are permitted.
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 import type {} from "nitro/vite";
 
 const wri01RuntimePlugin = fileURLToPath(
@@ -22,6 +23,7 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    plugins: [mcpPlugin()],
     nitro: {
       plugins: [wri01RuntimePlugin],
       output: {
