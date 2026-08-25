@@ -8,22 +8,39 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import logo from "@/assets/logo-rm-prime.png";
 
+function safeNext(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  // Só aceita caminho relativo same-origin.
+  if (!value.startsWith("/") || value.startsWith("//")) return undefined;
+  return value;
+}
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): { next?: string } => {
+    const next = safeNext(search.next);
+    return next ? { next } : {};
+  },
   head: () => ({ meta: [{ title: "Acesso administrativo — RM Prime Imóveis" }, { name: "robots", content: "noindex" }] }),
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/admin" });
+      if (!data.user) return;
+      if (next) {
+        window.location.replace(next);
+        return;
+      }
+      navigate({ to: "/admin" });
     });
-  }, [navigate]);
+  }, [navigate, next]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +52,10 @@ function AuthPage() {
       return;
     }
     toast.success("Bem-vindo de volta.");
+    if (next) {
+      window.location.replace(next);
+      return;
+    }
     navigate({ to: "/admin" });
   }
 
