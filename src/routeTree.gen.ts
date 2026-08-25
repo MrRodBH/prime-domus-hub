@@ -14,7 +14,6 @@ import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LancamentosRouteImport } from './routes/lancamentos'
 import { Route as ImoveisRouteImport } from './routes/imoveis'
 import { Route as ContatoRouteImport } from './routes/contato'
@@ -31,8 +30,6 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AuthenticatedSuperRouteImport } from './routes/_authenticated.super'
 import { Route as AuthenticatedInvitationsRouteImport } from './routes/_authenticated.invitations'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authenticated.super.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -66,8 +63,6 @@ import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
 import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated.admin.auditoria'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
-import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAdminPaginasIndexRouteImport } from './routes/_authenticated.admin.paginas.index'
 import { Route as AuthenticatedAdminLancamentosIndexRouteImport } from './routes/_authenticated.admin.lancamentos.index'
 import { Route as AuthenticatedAdminImoveisIndexRouteImport } from './routes/_authenticated.admin.imoveis.index'
@@ -114,11 +109,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LancamentosRoute = LancamentosRouteImport.update({
@@ -201,18 +191,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedSuperIndexRoute = AuthenticatedSuperIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -403,17 +381,6 @@ const AuthenticatedAdminAuditoriaRoute =
     path: '/auditoria',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedAdminPaginasIndexRoute =
   AuthenticatedAdminPaginasIndexRouteImport.update({
     id: '/paginas/',
@@ -552,14 +519,11 @@ export interface FileRoutesByFullPath {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRouteWithChildren
-  '/mcp': typeof McpRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/invitations': typeof AuthenticatedInvitationsRoute
   '/super': typeof AuthenticatedSuperRouteWithChildren
@@ -569,8 +533,6 @@ export interface FileRoutesByFullPath {
   '/lancamentos/$slug': typeof LancamentosSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
@@ -634,14 +596,11 @@ export interface FileRoutesByTo {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRouteWithChildren
-  '/mcp': typeof McpRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/invitations': typeof AuthenticatedInvitationsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -649,8 +608,6 @@ export interface FileRoutesByTo {
   '/lancamentos/$slug': typeof LancamentosSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog': typeof BlogIndexRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/admin/cidades': typeof AuthenticatedAdminCidadesRoute
@@ -715,14 +672,11 @@ export interface FileRoutesById {
   '/contato': typeof ContatoRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRouteWithChildren
-  '/mcp': typeof McpRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/invitations': typeof AuthenticatedInvitationsRoute
   '/_authenticated/super': typeof AuthenticatedSuperRouteWithChildren
@@ -732,8 +686,6 @@ export interface FileRoutesById {
   '/lancamentos/$slug': typeof LancamentosSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/bairros': typeof AuthenticatedAdminBairrosRoute
   '/_authenticated/admin/blog': typeof AuthenticatedAdminBlogRouteWithChildren
@@ -799,14 +751,11 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
-    | '/mcp'
     | '/privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sobre'
     | '/unsubscribe'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/invitations'
     | '/super'
@@ -816,8 +765,6 @@ export interface FileRouteTypes {
     | '/lancamentos/$slug'
     | '/p/$slug'
     | '/blog/'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/admin/auditoria'
     | '/admin/bairros'
     | '/admin/blog'
@@ -881,14 +828,11 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
-    | '/mcp'
     | '/privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sobre'
     | '/unsubscribe'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/invitations'
     | '/blog/$slug'
     | '/email/unsubscribe'
@@ -896,8 +840,6 @@ export interface FileRouteTypes {
     | '/lancamentos/$slug'
     | '/p/$slug'
     | '/blog'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/admin/auditoria'
     | '/admin/bairros'
     | '/admin/cidades'
@@ -961,14 +903,11 @@ export interface FileRouteTypes {
     | '/contato'
     | '/imoveis'
     | '/lancamentos'
-    | '/mcp'
     | '/privacidade'
     | '/reset-password'
     | '/sitemap.xml'
     | '/sobre'
     | '/unsubscribe'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
     | '/_authenticated/invitations'
     | '/_authenticated/super'
@@ -978,8 +917,6 @@ export interface FileRouteTypes {
     | '/lancamentos/$slug'
     | '/p/$slug'
     | '/blog/'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/bairros'
     | '/_authenticated/admin/blog'
@@ -1045,21 +982,16 @@ export interface RootRouteChildren {
   ContatoRoute: typeof ContatoRoute
   ImoveisRoute: typeof ImoveisRoute
   LancamentosRoute: typeof LancamentosRouteWithChildren
-  McpRoute: typeof McpRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreRoute: typeof SobreRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
-  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   BlogSlugRoute: typeof BlogSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
-  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
-  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiInternalDca02ProviderOrphanRecoveryRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRoute
   ApiInternalSpr03ManagedSecretProvisionRoute: typeof ApiInternalSpr03ManagedSecretProvisionRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
@@ -1108,13 +1040,6 @@ declare module '@tanstack/react-router' {
       path: '/privacidade'
       fullPath: '/privacidade'
       preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lancamentos': {
@@ -1228,20 +1153,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/super/': {
       id: '/_authenticated/super/'
@@ -1473,20 +1384,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/auditoria'
       preLoaderRoute: typeof AuthenticatedAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/paginas/': {
       id: '/_authenticated/admin/paginas/'
@@ -1804,22 +1701,16 @@ const rootRouteChildren: RootRouteChildren = {
   ContatoRoute: ContatoRoute,
   ImoveisRoute: ImoveisRoute,
   LancamentosRoute: LancamentosRouteWithChildren,
-  McpRoute: McpRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreRoute: SobreRoute,
   UnsubscribeRoute: UnsubscribeRoute,
-  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   BlogSlugRoute: BlogSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ImovelSlugRoute: ImovelSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
-  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
-  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiInternalDca02ProviderOrphanRecoveryRoute:
     ApiInternalDca02ProviderOrphanRecoveryRoute,
   ApiInternalSpr03ManagedSecretProvisionRoute:
