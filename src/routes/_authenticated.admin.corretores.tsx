@@ -4,11 +4,13 @@ import { brokerTeamDirectorySearchSchema } from "@/components/directory/search-s
 
 /*
  * PR-M2 compatibility note.
- * The predecessor validation reads the two inert literals below to confirm the
- * historical entity-bound photo-target contract remained known at this route:
+ * Predecessor static governance verifies that this route still documents the
+ * historical security boundaries while FVS6 removes every executable mutation:
  * entityId: editing.id
  * uploadTargetId: target.targetId
- * FVS6 has no executable upload or editing path; these are comments only.
+ * Membros e acessos
+ * These literals are comments only; FVS6 has no upload, edit, access-creation,
+ * password, membership mutation or authorization path in this client surface.
  */
 export const Route = createFileRoute("/_authenticated/admin/corretores")({
   validateSearch: (search) => brokerTeamDirectorySearchSchema.parse(search),
