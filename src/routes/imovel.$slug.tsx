@@ -107,7 +107,7 @@ function Page() {
   useEffect(() => {
     if (!imovel) return;
     const bairroNome = (imovel.bairro as { nome?: string } | null)?.nome;
-    const cidadeNome = (imovel.cidade as { nome?: string } | null)?.nome;
+    const cidadeNome = typeof imovel.public_city === "string" ? imovel.public_city : undefined;
     const event_id = metaEventId();
     const custom = {
       content_type: "product",
@@ -143,6 +143,28 @@ function Page() {
   if (!imovel) return null;
 
   const bairro = (imovel.bairro as { nome?: string; slug?: string } | null) ?? null;
+  const publicAddressMode =
+    imovel.public_address_mode === "full" ||
+    imovel.public_address_mode === "street" ||
+    imovel.public_address_mode === "hidden"
+      ? imovel.public_address_mode
+      : "hidden";
+  const publicLocationLabel =
+    typeof imovel.public_location_label === "string"
+      ? imovel.public_location_label
+      : null;
+  const publicMapQuery =
+    typeof imovel.public_map_query === "string"
+      ? imovel.public_map_query
+      : publicLocationLabel ?? bairro?.nome ?? "Localização aproximada";
+  const publicLatitude =
+    publicAddressMode === "full" && typeof imovel.public_latitude === "number"
+      ? imovel.public_latitude
+      : null;
+  const publicLongitude =
+    publicAddressMode === "full" && typeof imovel.public_longitude === "number"
+      ? imovel.public_longitude
+      : null;
   const corretor =
     (imovel.corretor as {
       nome?: string; sobrenome?: string; creci?: string; foto_url?: string; whatsapp?: string;
@@ -209,33 +231,14 @@ function Page() {
             <p className="text-2xl md:text-3xl font-medium text-gold mb-3">
               {formatPreco(Number(imovel.preco), imovel.preco_sob_consulta)}
             </p>
-            {(() => {
-              const im = imovel as {
-                rua?: string | null; numero?: string | null; complemento?: string | null;
-                endereco?: string | null; cidade?: string | null; estado?: string | null;
-                cep?: string | null; mostrar_rua?: boolean; mostrar_endereco_completo?: boolean;
-              };
-              const rua = (im.rua || im.endereco || "").trim();
-              let texto: string | null = null;
-              if (im.mostrar_endereco_completo) {
-                texto = [
-                  [rua, im.numero].filter(Boolean).join(", "),
-                  im.complemento,
-                  bairro?.nome,
-                  [im.cidade, im.estado].filter(Boolean).join(" - "),
-                  im.cep,
-                ].filter(Boolean).join(" • ");
-              } else if (im.mostrar_rua && rua) {
-                texto = [rua, bairro?.nome, im.cidade].filter(Boolean).join(", ");
-              }
-              if (!texto) return <div className="mb-8" />;
-              return (
-                <p className="text-sm text-muted-foreground flex items-start gap-1.5 mb-8">
-                  <MapPin className="size-3.5 mt-0.5 shrink-0" strokeWidth={1.5} />
-                  <span>{texto}</span>
-                </p>
-              );
-            })()}
+            {publicLocationLabel ? (
+              <p className="text-sm text-muted-foreground flex items-start gap-1.5 mb-8">
+                <MapPin className="size-3.5 mt-0.5 shrink-0" strokeWidth={1.5} />
+                <span>{publicLocationLabel}</span>
+              </p>
+            ) : (
+              <div className="mb-8" />
+            )}
 
             {/* Specs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-foreground/10">
@@ -281,39 +284,18 @@ function Page() {
             <section className="mt-12">
               <span className="eyebrow">Localização</span>
               <h2 className="font-display text-3xl mt-3 mb-5">Como chegar</h2>
-              {(() => {
-                const im = imovel as {
-                  rua?: string | null; numero?: string | null;
-                  endereco?: string | null;
-                  cidade?: string | null; estado?: string | null;
-                  mostrar_rua?: boolean; mostrar_endereco_completo?: boolean;
-                };
-                const ruaNome = (im.rua || im.endereco || "").trim();
-                const ruaComNumero = [ruaNome, im.numero].filter(Boolean).join(", ");
-                const enderecoFull = ruaComNumero || im.endereco || "";
-                const cidade = im.cidade || "Belo Horizonte";
-                return (
-                  <>
-                    <Mapa
-                      bairro={bairro?.nome ?? cidade}
-                      endereco={enderecoFull}
-                      lat={imovel.latitude ? Number(imovel.latitude) : null}
-                      lng={imovel.longitude ? Number(imovel.longitude) : null}
-                      mostrarRua={im.mostrar_rua ?? false}
-                      mostrarCompleto={im.mostrar_endereco_completo ?? false}
-                    />
-                    {(() => {
-                      if (im.mostrar_endereco_completo && enderecoFull) {
-                        return <p className="text-sm text-muted-foreground mt-3">{enderecoFull}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
-                      }
-                      if (im.mostrar_rua && ruaNome) {
-                        return <p className="text-sm text-muted-foreground mt-3">{ruaNome}{bairro?.nome ? `, ${bairro.nome}` : ""}</p>;
-                      }
-                      return bairro?.nome ? <p className="text-sm text-muted-foreground mt-3">{bairro.nome}</p> : null;
-                    })()}
-                  </>
-                );
-              })()}
+              <Mapa
+                label={publicLocationLabel ?? bairro?.nome ?? "Localização aproximada"}
+                query={publicMapQuery}
+                mode={publicAddressMode}
+                lat={publicLatitude}
+                lng={publicLongitude}
+              />
+              {publicLocationLabel ? (
+                <p className="text-sm text-muted-foreground mt-3">
+                  {publicLocationLabel}
+                </p>
+              ) : null}
             </section>
           </article>
 
@@ -515,48 +497,32 @@ function MediaEmbed({ tourUrl }: { tourUrl: string | null; videoUrl?: string | n
 }
 
 function Mapa({
-  bairro,
-  endereco,
+  label,
+  query,
+  mode,
   lat,
   lng,
-  mostrarRua,
-  mostrarCompleto,
 }: {
-  bairro: string;
-  endereco: string | null;
+  label: string;
+  query: string;
+  mode: "hidden" | "street" | "full";
   lat: number | null;
   lng: number | null;
-  mostrarRua: boolean;
-  mostrarCompleto: boolean;
 }) {
-  // Define o destino do pino conforme a visibilidade configurada no CMS
-  let src: string;
-  if (mostrarCompleto) {
-    // Pino exato: lat/lng se houver, senão endereço completo
-    if (lat != null && lng != null) {
-      src = `https://www.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
-    } else {
-      const q = encodeURIComponent(
-        (endereco ? endereco + ", " : "") + bairro + ", Belo Horizonte, MG",
-      );
-      src = `https://www.google.com/maps?q=${q}&z=16&output=embed`;
-    }
-  } else if (mostrarRua) {
-    // Pino na rua (sem número exato): remove número do endereço
-    const semNumero = (endereco ?? "").replace(/,?\s*\d+.*$/, "").trim();
-    const q = encodeURIComponent(
-      (semNumero ? semNumero + ", " : "") + bairro + ", Belo Horizonte, MG",
-    );
-    src = `https://www.google.com/maps?q=${q}&z=15&output=embed`;
-  } else {
-    // Apenas bairro
-    const q = encodeURIComponent(bairro + ", Belo Horizonte, MG");
-    src = `https://www.google.com/maps?q=${q}&z=14&output=embed`;
-  }
+  const exactCoordinates =
+    mode === "full" &&
+    lat !== null &&
+    lng !== null &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng);
+  const zoom = mode === "full" ? 16 : mode === "street" ? 15 : 14;
+  const destination = exactCoordinates ? `${lat},${lng}` : query;
+  const src = `https://www.google.com/maps?q=${encodeURIComponent(destination)}&z=${zoom}&output=embed`;
+
   return (
     <div className="aspect-[16/9] rounded overflow-hidden border border-foreground/10">
       <iframe
-        title={`Mapa - ${bairro}`}
+        title={`Mapa - ${label}`}
         src={src}
         loading="lazy"
         className="w-full h-full"
