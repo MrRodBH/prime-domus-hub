@@ -6,6 +6,7 @@ import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import { assertTenantScopedRows, withoutTenantId } from "@/lib/public-tenant-read-guards";
 import { normalizePublicMediaUrl } from "@/lib/public-content-security";
 import { toEmbedUrl } from "@/lib/embed-url";
+import { projectPublicPropertyAddress } from "@/lib/public-property-address-projection.server";
 
 type TenantRow = { tenant_id: string } & Record<string, any>;
 
@@ -102,7 +103,7 @@ export const listarImoveis = createServerFn({ method: "GET" })
     if (data.preco_min) query = query.gte("preco", data.preco_min);
     if (data.preco_max) query = query.lte("preco", data.preco_max);
     if (data.area_min) query = query.gte("area_util", data.area_min);
-    if (data.busca) query = query.or(`titulo.ilike.%${data.busca}%,codigo.ilike.%${data.busca}%,endereco.ilike.%${data.busca}%`);
+    if (data.busca) query = query.or(`titulo.ilike.%${data.busca}%,codigo.ilike.%${data.busca}%`);
     if (data.apenas_destaque) query = query.eq("destaque", true);
 
     switch (data.ordenar) {
@@ -266,7 +267,7 @@ export const obterImovel = createServerFn({ method: "GET" })
     });
     dto.video_url = toEmbedUrl(typeof dto.video_url === "string" ? dto.video_url : null);
     dto.tour_url = toEmbedUrl(typeof dto.tour_url === "string" ? dto.tour_url : null);
-    return dto;
+    return projectPublicPropertyAddress(dto);
   });
 
 const publicLeadSchema = z
