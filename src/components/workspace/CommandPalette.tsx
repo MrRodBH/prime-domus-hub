@@ -12,8 +12,21 @@ import { adminListarLeads } from "@/lib/api/admin.functions";
 import { listarPaginas } from "@/lib/api/pages.functions";
 import { Plus, Compass, Sparkles, User, FileText, Rocket, EyeOff, Monitor, Tablet, Smartphone, Copy } from "lucide-react";
 
-const CREATIONS: { label: string; to: string; search?: Record<string, string>; keywords?: string }[] = [
-  { label: "Novo lead", to: "/admin/pipeline", search: { new: "1" }, keywords: "criar lead" },
+type PaletteCreation = {
+  label: string;
+  to: string;
+  search?: Record<string, string>;
+  keywords?: string;
+  disabled?: boolean;
+};
+
+const CREATIONS: PaletteCreation[] = [
+  {
+    label: "Novo lead (indisponível)",
+    to: "/admin/pipeline",
+    keywords: "criar lead",
+    disabled: true,
+  },
   { label: "Novo imóvel", to: "/admin/imoveis/novo", keywords: "cadastrar imóvel" },
   { label: "Novo lançamento", to: "/admin/lancamentos/novo", keywords: "cadastrar lançamento" },
   { label: "Nova página", to: "/admin/paginas", search: { new: "1" }, keywords: "criar página cms" },
@@ -68,7 +81,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
   const openLead = (id: string) => {
     closePalette();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    navigate({ to: "/admin/pipeline" as any, search: { item: id, view: "list", tab: "ativos" } as any });
+    navigate({ to: "/admin/pipeline" as any, search: { item: id } as any });
   };
   const openPage = (id: string) => {
     closePalette();
@@ -157,7 +170,15 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
 
         <CommandGroup heading="Criar">
           {CREATIONS.map((c) => (
-            <CommandItem key={c.to + c.label} value={`criar ${c.label} ${c.keywords ?? ""}`} onSelect={() => go(c.to, c.search)}>
+            <CommandItem
+              key={c.to + c.label}
+              value={`criar ${c.label} ${c.keywords ?? ""}`}
+              disabled={c.disabled}
+              onSelect={() => {
+                if (c.disabled) return;
+                go(c.to, c.search);
+              }}
+            >
               <Plus className="size-4 mr-2" /> {c.label}
             </CommandItem>
           ))}
