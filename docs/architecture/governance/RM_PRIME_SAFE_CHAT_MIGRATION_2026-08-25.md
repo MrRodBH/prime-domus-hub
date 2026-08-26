@@ -408,6 +408,7 @@ PCA04_STATUS=IMPLEMENTED_IN_ISOLATED_BRANCH_AWAITING_PROTECTED_PR
 PCA04_SOURCE_MAIN=b4034948ef0b27275ccd7dd5f68c8c0a1b4eed5e
 PCA04_SOURCE_TREE=3331f2b0ed967e4a38156257bdf7cf71100a7e6f
 PCA04_BRANCH=agent/pca-04-product-schema-rebaseline-corrective-implementation
+PCA04_PR=140
 PCA04_EVIDENCE=docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-04-product-schema-rebaseline-corrective-implementation.md
 PCA04_MANIFEST=docs/architecture/impact-analysis/manifests/PCA-04-product-schema-parity-manifest.json
 SAME_BACKEND_MUTATED=false
