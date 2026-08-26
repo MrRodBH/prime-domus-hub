@@ -71,6 +71,7 @@ jobs:
 
           docs_only=false
           arch_12f_01=false
+          arch_12f_02a=false
           arch_12f_04a=false
           arch_tenancy_01=false
           arch_integration=false
@@ -88,6 +89,9 @@ jobs:
             changed_file_count="${#changed_files[@]}"
             if [[ " ${changed_files[*]} " == *" run-arch-12f-01-config-hygiene-specs.ts "* ]]; then
               arch_12f_01=true
+            fi
+            if [[ " ${changed_files[*]} " == *" run-arch-12f-02a-identifier-externalization-specs.ts "* ]]; then
+              arch_12f_02a=true
             fi
             if [[ " ${changed_files[*]} " == *" run-arch-12f-04a-unsubscribe-log-redaction-specs.ts "* ]]; then
               arch_12f_04a=true
@@ -133,6 +137,7 @@ jobs:
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
           echo "arch_12f_01=$arch_12f_01" >> "$GITHUB_OUTPUT"
+          echo "arch_12f_02a=$arch_12f_02a" >> "$GITHUB_OUTPUT"
           echo "arch_12f_04a=$arch_12f_04a" >> "$GITHUB_OUTPUT"
           echo "arch_tenancy_01=$arch_tenancy_01" >> "$GITHUB_OUTPUT"
           echo "arch_integration=$arch_integration" >> "$GITHUB_OUTPUT"
@@ -142,7 +147,7 @@ jobs:
           echo "pr_m3_fvs6=$pr_m3_fvs6" >> "$GITHUB_OUTPUT"
           echo "pr_m3_sec_02=$pr_m3_sec_02" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
-          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 changed_file_count=$changed_file_count"
+          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 changed_file_count=$changed_file_count"
 
       - name: Documentation governance validation
         if: steps.scope.outputs.docs_only == 'true'
@@ -168,9 +173,16 @@ jobs:
         if: steps.scope.outputs.arch_12f_01 == 'true'
         env:
           ARCH_12F_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          ARCH_12F_02A_MODE: ${{ steps.scope.outputs.arch_12f_02a }}
           ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
           ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:arch-12f-01
+
+      - name: Verify ARCH-12F-02A infrastructure identifier externalization
+        if: steps.scope.outputs.arch_12f_02a == 'true'
+        env:
+          ARCH_12F_02A_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:arch-12f-02a
 
       - name: Verify ARCH-12F-04A unsubscribe log redaction
         if: steps.scope.outputs.arch_12f_04a == 'true'

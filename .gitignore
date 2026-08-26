@@ -28,6 +28,12 @@ dist-ssr
 
 # Wrangler / Cloudflare
 .wrangler/
+.wrangler.generated.jsonc
+.wri01-bundle-audit-diagnostic.json
+.wri01-dry-run/
+
+# Supabase remote-link state
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

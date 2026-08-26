@@ -71,8 +71,10 @@ REVOKE ALL ON public.spr02_managed_secret_ceremonies FROM authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.spr02_managed_secret_ceremonies TO service_role;
 ALTER TABLE public.spr02_managed_secret_ceremonies ENABLE ROW LEVEL SECURITY;`;
 
-// Bootstrap-safe single deploy authority.
-equal(wrangler.name, "rm-prime-wri01-hml", "Canonical Worker name must remain frozen");
+// Bootstrap-safe single deploy template. Provider identity is injected only
+// after the ARCH-12F-02A preflight succeeds.
+equal(wrangler.name, "__CLOUDFLARE_WORKER_NAME_REQUIRED__", "Versioned Worker name must remain a non-deployable sentinel");
+equal("account_id" in wrangler, false, "Cloudflare account identity must remain outside versioned configuration");
 equal(wrangler.main, "dist/server/index.mjs", "Canonical Nitro Worker entry must remain frozen");
 equal(wrangler.workers_dev, false, "workers.dev must be disabled before bootstrap");
 equal(wrangler.preview_urls, false, "Preview URLs must be explicitly disabled before bootstrap");
@@ -88,6 +90,7 @@ equal(JSON.stringify(wranglerAuthorities.sort()), JSON.stringify(["wrangler.json
 match(wri, /wrangler\.workers_dev, false/, "WRI-01 specs must assert workers.dev disabled");
 match(wri, /wrangler\.preview_urls, false/, "WRI-01 specs must assert Preview URLs disabled");
 match(wri, /wrangler\.triggers\?\.crons\?\.length, 0/, "WRI-01 specs must assert zero Cron triggers");
+match(wri, /CLOUDFLARE_WORKER_NAME/, "WRI-01 specs must bind the resolved Worker name to external configuration");
 equal(wri.includes('"*/5 * * * *"'), false, "Historical Cron activation must not remain as a current WRI assertion");
 match(vite, /@lovable\.dev\/vite-tanstack-config/, "WRI-01 build authority must remain the canonical Lovable/TanStack Vite config");
 match(wri, /wri-01-cloudflare-nitro-plugin\.server\.ts/, "WRI-01 Nitro bridge assertion must remain present");

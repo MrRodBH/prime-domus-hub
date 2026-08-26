@@ -8,12 +8,16 @@ on:
       - "package.json"
       - "bun.lock"
       - "wrangler.jsonc"
+      - ".env.example"
+      - "supabase/config.toml"
       - "src/server.ts"
       - "src/lib/runtime/**"
       - "src/types/cloudflare-runtime.d.ts"
       - "scripts/verify-wri-01-worker-bundle.mjs"
+      - "scripts/materialize-wrangler-config.mjs"
       - "scripts/verify-release.mjs"
       - "run-wri-01-cloudflare-worker-runtime-specs.ts"
+      - "run-arch-12f-02a-identifier-externalization-specs.ts"
       - ".github/workflows/wri-01-worker-runtime-gate.yml"
   push:
     branches:
@@ -30,6 +34,13 @@ jobs:
   worker-runtime-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      RM_PRIME_DEPLOYMENT_ENVIRONMENT: ci
+      CLOUDFLARE_ACCOUNT_ID: "00000000000000000000000000000001"
+      CLOUDFLARE_WORKER_NAME: rm-prime-arch-12f-ci
+      SUPABASE_PROJECT_REF: ci000000000000000000
+      SUPABASE_URL: https://ci000000000000000000.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
     steps:
       - name: Checkout exact event head
         uses: actions/checkout@v4
@@ -44,6 +55,9 @@ jobs:
 
       - name: Frozen install
         run: bun install --frozen-lockfile
+
+      - name: Materialize synthetic deployment configuration
+        run: bun run arch-12f-02a:materialize-wrangler
 
       - name: WRI-01 deterministic specifications
         run: bun run test:wri-01
@@ -104,6 +118,13 @@ jobs:
               path="${pair#*:}"
               if [ -e "${path}" ]; then printf '%s=true\n' "${name}"; else printf '%s=false\n' "${name}"; fi
             done
+            if [ -f .wrangler.generated.jsonc ]; then
+              printf 'RESOLVED_WRANGLER_EXISTS=true\n'
+              printf 'RESOLVED_WRANGLER_SHA256=%s\n' "$(sha256sum .wrangler.generated.jsonc | cut -d ' ' -f 1)"
+              printf 'RESOLVED_WRANGLER_MODE=%s\n' "$(stat -c '%a' .wrangler.generated.jsonc)"
+            else
+              printf 'RESOLVED_WRANGLER_EXISTS=false\n'
+            fi
             printf 'SERVER_FILE_COUNT=%s\n' "${server_count}"
             printf 'CLIENT_FILE_COUNT=%s\n' "${client_count}"
           } > .wri01-build-facts.txt
@@ -173,9 +194,8 @@ jobs:
 
           set -m
           (
-            cd dist/server
             exec bunx wrangler@4.114.0 dev \
-              --config wrangler.json \
+              --config .wrangler.generated.jsonc \
               --local \
               --test-scheduled \
               --port 8788 \

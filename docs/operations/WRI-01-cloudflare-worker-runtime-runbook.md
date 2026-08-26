@@ -11,8 +11,9 @@ BUILD_AUTHORITY = @lovable.dev/vite-tanstack-config + Nitro cloudflare-module
 WORKER_ENTRY = dist/server/index.mjs
 ASSETS_DIRECTORY = dist/client
 ASSETS_BINDING = ASSETS
-WRANGLER_AUTHORITY = wrangler.jsonc
-WRANGLER_ENVIRONMENT_AUTHORITY = resolved top-level homologation configuration
+WRANGLER_TEMPLATE_AUTHORITY = wrangler.jsonc
+WRANGLER_RESOLVED_AUTHORITY = .wrangler.generated.jsonc (ephemeral, ignored, mode 0600)
+WRANGLER_IDENTIFIER_AUTHORITY = validated process environment
 WRANGLER_NAMED_ENVIRONMENTS = prohibited for redirected generated configuration
 SCHEDULED_HOOK_CONSUMER_COUNT = 1
 CRON_EXPRESSION = */5 * * * * UTC
@@ -46,7 +47,13 @@ Do not add `@cloudflare/vite-plugin`, a second Worker entry, a second assets/bin
 Run from the exact candidate HEAD:
 
 ```bash
+export RM_PRIME_DEPLOYMENT_ENVIRONMENT=homologation
+export CLOUDFLARE_ACCOUNT_ID=<external-account-id>
+export CLOUDFLARE_WORKER_NAME=<external-worker-name-ending-in-hml>
+export SUPABASE_PROJECT_REF=<external-project-ref>
+export SUPABASE_URL=https://<external-project-ref>.supabase.co
 bun install --frozen-lockfile
+bun run arch-12f-02a:materialize-wrangler
 bun run test:wri-01
 bun run test:dca-01
 bun run build
@@ -55,7 +62,23 @@ bun run wri01:bundle-audit
 bun run wri01:dry-run
 ```
 
-The top-level `wrangler.jsonc` is already the resolved homologation authority for `rm-prime-wri01-hml`. The dry-run must not pass `--env`, and both the root and generated redirected Wrangler configurations must omit `env`. The CI gate must invoke the same root package script and must not bypass the redirect with a direct generated-config shortcut. This preserves one deployment authority and keeps `dist/server/wrangler.json` valid for Wrangler's generated-configuration redirect.
+The versioned `wrangler.jsonc` is a non-deployable template. The mandatory
+`arch-12f-02a:materialize-wrangler` preflight validates environment, account,
+Worker suffix and Supabase URL/project-ref parity before writing the ignored
+`.wrangler.generated.jsonc` with mode `0600`. All Wrangler deploy/dry-run/dev
+commands must use that resolved file explicitly and must not pass `--env`.
+Bindings remain top-level because Wrangler named-environment bindings are not
+inherited. CI uses synthetic identifiers only; real identifiers remain outside
+Git and are never printed by the materializer.
+
+Remote Supabase selection is likewise explicit and external to Git:
+
+```bash
+supabase link --project-ref "$SUPABASE_PROJECT_REF"
+```
+
+The versioned `supabase/config.toml` contains only the neutral local identity
+`rm-prime-local`; `supabase/.temp/` remote-link state is ignored.
 
 Repository acceptance also requires the WRI-01, Release Gate and PR-M2 workflows to succeed on the same exact HEAD. The local workerd artifact must prove readiness, the development scheduled event, DCA-01 delegation, controlled fail-closed behavior and zero orphan processes.
 
