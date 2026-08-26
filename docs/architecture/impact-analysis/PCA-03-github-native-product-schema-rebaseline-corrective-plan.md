@@ -39,6 +39,20 @@ is independently audited and accepted in `main`.
 | Protected RM Prime tenant | `9664d189-4a12-4caa-8243-dc73383447e6` |
 | Lovable private variant | blocked external; not an execution cell for this plan |
 
+## 2.1 Pending-backlog execution moments
+
+| Backlog | State | Safe execution moment | PCA-03 effect |
+|---|---|---|---|
+| ARCH-12F-02 / issue #107 | pending | separate Architecture First GitHub gate before homologation and before any rehearsal that depends on environment bindings; never parallel to another mutable repository lane | observed only |
+| ARCH-12F-03 / issue #116 | deferred upstream | only after an admissible stable Wrangler release, official upstream correction or separately authorized harness; mandatory before commercial billing activation | PR #105 preserved |
+| DCA-02-BL2 | repository proof accepted; live restore pending | isolated PITR/restore proof before any Same-Backend rebaseline or production cutover | may satisfy R1 only under its own authorization |
+| DCA-02-BL1 | diagnostic materialized; provider recovery pending | only after BL2 terminal and before automated real-domain provisioning | provider writes excluded |
+| Lovable private variant | blocked external | only after official support clarification/correction and a new Owner gate | cannot serve as PCA restore cell |
+
+Only one GitHub mutation lane may execute at a time. Read-only provider/support
+watches may continue in parallel, but cannot alter sequencing or authorize
+writes.
+
 ## 3. PCA-02 factual parity snapshot
 
 The live facts below were collected read-only during PCA-02 on 2026-08-26.
