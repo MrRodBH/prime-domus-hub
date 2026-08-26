@@ -245,8 +245,15 @@ includesAll(migration, [
 ], "portal migration");
 check(!/ORDER BY[\s\S]{0,100}LIMIT\s+1/i.test(migration), "migration must not use ORDER BY/LIMIT 1 as authority");
 check(!/GRANT\s+(SELECT|INSERT|UPDATE|DELETE|ALL)[\s\S]{0,100}\sTO\s+(anon|authenticated)/i.test(migration), "migration must not grant direct portal table access");
-check(migration.includes("feed_token = NULL") && migration.includes("webhook_secret = NULL"), "legacy plaintext credentials must be removed");
-check(migration.includes("encode(digest(feed_token, 'sha256'), 'hex')"), "legacy high-entropy token must become one-way verifier before removal");
+check(
+  !migration.includes("feed_token = NULL") &&
+    !migration.includes("webhook_secret = NULL"),
+  "legacy credentials must remain recoverable until a separately authorized cutover",
+);
+check(
+  migration.includes("encode(digest(feed_token, 'sha256'), 'hex')"),
+  "legacy high-entropy token may gain a verifier without destructive removal",
+);
 check(
   migration.includes("current_state text NOT NULL CHECK") &&
     migration.includes("Active authority is tenant_portal_jobs.current_state=failed_terminal"),

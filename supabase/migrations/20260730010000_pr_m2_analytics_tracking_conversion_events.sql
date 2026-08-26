@@ -143,6 +143,10 @@ BEGIN
     SELECT tenant_id
     FROM public.site_settings_versions
     WHERE key = 'configuration' AND status = 'published'
+      AND EXISTS (
+        SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+        WHERE authorized.tenant_id = site_settings_versions.tenant_id
+      )
     GROUP BY tenant_id
     HAVING count(*) > 1
   ) THEN
@@ -152,6 +156,10 @@ BEGIN
     SELECT tenant_id
     FROM public.site_settings
     WHERE key = 'meta_integracao'
+      AND EXISTS (
+        SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+        WHERE authorized.tenant_id = site_settings.tenant_id
+      )
     GROUP BY tenant_id
     HAVING count(*) > 1
   ) THEN
@@ -182,6 +190,7 @@ WITH published AS (
       WHEN 'GOOGLE_TAG_MANAGER' THEN NULLIF(published.value->>'google_tag_manager_container_id','')
     END)) AS raw_identifier
   FROM public.tenants tenant
+  JOIN prm2_rebaseline.authorized_tenant_ids() authorized ON authorized.tenant_id = tenant.id
   CROSS JOIN (VALUES
     ('META_PIXEL','MARKETING'),
     ('GOOGLE_ANALYTICS','ANALYTICS'),
@@ -226,6 +235,10 @@ INSERT INTO public.tenant_tracking_connector_versions (
 SELECT tenant_id, id, configuration_version, provider_identifier, enabled,
        consent_category, availability_state, NULL
 FROM public.tenant_tracking_connectors
+WHERE EXISTS (
+  SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+  WHERE authorized.tenant_id = tenant_tracking_connectors.tenant_id
+)
 ON CONFLICT (tenant_id, connector_id, version) DO NOTHING;
 
 INSERT INTO public.tenant_tracking_event_bindings (
@@ -234,6 +247,8 @@ INSERT INTO public.tenant_tracking_event_bindings (
 SELECT connector.tenant_id, connector.id, event.event_key,
        event.event_key = 'page_view', connector.event_binding_version, NULL
 FROM public.tenant_tracking_connectors connector
+JOIN prm2_rebaseline.authorized_tenant_ids() authorized
+  ON authorized.tenant_id = connector.tenant_id
 CROSS JOIN (VALUES
   ('page_view'),('view_property'),('search_properties'),('filter_properties'),
   ('submit_public_form'),('lead_created'),('contact_click'),('phone_click'),
@@ -247,6 +262,10 @@ INSERT INTO public.tenant_tracking_consent_configuration (
 )
 SELECT id, 1, true, 'opt_in', 'opt_in', 1, 1
 FROM public.tenants
+WHERE EXISTS (
+  SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+  WHERE authorized.tenant_id = tenants.id
+)
 ON CONFLICT (tenant_id) DO NOTHING;
 
 INSERT INTO public.tenant_tracking_diagnostics (
@@ -255,7 +274,11 @@ INSERT INTO public.tenant_tracking_diagnostics (
 SELECT tenant_id, id, provider_key, 'failed', last_error_code,
        jsonb_build_object('source','legacy_identifier_cutover','raw_value_persisted',false)
 FROM public.tenant_tracking_connectors
-WHERE last_error_code = 'tracking_legacy_identifier_invalid';
+WHERE last_error_code = 'tracking_legacy_identifier_invalid'
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = tenant_tracking_connectors.tenant_id
+  );
 
 -- ---------------------------------------------------------------------------
 -- 4. Server-owned tenant authority and versioned mutations.

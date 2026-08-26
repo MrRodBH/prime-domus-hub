@@ -223,6 +223,7 @@ SELECT
     '{}'::jsonb
   )
 FROM public.tenants t
+JOIN prm2_rebaseline.authorized_tenant_ids() authorized ON authorized.tenant_id = t.id
 LEFT JOIN public.site_settings ss ON ss.tenant_id = t.id
 GROUP BY t.id;
 
@@ -251,6 +252,7 @@ SELECT
     '[]'::jsonb
   )
 FROM public.tenants t
+JOIN prm2_rebaseline.authorized_tenant_ids() authorized ON authorized.tenant_id = t.id
 LEFT JOIN public.website_menu_items mi ON mi.tenant_id = t.id
 GROUP BY t.id;
 
@@ -457,6 +459,7 @@ SELECT
     'legacy_settings_archive', ls.settings
   ))
 FROM public.tenants t
+JOIN prm2_rebaseline.authorized_tenant_ids() authorized ON authorized.tenant_id = t.id
 JOIN pr_m2_legacy_settings ls ON ls.tenant_id = t.id
 JOIN pr_m2_legacy_menu lm ON lm.tenant_id = t.id;
 

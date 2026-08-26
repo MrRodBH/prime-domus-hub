@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-04_GITHUB_NATIVE_PRODUCT_SCHEMA_REBASELINE_CORRECTIVE_IMPLEMENTATION",
+  "generatedAt": "2026-08-26T18:58:00Z",
+  "repository": "MrRodBH/prime-domus-hub",
+  "sourceMain": "b4034948ef0b27275ccd7dd5f68c8c0a1b4eed5e",
+  "sourceTree": "3331f2b0ed967e4a38156257bdf7cf71100a7e6f",
+  "sameBackendProjectRef": "stmcnvzuzlyqammyycxj",
+  "sameBackendMutation": false,
+  "liveSnapshotAuthority": {
+    "source": "PCA-02 accepted read-only snapshot",
+    "capturedAt": "2026-08-26",
+    "currentReadAttempt": "DENIED_BY_CONNECTOR_PERMISSION",
+    "requiredRefreshGate": "PCA-06_SAME_BACKEND_SCHEMA_REBASELINE_FINAL_IMPACT_REQUALIFICATION"
+  },
+  "structuralExpectation": {
+    "historicalMigrations": 16,
+    "correctiveMigrations": 1,
+    "historicalTables": 45,
+    "historicalColumns": 57,
+    "explicitTransactions": 17,
+    "defaultTenantDmlSelection": 0,
+    "irreversiblePortalSecretErasures": 0
+  },
+  "repositoryMigrations": [
+    {
+      "version": "20260728165000",
+      "path": "supabase/migrations/20260728165000_pr_m2_tenant_lifecycle.sql",
+      "sha256": "8f0ea65dd452caee8828f3acee5b8f0808ad269b98b89fef720d9a2985118bd8",
+      "classification": "REPO_ONLY",
+      "wave": "W1",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260728180000",
+      "path": "supabase/migrations/20260728180000_pr_m2_tenant_access_control.sql",
+      "sha256": "fc3a67eca7c46a965d4b1ade51aa87e22c81d2c1d6b0b329bfc2879c9628dab9",
+      "classification": "REPO_ONLY",
+      "wave": "W1",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260728233000",
+      "path": "supabase/migrations/20260728233000_pr_m2_configuration_center.sql",
+      "sha256": "782a61c636cbd8310f197fa2af4fb50504a7e03f5a6f3f39dccd4e5266553472",
+      "classification": "REPO_ONLY",
+      "wave": "W2",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260729103000",
+      "path": "supabase/migrations/20260729103000_pr_m2_portal_functional_completion.sql",
+      "sha256": "0507fb83eda9fd6079dee18348a09ddfbb7ca9bbe951feb1abd0a0d1f2da30eb",
+      "classification": "REPO_ONLY",
+      "wave": "W2",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "portalSecretCutover": "DEFERRED_RETAINED",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260729183000",
+      "path": "supabase/migrations/20260729183000_pr_m2_cms_workflow_functional_completion.sql",
+      "sha256": "b4129777c1c63f7ff6cd452142ee05efe8154106ee9fafda09695cf2de4d5809",
+      "classification": "REPO_ONLY",
+      "wave": "W3",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260729211500",
+      "path": "supabase/migrations/20260729211500_pr_m2_crm_operational_workflow.sql",
+      "sha256": "841e63be5592ff3b28994f3d25626e247c0d32cf09afbde9809bbe16b931942e",
+      "classification": "REPO_ONLY",
+      "wave": "W3",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260729233000",
+      "path": "supabase/migrations/20260729233000_pr_m2_marketing_channels_lead_ingestion.sql",
+      "sha256": "eb96b8b2511a348b7b2467b39ec698a030d8a96e41ad49e01fe7b8ae65863c94",
+      "classification": "REPO_ONLY",
+      "wave": "W4",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730010000",
+      "path": "supabase/migrations/20260730010000_pr_m2_analytics_tracking_conversion_events.sql",
+      "sha256": "18aef311ead8a2b0d2b12826ee29ff513b148f3a84f0a19e5cec66c63e7e6aa6",
+      "classification": "REPO_ONLY",
+      "wave": "W4",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730043000",
+      "path": "supabase/migrations/20260730043000_pr_m2_consolidated_final_corrective.sql",
+      "sha256": "f912e98bd31ad1dd6c37bf1fa66cf6c8ba0202ac1e36f4a35c81c1cf16bd47dc",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "RUNTIME_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730050000",
+      "path": "supabase/migrations/20260730050000_pr_m2_cms_functional_inventory.sql",
+      "sha256": "020e4a830b4a7e8930c87c37aa8ccd8ead50f78313ac44de18c7e6559886a6a4",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "RUNTIME_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730051500",
+      "path": "supabase/migrations/20260730051500_pr_m2_marketing_adapter_activation.sql",
+      "sha256": "6eb21a513e15c32172a0fd8da718097ae23d6319d335239f962bf1c5686ba45a",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730053000",
+      "path": "supabase/migrations/20260730053000_pr_m2_marketing_and_cms_corrective_hardening.sql",
+      "sha256": "b4598c5f8e0d17e2757932db01131340cc913fa8b2d590144f42be8caa4e5b07",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "RUNTIME_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730060000",
+      "path": "supabase/migrations/20260730060000_pr_m2_super_control_plane.sql",
+      "sha256": "6d8a20c88893c8b152e98f15d60726d153a9619c585b228bd889e936e816bdca",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "RUNTIME_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730100000",
+      "path": "supabase/migrations/20260730100000_pr_m2_content_upload_target_consumers.sql",
+      "sha256": "90eb1c9a3af0ad4f422a3c5c34bd3a5f4c0b3e2df77da7988d0a9077bba6a823",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "RUNTIME_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260730101000",
+      "path": "supabase/migrations/20260730101000_pr_m2_launch_project_transactional_save.sql",
+      "sha256": "129e7abc033e84e9a4613b76f48429e18e8dfda473b2c8a10462d4a9428e5cdc",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "RUNTIME_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260803183000",
+      "path": "supabase/migrations/20260803183000_pr_m2_storage_provenance_and_crm_attachment_corrective.sql",
+      "sha256": "48a07bc20515d5a88d5864dbb3cf02aabeef3121f1de062e28b6deda803af533",
+      "classification": "REPO_ONLY",
+      "wave": "W5",
+      "tenantDml": "RUNTIME_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    },
+    {
+      "version": "20260826185014",
+      "path": "supabase/migrations/20260826185014_pca_04_exact_tenant_product_baseline.sql",
+      "sha256": "676d220920f313c2f567962bbab9f27a641d7bc22d2283edc6bc8f0a4b989989",
+      "classification": "REPO_ONLY",
+      "wave": "W6",
+      "tenantDml": "FUTURE_TRIGGER_OR_EXACT_MANIFEST_ONLY",
+      "rollback": "TRANSACTION_OR_FORWARD_ONLY"
+    }
+  ],
+  "liveOnlyQuarantined": [
+    {
+      "version": "20260812192006",
+      "classification": "LIVE_ONLY_QUARANTINED",
+      "authority": "NON_AUTHORITATIVE",
+      "action": "PCA_06_REQUALIFY"
+    },
+    {
+      "version": "20260813174908",
+      "classification": "LIVE_ONLY_QUARANTINED",
+      "authority": "NON_AUTHORITATIVE",
+      "action": "PCA_06_REQUALIFY"
+    },
+    {
+      "version": "20260813175027",
+      "classification": "LIVE_ONLY_QUARANTINED",
+      "authority": "NON_AUTHORITATIVE",
+      "action": "PCA_06_REQUALIFY"
+    },
+    {
+      "version": "20260814001323",
+      "classification": "LIVE_ONLY_QUARANTINED",
+      "authority": "NON_AUTHORITATIVE",
+      "action": "PCA_06_REQUALIFY"
+    }
+  ],
+  "unresolvedLiveClassifications": {
+    "exact": 4,
+    "semanticAlias": 4,
+    "executionPrelude": 1,
+    "reason": "Current ledger read was denied; PCA-02 classifications are preserved but exact live hashes must be refreshed at PCA-06 before any backend write."
+  },
+  "prohibitedActions": [
+    "BLANKET_TENANT_DML",
+    "PREFIX_OR_NAME_TENANT_SELECTION",
+    "PORTAL_SECRET_ERASURE",
+    "BLIND_MIGRATION_REPAIR",
+    "DB_RESET_OR_DOWN_MIGRATION",
+    "LIVE_ONLY_SCHEMA_ADOPTION",
+    "PR_105_MUTATION"
+  ]
+}

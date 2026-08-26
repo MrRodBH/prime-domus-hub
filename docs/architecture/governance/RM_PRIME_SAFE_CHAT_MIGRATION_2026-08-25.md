@@ -378,10 +378,12 @@ GITHUB_MAIN_FINAL_AUTHORITY=true
 
 ```text
 PCA02_RESULT=FAIL_CLOSED_NOT_EXECUTION_READY
-PCA03_STATUS=PLANNING_MATERIALIZED_AWAITING_PROTECTED_MERGE
+PCA03_STATUS=MERGED
 PCA03_BASE_HEAD=d0632f471942bd638a57555ed5af63c5567e263b
 PCA03_BASE_TREE=4bcf9e0c5ff655f48a63d92b2e60057a7f9f9dae
 PCA03_BRANCH=agent/pca-03-github-native-product-schema-rebaseline-plan
+PCA03_PR=139
+PCA03_MERGED_MAIN=b4034948ef0b27275ccd7dd5f68c8c0a1b4eed5e
 PCA03_PLAN=docs/architecture/impact-analysis/PCA-03-github-native-product-schema-rebaseline-corrective-plan.md
 SAME_BACKEND_MUTATED=false
 PR_105_MUTATED=false
@@ -394,4 +396,33 @@ PR_105_MUTATED=false
 - Quatro migrações BCA/BCR existem somente no ledger live e permanecem quarentenadas, não autoritativas e fora da PR #105.
 - `migration repair`, `db reset`, down migration, backfill global e adoção implícita de schema live estão proibidos.
 - O plano PCA-03 exige manifest de paridade bidirecional, DDL separado de DML, provisionamento server-owned por IDs exatos, restore-cell privado e rollback forward-only.
-- O próximo ato permitido é auditoria final e merge protegido da PR documental PCA-03 após autorização específica do Owner.
+- A PR documental PCA-03 foi aceita no `main`; seu plano é vinculante para PCA-04 e sucessores.
+
+
+---
+
+## 19. PCA-04 — Implementação corretiva GitHub-native
+
+```text
+PCA04_STATUS=IMPLEMENTED_IN_ISOLATED_BRANCH_AWAITING_PROTECTED_PR
+PCA04_SOURCE_MAIN=b4034948ef0b27275ccd7dd5f68c8c0a1b4eed5e
+PCA04_SOURCE_TREE=3331f2b0ed967e4a38156257bdf7cf71100a7e6f
+PCA04_BRANCH=agent/pca-04-product-schema-rebaseline-corrective-implementation
+PCA04_EVIDENCE=docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-04-product-schema-rebaseline-corrective-implementation.md
+PCA04_MANIFEST=docs/architecture/impact-analysis/manifests/PCA-04-product-schema-parity-manifest.json
+SAME_BACKEND_MUTATED=false
+PROVIDER_MUTATED=false
+LOVABLE_AGENT_CALLED=false
+PR_105_MUTATED=false
+```
+
+- As 16 migrações históricas foram corrigidas para transação explícita, DML de
+  tenant por UUID exato e retenção de credenciais.
+- A migração PCA-04 adiciona baseline server-owned, atômico e idempotente para
+  novos tenants e backfill existente somente por manifesto exato com SHA-256.
+- Os quatro artefatos BCA/BCR live-only seguem quarentenados; o ledger deve ser
+  requalificado em PCA-06 porque a leitura atual foi negada por permissão.
+- Nenhuma migração foi aplicada. PCA-05 em restore cell privado e isolado é
+  obrigatório antes de qualquer consideração de Same-Backend.
+- O próximo ato permitido é auditoria final e merge protegido da PR PCA-04 após
+  autorização específica do Owner.
