@@ -67,6 +67,7 @@ const runtime = read("src/lib/runtime/cloudflare-runtime-context.server.ts");
 const workflow = read(".github/workflows/wri-01-worker-runtime-gate.yml");
 const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string>; devDependencies?: Record<string, string> };
 const wrangler = JSON.parse(read("wrangler.jsonc")) as Record<string, any>;
+const resolvedWrangler = JSON.parse(read(".wrangler.generated.jsonc")) as Record<string, any>;
 
 match(vite, /@lovable\.dev\/vite-tanstack-config/, "Lovable/TanStack config must remain build authority");
 match(vite, /nitro:\s*\{[\s\S]*plugins:\s*\[wri01RuntimePlugin\]/, "One Nitro bridge must be configured");
@@ -99,13 +100,20 @@ match(workflow, /PROCESS_GROUP_MEMBER_COUNT_AFTER_TERMINATION/, "Process-group r
 match(workflow, /WORKERD_RESIDUAL_COUNT_AFTER_TERMINATION/, "Residual workerd processes must be measured and published");
 match(workflow, /ZERO_ORPHAN_PROCESSES_PROVED/, "Zero-orphan result must be explicit and auditable");
 match(workflow, /if \[ "\$\{ZERO_ORPHAN_PROCESSES_PROVED\}" != "true" \]; then exit 1; fi/, "Local proof must fail closed when orphan cleanup is not proved");
+match(workflow, /Materialize synthetic deployment configuration/, "CI must materialize a synthetic resolved configuration before Wrangler execution");
+match(workflow, /--config \.wrangler\.generated\.jsonc/, "Local workerd proof must use the ephemeral resolved configuration");
 const dryRunWorkflowStep = workflow.match(/- name: Wrangler deterministic dry-run[\s\S]*?- name: Preserve Wrangler dry-run diagnostics/)?.[0] ?? "";
 match(dryRunWorkflowStep, /bun run wri01:dry-run/, "CI must exercise the same root redirected-config dry-run as the runbook");
 equal(dryRunWorkflowStep.includes("--config wrangler.json"), false, "CI dry-run must not bypass the redirected-config path with a generated-config shortcut");
 
-for (const [key, expected] of Object.entries({ name: "rm-prime-wri01-hml", main: "dist/server/index.mjs", no_bundle: true })) {
+for (const [key, expected] of Object.entries({ main: "dist/server/index.mjs", no_bundle: true })) {
   equal(wrangler[key], expected, `wrangler.${key} must be deterministic`);
 }
+equal(wrangler.name, "__CLOUDFLARE_WORKER_NAME_REQUIRED__", "Versioned Wrangler config must be non-deployable without materialization");
+equal("account_id" in wrangler, false, "Versioned Wrangler config must not persist an account identifier");
+equal(resolvedWrangler.name, process.env.CLOUDFLARE_WORKER_NAME, "Resolved Worker name must come from the environment");
+equal(resolvedWrangler.account_id, process.env.CLOUDFLARE_ACCOUNT_ID, "Resolved account ID must come from the environment");
+equal("env" in resolvedWrangler, false, "Resolved top-level authority must not create a named Wrangler environment");
 equal(wrangler.workers_dev, false, "SPR-03 bootstrap authority must keep workers.dev disabled");
 equal(wrangler.preview_urls, false, "SPR-03 bootstrap authority must keep Preview URLs disabled");
 equal(wrangler.compatibility_date, "2026-07-29", "Compatibility date must remain pinned to the tested workerd support ceiling");
@@ -122,8 +130,8 @@ ok(pkg.scripts["wri01:bundle-audit"], "WRI-01 bundle audit script must exist");
 equal(pkg.scripts["wri01:dry-run"].includes("--env"), false, "WRI-01 dry-run must not select a named environment");
 equal(
   pkg.scripts["wri01:dry-run"],
-  "bunx wrangler@4.114.0 deploy --dry-run --outdir .wri01-dry-run",
-  "WRI-01 dry-run must use the resolved generated config without a named environment",
+  "node ./scripts/materialize-wrangler-config.mjs && bunx wrangler@4.114.0 deploy --config .wrangler.generated.jsonc --dry-run --outdir .wri01-dry-run",
+  "WRI-01 dry-run must materialize and use the resolved top-level config without a named environment",
 );
 equal("@cloudflare/vite-plugin" in (pkg.devDependencies ?? {}), false, "Cloudflare Vite plugin must remain absent");
 const configText = JSON.stringify(wrangler);

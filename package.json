@@ -10,9 +10,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit --pretty false",
-    "verify:release": "bun run test:pca-04 && bun run test:pr-m3-sec-04a:regression && bun run test:prm3-p0a && bun run test:arch-12f-01 && bun run test:arch-12f-04a && bun run test:arch-tenancy-01 && bun run test:arch-12f-04b && bun run test:dca-02-bl2 && bun run test:dca-02-bl1 && bun ./scripts/verify-release.mjs",
+    "verify:release": "bun run test:pca-04 && bun run test:pr-m3-sec-04a:regression && bun run test:prm3-p0a && bun run test:arch-12f-01 && bun run test:arch-12f-02a && bun run test:arch-12f-04a && bun run test:arch-tenancy-01 && bun run test:arch-12f-04b && bun run test:dca-02-bl2 && bun run test:dca-02-bl1 && bun ./scripts/verify-release.mjs",
     "ci": "bun run verify:release",
     "test:arch-12f-01": "tsx --tsconfig tsconfig.json ./run-arch-12f-01-config-hygiene-specs.ts",
+    "test:arch-12f-02a": "tsx --tsconfig tsconfig.json ./run-arch-12f-02a-identifier-externalization-specs.ts",
+    "arch-12f-02a:materialize-wrangler": "node ./scripts/materialize-wrangler-config.mjs",
     "test:arch-12f-04a": "tsx --tsconfig tsconfig.json ./run-arch-12f-04a-unsubscribe-log-redaction-specs.ts",
     "test:arch-tenancy-01": "tsx --tsconfig tsconfig.json ./run-arch-tenancy-01-adr-specs.ts",
     "test:prm3-p0a": "tsx --tsconfig tsconfig.json ./run-prm3-p0a-frontend-entry-specs.ts",
@@ -70,8 +72,8 @@
     "test:wri-01": "tsx --tsconfig tsconfig.json ./run-wri-01-cloudflare-worker-runtime-specs.ts",
     "test:spr-03": "tsx --tsconfig tsconfig.json ./run-spr-03-worker-bootstrap-managed-secret-recovery-specs.ts",
     "test:arch-12f-04b": "tsx --tsconfig tsconfig.json ./run-arch-12f-04b-structured-log-specs.ts",
-    "wri01:bundle-audit": "bun run test:spr-03 && bun ./scripts/verify-wri-01-worker-bundle.mjs",
-    "wri01:dry-run": "bunx wrangler@4.114.0 deploy --dry-run --outdir .wri01-dry-run"
+    "wri01:bundle-audit": "node ./scripts/materialize-wrangler-config.mjs && bun run test:spr-03 && bun ./scripts/verify-wri-01-worker-bundle.mjs",
+    "wri01:dry-run": "node ./scripts/materialize-wrangler-config.mjs && bunx wrangler@4.114.0 deploy --config .wrangler.generated.jsonc --dry-run --outdir .wri01-dry-run"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

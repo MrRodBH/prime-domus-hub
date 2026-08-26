@@ -112,7 +112,7 @@ O Lovable não é autoridade final de código, CI ou merge. Relatório do Lovabl
 8. `bun.lock` deve permanecer byte a byte quando o gate o congelar.
 9. Dependência nova exige autorização expressa e integração atômica com lockfile.
 10. Não alterar aplicação, migrations, workflows ou documentação fora do allowlist do gate.
-11. PR #105 permanece aberta, draft e não mesclada até decisão específica da trilha BCR.
+11. PR #105 foi fechada administrativamente sem merge/rebase; a branch foi preservada e o backlog BCR permanece na issue #116.
 
 ---
 
@@ -196,7 +196,7 @@ O Lovable não é autoridade final de código, CI ou merge. Relatório do Lovabl
 - `DCA-02`: `Accepted / terminal`; sem `custom_metadata` como autoridade.
 - `BCA-01`: `Rejected / terminal`; não reabrir.
 - BCR runtime: diferido como trilha separada e não bloqueante para construção PR-M3.
-- PR #105: preservar aberta/draft/não mesclada.
+- PR #105: `closed/draft/unmerged`; branch preservada, sem reutilização nesta trilha.
 - Produção/cutover: não autorizados.
 
 Os anexos de julho que ainda apontam para LSR-02 são históricos e não autorizadores da PR-M3 atual.
@@ -259,7 +259,7 @@ PRODUCTION_CUTOVER=false
 ## 12. Trilhas paralelas e proibições atuais
 
 ```text
-PR_105_STATE=open/draft/unmerged
+PR_105_STATE=closed/draft/unmerged
 PR_105_MERGE=false
 BCR_RUNTIME=deferred_upstream/non_blocking_for_PRM3
 PRODUCTION_PUBLISH=false
@@ -268,7 +268,7 @@ REAL_TENANT_MUTATION=0
 EXTERNAL_SUPABASE_FALLBACK=false
 ```
 
-- Não mesclar, rebasear, reconstruir, force-push, reverter ou ampliar PR #105 nesta trilha.
+- Não reabrir, mesclar, rebasear, reconstruir, force-push, reverter ou ampliar PR #105 nesta trilha.
 - O incidente LVR-01, no qual `plan_mode` alterou `.lovable/plan.md` e avançou o head da PR #105 de `37d047849696c5cbea2a8d9f971b09ea4375e8d6` para `6cf945b98bee584093633fc6d7678fbc5e1861c5`, deve ser reconciliado somente por evidência GitHub-native forward-only; a PR permanece aberta/draft/não mesclada.
 - Não executar Stripe, Cloudflare, Wrangler, webhook, DNS, deploy ou secret write como consequência de SEC-04B.
 - Não restaurar grants inseguros como rollback. Falha posterior exige migration forward-only.
@@ -357,9 +357,9 @@ PRODUCTION_PUBLISH=false
 ## 17. Reconciliação vinculante de backlog e autoridade Lovable — LVR-02H
 
 ```text
-AUDITED_MAIN=252f3e98492bc34c30380704bb47e3ed576948f6
-AUDITED_TREE=65287b9019498c35d8614bacf1fa679fc750851b
-PR_105_STATE=open/draft/unmerged
+AUDITED_MAIN=5e6f394b555e2de3b4cfdaa20d051003c5c05d71
+AUDITED_TREE=22217abe8b655950a39beaf1b9960bf49f714434
+PR_105_STATE=closed/draft/unmerged
 LOVABLE_GOVERNANCE_AUTHORITY=false
 GITHUB_MAIN_FINAL_AUTHORITY=true
 ```
@@ -404,13 +404,14 @@ PR_105_MUTATED=false
 ## 19. PCA-04 — Implementação corretiva GitHub-native
 
 ```text
-PCA04_STATUS=IMPLEMENTED_IN_ISOLATED_BRANCH_AWAITING_PROTECTED_PR
+PCA04_STATUS=ACCEPTED_MERGED_CLOSED
 PCA04_SOURCE_MAIN=b4034948ef0b27275ccd7dd5f68c8c0a1b4eed5e
 PCA04_SOURCE_TREE=3331f2b0ed967e4a38156257bdf7cf71100a7e6f
 PCA04_BRANCH=agent/pca-04-product-schema-rebaseline-corrective-implementation
 PCA04_PR=140
 PCA04_EVIDENCE=docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-04-product-schema-rebaseline-corrective-implementation.md
 PCA04_MANIFEST=docs/architecture/impact-analysis/manifests/PCA-04-product-schema-parity-manifest.json
+PCA04_MERGED_MAIN=5e6f394b555e2de3b4cfdaa20d051003c5c05d71
 SAME_BACKEND_MUTATED=false
 PROVIDER_MUTATED=false
 LOVABLE_AGENT_CALLED=false
@@ -425,11 +426,7 @@ PR_105_MUTATED=false
   requalificado em PCA-06 porque a leitura atual foi negada por permissão.
 - Nenhuma migração foi aplicada. PCA-05 em restore cell privado e isolado é
   obrigatório antes de qualquer consideração de Same-Backend.
-- O próximo ato permitido é auditoria final e merge protegido da PR PCA-04 após
-  autorização específica do Owner.
-
-
----
+- A PR #140 foi mesclada por squash protegido; nenhuma migration foi aplicada.
 
 ## 20. Autoridade de acesso para testes do produto final
 
@@ -452,3 +449,31 @@ CURRENT_DEPLOY_OR_CUTOVER_AUTHORIZED=false
 - O Supabase Same-Backend permanece autoridade única de dados, Auth e Storage.
   Esta decisão não autoriza deploy, publicação, DNS, provider write, cutover nem
   substituição das regras de domínio por tenant.
+
+
+---
+
+## 21. ARCH-12F-02A — Externalização de identificadores de infraestrutura
+
+```text
+ARCH12F02A_STATUS=IMPLEMENTED_IN_ISOLATED_BRANCH_AWAITING_PROTECTED_PR
+ARCH12F02A_SOURCE_MAIN=5e6f394b555e2de3b4cfdaa20d051003c5c05d71
+ARCH12F02A_SOURCE_TREE=22217abe8b655950a39beaf1b9960bf49f714434
+ARCH12F02A_BRANCH=agent/arch-12f-02a-github-native-infrastructure-identifier-externalization
+ARCH12F02A_PR=TO_BE_ASSIGNED
+MIGRATION_FILE_MUTATION=false
+BACKEND_MUTATION=false
+PROVIDER_MUTATION=false
+LOVABLE_AGENT_CALLS=false
+```
+
+- `wrangler.jsonc` tornou-se template não implantável; nome do Worker e account
+  ID são validados e materializados apenas em arquivo efêmero ignorado, modo
+  `0600`, sem `env` Wrangler nomeado.
+- `supabase/config.toml` contém somente identidade local neutra; o ref remoto é
+  selecionado explicitamente por `supabase link --project-ref` e o estado local
+  de link não é versionado.
+- Ausência, formato inválido, sufixo de ambiente divergente ou URL/ref Supabase
+  incompatíveis falham fechado antes de qualquer provider.
+- `ARCH-12F-02B` permanece separado para domínios/remetentes e configuração
+  runtime/tenant; nenhum deploy ou cutover foi autorizado.

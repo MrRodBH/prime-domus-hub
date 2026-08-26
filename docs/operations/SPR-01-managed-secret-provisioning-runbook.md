@@ -12,7 +12,7 @@ SPR01_PLANNING_MERGE_SHA = 5c4562531247f3c9b85b9fa3a1c799d6ef32fa7c
 SPR01_PLANNING_AUDIT = Accepted
 SPR01_IMPLEMENTATION_AUTHORIZED = false
 SPR01_EXTERNAL_OPERATION_AUTHORIZED = false
-TARGET_WORKER = rm-prime-wri01-hml
+TARGET_WORKER = externally resolved by ARCH-12F-02A preflight
 TARGET_WORKER_EXISTS_AT_PLANNING = false
 OWNER_MAY_HANDLE_SUPABASE_SERVICE_ROLE_KEY = false
 ```
@@ -36,12 +36,16 @@ The runbook stops before workers.dev, Preview URLs, Cron, routes, DNS, fallback 
 
 Lovable is the required executor for the bridge portion. GitHub-native execution is used for documentation and repository audit to avoid unnecessary Lovable consumption.
 
-## 3. Fixed identifiers
+## 3. Externally resolved identifiers
 
 ```text
-CLOUDFLARE_ACCOUNT_ID = exact account selected during authorized execution
-WORKER_NAME = rm-prime-wri01-hml
-CANONICAL_WRANGLER_CONFIG = wrangler.jsonc
+CLOUDFLARE_ACCOUNT_ID = required external process input
+CLOUDFLARE_WORKER_NAME = required external process input
+RM_PRIME_DEPLOYMENT_ENVIRONMENT = required external process input
+SUPABASE_PROJECT_REF = required external process input
+SUPABASE_URL = required external process input; must match project ref exactly
+WRANGLER_TEMPLATE = wrangler.jsonc
+CANONICAL_WRANGLER_CONFIG = .wrangler.generated.jsonc (ignored, mode 0600)
 WORKER_ENTRY = dist/server/index.mjs
 ASSETS_DIRECTORY = dist/client
 ASSETS_BINDING = ASSETS
@@ -55,7 +59,10 @@ LOVABLE_ONLY_PROVISIONER_SECRET =
   CLOUDFLARE_API_TOKEN_SPR01_PROVISIONER
 ```
 
-Account ID is transport input and must be revalidated. It is never tenant or provider-business authority.
+The ARCH-12F-02A materializer must succeed before any provider call. Missing,
+blank, malformed or cross-environment input fails closed without producing a
+deployable configuration. Account ID and Worker name are transport inputs and
+must be revalidated; neither is tenant or provider-business authority.
 
 ## 4. Global stop conditions
 

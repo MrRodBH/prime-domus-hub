@@ -10,6 +10,7 @@ const clientDir = resolve(outputDir, "client");
 const entryPath = resolve(serverDir, "index.mjs");
 const nitroPath = resolve(outputDir, "nitro.json");
 const rootWranglerPath = resolve(root, "wrangler.jsonc");
+const resolvedWranglerPath = resolve(root, ".wrangler.generated.jsonc");
 const generatedWranglerPath = resolve(serverDir, "wrangler.json");
 const diagnosticPath = resolve(root, ".wri01-bundle-audit-diagnostic.json");
 
@@ -24,6 +25,7 @@ const diagnostic = {
     WORKER_ENTRY: existsSync(entryPath),
     NITRO_METADATA: existsSync(nitroPath),
     ROOT_WRANGLER: existsSync(rootWranglerPath),
+    RESOLVED_WRANGLER: existsSync(resolvedWranglerPath),
     GENERATED_WRANGLER: existsSync(generatedWranglerPath),
   },
 };
@@ -95,6 +97,7 @@ try {
     WORKER_ENTRY: entryPath,
     NITRO_METADATA: nitroPath,
     ROOT_WRANGLER: rootWranglerPath,
+    RESOLVED_WRANGLER: resolvedWranglerPath,
     GENERATED_WRANGLER: generatedWranglerPath,
   })) {
     assert.ok(existsSync(path), `Required WRI-01 build artifact is missing: ${name}=${path}`);
@@ -118,6 +121,7 @@ try {
   });
 
   const rootWrangler = JSON.parse(readFileSync(rootWranglerPath, "utf8"));
+  const resolvedWrangler = JSON.parse(readFileSync(resolvedWranglerPath, "utf8"));
   const generatedWrangler = JSON.parse(readFileSync(generatedWranglerPath, "utf8"));
   const uncompressedBytes = serverFiles.reduce((total, path) => total + statSync(path).size, 0);
   const gzipBytes = gzipSync(Buffer.from(serverText)).byteLength;
@@ -157,7 +161,17 @@ try {
     ROOT_ROUTES_EMPTY: Array.isArray(rootWrangler.routes) && rootWrangler.routes.length === 0,
     ROOT_CRON_EMPTY: Array.isArray(rootWrangler.triggers?.crons) && rootWrangler.triggers.crons.length === 0,
     ROOT_ENV_ABSENT: !("env" in rootWrangler),
-    GENERATED_NAME_MATCH: generatedWrangler.name === "rm-prime-wri01-hml",
+    ROOT_NAME_IS_NON_DEPLOYABLE_SENTINEL: rootWrangler.name === "__CLOUDFLARE_WORKER_NAME_REQUIRED__",
+    ROOT_ACCOUNT_ID_ABSENT: !("account_id" in rootWrangler),
+    RESOLVED_NAME_MATCH: resolvedWrangler.name === process.env.CLOUDFLARE_WORKER_NAME,
+    RESOLVED_ACCOUNT_ID_MATCH: resolvedWrangler.account_id === process.env.CLOUDFLARE_ACCOUNT_ID,
+    RESOLVED_MAIN_MATCH: resolvedWrangler.main === "dist/server/index.mjs",
+    RESOLVED_WORKERS_DEV_DISABLED: resolvedWrangler.workers_dev === false,
+    RESOLVED_PREVIEW_URLS_DISABLED: resolvedWrangler.preview_urls === false,
+    RESOLVED_ROUTES_EMPTY: Array.isArray(resolvedWrangler.routes) && resolvedWrangler.routes.length === 0,
+    RESOLVED_CRON_EMPTY: Array.isArray(resolvedWrangler.triggers?.crons) && resolvedWrangler.triggers.crons.length === 0,
+    RESOLVED_ENV_ABSENT: !("env" in resolvedWrangler),
+    GENERATED_NAME_NOT_REMOTE_AUTHORITY: generatedWrangler.name !== resolvedWrangler.name,
     GENERATED_WRANGLER_MAIN_MATCH: generatedWrangler.main === "index.mjs",
     GENERATED_NO_BUNDLE_MATCH: generatedWrangler.no_bundle === true,
     GENERATED_ASSETS_BINDING_MATCH: generatedWrangler.assets?.binding === "ASSETS",
@@ -180,6 +194,7 @@ try {
     SERVER_TEXT_GZIP_BYTES: gzipBytes,
     CLIENT_FILE_COUNT: clientFiles.length,
     CLIENT_BYTES: clientBytes,
+    RESOLVED_DEPLOYMENT_ENVIRONMENT: process.env.RM_PRIME_DEPLOYMENT_ENVIRONMENT,
     GENERATED_WRANGLER: generatedWrangler,
     DCA_SCHEDULED_DELEGATE_STATIC_ASSERTION_MODE: deferDcaScheduledStaticAssertionToWorkerd
       ? "deferred_to_mandatory_workerd_behavioral_proof"
