@@ -1,9 +1,13 @@
 # RM Prime SaaS — Migração Segura e Governança Integral
 
-**Data de corte operacional:** 2026-08-25  
-**Última reconciliação:** 2026-08-25, após `PR-M3-SEC-04B`  
-**Repositório:** `MrRodBH/prime-domus-hub`  
-**Branch canônica:** `main`  
+**Data de corte operacional:** 2026-08-25
+
+**Última reconciliação:** 2026-08-25, após `PR-M3-SEC-04B`
+
+**Repositório:** `MrRodBH/prime-domus-hub`
+
+**Branch canônica:** `main`
+
 **Finalidade:** preservar integralmente a governança e o estado auditável do projeto em novos chats, sem depender do transcript histórico.
 
 ---
@@ -346,4 +350,3 @@ docs/architecture/governance/RM_PRIME_SAFE_CHAT_MIGRATION_2026-08-25.md
 6. Após cada gate terminal, atualizar este mesmo arquivo no repositório; não criar versões concorrentes `v1/v2/v3`.
 7. Se houver monitoramento prolongado, usar automação separada e não manter um turno bloqueado por horas.
 8. Se um novo chat responder normalmente, a lentidão anterior é classificada como sobrecarga específica do thread; falha local só deve ser considerada se vários chats/navegadores/redes reproduzirem o problema.
-
