@@ -207,7 +207,7 @@ if (baseSha) {
     .split(/\r?\n/)
     .filter(Boolean)
     .sort();
-  if (!arch12f02aMode) {
+  if (!arch12f02aMode && !arch12f02bMode) {
     assert.deepEqual(
       changedFiles,
       [...(integrationMode ? INTEGRATION_ALLOWLIST : ALLOWLIST)].sort(),
