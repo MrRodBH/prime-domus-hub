@@ -20,51 +20,33 @@ PRESERVED_PR_STATE=OPEN_DRAFT_UNMERGED
 
 GitHub `main` is the final code, CI and merge authority. The Lovable/Supabase
 security linter is input evidence only; every claim below was requalified
-against the Same-Backend catalogs and the canonical repository.
+against the Same-Backend catalogs and canonical repository.
 
-## Scope and method
+## Requalified inventory
 
-The linter observation reported 46 INFO/WARN items. The direct catalog audit
-reconstructed the actionable surface as:
+The direct audit reconstructed the linter surface as:
 
 - **24 RLS-enabled relations without policies**;
 - **18 SECURITY DEFINER functions** with client-role execution;
-- four of the 18 functions are executable by `anon` and are included in the
-  same function inventory rather than counted as separate objects.
+- four of the 18 functions are executable by `anon` and remain part of the
+  same function inventory rather than separate objects.
 
-No correction is justified solely by a warning title. The decision gate used
-effective grants, policy combination, owners, `search_path`, live row counts,
-callers, tenant authority and the canonical architecture documents.
+### 15 INTENTIONAL_FAIL_CLOSED_SERVER_ONLY relations
 
-## Relation findings
+These objects have RLS enabled, no policies and no client-role table grants:
 
-### 15 INTENTIONAL_FAIL_CLOSED_SERVER_ONLY
+`billing_charge_provider_mappings`, `billing_plan_provider_prices`,
+`commercial_charge_intents`, `commercial_charge_items`,
+`commercial_plan_prices`, `domain_audit_events`, `domain_authority_control`,
+`domain_operation_attempts`, `domain_operation_jobs`,
+`domain_provider_accounts`, `domain_provider_bindings`,
+`domain_verification_challenges`, `lead_audit_events`,
+`spr02_managed_secret_ceremonies`, and `tenant_domains`.
 
-The following relations have RLS enabled, no policies and no `anon` or
-`authenticated` table privileges. Their zero-policy posture is intentional and
-must not be replaced by generic permissive or deny-all policies:
+Their zero-policy posture is intentional fail-closed. Generic policies must not
+be created.
 
-1. `billing_charge_provider_mappings`
-2. `billing_plan_provider_prices`
-3. `commercial_charge_intents`
-4. `commercial_charge_items`
-5. `commercial_plan_prices`
-6. `domain_audit_events`
-7. `domain_authority_control`
-8. `domain_operation_attempts`
-9. `domain_operation_jobs`
-10. `domain_provider_accounts`
-11. `domain_provider_bindings`
-12. `domain_verification_challenges`
-13. `lead_audit_events`
-14. `spr02_managed_secret_ceremonies`
-15. `tenant_domains`
-
-These objects remain server-only and fail closed for client roles. Existing
-rows include domain operational evidence and canonical domain bindings; no row
-change is permitted.
-
-### 9 REDUNDANT_GRANT_TO_REVOKE
+### 9 REDUNDANT_GRANT_TO_REVOKE relations
 
 The following SCP-001/SCP-002 relations are also designed as RLS
 deny-by-default/service-role-only, but inherited explicit privileges for both
@@ -81,33 +63,28 @@ deny-by-default/service-role-only, but inherited explicit privileges for both
 9. `tenant_subscriptions`
 
 RLS currently prevents effective client row access because no policies exist,
-but the explicit grants contradict the accepted SCP-001/SCP-002 contract and
-create unnecessary future risk if a policy is later introduced. These grants
-are therefore a release interlock and must be revoked before canonical
-homologation.
+but those grants contradict the accepted SCP-001/SCP-002 contract and create
+future exposure if policies are added. They are a release interlock.
 
-## Function findings
+### 5 REDUNDANT_GRANT_TO_REVOKE functions
 
-### 5 REDUNDANT_GRANT_TO_REVOKE
+The canonical callers of these SECURITY DEFINER functions use
+`supabaseAdmin`; no RLS policy or accepted client contract requires direct
+execution:
 
-The following SECURITY DEFINER functions are server-only operational helpers.
-Their canonical repository callers use `supabaseAdmin`; no RLS policy depends
-on them, and no accepted client contract requires direct RPC execution:
-
-1. `log_system_event(text,text,text,text,integer,integer,uuid,uuid,text,jsonb,text)`
-2. `portal_dlq_enqueue(uuid,text,text,jsonb,text)`
+1. `log_system_event(...)`
+2. `portal_dlq_enqueue(...)`
 3. `portal_dlq_mark_resolved(uuid)`
 4. `portal_dlq_mark_retry(uuid,text)`
-5. `rate_limit_hit(text,text,integer,integer)`
+5. `rate_limit_hit(...)`
 
-Direct authenticated execution would allow log spoofing, arbitrary DLQ state
-mutation or rate-limit bucket manipulation. `PUBLIC`, `anon` and
-`authenticated` execution must be absent; `service_role` and owner execution
-must remain.
+Authenticated direct execution could spoof logs, mutate DLQ state or manipulate
+rate-limit buckets. `PUBLIC`, `anon` and `authenticated` execution must be
+absent; owner and `service_role` execution remain.
 
 ### 13 intentional function findings
 
-The remaining **13 intentional function findings** are preserved in SEC-04A:
+The remaining **13 intentional function findings** are preserved:
 
 - public host-derived resolvers:
   `resolve_public_tenant_by_host(text)` and
@@ -117,58 +94,44 @@ The remaining **13 intentional function findings** are preserved in SEC-04A:
   `user_belongs_to_tenant(uuid)`, `has_role(uuid,app_role)`,
   `has_any_permission(uuid,text)`, `has_permission(uuid,text,rbac_action)`,
   `has_cms_permission(uuid,text,rbac_action)` and `user_team_ids(uuid)`;
-- authenticated business/administrative RPCs with internal authorization:
+- authenticated business/administrative RPCs:
   `create_manual_lead(...)`, `transition_lead_status(...)` and
   `super_observabilidade(integer)`.
 
-The linter warning is informational for these functions. Their execution grants
-cannot be revoked mechanically because they are required by public hostname
-resolution, RLS policy evaluation or accepted authenticated workflows.
-Parameter-binding and authorization redesign, if later desired, must be a new
-Architecture First gate rather than an incidental linter fix.
+These grants cannot be removed mechanically because they support hostname
+resolution, RLS evaluation or accepted authenticated workflows. Any redesign
+requires a separate Architecture First gate.
 
 ## Root cause
 
-The canonical SCP-001 and SCP-002 migrations explicitly granted only
-`service_role`. The live catalog nevertheless contains default privileges for
-objects created by role `postgres` in schema `public` that grant table
-privileges to `anon`/`authenticated` and function execution to client roles.
-Those defaults materialized the nine table overgrants and allowed later
-server-only SECURITY DEFINER functions to remain directly executable.
-
-The managed `supabase_admin` role has separate platform defaults. The current
-Same-Backend execution role is `postgres` and is not a member of
-`supabase_admin`; SEC-04A therefore does not attempt privilege escalation,
-role membership changes or unsupported alteration of managed platform
-defaults.
+The canonical SCP-001/SCP-002 migrations explicitly granted only
+`service_role`, but live `postgres` default privileges in schema `public`
+materialized client table/function grants on later objects. Managed
+`supabase_admin` defaults are separate; current Same-Backend execution is
+`postgres` and is not a member of `supabase_admin`. SEC-04A therefore does not
+alter managed-role membership or platform defaults it cannot safely own.
 
 ## Architecture First decision
 
-Implement one forward-only repository migration that:
+Create one forward-only repository migration that:
 
-1. revokes all table privileges for `anon` and `authenticated` from the nine
-   overgranted deny-by-default relations;
-2. revokes execution for `PUBLIC`, `anon` and `authenticated` from the five
-   server-only functions;
-3. explicitly preserves `service_role` execution on those functions;
-4. revokes future `postgres` default table/function client grants in `public`;
-5. verifies RLS, zero-policy posture, service-role access and intentional
+1. revokes all `anon`/`authenticated` table privileges from the nine targets;
+2. revokes `PUBLIC`/`anon`/`authenticated` execution from the five server-only
+   functions;
+3. preserves explicit `service_role` execution;
+4. hardens future `postgres` defaults for public tables/functions;
+5. verifies RLS, zero-policy posture, service-role access and all intentional
    resolver/RPC grants in transaction postconditions;
 6. performs no row DML, policy write, function-body replacement, Auth, Storage,
    tenant, membership or domain mutation.
 
 ## Options rejected
 
-- **Create generic policies:** rejected; it would convert an intentional
-  fail-closed model into a new authorization surface.
-- **Revoke every SECURITY DEFINER grant:** rejected; it would break RLS,
-  hostname resolution and accepted authenticated workflows.
-- **Use Lovable “fix all”:** rejected; it lacks repository-scoped impact
-  analysis and can mutate unrelated objects.
-- **Apply SQL before repository acceptance:** rejected; repository-first and
-  Same-Backend application remain separate gates.
-- **Modify `supabase_admin` role membership/defaults:** rejected; outside the
-  connected capability and managed-platform boundary.
+- Lovable “fix all”, generic policies and bulk EXECUTE revocation;
+- live SQL before repository acceptance;
+- restoring insecure grants after application;
+- altering `supabase_admin` membership/defaults;
+- Supabase external fallback or parallel backend.
 
 ## Repository implementation packet
 
@@ -180,7 +143,7 @@ POLICY_WRITE=false
 FUNCTION_BODY_WRITE=false
 NEW_DEPENDENCY=false
 BUN_LOCK_CHANGE=false
-EXPECTED_CHANGED_PATHS=5
+EXPECTED_CHANGED_PATHS=6
 ```
 
 Exact files:
@@ -188,54 +151,49 @@ Exact files:
 1. `supabase/migrations/20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql`
 2. `run-pr-m3-sec-04a-consolidated-security-corrective-specs.ts`
 3. `.github/workflows/pr-m3-sec-04a-gate.yml`
-4. `docs/architecture/impact-analysis/PR-M3-SEC-04-security-linter-findings-requalification-impact-analysis.md`
-5. `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-sec-04a-consolidated-security-corrective-evidence.md`
+4. `package.json`
+5. `docs/architecture/impact-analysis/PR-M3-SEC-04-security-linter-findings-requalification-impact-analysis.md`
+6. `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-sec-04a-consolidated-security-corrective-evidence.md`
+
+`package.json` changes only the active focused release-gate entry point and
+adds the SEC-04A script. Dependencies, toolchain, accepted historical scripts
+and `bun.lock` remain unchanged.
 
 ## Same-Backend application packet
 
-Live application is not part of SEC-04A. After repository acceptance, the
-separate successor is:
+The migration is not applied by SEC-04A. The separate successor is:
 
 ```text
 PR-M3-SEC-04B_SAME_BACKEND_SECURITY_CORRECTIVE_APPLICATION
 ```
 
-SEC-04B must requalify the exact live state, apply only the accepted migration
-transactionally, prove row-count invariance, verify grants/default privileges,
-run negative client-role checks and preserve rollback-before-COMMIT /
-forward-only-after-COMMIT semantics.
+SEC-04B must requalify live state, apply only the accepted migration
+transactionally, prove row-count invariance, grants/default privileges and
+negative client-role behavior, then retain forward-only recovery semantics.
 
 ## Test matrix
 
-1. Exactly five repository paths change.
-2. `package.json`, `bun.lock`, source runtime and canonical Release Gate remain
-   byte-identical.
-3. Exactly nine table grant revocations exist.
-4. Exactly five function execution revocations exist.
-5. Five explicit service-role function grants remain.
-6. No policy is created or removed.
-7. No function body is replaced.
-8. No table structure is altered.
-9. No row DML exists.
-10. RLS remains enabled and policy count remains zero on target relations.
-11. `anon` and `authenticated` retain no target table privileges.
-12. `anon` and `authenticated` cannot execute the five server-only functions.
-13. `service_role` retains target table/function access.
-14. Public hostname resolvers remain executable by `anon`.
-15. RLS helpers and accepted business RPCs retain required execution.
-16. PostgreSQL `postgres` future defaults no longer grant client access.
-17. PRM3-P0A, typecheck, development/production builds and
-    `verify:release` pass.
-18. PR-M2, WRI-01 and Release Gate pass on one exact head.
-19. PR #105 remains open, draft and unmerged.
-20. Database/provider/deploy/publish/roadmap writes remain zero.
+1. Exactly six paths change; no seventh path.
+2. `bun.lock`, application source and canonical Release Gate remain unchanged.
+3. Dependencies/toolchain objects remain unchanged.
+4. `verify:release` starts with the active SEC-04A focused runner; UX-01 script
+   remains available.
+5. Exactly nine table grant revocations and five function revocations exist.
+6. Five explicit service-role function grants remain.
+7. No policy, function body, table structure or row data changes.
+8. RLS and zero-policy posture remain on target relations.
+9. Intentional public resolvers, RLS helpers and business RPCs remain callable.
+10. Future `postgres` defaults no longer grant client access.
+11. PRM3-P0A, typecheck, builds, `verify:release`, PR-M2, WRI-01 and Release
+    Gate pass on one exact head.
+12. PR #105 remains open, draft and unmerged.
+13. Database/provider/deploy/publish/roadmap writes remain zero.
 
 ## Rollback
 
-Before live COMMIT, any preflight or postcondition failure must abort the
-transaction. After live COMMIT, no insecure grant is restored; any defect is
-handled by a new forward-only migration. SEC-04A itself creates repository
-state only, so a failed PR remains isolated and is never force-pushed.
+Pre-COMMIT live failures abort transactionally. After live COMMIT, no insecure
+grant is restored; defects require a new forward-only migration. Repository
+failures remain isolated in the PR and never use force-push.
 
 ## Terminal decision
 

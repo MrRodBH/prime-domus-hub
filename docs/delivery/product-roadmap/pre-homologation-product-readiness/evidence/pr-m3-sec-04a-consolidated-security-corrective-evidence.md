@@ -15,7 +15,7 @@ PRESERVED_PR=105
 ## Exact repository scope
 
 ```text
-EXPECTED_CHANGED_PATHS=5
+EXPECTED_CHANGED_PATHS=6
 DATABASE_APPLICATION=false
 ROW_DML=false
 POLICY_WRITE=false
@@ -28,13 +28,18 @@ PRODUCTION_CUTOVER=false
 ROADMAP_UPDATE=false
 ```
 
-The exact allowlist is:
+Exact allowlist:
 
 1. `supabase/migrations/20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql`
 2. `run-pr-m3-sec-04a-consolidated-security-corrective-specs.ts`
 3. `.github/workflows/pr-m3-sec-04a-gate.yml`
-4. `docs/architecture/impact-analysis/PR-M3-SEC-04-security-linter-findings-requalification-impact-analysis.md`
-5. `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-sec-04a-consolidated-security-corrective-evidence.md`
+4. `package.json`
+5. `docs/architecture/impact-analysis/PR-M3-SEC-04-security-linter-findings-requalification-impact-analysis.md`
+6. `docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-sec-04a-consolidated-security-corrective-evidence.md`
+
+`package.json` adds only the active SEC-04A focused script and advances the
+front of `verify:release`; dependencies, toolchain, accepted historical scripts
+and `bun.lock` remain unchanged.
 
 ## Requalified finding matrix
 
@@ -75,31 +80,27 @@ BULK_FUNCTION_REVOKE=false
 
 ## Invariants
 
-- No row is inserted, updated, deleted or truncated.
-- RLS and the zero-policy deny-by-default posture are preserved.
+- No row insert, update, delete or truncate.
+- RLS and zero-policy deny-by-default posture preserved.
 - `service_role` and `postgres` retain required access.
 - Public hostname resolvers remain available.
-- Accepted authenticated business RPCs and RLS helpers remain available.
-- No function body, owner or `search_path` is changed.
-- No `sandbox_exec` grant is changed.
-- No Supabase external fallback or parallel backend is introduced.
+- Accepted business RPCs and RLS helpers remain available.
+- No function body, owner or `search_path` changes.
+- No `sandbox_exec` or managed `supabase_admin` change.
+- No external Supabase fallback or parallel backend.
 - PR #105 remains open, draft and unmerged.
 
 ## CI contract
 
-The focused workflow must prove on one exact head:
+The exact head must prove:
 
-1. exact five-path scope;
-2. frozen package, lockfile, source and canonical Release Gate;
-3. structural SQL restrictions;
-4. canonical server-only callers;
-5. PRM3-P0A;
-6. typecheck;
-7. development and production builds;
-8. canonical `verify:release`;
-9. PR-M2;
-10. WRI-01;
-11. Release Gate.
+1. exact six-path scope;
+2. frozen lockfile, application source and canonical Release Gate;
+3. unchanged dependencies and toolchain;
+4. active SEC-04A focused release entry point;
+5. structural SQL restrictions and canonical server-only callers;
+6. PRM3-P0A, typecheck, development/production builds and `verify:release`;
+7. PR-M2, WRI-01 and Release Gate.
 
 ## Live application status
 

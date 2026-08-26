@@ -17,6 +17,7 @@ const allowlist = new Set([
   migrationPath,
   "run-pr-m3-sec-04a-consolidated-security-corrective-specs.ts",
   workflowPath,
+  "package.json",
   "docs/architecture/impact-analysis/PR-M3-SEC-04-security-linter-findings-requalification-impact-analysis.md",
   "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-sec-04a-consolidated-security-corrective-evidence.md",
 ]);
@@ -71,7 +72,7 @@ const changed = new Set(
     .filter(Boolean),
 );
 
-equal(changed.size, allowlist.size, "SEC-04A must change exactly five frozen paths");
+equal(changed.size, allowlist.size, "SEC-04A must change exactly six frozen paths");
 for (const path of changed) {
   ok(allowlist.has(path), `changed path must be allowlisted: ${path}`);
 }
@@ -86,7 +87,6 @@ const immutableDiff = spawnSync(
     "--quiet",
     `${baseSha}...HEAD`,
     "--",
-    "package.json",
     "bun.lock",
     ".github/workflows/release-gate.yml",
     "src",
@@ -95,7 +95,36 @@ const immutableDiff = spawnSync(
 );
 ok(
   immutableDiff.status === 0,
-  "application source, canonical Release Gate, package.json and bun.lock must remain unchanged",
+  "application source, canonical Release Gate and bun.lock must remain unchanged",
+);
+
+const packageJson = JSON.parse(read("package.json")) as Record<string, unknown>;
+const basePackageJson = JSON.parse(
+  git("show", `${baseSha}:package.json`),
+) as Record<string, unknown>;
+for (const key of [
+  "dependencies",
+  "devDependencies",
+  "pnpm",
+  "overrides",
+  "resolutions",
+]) {
+  equal(packageJson[key], basePackageJson[key], `${key} must remain unchanged`);
+}
+const scripts = packageJson.scripts as Record<string, string>;
+ok(
+  scripts["test:pr-m3-sec-04a"] ===
+    "tsx --tsconfig tsconfig.json ./run-pr-m3-sec-04a-consolidated-security-corrective-specs.ts",
+  "focused SEC-04A package script missing",
+);
+ok(
+  scripts["verify:release"]?.startsWith("bun run test:pr-m3-sec-04a &&"),
+  "verify:release must start with the active SEC-04A focused gate",
+);
+ok(
+  scripts["test:pr-m3-ux-01"] ===
+    "tsx --tsconfig tsconfig.json ./run-pr-m3-ux-01-pipeline-search-compatibility-specs.ts",
+  "accepted UX-01 focused script must remain available",
 );
 
 const migration = read(migrationPath);
@@ -121,17 +150,17 @@ ok(migration.includes("DO $preflight$"), "preflight block missing");
 ok(migration.includes("DO $postcondition$"), "postcondition block missing");
 
 equal(
-  (migration.match(/REVOKE ALL PRIVILEGES ON TABLE/g) ?? []).length,
+  (migration.match(/REVOKE ALL PRIVILEGES ON TABLE public\./g) ?? []).length,
   targetTables.length,
   "exactly nine table revocations are required",
 );
 equal(
-  (migration.match(/REVOKE EXECUTE ON FUNCTION/g) ?? []).length,
+  (migration.match(/REVOKE EXECUTE ON FUNCTION\n/g) ?? []).length,
   targetFunctions.length,
   "exactly five function revocations are required",
 );
 equal(
-  (migration.match(/GRANT EXECUTE ON FUNCTION/g) ?? []).length,
+  (migration.match(/GRANT EXECUTE ON FUNCTION\n/g) ?? []).length,
   targetFunctions.length,
   "exactly five service-role function grants are required",
 );
@@ -253,7 +282,7 @@ for (const required of [
 }
 
 ok(
-  evidence.includes("EXPECTED_CHANGED_PATHS=5") &&
+  evidence.includes("EXPECTED_CHANGED_PATHS=6") &&
     evidence.includes("ROW_DML=false") &&
     evidence.includes("POLICY_WRITE=false") &&
     evidence.includes("FUNCTION_BODY_WRITE=false"),
