@@ -2,7 +2,7 @@
 
 **Data de corte operacional:** 2026-08-25
 
-**Última reconciliação:** 2026-08-26, após `LVR-02A_GITHUB_NATIVE_GOVERNANCE_AND_BASELINE_CORRECTIVE`
+**Última reconciliação:** 2026-08-26, durante `PCA-03_GITHUB_NATIVE_PRODUCT_SCHEMA_REBASELINE_CORRECTIVE_PLAN_MATERIALIZATION`
 
 **Repositório:** `MrRodBH/prime-domus-hub`
 
@@ -287,7 +287,7 @@ ROADMAP_LAST_AUTHORIZED_UPDATE=completed_historical_after_SEC04B
 ROADMAP_PRODUCTION_DEPLOY_AUTHORIZED=false
 ```
 
-O roadmap deve registrar `SEC-04A = Accepted/Merged/Closed`, `SEC-04B = Accepted`, issue #135, migration aplicada, invariância de linhas e `LVR-01` como próximo gate separado aguardando autorização.
+O roadmap privado preserva o último estado expressamente autorizado. Nenhuma atualização do site é autorizada por PCA-03; o sucessor vigente é resolvido pela seção 18 e pelo GitHub `main`.
 
 ---
 
@@ -310,37 +310,32 @@ Regra permanente:
 
 ---
 
-## 15. Bootstrap CTDD para o próximo chat
+## 15. Bootstrap CTDD vigente para o próximo chat
 
 ```text
-Execute: @GitHub @Lovable
+Execute: @GitHub
 
-RM PRIME SAAS — SAFE CONTINUITY AFTER PR-M3-SEC-04B
+RM PRIME SAAS — CONTINUIDADE PCA-03
 
-EXECUTION_MODE=read-only_requalification
-OWNER_ACTION=NONE_DURING_REQUALIFICATION
-GITHUB_IS_CODE_CI_MERGE_AUTHORITY=true
+EXECUTION_MODE=read-only_final_audit
 REPOSITORY=MrRodBH/prime-domus-hub
 BASE_BRANCH=main
-MINIMUM_EXPECTED_ANCESTOR=7fe0231bc92ac3cb205414c351e5549114bb639a
-SEC04B_TRACKING_ISSUE=135
-PR_105_MERGE=false
+EXPECTED_BASE_HEAD=d0632f471942bd638a57555ed5af63c5567e263b
+PCA03_BRANCH=agent/pca-03-github-native-product-schema-rebaseline-plan
+PCA03_PLAN=docs/architecture/impact-analysis/PCA-03-github-native-product-schema-rebaseline-corrective-plan.md
+PR_105_MUTATION=false
+LOVABLE_AGENT_CALLS=false
+BACKEND_MUTATION=false
+PROVIDER_MUTATION=false
 PRODUCTION_PUBLISH=false
-PRODUCTION_CUTOVER=false
 
-Leia integralmente o arquivo:
-docs/architecture/governance/RM_PRIME_SAFE_CHAT_MIGRATION_2026-08-25.md
-
-1. Reaudite o HEAD/tree atual do GitHub main.
-2. Confirme que 7fe0231bc92ac3cb205414c351e5549114bb639a é ancestral do main vigente.
-3. Confirme PR #134 merged, issue #133 closed e Release Gate pós-merge #808 SUCCESS.
-4. Confirme issue #135 e a evidência terminal do PR-M3-SEC-04B.
-5. Confirme PR #105 aberta, draft e não mesclada.
-6. Não use como autoridade os anexos históricos LSR-02.
-7. Não execute LVR-01 sem autorização específica do Owner.
-8. Entregue síntese CTDD e o prompt exato de autorização para:
-   LVR-01_CAPABILITY_PREFLIGHT_AND_PRIVATE_VARIANT_REBASELINE_PLAN,
-   limitado a PLANNING_ONLY e READ_ONLY.
+1. Reaudite o GitHub main e a PR PCA-03 exata.
+2. Confirme que somente o plano PCA-03 e este arquivo de continuidade mudaram.
+3. Confirme ausência de código, migrations, workflows, backend, provider e PR #105 writes.
+4. Audite o plano de paridade, proteção dos 73 resíduos, transações, credenciais e rollback.
+5. Não execute PCA-04 nem Same-Backend.
+6. Entregue veredito e, somente após autorização específica do Owner,
+   execute o merge protegido da PR PCA-03.
 ```
 
 ---
@@ -375,3 +370,28 @@ GITHUB_MAIN_FINAL_AUTHORITY=true
 - O restore PITR real de `DCA-02-BL2` continua pré-produção, isolado e separadamente autorizável; writes de recovery `DCA-02-BL1` permanecem proibidos antes dessa prova terminal.
 - Issues históricas devem refletir os estados aceitos, rejeitados ou superseded do `main`; checklist antigo não conserva autoridade executiva.
 - O planejamento detalhado das capacidades de domínio, marketing, tracking, landing pages, CRM, notificações e portais fica registrado na evidência LVR-02H e não autoriza implementação ou provedor.
+
+
+---
+
+## 18. PCA-02/PCA-03 — Rebaseline corretivo do schema de produto
+
+```text
+PCA02_RESULT=FAIL_CLOSED_NOT_EXECUTION_READY
+PCA03_STATUS=PLANNING_MATERIALIZED_AWAITING_PROTECTED_MERGE
+PCA03_BASE_HEAD=d0632f471942bd638a57555ed5af63c5567e263b
+PCA03_BASE_TREE=4bcf9e0c5ff655f48a63d92b2e60057a7f9f9dae
+PCA03_BRANCH=agent/pca-03-github-native-product-schema-rebaseline-plan
+PCA03_PLAN=docs/architecture/impact-analysis/PCA-03-github-native-product-schema-rebaseline-corrective-plan.md
+SAME_BACKEND_MUTATED=false
+PR_105_MUTATED=false
+```
+
+- A PCA-02 confirmou 16 migrações PR-M2 ausentes do ledger, 45 tabelas e 57 colunas ainda ausentes no Same-Backend.
+- A forma original não é executável: faria DML sobre todos os 74 tenants, incluindo 73 resíduos internos protegidos e 438 conectores.
+- O checksum obrigatório dos 73 resíduos permanece `3ece053ddbdfce5161380ec38824ea91`; nenhum gate pode selecioná-los por prefixo, nome ou consulta ampla.
+- A migração de portais não pode apagar 888 valores de credenciais; custódia, rotação e remoção exigem cutover reversível e gate destrutivo separado.
+- Quatro migrações BCA/BCR existem somente no ledger live e permanecem quarentenadas, não autoritativas e fora da PR #105.
+- `migration repair`, `db reset`, down migration, backfill global e adoção implícita de schema live estão proibidos.
+- O plano PCA-03 exige manifest de paridade bidirecional, DDL separado de DML, provisionamento server-owned por IDs exatos, restore-cell privado e rollback forward-only.
+- O próximo ato permitido é auditoria final e merge protegido da PR documental PCA-03 após autorização específica do Owner.
