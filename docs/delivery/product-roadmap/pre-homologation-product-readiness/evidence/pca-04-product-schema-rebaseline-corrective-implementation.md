@@ -41,16 +41,16 @@ migração foi aplicada, nenhum ledger foi reparado e nenhum tenant foi alterado
 
 Uma única transação materializa e confirma:
 
-| Componente | Invariante |
-|---|---:|
-| configuração canônica publicada | 1 |
-| pipeline comercial default | 1 |
-| estágios CRM fechados | 7 |
-| conectores de marketing | 4 |
-| versões/mapeamentos de marketing | 4 / 4 |
-| conectores/versões de tracking | 3 / 3 |
-| bindings de eventos de tracking | 36 |
-| configuração de consentimento | 1 |
+| Componente                       | Invariante |
+| -------------------------------- | ---------: |
+| configuração canônica publicada  |          1 |
+| pipeline comercial default       |          1 |
+| estágios CRM fechados            |          7 |
+| conectores de marketing          |          4 |
+| versões/mapeamentos de marketing |      4 / 4 |
+| conectores/versões de tracking   |      3 / 3 |
+| bindings de eventos de tracking  |         36 |
+| configuração de consentimento    |          1 |
 
 Meta Ads e Google Ads nascem sem credencial, inativos e `not_live_verified`.
 Nenhum provider é chamado e nenhum sucesso externo é simulado.
@@ -69,36 +69,43 @@ live antes de qualquer write.
 
 ## 5. Verificações executadas
 
-| Verificação | Resultado |
-|---|---|
-| head/tree de origem | PASS — iguais à autorização |
-| PCA-04 structural specs | PASS |
-| 9 suítes PR-M2 de regressão | PASS |
-| parser PostgreSQL real | PASS — 17/17 arquivos |
-| hash do manifesto | PASS — 17/17 arquivos |
-| lint do novo verificador | PASS |
-| build Vite/Nitro | PASS |
-| typecheck global | BASELINE BLOCKED — erros TanStack preexistentes fora da allowlist |
-| release verifier composto | ENVIRONMENT BLOCKED — runtime `bun` ausente; componentes acima executados com Node/npm |
-| `git diff --check` | PASS |
+| Verificação                 | Resultado                                                                              |
+| --------------------------- | -------------------------------------------------------------------------------------- |
+| head/tree de origem         | PASS — iguais à autorização                                                            |
+| PCA-04 structural specs     | PASS                                                                                   |
+| 9 suítes PR-M2 de regressão | PASS                                                                                   |
+| parser PostgreSQL real      | PASS — 17/17 arquivos                                                                  |
+| hash do manifesto           | PASS — 17/17 arquivos                                                                  |
+| compatibilidade SEC-04A     | PASS — prova histórica congelada; regressão global independente de diff                |
+| lint do novo verificador    | PASS                                                                                   |
+| build Vite/Nitro            | PASS                                                                                   |
+| typecheck global            | BASELINE BLOCKED — erros TanStack preexistentes fora da allowlist                      |
+| release verifier composto   | ENVIRONMENT BLOCKED — runtime `bun` ausente; componentes acima executados com Node/npm |
+| `git diff --check`          | PASS                                                                                   |
 
 O CLI Supabase estável `2.115.0` não conseguiu inicializar o diretório read-only
 `/root/.supabase` deste ambiente. A criação da migração usou o timestamp UTC do
 sistema como fallback auditado; nenhuma chamada foi repetida após a confirmação
 da restrição ambiental.
 
+A primeira execução da PR #140 expôs que a prova histórica SEC-04A, congelada
+em seis arquivos, era executada indevidamente como regressão global. O gate e o
+verificador histórico permanecem intactos; `verify:release` agora usa uma suíte
+separada, independente de diff, que reafirma tabelas, funções, privilégios,
+proibições e callers server-only. A migração SEC-04A não foi alterada.
+
 ## 6. Backlogs e momento correto
 
-| Backlog | Momento autorizado |
-|---|---|
-| ARCH-12F-02 / #107 | gate próprio antes da homologação e de rehearsal dependente de bindings |
-| ARCH-12F-03 / #116 | após correção upstream/harness; antes de billing comercial |
-| DCA-02-BL2 | prova PITR isolada antes de qualquer rebaseline/cutover live |
-| DCA-02-BL1 | após BL2 e antes de provisionamento automático de domínio real |
-| Lovable private variant | somente após resposta/correção oficial e novo gate do Owner |
-| portal credential cutover | gate destrutivo separado após custódia, rotação e rollback provados |
-| órfãos de reasons | gate de integridade separado com manifesto exato |
-| live-only BCA/BCR | PCA-06/comercial; sem adoção da PR #105 |
+| Backlog                   | Momento autorizado                                                      |
+| ------------------------- | ----------------------------------------------------------------------- |
+| ARCH-12F-02 / #107        | gate próprio antes da homologação e de rehearsal dependente de bindings |
+| ARCH-12F-03 / #116        | após correção upstream/harness; antes de billing comercial              |
+| DCA-02-BL2                | prova PITR isolada antes de qualquer rebaseline/cutover live            |
+| DCA-02-BL1                | após BL2 e antes de provisionamento automático de domínio real          |
+| Lovable private variant   | somente após resposta/correção oficial e novo gate do Owner             |
+| portal credential cutover | gate destrutivo separado após custódia, rotação e rollback provados     |
+| órfãos de reasons         | gate de integridade separado com manifesto exato                        |
+| live-only BCA/BCR         | PCA-06/comercial; sem adoção da PR #105                                 |
 
 Nenhuma dessas trilhas foi antecipada por PCA-04.
 

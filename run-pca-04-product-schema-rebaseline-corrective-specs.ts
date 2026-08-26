@@ -33,6 +33,10 @@ const marketing = all[6];
 const tracking = all[7];
 const adapter = all[10];
 const orchestrator = migration("20260826185014_pca_04_exact_tenant_product_baseline.sql");
+const sec04aRegression = readFileSync("run-pr-m3-sec-04a-security-regression-specs.ts", "utf8");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+  scripts: Record<string, string>;
+};
 const parityManifest = JSON.parse(
   readFileSync(
     "docs/architecture/impact-analysis/manifests/PCA-04-product-schema-parity-manifest.json",
@@ -143,6 +147,20 @@ assert.ok(
   ),
 );
 assert.equal(parityManifest.sameBackendMutation, false);
+
+for (const marker of [
+  'stage: "PR-M3-SEC-04A-REGRESSION"',
+  "REVOKE ALL PRIVILEGES ON TABLE public",
+  "REVOKE EXECUTE ON FUNCTION",
+  "GRANT EXECUTE ON FUNCTION",
+])
+  assert.ok(sec04aRegression.includes(marker), `SEC-04A regression missing ${marker}`);
+assert.ok(
+  packageJson.scripts["verify:release"]
+    .split(" && ")
+    .includes("bun run test:pr-m3-sec-04a:regression"),
+  "release verification must use the scope-independent SEC-04A regression",
+);
 
 console.log(
   JSON.stringify(
