@@ -1,0 +1,114 @@
+name: PR-M3 SEC-04A Security Corrective Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql"
+      - "run-pr-m3-sec-04a-consolidated-security-corrective-specs.ts"
+      - ".github/workflows/pr-m3-sec-04a-gate.yml"
+      - "docs/architecture/impact-analysis/PR-M3-SEC-04-security-linter-findings-requalification-impact-analysis.md"
+      - "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-sec-04a-consolidated-security-corrective-evidence.md"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql"
+      - "run-pr-m3-sec-04a-consolidated-security-corrective-specs.ts"
+      - ".github/workflows/pr-m3-sec-04a-gate.yml"
+      - "docs/architecture/impact-analysis/PR-M3-SEC-04-security-linter-findings-requalification-impact-analysis.md"
+      - "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pr-m3-sec-04a-consolidated-security-corrective-evidence.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-m3-sec-04a-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Exact-head consolidated security corrective proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
+      CRON_SECRET: ci-placeholder-secret
+      STRUCTURED_LOG_STACKS: "false"
+      DCA02_BL2_LIVE_RESTORE_ALLOWED: "false"
+      DCA02_BL1_PROVIDER_WRITES_ALLOWED: "false"
+
+    steps:
+      - name: Checkout exact event head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Resolve exact baseline and verify head
+        id: refs
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          if [[ "$actual_sha" != "$EXPECTED_SHA" ]]; then
+            echo "Exact-head verification failed: expected=$EXPECTED_SHA actual=$actual_sha" >&2
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha="$PR_BASE_SHA"
+          else
+            base_sha="$PUSH_BEFORE_SHA"
+          fi
+
+          if [[ ! "$base_sha" =~ ^[0-9a-f]{40}$ ]] \
+            || [[ "$base_sha" == "0000000000000000000000000000000000000000" ]] \
+            || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+            echo "Invalid exact baseline: $base_sha" >&2
+            exit 1
+          fi
+
+          echo "head_sha=$actual_sha" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "Exact SEC-04A head: $actual_sha"
+          echo "Exact SEC-04A base: $base_sha"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install frozen dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Execute SEC-04A focused and regression gates
+        shell: bash
+        env:
+          PR_M3_SEC_04A_BASE_SHA: ${{ steps.refs.outputs.base_sha }}
+        run: |
+          set -o pipefail
+          {
+            bunx tsx --tsconfig tsconfig.json ./run-pr-m3-sec-04a-consolidated-security-corrective-specs.ts
+            bun run test:prm3-p0a
+            bun run typecheck
+            bun run build:dev
+            bun run build
+            bun run verify:release
+          } 2>&1 | tee pr-m3-sec-04a-gate.log
+
+      - name: Upload exact-head SEC-04A evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-m3-sec-04a-${{ steps.refs.outputs.head_sha }}
+          path: pr-m3-sec-04a-gate.log
+          if-no-files-found: error
+          retention-days: 14
