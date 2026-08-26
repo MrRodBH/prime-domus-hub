@@ -4,15 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 import { structuredLog } from '@/lib/structured-log'
-
-// Configuration baked in at scaffold time
-const SITE_NAME = "Prime Property Hub"
-// SENDER_DOMAIN is the verified sender subdomain FQDN (e.g., "notify.example.com").
-// It MUST match the subdomain delegated to Lovable's nameservers. NEVER use the root domain.
-const SENDER_DOMAIN = "contato.rmprimeimoveis.com.br"
-// FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
-// Can be the root domain when display_from_root is enabled — this is cosmetic only.
-const FROM_DOMAIN = "rmprimeimoveis.com.br"
+import { getRequiredEmailIdentityConfig } from '@/lib/runtime/email-identity-config.server'
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
@@ -27,6 +19,7 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const emailIdentity = getRequiredEmailIdentityConfig()
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -308,8 +301,8 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           payload: {
             message_id: messageId,
             to: effectiveRecipient,
-            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-            sender_domain: SENDER_DOMAIN,
+            from: emailIdentity.from,
+            sender_domain: emailIdentity.senderDomain,
             subject: resolvedSubject,
             html,
             text: plainText,

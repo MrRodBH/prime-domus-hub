@@ -19,15 +19,14 @@ export const Route = createFileRoute("/lancamentos/$slug")({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const d: any = ctx.loaderData;
     if (!d) return { meta: [{ title: "Lançamento" }] };
-    const title = d.meta_title || `${d.nome} — Lançamento RM Prime Imóveis`;
+    const title = d.meta_title || `${d.nome} — Lançamento imobiliário`;
     const desc = d.meta_description || `${d.nome}${d.construtora ? ` — ${d.construtora}` : ""}. ${d.endereco ?? ""}`;
-    const canonical = `https://rmprimeimoveis.com.br/lancamentos/${d.slug}`;
+    const canonicalPath = `/lancamentos/${encodeURIComponent(d.slug)}`;
     const meta: Array<Record<string, string>> = [
       { title }, { name: "description", content: desc },
       { property: "og:title", content: title },
       { property: "og:description", content: desc },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: canonical },
     ];
     if (d.og_image_url || d.imagem_capa_url) {
       meta.push({ property: "og:image", content: d.og_image_url || d.imagem_capa_url });
@@ -36,7 +35,7 @@ export const Route = createFileRoute("/lancamentos/$slug")({
     }
     return {
       meta,
-      links: [{ rel: "canonical", href: canonical }],
+      links: [{ rel: "canonical", href: canonicalPath }],
       scripts: [{
         type: "application/ld+json",
         children: JSON.stringify({
@@ -44,7 +43,6 @@ export const Route = createFileRoute("/lancamentos/$slug")({
           "@type": "RealEstateListing",
           name: d.nome,
           description: desc,
-          url: canonical,
           image: d.og_image_url || d.imagem_capa_url || undefined,
           address: d.endereco ? { "@type": "PostalAddress", streetAddress: d.endereco, addressLocality: d.cidade?.nome, addressRegion: d.cidade?.uf } : undefined,
           numberOfRooms: d.quartos ?? undefined,
@@ -398,4 +396,3 @@ function LeadFormLancamento({ launchProjectId, nome }: { launchProjectId: string
     </form>
   );
 }
-

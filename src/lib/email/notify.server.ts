@@ -2,10 +2,7 @@ import * as React from "react";
 import { render } from "@react-email/components";
 import { createClient } from "@supabase/supabase-js";
 import { TEMPLATES } from "@/lib/email-templates/registry";
-
-const SITE_NAME = "RM Prime Imóveis";
-const SENDER_DOMAIN = "contato.rmprimeimoveis.com.br";
-const FROM_DOMAIN = "rmprimeimoveis.com.br";
+import { getRequiredEmailIdentityConfig } from "@/lib/runtime/email-identity-config.server";
 
 function generateToken(): string {
   const bytes = new Uint8Array(32);
@@ -25,6 +22,7 @@ export async function enqueueTransactional(args: {
 }): Promise<{ ok: boolean; reason?: string }> {
   const tpl = TEMPLATES[args.templateName];
   if (!tpl) return { ok: false, reason: "template_not_found" };
+  const emailIdentity = getRequiredEmailIdentityConfig();
 
   const url = process.env.SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -88,8 +86,8 @@ export async function enqueueTransactional(args: {
     payload: {
       message_id: messageId,
       to: recipient,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
+      from: emailIdentity.from,
+      sender_domain: emailIdentity.senderDomain,
       subject,
       html,
       text,

@@ -7,7 +7,7 @@ import { Footer } from "@/components/site/Footer";
 import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
 import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
 import { enviarLead } from "@/lib/api/catalogo.functions";
-import { obterSiteSettings } from "@/lib/api/site.functions";
+import { obterSiteSettings, type SiteSettings } from "@/lib/api/site.functions";
 import { attributionPayload } from "@/lib/attribution";
 import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
 
@@ -21,19 +21,24 @@ type AdvertiseLeadPayload = ReturnType<typeof attributionPayload> & {
 };
 
 export const Route = createFileRoute("/anuncie")({
-  head: () => ({
-    meta: [
-      { title: "Anuncie seu imóvel — RM Prime Imóveis" },
-      { name: "description", content: "Anuncie seu imóvel de alto padrão com a RM Prime." },
-      { property: "og:title", content: "Anuncie seu imóvel — RM Prime Imóveis" },
-      { property: "og:description", content: "Avaliação e marketing personalizado para imóveis de alto padrão." },
-      { property: "og:url", content: "https://rmprimeimoveis.com.br/anuncie" },
-    ],
-    links: [{ rel: "canonical", href: "https://rmprimeimoveis.com.br/anuncie" }],
-  }),
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
+  head: ({ loaderData }) => {
+    const settings = loaderData as SiteSettings | undefined;
+    const siteName = settings?.branding.site_name || "Imobiliária";
+    const page = settings?.pagina_anuncie ?? {};
+    return {
+      meta: [
+        { title: page.meta_title || `Anuncie seu imóvel — ${siteName}` },
+        { name: "description", content: page.meta_description || `Anuncie seu imóvel com ${siteName}.` },
+        { property: "og:title", content: page.meta_title || `Anuncie seu imóvel — ${siteName}` },
+        { property: "og:description", content: page.meta_description || `Anuncie seu imóvel com ${siteName}.` },
+      ],
+      links: [{ rel: "canonical", href: "/anuncie" }],
+    };
   },
+  loader: async ({ context }) => context.queryClient.ensureQueryData({
+    queryKey: ["site-settings"],
+    queryFn: () => obterSiteSettings(),
+  }),
   component: Page,
 });
 
