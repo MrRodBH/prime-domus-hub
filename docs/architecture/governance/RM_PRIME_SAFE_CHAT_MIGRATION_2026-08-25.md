@@ -427,3 +427,28 @@ PR_105_MUTATED=false
   obrigatório antes de qualquer consideração de Same-Backend.
 - O próximo ato permitido é auditoria final e merge protegido da PR PCA-04 após
   autorização específica do Owner.
+
+
+---
+
+## 20. Autoridade de acesso para testes do produto final
+
+```text
+OWNER_TEAM_TEST_CANONICAL_URL=https://www.realone.com.br
+PRODUCT_SURFACE=RM_PRIME_SAAS_FRONTEND_AND_SERVER_RUNTIME
+DEPLOYMENT_PLATFORM=CLOUDFLARE
+LOVABLE_PROJECT_CONNECTION=EXISTING_TO_BE_REVALIDATED_BEFORE_CUTOVER
+SAME_BACKEND_SUPABASE=REMAINS_BINDING_FOR_DATA_AUTH_AND_STORAGE
+TENANT_CUSTOM_DOMAINS=SEPARATE_PRODUCT_CAPABILITY
+CURRENT_DEPLOY_OR_CUTOVER_AUTHORIZED=false
+```
+
+- Decisão vinculante do Owner em 2026-08-26: `www.realone.com.br` será o ponto
+  canônico de acesso da equipe e do Owner para testar o produto SaaS final,
+  incluindo frontend e runtime server/API publicados na Cloudflare.
+- A conexão existente do domínio ao projeto Lovable deverá ser comprovada por
+  leitura antes do gate de deploy; ela não concede ao agente Lovable autoridade
+  sobre GitHub, CI/CD, runtime ou regras de governança.
+- O Supabase Same-Backend permanece autoridade única de dados, Auth e Storage.
+  Esta decisão não autoriza deploy, publicação, DNS, provider write, cutover nem
+  substituição das regras de domínio por tenant.
