@@ -179,6 +179,7 @@ jobs:
         env:
           ARCH_12F_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
           ARCH_12F_02A_MODE: ${{ steps.scope.outputs.arch_12f_02a }}
+          ARCH_12F_02B_MODE: ${{ steps.scope.outputs.arch_12f_02b }}
           ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
           ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:arch-12f-01
