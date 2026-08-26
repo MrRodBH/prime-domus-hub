@@ -125,6 +125,9 @@ O Lovable não é autoridade final de código, CI ou merge. Relatório do Lovabl
 - Segredos nunca podem aparecer em chat, prompt, GitHub, logs, evidências ou documentação.
 - Lovable pode executar somente inspeção/aplicação do Same-Backend Supabase e regras avançadas de UX/UI, quando expressamente autorizado.
 - Lovable jamais pode receber instruções, consultas, correções, validações ou operações de GitHub/repositório; essas ações são exclusivamente GitHub-native.
+- Toda governança originada no Lovable — inclusive `.lovable/plan.md`, planos salvos, mensagens, arquivos ou estado de preview — é histórica e não autorizadora, salvo quando o conteúdo exato tiver sido materializado, auditado e aceito no GitHub `main`.
+- Se uma regra do Lovable divergir do GitHub, ela deve ser ignorada e substituída pela autoridade vigente do repositório; nunca pode bloquear, reordenar ou reabrir o roadmap.
+- O retorno ao Lovable não restaura autoridade histórica: cada uso futuro permanece restrito ao Same-Backend Supabase ou UX/UI avançada, com autorização específica.
 - `plan_mode` do Lovable não garante read-only: uma chamada aceita pode escrever `.lovable/plan.md` e sincronizar commit. Não usar Lovable para planejamento de governança, arquitetura ou repositório.
 - Preview visual deve ser privado e não produtivo, salvo decisão posterior explícita.
 - Produção/publicação no Lovable permanece ação exclusiva do Owner.
@@ -279,7 +282,8 @@ EXTERNAL_SUPABASE_FALLBACK=false
 ```text
 ROADMAP_PROJECT_ID=4e4c1d1e-899c-4991-80ca-ebc110fbd23f
 ROADMAP_PRIVATE_PREVIEW=https://id-preview--4e4c1d1e-899c-4991-80ca-ebc110fbd23f.lovable.app
-ROADMAP_UPDATE_AUTHORIZED_FOR_THIS_SEQUENCE=true
+ROADMAP_UPDATE_AUTHORIZED_FOR_THIS_SEQUENCE=false
+ROADMAP_LAST_AUTHORIZED_UPDATE=completed_historical_after_SEC04B
 ROADMAP_PRODUCTION_DEPLOY_AUTHORIZED=false
 ```
 
@@ -290,23 +294,19 @@ O roadmap deve registrar `SEC-04A = Accepted/Merged/Closed`, `SEC-04B = Accepted
 ## 14. Sucessor correto — não autorizado implicitamente
 
 ```text
-NEXT_GATE=LVR-01_CAPABILITY_PREFLIGHT_AND_PRIVATE_VARIANT_REBASELINE_PLAN
-NEXT_GATE_MODE=PLANNING_ONLY/READ_ONLY
+NEXT_GATE=RESOLVE_FROM_CURRENT_GITHUB_MAIN_AND_OPEN_BACKLOG
+NEXT_GATE_MODE=EXPLICIT_OWNER_AUTHORIZATION_REQUIRED
 NEXT_GATE_AUTHORIZED=false
 ```
 
-Objetivo futuro:
+Regra permanente:
 
-1. auditar o projeto Lovable canônico;
-2. provar identidade do Same-Backend, Auth, Storage e bindings;
-3. provar a baseline interna;
-4. verificar capacidade real de variante privada;
-5. impedir backend paralelo e production publish;
-6. projetar rebaseline exato a partir do GitHub `main`;
-7. preservar a versão publicada anterior para rollback;
-8. definir autenticação real e matriz visual.
-
-Se a identidade do mesmo backend não puder ser provada, não criar variante. Materialização somente após autorização específica posterior.
+1. resolver o sucessor exclusivamente pelo `main`, pelas issues abertas e pela autorização atual do Owner;
+2. não reutilizar instrução histórica do Lovable como gate;
+3. manter LVR/variante privada bloqueado enquanto o suporte não corrigir ou esclarecer o contrato do conector;
+4. manter BCR/PR #105 separado até gatilho upstream material;
+5. permitir planejamento read-only paralelo, mas somente uma trilha mutável por vez;
+6. exigir novo gate Architecture First para cada integração externa ou mudança estrutural.
 
 ---
 
@@ -355,3 +355,23 @@ docs/architecture/governance/RM_PRIME_SAFE_CHAT_MIGRATION_2026-08-25.md
 6. Após cada gate terminal, atualizar este mesmo arquivo no repositório; não criar versões concorrentes `v1/v2/v3`.
 7. Se houver monitoramento prolongado, usar automação separada e não manter um turno bloqueado por horas.
 8. Se um novo chat responder normalmente, a lentidão anterior é classificada como sobrecarga específica do thread; falha local só deve ser considerada se vários chats/navegadores/redes reproduzirem o problema.
+
+
+---
+
+## 17. Reconciliação vinculante de backlog e autoridade Lovable — LVR-02H
+
+```text
+AUDITED_MAIN=252f3e98492bc34c30380704bb47e3ed576948f6
+AUDITED_TREE=65287b9019498c35d8614bacf1fa679fc750851b
+PR_105_STATE=open/draft/unmerged
+LOVABLE_GOVERNANCE_AUTHORITY=false
+GITHUB_MAIN_FINAL_AUTHORITY=true
+```
+
+- `ARCH-12F-01`, `ARCH-12F-04A`, `ARCH-12F-04B`, `ARCH-TENANCY-01`, `DCA-02-BL2` repository proof e `DCA-02-BL1` diagnostic foram compostos e aceitos no `main` pela PR #114.
+- `ARCH-12F-02` permanece pendente: `wrangler.jsonc` ainda fixa o nome do Worker e `supabase/config.toml` ainda fixa o project ref; qualquer correção exige gate Architecture First próprio.
+- `ARCH-12F-03` permanece diferido upstream e é governado pela issue #116; não bloqueia PR-M3 e não autoriza mutação da PR #105.
+- O restore PITR real de `DCA-02-BL2` continua pré-produção, isolado e separadamente autorizável; writes de recovery `DCA-02-BL1` permanecem proibidos antes dessa prova terminal.
+- Issues históricas devem refletir os estados aceitos, rejeitados ou superseded do `main`; checklist antigo não conserva autoridade executiva.
+- O planejamento detalhado das capacidades de domínio, marketing, tracking, landing pages, CRM, notificações e portais fica registrado na evidência LVR-02H e não autoriza implementação ou provedor.
