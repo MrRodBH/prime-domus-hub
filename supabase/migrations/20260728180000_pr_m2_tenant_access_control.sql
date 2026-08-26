@@ -25,6 +25,14 @@ BEGIN
         ON tm.user_id = up.user_id
        AND tm.membership_status <> 'revoked'
      WHERE up.tenant_id IS NULL
+       AND EXISTS (
+         SELECT 1
+           FROM public.tenant_members authorized_membership
+           JOIN prm2_rebaseline.authorized_tenant_ids() authorized
+             ON authorized.tenant_id = authorized_membership.tenant_id
+          WHERE authorized_membership.user_id = up.user_id
+            AND authorized_membership.membership_status <> 'revoked'
+       )
      GROUP BY up.id
     HAVING count(tm.tenant_id) <> 1
   ) THEN
@@ -38,7 +46,12 @@ UPDATE public.user_profiles up
   FROM public.tenant_members tm
  WHERE up.tenant_id IS NULL
    AND tm.user_id = up.user_id
-   AND tm.membership_status <> 'revoked';
+   AND tm.membership_status <> 'revoked'
+   AND EXISTS (
+     SELECT 1
+       FROM prm2_rebaseline.authorized_tenant_ids() authorized
+      WHERE authorized.tenant_id = tm.tenant_id
+   );
 
 -- Remove legacy uniqueness rules on (user_id, profile_id). The new canonical
 -- cardinality includes tenant_id. Both constraints and standalone indexes are
@@ -146,18 +159,23 @@ INSERT INTO pr_m2_profile_tenant_map (old_profile_id, tenant_id)
 SELECT DISTINCT p.id, up.tenant_id
   FROM public.rbac_profiles p
   JOIN public.user_profiles up ON up.profile_id = p.id
+  JOIN prm2_rebaseline.authorized_tenant_ids() authorized
+    ON authorized.tenant_id = up.tenant_id
  WHERE p.sistema = false;
 
 DO $block$
 BEGIN
   IF EXISTS (
     SELECT 1
-      FROM public.rbac_profiles p
+      FROM public.user_profiles up
+      JOIN prm2_rebaseline.authorized_tenant_ids() authorized
+        ON authorized.tenant_id = up.tenant_id
+      JOIN public.rbac_profiles p ON p.id = up.profile_id
      WHERE p.sistema = false
        AND NOT EXISTS (
          SELECT 1
            FROM pr_m2_profile_tenant_map m
-          WHERE m.old_profile_id = p.id
+          WHERE m.old_profile_id = p.id AND m.tenant_id = up.tenant_id
        )
   ) THEN
     RAISE EXCEPTION 'tenant_access_backfill_unassigned_custom_profile';
@@ -198,15 +216,8 @@ UPDATE public.user_profiles up
  WHERE up.profile_id = m.old_profile_id
    AND up.tenant_id = m.tenant_id;
 
-DELETE FROM public.rbac_permissions rp
- USING pr_m2_profile_tenant_map m
- WHERE rp.profile_id = m.old_profile_id;
-
-DELETE FROM public.rbac_profiles p
- WHERE p.sistema = false
-   AND EXISTS (
-     SELECT 1 FROM pr_m2_profile_tenant_map m WHERE m.old_profile_id = p.id
-   );
+-- Legacy global profiles and permissions remain recoverable until every
+-- referencing tenant has been migrated under an exact Owner manifest.
 
 -- Remove exact duplicate assignments deterministically before installing the
 -- tenant-aware uniqueness rule.
@@ -216,19 +227,25 @@ WITH ranked AS (
            PARTITION BY tenant_id, user_id, profile_id
            ORDER BY created_at, id
          ) AS rn
-    FROM public.user_profiles
+    FROM public.user_profiles up
+   WHERE EXISTS (
+     SELECT 1
+       FROM prm2_rebaseline.authorized_tenant_ids() authorized
+      WHERE authorized.tenant_id = up.tenant_id
+   )
 )
 DELETE FROM public.user_profiles up
  USING ranked r
  WHERE up.id = r.id
    AND r.rn > 1;
 
--- System profiles are immutable global templates; custom profiles are always
--- tenant-owned.
-UPDATE public.rbac_profiles SET tenant_id = NULL WHERE sistema = true;
-
+-- Existing unselected assignments remain nullable until their independently
+-- authorized exact-manifest reconciliation. New canonical writes are guarded
+-- by the tenant contract and service-role functions below.
 ALTER TABLE public.user_profiles
-  ALTER COLUMN tenant_id SET NOT NULL;
+  DROP CONSTRAINT IF EXISTS user_profiles_tenant_required;
+ALTER TABLE public.user_profiles
+  ADD CONSTRAINT user_profiles_tenant_required CHECK (tenant_id IS NOT NULL) NOT VALID;
 
 ALTER TABLE public.rbac_profiles
   DROP CONSTRAINT IF EXISTS rbac_profiles_tenant_contract;
@@ -237,7 +254,7 @@ ALTER TABLE public.rbac_profiles
     (sistema = true AND tenant_id IS NULL)
     OR
     (sistema = false AND tenant_id IS NOT NULL)
-  );
+  ) NOT VALID;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_rbac_profiles_tenant_name
   ON public.rbac_profiles (tenant_id, lower(nome))

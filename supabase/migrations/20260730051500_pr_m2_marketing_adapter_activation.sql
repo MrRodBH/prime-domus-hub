@@ -24,7 +24,11 @@ SET adapter_version = 1,
     active = false,
     last_error_code = NULL,
     updated_at = now()
-WHERE channel_key IN ('META_ADS','GOOGLE_ADS');
+WHERE channel_key IN ('META_ADS','GOOGLE_ADS')
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = tenant_marketing_connectors.tenant_id
+  );
 
 ALTER TABLE public.tenant_marketing_connectors
   DROP CONSTRAINT IF EXISTS tenant_marketing_adapter_contract;

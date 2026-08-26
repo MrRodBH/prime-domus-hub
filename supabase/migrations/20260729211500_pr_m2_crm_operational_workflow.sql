@@ -51,6 +51,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_crm_pipeline_stages_position
 INSERT INTO public.crm_pipelines (tenant_id, pipeline_key, nome, ativo, is_default)
 SELECT t.id, 'sales_default', 'Pipeline comercial', true, true
 FROM public.tenants t
+JOIN prm2_rebaseline.authorized_tenant_ids() authorized ON authorized.tenant_id = t.id
 WHERE NOT EXISTS (
   SELECT 1
   FROM public.crm_pipelines p
@@ -73,6 +74,10 @@ CROSS JOIN (VALUES
 ) AS s(status_key,nome,position,terminal)
 WHERE p.is_default = true
   AND p.ativo = true
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = p.tenant_id
+  )
   AND NOT EXISTS (
     SELECT 1
     FROM public.crm_pipeline_stages ps
@@ -138,6 +143,10 @@ WHERE p.tenant_id = l.tenant_id
   AND p.ativo = true
   AND s.ativo = true
   AND s.status_key = l.status
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = l.tenant_id
+  )
   AND (
     l.pipeline_id IS NULL
     OR l.stage_id IS NULL
@@ -148,7 +157,10 @@ WHERE p.tenant_id = l.tenant_id
 DO $block$
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM public.leads WHERE pipeline_id IS NULL OR stage_id IS NULL
+    SELECT 1 FROM public.leads l
+    JOIN prm2_rebaseline.authorized_tenant_ids() authorized
+      ON authorized.tenant_id = l.tenant_id
+    WHERE pipeline_id IS NULL OR stage_id IS NULL
   ) THEN
     RAISE EXCEPTION 'crm_pipeline_backfill_incomplete';
   END IF;
@@ -238,8 +250,11 @@ ON public.leads
 FOR EACH ROW EXECUTE FUNCTION public.crm_bind_lead_pipeline();
 
 ALTER TABLE public.leads
-  ALTER COLUMN pipeline_id SET NOT NULL,
-  ALTER COLUMN stage_id SET NOT NULL;
+  DROP CONSTRAINT IF EXISTS leads_pipeline_required,
+  DROP CONSTRAINT IF EXISTS leads_stage_required;
+ALTER TABLE public.leads
+  ADD CONSTRAINT leads_pipeline_required CHECK (pipeline_id IS NOT NULL) NOT VALID,
+  ADD CONSTRAINT leads_stage_required CHECK (stage_id IS NOT NULL) NOT VALID;
 
 CREATE INDEX IF NOT EXISTS ix_leads_tenant_pipeline_stage
   ON public.leads (tenant_id, pipeline_id, stage_id);

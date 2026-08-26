@@ -62,6 +62,10 @@ SELECT
   encode(digest(feed_token, 'sha256'), 'hex')
 FROM public.portal_connectors
 WHERE NULLIF(feed_token, '') IS NOT NULL
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = portal_connectors.tenant_id
+  )
 ON CONFLICT (tenant_id, connector_id, credential_kind) DO NOTHING;
 
 INSERT INTO public.portal_connector_credential_verifiers (
@@ -77,26 +81,31 @@ SELECT
   encode(digest(webhook_secret, 'sha256'), 'hex')
 FROM public.portal_connectors
 WHERE NULLIF(webhook_secret, '') IS NOT NULL
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = portal_connectors.tenant_id
+  )
 ON CONFLICT (tenant_id, connector_id, credential_kind) DO NOTHING;
 
+-- Retain every legacy secret until a separately authorized provider-reference
+-- cutover proves rotation and rollback. Only exact-manifest rows are marked.
 UPDATE public.portal_connectors
 SET
-  feed_token = NULL,
-  webhook_secret = NULL,
-  credential_state = CASE
-    WHEN NULLIF(feed_token, '') IS NOT NULL OR NULLIF(webhook_secret, '') IS NOT NULL
-      THEN 'rotation_required'
-    ELSE credential_state
-  END,
+  credential_state = 'rotation_required',
   rotation_required = rotation_required
     OR NULLIF(feed_token, '') IS NOT NULL
     OR NULLIF(webhook_secret, '') IS NOT NULL,
-  updated_at = now();
+  updated_at = now()
+WHERE (NULLIF(feed_token, '') IS NOT NULL OR NULLIF(webhook_secret, '') IS NOT NULL)
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = portal_connectors.tenant_id
+  );
 
 ALTER TABLE public.portal_connectors
   ADD CONSTRAINT portal_connectors_no_plaintext_credentials_check CHECK (
     feed_token IS NULL AND webhook_secret IS NULL
-  );
+  ) NOT VALID;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_portal_connectors_id_tenant
   ON public.portal_connectors (id, tenant_id);
@@ -227,6 +236,8 @@ BEGIN
   IF EXISTS (
     SELECT 1
     FROM public.imovel_portais ip
+    JOIN prm2_rebaseline.authorized_tenant_ids() authorized
+      ON authorized.tenant_id = ip.tenant_id
     WHERE (
       SELECT count(*)
       FROM public.portal_connectors pc
@@ -251,12 +262,20 @@ SET
 FROM public.portal_connectors pc
 WHERE pc.tenant_id = ip.tenant_id
   AND pc.portal_slug = ip.portal_slug
-  AND ip.connector_id IS NULL;
+  AND ip.connector_id IS NULL
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = ip.tenant_id
+  );
 
 ALTER TABLE public.imovel_portais
-  ALTER COLUMN connector_id SET NOT NULL,
-  ALTER COLUMN desired_state SET NOT NULL,
-  ALTER COLUMN current_state SET NOT NULL;
+  DROP CONSTRAINT IF EXISTS imovel_portais_connector_required,
+  DROP CONSTRAINT IF EXISTS imovel_portais_desired_state_required,
+  DROP CONSTRAINT IF EXISTS imovel_portais_current_state_required;
+ALTER TABLE public.imovel_portais
+  ADD CONSTRAINT imovel_portais_connector_required CHECK (connector_id IS NOT NULL) NOT VALID,
+  ADD CONSTRAINT imovel_portais_desired_state_required CHECK (desired_state IS NOT NULL) NOT VALID,
+  ADD CONSTRAINT imovel_portais_current_state_required CHECK (current_state IS NOT NULL) NOT VALID;
 
 ALTER TABLE public.imovel_portais
   DROP CONSTRAINT IF EXISTS imovel_portais_desired_state_check,

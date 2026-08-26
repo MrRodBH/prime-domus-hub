@@ -500,6 +500,10 @@ FROM public.cms_pages p
 WHERE NOT EXISTS (
   SELECT 1 FROM public.cms_page_versions v
   WHERE v.tenant_id = p.tenant_id AND v.page_id = p.id
+)
+AND EXISTS (
+  SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+  WHERE authorized.tenant_id = p.tenant_id
 );
 
 UPDATE public.cms_pages p
@@ -512,7 +516,11 @@ FROM public.cms_page_versions v
 WHERE v.tenant_id = p.tenant_id
   AND v.page_id = p.id
   AND v.revision = 1
-  AND p.revision = 0;
+  AND p.revision = 0
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = p.tenant_id
+  );
 
 INSERT INTO public.cms_form_versions (
   tenant_id, form_id, revision, status, schema_version, snapshot, content_hash,
@@ -555,6 +563,10 @@ FROM public.cms_forms f
 WHERE NOT EXISTS (
   SELECT 1 FROM public.cms_form_versions v
   WHERE v.tenant_id = f.tenant_id AND v.form_id = f.id
+)
+AND EXISTS (
+  SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+  WHERE authorized.tenant_id = f.tenant_id
 );
 
 UPDATE public.cms_forms f
@@ -568,7 +580,11 @@ FROM public.cms_form_versions v
 WHERE v.tenant_id = f.tenant_id
   AND v.form_id = f.id
   AND v.revision = 1
-  AND f.revision = 0;
+  AND f.revision = 0
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = f.tenant_id
+  );
 
 INSERT INTO public.cms_campaign_versions (
   tenant_id, campaign_id, revision, status, schema_version, snapshot, content_hash,
@@ -611,6 +627,10 @@ FROM public.cms_campaigns c
 WHERE NOT EXISTS (
   SELECT 1 FROM public.cms_campaign_versions v
   WHERE v.tenant_id = c.tenant_id AND v.campaign_id = c.id
+)
+AND EXISTS (
+  SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+  WHERE authorized.tenant_id = c.tenant_id
 );
 
 UPDATE public.cms_campaigns c
@@ -624,7 +644,11 @@ FROM public.cms_campaign_versions v
 WHERE v.tenant_id = c.tenant_id
   AND v.campaign_id = c.id
   AND v.revision = 1
-  AND c.revision = 0;
+  AND c.revision = 0
+  AND EXISTS (
+    SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+    WHERE authorized.tenant_id = c.tenant_id
+  );
 
 -- ---------------------------------------------------------------------------
 -- 5. Transactional page primitives

@@ -2,6 +2,85 @@
 -- Specialized service_role-only primitives. Existing mutate_tenant_membership
 -- remains the sole authority for change_role/suspend/reactivate/revoke.
 
+BEGIN;
+
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+CREATE SCHEMA IF NOT EXISTS prm2_rebaseline;
+REVOKE ALL ON SCHEMA prm2_rebaseline FROM PUBLIC, anon, authenticated, service_role;
+
+-- PCA-04: repository migrations are structural by default. Historical tenant
+-- data is selected only when the migration session carries an exact UUID list,
+-- its deterministic SHA-256 and the Owner authorization reference. No setting
+-- means an empty set; names, prefixes and broad tenant queries are never used.
+CREATE OR REPLACE FUNCTION prm2_rebaseline.authorized_tenant_ids()
+RETURNS TABLE (tenant_id uuid)
+LANGUAGE plpgsql
+STABLE
+SECURITY INVOKER
+SET search_path = public, extensions, pg_temp
+AS $manifest$
+DECLARE
+  v_raw text := current_setting('app.pr_m2_authorized_tenant_ids', true);
+  v_expected_hash text := lower(current_setting('app.pr_m2_authorized_tenant_manifest_sha256', true));
+  v_authorization text := current_setting('app.pr_m2_owner_authorization', true);
+  v_manifest jsonb;
+  v_actual_hash text;
+BEGIN
+  IF v_raw IS NULL OR btrim(v_raw) IN ('', '[]') THEN
+    RETURN;
+  END IF;
+
+  IF v_authorization IS NULL OR v_authorization !~ '^PCA-[0-9A-Z_-]{3,120}$' THEN
+    RAISE EXCEPTION 'pr_m2_owner_authorization_required' USING ERRCODE = '42501';
+  END IF;
+  IF v_expected_hash IS NULL OR v_expected_hash !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'pr_m2_manifest_sha256_required' USING ERRCODE = '22023';
+  END IF;
+
+  BEGIN
+    v_manifest := v_raw::jsonb;
+  EXCEPTION WHEN others THEN
+    RAISE EXCEPTION 'pr_m2_manifest_invalid_json' USING ERRCODE = '22023';
+  END;
+  IF jsonb_typeof(v_manifest) <> 'array' OR jsonb_array_length(v_manifest) = 0 THEN
+    RAISE EXCEPTION 'pr_m2_manifest_nonempty_array_required' USING ERRCODE = '22023';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+      FROM jsonb_array_elements(v_manifest) entry
+     WHERE jsonb_typeof(entry) <> 'string'
+        OR trim(both '"' from entry::text) !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  ) THEN
+    RAISE EXCEPTION 'pr_m2_manifest_uuid_only' USING ERRCODE = '22023';
+  END IF;
+  IF (
+    SELECT count(*) <> count(DISTINCT value::uuid)
+      FROM jsonb_array_elements_text(v_manifest) AS entry(value)
+  ) THEN
+    RAISE EXCEPTION 'pr_m2_manifest_duplicate_tenant_id' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT encode(
+           digest(string_agg(value::uuid::text, ',' ORDER BY value::uuid::text), 'sha256'),
+           'hex'
+         )
+    INTO v_actual_hash
+    FROM jsonb_array_elements_text(v_manifest) AS entry(value);
+  IF v_actual_hash IS DISTINCT FROM v_expected_hash THEN
+    RAISE EXCEPTION 'pr_m2_manifest_sha256_mismatch' USING ERRCODE = '22023';
+  END IF;
+
+  RETURN QUERY
+  SELECT value::uuid
+    FROM jsonb_array_elements_text(v_manifest) AS entry(value)
+   ORDER BY value;
+END;
+$manifest$;
+
+REVOKE ALL ON FUNCTION prm2_rebaseline.authorized_tenant_ids()
+  FROM PUBLIC, anon, authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.bootstrap_tenant_with_owner(
   _actor_user_id uuid,
   _slug text,
@@ -554,3 +633,5 @@ BEGIN
   END LOOP;
 END
 $acl$;
+
+COMMIT;

@@ -79,6 +79,7 @@ SELECT
     ELSE '{}'::jsonb
   END
 FROM public.tenants t
+JOIN prm2_rebaseline.authorized_tenant_ids() authorized ON authorized.tenant_id = t.id
 CROSS JOIN (VALUES ('META_ADS'),('GOOGLE_ADS'),('MANUAL_IMPORT'),('WEBSITE_FORM')) AS channel(channel_key)
 ON CONFLICT (tenant_id, channel_key) DO NOTHING;
 
@@ -105,6 +106,10 @@ INSERT INTO public.tenant_marketing_connector_versions (
 SELECT tenant_id, id, configuration_version, config, provider_account_reference,
        provider_form_reference, availability_state, NULL
 FROM public.tenant_marketing_connectors
+WHERE EXISTS (
+  SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+  WHERE authorized.tenant_id = tenant_marketing_connectors.tenant_id
+)
 ON CONFLICT (tenant_id, connector_id, version) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -157,6 +162,10 @@ WHERE NOT EXISTS (
   WHERE mapping.tenant_id = connector.tenant_id
     AND mapping.connector_id = connector.id
     AND mapping.is_current
+)
+AND EXISTS (
+  SELECT 1 FROM prm2_rebaseline.authorized_tenant_ids() authorized
+  WHERE authorized.tenant_id = connector.tenant_id
 );
 
 -- ---------------------------------------------------------------------------
