@@ -1,0 +1,352 @@
+# RM Prime SaaS — Migração Segura e Governança Integral
+
+**Data de corte operacional:** 2026-08-25
+
+**Última reconciliação:** 2026-08-25, após `PR-M3-SEC-04B`
+
+**Repositório:** `MrRodBH/prime-domus-hub`
+
+**Branch canônica:** `main`
+
+**Finalidade:** preservar integralmente a governança e o estado auditável do projeto em novos chats, sem depender do transcript histórico.
+
+---
+
+## 1. Regra de uso deste arquivo
+
+1. Este é o handoff operacional compacto do Projeto ChatGPT.
+2. O GitHub `main` revalidado no início de cada execução permanece a fonte técnica final.
+3. Este arquivo não autoriza implicitamente um gate posterior.
+4. O novo chat deve ler este arquivo integralmente, reauditar o estado remoto e executar somente o gate expressamente autorizado pelo Owner.
+5. Documentos históricos incompatíveis não podem reabrir etapas encerradas nem substituir autoridade vigente.
+6. Uma divergência de HEAD exige requalificação antes de qualquer write; hash histórico nunca deve ser usado como base cega.
+
+---
+
+## 2. Identidade, comunicação e formato
+
+- Tratar o Owner por **Rodolfo**.
+- Responder em português.
+- Linguagem técnica, formal, objetiva, auditável e sem retrabalho.
+- Instruções devem seguir CTDD: claras, técnicas, didáticas e detalhadas.
+- Em auditorias solicitadas ao Lovable, usar somente:
+  - `## Síntese`;
+  - `## Prompt para o Lovable corretivo ou próxima etapa`.
+- Todo prompt operacional ao Lovable deve ficar em um único box pronto para copiar.
+- Executor real deve ser identificado corretamente; não rotular como Lovable uma ação do Owner, GitHub, Cloudflare ou ChatGPT.
+- Sínteses devem distinguir fato auditado, inferência, ressalva, bloqueio, decisão e próxima ação.
+
+---
+
+## 3. Produto e autoridades
+
+```text
+PRODUCT=Plataforma SaaS White Label para corretores de imóveis e imobiliárias
+REPOSITORY=MrRodBH/prime-domus-hub
+BASE_BRANCH=main
+SAME_BACKEND_SUPABASE_PROJECT_REF=stmcnvzuzlyqammyycxj
+PROTECTED_TENANT_ID=9664d189-4a12-4caa-8243-dc73383447e6
+```
+
+Ordem de autoridade diante de divergência:
+
+1. GitHub `main` auditado no momento da execução;
+2. PRs, issues, workflows e evidências terminais do GitHub;
+3. documentos canônicos vigentes no repositório;
+4. este arquivo de continuidade;
+5. instruções permanentes do Projeto ChatGPT;
+6. decisões explícitas posteriores do Owner;
+7. Lovable, limitado ao papel autorizado;
+8. chats e documentos históricos.
+
+O Lovable não é autoridade final de código, CI ou merge. Relatório do Lovable sem confirmação no GitHub não é prova terminal de repositório.
+
+---
+
+## 4. Governança de execução integral
+
+- `EXECUTION_MODE=end-to-end` quando o Owner autorizar um gate completo.
+- Não solicitar novamente autorizações já concedidas dentro do envelope.
+- Não interromper por impasse menor quando houver decisão segura dentro do escopo.
+- Interromper somente por ação física indelegável, ausência real de credencial/conector obrigatório, drift factual inseguro, risco de mutação fora do escopo ou condição fail-closed sem sucessor autorizado.
+- Não usar inatividade como estado terminal.
+- Todo término deve emitir uma próxima ação CTDD concreta: continuidade autorizável, correção, rollback, desacoplamento ou estratégia segura.
+- Um bloqueio não autoriza ampliar escopo, contornar segurança, usar credenciais alternativas ou criar backend paralelo.
+- Ações externas e mutações devem respeitar exatamente a autorização atual; planejamento e leitura não autorizam writes.
+
+---
+
+## 5. Architecture First e entrega finita
+
+- Architecture First é vinculante.
+- Impact Analysis é obrigatório antes de mudança estrutural, runtime, banco, RLS, grants, Auth, Storage, provider ou cutover.
+- Fluxo canônico:
+  `Prompt → execução → relatório → auditoria direta → aprovação/correção → autorização do sucessor`.
+- Cada etapa deve ter início, limite, escopo congelado, Definition of Done e estado terminal.
+- Budget máximo por etapa:
+  - 1 prompt principal;
+  - 1 corretivo consolidado.
+- Não criar lotes, sublotes ou IDs decimais artificiais para contornar budget.
+- Estados terminais válidos:
+  - `Accepted`;
+  - `Accepted with Non-Blocking Backlog`;
+  - `Blocked External`;
+  - `Rejected`;
+  - `Superseded`.
+- Estado histórico, `Superseded` ou `Rejected` não volta a ser autoridade vigente.
+- Falhas de PR devem ser corrigidas, revertidas ou isoladas antes do merge; nenhuma falha material pode chegar ao `main`.
+
+---
+
+## 6. GitHub e integridade de entrega
+
+1. Confirmar `main` HEAD/tree e ancestry antes de qualquer branch ou commit.
+2. Congelar `FILES_ALLOWED`, testes e proibições do gate.
+3. Branch deve nascer do HEAD requalificado.
+4. Proibidos force-push, rebase destrutivo, reset destrutivo e auto-merge.
+5. Merge protegido por squash somente após auditoria do head exato e gates verdes.
+6. Proteger o merge com o SHA esperado do head.
+7. Após merge, reauditar `main` e exigir Release Gate pós-merge em sucesso.
+8. `bun.lock` deve permanecer byte a byte quando o gate o congelar.
+9. Dependência nova exige autorização expressa e integração atômica com lockfile.
+10. Não alterar aplicação, migrations, workflows ou documentação fora do allowlist do gate.
+11. PR #105 permanece aberta, draft e não mesclada até decisão específica da trilha BCR.
+
+---
+
+## 7. Lovable, Supabase e custódia
+
+- Projeto Lovable canônico: `982b91d8-946d-4103-8eb3-40ddbaeedbf4`.
+- O backend gerenciado do projeto canônico é o Same-Backend vinculante.
+- O Owner acessa Supabase somente pelo Lovable.
+- Não instruir o Owner a abrir dashboard Supabase, executar SQL, usar Supabase CLI, obter `service_role` ou manipular segredo.
+- Segredos nunca podem aparecer em chat, prompt, GitHub, logs, evidências ou documentação.
+- Lovable pode executar inspeção/aplicação do backend gerenciado quando expressamente autorizado.
+- Preview visual deve ser privado e não produtivo, salvo decisão posterior explícita.
+- Produção/publicação no Lovable permanece ação exclusiva do Owner.
+- Atualização do roadmap exige autorização explícita por execução. A autorização de 2026-08-25 vale apenas para a atualização pós-SEC-04B desta sequência.
+- Não criar variante, projeto paralelo ou backend alternativo sem contrato específico.
+
+---
+
+## 8. Invariantes arquiteturais e de segurança
+
+### Autoridade e multi-tenancy
+
+- Servidor é a única autoridade de tenant, autorização, role, membership, entitlement, preço, status e decisão comercial.
+- Client, query string, path, cookie ou header nunca estabelecem autoridade.
+- `x-tenant-id` é apenas transporte e deve ser revalidado no servidor.
+- Proibidos fallback heurístico, tenant default, dual path, dual authority, `ORDER BY/LIMIT 1` como resolução e primeira linha arbitrária.
+- Ambiguidade deve falhar rápido e fechado.
+- Super Admin somente acessa recurso tenant-scoped com impersonação explícita e auditável.
+- Preservar RLS, grants, policies, boundaries de impersonação e TenantSelectionGate.
+
+### Storage e mídia
+
+- Bucket, path e filename enviados pelo client não são autoridade.
+- Signed URL não é autorização primária.
+- Upload e media registration permanecem server-authoritative.
+
+### Runtime e domínio comercial
+
+- Read models são server-owned.
+- Operação indisponível não pode simular sucesso.
+- Preservar `Registry`, `RegistrySnapshot`, `ResolutionGraph`, `ActionExecutor` e `PluginContext`.
+- Plano/entitlement permanece interno e provider-agnostic.
+- Referência do provider nunca estabelece tenant ou autorização.
+- Cobranças recorrentes e extraordinárias permanecem distintas sob o envelope Hybrid Billing aceito.
+- `sandbox_exec` não pode ser exposto a JWT, frontend, runtime, secrets ou credenciais sem nova Impact Analysis.
+
+---
+
+## 9. Same-Backend Homologation Cell — hard guards permanentes
+
+- Identificar o projeto exato antes de qualquer mutação.
+- Executar preflight de elegibilidade e baseline read-only.
+- Proteger registry e objetos canônicos por identificadores estáveis.
+- Usar somente fixtures sintéticas e claramente identificadas.
+- Exigir no mínimo dois tenants técnicos quando a prova depender de isolamento.
+- Não mutar tenant, usuário, domínio ou dado real/preexistente.
+- Não limpar resíduos preexistentes sem gate próprio; os tenants `scp0121_*` continuam classificados como resíduo interno protegido.
+- Proibir operações destrutivas globais e cleanup por glob/heurística.
+- Usar janela de manutenção quando o contrato exigir.
+- Preservar autoridade server-side, idempotência, anti-takeover e isolamento.
+- Executar cleanup obrigatório de toda fixture criada pelo gate.
+- Exigir zero resíduo novo ao término.
+- Provar que a baseline protegida permaneceu invariável.
+- Encerrar qualquer prova sintética quando iniciar operação real incompatível; HG-14 não pode ser acionado por inferência.
+- Same-Backend permanece vinculante; Supabase externo não é fallback canônico.
+
+---
+
+## 10. Estados históricos preservados
+
+- Fases 2, 3 e 4: `Accepted / Closed`.
+- `LSH-01`: `Accepted / Closed`.
+- `LSV-01`, `LSV-02` e `LSR-01`: `Superseded / terminal`.
+- `WRI-01`: `Accepted / Merged / Closed`.
+- `DCA-01`: terminal após teardown; não reabrir.
+- `DCA-02`: `Accepted / terminal`; sem `custom_metadata` como autoridade.
+- `BCA-01`: `Rejected / terminal`; não reabrir.
+- BCR runtime: diferido como trilha separada e não bloqueante para construção PR-M3.
+- PR #105: preservar aberta/draft/não mesclada.
+- Produção/cutover: não autorizados.
+
+Os anexos de julho que ainda apontam para LSR-02 são históricos e não autorizadores da PR-M3 atual.
+
+---
+
+## 11. Estado terminal — PR-M3-SEC-04B
+
+### Autoridade de entrada
+
+```text
+SEC04A_MAIN_HEAD=7fe0231bc92ac3cb205414c351e5549114bb639a
+SEC04A_MAIN_TREE=43b7fcc58f441da12d05687067a43711c1a67823
+SEC04A_PR=134
+SEC04A_TRACKING_ISSUE=133
+POST_MERGE_RELEASE_GATE=808/SUCCESS
+SEC04B_TRACKING_ISSUE=135
+```
+
+### Migration aplicada
+
+```text
+MIGRATION_VERSION=20260826002000
+MIGRATION_FILE=supabase/migrations/20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql
+MIGRATION_BLOB_SHA=8de35022cdc9fae1e2c9493d1d315c3cee5b062c
+MIGRATION_LEDGER_EXACT_STATEMENT_MATCH=true
+```
+
+### Resultado
+
+```text
+PR_M3_SEC_04B_STATE=Accepted
+PR_M3_SEC_04B_RESULT=PASS_SEC04B_TERMINAL
+TARGET_TABLES=9
+TARGET_FUNCTIONS=5
+TABLE_FAILURE_COUNT=0
+FUNCTION_FAILURE_COUNT=0
+DEFAULT_ACL_FAILURE_COUNT=0
+BUSINESS_ROW_COUNT_BEFORE=2
+BUSINESS_ROW_COUNT_AFTER=2
+BUSINESS_ROW_DML=0
+POLICY_WRITES=0
+FUNCTION_BODY_WRITES=0
+AUTH_STORAGE_TENANT_MEMBERSHIP_DOMAIN_MUTATIONS=0
+PROVIDER_WRITES=0
+PRODUCTION_CUTOVER=false
+```
+
+### Efeito validado
+
+- Grants de `anon`/`authenticated` removidos das 9 relações deny-by-default.
+- `EXECUTE` de `anon`/`authenticated` removido das 5 funções server-only.
+- `service_role`, RLS e zero-policy posture preservados.
+- Resolvers públicos, helpers RLS e RPCs de negócio intencionais preservados.
+- Default privileges futuros de `postgres/public` endurecidos.
+- Migration reconciliada no ledger do Supabase sem DML de negócio.
+
+---
+
+## 12. Trilhas paralelas e proibições atuais
+
+```text
+PR_105_STATE=open/draft/unmerged
+PR_105_MERGE=false
+BCR_RUNTIME=deferred_upstream/non_blocking_for_PRM3
+PRODUCTION_PUBLISH=false
+PRODUCTION_CUTOVER=false
+REAL_TENANT_MUTATION=0
+EXTERNAL_SUPABASE_FALLBACK=false
+```
+
+- Não mesclar, reconstruir ou ampliar PR #105 nesta trilha.
+- Não executar Stripe, Cloudflare, Wrangler, webhook, DNS, deploy ou secret write como consequência de SEC-04B.
+- Não restaurar grants inseguros como rollback. Falha posterior exige migration forward-only.
+- Não usar fix-all de linter.
+- Não reabrir SEC-04A; ele permanece histórico repository-first.
+
+---
+
+## 13. Roadmap e inspeção
+
+```text
+ROADMAP_PROJECT_ID=4e4c1d1e-899c-4991-80ca-ebc110fbd23f
+ROADMAP_PRIVATE_PREVIEW=https://id-preview--4e4c1d1e-899c-4991-80ca-ebc110fbd23f.lovable.app
+ROADMAP_UPDATE_AUTHORIZED_FOR_THIS_SEQUENCE=true
+ROADMAP_PRODUCTION_DEPLOY_AUTHORIZED=false
+```
+
+O roadmap deve registrar `SEC-04A = Accepted/Merged/Closed`, `SEC-04B = Accepted`, issue #135, migration aplicada, invariância de linhas e `LVR-01` como próximo gate separado aguardando autorização.
+
+---
+
+## 14. Sucessor correto — não autorizado implicitamente
+
+```text
+NEXT_GATE=LVR-01_CAPABILITY_PREFLIGHT_AND_PRIVATE_VARIANT_REBASELINE_PLAN
+NEXT_GATE_MODE=PLANNING_ONLY/READ_ONLY
+NEXT_GATE_AUTHORIZED=false
+```
+
+Objetivo futuro:
+
+1. auditar o projeto Lovable canônico;
+2. provar identidade do Same-Backend, Auth, Storage e bindings;
+3. provar a baseline interna;
+4. verificar capacidade real de variante privada;
+5. impedir backend paralelo e production publish;
+6. projetar rebaseline exato a partir do GitHub `main`;
+7. preservar a versão publicada anterior para rollback;
+8. definir autenticação real e matriz visual.
+
+Se a identidade do mesmo backend não puder ser provada, não criar variante. Materialização somente após autorização específica posterior.
+
+---
+
+## 15. Bootstrap CTDD para o próximo chat
+
+```text
+Execute: @GitHub @Lovable
+
+RM PRIME SAAS — SAFE CONTINUITY AFTER PR-M3-SEC-04B
+
+EXECUTION_MODE=read-only_requalification
+OWNER_ACTION=NONE_DURING_REQUALIFICATION
+GITHUB_IS_CODE_CI_MERGE_AUTHORITY=true
+REPOSITORY=MrRodBH/prime-domus-hub
+BASE_BRANCH=main
+MINIMUM_EXPECTED_ANCESTOR=7fe0231bc92ac3cb205414c351e5549114bb639a
+SEC04B_TRACKING_ISSUE=135
+PR_105_MERGE=false
+PRODUCTION_PUBLISH=false
+PRODUCTION_CUTOVER=false
+
+Leia integralmente o arquivo:
+docs/architecture/governance/RM_PRIME_SAFE_CHAT_MIGRATION_2026-08-25.md
+
+1. Reaudite o HEAD/tree atual do GitHub main.
+2. Confirme que 7fe0231bc92ac3cb205414c351e5549114bb639a é ancestral do main vigente.
+3. Confirme PR #134 merged, issue #133 closed e Release Gate pós-merge #808 SUCCESS.
+4. Confirme issue #135 e a evidência terminal do PR-M3-SEC-04B.
+5. Confirme PR #105 aberta, draft e não mesclada.
+6. Não use como autoridade os anexos históricos LSR-02.
+7. Não execute LVR-01 sem autorização específica do Owner.
+8. Entregue síntese CTDD e o prompt exato de autorização para:
+   LVR-01_CAPABILITY_PREFLIGHT_AND_PRIVATE_VARIANT_REBASELINE_PLAN,
+   limitado a PLANNING_ONLY e READ_ONLY.
+```
+
+---
+
+## 16. Política de desempenho e migração futura
+
+1. Usar um chat novo por gate terminal complexo ou fatia vertical relevante.
+2. Manter o chat anterior apenas como histórico.
+3. Não reenviar transcript completo, mensagens duplicadas ou todos os prompts antigos.
+4. Usar GitHub e este único arquivo como memória factual compacta.
+5. Manter atualizações intermediárias curtas; evidências completas ficam em PR/issue.
+6. Após cada gate terminal, atualizar este mesmo arquivo no repositório; não criar versões concorrentes `v1/v2/v3`.
+7. Se houver monitoramento prolongado, usar automação separada e não manter um turno bloqueado por horas.
+8. Se um novo chat responder normalmente, a lentidão anterior é classificada como sobrecarga específica do thread; falha local só deve ser considerada se vários chats/navegadores/redes reproduzirem o problema.
