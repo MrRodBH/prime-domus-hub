@@ -101,6 +101,7 @@ if (base) {
     "docs/architecture/governance/RM_PRIME_SAFE_CHAT_MIGRATION_2026-08-25.md",
     "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/arch-12f-02b-runtime-tenant-domain-sender-externalization.md",
     "package.json",
+    "run-arch-12f-01-config-hygiene-specs.ts",
     "run-arch-12f-02b-runtime-tenant-identity-specs.ts",
     "src/lib/email-templates/definir-senha.tsx",
     "src/lib/email/notify.server.ts",
