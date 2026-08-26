@@ -2,7 +2,7 @@
 
 **Data de corte operacional:** 2026-08-25
 
-**Última reconciliação:** 2026-08-25, após `PR-M3-SEC-04B`
+**Última reconciliação:** 2026-08-26, após `LVR-02A_GITHUB_NATIVE_GOVERNANCE_AND_BASELINE_CORRECTIVE`
 
 **Repositório:** `MrRodBH/prime-domus-hub`
 
@@ -29,6 +29,8 @@
 - Responder em português.
 - Linguagem técnica, formal, objetiva, auditável e sem retrabalho.
 - Instruções devem seguir CTDD: claras, técnicas, didáticas e detalhadas.
+- Toda resposta ao Owner deve conter no máximo **10 linhas textuais reais**, incluindo síntese e próximo passo; títulos, bullets, tabelas e linhas de code fence contam individualmente.
+- Quando a evidência não couber, registrar o detalhamento no GitHub e retornar somente síntese, decisão e próximo prompt dentro das 10 linhas.
 - Em auditorias solicitadas ao Lovable, usar somente:
   - `## Síntese`;
   - `## Prompt para o Lovable corretivo ou próxima etapa`.
@@ -121,7 +123,9 @@ O Lovable não é autoridade final de código, CI ou merge. Relatório do Lovabl
 - O Owner acessa Supabase somente pelo Lovable.
 - Não instruir o Owner a abrir dashboard Supabase, executar SQL, usar Supabase CLI, obter `service_role` ou manipular segredo.
 - Segredos nunca podem aparecer em chat, prompt, GitHub, logs, evidências ou documentação.
-- Lovable pode executar inspeção/aplicação do backend gerenciado quando expressamente autorizado.
+- Lovable pode executar somente inspeção/aplicação do Same-Backend Supabase e regras avançadas de UX/UI, quando expressamente autorizado.
+- Lovable jamais pode receber instruções, consultas, correções, validações ou operações de GitHub/repositório; essas ações são exclusivamente GitHub-native.
+- `plan_mode` do Lovable não garante read-only: uma chamada aceita pode escrever `.lovable/plan.md` e sincronizar commit. Não usar Lovable para planejamento de governança, arquitetura ou repositório.
 - Preview visual deve ser privado e não produtivo, salvo decisão posterior explícita.
 - Produção/publicação no Lovable permanece ação exclusiva do Owner.
 - Atualização do roadmap exige autorização explícita por execução. A autorização de 2026-08-25 vale apenas para a atualização pós-SEC-04B desta sequência.
@@ -261,7 +265,8 @@ REAL_TENANT_MUTATION=0
 EXTERNAL_SUPABASE_FALLBACK=false
 ```
 
-- Não mesclar, reconstruir ou ampliar PR #105 nesta trilha.
+- Não mesclar, rebasear, reconstruir, force-push, reverter ou ampliar PR #105 nesta trilha.
+- O incidente LVR-01, no qual `plan_mode` alterou `.lovable/plan.md` e avançou o head da PR #105 de `37d047849696c5cbea2a8d9f971b09ea4375e8d6` para `6cf945b98bee584093633fc6d7678fbc5e1861c5`, deve ser reconciliado somente por evidência GitHub-native forward-only; a PR permanece aberta/draft/não mesclada.
 - Não executar Stripe, Cloudflare, Wrangler, webhook, DNS, deploy ou secret write como consequência de SEC-04B.
 - Não restaurar grants inseguros como rollback. Falha posterior exige migration forward-only.
 - Não usar fix-all de linter.
