@@ -7,7 +7,7 @@ import { Footer } from "@/components/site/Footer";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { metaTrack, metaEventId, metaBrowserIds } from "@/lib/meta-pixel";
 import { enviarEventoMetaCAPI } from "@/lib/api/meta.functions";
-import { obterSiteSettings } from "@/lib/api/site.functions";
+import { obterSiteSettings, type SiteSettings } from "@/lib/api/site.functions";
 import { enviarLead } from "@/lib/api/catalogo.functions";
 import { attributionPayload } from "@/lib/attribution";
 import { maskPhoneBR, isValidPhoneBR, digitsOnly } from "@/lib/phone-br";
@@ -22,19 +22,24 @@ type ContactLeadPayload = ReturnType<typeof attributionPayload> & {
 };
 
 export const Route = createFileRoute("/contato")({
-  head: () => ({
-    meta: [
-      { title: "Contato — RM Prime Imóveis" },
-      { name: "description", content: "Fale com a equipe RM Prime Imóveis em Belo Horizonte." },
-      { property: "og:title", content: "Contato — RM Prime Imóveis" },
-      { property: "og:description", content: "Atendimento consultivo para imóveis de alto padrão em Belo Horizonte." },
-      { property: "og:url", content: "https://rmprimeimoveis.com.br/contato" },
-    ],
-    links: [{ rel: "canonical", href: "https://rmprimeimoveis.com.br/contato" }],
-  }),
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
+  head: ({ loaderData }) => {
+    const settings = loaderData as SiteSettings | undefined;
+    const siteName = settings?.branding.site_name || "Imobiliária";
+    const page = settings?.pagina_contato ?? {};
+    return {
+      meta: [
+        { title: page.meta_title || `Contato — ${siteName}` },
+        { name: "description", content: page.meta_description || `Fale com a equipe ${siteName}.` },
+        { property: "og:title", content: page.meta_title || `Contato — ${siteName}` },
+        { property: "og:description", content: page.meta_description || `Fale com a equipe ${siteName}.` },
+      ],
+      links: [{ rel: "canonical", href: "/contato" }],
+    };
   },
+  loader: async ({ context }) => context.queryClient.ensureQueryData({
+    queryKey: ["site-settings"],
+    queryFn: () => obterSiteSettings(),
+  }),
   component: Page,
 });
 

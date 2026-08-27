@@ -215,6 +215,30 @@ export async function requirePublicTenantFromRequest(): Promise<PublicTenantIden
   return tenant;
 }
 
+/**
+ * Resolve the public origin from the same server-authoritative domain record
+ * that resolved the tenant. Production never trusts forwarded origin headers.
+ */
+export async function requireAuthoritativePublicOriginFromRequest(): Promise<string> {
+  const rawHost = getRequestHeader("host");
+  const authority = resolvePublicHostAuthority(rawHost);
+  const tenant = await requirePublicTenantFromRequest();
+
+  if (authority.kind === "domain") {
+    const canonicalHostname = (tenant as Partial<ActivePublicDomainIdentity>).canonicalHostname;
+    if (!canonicalHostname || normalizePublicHost(canonicalHostname) !== canonicalHostname) {
+      throw new Error("Canonical public domain unavailable");
+    }
+    return `https://${canonicalHostname}`;
+  }
+
+  if (authority.kind === "development_slug") {
+    return `http://${authority.host}`;
+  }
+
+  throw new PublicTenantResolutionError();
+}
+
 export function publicSupabaseForTenant(tenantId: string) {
   if (!tenantId) throw new Error("Validated public tenant id is required.");
   const url = process.env.SUPABASE_URL!;

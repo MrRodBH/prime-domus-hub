@@ -74,6 +74,10 @@ const EXPECTED_TEMPLATE_NAMES = [
   "SUPABASE_PROJECT_ID",
   "SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_URL",
+  "RM_PRIME_EMAIL_SITE_NAME",
+  "RM_PRIME_EMAIL_SENDER_DOMAIN",
+  "RM_PRIME_EMAIL_FROM_DOMAIN",
+  "RM_PRIME_AUTH_SITE_ORIGIN",
   "VITE_SUPABASE_PROJECT_ID",
   "VITE_SUPABASE_PUBLISHABLE_KEY",
   "VITE_SUPABASE_URL",
@@ -144,9 +148,9 @@ assert.equal(
 );
 assert.equal(
   templateEntries.filter(([name]) => !name.startsWith("VITE_")).length,
-  7,
+  11,
 );
-pass("F05", "ten application and infrastructure names retain public/server classification");
+pass("F05", "fourteen application and infrastructure names retain public/server classification");
 
 const sampleValue = "must-never-appear-in-errors";
 assert.throws(
@@ -190,19 +194,20 @@ pass("F09", "exact-head remote gate authority remains wired");
 
 const integrationMode = process.env.ARCH_INTEGRATION_MODE === "true";
 const arch12f02aMode = process.env.ARCH_12F_02A_MODE === "true";
+const arch12f02bMode = process.env.ARCH_12F_02B_MODE === "true";
 const baseSha = integrationMode
   ? process.env.ARCH_INTEGRATION_BASE_SHA
   : process.env.ARCH_12F_BASE_SHA;
 if (baseSha) {
   assert.match(baseSha, /^[0-9a-f]{40}$/);
-  if (!integrationMode && !arch12f02aMode) {
+  if (!integrationMode && !arch12f02aMode && !arch12f02bMode) {
     assert.equal(git("rev-list", "--count", `${baseSha}..HEAD`), "1");
   }
   const changedFiles = git("diff", "--name-only", `${baseSha}..HEAD`)
     .split(/\r?\n/)
     .filter(Boolean)
     .sort();
-  if (!arch12f02aMode) {
+  if (!arch12f02aMode && !arch12f02bMode) {
     assert.deepEqual(
       changedFiles,
       [...(integrationMode ? INTEGRATION_ALLOWLIST : ALLOWLIST)].sort(),

@@ -1,28 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { obterSiteSettings } from "@/lib/api/site.functions";
 
 const ULTIMA_ATUALIZACAO = "26 de novembro de 2025";
 
 export const Route = createFileRoute("/privacidade")({
-  head: () => ({
-    meta: [
-      { title: "Política de Privacidade | RM Prime Imóveis" },
-      {
-        name: "description",
-        content:
-          "Saiba como a RM Prime Imóveis coleta, utiliza e protege seus dados pessoais em conformidade com a LGPD.",
-      },
-      { property: "og:title", content: "Política de Privacidade | RM Prime Imóveis" },
-      {
-        property: "og:description",
-        content:
-          "Saiba como a RM Prime Imóveis coleta, utiliza e protege seus dados pessoais em conformidade com a LGPD.",
-      },
-      { property: "og:url", content: "https://www.rmprimeimoveis.com.br/privacidade" },
-    ],
-    links: [{ rel: "canonical", href: "https://www.rmprimeimoveis.com.br/privacidade" }],
+  loader: async ({ context }) => context.queryClient.ensureQueryData({
+    queryKey: ["site-settings"],
+    queryFn: () => obterSiteSettings(),
   }),
+  head: ({ loaderData }) => {
+    const siteName = loaderData?.branding.site_name || "Imobiliária";
+    const description = `Saiba como ${siteName} coleta, utiliza e protege seus dados pessoais em conformidade com a LGPD.`;
+    return {
+    meta: [
+      { title: `Política de Privacidade | ${siteName}` },
+      { name: "description", content: description },
+      { property: "og:title", content: `Política de Privacidade | ${siteName}` },
+      { property: "og:description", content: description },
+    ],
+    links: [{ rel: "canonical", href: "/privacidade" }],
+  }},
   component: PrivacidadePage,
 });
 
@@ -36,6 +36,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function PrivacidadePage() {
+  const { data: site } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: () => obterSiteSettings(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const siteName = site?.branding.site_name || "Imobiliária";
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -49,7 +55,7 @@ function PrivacidadePage() {
         </p>
 
         <p className="mt-8 text-foreground/80 leading-relaxed">
-          A RM Prime Imóveis respeita sua privacidade e está comprometida com a proteção dos
+          {siteName} respeita sua privacidade e está comprometida com a proteção dos
           dados pessoais de seus clientes, parceiros, proprietários de imóveis, locatários e
           visitantes do site.
         </p>
@@ -61,16 +67,16 @@ function PrivacidadePage() {
 
         <Section title="1. Quem Somos">
           <p>
-            A RM Prime Imóveis é uma empresa especializada na intermediação de compra, venda,
+            {siteName} é uma empresa especializada na intermediação de compra, venda,
             locação e administração de imóveis.
           </p>
           <p>
             Website oficial:{" "}
             <a
-              href="https://www.rmprimeimoveis.com.br"
+              href="/"
               className="text-gold hover:underline"
             >
-              https://www.rmprimeimoveis.com.br
+              Página inicial
             </a>
           </p>
         </Section>
@@ -113,7 +119,7 @@ function PrivacidadePage() {
         </Section>
 
         <Section title="4. Compartilhamento de Dados">
-          <p>A RM Prime Imóveis não comercializa dados pessoais.</p>
+          <p>{siteName} não comercializa dados pessoais.</p>
           <p>Os dados poderão ser compartilhados apenas quando necessário com:</p>
           <ul className="list-disc pl-6 space-y-1">
             <li>Corretores associados.</li>
@@ -183,7 +189,7 @@ function PrivacidadePage() {
         <Section title="9. Links para Sites de Terceiros">
           <p>Nosso site pode conter links para plataformas externas.</p>
           <p>
-            A RM Prime Imóveis não é responsável pelas práticas de privacidade de sites de
+            {siteName} não é responsável pelas práticas de privacidade de sites de
             terceiros.
           </p>
           <p>
@@ -203,16 +209,16 @@ function PrivacidadePage() {
         <Section title="11. Contato">
           <p>
             Para exercer seus direitos relacionados à proteção de dados ou esclarecer dúvidas
-            sobre esta Política de Privacidade, entre em contato com a RM Prime Imóveis pelos
+            sobre esta Política de Privacidade, entre em contato com {siteName} pelos
             canais oficiais disponibilizados no site.
           </p>
           <p>
             Website:{" "}
             <a
-              href="https://www.rmprimeimoveis.com.br"
+              href="/"
               className="text-gold hover:underline"
             >
-              https://www.rmprimeimoveis.com.br
+              Página inicial
             </a>
           </p>
         </Section>

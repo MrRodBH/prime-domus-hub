@@ -2,22 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { obterSiteSettings } from "@/lib/api/site.functions";
+import { obterSiteSettings, type SiteSettings } from "@/lib/api/site.functions";
 
 export const Route = createFileRoute("/sobre")({
-  head: () => ({
-    meta: [
-      { title: "Sobre — RM Prime Imóveis" },
-      { name: "description", content: "Conheça a RM Prime Imóveis: boutique imobiliária de alto padrão em Belo Horizonte." },
-      { property: "og:title", content: "Sobre — RM Prime Imóveis" },
-      { property: "og:description", content: "Boutique imobiliária dedicada ao alto padrão em Belo Horizonte." },
-      { property: "og:url", content: "https://rmprimeimoveis.com.br/sobre" },
-    ],
-    links: [{ rel: "canonical", href: "https://rmprimeimoveis.com.br/sobre" }],
-  }),
-  loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData({ queryKey: ["site-settings"], queryFn: () => obterSiteSettings() });
+  head: ({ loaderData }) => {
+    const settings = loaderData as SiteSettings | undefined;
+    const siteName = settings?.branding.site_name || "Imobiliária";
+    const page = settings?.pagina_sobre ?? {};
+    return {
+      meta: [
+        { title: page.meta_title || `Sobre — ${siteName}` },
+        { name: "description", content: page.meta_description || `Conheça ${siteName}.` },
+        { property: "og:title", content: page.meta_title || `Sobre — ${siteName}` },
+        { property: "og:description", content: page.meta_description || `Conheça ${siteName}.` },
+      ],
+      links: [{ rel: "canonical", href: "/sobre" }],
+    };
   },
+  loader: async ({ context }) => context.queryClient.ensureQueryData({
+    queryKey: ["site-settings"],
+    queryFn: () => obterSiteSettings(),
+  }),
   component: Page,
 });
 

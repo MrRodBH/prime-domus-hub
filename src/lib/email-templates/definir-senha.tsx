@@ -56,7 +56,7 @@ export const template = {
   displayName: "Definir senha (novo usuário)",
   previewData: {
     nome: "Rodolfo",
-    link: "https://rmprimeimoveis.com.br/reset-password#access_token=...",
+    link: "https://example.test/reset-password#access_token=...",
   },
 } satisfies TemplateEntry;
 

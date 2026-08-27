@@ -456,11 +456,12 @@ CURRENT_DEPLOY_OR_CUTOVER_AUTHORIZED=false
 ## 21. ARCH-12F-02A — Externalização de identificadores de infraestrutura
 
 ```text
-ARCH12F02A_STATUS=IMPLEMENTED_IN_ISOLATED_BRANCH_AWAITING_PROTECTED_PR
+ARCH12F02A_STATUS=ACCEPTED_MERGED_CLOSED
 ARCH12F02A_SOURCE_MAIN=5e6f394b555e2de3b4cfdaa20d051003c5c05d71
 ARCH12F02A_SOURCE_TREE=22217abe8b655950a39beaf1b9960bf49f714434
 ARCH12F02A_BRANCH=agent/arch-12f-02a-github-native-infrastructure-identifier-externalization
 ARCH12F02A_PR=141
+ARCH12F02A_MERGED_MAIN=b5bf74a4b9ec2de320518d217710ac35961056db
 MIGRATION_FILE_MUTATION=false
 BACKEND_MUTATION=false
 PROVIDER_MUTATION=false
@@ -477,3 +478,31 @@ LOVABLE_AGENT_CALLS=false
   incompatíveis falham fechado antes de qualquer provider.
 - `ARCH-12F-02B` permanece separado para domínios/remetentes e configuração
   runtime/tenant; nenhum deploy ou cutover foi autorizado.
+
+
+---
+
+## 22. ARCH-12F-02B — Domínio tenant e remetente runtime
+
+```text
+ARCH12F02B_STATUS=IMPLEMENTED_IN_ISOLATED_BRANCH_AWAITING_PROTECTED_PR
+ARCH12F02B_SOURCE_MAIN=b5bf74a4b9ec2de320518d217710ac35961056db
+ARCH12F02B_SOURCE_TREE=a07ddc8ddc3d3a01554ca74d38eca3d955fa2169
+ARCH12F02B_BRANCH=agent/arch-12f-02b-github-native-runtime-tenant-domain-sender-externalization
+MIGRATION_FILE_MUTATION=false
+BACKEND_MUTATION=false
+PROVIDER_MUTATION=false
+DEPLOY=false
+LOVABLE_AGENT_CALLS=false
+```
+
+- Identidade de e-mail, domínio remetente, domínio `From` e origem Auth passam a
+  ser entradas server-only obrigatórias, validadas e fail-closed.
+- O sitemap deriva a origem canônica do mesmo registro de domínio que resolveu
+  o tenant no servidor; headers forwarded não são autoridade.
+- Canonicals de páginas públicas são relativos ao host já revalidado e
+  redirecionado pelo Domain Authority; `og:url` versionado foi removido.
+- Títulos das superfícies institucionais passam a usar a configuração publicada
+  do tenant, sem identidade imobiliária fixa no código alterado.
+- Nenhuma migration, provider write, backend write, DNS, deploy, cutover,
+  produção ou chamada Lovable é autorizada ou executada por este gate.

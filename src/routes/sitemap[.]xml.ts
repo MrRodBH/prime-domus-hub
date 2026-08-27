@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-
-const BASE_URL = "https://rmprimeimoveis.com.br";
+import { requireAuthoritativePublicOriginFromRequest } from "@/lib/tenant.server";
 
 interface SitemapEntry {
   path: string;
@@ -14,6 +13,7 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        const baseUrl = await requireAuthoritativePublicOriginFromRequest();
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/imoveis", changefreq: "daily", priority: "0.9" },
@@ -75,7 +75,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           .map((e) =>
             [
               "  <url>",
-              `    <loc>${BASE_URL}${e.path}</loc>`,
+              `    <loc>${baseUrl}${e.path}</loc>`,
               e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
               e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
               e.priority ? `    <priority>${e.priority}</priority>` : null,

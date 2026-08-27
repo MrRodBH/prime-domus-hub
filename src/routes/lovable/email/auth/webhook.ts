@@ -11,6 +11,7 @@ import { RecoveryEmail } from '@/lib/email-templates/recovery'
 import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 import { structuredLog } from '@/lib/structured-log'
+import { getRequiredEmailIdentityConfig } from '@/lib/runtime/email-identity-config.server'
 
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirm your email',
@@ -31,16 +32,11 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   reauthentication: ReauthenticationEmail,
 }
 
-// Configuration
-const SITE_NAME = "prime-domus-hub"
-const SENDER_DOMAIN = "contato.rmprimeimoveis.com.br"
-const ROOT_DOMAIN = "rmprimeimoveis.com.br"
-const FROM_DOMAIN = "rmprimeimoveis.com.br"
-
 export const Route = createFileRoute("/lovable/email/auth/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const emailIdentity = getRequiredEmailIdentityConfig()
         const apiKey = process.env.LOVABLE_API_KEY
 
         if (!apiKey) {
@@ -173,8 +169,8 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
 
         // Build template props from payload.data (HookData structure)
         const templateProps = {
-          siteName: SITE_NAME,
-          siteUrl: `https://${ROOT_DOMAIN}`,
+          siteName: emailIdentity.siteName,
+          siteUrl: emailIdentity.authSiteOrigin,
           recipient: payload.data.email,
           confirmationUrl: payload.data.url,
           token: payload.data.token,
@@ -224,8 +220,8 @@ export const Route = createFileRoute("/lovable/email/auth/webhook")({
             run_id,
             message_id: messageId,
             to: payload.data.email,
-            from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-            sender_domain: SENDER_DOMAIN,
+            from: emailIdentity.from,
+            sender_domain: emailIdentity.senderDomain,
             subject: EMAIL_SUBJECTS[emailType] || 'Notification',
             html,
             text,
