@@ -30,3 +30,24 @@ OWNER_ACTION = NONE
 ```
 
 The exact-head runner proves deterministic in-memory reconstruction of the generation-bound provider-identity ledger, rejects missing/duplicate/conflicting identity, validates the canonical SHA-256 manifest, and locks the existing RLS/grant/guard-trigger/SECURITY DEFINER boundaries. This evidence does not claim a live backup or PITR restore. That action requires a separate exact non-production execution envelope.
+
+## Isolated restore execution-envelope continuation
+
+~~~text
+ENVELOPE_GATE = DCA-02-BL2_ISOLATED_NON_PRODUCTION_PITR_RESTORE_EXECUTION_ENVELOPE
+ENVELOPE_SOURCE_MAIN = 2762376666044e4a7fa200ea5c7dd1b57c9a8e91
+ENVELOPE_SOURCE_TREE = 0ae2179c94b1ead197c15a27939f85d3576f65c4
+ENVELOPE_STATUS = candidate_until_exact_head_checks_pass
+LIVE_RESTORE_AUTHORIZED = false
+PROJECT_CREATION = false
+SUPABASE_PROVIDER_WRITES = 0
+DATABASE_WRITES = 0
+SAME_BACKEND_MUTATION = false
+CLOUDFLARE_PROVIDER_WRITES = 0
+PR_105_MUTATION = false
+NEXT_GATE = DCA-02-BL2_FINAL_AUDIT_AND_PROTECTED_MERGE
+~~~
+
+The continuation adds only the executable contract and its deterministic
+repository test. It preserves every prior statement that no live backup scope
+has been verified and no PITR restore has been executed.
