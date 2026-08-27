@@ -73,6 +73,7 @@ jobs:
           arch_12f_01=false
           arch_12f_02a=false
           arch_12f_02b=false
+          arch_12f_03=false
           arch_12f_04a=false
           arch_tenancy_01=false
           arch_integration=false
@@ -96,6 +97,9 @@ jobs:
             fi
             if [[ " ${changed_files[*]} " == *" run-arch-12f-02b-runtime-tenant-identity-specs.ts "* ]]; then
               arch_12f_02b=true
+            fi
+            if [[ " ${changed_files[*]} " == *" run-arch-12f-03-official-workerd-harness-specs.mjs "* ]]; then
+              arch_12f_03=true
             fi
             if [[ " ${changed_files[*]} " == *" run-arch-12f-04a-unsubscribe-log-redaction-specs.ts "* ]]; then
               arch_12f_04a=true
@@ -143,6 +147,7 @@ jobs:
           echo "arch_12f_01=$arch_12f_01" >> "$GITHUB_OUTPUT"
           echo "arch_12f_02a=$arch_12f_02a" >> "$GITHUB_OUTPUT"
           echo "arch_12f_02b=$arch_12f_02b" >> "$GITHUB_OUTPUT"
+          echo "arch_12f_03=$arch_12f_03" >> "$GITHUB_OUTPUT"
           echo "arch_12f_04a=$arch_12f_04a" >> "$GITHUB_OUTPUT"
           echo "arch_tenancy_01=$arch_tenancy_01" >> "$GITHUB_OUTPUT"
           echo "arch_integration=$arch_integration" >> "$GITHUB_OUTPUT"
@@ -152,7 +157,7 @@ jobs:
           echo "pr_m3_fvs6=$pr_m3_fvs6" >> "$GITHUB_OUTPUT"
           echo "pr_m3_sec_02=$pr_m3_sec_02" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
-          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 changed_file_count=$changed_file_count"
+          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 changed_file_count=$changed_file_count"
 
       - name: Documentation governance validation
         if: steps.scope.outputs.docs_only == 'true'
@@ -199,6 +204,12 @@ jobs:
           RM_PRIME_EMAIL_FROM_DOMAIN: ci.example.test
           RM_PRIME_AUTH_SITE_ORIGIN: https://ci.example.test
         run: bun run test:arch-12f-02b
+
+      - name: Verify ARCH-12F-03 official workerd single-dispatch harness
+        if: steps.scope.outputs.arch_12f_03 == 'true'
+        env:
+          ARCH_12F_03_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:arch-12f-03
 
       - name: Verify ARCH-12F-04A unsubscribe log redaction
         if: steps.scope.outputs.arch_12f_04a == 'true'

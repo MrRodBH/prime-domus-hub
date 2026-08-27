@@ -351,7 +351,6 @@ PRODUCTION_PUBLISH=false
 7. Se houver monitoramento prolongado, usar automação separada e não manter um turno bloqueado por horas.
 8. Se um novo chat responder normalmente, a lentidão anterior é classificada como sobrecarga específica do thread; falha local só deve ser considerada se vários chats/navegadores/redes reproduzirem o problema.
 
-
 ---
 
 ## 17. Reconciliação vinculante de backlog e autoridade Lovable — LVR-02H
@@ -367,10 +366,13 @@ GITHUB_MAIN_FINAL_AUTHORITY=true
 - `ARCH-12F-01`, `ARCH-12F-04A`, `ARCH-12F-04B`, `ARCH-TENANCY-01`, `DCA-02-BL2` repository proof e `DCA-02-BL1` diagnostic foram compostos e aceitos no `main` pela PR #114.
 - `ARCH-12F-02` permanece pendente: `wrangler.jsonc` ainda fixa o nome do Worker e `supabase/config.toml` ainda fixa o project ref; qualquer correção exige gate Architecture First próprio.
 - `ARCH-12F-03` permanece diferido upstream e é governado pela issue #116; não bloqueia PR-M3 e não autoriza mutação da PR #105.
+- `ARCH-12F-03` revalidou o gatilho Wrangler 4.126.0, rejeitou o ProxyWorker
+  ainda sujeito a requeue GET/HEAD e materializou em branch isolada um harness
+  oficial `workerd@1.20260825.1`, sem provider/backend/deploy. A prova
+  single-dispatch não reabre nem torna a PR #105 fonte de integração.
 - O restore PITR real de `DCA-02-BL2` continua pré-produção, isolado e separadamente autorizável; writes de recovery `DCA-02-BL1` permanecem proibidos antes dessa prova terminal.
 - Issues históricas devem refletir os estados aceitos, rejeitados ou superseded do `main`; checklist antigo não conserva autoridade executiva.
 - O planejamento detalhado das capacidades de domínio, marketing, tracking, landing pages, CRM, notificações e portais fica registrado na evidência LVR-02H e não autoriza implementação ou provedor.
-
 
 ---
 
@@ -397,7 +399,6 @@ PR_105_MUTATED=false
 - `migration repair`, `db reset`, down migration, backfill global e adoção implícita de schema live estão proibidos.
 - O plano PCA-03 exige manifest de paridade bidirecional, DDL separado de DML, provisionamento server-owned por IDs exatos, restore-cell privado e rollback forward-only.
 - A PR documental PCA-03 foi aceita no `main`; seu plano é vinculante para PCA-04 e sucessores.
-
 
 ---
 
@@ -450,7 +451,6 @@ CURRENT_DEPLOY_OR_CUTOVER_AUTHORIZED=false
   Esta decisão não autoriza deploy, publicação, DNS, provider write, cutover nem
   substituição das regras de domínio por tenant.
 
-
 ---
 
 ## 21. ARCH-12F-02A — Externalização de identificadores de infraestrutura
@@ -478,7 +478,6 @@ LOVABLE_AGENT_CALLS=false
   incompatíveis falham fechado antes de qualquer provider.
 - `ARCH-12F-02B` permanece separado para domínios/remetentes e configuração
   runtime/tenant; nenhum deploy ou cutover foi autorizado.
-
 
 ---
 
