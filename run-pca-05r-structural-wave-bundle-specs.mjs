@@ -6,7 +6,7 @@ assert.equal(manifest.migrationCount, 17);
 assert.deepEqual(Object.keys(outputs), ["W1", "W2", "W3", "W4", "W5", "W6"]);
 assert.deepEqual(Object.values(manifest.waves).map((wave) => wave.sha256), [
   "a40d76bbb4830c44c8e4d6a54514e7506c94326cd602b976e86208ec64b2489e",
-  "7d0d5dea284828d2a62dd07dc819227a33f918780cded49bcec47f0118fde82b",
+  "170ed9f19b3932f94eed6b057f3ff2b3c1ca1c4e4b6b387676f552e013dfe9b5",
   "7ad22a1fd4ce0ad3560891f0e671381cd30ad49e9fb067c8b1de85b8e928c9d3",
   "6274d4a7b822c1c02ffba905340f4c6a7bcd5d8e252f63f9dbf3f2c9ea31fc8a",
   "dd99bf70aa3b325ae5356850675b9e7357cde92c46e22f16d8e2b33a0e97acfc",
@@ -21,6 +21,9 @@ assert.doesNotMatch(outputs.W2.sql, /'map_embed_url'[^\n]+,\n  \) \|\|/);
 assert.equal(manifest.entries.filter((entry) => entry.projection === "TRANSITION_LEAD_STATUS_INTEGER_SIGNATURE").length, 1);
 assert.match(outputs.W3.sql, /transition_lead_status\(uuid,text,integer,uuid,jsonb\)/);
 assert.doesNotMatch(outputs.W3.sql, /transition_lead_status\(uuid,text,bigint,uuid,jsonb\)/);
+assert.equal(manifest.entries.filter((entry) => entry.projection === "PORTAL_CREDENTIAL_NULL_DEFAULTS").length, 1);
+assert.match(outputs.W2.sql, /ALTER COLUMN feed_token DROP DEFAULT/);
+assert.match(outputs.W2.sql, /ALTER COLUMN webhook_secret DROP DEFAULT/);
 assert.equal(manifest.entries.filter((entry) => entry.projection === "MEDIA_LIBRARY_TENANT_ID_UNIQUE_KEY").length, 1);
 assert.match(outputs.W5.sql, /ux_media_library_tenant_id_id\n  ON public\.media_library \(tenant_id, id\)/);
 assert.equal(manifest.controls.sameBackendAllowed, false);

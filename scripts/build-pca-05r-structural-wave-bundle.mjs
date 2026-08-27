@@ -40,6 +40,12 @@ export function build() {
       sql = sql.replace(needle, "public.transition_lead_status(uuid,text,integer,uuid,jsonb)");
       projection = "TRANSITION_LEAD_STATUS_INTEGER_SIGNATURE";
     }
+    if (item.version === "20260729103000") {
+      const needle = "  ALTER COLUMN feed_token DROP NOT NULL,\n  ALTER COLUMN webhook_secret DROP NOT NULL;";
+      assert.equal(sql.split(needle).length - 1, 1, "portal credential default projection shape drift");
+      sql = sql.replace(needle, "  ALTER COLUMN feed_token DROP NOT NULL,\n  ALTER COLUMN feed_token DROP DEFAULT,\n  ALTER COLUMN webhook_secret DROP NOT NULL,\n  ALTER COLUMN webhook_secret DROP DEFAULT;");
+      projection = "PORTAL_CREDENTIAL_NULL_DEFAULTS";
+    }
     if (item.version === "20260730050000") {
       const needle = "CREATE UNIQUE INDEX IF NOT EXISTS ux_cms_pages_tenant_id_id\n  ON public.cms_pages (tenant_id, id);";
       assert.equal(sql.split(needle).length - 1, 1, "media library tenant key projection shape drift");
