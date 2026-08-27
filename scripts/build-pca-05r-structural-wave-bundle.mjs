@@ -18,8 +18,16 @@ export function build() {
   const waves = new Map();
   const entries = [];
   for (const item of authority.repositoryMigrations) {
-    const sql = readFileSync(new URL(item.path, ROOT), "utf8");
-    assert.equal(sha256(sql), item.sha256, `source hash drift: ${item.path}`);
+    const source = readFileSync(new URL(item.path, ROOT), "utf8");
+    assert.equal(sha256(source), item.sha256, `source hash drift: ${item.path}`);
+    let sql = source;
+    let projection = "EXACT";
+    if (item.version === "20260728180000") {
+      const needle = "array_agg(a.attname ORDER BY x.ord)";
+      assert.equal(sql.split(needle).length - 1, 4, "PG17 name[] projection shape drift");
+      sql = sql.replaceAll(needle, "array_agg(a.attname::text ORDER BY x.ord)");
+      projection = "PG17_NAME_ARRAY_TO_TEXT_ARRAY";
+    }
     const executable = stripComments(sql);
     assert.match(executable, /^\s*BEGIN\s*;/i, `missing BEGIN: ${item.path}`);
     assert.match(executable, /COMMIT\s*;\s*$/i, `missing terminal COMMIT: ${item.path}`);
@@ -32,7 +40,7 @@ export function build() {
     ]) assert.doesNotMatch(executable, forbidden, `external-effect statement: ${item.path}`);
     const chunk = `-- authority: ${item.path}\n-- source-sha256: ${item.sha256}\n${sql.trim()}\n`;
     waves.set(item.wave, `${waves.get(item.wave) ?? ""}${chunk}\n`);
-    entries.push({ version: item.version, path: item.path, wave: item.wave, sha256: item.sha256 });
+    entries.push({ version: item.version, path: item.path, wave: item.wave, sha256: item.sha256, projection });
   }
   assert.deepEqual([...waves.keys()], ["W1", "W2", "W3", "W4", "W5", "W6"]);
   const outputs = Object.fromEntries([...waves].map(([wave, sql]) => [wave, {

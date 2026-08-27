@@ -117,6 +117,13 @@ if (base) {
       "run-pca-05r-structural-wave-bundle-specs.mjs",
       "scripts/build-pca-05r-structural-wave-bundle.mjs",
     ],
+    [
+      "docs/architecture/impact-analysis/PCA-05R-github-native-structural-wave-bundle.md",
+      "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-05r-structural-wave-bundle.md",
+      "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
+      "run-pca-05r-structural-wave-bundle-specs.mjs",
+      "scripts/build-pca-05r-structural-wave-bundle.mjs",
+    ],
   ];
   assert.equal(
     allowedDiffs.some((allowed) => JSON.stringify(allowed.sort()) === JSON.stringify(changed)),
