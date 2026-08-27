@@ -106,6 +106,14 @@ const buildTenantizationReplacement = (sql, predecessorTables) => {
   const literals = targets.map((target) => `'${target}'`).join(",");
   return `DO $pca05r$\nDECLARE\n  t text;\nBEGIN\n  FOREACH t IN ARRAY ARRAY[${literals}] LOOP\n    EXECUTE format('ALTER TABLE public.%I ADD COLUMN IF NOT EXISTS tenant_id uuid REFERENCES public.tenants(id) ON DELETE RESTRICT', t);\n    EXECUTE format('ALTER TABLE public.%I ALTER COLUMN tenant_id SET DEFAULT public.get_current_tenant_id()', t);\n    EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON public.%I (tenant_id)', t || '_tenant_id_idx', t);\n  END LOOP;\nEND\n$pca05r$;`;
 };
+const buildOptionalFunctionRevokeReplacement = (sql) => {
+  const signature = stripComments(sql).match(
+    /^REVOKE\s+EXECUTE\s+ON\s+FUNCTION\s+([^\s]+)\s+FROM\s+(.+);$/i,
+  );
+  assert.ok(signature, "optional function REVOKE shape drift");
+  const regprocedure = signature[1].replace(/^public\./i, "public.");
+  return `DO $pca05r$\nBEGIN\n  IF to_regprocedure('${regprocedure}') IS NOT NULL THEN\n    EXECUTE 'REVOKE EXECUTE ON FUNCTION ${regprocedure} FROM ${signature[2].replaceAll("'", "''")}';\n  END IF;\nEND\n$pca05r$;`;
+};
 const classify = (path, sql) => {
   const s = stripComments(sql);
   if (path.includes("20260616193726") && /INSERT\s+INTO\s+public\.site_settings/i.test(s))
@@ -128,7 +136,20 @@ const classify = (path, sql) => {
     /CREATE\s+EXTENSION(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:pg_net|pg_cron|supabase_vault)\b/i.test(s)
   )
     return ["EXCLUDE", "UNNEEDED_EXTERNAL_CAPABILITY_EXTENSION"];
+  if (
+    path.includes("20260702201546") &&
+    /REVOKE\s+EXECUTE\s+ON\s+FUNCTION\s+public\.email_queue_(?:wake|dispatch)\(\)/i.test(s)
+  )
+    return ["REPLACE", "OPTIONAL_PROVIDER_FUNCTION_HARDENING"];
   return ["PASSTHROUGH", null];
+};
+
+const buildReplacement = (path, statement, predecessorTables, reason) => {
+  if (reason === "REAL_TENANT_BACKFILL_AND_NOT_NULL")
+    return buildTenantizationReplacement(statement, predecessorTables);
+  if (reason === "OPTIONAL_PROVIDER_FUNCTION_HARDENING")
+    return buildOptionalFunctionRevokeReplacement(statement);
+  assert.fail(`unhandled replacement for ${path}: ${reason}`);
 };
 
 export function build() {
@@ -164,7 +185,7 @@ export function build() {
       });
       if (action === "PASSTHROUGH") projected.push(statement);
       if (action === "REPLACE")
-        projected.push(buildTenantizationReplacement(statement, predecessorTables));
+        projected.push(buildReplacement(file.path, statement, predecessorTables, reason));
       for (const match of stripComments(statement).matchAll(
         /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:public\.)?"?([a-z_][a-z0-9_]*)"?/gi,
       ))
@@ -188,9 +209,9 @@ export function build() {
   );
   assert.deepEqual(counts, {
     totalSourceStatements: 1267,
-    passthrough: 1201,
+    passthrough: 1199,
     exclude: 65,
-    replace: 1,
+    replace: 3,
   });
   const sql = `-- GENERATED; DO NOT EDIT. PCA-05R private synthetic substrate only.\n-- No migration-ledger writes; no Same-Backend execution authorization.\n${chunks.join("\n\n")}\n`;
   const manifest = {
