@@ -85,6 +85,27 @@ const stripComments = (sql) =>
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/--.*$/gm, "")
     .trim();
+
+export function extractTenantizationTargets(sql) {
+  const declaration =
+    sql.match(/business_tables\s+text\[\]\s*:=\s*ARRAY\[([\s\S]*?)\]\s*;/i) ??
+    sql.match(/FOREACH\s+t\s+IN\s+ARRAY\s+ARRAY\[([\s\S]*?)\]\s+LOOP/i);
+  assert.ok(declaration, "tenantization source array not found");
+  const targets = [...declaration[1].matchAll(/'([a-z_][a-z0-9_]*)'/g)].map(
+    (match) => match[1],
+  );
+  assert.ok(targets.length > 0, "tenantization source array is empty");
+  assert.equal(new Set(targets).size, targets.length, "duplicate tenantization target");
+  return targets;
+}
+
+const buildTenantizationReplacement = (sql, predecessorTables) => {
+  const targets = extractTenantizationTargets(sql);
+  const missing = targets.filter((target) => !predecessorTables.has(target));
+  assert.deepEqual(missing, [], `tenantization targets lack predecessor tables: ${missing.join(",")}`);
+  const literals = targets.map((target) => `'${target}'`).join(",");
+  return `DO $pca05r$\nDECLARE\n  t text;\nBEGIN\n  FOREACH t IN ARRAY ARRAY[${literals}] LOOP\n    EXECUTE format('ALTER TABLE public.%I ADD COLUMN IF NOT EXISTS tenant_id uuid REFERENCES public.tenants(id) ON DELETE RESTRICT', t);\n    EXECUTE format('ALTER TABLE public.%I ALTER COLUMN tenant_id SET DEFAULT public.get_current_tenant_id()', t);\n    EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON public.%I (tenant_id)', t || '_tenant_id_idx', t);\n  END LOOP;\nEND\n$pca05r$;`;
+};
 const classify = (path, sql) => {
   const s = stripComments(sql);
   if (path.includes("20260616193726") && /INSERT\s+INTO\s+public\.site_settings/i.test(s))
@@ -110,12 +131,11 @@ const classify = (path, sql) => {
   return ["PASSTHROUGH", null];
 };
 
-const replacement = `DO $pca05r$\nDECLARE\n  t text;\nBEGIN\n  FOREACH t IN ARRAY ARRAY['profiles','imoveis','leads','corretores','proprietarios','clientes','contratos','visitas','propostas','chaves','launch_projects','blog_posts','cidades','bairros','site_settings','campaigns'] LOOP\n    EXECUTE format('ALTER TABLE public.%I ADD COLUMN IF NOT EXISTS tenant_id uuid REFERENCES public.tenants(id) ON DELETE RESTRICT', t);\n    EXECUTE format('ALTER TABLE public.%I ALTER COLUMN tenant_id SET DEFAULT public.get_current_tenant_id()', t);\n    EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON public.%I (tenant_id)', t || '_tenant_id_idx', t);\n  END LOOP;\nEND\n$pca05r$;`;
-
 export function build() {
   const closure = JSON.parse(readFileSync(CLOSURE, "utf8"));
   const entries = [],
     chunks = [];
+  const predecessorTables = new Set();
   for (const file of closure.prerequisites) {
     const source = readFileSync(new URL(file.path, ROOT), "utf8");
     assert.equal(sha256(source), file.sha256, `source hash drift: ${file.path}`);
@@ -143,7 +163,12 @@ export function build() {
         reason,
       });
       if (action === "PASSTHROUGH") projected.push(statement);
-      if (action === "REPLACE") projected.push(replacement);
+      if (action === "REPLACE")
+        projected.push(buildTenantizationReplacement(statement, predecessorTables));
+      for (const match of stripComments(statement).matchAll(
+        /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:public\.)?"?([a-z_][a-z0-9_]*)"?/gi,
+      ))
+        predecessorTables.add(match[1]);
     });
     if (projected.length) {
       const body = projected.join("\n\n");

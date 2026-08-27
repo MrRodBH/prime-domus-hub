@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { build, splitSql } from "./scripts/build-pca-05r-synthetic-substrate-bundle.mjs";
+import {
+  build,
+  extractTenantizationTargets,
+  splitSql,
+} from "./scripts/build-pca-05r-synthetic-substrate-bundle.mjs";
 
 const { manifest: actual, sql } = build();
 assert.equal(createHash("sha256").update(sql).digest("hex"), actual.bundleSha256);
 assert.equal(
   actual.bundleSha256,
-  "aa75692138bf30381538a81794c6c6a51925414400c86ecfa665ae996b642bc6",
+  "9386c7896ccc07711aaa299bc40bda83fa730d103983af25d630911dd66ff9bc",
 );
 assert.deepEqual(actual.counts, {
   totalSourceStatements: 1267,
@@ -34,6 +38,28 @@ assert.doesNotMatch(executable, /ALTER\s+COLUMN\s+tenant_id\s+SET\s+NOT\s+NULL/i
 assert.doesNotMatch(executable, /9664d189-4a12-4caa-8243-dc73383447e6/i);
 assert.equal(actual.controls.lovableExecutionAuthorized, false);
 assert.equal(actual.controls.sameBackendAllowed, false);
+const tenantizationSource = readFileSync(
+  "supabase/migrations/20260701205318_c4b9c8b3-1fe3-4663-8c35-7f2a74b2aafe.sql",
+  "utf8",
+);
+const sourceTargets = extractTenantizationTargets(tenantizationSource);
+assert.equal(sourceTargets.length, 24);
+const projectedTenantization = sql.match(
+  /-- source: supabase\/migrations\/20260701205318_[^\n]+\nBEGIN;\n([\s\S]*?)\nCOMMIT;/,
+);
+assert.ok(projectedTenantization, "projected tenantization block not found");
+assert.deepEqual(extractTenantizationTargets(projectedTenantization[1]), sourceTargets);
+for (const invented of [
+  "profiles",
+  "proprietarios",
+  "clientes",
+  "contratos",
+  "visitas",
+  "propostas",
+  "chaves",
+  "campaigns",
+])
+  assert.ok(!sourceTargets.includes(invented), `invented target retained: ${invented}`);
 for (const contract of ["PCA-05R-preflight.sql", "PCA-05R-postflight.sql"]) {
   const content = readFileSync(`rehearsal/pca-05r/substrate/${contract}`, "utf8");
   assert.match(content, /extname IN \('pg_net','pg_cron'\)/);
