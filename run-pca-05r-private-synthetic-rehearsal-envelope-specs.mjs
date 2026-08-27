@@ -71,6 +71,17 @@ if (base) {
       "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
       "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
     ],
+    [
+      ".github/workflows/release-gate.yml",
+      "docs/architecture/impact-analysis/PCA-05R-github-native-synthetic-substrate-bundle.md",
+      "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-05r-synthetic-substrate-bundle.md",
+      "package.json",
+      "rehearsal/pca-05r/substrate/PCA-05R-postflight.sql",
+      "rehearsal/pca-05r/substrate/PCA-05R-preflight.sql",
+      "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
+      "run-pca-05r-synthetic-substrate-bundle-specs.mjs",
+      "scripts/build-pca-05r-synthetic-substrate-bundle.mjs",
+    ],
   ];
   assert.equal(
     allowedDiffs.some((allowed) => JSON.stringify(allowed.sort()) === JSON.stringify(changed)),

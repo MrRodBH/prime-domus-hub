@@ -33,6 +33,7 @@
     "test:pca-04": "tsx --tsconfig tsconfig.json ./run-pca-04-product-schema-rebaseline-corrective-specs.ts",
     "test:pca-05r": "node ./run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
     "test:pca-05r:closure": "node ./run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+    "test:pca-05r:substrate": "node ./run-pca-05r-synthetic-substrate-bundle-specs.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test:lsh-01:unit": "tsx --tsconfig tsconfig.json ./run-lead-authorization-specs.ts",
