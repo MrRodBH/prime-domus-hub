@@ -9,7 +9,7 @@ import {
 } from "./src/lib/config.server";
 
 const EXPECTED_BUN_LOCK_SHA256 =
-  "f864bf8258b259bc91a983464c4ec4bbc1b54168f95f3363241e008bb8039885";
+  "12df9c78b4a16f7661053906e8be6e9ccf750d9c62a1da3bffef27755cf2aadc";
 
 const ALLOWLIST = [
   ".env",
@@ -172,7 +172,7 @@ const bunLockSha256 = createHash("sha256")
   .update(readFileSync("bun.lock"))
   .digest("hex");
 assert.equal(bunLockSha256, EXPECTED_BUN_LOCK_SHA256);
-pass("F07", "bun.lock SHA-256 is byte-identical to audited main");
+pass("F07", "bun.lock SHA-256 matches the audited dependency baseline");
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   scripts?: Record<string, string>;

@@ -22,6 +22,8 @@ requeue behavior, while the relevant upstream corrections remain unmerged.
 - Executes the official Cloudflare workerd binary directly, without Wrangler,
   ProxyWorker, Miniflare proxy or browser retry layers.
 - Pins the tested engine exactly in package.json and bun.lock.
+- Advances the permanent F07 lockfile checksum to the new audited exact
+  dependency baseline.
 - Uses one local TCP connection with Connection: close, one POST and one request
   ID in the positive phase.
 - Counts matching Worker invocation logs and requires exactly one.

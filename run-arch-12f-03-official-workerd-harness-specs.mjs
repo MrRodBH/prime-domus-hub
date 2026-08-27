@@ -61,6 +61,7 @@ if (base) {
     "docs/architecture/governance/RM_PRIME_SAFE_CHAT_MIGRATION_2026-08-25.md",
     "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/arch-12f-03-official-workerd-single-dispatch-harness.md",
     "package.json",
+    "run-arch-12f-01-config-hygiene-specs.ts",
     "run-arch-12f-03-official-workerd-harness-specs.mjs",
     "scripts/arch-12f-03/workerd-single-dispatch-worker.mjs",
     "scripts/arch-12f-03/workerd-single-dispatch.capnp",
