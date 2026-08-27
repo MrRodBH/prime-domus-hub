@@ -94,3 +94,29 @@ Final purge removed every row for the two reserved tenant UUIDs and both Auth
 users. No deploy, DNS, provider, Same-Backend, production or PR #105 mutation
 occurred. The remaining private/unpublished Lovable project must be deleted
 manually by the Owner; PCA-05R is not `ACCEPTED` until direct deletion evidence.
+
+## Definitive Owner teardown and terminal acceptance
+
+```text
+TERMINAL_RESULT=ACCEPTED
+TERMINAL_DATE=2026-08-27
+PRIVATE_CELL_ID=8690cd64-9761-4c12-a3da-f7d7edd5714f
+OWNER_DELETION_CONFIRMED=true
+DIRECT_LOVABLE_LOOKUP=404_PROJECT_NOT_FOUND
+PRIVATE_CELL_RESIDUE=0
+OWNER_PROJECT_DELETION_REQUIRED=false
+PCA_05R_STATUS=ACCEPTED
+PCA_06_AUTO_START_AUTHORIZED=false
+```
+
+The Owner completed the irreversible Lovable project deletion and supplied the
+confirmation flow evidence. A subsequent direct authenticated lookup of the
+exact project ID returned `404 project_not_found`; the private project, preview
+and managed backend are therefore no longer addressable. Combined with the
+pre-deletion purge proof above, the residual-cell boundary is closed and
+PCA-05R reaches terminal `ACCEPTED`.
+
+This acceptance proves only the R2-R4 synthetic schema, tenant and security
+rehearsal contracted by PCA-05R. It does not prove R1 backup/PITR
+recoverability, does not waive DCA-02-BL2, and does not authorize PCA-06,
+Same-Backend writes, provider mutation, deployment or PR #105 mutation.
