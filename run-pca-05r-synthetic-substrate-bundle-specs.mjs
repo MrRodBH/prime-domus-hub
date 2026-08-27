@@ -11,13 +11,13 @@ const { manifest: actual, sql } = build();
 assert.equal(createHash("sha256").update(sql).digest("hex"), actual.bundleSha256);
 assert.equal(
   actual.bundleSha256,
-  "9386c7896ccc07711aaa299bc40bda83fa730d103983af25d630911dd66ff9bc",
+  "b8b3436440dadc357675ddc299ca8adb41449378e0e2747c2ab1adf81ddcef4e",
 );
 assert.deepEqual(actual.counts, {
   totalSourceStatements: 1267,
-  passthrough: 1201,
+  passthrough: 1199,
   exclude: 65,
-  replace: 1,
+  replace: 3,
   projectedStatements: 1202,
 });
 assert.equal(actual.entries.filter((e) => e.reason === "DUPLICATE_SOURCE_BYTES").length, 55);
@@ -25,7 +25,13 @@ assert.equal(
   actual.entries.filter((e) => e.reason === "UNNEEDED_EXTERNAL_CAPABILITY_EXTENSION").length,
   3,
 );
+assert.equal(
+  actual.entries.filter((e) => e.reason === "OPTIONAL_PROVIDER_FUNCTION_HARDENING").length,
+  2,
+);
 const executable = splitSql(sql).join("\n").replace(/--.*$/gm, "");
+assert.match(executable, /to_regprocedure\('public\.email_queue_wake\(\)'\)/i);
+assert.match(executable, /to_regprocedure\('public\.email_queue_dispatch\(\)'\)/i);
 for (const forbidden of [
   /DELETE\s+FROM\s+auth\./i,
   /UPDATE\s+storage\.objects/i,

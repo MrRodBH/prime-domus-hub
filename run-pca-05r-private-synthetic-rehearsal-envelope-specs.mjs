@@ -99,6 +99,11 @@ if (base) {
       "run-pca-05r-synthetic-substrate-bundle-specs.mjs",
       "scripts/build-pca-05r-synthetic-substrate-bundle.mjs",
     ],
+    [
+      "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
+      "run-pca-05r-synthetic-substrate-bundle-specs.mjs",
+      "scripts/build-pca-05r-synthetic-substrate-bundle.mjs",
+    ],
   ];
   assert.equal(
     allowedDiffs.some((allowed) => JSON.stringify(allowed.sort()) === JSON.stringify(changed)),
