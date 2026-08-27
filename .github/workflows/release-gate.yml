@@ -82,6 +82,7 @@ jobs:
           pr_m3_fvs5=false
           pr_m3_fvs6=false
           pr_m3_sec_02=false
+          pca_05r=false
           changed_file_count=0
 
           if [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]] \
@@ -122,6 +123,9 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-pr-m3-sec-02-public-surface-security-specs.ts "* ]]; then
               pr_m3_sec_02=true
             fi
+            if [[ " ${changed_files[*]} " == *" run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs "* ]]; then
+              pca_05r=true
+            fi
             if [[ "$changed_file_count" -eq 42 ]] \
               && [[ " ${changed_files[*]} " == *" run-arch-12f-01-config-hygiene-specs.ts "* ]] \
               && [[ " ${changed_files[*]} " == *" run-arch-12f-04a-unsubscribe-log-redaction-specs.ts "* ]] \
@@ -156,8 +160,9 @@ jobs:
           echo "pr_m3_fvs5=$pr_m3_fvs5" >> "$GITHUB_OUTPUT"
           echo "pr_m3_fvs6=$pr_m3_fvs6" >> "$GITHUB_OUTPUT"
           echo "pr_m3_sec_02=$pr_m3_sec_02" >> "$GITHUB_OUTPUT"
+          echo "pca_05r=$pca_05r" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
-          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 changed_file_count=$changed_file_count"
+          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 pca_05r=$pca_05r changed_file_count=$changed_file_count"
 
       - name: Documentation governance validation
         if: steps.scope.outputs.docs_only == 'true'
@@ -189,6 +194,12 @@ jobs:
           ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
           ARCH_INTEGRATION_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:arch-12f-01
+
+      - name: Verify PCA-05R private synthetic rehearsal envelope
+        if: steps.scope.outputs.pca_05r == 'true'
+        env:
+          PCA_05R_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pca-05r
 
       - name: Verify ARCH-12F-02A infrastructure identifier externalization
         if: steps.scope.outputs.arch_12f_02a == 'true'
