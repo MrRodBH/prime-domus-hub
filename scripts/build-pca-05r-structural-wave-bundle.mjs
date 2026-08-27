@@ -29,9 +29,9 @@ export function build() {
       projection = "PG17_NAME_ARRAY_TO_TEXT_ARRAY";
     }
     if (item.version === "20260728233000") {
-      const needle = "    'menu_locations', jsonb_build_array('header', 'footer'),";
+      const needle = "    'map_embed_url', NULLIF(ls.settings->'pagina_contato'->>'mapa_url', ''),\n    'menu_locations', jsonb_build_array('header', 'footer'),";
       assert.equal(sql.split(needle).length - 1, 1, "PG 100-argument projection shape drift");
-      sql = sql.replace(needle, `  ) || jsonb_build_object(\n${needle}`);
+      sql = sql.replace(needle, "    'map_embed_url', NULLIF(ls.settings->'pagina_contato'->>'mapa_url', '')\n  ) || jsonb_build_object(\n    'menu_locations', jsonb_build_array('header', 'footer'),");
       projection = "PG_MAX_FUNCTION_ARGS_JSONB_OBJECT_SPLIT";
     }
     const executable = stripComments(sql);
