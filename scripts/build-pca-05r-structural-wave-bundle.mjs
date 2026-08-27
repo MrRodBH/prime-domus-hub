@@ -40,6 +40,12 @@ export function build() {
       sql = sql.replace(needle, "public.transition_lead_status(uuid,text,integer,uuid,jsonb)");
       projection = "TRANSITION_LEAD_STATUS_INTEGER_SIGNATURE";
     }
+    if (item.version === "20260730050000") {
+      const needle = "CREATE UNIQUE INDEX IF NOT EXISTS ux_cms_pages_tenant_id_id\n  ON public.cms_pages (tenant_id, id);";
+      assert.equal(sql.split(needle).length - 1, 1, "media library tenant key projection shape drift");
+      sql = sql.replace(needle, `${needle}\n\nCREATE UNIQUE INDEX IF NOT EXISTS ux_media_library_tenant_id_id\n  ON public.media_library (tenant_id, id);`);
+      projection = "MEDIA_LIBRARY_TENANT_ID_UNIQUE_KEY";
+    }
     const executable = stripComments(sql);
     assert.match(executable, /^\s*BEGIN\s*;/i, `missing BEGIN: ${item.path}`);
     assert.match(executable, /COMMIT\s*;\s*$/i, `missing terminal COMMIT: ${item.path}`);
