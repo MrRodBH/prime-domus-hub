@@ -28,6 +28,12 @@ export function build() {
       sql = sql.replaceAll(needle, "array_agg(a.attname::text ORDER BY x.ord)");
       projection = "PG17_NAME_ARRAY_TO_TEXT_ARRAY";
     }
+    if (item.version === "20260728233000") {
+      const needle = "    'menu_locations', jsonb_build_array('header', 'footer'),";
+      assert.equal(sql.split(needle).length - 1, 1, "PG 100-argument projection shape drift");
+      sql = sql.replace(needle, `  ) || jsonb_build_object(\n${needle}`);
+      projection = "PG_MAX_FUNCTION_ARGS_JSONB_OBJECT_SPLIT";
+    }
     const executable = stripComments(sql);
     assert.match(executable, /^\s*BEGIN\s*;/i, `missing BEGIN: ${item.path}`);
     assert.match(executable, /COMMIT\s*;\s*$/i, `missing terminal COMMIT: ${item.path}`);
