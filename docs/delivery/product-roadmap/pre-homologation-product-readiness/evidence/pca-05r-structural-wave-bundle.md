@@ -1,0 +1,15 @@
+# Evidência PCA-05R — structural wave bundle
+
+```text
+GATE=PCA-05R_GITHUB_NATIVE_SYNTHETIC_SUBSTRATE_SOURCE_TARGET_PARITY_CORRECTIVE_IMPLEMENTATION
+SOURCE_MAIN=af9967a47785ac3a5d866190d9bb40d2feff9f77
+SOURCE_TREE=857b166466811828477289be60111e976ca0ac4e
+MIGRATIONS=17
+WAVES=6
+MIGRATION_FILE_MUTATION=false
+SAME_BACKEND_MUTATION=false
+PROVIDER_MUTATION=false
+DEPLOY=false
+```
+
+Resultado: contrato e gerador GitHub-native prontos para auditoria protegida. Nenhum SQL foi aplicado por este commit.

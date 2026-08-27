@@ -1,0 +1,59 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+
+const ROOT = new URL("../", import.meta.url);
+const OUT = new URL("../rehearsal/pca-05r/structural-waves/", import.meta.url);
+const MANIFEST = new URL(
+  "../docs/architecture/impact-analysis/manifests/PCA-04-product-schema-parity-manifest.json",
+  import.meta.url,
+);
+const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+const stripComments = (sql) => sql.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--.*$/gm, "");
+
+export function build() {
+  const authority = JSON.parse(readFileSync(MANIFEST, "utf8"));
+  assert.equal(authority.repositoryMigrations.length, 17);
+  assert.equal(authority.structuralExpectation.explicitTransactions, 17);
+  const waves = new Map();
+  const entries = [];
+  for (const item of authority.repositoryMigrations) {
+    const sql = readFileSync(new URL(item.path, ROOT), "utf8");
+    assert.equal(sha256(sql), item.sha256, `source hash drift: ${item.path}`);
+    const executable = stripComments(sql);
+    assert.match(executable, /^\s*BEGIN\s*;/i, `missing BEGIN: ${item.path}`);
+    assert.match(executable, /COMMIT\s*;\s*$/i, `missing terminal COMMIT: ${item.path}`);
+    for (const forbidden of [
+      /CREATE\s+EXTENSION[^;]*(?:pg_net|pg_cron|supabase_vault)/i,
+      /\b(?:net|http)\.[a-z_]+\s*\(/i,
+      /INSERT\s+INTO\s+auth\./i,
+      /(?:INSERT|UPDATE|DELETE)\s+(?:INTO\s+|FROM\s+)?storage\.objects/i,
+      /INSERT\s+INTO\s+supabase_migrations/i,
+    ]) assert.doesNotMatch(executable, forbidden, `external-effect statement: ${item.path}`);
+    const chunk = `-- authority: ${item.path}\n-- source-sha256: ${item.sha256}\n${sql.trim()}\n`;
+    waves.set(item.wave, `${waves.get(item.wave) ?? ""}${chunk}\n`);
+    entries.push({ version: item.version, path: item.path, wave: item.wave, sha256: item.sha256 });
+  }
+  assert.deepEqual([...waves.keys()], ["W1", "W2", "W3", "W4", "W5", "W6"]);
+  const outputs = Object.fromEntries([...waves].map(([wave, sql]) => [wave, {
+    file: `PCA-05R-${wave}.sql`, sha256: sha256(sql), sql,
+  }]));
+  return { manifest: {
+    schemaVersion: 1,
+    gate: "PCA-05R_GITHUB_NATIVE_SYNTHETIC_SUBSTRATE_SOURCE_TARGET_PARITY_CORRECTIVE_IMPLEMENTATION",
+    authority: "PROTECTED_GITHUB_MAIN_ONLY",
+    sourceMain: "af9967a47785ac3a5d866190d9bb40d2feff9f77",
+    sourceTree: "857b166466811828477289be60111e976ca0ac4e",
+    migrationCount: entries.length,
+    waves: Object.fromEntries(Object.entries(outputs).map(([wave, value]) => [wave, { file: value.file, sha256: value.sha256 }])),
+    entries,
+    controls: { sameBackendAllowed: false, migrationFilesMutable: false, migrationLedgerWritesAllowed: false, providerMutationAllowed: false, deployAllowed: false },
+  }, outputs };
+}
+
+if (process.argv.includes("--write")) {
+  const { manifest, outputs } = build();
+  mkdirSync(OUT, { recursive: true });
+  for (const value of Object.values(outputs)) writeFileSync(new URL(value.file, OUT), value.sql);
+  writeFileSync(new URL("PCA-05R-structural-wave-manifest.json", OUT), `${JSON.stringify(manifest, null, 2)}\n`);
+}
