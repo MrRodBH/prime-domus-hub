@@ -109,6 +109,9 @@ if (base) {
       "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
     ],
     [
+      "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-05r-private-synthetic-substrate-execution.md",
+    ],
+    [
       ".github/workflows/release-gate.yml",
       "docs/architecture/impact-analysis/PCA-05R-github-native-structural-wave-bundle.md",
       "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-05r-structural-wave-bundle.md",
