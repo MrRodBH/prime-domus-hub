@@ -53,7 +53,11 @@ if (base) {
   assert.match(base, /^[0-9a-f]{40}$/);
   const changed = execFileSync("git", ["diff", "--name-only", `${base}..HEAD`], {
     encoding: "utf8",
-  }).trim().split(/\r?\n/).filter(Boolean).sort();
+  })
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .sort();
   const allowedDiffs = [
     [
       ".github/workflows/release-gate.yml",
@@ -81,6 +85,12 @@ if (base) {
       "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
       "run-pca-05r-synthetic-substrate-bundle-specs.mjs",
       "scripts/build-pca-05r-synthetic-substrate-bundle.mjs",
+    ],
+    [
+      "rehearsal/pca-05r/substrate/PCA-05R-postflight.sql",
+      "rehearsal/pca-05r/substrate/PCA-05R-preflight.sql",
+      "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
+      "run-pca-05r-synthetic-substrate-bundle-specs.mjs",
     ],
   ];
   assert.equal(
