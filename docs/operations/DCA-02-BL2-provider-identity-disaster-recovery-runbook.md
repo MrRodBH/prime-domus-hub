@@ -86,3 +86,24 @@ Persist exact source/target identifiers, recovery point, counts, hashes, timings
 ## Rollback
 
 Repository artifacts are reverted by at most one audited commit. A future isolated restore fixture must be torn down completely. Production and live provider state remain untouched; no compensating provider action exists in this read-only gate.
+
+## Authorized execution-envelope addendum
+
+The exact execution contract is
+[the isolated non-production PITR restore execution envelope](../architecture/impact-analysis/DCA-02-BL2-isolated-non-production-pitr-restore-execution-envelope.md).
+
+Current official product boundaries are captured from the Supabase
+[Database Backups](https://supabase.com/docs/guides/platform/backups) and
+[Restore to a New Project](https://supabase.com/docs/guides/platform/clone-project)
+documentation. Restore to a New Project is the only admissible future mechanism.
+An in-place PITR restore remains prohibited.
+
+The future target is database-only recovery evidence. Storage object bytes,
+Edge Functions and non-database product configuration are outside the proven
+scope. Enabled extensions, schedules, network-capable database code and
+database-held secrets require pre-activation containment. Creating a target and
+then disabling external effects is fail-open and prohibited.
+
+This addendum does not activate the procedure. The ordered next operation after
+merge is a separately authorized read-only provider preflight and exact cost
+discovery. Project creation requires another explicit Owner authorization.
