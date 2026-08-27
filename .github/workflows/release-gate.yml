@@ -129,6 +129,9 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-pca-05r-prerequisite-closure-manifest-specs.mjs "* ]]; then
               pca_05r=true
             fi
+            if [[ " ${changed_files[*]} " == *" run-pca-05r-synthetic-substrate-bundle-specs.mjs "* ]]; then
+              pca_05r=true
+            fi
             if [[ "$changed_file_count" -eq 42 ]] \
               && [[ " ${changed_files[*]} " == *" run-arch-12f-01-config-hygiene-specs.ts "* ]] \
               && [[ " ${changed_files[*]} " == *" run-arch-12f-04a-unsubscribe-log-redaction-specs.ts "* ]] \
@@ -209,6 +212,10 @@ jobs:
         env:
           PCA_05R_CLOSURE_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:pca-05r:closure
+
+      - name: Verify PCA-05R synthetic substrate bundle
+        if: steps.scope.outputs.pca_05r == 'true'
+        run: bun run test:pca-05r:substrate
 
       - name: Verify ARCH-12F-02A infrastructure identifier externalization
         if: steps.scope.outputs.arch_12f_02a == 'true'
