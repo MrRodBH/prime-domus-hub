@@ -34,6 +34,12 @@ export function build() {
       sql = sql.replace(needle, "    'map_embed_url', NULLIF(ls.settings->'pagina_contato'->>'mapa_url', '')\n  ) || jsonb_build_object(\n    'menu_locations', jsonb_build_array('header', 'footer'),");
       projection = "PG_MAX_FUNCTION_ARGS_JSONB_OBJECT_SPLIT";
     }
+    if (item.version === "20260729211500") {
+      const needle = "public.transition_lead_status(uuid,text,bigint,uuid,jsonb)";
+      assert.equal(sql.split(needle).length - 1, 1, "transition signature projection shape drift");
+      sql = sql.replace(needle, "public.transition_lead_status(uuid,text,integer,uuid,jsonb)");
+      projection = "TRANSITION_LEAD_STATUS_INTEGER_SIGNATURE";
+    }
     const executable = stripComments(sql);
     assert.match(executable, /^\s*BEGIN\s*;/i, `missing BEGIN: ${item.path}`);
     assert.match(executable, /COMMIT\s*;\s*$/i, `missing terminal COMMIT: ${item.path}`);
