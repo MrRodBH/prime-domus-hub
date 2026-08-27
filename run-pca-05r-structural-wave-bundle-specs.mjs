@@ -9,7 +9,7 @@ assert.deepEqual(Object.values(manifest.waves).map((wave) => wave.sha256), [
   "7d0d5dea284828d2a62dd07dc819227a33f918780cded49bcec47f0118fde82b",
   "7ad22a1fd4ce0ad3560891f0e671381cd30ad49e9fb067c8b1de85b8e928c9d3",
   "6274d4a7b822c1c02ffba905340f4c6a7bcd5d8e252f63f9dbf3f2c9ea31fc8a",
-  "5636934f1948ddba401ea2b3ae1de459a91a9f2f0b9298d588cb6e748fcdee76",
+  "dd99bf70aa3b325ae5356850675b9e7357cde92c46e22f16d8e2b33a0e97acfc",
   "eab6f9acba0080af458e44e37a634f037a9dbe24cc103efd6c65d79c71384f7f",
 ]);
 assert.equal(manifest.entries.filter((entry) => entry.path.startsWith("supabase/migrations/")).length, 17);
@@ -21,6 +21,8 @@ assert.doesNotMatch(outputs.W2.sql, /'map_embed_url'[^\n]+,\n  \) \|\|/);
 assert.equal(manifest.entries.filter((entry) => entry.projection === "TRANSITION_LEAD_STATUS_INTEGER_SIGNATURE").length, 1);
 assert.match(outputs.W3.sql, /transition_lead_status\(uuid,text,integer,uuid,jsonb\)/);
 assert.doesNotMatch(outputs.W3.sql, /transition_lead_status\(uuid,text,bigint,uuid,jsonb\)/);
+assert.equal(manifest.entries.filter((entry) => entry.projection === "MEDIA_LIBRARY_TENANT_ID_UNIQUE_KEY").length, 1);
+assert.match(outputs.W5.sql, /ux_media_library_tenant_id_id\n  ON public\.media_library \(tenant_id, id\)/);
 assert.equal(manifest.controls.sameBackendAllowed, false);
 assert.equal(manifest.controls.migrationFilesMutable, false);
 assert.equal(manifest.controls.providerMutationAllowed, false);
