@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { build, splitSql } from "./scripts/build-pca-05r-synthetic-substrate-bundle.mjs";
 
 const { manifest: actual, sql } = build();
@@ -33,4 +34,12 @@ assert.doesNotMatch(executable, /ALTER\s+COLUMN\s+tenant_id\s+SET\s+NOT\s+NULL/i
 assert.doesNotMatch(executable, /9664d189-4a12-4caa-8243-dc73383447e6/i);
 assert.equal(actual.controls.lovableExecutionAuthorized, false);
 assert.equal(actual.controls.sameBackendAllowed, false);
+for (const contract of ["PCA-05R-preflight.sql", "PCA-05R-postflight.sql"]) {
+  const content = readFileSync(`rehearsal/pca-05r/substrate/${contract}`, "utf8");
+  assert.match(content, /extname IN \('pg_net','pg_cron'\)/);
+  assert.match(content, /nspname IN \('net','cron'\)/);
+  assert.match(content, /SELECT EXISTS \(SELECT 1 FROM vault\.secrets\)/);
+  assert.match(content, /IF vault_has_secrets THEN RAISE EXCEPTION 'Vault is not empty'/);
+  assert.doesNotMatch(content, /extname IN \('pg_net','pg_cron','supabase_vault'\)/);
+}
 console.log("PCA-05R synthetic substrate bundle: PASS");
