@@ -54,13 +54,29 @@ if (base) {
   const changed = execFileSync("git", ["diff", "--name-only", `${base}..HEAD`], {
     encoding: "utf8",
   }).trim().split(/\r?\n/).filter(Boolean).sort();
-  assert.deepEqual(changed, [
-    ".github/workflows/release-gate.yml",
-    "docs/architecture/impact-analysis/PCA-05R-lovable-private-synthetic-schema-rehearsal-execution-envelope.md",
-    "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-05r-private-synthetic-rehearsal-envelope.md",
-    "package.json",
-    "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
-  ]);
+  const allowedDiffs = [
+    [
+      ".github/workflows/release-gate.yml",
+      "docs/architecture/impact-analysis/PCA-05R-lovable-private-synthetic-schema-rehearsal-execution-envelope.md",
+      "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-05r-private-synthetic-rehearsal-envelope.md",
+      "package.json",
+      "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
+    ],
+    [
+      ".github/workflows/release-gate.yml",
+      "docs/architecture/impact-analysis/PCA-05R-github-native-prerequisite-closure-manifest.md",
+      "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
+      "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-05r-prerequisite-closure-manifest.md",
+      "package.json",
+      "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+      "run-pca-05r-private-synthetic-rehearsal-envelope-specs.mjs",
+    ],
+  ];
+  assert.equal(
+    allowedDiffs.some((allowed) => JSON.stringify(allowed.sort()) === JSON.stringify(changed)),
+    true,
+    `unexpected PCA-05R diff: ${changed.join(", ")}`,
+  );
   assert.equal(changed.filter((path) => path.startsWith("supabase/migrations/")).length, 0);
 }
 
