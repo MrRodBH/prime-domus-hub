@@ -6,6 +6,8 @@
 
 Os seis arquivos SQL e o manifest de execução são artefatos efêmeros gerados por `node scripts/build-pca-05r-structural-wave-bundle.mjs --write`. GitHub `main` permanece autoridade dos bytes. A execução é permitida somente em uma nova célula Lovable privada, não publicada e descartável.
 
+Compatibilidade PostgreSQL 17: a migration `20260728180000` contém quatro comparações entre `name[]` e `text[]`. O bundle projeta somente `pg_attribute.attname` para `text` dentro dessas quatro agregações; o hash dos bytes-fonte continua obrigatório e o arquivo de migration permanece imutável.
+
 ```text
 SAME_BACKEND_MUTATION=false
 MIGRATION_FILE_MUTATION=false
