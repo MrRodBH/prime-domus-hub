@@ -10,11 +10,12 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit --pretty false",
-    "verify:release": "bun run test:pca-04 && bun run test:pr-m3-sec-04a:regression && bun run test:prm3-p0a && bun run test:arch-12f-01 && bun run test:arch-12f-02a && bun run test:arch-12f-02b && bun run test:arch-12f-04a && bun run test:arch-tenancy-01 && bun run test:arch-12f-04b && bun run test:dca-02-bl2 && bun run test:dca-02-bl1 && bun ./scripts/verify-release.mjs",
+    "verify:release": "bun run test:pca-04 && bun run test:pr-m3-sec-04a:regression && bun run test:prm3-p0a && bun run test:arch-12f-01 && bun run test:arch-12f-02a && bun run test:arch-12f-02b && bun run test:arch-12f-03 && bun run test:arch-12f-04a && bun run test:arch-tenancy-01 && bun run test:arch-12f-04b && bun run test:dca-02-bl2 && bun run test:dca-02-bl1 && bun ./scripts/verify-release.mjs",
     "ci": "bun run verify:release",
     "test:arch-12f-01": "tsx --tsconfig tsconfig.json ./run-arch-12f-01-config-hygiene-specs.ts",
     "test:arch-12f-02a": "tsx --tsconfig tsconfig.json ./run-arch-12f-02a-identifier-externalization-specs.ts",
     "test:arch-12f-02b": "tsx --tsconfig tsconfig.json ./run-arch-12f-02b-runtime-tenant-identity-specs.ts",
+    "test:arch-12f-03": "node ./run-arch-12f-03-official-workerd-harness-specs.mjs",
     "arch-12f-02a:materialize-wrangler": "node ./scripts/materialize-wrangler-config.mjs",
     "test:arch-12f-04a": "tsx --tsconfig tsconfig.json ./run-arch-12f-04a-unsubscribe-log-redaction-specs.ts",
     "test:arch-tenancy-01": "tsx --tsconfig tsconfig.json ./run-arch-tenancy-01-adr-specs.ts",
@@ -160,7 +161,8 @@
     "tsx": "^4.23.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "workerd": "1.20260825.1"
   },
   "pnpm": {
     "overrides": {

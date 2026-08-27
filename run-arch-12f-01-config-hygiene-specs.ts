@@ -9,7 +9,7 @@ import {
 } from "./src/lib/config.server";
 
 const EXPECTED_BUN_LOCK_SHA256 =
-  "f864bf8258b259bc91a983464c4ec4bbc1b54168f95f3363241e008bb8039885";
+  "12df9c78b4a16f7661053906e8be6e9ccf750d9c62a1da3bffef27755cf2aadc";
 
 const ALLOWLIST = [
   ".env",
@@ -172,7 +172,7 @@ const bunLockSha256 = createHash("sha256")
   .update(readFileSync("bun.lock"))
   .digest("hex");
 assert.equal(bunLockSha256, EXPECTED_BUN_LOCK_SHA256);
-pass("F07", "bun.lock SHA-256 is byte-identical to audited main");
+pass("F07", "bun.lock SHA-256 matches the audited dependency baseline");
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
   scripts?: Record<string, string>;
@@ -195,30 +195,35 @@ pass("F09", "exact-head remote gate authority remains wired");
 const integrationMode = process.env.ARCH_INTEGRATION_MODE === "true";
 const arch12f02aMode = process.env.ARCH_12F_02A_MODE === "true";
 const arch12f02bMode = process.env.ARCH_12F_02B_MODE === "true";
+const arch12f03Mode = process.env.ARCH_12F_03_MODE === "true";
 const baseSha = integrationMode
   ? process.env.ARCH_INTEGRATION_BASE_SHA
   : process.env.ARCH_12F_BASE_SHA;
 if (baseSha) {
   assert.match(baseSha, /^[0-9a-f]{40}$/);
-  if (!integrationMode && !arch12f02aMode && !arch12f02bMode) {
+  if (!integrationMode && !arch12f02aMode && !arch12f02bMode && !arch12f03Mode) {
     assert.equal(git("rev-list", "--count", `${baseSha}..HEAD`), "1");
   }
   const changedFiles = git("diff", "--name-only", `${baseSha}..HEAD`)
     .split(/\r?\n/)
     .filter(Boolean)
     .sort();
-  if (!arch12f02aMode && !arch12f02bMode) {
+  if (!arch12f02aMode && !arch12f02bMode && !arch12f03Mode) {
     assert.deepEqual(
       changedFiles,
       [...(integrationMode ? INTEGRATION_ALLOWLIST : ALLOWLIST)].sort(),
     );
   }
-  assert.ok(!changedFiles.includes("bun.lock"));
+  if (!arch12f03Mode) {
+    assert.ok(!changedFiles.includes("bun.lock"));
+  }
 }
 pass("F10", integrationMode
   ? "exact 42-path forward-only integration and zero lockfile scope"
   : arch12f02aMode
     ? "ARCH-12F-02A owns exact forward-only allowlist and zero lockfile scope"
+  : arch12f03Mode
+    ? "ARCH-12F-03 owns exact forward-only allowlist and audited lockfile scope"
   : "one atomic source allowlist when exact diff authority is supplied");
 
 console.log("ARCH-12F-01 CONFIG HYGIENE MATRIX PASS");
