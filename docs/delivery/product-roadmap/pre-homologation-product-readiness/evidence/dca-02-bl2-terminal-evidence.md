@@ -51,3 +51,29 @@ NEXT_GATE = DCA-02-BL2_FINAL_AUDIT_AND_PROTECTED_MERGE
 The continuation adds only the executable contract and its deterministic
 repository test. It preserves every prior statement that no live backup scope
 has been verified and no PITR restore has been executed.
+
+## Read-only provider preflight and cost discovery
+
+~~~text
+PREFLIGHT_GATE = DCA-02-BL2_READ_ONLY_PROVIDER_PREFLIGHT_AND_COST_DISCOVERY
+PREFLIGHT_SOURCE_MAIN = e1ba6dc76d4ed60fa2b74d973a848b8604c9cd59
+PREFLIGHT_OBSERVED_AT_UTC = 2026-08-27T21:20:34.581Z
+SOURCE_PROJECT_AUTHORITY_VERIFIED = false
+LIST_PROJECTS_COUNT = 0
+DIRECT_PROJECT_LOOKUP_RESULT = permission_denied
+CONNECTED_ORGANIZATION_PLAN = free
+EXACT_RESTORE_TO_NEW_PROJECT_COST_DISCOVERED = false
+BACKUP_SCOPE_VERIFIED = false
+PITR_ENABLED_VERIFIED = false
+EXTERNAL_EFFECT_CONTAINMENT_PROVEN = false
+SUPABASE_WRITE_CALLS = 0
+SQL_QUERY_CALLS = 0
+PROJECT_CREATION_CALLS = 0
+RESTORE_CALLS = 0
+PREFLIGHT_STATUS = TERMINAL_FAIL_CLOSED_AUTHORITY_MISMATCH
+NEXT_GATE = DCA-02-BL2_SUPABASE_PROJECT_AUTHORITY_REBIND_AND_READ_ONLY_PREFLIGHT_RETRY
+~~~
+
+The visible organization and generic project quote do not establish the plan,
+backup state, PITR window or clone cost of the inaccessible source project.
+Live restore and project creation remain prohibited.
