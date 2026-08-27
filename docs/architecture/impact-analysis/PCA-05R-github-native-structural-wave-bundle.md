@@ -8,6 +8,8 @@ Os seis arquivos SQL e o manifest de execução são artefatos efêmeros gerados
 
 Compatibilidade PostgreSQL 17: a migration `20260728180000` contém quatro comparações entre `name[]` e `text[]`. O bundle projeta somente `pg_attribute.attname` para `text` dentro dessas quatro agregações; o hash dos bytes-fonte continua obrigatório e o arquivo de migration permanece imutável.
 
+Compatibilidade `FUNC_MAX_ARGS=100`: a migration `20260728233000` possui um `jsonb_build_object` com mais de 100 argumentos. O bundle divide somente esse construtor em dois objetos concatenados por `||`, preservando chaves, valores e `jsonb_strip_nulls`.
+
 ```text
 SAME_BACKEND_MUTATION=false
 MIGRATION_FILE_MUTATION=false
