@@ -61,3 +61,36 @@ PR_105_MUTATION=false
 ```
 
 PR #105 remained closed, draft and unmerged at head `9d64c7ac6c1259652a70022db08583139cb368af`.
+
+## Full R2–R4 rehearsal reconciliation
+
+```text
+RESULT=FAIL_CLOSED_INERT_RESIDUAL_CELL
+SOURCE_MAIN=5be7cc0e46e9b6e1a43d2f81db2484e4b8aa2d22
+SOURCE_TREE=8cc23df208948c64cc8ccda08d2233480b4e356b
+PRIVATE_CELL_ID=8690cd64-9761-4c12-a3da-f7d7edd5714f
+PRIVATE_CELL_VISIBILITY=private
+PRIVATE_CELL_PUBLISHED=false
+SUBSTRATE=103/103_SUCCESS
+STRUCTURAL_WAVES=W1-W6_SUCCESS
+SYNTHETIC_TENANTS=2
+AUTH_USERS_PURGED=2/2
+TENANT_SCOPED_RESIDUE=0
+OWNER_PROJECT_DELETION_REQUIRED=true
+```
+
+The protected corrective chain continued through PRs #151–#157. Every
+corrective changed only the synthetic builder/contracts; all 17 migration
+source hashes remained immutable. The final clean cell proved, per tenant:
+one configuration, one default pipeline, seven stages, four marketing
+connectors/versions/mappings, three tracking connectors/versions, 36 event
+bindings and one consent configuration. Authorized replay was idempotent;
+unknown hash/tenant/authorization failed closed; an injected transaction fault
+left zero residue. Under `authenticated`, tenant A observed one own membership
+and zero tenant-B rows. All tenant-scoped tables had RLS and all
+`SECURITY DEFINER` routines had configured search paths.
+
+Final purge removed every row for the two reserved tenant UUIDs and both Auth
+users. No deploy, DNS, provider, Same-Backend, production or PR #105 mutation
+occurred. The remaining private/unpublished Lovable project must be deleted
+manually by the Owner; PCA-05R is not `ACCEPTED` until direct deletion evidence.
