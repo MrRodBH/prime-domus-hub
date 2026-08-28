@@ -546,3 +546,33 @@ PR_105_MUTATED=false
 - Esta materialização é somente GitHub. A aplicação W1-W6 no Same-Backend exige
   gate futuro separado, manifesto imutável de UUIDs exatos, Lovable como único
   executor, preflight live repetido e parada fail-closed na primeira divergência.
+
+---
+
+## 24. PCA-07/PCA-07R — W1 revertida e corretivo PostgreSQL materializado
+
+```text
+PCA07_SOURCE_MAIN=9e308ba596956f518a65f14e2df46d449dc9aeca
+PCA07_FAILED_WAVE=W1
+PCA07_FAILURE=operator does not exist: name[] = text[]
+PCA07_FAILURE_BEFORE_COMMIT=true
+PCA07_ROLLBACK_VERIFIED=true
+PCA07_W1_LEDGER_ROWS=0
+PCA07_W2_W6_EXECUTED=false
+PCA07R_REPOSITORY_CORRECTIVE=FOUR_ATTNAME_TEXT_CASTS
+SAME_BACKEND_MUTATED=false
+PROVIDER_MUTATED=false
+DEPLOY=false
+PR_105_MUTATED=false
+```
+
+- O preflight PCA-07 confirmou novamente a baseline exata e o manifesto imutável
+  de um único tenant autorizado.
+- W1 falhou na migration `20260728180000` porque `pg_attribute.attname` agregava
+  para `name[]`, enquanto os literais comparados eram `text[]`.
+- A transação falhou antes de `COMMIT`; o ledger W1, o schema temporário e as
+  funções de bootstrap permaneceram ausentes. W2–W6 não foram executadas.
+- PCA-07R grava `a.attname::text` nas quatro agregações, reancora os manifests e
+  remove a antiga transformação apenas em memória do bundle PCA-05R.
+- Nenhuma reaplicação live é automática: exige merge protegido, reconciliação de
+  `main`, novo preflight Lovable-managed e autorização Owner separada.

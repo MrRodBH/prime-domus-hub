@@ -67,7 +67,7 @@ BEGIN
        AND c.contype = 'u'
        AND (
          (
-           SELECT array_agg(a.attname ORDER BY x.ord)
+           SELECT array_agg(a.attname::text ORDER BY x.ord)
              FROM unnest(c.conkey) WITH ORDINALITY AS x(attnum, ord)
              JOIN pg_attribute a
                ON a.attrelid = c.conrelid
@@ -75,7 +75,7 @@ BEGIN
          ) = ARRAY['profile_id','user_id']::text[]
          OR
          (
-           SELECT array_agg(a.attname ORDER BY x.ord)
+           SELECT array_agg(a.attname::text ORDER BY x.ord)
              FROM unnest(c.conkey) WITH ORDINALITY AS x(attnum, ord)
              JOIN pg_attribute a
                ON a.attrelid = c.conrelid
@@ -97,7 +97,7 @@ BEGIN
        )
        AND (
          (
-           SELECT array_agg(a.attname ORDER BY x.ord)
+           SELECT array_agg(a.attname::text ORDER BY x.ord)
              FROM unnest(idx.indkey::smallint[]) WITH ORDINALITY AS x(attnum, ord)
              JOIN pg_attribute a
                ON a.attrelid = idx.indrelid
@@ -106,7 +106,7 @@ BEGIN
          ) = ARRAY['profile_id','user_id']::text[]
          OR
          (
-           SELECT array_agg(a.attname ORDER BY x.ord)
+           SELECT array_agg(a.attname::text ORDER BY x.ord)
              FROM unnest(idx.indkey::smallint[]) WITH ORDINALITY AS x(attnum, ord)
              JOIN pg_attribute a
                ON a.attrelid = idx.indrelid

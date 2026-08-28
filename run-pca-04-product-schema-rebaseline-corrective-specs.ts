@@ -48,6 +48,17 @@ const parityManifest = JSON.parse(
   sameBackendMutation: boolean;
 };
 
+assert.equal(
+  (access.match(/array_agg\(a\.attname::text ORDER BY x\.ord\)/g) ?? []).length,
+  4,
+  "PostgreSQL catalog name values must be cast before text[] comparison",
+);
+assert.doesNotMatch(
+  access,
+  /array_agg\(a\.attname ORDER BY x\.ord\)/,
+  "name[] = text[] must not be reintroduced",
+);
+
 for (const [index, sql] of all.entries()) {
   assert.match(sql, /\bBEGIN;/, `${migrations[index]} must begin an explicit transaction`);
   assert.match(sql, /^COMMIT;$/m, `${migrations[index]} must commit explicitly`);
