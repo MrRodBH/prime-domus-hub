@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "gate": "PCA-04_GITHUB_NATIVE_PRODUCT_SCHEMA_REBASELINE_CORRECTIVE_IMPLEMENTATION",
   "generatedAt": "2026-08-26T18:58:00Z",
   "repository": "MrRodBH/prime-domus-hub",
@@ -8,10 +8,24 @@
   "sameBackendProjectRef": "stmcnvzuzlyqammyycxj",
   "sameBackendMutation": false,
   "liveSnapshotAuthority": {
-    "source": "PCA-02 accepted read-only snapshot",
-    "capturedAt": "2026-08-26",
-    "currentReadAttempt": "DENIED_BY_CONNECTOR_PERMISSION",
-    "requiredRefreshGate": "PCA-06_SAME_BACKEND_SCHEMA_REBASELINE_FINAL_IMPACT_REQUALIFICATION"
+    "source": "PCA-06 Lovable-managed read-only requalification",
+    "capturedAt": "2026-08-28T12:30:51Z",
+    "readAuthority": "LOVABLE_MANAGED_CANONICAL_BACKEND_ONLY",
+    "readMode": "SELECT_ONLY",
+    "refreshStatus": "COMPLETE",
+    "repositoryMaterializationGate": "PCA-06_SAME_BACKEND_SCHEMA_REBASELINE_FINAL_IMPACT_REQUALIFICATION_REPOSITORY_IMPLEMENTATION"
+  },
+  "requalification": {
+    "sourceMain": "0221bd1f8dd1f0a3d00a52057af9b621a2764edd",
+    "sourceTree": "d7112cd8407d3583b7af60745b367709f29a7d4f",
+    "result": "ACCEPTED_READ_ONLY_REPOSITORY_MATERIALIZATION",
+    "sameBackendExecutionAuthorized": false,
+    "sameBackendMutation": false,
+    "repositoryMutationByLovable": false,
+    "providerMutation": false,
+    "deploy": false,
+    "pr105Mutation": false,
+    "r2RecoverabilityState": "DEFERRED_NON_BLOCKING_UNTIL_POST_HOMOLOGATION_PRE_PRODUCTION"
   },
   "structuralExpectation": {
     "historicalMigrations": 16,
@@ -178,37 +192,236 @@
       "rollback": "TRANSACTION_OR_FORWARD_ONLY"
     }
   ],
+  "liveRepositoryParity": [
+    {
+      "classification": "EXACT",
+      "repositoryVersion": "20260810220152",
+      "repositoryPath": "supabase/migrations/20260810220152_1ee179b2-60f0-4ce1-b259-06762002733b.sql",
+      "repositorySha256": "5f21b5a63c4bace5ffd28be01d3065a67012a9031f21509158ba5e6b3a5b5006",
+      "liveVersion": "20260810220152",
+      "liveStatementSha256": "5f21b5a63c4bace5ffd28be01d3065a67012a9031f21509158ba5e6b3a5b5006",
+      "liveStatementBytes": 1143,
+      "createdBy": "apikey@lovable.dev",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    },
+    {
+      "classification": "EXACT",
+      "repositoryVersion": "20260810220939",
+      "repositoryPath": "supabase/migrations/20260810220939_b80a4010-1d42-48a9-bbcd-7d2d9e0ea84b.sql",
+      "repositorySha256": "8648d87868e420540f6f6bb1adca829ac641e565e5702bd758f9f302a3d91092",
+      "liveVersion": "20260810220939",
+      "liveStatementSha256": "8648d87868e420540f6f6bb1adca829ac641e565e5702bd758f9f302a3d91092",
+      "liveStatementBytes": 368,
+      "createdBy": "apikey@lovable.dev",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    },
+    {
+      "classification": "EXACT",
+      "repositoryVersion": "20260812133000",
+      "repositoryPath": "supabase/migrations/20260812133000_dca_02_provider_object_identity_binding.sql",
+      "repositorySha256": "9c92f59dfd089bedfc86e9bce48587efbffb27ee61ead5b589f86b1fa5e4d7dd",
+      "liveVersion": "20260812133000",
+      "liveStatementSha256": "9c92f59dfd089bedfc86e9bce48587efbffb27ee61ead5b589f86b1fa5e4d7dd",
+      "liveStatementBytes": 17603,
+      "createdBy": "apikey@lovable.dev",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    },
+    {
+      "classification": "EXACT",
+      "repositoryVersion": "20260826002000",
+      "repositoryPath": "supabase/migrations/20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql",
+      "repositorySha256": "88c4b547cbad4115d34fa60f6b960be20d0f27f154c9a45d253e1a41a7781010",
+      "liveVersion": "20260826002000",
+      "liveStatementSha256": "88c4b547cbad4115d34fa60f6b960be20d0f27f154c9a45d253e1a41a7781010",
+      "liveStatementBytes": 11580,
+      "createdBy": "PR-M3-SEC-04B",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    },
+    {
+      "classification": "SEMANTIC_ALIAS_WITH_EXECUTION_PRELUDE",
+      "repositoryVersion": "20260804180000",
+      "repositoryPath": "supabase/migrations/20260804180000_dca_01_domain_cloudflare_activation.sql",
+      "repositorySha256": "cecfd0e4c4a50e3c603b359b8ee94300f912fbe73bc73fe61f4a1719bc5883c6",
+      "liveVersion": "20260811224106",
+      "liveStatementSha256": "1c951214712657ac1498179d2d1cd40b3d4b87addb5bf509693be3f40881ba3e",
+      "liveStatementBytes": 82850,
+      "semanticBodyWhitespaceNormalizedSha256": "c422a38519be297e104f58094bc03ebe3c8e3b82763373fb0c1038a60049aa37",
+      "executionPrelude": "SESSION_LOCAL_EXACT_LEGACY_IMPORT_MANIFEST",
+      "createdBy": "apikey@lovable.dev",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    },
+    {
+      "classification": "SEMANTIC_ALIAS",
+      "repositoryVersion": "20260811234800",
+      "repositoryPath": "supabase/migrations/20260811234800_dca_01_provider_registration_corrective.sql",
+      "repositorySha256": "92ba1f2d0d5cb464e7974f686875ee1ad3383ae38fce7141dc0bb8b2d5d7bdb5",
+      "liveVersion": "20260812014256",
+      "liveStatementSha256": "f11703c13a993b0fbaf4af1eeb45a31c9f56020a58be74544a1e812470255935",
+      "liveStatementBytes": 2881,
+      "whitespaceNormalizedSha256": "07504bd8c7eb0d75672dac7aaf422d8851a5956170c067a1ce3defd2dab8ea53",
+      "createdBy": "apikey@lovable.dev",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    },
+    {
+      "classification": "SEMANTIC_ALIAS",
+      "repositoryVersion": "20260812143000",
+      "repositoryPath": "supabase/migrations/20260812143000_dca_02_provider_binding_privilege_hardening.sql",
+      "repositorySha256": "163affd3b1e10edcfa13c5404ae7b905ff69467f58e1e9ac65311bbcec655a04",
+      "liveVersion": "20260812141853",
+      "liveStatementSha256": "6570ac17674d51fa09e1747abb4379f79828ecddf9c8fbd355d91eaf824fb009",
+      "liveStatementBytes": 511,
+      "whitespaceNormalizedSha256": "d13136e0ee85d1d04a3294e443a9cdbc8fe468ed1acfcbeae07da54f1a935b7c",
+      "createdBy": "apikey@lovable.dev",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    },
+    {
+      "classification": "SEMANTIC_ALIAS",
+      "repositoryVersion": "20260825213000",
+      "repositoryPath": "supabase/migrations/20260825213000_pr_m3_sec_02_public_surface_security_hardening.sql",
+      "repositorySha256": "0ee6c5a4ea37d63091f1208cae469bebb96bdd3666bf95fd3e01e164e842fd45",
+      "liveVersion": "20260825213729",
+      "liveStatementSha256": "92b1b309b8a298619e2526a5a46a2157ff959bc2278f3b7775c6749c01fcb30c",
+      "liveStatementBytes": 9984,
+      "whitespaceNormalizedSha256": "e09a96d0befb6970fdd8876c447a08a8859f03e0f9511ee067f477fe37d410b8",
+      "createdBy": "apikey@lovable.dev",
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0
+    }
+  ],
   "liveOnlyQuarantined": [
     {
       "version": "20260812192006",
+      "name": "0d1477a8-4e56-4fde-a4e0-9bb6cfba394a",
+      "statementSha256": "f05b1c8de7f67c53ae4f5870495976d3d404b5e2667d1a0f9e13815912163a10",
+      "statementBytes": 17942,
+      "createdBy": "apikey@lovable.dev",
+      "statementCount": 1,
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0,
       "classification": "LIVE_ONLY_QUARANTINED",
       "authority": "NON_AUTHORITATIVE",
-      "action": "PCA_06_REQUALIFY"
+      "action": "KEEP_QUARANTINED"
     },
     {
       "version": "20260813174908",
+      "name": "f1507855-5a80-4f37-b5ae-067085c0b785",
+      "statementSha256": "c6ed87936e467162d87c2a49504a2d7dde961ebfdbcf0142ed9bba0d7c7ace0d",
+      "statementBytes": 20296,
+      "createdBy": "apikey@lovable.dev",
+      "statementCount": 1,
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0,
       "classification": "LIVE_ONLY_QUARANTINED",
       "authority": "NON_AUTHORITATIVE",
-      "action": "PCA_06_REQUALIFY"
+      "action": "KEEP_QUARANTINED"
     },
     {
       "version": "20260813175027",
+      "name": "fdb7ceef-48c5-48bf-a2a7-772536389b68",
+      "statementSha256": "63ab84c161d8d59512cc57c3c0f705188e4b57b3d5af935f1634d285d21d814a",
+      "statementBytes": 5183,
+      "createdBy": "apikey@lovable.dev",
+      "statementCount": 1,
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0,
       "classification": "LIVE_ONLY_QUARANTINED",
       "authority": "NON_AUTHORITATIVE",
-      "action": "PCA_06_REQUALIFY"
+      "action": "KEEP_QUARANTINED"
     },
     {
       "version": "20260814001323",
+      "name": "cf40061f-c442-4af9-9928-fdf52a231531",
+      "statementSha256": "e1026c11dcc57cdc47dee1eeaab7fff46c00b14942cb3911629f95651724e86c",
+      "statementBytes": 18118,
+      "createdBy": "apikey@lovable.dev",
+      "statementCount": 1,
+      "hasIdempotencyKey": true,
+      "rollbackCount": 0,
       "classification": "LIVE_ONLY_QUARANTINED",
       "authority": "NON_AUTHORITATIVE",
-      "action": "PCA_06_REQUALIFY"
+      "action": "KEEP_QUARANTINED"
     }
   ],
-  "unresolvedLiveClassifications": {
+  "resolvedLiveClassifications": {
     "exact": 4,
     "semanticAlias": 4,
     "executionPrelude": 1,
-    "reason": "Current ledger read was denied; PCA-02 classifications are preserved but exact live hashes must be refreshed at PCA-06 before any backend write."
+    "liveOnlyQuarantined": 4,
+    "repositoryOnlyProductRebaseline": 17,
+    "entriesAfterAcceptedSecurityCorrective": 0,
+    "status": "RESOLVED_READ_ONLY",
+    "reason": "PCA-06 refreshed exact live statement hashes and physical-state postconditions through the Lovable-managed canonical backend."
+  },
+  "livePhysicalBaseline": {
+    "postgresVersion": "17.6",
+    "tenantCount": 74,
+    "protectedRmPrimeTenantCount": 1,
+    "protectedResidueTenantCount": 73,
+    "protectedResidueOrderedIdMd5": "3ece053ddbdfce5161380ec38824ea91",
+    "protectedResidueOrderedIdSha256": "a9c8f3fbcd4feff88dbc06330b121f00a08c7796a3b163dfda23a91450755e95",
+    "portalConnectorCount": 444,
+    "protectedResiduePortalConnectorCount": 438,
+    "retainedPortalSensitiveFieldCount": 888,
+    "tenantSubscriptionCount": 0,
+    "repositoryProductMigrationCountAbsentFromLedger": 17,
+    "expectedProductTables": 45,
+    "presentProductTables": 0,
+    "missingProductTables": 45,
+    "missingProductTableSetSha256": "a7ea2c4cb892fb3334706430ea6e649fe2f2434a29b3c604e5c84eaf5e84e1a6",
+    "expectedProductColumns": 57,
+    "presentProductColumns": 0,
+    "missingProductColumns": 57,
+    "missingProductColumnSetSha256": "c3fcd21f00af783569612197d1d351fcfa0226076e82246866daff561b8a8297",
+    "leadDiscardReasonOrphanRows": 1386,
+    "leadDiscardReasonOrphanTenantIds": 198,
+    "leadDiscardReasonOrphanIdMd5": "862e725f8891430bb864021d3c3afe29",
+    "dealLostReasonOrphanRows": 1386,
+    "dealLostReasonOrphanTenantIds": 198,
+    "dealLostReasonOrphanIdMd5": "dc43bd9b59a63b20bc37b1fa127b4131"
+  },
+  "protectedRmPrimeBaseline": {
+    "memberships": 4,
+    "leads": 0,
+    "properties": 0,
+    "formSubmissions": 0,
+    "brokers": 4,
+    "leadOrigins": 8,
+    "campaignEvents": 0,
+    "portalConnectors": 6,
+    "storageObjects": 22,
+    "storageBytes": 15826788
+  },
+  "securityBaseline": {
+    "commercialRelationsPresent": 9,
+    "commercialRelationsWithRls": 9,
+    "commercialPolicyCount": 0,
+    "anonTableExposures": 0,
+    "authenticatedTableExposures": 0,
+    "serviceRoleTableCrud": 9,
+    "restrictedFunctionsPresent": 5,
+    "restrictedFunctionsDeniedToPublicAnonAuthenticated": 5,
+    "restrictedFunctionsServiceRoleExecute": 5,
+    "futureDefaultClientGrants": 0,
+    "dataApiGrantModel": "EXPLICIT_GRANTS_AND_RLS_ARE_INDEPENDENT_POSTCONDITIONS"
+  },
+  "sameBackendExecutionEnvelope": {
+    "status": "READY_FOR_PROTECTED_REPOSITORY_MERGE_NOT_AUTHORIZED_FOR_DATABASE_EXECUTION",
+    "requiredOrder": ["W1", "W2", "W3", "W4", "W5", "W6"],
+    "exactTenantManifestRequired": true,
+    "protectedResidueSelectionAllowed": false,
+    "portalSecretErasureAllowed": false,
+    "migrationRepairAllowed": false,
+    "liveOnlyAdoptionAllowed": false,
+    "waveLocalPreflightPostflightRequired": true,
+    "stopOnFirstDivergence": true,
+    "forwardOnlyAfterCommittedWave": true
   },
   "prohibitedActions": [
     "BLANKET_TENANT_DML",
@@ -217,6 +430,9 @@
     "BLIND_MIGRATION_REPAIR",
     "DB_RESET_OR_DOWN_MIGRATION",
     "LIVE_ONLY_SCHEMA_ADOPTION",
+    "DIRECT_SUPABASE_ACCESS_OUTSIDE_LOVABLE",
+    "SAME_BACKEND_WRITE_WITHOUT_SEPARATE_OWNER_GATE",
+    "PROVIDER_OR_DEPLOY_MUTATION",
     "PR_105_MUTATION"
   ]
 }
