@@ -616,3 +616,7 @@ PR_105_MUTATED=false
   linhas por postflight read-only antes de W2.
 - Esta etapa é somente GitHub. Aplicação Lovable-managed, publicação, PR, merge
   protegido e continuação em W2 exigem gates separados.
+- A primeira execução da PR `#166` falhou fechada porque o seletor do teste de
+  Closure PCA-05R acionava também o envelope privado legado. PCA-07R2R separa
+  `pca_05r_closure` de `pca_05r`, preserva as guardas legadas e não altera SQL,
+  estado Same-Backend ou autoridade Lovable-managed.

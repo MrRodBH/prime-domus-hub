@@ -77,3 +77,20 @@ copied into this evidence. Values above are aggregate preservation contracts.
 - any error rolls back all three ledger inserts.
 
 Live execution remains unauthorized by this evidence.
+
+## PCA-07R2R CI-scope corrective
+
+```text
+PCA07R2R_RELEASE_GATE_886=FAIL_CLOSED_SCOPE_COUPLING
+PCA07R2R_FAILED_STEP=PCA05R_PRIVATE_SYNTHETIC_REHEARSAL_ENVELOPE
+PCA07R2R_ROOT_CAUSE=PCA05R_CLOSURE_MAPPED_TO_BROAD_PCA05R_SELECTOR
+PCA07R2R_CORRECTIVE=INDEPENDENT_PCA05R_CLOSURE_SELECTOR
+PCA07R2R_MIGRATION_SQL_CHANGED=false
+PCA07R2R_SAME_BACKEND_WRITES=0
+PCA07R2R_LOVABLE_CALLS=0
+```
+
+The failed run did not identify a schema or product defect. It exposed a CI
+classification collision that skipped the dedicated PCA-07R2 step after the
+legacy exact-diff guard failed. The corrective preserves that legacy guard and
+decouples only its activation path.

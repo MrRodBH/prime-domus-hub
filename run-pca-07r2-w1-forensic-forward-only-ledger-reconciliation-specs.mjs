@@ -122,13 +122,22 @@ assert.ok(packageJson.scripts["verify:release"].includes("bun run test:pca-07r2"
 const workflow = read(".github/workflows/release-gate.yml");
 for (const marker of [
   "pca_07r2=false",
+  "pca_05r_closure=false",
   TEST,
   "Verify PCA-07R2 W1 forensic forward-only ledger reconciliation",
   "PCA_07R2_BASE_SHA:",
   "run: bun run test:pca-07r2",
+  'echo "pca_05r_closure=$pca_05r_closure" >> "$GITHUB_OUTPUT"',
+  "if: steps.scope.outputs.pca_05r == 'true' || steps.scope.outputs.pca_05r_closure == 'true'",
 ]) {
   assert.ok(workflow.includes(marker), `release workflow missing ${marker}`);
 }
+const closureClassifier = workflow.match(
+  /if \[\[ " \$\{changed_files\[\*\]\} " == \*" run-pca-05r-prerequisite-closure-manifest-specs\.mjs "\* \]\]; then\s+([^\n]+)\s+fi/,
+);
+assert.ok(closureClassifier, "PCA-05R closure classifier missing");
+assert.equal(closureClassifier[1].trim(), "pca_05r_closure=true");
+assert.equal(closureClassifier[1].includes("pca_05r=true"), false);
 
 const impact = read(IMPACT);
 const evidence = read(EVIDENCE);
@@ -141,6 +150,7 @@ for (const marker of [
   "W1_REPLAY = false",
   "MIGRATION_LEDGER_WRITES = 0",
   "PR_105_MUTATION = false",
+  "PCA-07R2R release-gate scope corrective",
 ]) {
   assert.ok(impact.includes(marker), `impact missing ${marker}`);
 }
@@ -152,6 +162,7 @@ for (const marker of [
   "W2_W6_EXECUTED=false",
   "BLIND_MIGRATION_REPAIR=false",
   "DIRECT_SUPABASE_CALLS=0",
+  "PCA07R2R_RELEASE_GATE_886=FAIL_CLOSED_SCOPE_COUPLING",
 ]) {
   assert.ok(evidence.includes(marker), `evidence missing ${marker}`);
 }

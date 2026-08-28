@@ -136,3 +136,22 @@ and application remain mandatory successors.
 5. start W2 only after exact live postflight and a new Owner gate.
 
 No successor is authorized by this document.
+
+## 8. PCA-07R2R release-gate scope corrective
+
+Release Gate run `886` on draft PR `#166` failed before the PCA-07R2 step. The
+scope classifier mapped a change to the PCA-05R prerequisite-closure test onto
+the broader `pca_05r` selector. That selector intentionally runs the private
+synthetic rehearsal envelope, whose exact-diff guard correctly rejects a later
+PCA-07R2 change set.
+
+The repository corrective introduces `pca_05r_closure` as an independent
+selector. Changes to the closure test activate only that selector; the closure
+step executes when either the historical `pca_05r` suite or the independent
+closure selector is active. The private envelope, substrate and wave steps
+remain bound only to `pca_05r`. Static regression assertions enforce this
+classification and prevent the Closure path from reactivating the private
+envelope.
+
+This is CI-scope decoupling only. It does not change the corrective SQL, W1
+sources, manifest, live state, Lovable authority or any backend invariant.
