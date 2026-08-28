@@ -1,5 +1,9 @@
 # DCA-02-BL2 — Repository Proof Evidence
 
+> **Current authority notice:** PR #161 remains historical evidence for a
+> noncanonical direct connector. The binding RM Prime authority and successor
+> are the Lovable-managed corrective recorded below.
+
 ```text
 STAGE_ID = DCA-02-BL2
 SOURCE_BACKLOG_ID = NB-DCA02-02
@@ -77,3 +81,46 @@ NEXT_GATE = DCA-02-BL2_SUPABASE_PROJECT_AUTHORITY_REBIND_AND_READ_ONLY_PREFLIGHT
 The visible organization and generic project quote do not establish the plan,
 backup state, PITR window or clone cost of the inaccessible source project.
 Live restore and project creation remain prohibited.
+
+## Lovable-managed authority rebaseline corrective
+
+~~~text
+CORRECTIVE_GATE = DCA-02-BL2_LOVABLE_MANAGED_AUTHORITY_REBASELINE_REPOSITORY_CORRECTIVE_IMPLEMENTATION
+CORRECTIVE_SOURCE_MAIN = c1bfa87da8abaafbcdd3bbabf67be9ebdfa79069
+CORRECTIVE_OBSERVED_AT_UTC = 2026-08-28T09:45:23Z
+CANONICAL_LOVABLE_PROJECT_ID = 982b91d8-946d-4103-8eb3-40ddbaeedbf4
+CANONICAL_SUPABASE_PROJECT_REF = stmcnvzuzlyqammyycxj
+OWNER_SUPABASE_ACCESS = LOVABLE_ONLY
+DIRECT_SUPABASE_MCP = false
+SOURCE_PROJECT_AUTHORITY_VERIFIED = true
+PUBLIC_TABLES = 81
+PUBLIC_TABLES_WITH_RLS = 81
+PG_CRON_INSTALLED = true
+PG_NET_INSTALLED = true
+CRON_ACTIVE_JOBS = 1
+CRON_NETWORK_COMMAND_JOBS = 1
+EXTERNAL_EFFECT_ROUTINE_CANDIDATES = 2
+VAULT_SECRET_COUNT = 1
+BACKUP_SCOPE_VERIFIED = false
+PITR_ENABLED_VERIFIED = false
+EXTERNAL_EFFECT_CONTAINMENT_PROVEN = false
+EXACT_CLONE_COST_CONFIRMED = false
+LOVABLE_SQL_READ_CALLS = 2
+DATABASE_WRITES = 0
+PROJECT_CREATION_CALLS = 0
+RESTORE_CALLS = 0
+CORRECTIVE_GATE_STATUS = ACCEPTED
+RESTORE_QUALIFICATION = BLOCKED_EXTERNAL
+PR_161_HISTORICAL_EVIDENCE_PRESERVED = true
+PR_161_NEXT_GATE_SUPERSEDED = true
+SUPERSEDED_NEXT_GATE = DCA-02-BL2_SUPABASE_PROJECT_AUTHORITY_REBIND_AND_READ_ONLY_PREFLIGHT_RETRY
+NEXT_GATE = DCA-02-BL2_LOVABLE_MANAGED_RECOVERABILITY_STRATEGY_IMPACT_ANALYSIS
+LIVE_RESTORE_AUTHORIZED = false
+PROJECT_CREATION_AUTHORIZED = false
+~~~
+
+The direct connector failure from PR #161 remains factual only for the account
+and organization observed there. It cannot require direct Supabase access from
+the Owner or invalidate the exact Lovable-managed RM Prime backend. Live
+restore remains blocked because backup/PITR/cost are not visible through the
+admissible control plane and copied external-effect capability is not contained.
