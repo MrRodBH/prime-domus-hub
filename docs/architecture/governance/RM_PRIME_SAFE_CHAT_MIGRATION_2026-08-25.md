@@ -576,3 +576,47 @@ PR_105_MUTATED=false
   remove a antiga transformação apenas em memória do bundle PCA-05R.
 - Nenhuma reaplicação live é automática: exige merge protegido, reconciliação de
   `main`, novo preflight Lovable-managed e autorização Owner separada.
+
+---
+
+## 25. PCA-07R2 — W1 persistida sem ledger e reconciliação forense materializada
+
+```text
+PCA07R2_SOURCE_MAIN=a28f257c640a128327e9f0ce97974e48679fa05c
+PCA07R2_INCIDENT=W1_COMMITTED_WITHOUT_LEDGER_TRANSPORT_DIVERGENCE
+PCA07R2_W1_PHYSICAL_POSTCONDITIONS=true
+PCA07R2_W1_LEDGER_ROWS=0
+PCA07R2_CORRECTIVE_VERSION=20260828160617
+PCA07R2_TOP_LEVEL_STATEMENTS=1
+PCA07R2_W1_REPLAY=false
+PCA07R2_BLIND_MIGRATION_REPAIR=false
+PCA07R2_W2_W6_EXECUTED=false
+PCA07R2_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+ROADMAP_SITE_UPDATED=false
+PR_105_MUTATED=false
+```
+
+- O retry PCA-07R retornou `INVALID_ARGUMENT`, mas persistiu integralmente as
+  pós-condições físicas W1 sem registrar as versões `20260728165000` e
+  `20260728180000` no ledger. W2-W6 permaneceram bloqueadas.
+- A causa exata do transporte não foi presumida. O envelope anterior duplicava
+  50.566 bytes de fonte, produzindo no mínimo 101.132 bytes antes do wrapper.
+- PCA-07R2 gera uma única instrução `DO`; incorpora as fontes W1 uma vez, valida
+  hashes, catálogo, ACL/RLS e invariantes protegidos, mas nunca executa os textos.
+- Somente após todas as guardas, a mesma transação reconstrói as duas entradas
+  exatas e a atestação PCA-07R2 usando o contrato de seis colunas observado no
+  ledger Lovable-managed; três entradas já exatas formam no-op verificado,
+  enquanto estado parcial ou divergente falha fechado.
+- A aplicação futura deve usar uma fronteira Lovable-managed de instrução única
+  que não gere uma entrada concorrente automaticamente e deve comprovar as três
+  linhas por postflight read-only antes de W2.
+- Esta etapa é somente GitHub. Aplicação Lovable-managed, publicação, PR, merge
+  protegido e continuação em W2 exigem gates separados.
+- A primeira execução da PR `#166` falhou fechada porque o seletor do teste de
+  Closure PCA-05R acionava também o envelope privado legado. PCA-07R2R separa
+  `pca_05r_closure` de `pca_05r`, preserva as guardas legadas e não altera SQL,
+  estado Same-Backend ou autoridade Lovable-managed.

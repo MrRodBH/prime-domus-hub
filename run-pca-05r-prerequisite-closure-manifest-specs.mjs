@@ -28,6 +28,8 @@ const excludedAfterPrelude = {
   "20260812143000_dca_02_provider_binding_privilege_hardening.sql": "DCA_PROVIDER_DOMAIN_OUTSIDE_SCHEMA_REHEARSAL",
   "20260825213000_pr_m3_sec_02_public_surface_security_hardening.sql": "POST_REHEARSAL_SECURITY_GATE",
   "20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql": "POST_REHEARSAL_SECURITY_GATE",
+  "20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql":
+    "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
 };
 
 function buildManifest() {
@@ -155,10 +157,10 @@ if (process.argv.includes("--write")) {
 }
 const actual = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
 assert.deepEqual(actual, expected);
-assert.equal(actual.counts.repositoryMigrationFiles, 130);
+assert.equal(actual.counts.repositoryMigrationFiles, 131);
 assert.equal(actual.counts.prerequisiteCandidates, 105);
 assert.equal(actual.counts.approvedRehearsalMigrations, 17);
-assert.equal(actual.counts.excludedAfterPrelude, 8);
+assert.equal(actual.counts.excludedAfterPrelude, 9);
 assert.equal(actual.counts.wholeFileReplayBlockers, 3);
 assert.equal(actual.counts.prerequisiteFilesWithoutExplicitTransactions, 104);
 assert.equal(actual.decision.wholePrerequisiteReplayAllowed, false);
@@ -225,6 +227,18 @@ if (base) {
       4,
     );
     assert.doesNotMatch(after, /array_agg\(a\.attname ORDER BY x\.ord\)/);
+  } else if (
+    changed.includes(
+      "run-pca-07r2-w1-forensic-forward-only-ledger-reconciliation-specs.mjs",
+    )
+  ) {
+    const correctivePath =
+      "supabase/migrations/20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql";
+    assert.deepEqual(changedMigrations, [correctivePath]);
+    assert.equal(
+      actual.excluded.find((entry) => entry.path === correctivePath)?.reason,
+      "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
+    );
   } else {
     assert.equal(changedMigrations.length, 0);
   }

@@ -16,8 +16,8 @@ DEPLOY=false
 PR_105_MUTATION=false
 ```
 
-The protected repository contains 130 SQL migration files: 105 candidates
-before the PCA-04 chain, 17 approved PCA-04 rehearsal migrations and 8 later
+The protected repository contains 131 SQL migration files: 105 candidates
+before the PCA-04 chain, 17 approved PCA-04 rehearsal migrations and 9 later
 or interleaved migrations outside the rehearsal. The machine-readable manifest
 records every candidate byte hash and disposition; timestamp or Lovable ledger
 names do not establish equivalence.
