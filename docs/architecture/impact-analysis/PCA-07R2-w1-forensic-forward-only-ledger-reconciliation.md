@@ -3,14 +3,14 @@
 ## 1. CTDD decision
 
 ```text
-GATE = PCA-07R2_W1_FORENSIC_FORWARD_ONLY_LEDGER_RECONCILIATION_REPOSITORY_IMPLEMENTATION
-SOURCE_MAIN = a28f257c640a128327e9f0ce97974e48679fa05c
-SOURCE_TREE = 036a95e952e23f4a659aafd93330961ccdb1a952
+GATE = PCA-07R2R2_W1_EMBEDDED_SOURCE_BYTE_IDENTITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION
+SOURCE_MAIN = 37eb8ecec801eeb9e3eb78758ac54de2d7925389
+SOURCE_TREE = a7a1bd4741227baeb045b0befad18924f4c31c43
 AUTHORITY = PROTECTED_GITHUB_MAIN_ONLY
 CANONICAL_BACKEND_AUTHORITY = LOVABLE_MANAGED_BACKEND_ONLY
 OWNER_SUPABASE_ACCESS = LOVABLE_ONLY
-INCIDENT = W1_COMMITTED_WITHOUT_LEDGER_TRANSPORT_DIVERGENCE
-RESULT = FORWARD_ONLY_RECONCILIATION_MATERIALIZED_NOT_EXECUTED
+INCIDENT = LOVABLE_MANAGED_APPLICATION_FAIL_CLOSED_EMBEDDED_SOURCE_PREFIX_LF
+RESULT = EMBEDDED_SOURCE_BYTE_IDENTITY_CORRECTIVE_MATERIALIZED_NOT_EXECUTED
 ```
 
 PCA-07R retry returned `INVALID_ARGUMENT`, but read-only postflight proved that
@@ -19,7 +19,12 @@ absent from `supabase_migrations.schema_migrations`. This is a committed-wave
 transport divergence. W1 cannot be replayed and W2-W6 cannot start while
 physical state and ledger disagree.
 
-The exact transport root cause is not asserted. The prior envelope carried
+The first Lovable-managed PCA-07R2 application later reached PostgreSQL with
+the canonical 77,171-byte statement and failed before the first ledger insert
+with `P0001: PCA-07R2 lifecycle source identity mismatch`. Read-only forensic
+postflight proved the target ledger remained `0/3`.
+
+At that incident stage, the exact transport root cause was not asserted. The prior envelope carried
 50,566 source bytes and duplicated those bodies for ledger persistence, creating
 a lower bound of 101,132 bytes before wrapper and postflight SQL. This is a
 material risk indicator, not proof of a connector size limit.
@@ -155,3 +160,25 @@ envelope.
 
 This is CI-scope decoupling only. It does not change the corrective SQL, W1
 sources, manifest, live state, Lovable authority or any backend invariant.
+
+## 9. PCA-07R2R2 embedded-source byte-identity corrective
+
+The Lovable transport preserved the prior canonical statement exactly: 77,171
+bytes and SHA-256
+`58d79794ebf4aab1f417f0e27edefa0022038d0669aadcdfefee9a7a30e46d11`.
+The defect was repository-local. The generator placed a newline between each
+opening dollar-quote delimiter and the corresponding W1 source. Consequently,
+the lifecycle and access literals were respectively 20,254 and 30,314 bytes,
+each with an unexpected first byte `10`, while their asserted sources were
+20,253 and 30,313 bytes.
+
+Removing only that prefix LF from each generated boundary recovers the exact
+canonical W1 hashes. PCA-07R2R2 therefore joins each opening delimiter directly
+to its source without changing either immutable W1 migration. The regenerated
+corrective is 77,169 bytes with SHA-256
+`4be66ebfd62ce55da1f9923d8e131a78d849e5b8f946d00d5f37851698c50ccb`.
+
+The generator and dedicated regression now extract both embedded literals and
+require full string equality, byte length and SHA-256 identity against the W1
+files. Occurrence-only checks are no longer sufficient. This repository gate
+does not retry the Lovable application and performs zero Same-Backend writes.
