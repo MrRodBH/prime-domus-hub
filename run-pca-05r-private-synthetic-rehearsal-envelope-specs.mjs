@@ -143,12 +143,23 @@ if (base) {
       "scripts/build-pca-05r-structural-wave-bundle.mjs",
     ],
   ];
-  assert.equal(
-    allowedDiffs.some((allowed) => JSON.stringify(allowed.sort()) === JSON.stringify(changed)),
-    true,
-    `unexpected PCA-05R diff: ${changed.join(", ")}`,
+  const isPca07rCorrective = changed.includes(
+    "run-pca-07r-w1-postgres-name-array-type-corrective-specs.mjs",
   );
-  assert.equal(changed.filter((path) => path.startsWith("supabase/migrations/")).length, 0);
+  if (isPca07rCorrective) {
+    assert.deepEqual(
+      changed.filter((path) => path.startsWith("supabase/migrations/")),
+      ["supabase/migrations/20260728180000_pr_m2_tenant_access_control.sql"],
+      "PCA-07R may correct only the failed, still-unapplied W1 migration",
+    );
+  } else {
+    assert.equal(
+      allowedDiffs.some((allowed) => JSON.stringify(allowed.sort()) === JSON.stringify(changed)),
+      true,
+      `unexpected PCA-05R diff: ${changed.join(", ")}`,
+    );
+    assert.equal(changed.filter((path) => path.startsWith("supabase/migrations/")).length, 0);
+  }
 }
 
 console.log("PCA-05R private synthetic rehearsal execution envelope: PASS");

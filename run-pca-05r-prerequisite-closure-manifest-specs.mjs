@@ -205,7 +205,29 @@ if (base) {
   const changed = execFileSync("git", ["diff", "--name-only", `${base}..HEAD`], {
     encoding: "utf8",
   }).trim().split(/\r?\n/).filter(Boolean).sort();
-  assert.equal(changed.filter((path) => path.startsWith(`${MIGRATION_DIR}/`)).length, 0);
+  const changedMigrations = changed.filter((path) => path.startsWith(`${MIGRATION_DIR}/`));
+  if (
+    changed.includes("run-pca-07r-w1-postgres-name-array-type-corrective-specs.mjs")
+  ) {
+    const correctivePath =
+      "supabase/migrations/20260728180000_pr_m2_tenant_access_control.sql";
+    assert.deepEqual(changedMigrations, [correctivePath]);
+    const before = execFileSync("git", ["show", `${base}:${correctivePath}`], {
+      encoding: "utf8",
+    });
+    const after = readFileSync(correctivePath, "utf8");
+    assert.equal(
+      (before.match(/array_agg\(a\.attname ORDER BY x\.ord\)/g) ?? []).length,
+      4,
+    );
+    assert.equal(
+      (after.match(/array_agg\(a\.attname::text ORDER BY x\.ord\)/g) ?? []).length,
+      4,
+    );
+    assert.doesNotMatch(after, /array_agg\(a\.attname ORDER BY x\.ord\)/);
+  } else {
+    assert.equal(changedMigrations.length, 0);
+  }
 }
 
 console.log("PCA-05R prerequisite closure manifest: PASS");

@@ -49,7 +49,7 @@
     {
       "version": "20260728180000",
       "path": "supabase/migrations/20260728180000_pr_m2_tenant_access_control.sql",
-      "sha256": "fc3a67eca7c46a965d4b1ade51aa87e22c81d2c1d6b0b329bfc2879c9628dab9",
+      "sha256": "3a143962333bfd467ef4a4911c46401c8f9980cfb19cb7535ed7c8445f8f806e",
       "classification": "REPO_ONLY",
       "wave": "W1",
       "tenantDml": "EXACT_MANIFEST_ONLY",

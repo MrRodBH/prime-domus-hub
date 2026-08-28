@@ -23,10 +23,14 @@ export function build() {
     let sql = source;
     let projection = "EXACT";
     if (item.version === "20260728180000") {
-      const needle = "array_agg(a.attname ORDER BY x.ord)";
-      assert.equal(sql.split(needle).length - 1, 4, "PG17 name[] projection shape drift");
-      sql = sql.replaceAll(needle, "array_agg(a.attname::text ORDER BY x.ord)");
-      projection = "PG17_NAME_ARRAY_TO_TEXT_ARRAY";
+      const needle = "array_agg(a.attname::text ORDER BY x.ord)";
+      assert.equal(sql.split(needle).length - 1, 4, "PG17 source cast shape drift");
+      assert.equal(
+        sql.split("array_agg(a.attname ORDER BY x.ord)").length - 1,
+        0,
+        "uncast PG17 name[] comparison reintroduced",
+      );
+      projection = "SOURCE_EXACT_PG17_NAME_ARRAY_TO_TEXT_ARRAY";
     }
     if (item.version === "20260728233000") {
       const needle = "    'map_embed_url', NULLIF(ls.settings->'pagina_contato'->>'mapa_url', ''),\n    'menu_locations', jsonb_build_array('header', 'footer'),";

@@ -84,6 +84,7 @@ jobs:
           pr_m3_sec_02=false
           pca_05r=false
           pca_06=false
+          pca_07r=false
           dca_02_bl2_envelope=false
           dca_02_bl2_preflight=false
           dca_02_bl2_r2_rebaseline=false
@@ -142,6 +143,9 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-pca-06-same-backend-final-impact-requalification-specs.mjs "* ]]; then
               pca_06=true
             fi
+            if [[ " ${changed_files[*]} " == *" run-pca-07r-w1-postgres-name-array-type-corrective-specs.mjs "* ]]; then
+              pca_07r=true
+            fi
             if [[ " ${changed_files[*]} " == *" run-dca-02-bl2-isolated-pitr-restore-envelope-specs.mjs "* ]]; then
               dca_02_bl2_envelope=true
             fi
@@ -187,11 +191,12 @@ jobs:
           echo "pr_m3_sec_02=$pr_m3_sec_02" >> "$GITHUB_OUTPUT"
           echo "pca_05r=$pca_05r" >> "$GITHUB_OUTPUT"
           echo "pca_06=$pca_06" >> "$GITHUB_OUTPUT"
+          echo "pca_07r=$pca_07r" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_envelope=$dca_02_bl2_envelope" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_preflight=$dca_02_bl2_preflight" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
-          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 pca_05r=$pca_05r pca_06=$pca_06 dca_02_bl2_envelope=$dca_02_bl2_envelope dca_02_bl2_preflight=$dca_02_bl2_preflight dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline changed_file_count=$changed_file_count"
+          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 pca_05r=$pca_05r pca_06=$pca_06 pca_07r=$pca_07r dca_02_bl2_envelope=$dca_02_bl2_envelope dca_02_bl2_preflight=$dca_02_bl2_preflight dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline changed_file_count=$changed_file_count"
 
       - name: Documentation governance validation
         if: steps.scope.outputs.docs_only == 'true'
@@ -249,6 +254,12 @@ jobs:
         env:
           PCA_06_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:pca-06
+
+      - name: Verify PCA-07R W1 PostgreSQL name-array corrective
+        if: steps.scope.outputs.pca_07r == 'true'
+        env:
+          PCA_07R_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pca-07r
 
       - name: Verify DCA-02-BL2 isolated non-production PITR restore execution envelope
         if: steps.scope.outputs.dca_02_bl2_envelope == 'true'
