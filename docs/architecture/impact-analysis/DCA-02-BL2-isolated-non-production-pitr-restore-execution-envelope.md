@@ -1,5 +1,12 @@
 # DCA-02-BL2 — Isolated Non-Production PITR Restore Execution Envelope
 
+> **Historical execution notice:** this whole-database envelope is not the
+> current DCA-02-BL2 execution strategy. It is superseded for the narrow
+> provider-identity ledger by the
+> [R2 post-homologation recoverability rebaseline](./DCA-02-BL2-r2-post-homologation-recoverability-rebaseline.md).
+> It remains evidence for a future, separately scoped general-database DR
+> decision and authorizes no restore or provider mutation.
+
 ## Authority and exact boundary
 
 ~~~text

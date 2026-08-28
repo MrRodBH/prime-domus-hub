@@ -85,6 +85,7 @@ jobs:
           pca_05r=false
           dca_02_bl2_envelope=false
           dca_02_bl2_preflight=false
+          dca_02_bl2_r2_rebaseline=false
           changed_file_count=0
 
           if [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]] \
@@ -143,6 +144,9 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-dca-02-bl2-read-only-provider-preflight-cost-specs.mjs "* ]]; then
               dca_02_bl2_preflight=true
             fi
+            if [[ " ${changed_files[*]} " == *" run-dca-02-bl2-r2-deferred-recoverability-rebaseline-specs.mjs "* ]]; then
+              dca_02_bl2_r2_rebaseline=true
+            fi
             if [[ "$changed_file_count" -eq 42 ]] \
               && [[ " ${changed_files[*]} " == *" run-arch-12f-01-config-hygiene-specs.ts "* ]] \
               && [[ " ${changed_files[*]} " == *" run-arch-12f-04a-unsubscribe-log-redaction-specs.ts "* ]] \
@@ -180,8 +184,9 @@ jobs:
           echo "pca_05r=$pca_05r" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_envelope=$dca_02_bl2_envelope" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_preflight=$dca_02_bl2_preflight" >> "$GITHUB_OUTPUT"
+          echo "dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
-          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 pca_05r=$pca_05r dca_02_bl2_envelope=$dca_02_bl2_envelope dca_02_bl2_preflight=$dca_02_bl2_preflight changed_file_count=$changed_file_count"
+          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 pca_05r=$pca_05r dca_02_bl2_envelope=$dca_02_bl2_envelope dca_02_bl2_preflight=$dca_02_bl2_preflight dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline changed_file_count=$changed_file_count"
 
       - name: Documentation governance validation
         if: steps.scope.outputs.docs_only == 'true'
@@ -245,6 +250,12 @@ jobs:
         env:
           DCA02_BL2_PREFLIGHT_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:dca-02-bl2:preflight
+
+      - name: Verify DCA-02-BL2 R2 deferred recoverability rebaseline
+        if: steps.scope.outputs.dca_02_bl2_r2_rebaseline == 'true'
+        env:
+          DCA02_BL2_R2_REBASELINE_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:dca-02-bl2:r2-rebaseline
 
       - name: Verify ARCH-12F-02A infrastructure identifier externalization
         if: steps.scope.outputs.arch_12f_02a == 'true'

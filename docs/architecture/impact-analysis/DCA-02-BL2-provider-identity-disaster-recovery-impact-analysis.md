@@ -1,5 +1,11 @@
 # DCA-02-BL2 — Provider Identity Disaster Recovery Impact Analysis
 
+> **Current authority notice:** the selected full-database restore mechanism in
+> this historical analysis is superseded for the DCA-02 identity ledger by the
+> [R2 post-homologation recoverability rebaseline](./DCA-02-BL2-r2-post-homologation-recoverability-rebaseline.md).
+> The deterministic manifest, RPO/RTO ceilings, security boundaries, and
+> fail-closed identity rules below remain binding.
+
 ## Status
 
 ```text
