@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const SOURCE_MAIN = "e1ba6dc76d4ed60fa2b74d973a848b8604c9cd59";
 const SOURCE_TREE = "148777cc059f5bcc73e7c43591ffaefd708a1f13";
+const CORRECTIVE_SOURCE_MAIN = "c1bfa87da8abaafbcdd3bbabf67be9ebdfa79069";
 const evidencePath =
   "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/dca-02-bl2-read-only-provider-preflight-and-cost-discovery.md";
 const terminalPath =
@@ -61,12 +62,63 @@ mustContain(evidence, [
   "PROJECT_CREATION_AUTHORIZED = false",
 ], "preflight evidence");
 
+
+mustContain(evidence, [
+  "CORRECTIVE_GATE = DCA-02-BL2_LOVABLE_MANAGED_AUTHORITY_REBASELINE_REPOSITORY_CORRECTIVE_IMPLEMENTATION",
+  "CORRECTIVE_SOURCE_MAIN = " + CORRECTIVE_SOURCE_MAIN,
+  "CANONICAL_LOVABLE_PROJECT_ID = 982b91d8-946d-4103-8eb3-40ddbaeedbf4",
+  "CANONICAL_SUPABASE_PROJECT_REF = stmcnvzuzlyqammyycxj",
+  "CANONICAL_SOURCE_AUTHORITY = LOVABLE_MANAGED_BACKEND_ONLY",
+  "OWNER_SUPABASE_ACCESS = LOVABLE_ONLY",
+  "DIRECT_SUPABASE_MCP = false",
+  "DIRECT_PROVIDER_OBSERVATION_AUTHORITY = historical_noncanonical_for_rm_prime",
+  "SOURCE_PROJECT_AUTHORITY_VERIFIED = true",
+  "PUBLIC_TABLES = 81",
+  "PUBLIC_TABLES_WITH_RLS = 81",
+  "PG_CRON_INSTALLED = true",
+  "PG_NET_INSTALLED = true",
+  "CRON_ACTIVE_JOBS = 1",
+  "CRON_NETWORK_COMMAND_JOBS = 1",
+  "EXTERNAL_EFFECT_ROUTINE_CANDIDATES = 2",
+  "EXTERNAL_EFFECT_ROUTINE_NAMES = email_queue_dispatch,email_queue_wake",
+  "VAULT_SECRET_COUNT = 1",
+  "BACKUP_SCOPE_VERIFIED = false",
+  "PITR_ENABLED_VERIFIED = false",
+  "EXTERNAL_EFFECT_INVENTORY_EXECUTED = true",
+  "EXTERNAL_EFFECT_CONTAINMENT_PROVEN = false",
+  "EXACT_CLONE_COST_CONFIRMED = false",
+  "LOVABLE_SQL_READ_CALLS = 2",
+  "LOVABLE_AGENT_CALLS = 0",
+  "DIRECT_SUPABASE_CALLS = 0",
+  "DATABASE_WRITES = 0",
+  "CORRECTIVE_GATE_STATUS = ACCEPTED",
+  "RESTORE_QUALIFICATION = BLOCKED_EXTERNAL",
+  "PR_161_HISTORICAL_EVIDENCE_PRESERVED = true",
+  "PR_161_NEXT_GATE_SUPERSEDED = true",
+  "SUPERSEDED_NEXT_GATE = DCA-02-BL2_SUPABASE_PROJECT_AUTHORITY_REBIND_AND_READ_ONLY_PREFLIGHT_RETRY",
+  "NEXT_GATE = DCA-02-BL2_LOVABLE_MANAGED_RECOVERABILITY_STRATEGY_IMPACT_ANALYSIS",
+  "LIVE_RESTORE_AUTHORIZED = false",
+  "PROJECT_CREATION_AUTHORIZED = false",
+], "Lovable-managed corrective evidence");
+
 mustContain(terminal, [
   "PREFLIGHT_SOURCE_MAIN = " + SOURCE_MAIN,
   "DIRECT_PROJECT_LOOKUP_RESULT = permission_denied",
   "SUPABASE_WRITE_CALLS = 0",
   "PREFLIGHT_STATUS = TERMINAL_FAIL_CLOSED_AUTHORITY_MISMATCH",
 ], "terminal evidence");
+
+
+mustContain(terminal, [
+  "CORRECTIVE_SOURCE_MAIN = " + CORRECTIVE_SOURCE_MAIN,
+  "OWNER_SUPABASE_ACCESS = LOVABLE_ONLY",
+  "DIRECT_SUPABASE_MCP = false",
+  "SOURCE_PROJECT_AUTHORITY_VERIFIED = true",
+  "RESTORE_QUALIFICATION = BLOCKED_EXTERNAL",
+  "PR_161_HISTORICAL_EVIDENCE_PRESERVED = true",
+  "PR_161_NEXT_GATE_SUPERSEDED = true",
+  "NEXT_GATE = DCA-02-BL2_LOVABLE_MANAGED_RECOVERABILITY_STRATEGY_IMPACT_ANALYSIS",
+], "Lovable-managed terminal corrective");
 
 assert.equal(
   packageJson.scripts["test:dca-02-bl2:preflight"],
@@ -105,6 +157,16 @@ assert.equal(qualify({
   pitrWindow: false, externalEffectContainment: false, exactCloneCost: false,
 }), "TERMINAL_FAIL_CLOSED_AUTHORITY_MISMATCH");
 
+assert.equal(qualify({
+  projectAuthority: true, backupScope: false, physicalBackups: false,
+  pitrWindow: false, externalEffectContainment: false, exactCloneCost: false,
+}), "FAIL_CLOSED_BACKUP_SCOPE_UNVERIFIED");
+
+assert.equal(qualify({
+  projectAuthority: true, backupScope: true, physicalBackups: true,
+  pitrWindow: true, externalEffectContainment: false, exactCloneCost: true,
+}), "FAIL_CLOSED_EXTERNAL_EFFECT_CONTAINMENT_UNPROVED");
+
 assert.notEqual(0, undefined);
 assert.equal(
   evidence.includes("GENERIC_NEW_PROJECT_COST_AMOUNT_USD = 0") &&
@@ -114,10 +176,8 @@ assert.equal(
 );
 
 const allowedDiff = [
-  workflowPath,
   evidencePath,
   terminalPath,
-  "package.json",
   "run-dca-02-bl2-read-only-provider-preflight-cost-specs.mjs",
 ].sort();
 const baseSha = process.env.DCA02_BL2_PREFLIGHT_BASE_SHA;
@@ -132,12 +192,17 @@ if (baseSha) {
 assert.equal(process.env.DCA02_BL2_LIVE_RESTORE_ALLOWED ?? "false", "false");
 
 console.log(JSON.stringify({
-  gate: "DCA-02-BL2_READ_ONLY_PROVIDER_PREFLIGHT_AND_COST_DISCOVERY",
-  sourceMain: SOURCE_MAIN,
-  sourceTree: SOURCE_TREE,
-  projectAuthorityVerified: false,
-  exactCloneCostDiscovered: false,
-  sqlQueryCalls: 0,
-  supabaseWrites: 0,
-  result: "TERMINAL_FAIL_CLOSED_AUTHORITY_MISMATCH",
+  gate: "DCA-02-BL2_LOVABLE_MANAGED_AUTHORITY_REBASELINE_REPOSITORY_CORRECTIVE_IMPLEMENTATION",
+  sourceMain: CORRECTIVE_SOURCE_MAIN,
+  historicalSourceMain: SOURCE_MAIN,
+  historicalSourceTree: SOURCE_TREE,
+  ownerSupabaseAccess: "LOVABLE_ONLY",
+  projectAuthorityVerified: true,
+  backupScopeVerified: false,
+  externalEffectContainmentProven: false,
+  exactCloneCostConfirmed: false,
+  lovableSqlReadCalls: 2,
+  directSupabaseCalls: 0,
+  databaseWrites: 0,
+  result: "BLOCKED_EXTERNAL",
 }));
