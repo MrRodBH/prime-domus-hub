@@ -1,5 +1,10 @@
 # DCA-02-BL2 — Provider Identity Disaster Recovery Runbook
 
+> **Current authority:** use the
+> [R2 post-homologation recoverability rebaseline](../architecture/impact-analysis/DCA-02-BL2-r2-post-homologation-recoverability-rebaseline.md).
+> The full-database PITR procedure is retained below as historical general-DR
+> evidence and is not executable for the DCA-02-BL2 ledger.
+
 ## Purpose and boundary
 
 This runbook defines deterministic recovery qualification for `public.domain_provider_bindings`. The current gate is repository-only and read-only.
@@ -44,6 +49,28 @@ identity_bound_at
 ```
 
 Rows are serialized by exact scalar value with explicit separators and UTF-8 encoding, then hashed with SHA-256. Sorting exists only to make the manifest deterministic; it must never select or confer authority. Hostname and Custom Metadata are excluded.
+
+## Current R2 snapshot procedure
+
+This procedure is executable only after formal homologation and under separate
+provider, backend-implementation, and recovery-drill authorizations.
+
+1. Prove the exact Cloudflare account and activated R2 subscription.
+2. Create one private Standard bucket with public URLs and custom domains off.
+3. Configure and independently observe the approved native Bucket Lock before
+   the first snapshot object is written.
+4. Scope the exporter credential to Object Read & Write on that bucket only;
+   keep bucket-configuration authority outside application runtime.
+5. Export only the canonical manifest, schema version, row count, snapshot UTC,
+   predecessor digest, and SHA-256 digest in encrypted form.
+6. Observe the immutable object within 900 seconds of the ledger change or fail
+   closed for production readiness.
+7. For a recovery drill, issue a separate Object Read only credential and
+   reconstruct only in an isolated Lovable-managed non-production cell.
+8. Recompute cardinality and digest and prove RLS, grants, guard trigger, and
+   SECURITY DEFINER boundaries within 14,400 seconds.
+9. Revoke the drill reader and tear down the cell. Never promote the R2 object
+   to runtime authority or perform provider mutation from snapshot content.
 
 ## Isolated restore procedure
 
@@ -92,11 +119,11 @@ Repository artifacts are reverted by at most one audited commit. A future isolat
 The exact execution contract is
 [the isolated non-production PITR restore execution envelope](../architecture/impact-analysis/DCA-02-BL2-isolated-non-production-pitr-restore-execution-envelope.md).
 
-Current official product boundaries are captured from the Supabase
+Historical full-database product boundaries are captured from the Supabase
 [Database Backups](https://supabase.com/docs/guides/platform/backups) and
 [Restore to a New Project](https://supabase.com/docs/guides/platform/clone-project)
-documentation. Restore to a New Project is the only admissible future mechanism.
-An in-place PITR restore remains prohibited.
+documentation. The historical contract states: Restore to a New Project is the only admissible future mechanism for a whole-database exercise. It is not the
+current DCA-02-BL2 ledger strategy. An in-place PITR restore remains prohibited.
 
 The future target is database-only recovery evidence. Storage object bytes,
 Edge Functions and non-database product configuration are outside the proven
@@ -104,6 +131,8 @@ scope. Enabled extensions, schedules, network-capable database code and
 database-held secrets require pre-activation containment. Creating a target and
 then disabling external effects is fail-open and prohibited.
 
-This addendum does not activate the procedure. The ordered next operation after
-merge is a separately authorized read-only provider preflight and exact cost
-discovery. Project creation requires another explicit Owner authorization.
+This addendum does not activate either procedure. R2 remains disabled and its
+activation is deferred until after formal homologation. Subscription checkout,
+bucket/lock/token creation, Lovable-managed exporter implementation, recovery
+cell creation, and any provider operation require separate Owner authorization.
+The historical whole-database rule is unchanged: Project creation requires another explicit Owner authorization.

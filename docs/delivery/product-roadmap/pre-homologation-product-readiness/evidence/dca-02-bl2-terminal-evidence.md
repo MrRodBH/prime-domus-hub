@@ -124,3 +124,34 @@ and organization observed there. It cannot require direct Supabase access from
 the Owner or invalidate the exact Lovable-managed RM Prime backend. Live
 restore remains blocked because backup/PITR/cost are not visible through the
 admissible control plane and copied external-effect capability is not contained.
+
+## R2 post-homologation recoverability rebaseline
+
+~~~text
+REBASELINE_GATE = DCA-02-BL2_R2_POST_HOMOLOGATION_PRE_PRODUCTION_DEFERRED_RECOVERABILITY_REBASELINE_REPOSITORY_IMPLEMENTATION
+REBASELINE_SOURCE_MAIN = 64510f51b73557dab3cc8c514d3eafd957308ee2
+REBASELINE_SOURCE_TREE = 45b26fcfa58c2556de08feb5d49dae319e5803e5
+CLOUDFLARE_PAID_OR_ENTERPRISE_UPGRADE_BEFORE_HOMOLOGATION = not_planned
+FULL_DATABASE_PITR_AS_DCA02_BL2_STRATEGY = superseded
+SELECTED_STRATEGY = encrypted_external_generation_bound_ledger_snapshots
+R2_SUBSCRIPTION_ENABLED = false
+R2_LIST_BUCKETS_RESULT_CODE = 10042
+R2_PROVIDER_IMPLEMENTATION = deferred_until_post_homologation
+DCA02_TERMINAL_ACCEPTANCE_BLOCKED = false
+PRM3_OR_FRONTEND_BLOCKED = false
+CONTROLLED_TESTING_BLOCKED = false
+FORMAL_HOMOLOGATION_BLOCKED = false
+PRODUCTION_READINESS_BLOCKED_UNTIL_RECOVERY_PROOF = true
+RPO_CEILING_SECONDS = 900
+RTO_CEILING_SECONDS = 14400
+CLOUDFLARE_PROVIDER_WRITES = 0
+DATABASE_WRITES = 0
+LOVABLE_AGENT_CALLS = 0
+PRODUCTION_CUTOVER_ALLOWED = false
+NEXT_GATE = DCA-02-BL2_R2_DEFERRED_RECOVERABILITY_REBASELINE_FINAL_AUDIT_AND_PROTECTED_MERGE
+~~~
+
+The full evidence and future R2 private-bucket, Bucket Lock, least-privilege
+token, encryption, cost, snapshot, and recovery-cell contract are recorded in
+`dca-02-bl2-r2-deferred-recoverability-rebaseline.md`. No external resource was
+created and no previously accepted DCA-02 or PR-M3 authority was reopened.

@@ -50,7 +50,7 @@ Required future invariants:
 ## NB-DCA02-02 — Provider Identity Disaster Recovery / Backup Verification
 
 ```text
-STATE = Repository Proof Accepted on PR #112
+STATE = R2 post-homologation recoverability rebaseline implemented / exact-head gates required
 CLASS = Disaster Recovery / Data Integrity
 RUNTIME_IMPLEMENTATION_AUTHORIZED = false
 PRIMARY_LEDGER = public.domain_provider_bindings
@@ -60,6 +60,11 @@ FAIL_CLOSED_ON_BINDING_LOSS = required
 REPOSITORY_PROOF_STATE = implemented / exact-head gates required
 LIVE_BACKUP_SCOPE_VERIFIED = false
 LIVE_PITR_RESTORE_EXECUTED = false
+FULL_DATABASE_PITR_AS_DCA02_BL2_STRATEGY = superseded
+SELECTED_RECOVERY_MEDIUM = Cloudflare_R2_Standard_candidate
+R2_SUBSCRIPTION_ENABLED = false
+R2_PROVIDER_IMPLEMENTATION = deferred_until_post_homologation
+PRODUCTION_READINESS_BLOCKED_UNTIL_RECOVERY_PROOF = true
 PROVIDER_WRITES = 0
 DATABASE_WRITES = 0
 NEXT_EXECUTION = DCA-02-BL1 diagnostic/dry-run only
@@ -78,11 +83,28 @@ Required future invariants:
 - backup verification must not weaken RLS, grants, service-role least privilege or the DCA-02 SECURITY DEFINER RPC boundary;
 - disaster recovery must preserve auditability of any post-restore reconciliation or recovery action.
 
+The full-database PITR envelope remains historical general-database DR analysis
+but is superseded for this narrow ledger. The current selected future strategy
+is an encrypted, append-only logical snapshot in a private Cloudflare R2 bucket
+with a native Bucket Lock configured before the first object. The snapshot is
+recovery evidence only and never becomes runtime authority.
+
+The account currently returns Cloudflare error `10042` requiring R2 activation
+through the Dashboard. The Owner's decision not to require a paid/Enterprise
+Cloudflare upgrade before homologation remains binding. R2 subscription,
+bucket, lock, token, exporter, and recovery drill are therefore deferred to the
+post-homologation/pre-production window and each requires a separate gate.
+
 ## Scheduling rule
 
 ```text
 CURRENT_PRIORITY = qualify DCA-02-BL1 diagnostic exact head; preserve all mutations as future scope
 BACKLOG_ITEMS_BLOCK_DCA02_TERMINAL_ACCEPTANCE = false
+BACKLOG_ITEMS_BLOCK_PRM3_OR_FRONTEND = false
+BACKLOG_ITEMS_BLOCK_CONTROLLED_TESTING = false
+BACKLOG_ITEMS_BLOCK_FORMAL_HOMOLOGATION = false
+BL2_BLOCKS_PRODUCTION_READINESS_UNTIL_RECOVERY_PROOF = true
+BL2_EXECUTION_WINDOW = post_homologation_pre_production
 BL2_TERMINAL_AUTHORITY = PR #112 head a8b41316e6998f1681a018d4ca8bc3e9e712e086 gates success
 BL1_DIAGNOSTIC_MAY_START_AUTOMATICALLY = true
 BL1_PROVIDER_MUTATION_MAY_START_AUTOMATICALLY = false
