@@ -1489,7 +1489,7 @@
     },
     {
       "path": "supabase/migrations/20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql",
-      "sha256": "58d79794ebf4aab1f417f0e27edefa0022038d0669aadcdfefee9a7a30e46d11",
+      "sha256": "4be66ebfd62ce55da1f9923d8e131a78d849e5b8f946d00d5f37851698c50ccb",
       "reason": "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
       "disposition": "EXCLUDED_FROM_PCA05R_CELL"
     }

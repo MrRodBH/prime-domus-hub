@@ -3,8 +3,7 @@
 -- One top-level DO statement: no W1 DDL/DML replay and no blind migration repair.
 DO $pca07r2$
 DECLARE
-  v_lifecycle_source text := $pca07r2_lifecycle$
--- PR-M2 — Tenant Lifecycle, Atomic Bootstrap, Invitations & Ownership
+  v_lifecycle_source text := $pca07r2_lifecycle$-- PR-M2 — Tenant Lifecycle, Atomic Bootstrap, Invitations & Ownership
 -- Specialized service_role-only primitives. Existing mutate_tenant_membership
 -- remains the sole authority for change_role/suspend/reactivate/revoke.
 
@@ -642,8 +641,7 @@ $acl$;
 
 COMMIT;
 $pca07r2_lifecycle$;
-  v_access_source text := $pca07r2_access$
--- PR-M2 — Tenant-scoped RBAC, profile assignment and team authority
+  v_access_source text := $pca07r2_access$-- PR-M2 — Tenant-scoped RBAC, profile assignment and team authority
 -- Existing tenant_members remains the sole authority for membership role/status.
 -- user_roles remains global-only and is not consulted as tenant authority.
 

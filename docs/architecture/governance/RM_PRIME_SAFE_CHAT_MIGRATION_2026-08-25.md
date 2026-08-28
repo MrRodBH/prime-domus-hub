@@ -620,3 +620,12 @@ PR_105_MUTATED=false
   Closure PCA-05R acionava também o envelope privado legado. PCA-07R2R separa
   `pca_05r_closure` de `pca_05r`, preserva as guardas legadas e não altera SQL,
   estado Same-Backend ou autoridade Lovable-managed.
+- A primeira aplicação Lovable-managed do SQL PCA-07R2 canônico falhou antes de
+  qualquer `INSERT` com `P0001` de identidade lifecycle; postflight confirmou
+  ledger `0/3`. O transporte preservou os 77.171 bytes e o SHA-256 versionado.
+- PCA-07R2R2 provou a causa no gerador: um LF (`byte 10`) era acrescentado após
+  cada delimitador de abertura, elevando os literais W1 em um byte. O corretivo
+  remove somente esses dois prefixos, preserva byte a byte as fontes W1 e passa
+  a validar por extração, tamanho e SHA-256 cada literal gerado.
+- PCA-07R2R2 permanece repository-only. Nova aplicação exige publicação, PR,
+  merge protegido e autorização Lovable-managed separada.

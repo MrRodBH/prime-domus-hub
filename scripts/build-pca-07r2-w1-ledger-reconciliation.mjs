@@ -9,6 +9,15 @@ export const CORRECTIVE_PATH =
   `supabase/migrations/${CORRECTIVE_VERSION}_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql`;
 export const MANIFEST_PATH =
   "docs/architecture/impact-analysis/manifests/PCA-07R2-w1-forensic-ledger-reconciliation-manifest.json";
+export const GATE =
+  "PCA-07R2R2_W1_EMBEDDED_SOURCE_BYTE_IDENTITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION";
+export const BRANCH =
+  "agent/pca-07r2r2-w1-embedded-source-byte-identity-corrective";
+export const SOURCE_MAIN = "37eb8ecec801eeb9e3eb78758ac54de2d7925389";
+export const SOURCE_TREE = "a7a1bd4741227baeb045b0befad18924f4c31c43";
+export const PRIOR_CORRECTIVE_SHA256 =
+  "58d79794ebf4aab1f417f0e27edefa0022038d0669aadcdfefee9a7a30e46d11";
+export const PRIOR_CORRECTIVE_BYTES = 77171;
 
 export const W1 = [
   {
@@ -284,6 +293,16 @@ function extractFunctionBody(source, marker) {
   return source.slice(bodyStart, bodyEnd);
 }
 
+function extractEmbeddedSource(sql, variable, delimiter) {
+  const opening = `${variable} text := ${delimiter}`;
+  const start = sql.indexOf(opening);
+  assert.notEqual(start, -1, `missing embedded source ${variable}`);
+  const bodyStart = start + opening.length;
+  const bodyEnd = sql.indexOf(`${delimiter};`, bodyStart);
+  assert.notEqual(bodyEnd, -1, `unterminated embedded source ${variable}`);
+  return sql.slice(bodyStart, bodyEnd);
+}
+
 export function build() {
   const sources = W1.map((entry) => {
     const source = readFileSync(new URL(entry.path, ROOT), "utf8");
@@ -313,10 +332,8 @@ export function build() {
 -- One top-level DO statement: no W1 DDL/DML replay and no blind migration repair.
 DO $pca07r2$
 DECLARE
-  v_lifecycle_source text := $pca07r2_lifecycle$
-${sources[0]}$pca07r2_lifecycle$;
-  v_access_source text := $pca07r2_access$
-${sources[1]}$pca07r2_access$;
+  v_lifecycle_source text := $pca07r2_lifecycle$${sources[0]}$pca07r2_lifecycle$;
+  v_access_source text := $pca07r2_access$${sources[1]}$pca07r2_access$;
   v_current_query text := current_query();
   v_expected_functions jsonb := $pca07r2_json$
 ${JSON.stringify(expectedFunctions, null, 2)}
@@ -650,25 +667,40 @@ $pca07r2$;
   assert.equal((sql.match(/v_access_source text :=/g) ?? []).length, 1);
   assert.ok(!sql.includes("EXECUTE v_lifecycle_source"));
   assert.ok(!sql.includes("EXECUTE v_access_source"));
+  for (const [index, [variable, delimiter]] of [
+    ["v_lifecycle_source", "$pca07r2_lifecycle$"],
+    ["v_access_source", "$pca07r2_access$"],
+  ].entries()) {
+    const embedded = extractEmbeddedSource(sql, variable, delimiter);
+    assert.equal(embedded, sources[index], `embedded source drift: ${variable}`);
+    assert.equal(Buffer.byteLength(embedded), W1[index].bytes);
+    assert.equal(sha256(embedded), W1[index].sha256);
+  }
 
   return {
     sql,
     manifest: {
-      schemaVersion: 1,
-      gate: "PCA-07R2_W1_FORENSIC_FORWARD_ONLY_LEDGER_RECONCILIATION_REPOSITORY_IMPLEMENTATION",
+      schemaVersion: 2,
+      gate: GATE,
       repository: "MrRodBH/prime-domus-hub",
-      branch: "agent/pca-07r2-w1-forensic-forward-only-ledger-reconciliation",
-      sourceMain: "a28f257c640a128327e9f0ce97974e48679fa05c",
-      sourceTree: "036a95e952e23f4a659aafd93330961ccdb1a952",
+      branch: BRANCH,
+      sourceMain: SOURCE_MAIN,
+      sourceTree: SOURCE_TREE,
       authority: {
         repository: "PROTECTED_GITHUB_MAIN_ONLY",
         backend: "LOVABLE_MANAGED_CANONICAL_BACKEND_ONLY",
         ownerSupabaseAccess: "LOVABLE_ONLY",
       },
       incident: {
-        classification: "W1_COMMITTED_WITHOUT_LEDGER_TRANSPORT_DIVERGENCE",
-        transportResult: "INVALID_ARGUMENT_AFTER_PERSISTED_SIDE_EFFECTS",
-        exactTransportRootCauseProven: false,
+        classification: "LOVABLE_MANAGED_APPLICATION_FAIL_CLOSED_EMBEDDED_SOURCE_PREFIX_LF",
+        transportResult: "P0001_LIFECYCLE_SOURCE_IDENTITY_MISMATCH",
+        exactTransportRootCauseProven: true,
+        priorCorrectiveSha256: PRIOR_CORRECTIVE_SHA256,
+        priorCorrectiveBytes: PRIOR_CORRECTIVE_BYTES,
+        lifecycleLiteralObservedBytes: W1[0].bytes + 1,
+        accessLiteralObservedBytes: W1[1].bytes + 1,
+        unexpectedPrefixByte: 10,
+        targetLedgerRowsAfterFailure: 0,
         priorW1SourceBytes: 50566,
         priorDuplicatedSourceLowerBoundBytes: 101132,
         w1PhysicalPostconditionsPresent: true,
@@ -682,6 +714,8 @@ $pca07r2$;
         bytes: Buffer.byteLength(sql),
         topLevelStatements: 1,
         sourceCopiesPerW1Migration: 1,
+        embeddedSourceByteIdentity: "EXACT",
+        embeddedSourcePrefixBytes: 0,
         replaysW1DdlOrDml: false,
         reconstructsExactW1LedgerRows: true,
         historicalRowsWrittenInsideStatement: 2,
