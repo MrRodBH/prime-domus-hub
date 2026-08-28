@@ -505,3 +505,44 @@ LOVABLE_AGENT_CALLS=false
   do tenant, sem identidade imobiliária fixa no código alterado.
 - Nenhuma migration, provider write, backend write, DNS, deploy, cutover,
   produção ou chamada Lovable é autorizada ou executada por este gate.
+
+---
+
+## 23. PCA-05R/PCA-06 — Rehearsal aceito e impacto Same-Backend requalificado
+
+```text
+PCA05R_STATUS=ACCEPTED
+PCA05R_PRIVATE_CELL_DELETED=true
+PCA05R_PRIVATE_CELL_RESIDUE=0
+PCA06_SOURCE_MAIN=0221bd1f8dd1f0a3d00a52057af9b621a2764edd
+PCA06_SOURCE_TREE=d7112cd8407d3583b7af60745b367709f29a7d4f
+PCA06_RESULT=ACCEPTED_READ_ONLY_REQUALIFICATION
+CANONICAL_BACKEND_AUTHORITY=LOVABLE_MANAGED_BACKEND_ONLY
+OWNER_SUPABASE_ACCESS=LOVABLE_ONLY
+SAME_BACKEND_MUTATED=false
+PROVIDER_MUTATED=false
+DEPLOY=false
+PR_105_MUTATED=false
+```
+
+- PCA-05R concluiu W1-W6 e o provisionamento sintético R2-R4 em célula privada,
+  purgou Auth/dados sintéticos e atingiu aceitação somente após a exclusão
+  definitiva do projeto Lovable e retorno direto `404 project_not_found`.
+- PCA-06 revalidou pelo Lovable, somente com `SELECT`, que as 17 migrations de
+  produto continuam ausentes do ledger e que as 45 tabelas/57 colunas esperadas
+  continuam integralmente ausentes do schema físico.
+- O ledger foi fechado em 4 correspondências exatas, 4 aliases semânticos —
+  um com prelude de execução isolado — e 4 entradas commercial live-only que
+  permanecem quarentenadas e não autoritativas.
+- O baseline continua com 74 tenants, 73 resíduos protegidos, checksum MD5
+  `3ece053ddbdfce5161380ec38824ea91`, 438/444 conectores protegidos e 888 campos
+  sensíveis de portal retidos. Prefixo/nome nunca é autoridade de seleção.
+- A postura SEC-04B permanece 9/9 relações com RLS, zero policies/client grants,
+  `service_role` preservado e cinco funções internas negadas a
+  `PUBLIC`/`anon`/`authenticated`.
+- DCA-02-BL2/R2 permanece `DEFERRED_NON_BLOCKING` para desenvolvimento, testes
+  e homologação, mas bloqueia prontidão/cutover de produção até a prova de
+  recoverability pós-homologação.
+- Esta materialização é somente GitHub. A aplicação W1-W6 no Same-Backend exige
+  gate futuro separado, manifesto imutável de UUIDs exatos, Lovable como único
+  executor, preflight live repetido e parada fail-closed na primeira divergência.
