@@ -5,10 +5,10 @@ import { readFileSync } from "node:fs";
 const ROOT = new URL("../", import.meta.url);
 
 export const GATE =
-  "PCA-07_W2_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_COMPATIBILITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION";
-export const BRANCH = "agent/pca-07-w2-transport-safe-atomic-ledger-aware-corrective";
-export const SOURCE_MAIN = "2ea96b2710b382944d9dfdcb8cae78eebd238dcf";
-export const SOURCE_TREE = "b6d79b650ce575bee546e66395f97bf7ebd0ace8";
+  "PCA-07_W2R_POSTGRES_UUID_AUTHORITY_ASSERTION_CORRECTIVE_REPOSITORY_IMPLEMENTATION";
+export const BRANCH = "agent/pca-07-w2r-postgres-uuid-authority-assertion-corrective";
+export const SOURCE_MAIN = "29bdcb5e2c643264c693a4d03bb8d52ea19577e6";
+export const SOURCE_TREE = "90da0cb3aa040174f1b5261c8e7091cbe3cb43d3";
 export const CORRECTIVE_VERSION = "20260829110000";
 export const CORRECTIVE_NAME =
   "pca_07_w2_transport_safe_atomic_ledger_aware_compatibility_corrective";
@@ -244,12 +244,11 @@ const w1LedgerAssertion = `
   END IF;`;
 
 const authorityAssertion = (tenantId) => `
-  SELECT count(*), min(tenant_id), max(tenant_id)
-    INTO v_count, v_min_tenant, v_max_tenant
+  SELECT count(*), count(*) FILTER (WHERE tenant_id = '${tenantId}'::uuid)
+    INTO v_count, v_target_tenant_count
     FROM prm2_rebaseline.authorized_tenant_ids();
   IF v_count <> 1
-     OR v_min_tenant IS DISTINCT FROM '${tenantId}'::uuid
-     OR v_max_tenant IS DISTINCT FROM '${tenantId}'::uuid THEN
+     OR v_target_tenant_count <> 1 THEN
     RAISE EXCEPTION 'PCA-07 W2 exact tenant manifest mismatch' USING ERRCODE = 'P0001';
   END IF;`;
 
@@ -331,10 +330,9 @@ const portalCatalogAssertion = (expectedPresent) => `
 function configPreflight(tenantId) {
   return `DO $pca07w2_config_pre$
 DECLARE
-  v_count integer;
+  v_count bigint;
   v_columns text[];
-  v_min_tenant uuid;
-  v_max_tenant uuid;
+  v_target_tenant_count bigint;
 BEGIN
   IF current_database() <> 'postgres' OR current_user <> 'postgres'
      OR current_setting('server_version_num')::integer / 10000 <> 17 THEN
@@ -449,10 +447,9 @@ $pca07w2_config_post$;`;
 function portalPreflight(tenantId) {
   return `DO $pca07w2_portal_pre$
 DECLARE
-  v_count integer;
+  v_count bigint;
   v_columns text[];
-  v_min_tenant uuid;
-  v_max_tenant uuid;
+  v_target_tenant_count bigint;
 BEGIN
   IF current_database() <> 'postgres' OR current_user <> 'postgres'
      OR current_setting('server_version_num')::integer / 10000 <> 17 THEN
@@ -664,7 +661,7 @@ export function buildContract() {
     projectedBodySha256: entry.projectedSha256,
   }));
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     gate: GATE,
     branch: BRANCH,
     sourceMain: SOURCE_MAIN,
@@ -680,9 +677,18 @@ export function buildContract() {
       executionMode: "TWO_ORDERED_MIGRATION_LOCAL_ATOMIC_ENVELOPES",
       transportSourceCopiesPerMigration: 1,
       ledgerStatementMode: "EXACT_TRANSPORT_QUERY_VIA_CURRENT_QUERY",
+      authorityAssertionMode: "EXACT_TOTAL_AND_FILTERED_TARGET_COUNT",
       configurationMustCommitBeforePortal: true,
       readOnlyReconciliationRequiredAfterAmbiguousTransportResult: true,
       blindReplayAllowed: false,
+    },
+    preflightIncident: {
+      result: "FAIL_CLOSED_POSTGRES_42883",
+      sqlState: "42883",
+      cause: "UUID_MIN_MAX_AGGREGATES_UNAVAILABLE",
+      failedBeforeApplicationWrites: true,
+      postflightW2LedgerRows: 0,
+      postflightW2PhysicalObjects: 0,
     },
     projectedMigrations: projected,
     projections: [

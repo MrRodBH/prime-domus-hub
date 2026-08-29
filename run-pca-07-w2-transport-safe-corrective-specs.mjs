@@ -43,7 +43,12 @@ assert.equal(manifest.sourceTree, SOURCE_TREE);
 assert.equal(manifest.corrective.version, CORRECTIVE_VERSION);
 assert.equal(manifest.corrective.executionMode, "TWO_ORDERED_MIGRATION_LOCAL_ATOMIC_ENVELOPES");
 assert.equal(manifest.corrective.transportSourceCopiesPerMigration, 1);
+assert.equal(manifest.corrective.authorityAssertionMode, "EXACT_TOTAL_AND_FILTERED_TARGET_COUNT");
 assert.equal(manifest.corrective.blindReplayAllowed, false);
+assert.equal(manifest.preflightIncident.sqlState, "42883");
+assert.equal(manifest.preflightIncident.failedBeforeApplicationWrites, true);
+assert.equal(manifest.preflightIncident.postflightW2LedgerRows, 0);
+assert.equal(manifest.preflightIncident.postflightW2PhysicalObjects, 0);
 assert.equal(manifest.projectedMigrations.length, 2);
 assert.deepEqual(manifest.projections, [
   "PG_MAX_FUNCTION_ARGS_JSONB_OBJECT_SPLIT",
@@ -99,6 +104,12 @@ for (const [label, sql] of [
   assert.ok(sql.includes("statements[1] = v_query") || sql.includes("statements[1]=v_query"));
   assert.ok(sql.includes("protected baseline drift"));
   assert.ok(sql.includes("unexpected W3-W6 ledger row"));
+  assert.ok(sql.includes("count(*) FILTER (WHERE tenant_id ="));
+  assert.ok(sql.includes("v_target_tenant_count <> 1"));
+  assert.ok(!sql.includes("min(tenant_id)"));
+  assert.ok(!sql.includes("max(tenant_id)"));
+  assert.ok(!sql.includes("v_min_tenant"));
+  assert.ok(!sql.includes("v_max_tenant"));
 }
 
 assert.equal(occurrences(configurationSql, "-- PR-M2 — Configuration Center"), 1);
@@ -193,6 +204,8 @@ mustContain(
     `SOURCE_TREE = ${SOURCE_TREE}`,
     "two ordered SQL",
     "blind replay is forbidden",
+    "FAIL_CLOSED_POSTGRES_42883",
+    "EXACT_TOTAL_AND_FILTERED_TARGET_COUNT",
     "PORTAL_SECRET_ERASURE = false",
     "PR_105_MUTATION = false",
   ],
@@ -205,6 +218,8 @@ mustContain(
     `SOURCE_TREE=${SOURCE_TREE}`,
     `CORRECTIVE_VERSION=${CORRECTIVE_VERSION}`,
     "EXECUTION_ENVELOPES=2",
+    "PCA07_W2R_SQLSTATE=42883",
+    "PCA07_W2R_AUTHORITY_ASSERTION=EXACT_TOTAL_AND_FILTERED_TARGET_COUNT",
     "W2_LIVE_LEDGER_BEFORE_IMPLEMENTATION=0/2",
     "SAME_BACKEND_WRITES=0",
   ],
@@ -213,10 +228,10 @@ mustContain(
 mustContain(
   continuity,
   [
-    "## 26. PCA-07 W2",
-    `PCA07_W2_SOURCE_MAIN=${SOURCE_MAIN}`,
-    "PCA07_W2_ENVELOPES=2_MIGRATION_LOCAL_ATOMIC",
-    "PCA07_W2_PORTAL_SECRET_ERASURE=false",
+    "## 27. PCA-07 W2R",
+    `PCA07_W2R_SOURCE_MAIN=${SOURCE_MAIN}`,
+    "PCA07_W2R_AUTHORITY_ASSERTION=EXACT_TOTAL_AND_FILTERED_TARGET_COUNT",
+    "PCA07_W2R_SAME_BACKEND_WRITES=0",
   ],
   "continuity",
 );
@@ -232,16 +247,7 @@ if (base) {
     .split(/\r?\n/)
     .filter(Boolean)
     .sort();
-  const allowed = [
-    ".github/workflows/release-gate.yml",
-    "package.json",
-    BUILDER,
-    TEST,
-    MANIFEST_PATH,
-    IMPACT,
-    EVIDENCE,
-    CONTINUITY,
-  ].sort();
+  const allowed = [BUILDER, TEST, MANIFEST_PATH, IMPACT, EVIDENCE, CONTINUITY].sort();
   assert.deepEqual(changed, allowed, "exact PCA-07 W2 diff changed");
   assert.equal(
     changed.some((path) => path.startsWith("supabase/migrations/")),
@@ -249,4 +255,4 @@ if (base) {
   );
 }
 
-console.log("PCA-07 W2 transport-safe corrective: PASS");
+console.log("PCA-07 W2R PostgreSQL UUID authority corrective: PASS");

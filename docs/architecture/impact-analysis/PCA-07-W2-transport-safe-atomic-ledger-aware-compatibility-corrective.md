@@ -3,11 +3,11 @@
 ## 1. CTDD decision
 
 ```text
-GATE = PCA-07_W2_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_COMPATIBILITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION
+GATE = PCA-07_W2R_POSTGRES_UUID_AUTHORITY_ASSERTION_CORRECTIVE_REPOSITORY_IMPLEMENTATION
 STATUS = IMPLEMENTED_IN_ISOLATED_BRANCH_NOT_EXECUTED
-SOURCE_MAIN = 2ea96b2710b382944d9dfdcb8cae78eebd238dcf
-SOURCE_TREE = b6d79b650ce575bee546e66395f97bf7ebd0ace8
-BRANCH = agent/pca-07-w2-transport-safe-atomic-ledger-aware-corrective
+SOURCE_MAIN = 29bdcb5e2c643264c693a4d03bb8d52ea19577e6
+SOURCE_TREE = 90da0cb3aa040174f1b5261c8e7091cbe3cb43d3
+BRANCH = agent/pca-07-w2r-postgres-uuid-authority-assertion-corrective
 CANONICAL_BACKEND_AUTHORITY = LOVABLE_MANAGED_BACKEND_ONLY
 OWNER_SUPABASE_ACCESS = LOVABLE_ONLY
 ```
@@ -20,13 +20,13 @@ repository-only application builder. It performs no backend read or write.
 
 ## 2. Blocking incompatibilities corrected
 
-| Finding | Unsafe effect | Executable projection |
-|---|---|---|
-| configuration `jsonb_build_object` exceeds PostgreSQL `FUNC_MAX_ARGS=100` | configuration statement fails before commit | split into two objects joined with `||` |
-| legacy Instagram value is a handle, while the target validator requires HTTPS | the one target snapshot fails validation | canonicalize the already-qualified handle to `https://instagram.com/<handle>`; any other non-HTTPS shape still fails preflight |
-| `feed_token` and `webhook_secret` retain UUID-generating defaults | new rows can recreate plaintext credentials | drop both defaults while making the columns nullable |
-| `portal_connectors_no_plaintext_credentials_check NOT VALID` conflicts with every one of the 444 retained connector rows | any later update of an existing connector can fail, including the credential-reference transition itself | defer the check until the separately authorized cutover has removed retained values |
-| the canonical files do not write the Lovable-managed migration ledger | schema can commit without history | write and verify the corresponding ledger row inside each migration-local transaction |
+| Finding                                                                                                                  | Unsafe effect                                                                                            | Executable projection                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --- | --- |
+| configuration `jsonb_build_object` exceeds PostgreSQL `FUNC_MAX_ARGS=100`                                                | configuration statement fails before commit                                                              | split into two objects joined with `                                                                                           |     | `   |
+| legacy Instagram value is a handle, while the target validator requires HTTPS                                            | the one target snapshot fails validation                                                                 | canonicalize the already-qualified handle to `https://instagram.com/<handle>`; any other non-HTTPS shape still fails preflight |
+| `feed_token` and `webhook_secret` retain UUID-generating defaults                                                        | new rows can recreate plaintext credentials                                                              | drop both defaults while making the columns nullable                                                                           |
+| `portal_connectors_no_plaintext_credentials_check NOT VALID` conflicts with every one of the 444 retained connector rows | any later update of an existing connector can fail, including the credential-reference transition itself | defer the check until the separately authorized cutover has removed retained values                                            |
+| the canonical files do not write the Lovable-managed migration ledger                                                    | schema can commit without history                                                                        | write and verify the corresponding ledger row inside each migration-local transaction                                          |
 
 The two canonical migration files remain byte-identical. Every projection is
 derived in memory from an exact SHA-256-locked source and is recorded in the
@@ -101,3 +101,21 @@ PR_105_MUTATION = false
 
 Publication, draft PR, protected merge, post-merge reconciliation and the
 Lovable-managed live application all require separate Owner gates.
+
+## 7. PCA-07 W2R PostgreSQL UUID authority corrective
+
+The first authorized Lovable-managed preflight reached the canonical PostgreSQL
+17.6 backend and failed before any application write with SQLSTATE `42883`.
+PostgreSQL does not provide `min(uuid)` or `max(uuid)` aggregates, so the prior
+manifest assertion could not evaluate the otherwise valid single-tenant set.
+
+Read-only postflight proved `FAIL_CLOSED_POSTGRES_42883`: all three W2 ledger
+targets remained absent, all W2 columns, functions and created tables remained
+absent, and the protected `74 / 444 / 888 / 22 / 15,826,788` baseline was
+unchanged.
+
+W2R replaces UUID ordering with `EXACT_TOTAL_AND_FILTERED_TARGET_COUNT`. The
+same function result must contain exactly one row in total and exactly one row
+equal to the authorized UUID. Empty, duplicated or foreign-tenant manifests
+still fail closed. No canonical migration, projection, tenant selection, RLS,
+ACL, retained secret, ledger rule or transport boundary changes.

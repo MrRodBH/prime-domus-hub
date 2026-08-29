@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 1,
-  "gate": "PCA-07_W2_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_COMPATIBILITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION",
-  "branch": "agent/pca-07-w2-transport-safe-atomic-ledger-aware-corrective",
-  "sourceMain": "2ea96b2710b382944d9dfdcb8cae78eebd238dcf",
-  "sourceTree": "b6d79b650ce575bee546e66395f97bf7ebd0ace8",
+  "schemaVersion": 2,
+  "gate": "PCA-07_W2R_POSTGRES_UUID_AUTHORITY_ASSERTION_CORRECTIVE_REPOSITORY_IMPLEMENTATION",
+  "branch": "agent/pca-07-w2r-postgres-uuid-authority-assertion-corrective",
+  "sourceMain": "29bdcb5e2c643264c693a4d03bb8d52ea19577e6",
+  "sourceTree": "90da0cb3aa040174f1b5261c8e7091cbe3cb43d3",
   "authority": {
     "repository": "PROTECTED_GITHUB_MAIN_ONLY",
     "canonicalBackend": "LOVABLE_MANAGED_BACKEND_ONLY",
@@ -15,9 +15,18 @@
     "executionMode": "TWO_ORDERED_MIGRATION_LOCAL_ATOMIC_ENVELOPES",
     "transportSourceCopiesPerMigration": 1,
     "ledgerStatementMode": "EXACT_TRANSPORT_QUERY_VIA_CURRENT_QUERY",
+    "authorityAssertionMode": "EXACT_TOTAL_AND_FILTERED_TARGET_COUNT",
     "configurationMustCommitBeforePortal": true,
     "readOnlyReconciliationRequiredAfterAmbiguousTransportResult": true,
     "blindReplayAllowed": false
+  },
+  "preflightIncident": {
+    "result": "FAIL_CLOSED_POSTGRES_42883",
+    "sqlState": "42883",
+    "cause": "UUID_MIN_MAX_AGGREGATES_UNAVAILABLE",
+    "failedBeforeApplicationWrites": true,
+    "postflightW2LedgerRows": 0,
+    "postflightW2PhysicalObjects": 0
   },
   "projectedMigrations": [
     {

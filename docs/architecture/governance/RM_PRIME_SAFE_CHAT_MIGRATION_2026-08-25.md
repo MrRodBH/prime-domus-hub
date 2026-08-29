@@ -661,3 +661,32 @@ PR_105_MUTATED=false
   transação e executa postflight antes do `COMMIT`; replay cego é proibido.
 - A remoção dos segredos e a futura `CHECK` permanecem no gate independente de
   cutover. Esta etapa não acessa nem altera o Same-Backend.
+
+---
+
+## 27. PCA-07 W2R — corretivo da asserção de autoridade UUID
+
+```text
+PCA07_W2R_SOURCE_MAIN=29bdcb5e2c643264c693a4d03bb8d52ea19577e6
+PCA07_W2R_SOURCE_TREE=90da0cb3aa040174f1b5261c8e7091cbe3cb43d3
+PCA07_W2R_PREFLIGHT_RESULT=FAIL_CLOSED_POSTGRES_42883
+PCA07_W2R_AUTHORITY_ASSERTION=EXACT_TOTAL_AND_FILTERED_TARGET_COUNT
+PCA07_W2R_POSTFLIGHT_LEDGER=0/3
+PCA07_W2R_POSTFLIGHT_PHYSICAL=ABSENT
+PCA07_W2R_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+ROADMAP_SITE_UPDATED=false
+PR_105_MUTATED=false
+```
+
+- O primeiro preflight W2 chegou ao PostgreSQL 17.6 canônico, mas falhou antes
+  de qualquer write porque `min(uuid)` e `max(uuid)` não existem.
+- O postflight read-only confirmou ledger W2 `0/3`, ausência física integral e
+  baseline protegido inalterado.
+- W2R exige uma linha total e uma linha igual ao UUID autorizado por contagens
+  independentes; não ordena UUIDs nem amplia o manifesto.
+- Esta etapa é repository-only. Publicação, PR, merge e novo preflight/aplicação
+  Lovable-managed permanecem gates separados.
