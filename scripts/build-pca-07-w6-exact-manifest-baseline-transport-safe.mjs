@@ -36,19 +36,33 @@ const sqlString = (value) => `'${value.replaceAll("'", "''")}'`;
 const sqlTextArray = (values) => `ARRAY[${values.map(sqlString).join(",")}]`;
 const pairs = (items) => items.map(([version, name]) => `('${version}','${name}')`).join(",");
 
-const W2 = [
+export const HISTORICAL_W2 = [
   ["20260728233000", "pr_m2_configuration_center"],
   ["20260729103000", "pr_m2_portal_connectors"],
   ["20260829110000", "pca_07_w2_transport_safe_atomic_ledger_aware_compatibility_corrective"],
 ];
-const W3 = [
+export const HISTORICAL_W3 = [
   ["20260729183000", "pr_m2_cms_content_management"],
   ["20260729211500", "pr_m2_crm_operational_workflows"],
   ["20260829145000", "pca_07_w3_transport_safe_atomic_ledger_aware_compatibility_corrective"],
 ];
-const W4 = [
+export const HISTORICAL_W4 = [
   ["20260729233000", "pr_m2_marketing_connectors"],
   ["20260730010000", "pr_m2_tracking_consent_and_event_bindings"],
+];
+export const CANONICAL_W2 = [
+  ["20260728233000", "pr_m2_configuration_center"],
+  ["20260729103000", "pr_m2_portal_functional_completion"],
+  ["20260829110000", "pca_07_w2_transport_safe_atomic_ledger_aware_compatibility_corrective"],
+];
+export const CANONICAL_W3 = [
+  ["20260729183000", "pr_m2_cms_workflow_functional_completion"],
+  ["20260729211500", "pr_m2_crm_operational_workflow"],
+  ["20260829145000", "pca_07_w3_transport_safe_atomic_ledger_aware_compatibility_corrective"],
+];
+export const CANONICAL_W4 = [
+  ["20260729233000", "pr_m2_marketing_channels_lead_ingestion"],
+  ["20260730010000", "pr_m2_analytics_tracking_conversion_events"],
 ];
 
 function canonicalProjection() {
@@ -91,8 +105,11 @@ OR (SELECT count(*) FROM public.tenant_tracking_event_bindings WHERE tenant_id='
 OR (SELECT count(*) FROM public.tenant_tracking_consent_configuration WHERE tenant_id='${tenantId}'::uuid)<>1
 THEN RAISE EXCEPTION 'PCA-07 W6 exact tenant baseline mismatch' USING ERRCODE='P0001';END IF;`;
 
-function preflight(tenantId) {
+function preflight(tenantId, priorLedgerCanonicalNames) {
   const w5Pairs = pairs(W5.map((entry) => [entry.version, entry.name]));
+  const w2 = priorLedgerCanonicalNames ? CANONICAL_W2 : HISTORICAL_W2;
+  const w3 = priorLedgerCanonicalNames ? CANONICAL_W3 : HISTORICAL_W3;
+  const w4 = priorLedgerCanonicalNames ? CANONICAL_W4 : HISTORICAL_W4;
   return `DO $w6pre$ DECLARE v_count bigint;v_target_count bigint;v_columns text[];v_item text;BEGIN
 IF current_database()<>'postgres' OR current_user<>'postgres' OR current_setting('server_version_num')::integer/10000<>17
 THEN RAISE EXCEPTION 'PCA-07 W6 backend identity mismatch' USING ERRCODE='P0001';END IF;
@@ -110,11 +127,11 @@ SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE
 (sm.version='20260828160617' AND sm.name='pca_07r2_w1_forensic_forward_only_ledger_reconciliation' AND array_length(sm.statements,1)=1
  AND octet_length(sm.statements[1])=77274 AND encode(extensions.digest(sm.statements[1],'sha256'),'hex')='3f4ff756caa611cd4e687444cebca6d912844aab26606b10942a37abcd6699aa');
 IF v_count<>3 THEN RAISE EXCEPTION 'PCA-07 W6 W1 ledger mismatch' USING ERRCODE='P0001';END IF;
-SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE (sm.version,sm.name) IN (VALUES ${pairs(W2)}) AND sm.created_by='PCA-07_W2_LOVABLE_MANAGED_CONTROLLED_APPLICATION' AND array_length(sm.statements,1)=1 AND sm.idempotency_key='pca-07-w2:'||sm.version||':'||encode(extensions.digest(sm.statements[1],'sha256'),'hex');
+SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE (sm.version,sm.name) IN (VALUES ${pairs(w2)}) AND sm.created_by='PCA-07_W2_LOVABLE_MANAGED_CONTROLLED_APPLICATION' AND array_length(sm.statements,1)=1 AND sm.idempotency_key='pca-07-w2:'||sm.version||':'||encode(extensions.digest(sm.statements[1],'sha256'),'hex');
 IF v_count<>3 THEN RAISE EXCEPTION 'PCA-07 W6 W2 ledger mismatch' USING ERRCODE='P0001';END IF;
-SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE (sm.version,sm.name) IN (VALUES ${pairs(W3)}) AND sm.created_by='PCA-07_W3_LOVABLE_MANAGED_CONTROLLED_APPLICATION' AND array_length(sm.statements,1)=1 AND sm.idempotency_key='pca-07-w3:'||sm.version||':'||encode(extensions.digest(sm.statements[1],'sha256'),'hex');
+SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE (sm.version,sm.name) IN (VALUES ${pairs(w3)}) AND sm.created_by='PCA-07_W3_LOVABLE_MANAGED_CONTROLLED_APPLICATION' AND array_length(sm.statements,1)=1 AND sm.idempotency_key='pca-07-w3:'||sm.version||':'||encode(extensions.digest(sm.statements[1],'sha256'),'hex');
 IF v_count<>3 THEN RAISE EXCEPTION 'PCA-07 W6 W3 ledger mismatch' USING ERRCODE='P0001';END IF;
-SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE (sm.version,sm.name) IN (VALUES ${pairs(W4)}) AND sm.created_by='PCA-07_W4_LOVABLE_MANAGED_CONTROLLED_APPLICATION' AND array_length(sm.statements,1)=1 AND sm.idempotency_key='pca-07-w4:'||sm.version||':'||encode(extensions.digest(sm.statements[1],'sha256'),'hex');
+SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE (sm.version,sm.name) IN (VALUES ${pairs(w4)}) AND sm.created_by='PCA-07_W4_LOVABLE_MANAGED_CONTROLLED_APPLICATION' AND array_length(sm.statements,1)=1 AND sm.idempotency_key='pca-07-w4:'||sm.version||':'||encode(extensions.digest(sm.statements[1],'sha256'),'hex');
 IF v_count<>2 THEN RAISE EXCEPTION 'PCA-07 W6 W4 ledger mismatch' USING ERRCODE='P0001';END IF;
 SELECT count(*) INTO v_count FROM supabase_migrations.schema_migrations sm WHERE (sm.version,sm.name) IN (VALUES ${w5Pairs}) AND sm.created_by='PCA-07_W5_LOVABLE_MANAGED_CONTROLLED_APPLICATION' AND array_length(sm.statements,1)=1 AND sm.idempotency_key='pca-07-w5:'||sm.version||':'||encode(extensions.digest(sm.statements[1],'sha256'),'hex');
 IF v_count<>8 THEN RAISE EXCEPTION 'PCA-07 W6 W5 ledger mismatch' USING ERRCODE='P0001';END IF;
@@ -167,7 +184,7 @@ ${protectedBaseline(tenantId)}
 END;$w6post$;`;
 }
 
-export function buildApplication({ tenantId, ownerAuthorization }) {
+export function buildApplication({ tenantId, ownerAuthorization, priorLedgerCanonicalNames = false }) {
   assert.match(tenantId, /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, "exact tenant UUID required");
   assert.match(ownerAuthorization, /^PCA-[0-9A-Z_-]{3,120}$/, "bounded PCA authorization required");
   const { projected } = canonicalProjection();
@@ -178,7 +195,7 @@ SET LOCAL search_path=public,extensions,pg_temp;
 SELECT set_config('app.pr_m2_authorized_tenant_ids','["${tenantId}"]',true);
 SELECT set_config('app.pr_m2_authorized_tenant_manifest_sha256','${manifestSha256}',true);
 SELECT set_config('app.pr_m2_owner_authorization',${sqlString(ownerAuthorization)},true);
-${preflight(tenantId)}
+${preflight(tenantId, priorLedgerCanonicalNames)}
 ${projected}
 DO $w6apply$ DECLARE v_result jsonb;BEGIN
 SELECT public.provision_authorized_tenant_product_baselines(ARRAY['${tenantId}'::uuid],'${manifestSha256}',${sqlString(ownerAuthorization)}) INTO v_result;

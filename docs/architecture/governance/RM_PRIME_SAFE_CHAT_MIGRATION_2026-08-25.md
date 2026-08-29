@@ -838,3 +838,30 @@ PR_105_MUTATED=false
 - W6 permanece ausente no backend e é materializada como um envelope atômico por manifesto exato.
 - O tenant autorizado já possui baseline completo; a chamada controlada é idempotente.
 - A aplicação futura permanece exclusiva do Lovable após merge protegido.
+
+---
+
+## 33. PCA-07 W6R — autoridade canônica dos nomes do ledger anterior
+
+```text
+PCA07_W6R_SOURCE_MAIN=6b5aae433460bcc91672c80d6a2c9b782099b984
+PCA07_W6R_SOURCE_TREE=09251fe82f72404af75ce1f4fec3fe7f53575646
+PCA07_W6R_RESULT=REPOSITORY_CORRECTIVE_IMPLEMENTED_NOT_EXECUTED
+PCA07_W6R_FAILURE_DISPOSITION=TOTAL_TRANSACTION_ROLLBACK
+PCA07_W6R_ROOT_CAUSE=NON_CANONICAL_PRIOR_LEDGER_NAME_ASSERTIONS
+PCA07_W6R_W6_LEDGER_CURRENT=0/1
+PCA07_W6R_CORRECTED_ENVELOPE_BYTES=27449
+PCA07_W6R_ORIGINAL_W6_ARTIFACT_PRESERVED=true
+PCA07_W6R_CANONICAL_MIGRATION_MUTATION=false
+PCA07_W6R_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+PR_105_MUTATED=false
+```
+
+- A aplicação W6 falhou no preflight W2 e sofreu rollback transacional total.
+- O corretivo altera apenas as asserções dos nomes canônicos já registrados em W2–W4.
+- O envelope W6 histórico e a migration canônica permanecem byte-identical.
+- Após merge protegido, somente o envelope W6R corrigido poderá ser aplicado via Lovable.
