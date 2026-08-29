@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-07_W3_CMS_CRM_POSTGRES_UUID_AGGREGATE_INTEGER_SIGNATURE_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_CORRECTIVE_REPOSITORY_IMPLEMENTATION",
+  "branch": "agent/pca-07-w3-cms-crm-transport-safe-corrective",
+  "sourceMain": "65e11c80c22f61929de340606be558cf26012f45",
+  "sourceTree": "cb206ef3ceb61c49f2e731e716fdf8ee62e1a561",
+  "authority": {
+    "repository": "PROTECTED_GITHUB_MAIN_ONLY",
+    "canonicalBackend": "LOVABLE_MANAGED_BACKEND_ONLY",
+    "ownerSupabaseAccess": "LOVABLE_ONLY"
+  },
+  "corrective": {
+    "version": "20260829145000",
+    "name": "pca_07_w3_transport_safe_atomic_ledger_aware_compatibility_corrective",
+    "executionMode": "TWO_ORDERED_MIGRATION_LOCAL_ATOMIC_ENVELOPES",
+    "transportCompaction": "DETERMINISTIC_LITERAL_PRESERVING_SQL_COMPACTION",
+    "ledgerStatementMode": "EXACT_TRANSPORT_QUERY_VIA_CURRENT_QUERY",
+    "uuidAuthorityMode": "COUNT_PLUS_ORDERED_UUID_ARRAY_FIRST_ELEMENT",
+    "cmsMustCommitBeforeCrm": true,
+    "blindReplayAllowed": false
+  },
+  "projectedMigrations": [
+    {
+      "version": "20260729183000",
+      "name": "pr_m2_cms_workflow_functional_completion",
+      "path": "supabase/migrations/20260729183000_pr_m2_cms_workflow_functional_completion.sql",
+      "capability": "CMS",
+      "canonicalBytes": 58763,
+      "canonicalSha256": "b4129777c1c63f7ff6cd452142ee05efe8154106ee9fafda09695cf2de4d5809",
+      "projectedBodyBytes": 52940,
+      "projectedBodySha256": "b216480749041297427eb0c1674a2710f7150c69d823909a0d736f6a11422597"
+    },
+    {
+      "version": "20260729211500",
+      "name": "pr_m2_crm_operational_workflow",
+      "path": "supabase/migrations/20260729211500_pr_m2_crm_operational_workflow.sql",
+      "capability": "CRM",
+      "canonicalBytes": 73513,
+      "canonicalSha256": "841e63be5592ff3b28994f3d25626e247c0d32cf09afbde9809bbe16b931942e",
+      "projectedBodyBytes": 66510,
+      "projectedBodySha256": "d68b4883044a5e4ebd205a98f2d1e16f92adc79d47a790b83a9c3c85c98f5f94"
+    }
+  ],
+  "projections": [
+    "POSTGRES_UUID_ARRAY_AGG_AUTHORITY_X5",
+    "TRANSITION_LEAD_STATUS_INTEGER_SIGNATURE",
+    "TRANSPORT_SAFE_SQL_COMPACTION"
+  ],
+  "liveReadOnlyBaseline": {
+    "postgresVersion": "17.6",
+    "tenantCount": 74,
+    "exactTargetCount": 1,
+    "w1LedgerRows": 3,
+    "w2LedgerRows": 3,
+    "w3LedgerRows": 0,
+    "w3TablesPresent": 0,
+    "w3ColumnsPresent": 0,
+    "w3FunctionsPresent": 0,
+    "targetCmsPages": 0,
+    "targetCmsForms": 1,
+    "targetCmsFormFields": 4,
+    "targetCmsCampaigns": 1,
+    "targetLeads": 0,
+    "targetMembers": 4,
+    "targetTeams": 0,
+    "targetDiscardReasons": 7,
+    "targetLostReasons": 7,
+    "portalConnectorCount": 444,
+    "retainedSensitiveFields": 888,
+    "storageObjectCount": 22,
+    "storageBytes": 15826788
+  },
+  "security": {
+    "cmsTableCount": 9,
+    "cmsFunctionCount": 11,
+    "crmTableCount": 8,
+    "crmFunctionCount": 20,
+    "clientRolesDenied": ["PUBLIC", "anon", "authenticated"],
+    "serviceRoleRequired": true,
+    "dataApiExposureImplicitlyTrusted": false
+  },
+  "controls": {
+    "repositoryImplementationOnly": true,
+    "sameBackendReads": 0,
+    "sameBackendWrites": 0,
+    "directSupabaseCalls": 0,
+    "providerMutation": false,
+    "deploy": false,
+    "roadmapUpdate": false,
+    "pr105Mutation": false,
+    "canonicalMigrationMutation": false
+  }
+}
