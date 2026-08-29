@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-07_W6R_PRIOR_LEDGER_CANONICAL_NAME_AUTHORITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION",
+  "branch": "agent/pca-07-w6r-ledger-name-authority-corrective",
+  "sourceMain": "6b5aae433460bcc91672c80d6a2c9b782099b984",
+  "sourceTree": "09251fe82f72404af75ce1f4fec3fe7f53575646",
+  "authority": {
+    "repository": "PROTECTED_GITHUB_MAIN_ONLY",
+    "canonicalBackend": "LOVABLE_MANAGED_BACKEND_ONLY",
+    "ownerSupabaseAccess": "LOVABLE_ONLY"
+  },
+  "failure": {
+    "envelopeBytes": 27413,
+    "envelopeSha256": "1232986bcdc08dce2ce637af112c0b0f13e2fc61da136c08553a2053cbcb8f9d",
+    "lovableResult": "P0001_PCA_07_W6_W2_LEDGER_MISMATCH",
+    "databaseDisposition": "TOTAL_TRANSACTION_ROLLBACK",
+    "w6LedgerRowsAfterFailure": 0,
+    "w6FunctionsAfterFailure": 0,
+    "w6TriggerAfterFailure": 0,
+    "rootCause": "NON_CANONICAL_PRIOR_LEDGER_NAME_ASSERTIONS"
+  },
+  "corrective": {
+    "scope": "PRIOR_LEDGER_NAME_ASSERTIONS_ONLY",
+    "historicalAssertions": {
+      "w2": [["20260728233000", "pr_m2_configuration_center"], ["20260729103000", "pr_m2_portal_connectors"], ["20260829110000", "pca_07_w2_transport_safe_atomic_ledger_aware_compatibility_corrective"]],
+      "w3": [["20260729183000", "pr_m2_cms_content_management"], ["20260729211500", "pr_m2_crm_operational_workflows"], ["20260829145000", "pca_07_w3_transport_safe_atomic_ledger_aware_compatibility_corrective"]],
+      "w4": [["20260729233000", "pr_m2_marketing_connectors"], ["20260730010000", "pr_m2_tracking_consent_and_event_bindings"]]
+    },
+    "canonicalAssertions": {
+      "w2": [["20260728233000", "pr_m2_configuration_center"], ["20260729103000", "pr_m2_portal_functional_completion"], ["20260829110000", "pca_07_w2_transport_safe_atomic_ledger_aware_compatibility_corrective"]],
+      "w3": [["20260729183000", "pr_m2_cms_workflow_functional_completion"], ["20260729211500", "pr_m2_crm_operational_workflow"], ["20260829145000", "pca_07_w3_transport_safe_atomic_ledger_aware_compatibility_corrective"]],
+      "w4": [["20260729233000", "pr_m2_marketing_channels_lead_ingestion"], ["20260730010000", "pr_m2_analytics_tracking_conversion_events"]]
+    },
+    "correctedEnvelope": {
+      "capability": "EXACT_MANIFEST_TENANT_PRODUCT_BASELINE",
+      "versions": ["20260826185014"],
+      "bytes": 27449,
+      "sha256": "58fc41803bee53b66612ee9677fc5a9f14f317f9d0e0ada78ad3297c248c079e"
+    },
+    "originalW6ArtifactPreserved": true,
+    "canonicalMigrationMutation": false,
+    "blindReplayAllowed": false
+  },
+  "liveReadOnlyBaseline": {
+    "w1LedgerRows": 3,
+    "w2LedgerRows": 3,
+    "w3LedgerRows": 3,
+    "w4LedgerRows": 2,
+    "w5LedgerRows": 8,
+    "w6LedgerRows": 0,
+    "w6FunctionsPresent": 0,
+    "w6TriggerPresent": 0,
+    "exactTargetCount": 1,
+    "portalConnectorCount": 444,
+    "retainedSensitiveFields": 888,
+    "storageObjectCount": 22,
+    "storageBytes": 15826788
+  },
+  "security": {
+    "functions": ["public.provision_tenant_product_baseline(uuid)", "public.provision_authorized_tenant_product_baselines(uuid[],text,text)", "public.provision_new_tenant_product_baseline()"],
+    "trigger": "trg_provision_new_tenant_product_baseline",
+    "targetMigration": "supabase/migrations/20260826185014_pca_04_exact_tenant_product_baseline.sql",
+    "targetMigrationSha256": "676d220920f313c2f567962bbab9f27a641d7bc22d2283edc6bc8f0a4b989989",
+    "clientRolesDenied": ["PUBLIC", "anon", "authenticated"],
+    "serviceRoleOrchestratorOnly": true
+  },
+  "controls": {
+    "repositoryImplementationOnly": true,
+    "sameBackendReads": 0,
+    "sameBackendWrites": 0,
+    "directSupabaseCalls": 0,
+    "providerMutation": false,
+    "deploy": false,
+    "roadmapUpdate": false,
+    "pr105Mutation": false,
+    "canonicalMigrationMutation": false
+  }
+}
