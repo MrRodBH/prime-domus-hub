@@ -94,6 +94,7 @@ jobs:
           pca_07_w5r=false
           pca_07_w6=false
           pca_07_w6r=false
+          pca_07_terminal=false
           dca_02_bl2_envelope=false
           dca_02_bl2_preflight=false
           dca_02_bl2_r2_rebaseline=false
@@ -179,6 +180,9 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-pca-07-w6r-prior-ledger-name-authority-corrective-specs.mjs "* ]]; then
               pca_07_w6r=true
             fi
+            if [[ " ${changed_files[*]} " == *" run-pca-07-terminal-reconciliation-successor-selection-specs.mjs "* ]]; then
+              pca_07_terminal=true
+            fi
             if [[ " ${changed_files[*]} " == *" run-dca-02-bl2-isolated-pitr-restore-envelope-specs.mjs "* ]]; then
               dca_02_bl2_envelope=true
             fi
@@ -234,6 +238,7 @@ jobs:
           echo "pca_07_w5r=$pca_07_w5r" >> "$GITHUB_OUTPUT"
           echo "pca_07_w6=$pca_07_w6" >> "$GITHUB_OUTPUT"
           echo "pca_07_w6r=$pca_07_w6r" >> "$GITHUB_OUTPUT"
+          echo "pca_07_terminal=$pca_07_terminal" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_envelope=$dca_02_bl2_envelope" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_preflight=$dca_02_bl2_preflight" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline" >> "$GITHUB_OUTPUT"
@@ -350,6 +355,12 @@ jobs:
         env:
           PCA_07_W6R_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:pca-07-w6r
+
+      - name: Verify PCA-07 terminal reconciliation and successor selection
+        if: steps.scope.outputs.pca_07_terminal == 'true'
+        env:
+          PCA_07_TERMINAL_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pca-07:terminal
       - name: Verify DCA-02-BL2 isolated non-production PITR restore execution envelope
         if: steps.scope.outputs.dca_02_bl2_envelope == 'true'
         env:
