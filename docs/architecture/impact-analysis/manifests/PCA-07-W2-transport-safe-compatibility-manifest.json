@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-07_W2_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_COMPATIBILITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION",
+  "branch": "agent/pca-07-w2-transport-safe-atomic-ledger-aware-corrective",
+  "sourceMain": "2ea96b2710b382944d9dfdcb8cae78eebd238dcf",
+  "sourceTree": "b6d79b650ce575bee546e66395f97bf7ebd0ace8",
+  "authority": {
+    "repository": "PROTECTED_GITHUB_MAIN_ONLY",
+    "canonicalBackend": "LOVABLE_MANAGED_BACKEND_ONLY",
+    "ownerSupabaseAccess": "LOVABLE_ONLY"
+  },
+  "corrective": {
+    "version": "20260829110000",
+    "name": "pca_07_w2_transport_safe_atomic_ledger_aware_compatibility_corrective",
+    "executionMode": "TWO_ORDERED_MIGRATION_LOCAL_ATOMIC_ENVELOPES",
+    "transportSourceCopiesPerMigration": 1,
+    "ledgerStatementMode": "EXACT_TRANSPORT_QUERY_VIA_CURRENT_QUERY",
+    "configurationMustCommitBeforePortal": true,
+    "readOnlyReconciliationRequiredAfterAmbiguousTransportResult": true,
+    "blindReplayAllowed": false
+  },
+  "projectedMigrations": [
+    {
+      "version": "20260728233000",
+      "name": "pr_m2_configuration_center",
+      "path": "supabase/migrations/20260728233000_pr_m2_configuration_center.sql",
+      "capability": "CONFIGURATION",
+      "canonicalBytes": 34401,
+      "canonicalSha256": "782a61c636cbd8310f197fa2af4fb50504a7e03f5a6f3f39dccd4e5266553472",
+      "projectedBodyBytes": 34881,
+      "projectedBodySha256": "c0eaca9fe2b94a1d069be738047dc1e39abe3945a1a9b879273fa795eb6a6bfa"
+    },
+    {
+      "version": "20260729103000",
+      "name": "pr_m2_portal_functional_completion",
+      "path": "supabase/migrations/20260729103000_pr_m2_portal_functional_completion.sql",
+      "capability": "PORTALS",
+      "canonicalBytes": 48608,
+      "canonicalSha256": "0507fb83eda9fd6079dee18348a09ddfbb7ca9bbe951feb1abd0a0d1f2da30eb",
+      "projectedBodyBytes": 48798,
+      "projectedBodySha256": "43e400472228a76192ed284ae2255b8ca59e289d4c4dfe9e7f1386f3807ac125"
+    }
+  ],
+  "projections": [
+    "PG_MAX_FUNCTION_ARGS_JSONB_OBJECT_SPLIT",
+    "LEGACY_INSTAGRAM_HANDLE_TO_HTTPS",
+    "PORTAL_CREDENTIAL_NULL_DEFAULTS",
+    "DEFER_NO_PLAINTEXT_CHECK_UNTIL_CREDENTIAL_CUTOVER"
+  ],
+  "liveReadOnlyBaseline": {
+    "postgresMajor": 17,
+    "tenantCount": 74,
+    "exactTargetCount": 1,
+    "portalConnectorCount": 444,
+    "targetPortalConnectorCount": 6,
+    "protectedPortalConnectorCount": 438,
+    "retainedSensitiveFieldCount": 888,
+    "targetVerifierRowsExpected": 12,
+    "targetConfigurationRowsExpected": 1,
+    "storageObjectCount": 22,
+    "storageBytes": 15826788,
+    "w1LedgerRowsExact": 3,
+    "w2LedgerRowsBeforeApplication": 0
+  },
+  "security": {
+    "configRlsTables": ["site_settings", "site_settings_versions", "website_menu_items"],
+    "portalRlsTables": [
+      "portal_connectors",
+      "imovel_portais",
+      "portal_sync_logs",
+      "portal_sync_dlq",
+      "portal_connector_credential_verifiers",
+      "tenant_portal_mappings",
+      "tenant_portal_jobs",
+      "tenant_portal_job_attempts",
+      "tenant_portal_exports"
+    ],
+    "configFunctionCount": 6,
+    "portalFunctionCount": 15,
+    "clientRolesDenied": ["PUBLIC", "anon", "authenticated"],
+    "serviceRoleRequired": true,
+    "dataApiExposureImplicitlyTrusted": false
+  },
+  "controls": {
+    "repositoryImplementationOnly": true,
+    "sameBackendReads": 0,
+    "sameBackendWrites": 0,
+    "lovableCalls": 0,
+    "directSupabaseCalls": 0,
+    "providerMutation": false,
+    "deploy": false,
+    "roadmapUpdate": false,
+    "pr105Mutation": false,
+    "portalSecretErasure": false
+  }
+}
