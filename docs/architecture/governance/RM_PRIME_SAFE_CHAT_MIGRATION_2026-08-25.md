@@ -892,3 +892,30 @@ DIRECT_SUPABASE_CALLS=0
 - O baseline protegido permaneceu em 74 tenants, 444 conectores, 888 campos sensíveis retidos e 22 objetos/15.826.788 bytes no Storage.
 - PCA-08 foi selecionado apenas como gate read-only de decisão; nenhuma homologação, produção, deploy ou mutação de provedor foi autorizada.
 - DCA-02-BL2 R2 continua obrigatória após homologação e antes de produção.
+
+---
+
+## 35. PCA-09 — envelope provider-agnostic de entrada em homologação
+
+```text
+PCA09_SOURCE_MAIN=6f1fa580863a3f4e3e936912bacfce74e1d4bb01
+PCA09_SOURCE_TREE=5db1410e26b093bb7a4ac345641f3a03126b3443
+PCA09_RESULT=REPOSITORY_ENVELOPE_IMPLEMENTED_NOT_EXECUTED
+PCA09_ENTRY_STATE=BLOCKED_EXTERNAL_EXACT_MAIN_RUNTIME_AND_OPERATOR_PACKET
+PCA09_LEDGER=3/3/3/2/8/1
+PCA09_LOVABLE_LATEST_COMMIT=9d64c7ac6c1259652a70022db08583139cb368af
+PCA09_LOVABLE_CANDIDATE_ELIGIBLE=false
+PCA09_EXACT_MAIN_RUNTIME_READY=false
+PCA09_MINIMUM_SYNTHETIC_TENANTS=2
+PCA09_NEXT_GATE_SELECTED=PCA-10_PROVIDER_AGNOSTIC_EXACT_MAIN_HOMOLOGATION_RUNTIME_READ_ONLY_CAPABILITY_PREFLIGHT
+PCA09_NEXT_GATE_AUTHORIZED=false
+CONTROLLED_HOMOLOGATION_AUTHORIZED=false
+PRODUCTION_AUTHORIZED=false
+DIRECT_SUPABASE_CALLS=0
+```
+
+- GitHub `main` e o Same-Backend Lovable-managed estão íntegros para a próxima qualificação.
+- A publicação Lovable aponta para o head histórico da PR #105 e não é candidata de homologação.
+- Nenhum workflow GitHub publica o release candidate exato; runtime e pacote de operador permanecem ausentes.
+- PCA-09 absorve controles seguros do runbook histórico sem reabrir HVP-01/HRC-01.
+- DCA-02-BL2 R2 permanece não bloqueante para homologação e obrigatória antes de produção.

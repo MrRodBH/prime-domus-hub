@@ -95,6 +95,7 @@ jobs:
           pca_07_w6=false
           pca_07_w6r=false
           pca_07_terminal=false
+          pca_09=false
           dca_02_bl2_envelope=false
           dca_02_bl2_preflight=false
           dca_02_bl2_r2_rebaseline=false
@@ -183,6 +184,9 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-pca-07-terminal-reconciliation-successor-selection-specs.mjs "* ]]; then
               pca_07_terminal=true
             fi
+            if [[ " ${changed_files[*]} " == *" run-pca-09-provider-agnostic-homologation-entry-envelope-specs.mjs "* ]]; then
+              pca_09=true
+            fi
             if [[ " ${changed_files[*]} " == *" run-dca-02-bl2-isolated-pitr-restore-envelope-specs.mjs "* ]]; then
               dca_02_bl2_envelope=true
             fi
@@ -239,11 +243,12 @@ jobs:
           echo "pca_07_w6=$pca_07_w6" >> "$GITHUB_OUTPUT"
           echo "pca_07_w6r=$pca_07_w6r" >> "$GITHUB_OUTPUT"
           echo "pca_07_terminal=$pca_07_terminal" >> "$GITHUB_OUTPUT"
+          echo "pca_09=$pca_09" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_envelope=$dca_02_bl2_envelope" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_preflight=$dca_02_bl2_preflight" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
-          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 pca_05r=$pca_05r pca_05r_closure=$pca_05r_closure pca_06=$pca_06 pca_07r=$pca_07r pca_07r2=$pca_07r2 pca_07_w2=$pca_07_w2 pca_07_w3=$pca_07_w3 pca_07_w4=$pca_07_w4 pca_07_w5=$pca_07_w5 dca_02_bl2_envelope=$dca_02_bl2_envelope dca_02_bl2_preflight=$dca_02_bl2_preflight dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline changed_file_count=$changed_file_count"
+          echo "Release Gate docs_only=$docs_only arch_12f_01=$arch_12f_01 arch_12f_02a=$arch_12f_02a arch_12f_02b=$arch_12f_02b arch_12f_03=$arch_12f_03 arch_12f_04a=$arch_12f_04a arch_tenancy_01=$arch_tenancy_01 arch_integration=$arch_integration pr_m3_fvs3=$pr_m3_fvs3 pr_m3_fvs4=$pr_m3_fvs4 pr_m3_fvs5=$pr_m3_fvs5 pr_m3_fvs6=$pr_m3_fvs6 pr_m3_sec_02=$pr_m3_sec_02 pca_05r=$pca_05r pca_05r_closure=$pca_05r_closure pca_06=$pca_06 pca_07r=$pca_07r pca_07r2=$pca_07r2 pca_07_w2=$pca_07_w2 pca_07_w3=$pca_07_w3 pca_07_w4=$pca_07_w4 pca_07_w5=$pca_07_w5 pca_09=$pca_09 dca_02_bl2_envelope=$dca_02_bl2_envelope dca_02_bl2_preflight=$dca_02_bl2_preflight dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline changed_file_count=$changed_file_count"
 
       - name: Documentation governance validation
         if: steps.scope.outputs.docs_only == 'true'
@@ -361,6 +366,13 @@ jobs:
         env:
           PCA_07_TERMINAL_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:pca-07:terminal
+
+      - name: Verify PCA-09 provider-agnostic exact-main homologation entry envelope
+        if: steps.scope.outputs.pca_09 == 'true'
+        env:
+          PCA_09_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pca-09
+
       - name: Verify DCA-02-BL2 isolated non-production PITR restore execution envelope
         if: steps.scope.outputs.dca_02_bl2_envelope == 'true'
         env:
