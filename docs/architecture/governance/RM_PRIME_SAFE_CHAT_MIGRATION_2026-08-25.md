@@ -755,3 +755,34 @@ PR_105_MUTATED=false
 - Cada envelope registra o exato `current_query()` no ledger e conclui o
   postflight físico, de dados, RLS e ACL antes do `COMMIT`.
 - A implementação é repository-only; a aplicação continua exclusiva do Lovable.
+
+---
+
+## 30. PCA-07 W5 — corretivo de inventário final transport-safe materializado
+
+```text
+PCA07_W5_SOURCE_MAIN=72cffa66686fd1de26cd48da688814b2c636dfe1
+PCA07_W5_SOURCE_TREE=d6f3df55f0d1ae24cc21c14ffa4bae8ab374c7a5
+PCA07_W5_RESULT=REPOSITORY_CORRECTIVE_IMPLEMENTED_NOT_EXECUTED
+PCA07_W5_ENVELOPES=6_ORDERED_ATOMIC
+PCA07_W5_CANONICAL_MIGRATIONS=8
+PCA07_W5_LEDGER_BEFORE_IMPLEMENTATION=0/8
+PCA07_W5_PHYSICAL_BEFORE_IMPLEMENTATION=0/15_TABLES_0/17_FUNCTIONS
+PCA07_W5_SEMANTIC_PROJECTIONS=0
+PCA07_W5_CANONICAL_MIGRATION_MUTATION=false
+PCA07_W5_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+ROADMAP_SITE_UPDATED=false
+PR_105_MUTATED=false
+```
+
+- O preflight Lovable-managed confirmou manifesto exato 1/1, W1–W4 íntegros,
+  W5 ausente, dependências compatíveis e baseline protegido intacto.
+- CMS inventory, Marketing activation e hardening ficam na mesma transação para
+  impedir exposição do predicado intermediário obsoleto `current_version_id`.
+- Os oito arquivos canônicos permanecem imutáveis; seis envelopes compactados
+  registram o `current_query()` exato e exigem postflight antes do commit.
+- A implementação é repository-only; a aplicação permanece exclusiva do Lovable.
