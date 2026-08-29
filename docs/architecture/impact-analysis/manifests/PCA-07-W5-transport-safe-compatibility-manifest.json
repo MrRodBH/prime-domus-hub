@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-07_W5_FINAL_CORRECTIVE_INVENTORY_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_CORRECTIVE_REPOSITORY_IMPLEMENTATION",
+  "branch": "agent/pca-07-w5-final-corrective-inventory-transport-safe",
+  "sourceMain": "72cffa66686fd1de26cd48da688814b2c636dfe1",
+  "sourceTree": "d6f3df55f0d1ae24cc21c14ffa4bae8ab374c7a5",
+  "authority": {
+    "repository": "PROTECTED_GITHUB_MAIN_ONLY",
+    "canonicalBackend": "LOVABLE_MANAGED_BACKEND_ONLY",
+    "ownerSupabaseAccess": "LOVABLE_ONLY"
+  },
+  "corrective": {
+    "executionMode": "SIX_ORDERED_ATOMIC_ENVELOPES",
+    "transportCompaction": "DETERMINISTIC_LITERAL_PRESERVING_SQL_COMPACTION",
+    "semanticProjection": "BYTE_IDENTICAL_SEMANTICS",
+    "ledgerStatementMode": "EXACT_TRANSPORT_QUERY_VIA_CURRENT_QUERY",
+    "cmsIntermediateDefectContainedAtomically": true,
+    "blindReplayAllowed": false
+  },
+  "groups": [
+    {
+      "capability": "CORE_CRM_UPLOAD",
+      "versions": ["20260730043000"]
+    },
+    {
+      "capability": "CMS_MARKETING_HARDENING",
+      "versions": ["20260730050000", "20260730051500", "20260730053000"]
+    },
+    {
+      "capability": "SUPER_CONTROL_PLANE",
+      "versions": ["20260730060000"]
+    },
+    {
+      "capability": "CONTENT_UPLOAD_CONSUMERS",
+      "versions": ["20260730100000"]
+    },
+    {
+      "capability": "LAUNCH_TRANSACTIONAL_SAVE",
+      "versions": ["20260730101000"]
+    },
+    {
+      "capability": "STORAGE_PROVENANCE_CRM_ATTACHMENT",
+      "versions": ["20260803183000"]
+    }
+  ],
+  "projectedMigrations": [
+    {
+      "version": "20260730043000",
+      "name": "pr_m2_consolidated_final_corrective",
+      "path": "supabase/migrations/20260730043000_pr_m2_consolidated_final_corrective.sql",
+      "capability": "CORE_CRM_UPLOAD",
+      "canonicalBytes": 21225,
+      "canonicalSha256": "f912e98bd31ad1dd6c37bf1fa66cf6c8ba0202ac1e36f4a35c81c1cf16bd47dc",
+      "projectedBodyBytes": 19461,
+      "projectedBodySha256": "419e82bc3b0052feb8bc5d12e2495a03c7db94f887416d9bca5de48964ece64e"
+    },
+    {
+      "version": "20260730050000",
+      "name": "pr_m2_cms_functional_inventory",
+      "path": "supabase/migrations/20260730050000_pr_m2_cms_functional_inventory.sql",
+      "capability": "CMS_MARKETING_HARDENING",
+      "canonicalBytes": 8874,
+      "canonicalSha256": "020e4a830b4a7e8930c87c37aa8ccd8ead50f78313ac44de18c7e6559886a6a4",
+      "projectedBodyBytes": 8444,
+      "projectedBodySha256": "ca74410c0ee337a49ba1ced16c997f71c5e4c99089cbdad0f1d0f550a673185d"
+    },
+    {
+      "version": "20260730051500",
+      "name": "pr_m2_marketing_adapter_activation",
+      "path": "supabase/migrations/20260730051500_pr_m2_marketing_adapter_activation.sql",
+      "capability": "CMS_MARKETING_HARDENING",
+      "canonicalBytes": 1778,
+      "canonicalSha256": "6eb21a513e15c32172a0fd8da718097ae23d6319d335239f962bf1c5686ba45a",
+      "projectedBodyBytes": 1681,
+      "projectedBodySha256": "78936f6a63e6caa2612f77235d690b5b7defc9f12d07303bc07f85ddf3e89c25"
+    },
+    {
+      "version": "20260730053000",
+      "name": "pr_m2_marketing_and_cms_corrective_hardening",
+      "path": "supabase/migrations/20260730053000_pr_m2_marketing_and_cms_corrective_hardening.sql",
+      "capability": "CMS_MARKETING_HARDENING",
+      "canonicalBytes": 30646,
+      "canonicalSha256": "b4598c5f8e0d17e2757932db01131340cc913fa8b2d590144f42be8caa4e5b07",
+      "projectedBodyBytes": 27746,
+      "projectedBodySha256": "d317dd25a16843d6bc0d3b220708c2dec579f0060d646a53d0a8e7e5b211a934"
+    },
+    {
+      "version": "20260730060000",
+      "name": "pr_m2_super_control_plane",
+      "path": "supabase/migrations/20260730060000_pr_m2_super_control_plane.sql",
+      "capability": "SUPER_CONTROL_PLANE",
+      "canonicalBytes": 10732,
+      "canonicalSha256": "6d8a20c88893c8b152e98f15d60726d153a9619c585b228bd889e936e816bdca",
+      "projectedBodyBytes": 10147,
+      "projectedBodySha256": "875139fe5978f8b26c3038e93bffceb19691139e7f26bc837a3a07e026585767"
+    },
+    {
+      "version": "20260730100000",
+      "name": "pr_m2_content_upload_target_consumers",
+      "path": "supabase/migrations/20260730100000_pr_m2_content_upload_target_consumers.sql",
+      "capability": "CONTENT_UPLOAD_CONSUMERS",
+      "canonicalBytes": 14065,
+      "canonicalSha256": "90eb1c9a3af0ad4f422a3c5c34bd3a5f4c0b3e2df77da7988d0a9077bba6a823",
+      "projectedBodyBytes": 12293,
+      "projectedBodySha256": "e32cd3f1515e0e74da262ff96b058e9827d85813c959827bd31adfb06bcaa19f"
+    },
+    {
+      "version": "20260730101000",
+      "name": "pr_m2_launch_project_transactional_save",
+      "path": "supabase/migrations/20260730101000_pr_m2_launch_project_transactional_save.sql",
+      "capability": "LAUNCH_TRANSACTIONAL_SAVE",
+      "canonicalBytes": 9260,
+      "canonicalSha256": "129e7abc033e84e9a4613b76f48429e18e8dfda473b2c8a10462d4a9428e5cdc",
+      "projectedBodyBytes": 8287,
+      "projectedBodySha256": "40f4c9e1bd2b96b7fdd7264f835d222b5fdbb52375e7f561b88ba65687e419d7"
+    },
+    {
+      "version": "20260803183000",
+      "name": "pr_m2_storage_provenance_and_crm_attachment_corrective",
+      "path": "supabase/migrations/20260803183000_pr_m2_storage_provenance_and_crm_attachment_corrective.sql",
+      "capability": "STORAGE_PROVENANCE_CRM_ATTACHMENT",
+      "canonicalBytes": 11761,
+      "canonicalSha256": "48a07bc20515d5a88d5864dbb3cf02aabeef3121f1de062e28b6deda803af533",
+      "projectedBodyBytes": 11826,
+      "projectedBodySha256": "77fdacd0271d55fdafe29de46d95cf8c6d9002aa39c41605aa2263fff0dad431"
+    }
+  ],
+  "projections": ["BYTE_IDENTICAL_SEMANTICS", "TRANSPORT_SAFE_SQL_COMPACTION"],
+  "liveReadOnlyBaseline": {
+    "postgresVersion": "17.6",
+    "tenantCount": 74,
+    "exactTargetCount": 1,
+    "w1LedgerRows": 3,
+    "w2LedgerRows": 3,
+    "w3LedgerRows": 3,
+    "w4LedgerRows": 2,
+    "w5LedgerRows": 0,
+    "w5TablesPresent": 0,
+    "w5FunctionsPresent": 0,
+    "marketingConnectorRows": 4,
+    "portalConnectorCount": 444,
+    "retainedSensitiveFields": 888,
+    "storageObjectCount": 22,
+    "storageBytes": 15826788
+  },
+  "security": {
+    "tableCount": 15,
+    "newFunctionCount": 17,
+    "clientRolesDenied": ["PUBLIC", "anon", "authenticated"],
+    "serviceRoleRequired": true,
+    "dataApiExposureImplicitlyTrusted": false
+  },
+  "controls": {
+    "repositoryImplementationOnly": true,
+    "sameBackendReads": 0,
+    "sameBackendWrites": 0,
+    "directSupabaseCalls": 0,
+    "providerMutation": false,
+    "deploy": false,
+    "roadmapUpdate": false,
+    "pr105Mutation": false,
+    "canonicalMigrationMutation": false
+  }
+}
