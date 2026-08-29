@@ -812,3 +812,29 @@ PR_105_MUTATED=false
 - O segundo envelope falhou de forma transacional e deixou zero artefatos ou ledger parcial.
 - A projeção W5R cria a autoridade única `(tenant_id,id)` em `media_library` antes da FK CMS; as migrations canônicas permanecem byte-identical.
 - Após merge protegido, o retry começa exclusivamente pelo envelope 2 via Lovable.
+
+---
+
+## 32. PCA-07 W6 — baseline de produto por manifesto exato materializado
+
+```text
+PCA07_W6_SOURCE_MAIN=1e166099b54ad6414e5ba21444dab66787726380
+PCA07_W6_SOURCE_TREE=3d12751a50df491160850f6880dd104337fb1e3d
+PCA07_W6_RESULT=REPOSITORY_ENVELOPE_IMPLEMENTED_NOT_EXECUTED
+PCA07_W6_W5_LEDGER=8/8
+PCA07_W6_LEDGER_BEFORE_IMPLEMENTATION=0/1
+PCA07_W6_EXACT_TENANT_COUNT=1
+PCA07_W6_EXISTING_BASELINE=COMPLETE_IDEMPOTENT
+PCA07_W6_CANONICAL_MIGRATION_MUTATION=false
+PCA07_W6_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+PR_105_MUTATED=false
+```
+
+- W5 foi reconciliada em 8/8, sem exposição de cliente e com baseline protegido intacto.
+- W6 permanece ausente no backend e é materializada como um envelope atômico por manifesto exato.
+- O tenant autorizado já possui baseline completo; a chamada controlada é idempotente.
+- A aplicação futura permanece exclusiva do Lovable após merge protegido.

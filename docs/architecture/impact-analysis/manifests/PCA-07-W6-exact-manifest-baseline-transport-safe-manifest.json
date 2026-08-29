@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-07_W6_EXACT_MANIFEST_TENANT_PRODUCT_BASELINE_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_REPOSITORY_IMPLEMENTATION",
+  "branch": "agent/pca-07-w6-exact-manifest-baseline-transport-safe",
+  "sourceMain": "1e166099b54ad6414e5ba21444dab66787726380",
+  "sourceTree": "3d12751a50df491160850f6880dd104337fb1e3d",
+  "authority": {
+    "repository": "PROTECTED_GITHUB_MAIN_ONLY",
+    "canonicalBackend": "LOVABLE_MANAGED_BACKEND_ONLY",
+    "ownerSupabaseAccess": "LOVABLE_ONLY"
+  },
+  "migration": {
+    "version": "20260826185014",
+    "name": "pca_04_exact_tenant_product_baseline",
+    "path": "supabase/migrations/20260826185014_pca_04_exact_tenant_product_baseline.sql",
+    "bytes": 12120,
+    "sha256": "676d220920f313c2f567962bbab9f27a641d7bc22d2283edc6bc8f0a4b989989",
+    "projectedBodyBytes": 11278,
+    "projectedBodySha256": "5c17bb05f9e88d457871cb61cbc203c0b67cbc3fbff03d956d9fe1366e9025a6"
+  },
+  "corrective": {
+    "executionMode": "ONE_EXACT_MANIFEST_ATOMIC_ENVELOPE",
+    "semanticProjection": "BYTE_IDENTICAL_SEMANTICS",
+    "transportCompaction": "DETERMINISTIC_LITERAL_PRESERVING_SQL_COMPACTION",
+    "exactTenantCount": 1,
+    "tenantManifestSha256": "5cdb260e43d782fbebf29ea73a21ed557e3da5c70438fe82a97e03f186e7b0b9",
+    "existingTenantApplication": "IDEMPOTENT_EXACT_MANIFEST_ONLY",
+    "futureTenantProvisioning": "SERVER_OWNED_TRIGGER",
+    "ledgerStatementMode": "EXACT_TRANSPORT_QUERY_VIA_CURRENT_QUERY",
+    "blindReplayAllowed": false
+  },
+  "liveReadOnlyBaseline": {
+    "postgresVersion": "17.6",
+    "tenantCount": 74,
+    "exactTargetCount": 1,
+    "w5LedgerRows": 8,
+    "w6LedgerRows": 0,
+    "w6FunctionsPresent": 0,
+    "w6TriggerPresent": 0,
+    "configurationRows": 1,
+    "salesDefaultPipelines": 1,
+    "salesStages": 7,
+    "marketingConnectors": 4,
+    "marketingVersions": 4,
+    "marketingCurrentMappings": 4,
+    "trackingConnectors": 3,
+    "trackingVersions": 3,
+    "trackingBindings": 36,
+    "trackingConsentRows": 1,
+    "portalConnectorCount": 444,
+    "retainedSensitiveFields": 888,
+    "storageObjectCount": 22,
+    "storageBytes": 15826788
+  },
+  "security": {
+    "functions": [
+      "public.provision_tenant_product_baseline(uuid)",
+      "public.provision_authorized_tenant_product_baselines(uuid[],text,text)",
+      "public.provision_new_tenant_product_baseline()"
+    ],
+    "trigger": "trg_provision_new_tenant_product_baseline",
+    "directProvisionFunctionDeniedToServiceRole": true,
+    "authorizedOrchestratorServiceRoleOnly": true,
+    "clientRolesDenied": [
+      "PUBLIC",
+      "anon",
+      "authenticated"
+    ]
+  },
+  "controls": {
+    "repositoryImplementationOnly": true,
+    "sameBackendReads": 0,
+    "sameBackendWrites": 0,
+    "directSupabaseCalls": 0,
+    "providerMutation": false,
+    "deploy": false,
+    "roadmapUpdate": false,
+    "pr105Mutation": false,
+    "canonicalMigrationMutation": false
+  }
+}
+
