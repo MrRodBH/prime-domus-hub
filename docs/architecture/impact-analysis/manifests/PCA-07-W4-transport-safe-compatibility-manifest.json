@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-07_W4_MARKETING_TRACKING_TRANSPORT_SAFE_ATOMIC_LEDGER_AWARE_CORRECTIVE_REPOSITORY_IMPLEMENTATION",
+  "branch": "agent/pca-07-w4-marketing-tracking-transport-safe-corrective",
+  "sourceMain": "81778245b814eaea0ff54e5333a73f88fd8af12c",
+  "sourceTree": "93af3337a2f8b957b0193a3ce288be9ed088d832",
+  "authority": {
+    "repository": "PROTECTED_GITHUB_MAIN_ONLY",
+    "canonicalBackend": "LOVABLE_MANAGED_BACKEND_ONLY",
+    "ownerSupabaseAccess": "LOVABLE_ONLY"
+  },
+  "corrective": {
+    "executionMode": "TWO_ORDERED_MIGRATION_LOCAL_ATOMIC_ENVELOPES",
+    "transportCompaction": "DETERMINISTIC_LITERAL_PRESERVING_SQL_COMPACTION",
+    "semanticProjection": "BYTE_IDENTICAL_SEMANTICS",
+    "ledgerStatementMode": "EXACT_TRANSPORT_QUERY_VIA_CURRENT_QUERY",
+    "marketingMustCommitBeforeTracking": true,
+    "blindReplayAllowed": false
+  },
+  "projectedMigrations": [
+    {
+      "version": "20260729233000",
+      "name": "pr_m2_marketing_channels_lead_ingestion",
+      "path": "supabase/migrations/20260729233000_pr_m2_marketing_channels_lead_ingestion.sql",
+      "capability": "MARKETING",
+      "canonicalBytes": 61551,
+      "canonicalSha256": "eb96b8b2511a348b7b2467b39ec698a030d8a96e41ad49e01fe7b8ae65863c94",
+      "projectedBodyBytes": 55848,
+      "projectedBodySha256": "bd08bb759d5ee8ba5ea57244893c0071871d0daad4a6780eaaa5b729fb533004"
+    },
+    {
+      "version": "20260730010000",
+      "name": "pr_m2_analytics_tracking_conversion_events",
+      "path": "supabase/migrations/20260730010000_pr_m2_analytics_tracking_conversion_events.sql",
+      "capability": "TRACKING",
+      "canonicalBytes": 24050,
+      "canonicalSha256": "18aef311ead8a2b0d2b12826ee29ff513b148f3a84f0a19e5cec66c63e7e6aa6",
+      "projectedBodyBytes": 21525,
+      "projectedBodySha256": "9dfc25523953d99d4feab97bc3bb8638646afd3ce43271834d64c115b1d3c367"
+    }
+  ],
+  "projections": [
+    "BYTE_IDENTICAL_SEMANTICS",
+    "TRANSPORT_SAFE_SQL_COMPACTION"
+  ],
+  "liveReadOnlyBaseline": {
+    "postgresVersion": "17.6",
+    "tenantCount": 74,
+    "exactTargetCount": 1,
+    "w1LedgerRows": 3,
+    "w2LedgerRows": 3,
+    "w3LedgerRows": 3,
+    "w4LedgerRows": 0,
+    "w4TablesPresent": 0,
+    "w4FunctionsPresent": 0,
+    "targetLeads": 0,
+    "targetMembers": 4,
+    "publishedConfigurationRows": 1,
+    "legacyMetaRows": 1,
+    "rawTrackingIdentifiers": 1,
+    "acceptedTrackingIdentifiers": 1,
+    "rejectedTrackingIdentifiers": 0,
+    "portalConnectorCount": 444,
+    "retainedSensitiveFields": 888,
+    "storageObjectCount": 22,
+    "storageBytes": 15826788
+  },
+  "security": {
+    "marketingTableCount": 7,
+    "marketingFunctionCount": 11,
+    "trackingTableCount": 5,
+    "trackingFunctionCount": 4,
+    "clientRolesDenied": [
+      "PUBLIC",
+      "anon",
+      "authenticated"
+    ],
+    "serviceRoleRequired": true,
+    "dataApiExposureImplicitlyTrusted": false
+  },
+  "controls": {
+    "repositoryImplementationOnly": true,
+    "sameBackendReads": 0,
+    "sameBackendWrites": 0,
+    "directSupabaseCalls": 0,
+    "providerMutation": false,
+    "deploy": false,
+    "roadmapUpdate": false,
+    "pr105Mutation": false,
+    "canonicalMigrationMutation": false
+  }
+}

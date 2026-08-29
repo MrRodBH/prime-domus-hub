@@ -724,3 +724,34 @@ PR_105_MUTATED=false
   alterar literais e com ledger do exato `current_query()` dentro da transação.
 - Esta implementação é repository-only. Aplicação futura permanece exclusiva do
   Lovable e fail-closed sob o manifesto exato de um UUID.
+
+---
+
+## 29. PCA-07 W4 — corretivo Marketing/Tracking transport-safe materializado
+
+```text
+PCA07_W4_SOURCE_MAIN=81778245b814eaea0ff54e5333a73f88fd8af12c
+PCA07_W4_SOURCE_TREE=93af3337a2f8b957b0193a3ce288be9ed088d832
+PCA07_W4_RESULT=REPOSITORY_CORRECTIVE_IMPLEMENTED_NOT_EXECUTED
+PCA07_W4_ENVELOPES=2_ORDERED_MARKETING_THEN_TRACKING
+PCA07_W4_LEDGER_BEFORE_IMPLEMENTATION=0/2
+PCA07_W4_PHYSICAL_BEFORE_IMPLEMENTATION=0/12_TABLES_0/17_FUNCTIONS
+PCA07_W4_SEMANTIC_PROJECTIONS=0
+PCA07_W4_TRACKING_IDENTIFIERS=1_RAW_1_ACCEPTED_0_REJECTED
+PCA07_W4_CANONICAL_MIGRATION_MUTATION=false
+PCA07_W4_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+ROADMAP_SITE_UPDATED=false
+PR_105_MUTATED=false
+```
+
+- O preflight Lovable-managed e somente leitura confirmou W1/W2/W3 em 3/3,
+  W4 ausente, dependências PostgreSQL compatíveis e baseline protegido intacto.
+- Marketing e Tracking preservam a semântica canônica e são gerados em dois
+  envelopes atômicos ordenados, compactados sem alterar literais.
+- Cada envelope registra o exato `current_query()` no ledger e conclui o
+  postflight físico, de dados, RLS e ACL antes do `COMMIT`.
+- A implementação é repository-only; a aplicação continua exclusiva do Lovable.
