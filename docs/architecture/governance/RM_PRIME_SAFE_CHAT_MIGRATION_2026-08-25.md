@@ -690,3 +690,37 @@ PR_105_MUTATED=false
   independentes; não ordena UUIDs nem amplia o manifesto.
 - Esta etapa é repository-only. Publicação, PR, merge e novo preflight/aplicação
   Lovable-managed permanecem gates separados.
+
+---
+
+## 28. PCA-07 W3 — corretivo CMS/CRM transport-safe materializado
+
+```text
+PCA07_W3_SOURCE_MAIN=65e11c80c22f61929de340606be558cf26012f45
+PCA07_W3_SOURCE_TREE=cb206ef3ceb61c49f2e731e716fdf8ee62e1a561
+PCA07_W3_RESULT=REPOSITORY_CORRECTIVE_IMPLEMENTED_NOT_EXECUTED
+PCA07_W3_ENVELOPES=2_ORDERED_CMS_THEN_CRM
+PCA07_W3_LEDGER_BEFORE_IMPLEMENTATION=0/3
+PCA07_W3_UUID_AGGREGATE_REWRITES=5
+PCA07_W3_TRANSITION_SIGNATURE=INTEGER
+PCA07_W3_CANONICAL_MIGRATION_MUTATION=false
+PCA07_W3_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+ROADMAP_SITE_UPDATED=false
+PR_105_MUTATED=false
+```
+
+- O preflight Lovable-managed e somente leitura confirmou W1/W2 em 3/3 cada,
+  W3 ausente e baseline protegido inalterado.
+- O PostgreSQL 17.6 canônico não possui `min(uuid)`: cinco agregações CRM são
+  projetadas para o primeiro UUID de `array_agg(... ORDER BY ...)` mantendo a
+  contagem que rejeita autoridade ambígua.
+- A ACL CRM passa a referenciar a assinatura `integer` efetivamente presente no
+  backend; a migration canônica permanece byte a byte inalterada.
+- CMS e CRM são gerados como dois envelopes atômicos ordenados, compactados sem
+  alterar literais e com ledger do exato `current_query()` dentro da transação.
+- Esta implementação é repository-only. Aplicação futura permanece exclusiva do
+  Lovable e fail-closed sob o manifesto exato de um UUID.
