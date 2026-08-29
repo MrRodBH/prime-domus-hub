@@ -865,3 +865,30 @@ PR_105_MUTATED=false
 - O corretivo altera apenas as asserções dos nomes canônicos já registrados em W2–W4.
 - O envelope W6 histórico e a migration canônica permanecem byte-identical.
 - Após merge protegido, somente o envelope W6R corrigido poderá ser aplicado via Lovable.
+
+---
+
+## 34. PCA-07 — fechamento terminal e sucessor provider-agnostic
+
+```text
+PCA07_TERMINAL_SOURCE_MAIN=6567ffcd68b6cea12d598ec92dbd673e9bf04818
+PCA07_TERMINAL_SOURCE_TREE=1291ab35a601d2a0b81b0e623d59ea3dc2db73ae
+PCA07_TERMINAL_RESULT=ACCEPTED_TERMINAL
+PCA07_TERMINAL_LEDGER=3/3/3/2/8/1
+PCA07_TERMINAL_W5_TABLES_RLS=15/15
+PCA07_TERMINAL_W5_FUNCTIONS=17/17
+PCA07_TERMINAL_W6_FUNCTIONS=3/3
+PCA07_TERMINAL_W6_TRIGGER=1/1
+PCA07_TERMINAL_CLIENT_EXPOSURES=0_TABLES_0_FUNCTIONS
+PCA07_TERMINAL_EXACT_TENANT_BASELINE=1/7-4/4/4-3/3/36/1
+PCA07_NEXT_GATE_SELECTED=PCA-08_PROVIDER_AGNOSTIC_PRODUCT_HOMOLOGATION_ENTRY_READ_ONLY_IMPACT_REQUALIFICATION
+PCA07_NEXT_GATE_AUTHORIZED=false
+CONTROLLED_HOMOLOGATION_AUTHORIZED=false
+PRODUCTION_AUTHORIZED=false
+DIRECT_SUPABASE_CALLS=0
+```
+
+- W6R foi aplicada exclusivamente pelo Lovable e reconciliada após commit.
+- O baseline protegido permaneceu em 74 tenants, 444 conectores, 888 campos sensíveis retidos e 22 objetos/15.826.788 bytes no Storage.
+- PCA-08 foi selecionado apenas como gate read-only de decisão; nenhuma homologação, produção, deploy ou mutação de provedor foi autorizada.
+- DCA-02-BL2 R2 continua obrigatória após homologação e antes de produção.
