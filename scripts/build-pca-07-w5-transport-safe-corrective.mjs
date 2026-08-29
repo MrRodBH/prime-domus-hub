@@ -129,6 +129,7 @@ export const EXISTING_MARKETING_FUNCTIONS = [
   "public.reserve_marketing_ingestion_payload(uuid,text,text,jsonb,integer)",
 ];
 export const INTERNAL_FUNCTION = "public.prm2_lock_upload_target(uuid,uuid,text,uuid,text,uuid)";
+export const MEDIA_AUTHORITY_INDEX = "ux_media_library_tenant_id_id";
 
 const W2_LEDGER = [
   ["20260728233000", "pr_m2_configuration_center"],
@@ -249,12 +250,23 @@ export function projectMigration(source, capability) {
   return `-- PCA-07 W5 executable projection: BYTE_IDENTICAL_SEMANTICS\n-- PCA-07 W5 executable projection: TRANSPORT_SAFE_SQL_COMPACTION\n${body}`;
 }
 
-function readAndProject() {
+export function projectMigrationWithMediaAuthority(source, entry) {
+  if (entry.version !== "20260730050000") return projectMigration(source, entry.capability);
+  const anchor = "CREATE UNIQUE INDEX IF NOT EXISTS ux_cms_pages_tenant_id_id\n  ON public.cms_pages (tenant_id, id);";
+  const replacement = `${anchor}\nCREATE UNIQUE INDEX IF NOT EXISTS ${MEDIA_AUTHORITY_INDEX}\n  ON public.media_library (tenant_id, id);`;
+  const corrected = replaceOnce(source, anchor, replacement, "W5R media authority index");
+  const body = compactSql(stripTransaction(corrected, entry.capability));
+  return `-- PCA-07 W5R executable projection: MEDIA_LIBRARY_COMPOSITE_AUTHORITY_ASSERTION\n-- PCA-07 W5 executable projection: TRANSPORT_SAFE_SQL_COMPACTION\n${body}`;
+}
+
+function readAndProject(mediaAuthorityCorrective = false) {
   return W5.map((entry) => {
     const source = readFileSync(new URL(entry.path, ROOT), "utf8");
     assert.equal(Buffer.byteLength(source), entry.bytes, `${entry.path} byte drift`);
     assert.equal(sha256(source), entry.sha256, `${entry.path} hash drift`);
-    const projected = projectMigration(source, entry.capability);
+    const projected = mediaAuthorityCorrective
+      ? projectMigrationWithMediaAuthority(source, entry)
+      : projectMigration(source, entry.capability);
     return { ...entry, projected, projectedBytes: Buffer.byteLength(projected), projectedSha256: sha256(projected) };
   });
 }
@@ -379,7 +391,7 @@ function dataState(tenantId, groupIndex) {
   return `${empty}${marketing}${provenance}`;
 }
 
-function envelopePreflight(tenantId, groupIndex, priorEntries) {
+function envelopePreflight(tenantId, groupIndex, priorEntries, mediaAuthorityCorrective) {
   const before = groupIndex === 0 ? { presentTables: [], presentFunctions: [] } : presentState(groupIndex - 1);
   const absentTables = ALL_TABLES.filter((item) => !before.presentTables.includes(item));
   const absentFunctions = NEW_FUNCTIONS.filter((item) => !before.presentFunctions.includes(item));
@@ -388,6 +400,7 @@ ${commonPreflight(tenantId, priorEntries)}
 ${catalogCount(before.presentTables, true, "table", "prior")}${catalogCount(absentTables, false, "table", "future")}
 ${catalogCount(before.presentFunctions, true, "function", "prior")}${catalogCount(absentFunctions, false, "function", "future")}
 ${groupIndex > 0 ? dataState(tenantId, groupIndex - 1) : ""}
+${mediaAuthorityCorrective && groupIndex === 1 ? `IF to_regclass('public.${MEDIA_AUTHORITY_INDEX}') IS NOT NULL THEN RAISE EXCEPTION 'PCA-07 W5R media authority index unexpectedly present' USING ERRCODE='P0001';END IF;` : ""}
 END;$w5pre$;`;
 }
 
@@ -396,7 +409,7 @@ function ledgerInsert(entries) {
   return `DO $w5ledger$ DECLARE v_query text:=current_query();v_sha text:=encode(extensions.digest(current_query(),'sha256'),'hex');BEGIN INSERT INTO supabase_migrations.schema_migrations(version,statements,name,created_by,idempotency_key,rollback) VALUES ${values};END;$w5ledger$;`;
 }
 
-function envelopePostflight(tenantId, groupIndex, completedEntries, currentEntries) {
+function envelopePostflight(tenantId, groupIndex, completedEntries, currentEntries, mediaAuthorityCorrective) {
   const state = presentState(groupIndex);
   const serviceFunctions = state.presentFunctions.filter((item) => item !== INTERNAL_FUNCTION);
   if (groupIndex >= 1) serviceFunctions.push(...EXISTING_MARKETING_FUNCTIONS);
@@ -407,6 +420,7 @@ OR (SELECT count(*) FROM supabase_migrations.schema_migrations sm WHERE (sm.vers
 THEN RAISE EXCEPTION 'PCA-07 W5 current envelope ledger mismatch' USING ERRCODE='P0001';END IF;
 ${catalogCount(state.presentTables, true, "table", "postflight")}${catalogCount(state.presentFunctions, true, "function", "postflight")}
 ${dataState(tenantId, groupIndex)}${aclAssertion(state.presentTables, serviceFunctions, "postflight")}
+${mediaAuthorityCorrective && groupIndex >= 1 ? `IF to_regclass('public.${MEDIA_AUTHORITY_INDEX}') IS NULL OR NOT EXISTS(SELECT 1 FROM pg_index WHERE indexrelid='public.${MEDIA_AUTHORITY_INDEX}'::regclass AND indisunique AND indisvalid AND indpred IS NULL) THEN RAISE EXCEPTION 'PCA-07 W5R media authority index mismatch' USING ERRCODE='P0001';END IF;` : ""}
 ${groupIndex >= 5 ? `IF has_function_privilege('anon','${INTERNAL_FUNCTION}','EXECUTE') OR has_function_privilege('authenticated','${INTERNAL_FUNCTION}','EXECUTE') THEN RAISE EXCEPTION 'PCA-07 W5 internal function client exposure' USING ERRCODE='P0001';END IF;` : ""}
 ${protectedBaseline(tenantId)}
 END;$w5post$;`;
@@ -417,15 +431,15 @@ function prelude(tenantId, ownerAuthorization, capability) {
   return `-- PCA-07 W5 Lovable-managed ordered atomic envelope: ${capability}\nBEGIN;\nSET LOCAL search_path=public,extensions,pg_temp;\nSELECT set_config('app.pr_m2_authorized_tenant_ids',${sqlString(manifest)},true);\nSELECT set_config('app.pr_m2_authorized_tenant_manifest_sha256','${sha256(tenantId.toLowerCase())}',true);\nSELECT set_config('app.pr_m2_owner_authorization',${sqlString(ownerAuthorization)},true);`;
 }
 
-export function buildApplication({ tenantId, ownerAuthorization }) {
+export function buildApplication({ tenantId, ownerAuthorization, mediaAuthorityCorrective = false }) {
   assert.match(tenantId, /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, "exact tenant UUID required");
   assert.match(ownerAuthorization, /^PCA-[0-9A-Z_-]{3,120}$/, "bounded PCA authorization required");
-  const projected = readAndProject();
+  const projected = readAndProject(mediaAuthorityCorrective);
   const completed = [];
   const envelopes = GROUPS.map((group, groupIndex) => {
     const entries = group.indexes.map((index) => projected[index]);
     const source = entries.map((entry) => entry.projected.trim()).join("\n");
-    const sql = compactSql(`${prelude(tenantId, ownerAuthorization, group.capability)}\n${envelopePreflight(tenantId, groupIndex, completed)}\n${source}\n${ledgerInsert(entries)}\n${envelopePostflight(tenantId, groupIndex, [...completed, ...entries], entries)}\nCOMMIT;\n`);
+    const sql = compactSql(`${prelude(tenantId, ownerAuthorization, group.capability)}\n${envelopePreflight(tenantId, groupIndex, completed, mediaAuthorityCorrective)}\n${source}\n${ledgerInsert(entries)}\n${envelopePostflight(tenantId, groupIndex, [...completed, ...entries], entries, mediaAuthorityCorrective)}\nCOMMIT;\n`);
     completed.push(...entries);
     return { capability: group.capability, versions: entries.map((entry) => entry.version), sql, bytes: Buffer.byteLength(sql), sha256: sha256(sql) };
   });

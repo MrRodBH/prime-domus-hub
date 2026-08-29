@@ -786,3 +786,29 @@ PR_105_MUTATED=false
 - Os oito arquivos canônicos permanecem imutáveis; seis envelopes compactados
   registram o `current_query()` exato e exigem postflight antes do commit.
 - A implementação é repository-only; a aplicação permanece exclusiva do Lovable.
+
+---
+
+## 31. PCA-07 W5R — autoridade composta de media library materializada
+
+```text
+PCA07_W5R_SOURCE_MAIN=68a52813f0c482f4b6fad51bb0a6a534a8d11a0e
+PCA07_W5R_SOURCE_TREE=acc28526a0aada765067afb92228b4c477ef3bbf
+PCA07_W5R_RESULT=REPOSITORY_CORRECTIVE_IMPLEMENTED_NOT_EXECUTED
+PCA07_W5R_FAILURE_DISPOSITION=TOTAL_TRANSACTION_ROLLBACK
+PCA07_W5R_W5_LEDGER_CURRENT=1/8
+PCA07_W5R_CORRECTED_ENVELOPE=CMS_MARKETING_HARDENING
+PCA07_W5R_MEDIA_LIBRARY_DUPLICATES=0
+PCA07_W5R_CANONICAL_MIGRATION_MUTATION=false
+PCA07_W5R_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+PR_105_MUTATED=false
+```
+
+- A primeira onda W5 permanece reconciliada e não será reaplicada.
+- O segundo envelope falhou de forma transacional e deixou zero artefatos ou ledger parcial.
+- A projeção W5R cria a autoridade única `(tenant_id,id)` em `media_library` antes da FK CMS; as migrations canônicas permanecem byte-identical.
+- Após merge protegido, o retry começa exclusivamente pelo envelope 2 via Lovable.
