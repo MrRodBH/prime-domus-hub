@@ -91,6 +91,7 @@ jobs:
           pca_07_w3=false
           pca_07_w4=false
           pca_07_w5=false
+          pca_07_w5r=false
           dca_02_bl2_envelope=false
           dca_02_bl2_preflight=false
           dca_02_bl2_r2_rebaseline=false
@@ -167,6 +168,9 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-pca-07-w5-transport-safe-corrective-specs.mjs "* ]]; then
               pca_07_w5=true
             fi
+            if [[ " ${changed_files[*]} " == *" run-pca-07-w5r-media-library-composite-authority-specs.mjs "* ]]; then
+              pca_07_w5r=true
+            fi
             if [[ " ${changed_files[*]} " == *" run-dca-02-bl2-isolated-pitr-restore-envelope-specs.mjs "* ]]; then
               dca_02_bl2_envelope=true
             fi
@@ -219,6 +223,7 @@ jobs:
           echo "pca_07_w3=$pca_07_w3" >> "$GITHUB_OUTPUT"
           echo "pca_07_w4=$pca_07_w4" >> "$GITHUB_OUTPUT"
           echo "pca_07_w5=$pca_07_w5" >> "$GITHUB_OUTPUT"
+          echo "pca_07_w5r=$pca_07_w5r" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_envelope=$dca_02_bl2_envelope" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_preflight=$dca_02_bl2_preflight" >> "$GITHUB_OUTPUT"
           echo "dca_02_bl2_r2_rebaseline=$dca_02_bl2_r2_rebaseline" >> "$GITHUB_OUTPUT"
@@ -318,6 +323,11 @@ jobs:
           PCA_07_W5_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
         run: bun run test:pca-07-w5
 
+      - name: Verify PCA-07 W5R media library composite authority corrective
+        if: steps.scope.outputs.pca_07_w5r == 'true'
+        env:
+          PCA_07_W5R_BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: bun run test:pca-07-w5r
       - name: Verify DCA-02-BL2 isolated non-production PITR restore execution envelope
         if: steps.scope.outputs.dca_02_bl2_envelope == 'true'
         env:
