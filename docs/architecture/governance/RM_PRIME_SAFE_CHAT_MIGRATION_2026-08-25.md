@@ -629,3 +629,35 @@ PR_105_MUTATED=false
   a validar por extração, tamanho e SHA-256 cada literal gerado.
 - PCA-07R2R2 permanece repository-only. Nova aplicação exige publicação, PR,
   merge protegido e autorização Lovable-managed separada.
+
+---
+
+## 26. PCA-07 W2 — corretivo atômico e ledger-aware materializado
+
+```text
+PCA07_W2_SOURCE_MAIN=2ea96b2710b382944d9dfdcb8cae78eebd238dcf
+PCA07_W2_SOURCE_TREE=b6d79b650ce575bee546e66395f97bf7ebd0ace8
+PCA07_W2_RESULT=REPOSITORY_CORRECTIVE_IMPLEMENTED_NOT_EXECUTED
+PCA07_W2_ENVELOPES=2_MIGRATION_LOCAL_ATOMIC
+PCA07_W2_W1_LEDGER_PREREQUISITE=3/3_EXACT
+PCA07_W2_LIVE_LEDGER=0/2
+PCA07_W2_PORTAL_SECRET_ERASURE=false
+PCA07_W2_SAME_BACKEND_WRITES=0
+LOVABLE_CALLS=0
+DIRECT_SUPABASE_CALLS=0
+PROVIDER_MUTATED=false
+DEPLOY=false
+ROADMAP_SITE_UPDATED=false
+PR_105_MUTATED=false
+```
+
+- O preflight read-only identificou quatro incompatibilidades: construtor JSON
+  acima de 100 argumentos, handle Instagram incompatível com o validador HTTPS,
+  dois defaults que recriavam segredos e uma `CHECK NOT VALID` que bloquearia
+  atualizações nos 444 conectores com credenciais retidas.
+- O builder deriva duas projeções executáveis dos arquivos W2 imutáveis e
+  aplica configuração e portal em transações migration-local separadas.
+- Cada envelope carrega sua fonte uma vez, grava o ledger dentro da mesma
+  transação e executa postflight antes do `COMMIT`; replay cego é proibido.
+- A remoção dos segredos e a futura `CHECK` permanecem no gate independente de
+  cutover. Esta etapa não acessa nem altera o Same-Backend.
