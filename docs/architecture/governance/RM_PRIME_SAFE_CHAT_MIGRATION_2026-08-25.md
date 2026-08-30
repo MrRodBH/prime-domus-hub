@@ -946,3 +946,26 @@ DIRECT_SUPABASE_CALLS=0
 - A ponte SPR-03 permanece vinculada ao Worker histórico e não pode transportar bindings para o candidato.
 - Nenhum deploy, provider write, segredo, fixture ou operação no Same-Backend ocorreu.
 - DCA-02-BL2 R2 permanece obrigatório após homologação e antes de produção.
+
+---
+
+## 37. PCA-11R — preview-host exato e ponte de bindings dedicada
+
+```text
+PCA11R_SOURCE_MAIN=e766b68cc808a9de787b45f7c927de22aac62a3e
+PCA11R_SOURCE_TREE=14ee24136b19168d08293f2bafb5932264867d12
+PCA11R_BRANCH=agent/pca-11r-dedicated-preview-host-managed-binding-compatibility
+PCA11R_PREVIEW_ALIAS=pca11-hml
+PCA11R_TARGET_WORKER=rm-prime-pca11-hml
+PCA11R_SYNTHETIC_TENANT_SLUG=pca11-hml
+PCA11R_PREVIEW_HOST_AUTHORITY_SUPPORTED=true
+PCA11R_DEDICATED_MANAGED_BINDING_BRIDGE_SUPPORTED=true
+PCA11R_REPOSITORY_COMPATIBILITY_READY=true
+PCA11R_CANDIDATE_MATERIALIZED=false
+PCA11R_PROVIDER_WRITES=0
+PCA11R_DEPLOY=false
+PCA11R_NEXT_GATE=PCA-11R_PROTECTED_PUBLICATION_AND_DRAFT_PR
+```
+
+O corretivo preserva Supabase sob custódia exclusiva do Lovable e não autoriza
+materialização, ativação de preview, fixtures, homologação ou produção.

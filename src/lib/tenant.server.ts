@@ -2,6 +2,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  PCA11_DEDICATED_WORKER,
+  PCA11_PREVIEW_ALIAS,
+  PCA11_SYNTHETIC_TENANT_SLUG,
+} from "@/lib/cloudflare/managed-inactive-version-contract.server";
 import { PublicTenantResolutionError } from "@/lib/public-tenant-resolution-error";
 
 export interface PublicTenantIdentity {
@@ -21,9 +26,19 @@ export interface ActivePublicDomainIdentity extends PublicTenantIdentity {
 export type PublicHostAuthority =
   | { kind: "domain"; domain: string }
   | { kind: "development_slug"; host: string; slug: string }
-  | { kind: "none"; reason: "absent_host" | "invalid_host" | "unmapped_development_host" };
+  | { kind: "preview_slug"; host: string; slug: string }
+  | {
+      kind: "none";
+      reason:
+        | "absent_host"
+        | "invalid_host"
+        | "unmapped_development_host"
+        | "unmapped_preview_host";
+    };
 
 const DEVELOPMENT_HOST_MAP_ENV = "PUBLIC_TENANT_DEV_HOST_MAP";
+const PREVIEW_HOST_MAP_ENV = "PUBLIC_TENANT_PREVIEW_HOST_MAP";
+const PCA11_PREVIEW_LABEL = `${PCA11_PREVIEW_ALIAS}-${PCA11_DEDICATED_WORKER}`;
 const TENANT_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DOMAIN_LABEL_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
@@ -86,6 +101,19 @@ export function isExplicitDevelopmentHost(host: string): boolean {
     || host.endsWith(".lovable.app");
 }
 
+export function isWorkersPreviewHost(host: string): boolean {
+  return host.endsWith(".workers.dev");
+}
+
+function isExactPca11PreviewHost(host: string): boolean {
+  const labels = host.split(".");
+  return labels.length === 4
+    && labels[0] === PCA11_PREVIEW_LABEL
+    && DOMAIN_LABEL_RE.test(labels[1])
+    && labels[2] === "workers"
+    && labels[3] === "dev";
+}
+
 export function parseExplicitDevelopmentHostMap(raw: string | null | undefined): ReadonlyMap<string, string> {
   if (raw == null || raw.trim() === "") return new Map();
   let parsed: unknown;
@@ -112,9 +140,37 @@ export function parseExplicitDevelopmentHostMap(raw: string | null | undefined):
   return result;
 }
 
+export function parseExactPreviewHostMap(raw: string | null | undefined): ReadonlyMap<string, string> {
+  if (raw == null || raw.trim() === "") return new Map();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`${PREVIEW_HOST_MAP_ENV} must be valid JSON`);
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${PREVIEW_HOST_MAP_ENV} must be a JSON object`);
+  }
+
+  const entries = Object.entries(parsed);
+  if (entries.length !== 1) {
+    throw new Error(`${PREVIEW_HOST_MAP_ENV} must contain exactly one preview host`);
+  }
+  const [rawHost, rawSlug] = entries[0];
+  const host = normalizePublicHost(rawHost);
+  if (!host || !isExactPca11PreviewHost(host)) {
+    throw new Error(`${PREVIEW_HOST_MAP_ENV} contains a non-PCA-11 preview host`);
+  }
+  if (rawSlug !== PCA11_SYNTHETIC_TENANT_SLUG) {
+    throw new Error(`${PREVIEW_HOST_MAP_ENV} must map only to the PCA-11 synthetic tenant`);
+  }
+  return new Map([[host, rawSlug]]);
+}
+
 export function resolvePublicHostAuthority(
   host: string | null | undefined,
   rawDevelopmentMap: string | null | undefined = process.env[DEVELOPMENT_HOST_MAP_ENV],
+  rawPreviewMap: string | null | undefined = process.env[PREVIEW_HOST_MAP_ENV],
 ): PublicHostAuthority {
   if (host == null || host.trim() === "") return { kind: "none", reason: "absent_host" };
   const normalized = normalizePublicHost(host);
@@ -124,6 +180,12 @@ export function resolvePublicHostAuthority(
     return slug
       ? { kind: "development_slug", host: normalized, slug }
       : { kind: "none", reason: "unmapped_development_host" };
+  }
+  if (isWorkersPreviewHost(normalized)) {
+    const slug = parseExactPreviewHostMap(rawPreviewMap).get(normalized);
+    return slug
+      ? { kind: "preview_slug", host: normalized, slug }
+      : { kind: "none", reason: "unmapped_preview_host" };
   }
   return { kind: "domain", domain: normalized };
 }
@@ -164,11 +226,12 @@ function selectExactlyOneResolvedDomain(rows: any[] | null | undefined): ActiveP
 export async function resolveTenantByHost(
   host: string | null | undefined,
   rawDevelopmentMap: string | null | undefined = process.env[DEVELOPMENT_HOST_MAP_ENV],
+  rawPreviewMap: string | null | undefined = process.env[PREVIEW_HOST_MAP_ENV],
 ): Promise<PublicTenantIdentity | null> {
-  const authority = resolvePublicHostAuthority(host, rawDevelopmentMap);
+  const authority = resolvePublicHostAuthority(host, rawDevelopmentMap, rawPreviewMap);
   if (authority.kind === "none") return null;
   const client = serverPublishable() as any;
-  if (authority.kind === "development_slug") {
+  if (authority.kind === "development_slug" || authority.kind === "preview_slug") {
     const result = await client.from("tenants").select("id, slug, nome").eq("slug", authority.slug).limit(2);
     if (result.error) throw new Error(`Public development tenant resolution failed: ${result.error.message}`);
     return selectExactlyOneTenant(result.data as PublicTenantIdentity[] | null);
@@ -234,6 +297,10 @@ export async function requireAuthoritativePublicOriginFromRequest(): Promise<str
 
   if (authority.kind === "development_slug") {
     return `http://${authority.host}`;
+  }
+
+  if (authority.kind === "preview_slug") {
+    return `https://${authority.host}`;
   }
 
   throw new PublicTenantResolutionError();

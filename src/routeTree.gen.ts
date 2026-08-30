@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
 import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
+import { Route as ApiInternalPca11ManagedBindingProvisionRouteImport } from './routes/api/internal/pca-11-managed-binding-provision'
 import { Route as ApiInternalDca02ProviderOrphanRecoveryRouteImport } from './routes/api/internal/dca-02-provider-orphan-recovery'
 import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
 import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
@@ -215,6 +216,12 @@ const ApiInternalSpr03ManagedSecretProvisionRoute =
   ApiInternalSpr03ManagedSecretProvisionRouteImport.update({
     id: '/api/internal/spr-03-managed-secret-provision',
     path: '/api/internal/spr-03-managed-secret-provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalPca11ManagedBindingProvisionRoute =
+  ApiInternalPca11ManagedBindingProvisionRouteImport.update({
+    id: '/api/internal/pca-11-managed-binding-provision',
+    path: '/api/internal/pca-11-managed-binding-provision',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiInternalDca02ProviderOrphanRecoveryRoute =
@@ -561,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/internal/dca-02-provider-orphan-recovery': typeof ApiInternalDca02ProviderOrphanRecoveryRoute
+  '/api/internal/pca-11-managed-binding-provision': typeof ApiInternalPca11ManagedBindingProvisionRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -635,6 +643,7 @@ export interface FileRoutesByTo {
   '/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/internal/dca-02-provider-orphan-recovery': typeof ApiInternalDca02ProviderOrphanRecoveryRoute
+  '/api/internal/pca-11-managed-binding-provision': typeof ApiInternalPca11ManagedBindingProvisionRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -714,6 +723,7 @@ export interface FileRoutesById {
   '/_authenticated/super/domains': typeof AuthenticatedSuperDomainsRoute
   '/_authenticated/super/observabilidade': typeof AuthenticatedSuperObservabilidadeRoute
   '/api/internal/dca-02-provider-orphan-recovery': typeof ApiInternalDca02ProviderOrphanRecoveryRoute
+  '/api/internal/pca-11-managed-binding-provision': typeof ApiInternalPca11ManagedBindingProvisionRoute
   '/api/internal/spr-03-managed-secret-provision': typeof ApiInternalSpr03ManagedSecretProvisionRoute
   '/api/public/portal-leads': typeof ApiPublicPortalLeadsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -793,6 +803,7 @@ export interface FileRouteTypes {
     | '/super/domains'
     | '/super/observabilidade'
     | '/api/internal/dca-02-provider-orphan-recovery'
+    | '/api/internal/pca-11-managed-binding-provision'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -867,6 +878,7 @@ export interface FileRouteTypes {
     | '/super/domains'
     | '/super/observabilidade'
     | '/api/internal/dca-02-provider-orphan-recovery'
+    | '/api/internal/pca-11-managed-binding-provision'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -945,6 +957,7 @@ export interface FileRouteTypes {
     | '/_authenticated/super/domains'
     | '/_authenticated/super/observabilidade'
     | '/api/internal/dca-02-provider-orphan-recovery'
+    | '/api/internal/pca-11-managed-binding-provision'
     | '/api/internal/spr-03-managed-secret-provision'
     | '/api/public/portal-leads'
     | '/lovable/email/suppression'
@@ -993,6 +1006,7 @@ export interface RootRouteChildren {
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiInternalDca02ProviderOrphanRecoveryRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRoute
+  ApiInternalPca11ManagedBindingProvisionRoute: typeof ApiInternalPca11ManagedBindingProvisionRoute
   ApiInternalSpr03ManagedSecretProvisionRoute: typeof ApiInternalSpr03ManagedSecretProvisionRoute
   ApiPublicPortalLeadsRoute: typeof ApiPublicPortalLeadsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -1187,6 +1201,13 @@ declare module '@tanstack/react-router' {
       path: '/api/internal/spr-03-managed-secret-provision'
       fullPath: '/api/internal/spr-03-managed-secret-provision'
       preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/pca-11-managed-binding-provision': {
+      id: '/api/internal/pca-11-managed-binding-provision'
+      path: '/api/internal/pca-11-managed-binding-provision'
+      fullPath: '/api/internal/pca-11-managed-binding-provision'
+      preLoaderRoute: typeof ApiInternalPca11ManagedBindingProvisionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/internal/dca-02-provider-orphan-recovery': {
@@ -1713,6 +1734,8 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ApiInternalDca02ProviderOrphanRecoveryRoute:
     ApiInternalDca02ProviderOrphanRecoveryRoute,
+  ApiInternalPca11ManagedBindingProvisionRoute:
+    ApiInternalPca11ManagedBindingProvisionRoute,
   ApiInternalSpr03ManagedSecretProvisionRoute:
     ApiInternalSpr03ManagedSecretProvisionRoute,
   ApiPublicPortalLeadsRoute: ApiPublicPortalLeadsRoute,
