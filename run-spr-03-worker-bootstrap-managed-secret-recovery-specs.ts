@@ -36,6 +36,7 @@ const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string
 const wri = read("run-wri-01-cloudflare-worker-runtime-specs.ts");
 const vite = read("vite.config.ts");
 const helper = read("src/lib/spr-03/managed-secret-provisioning.server.ts");
+const managedContract = read("src/lib/cloudflare/managed-inactive-version-contract.server.ts");
 const route = read("src/routes/api/internal/spr-03-managed-secret-provision.ts");
 const migration1 = read("supabase/migrations/20260810220152_1ee179b2-60f0-4ce1-b259-06762002733b.sql");
 const migration2 = read("supabase/migrations/20260810220939_b80a4010-1d42-48a9-bbcd-7d2d9e0ea84b.sql");
@@ -125,11 +126,12 @@ equal(helper.includes("ORDER BY"), false, "No first-row heuristic authority may 
 equal(helper.includes("LIMIT 1"), false, "No LIMIT 1 authority may be introduced");
 
 // Managed provisioner must be server-only and required before provider access.
-const executeBoundaryStart = helper.indexOf("export async function executeSpr03Provisioning");
+const executeBoundaryStart = helper.indexOf("async function executeManagedInactiveVersionProvisioning");
 const executeBoundary = executeBoundaryStart >= 0 ? helper.slice(executeBoundaryStart) : "";
-const provisionerIndex = executeBoundary.indexOf('requireEnv("CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER")');
-const providerIndex = executeBoundary.indexOf("assertBootstrapProviderState(provisioner");
-ok(executeBoundaryStart >= 0 && provisionerIndex >= 0 && providerIndex > provisionerIndex, "Missing SPR-03 provisioner must fail before Cloudflare access");
+const provisionerIndex = executeBoundary.indexOf("const provisioner = requireEnv(provisionerName)");
+const providerIndex = executeBoundary.indexOf("assertBootstrapProviderState(provisioner, target");
+ok(executeBoundaryStart >= 0 && provisionerIndex >= 0 && providerIndex > provisionerIndex, "Missing stage-specific provisioner must fail before Cloudflare access");
+match(helper, /CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER/, "Historical SPR-03 provisioner remains stage-specific");
 equal(JSON.stringify(wrangler).includes("CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER"), false, "Provisioner must never be a Worker binding");
 
 // Provider ceremony: latest active deployment is authoritative; older deployment rows are history only.
@@ -137,7 +139,7 @@ match(helper, /deployments\.length === 0/, "Provider state must require at least
 match(helper, /const latestDeployment = deployments\[0\]/, "Provider state must use Cloudflare's first/latest deployment as active authority");
 equal(helper.includes("deployments.length !== 1"), false, "Historical deployment rows must not be misclassified as active cardinality");
 match(helper, /versions\.length !== 1 \|\| versions\[0\]\?\.percentage !== 100/, "Active deployment must pin exactly one version at 100%");
-match(helper, /subdomain\?\.enabled !== false \|\| subdomain\?\.previews_enabled !== false/, "Provider revalidation must require workers.dev and Preview URLs disabled");
+match(helper, /subdomain\?\.enabled !== false \|\| subdomain\?\.previews_enabled !== target\.expectedPreviewsEnabled/, "Provider revalidation must require target-specific preview authority");
 match(helper, /scheduleList\.length !== 0/, "Provider revalidation must require zero Cron schedules");
 
 // Provider version-list reconciliation: Cloudflare returns result.items, never a silent empty fallback.
@@ -152,7 +154,7 @@ equal(helper.includes("return Array.isArray(result) ? result : []"), false, "Ver
 match(helper, /const SOURCE_MAIN_MODULE = "index\.mjs"/, "Cloudflare source main module must be frozen to the exact provider part name");
 match(helper, /content\/v2/, "content/v2 must remain the source-module authority");
 equal(helper.includes('form.get("metadata")'), false, "content/v2 must not be assumed to contain a metadata part");
-match(helper, /versionDetail\(expectedBootstrapVersionId, provisioner\)/, "Pinned bootstrap Version Detail must be the runtime metadata authority");
+match(helper, /versionDetail\(target, expectedBootstrapVersionId, provisioner\)/, "Pinned bootstrap Version Detail must be the runtime metadata authority");
 match(helper, /bootstrapDetail\?\.resources\?\.script_runtime/, "Runtime metadata must come from resources.script_runtime");
 match(helper, /runtime\?\.compatibility_date/, "compatibility_date must come from bootstrap script_runtime");
 match(helper, /runtime\?\.compatibility_flags/, "compatibility_flags must come from bootstrap script_runtime");
@@ -170,16 +172,16 @@ match(helper, /compatibility_flags: source\.compatibilityFlags/, "Version upload
 match(helper, /keep_assets: true/, "Version-only source preservation must retain the bootstrap asset set");
 equal(helper.includes("source.metadata"), false, "Version upload metadata must not spread an untrusted downloaded metadata object");
 
-match(helper, /spr03-canary-\$\{input\.ceremony_id\}/, "Canary must carry deterministic reconciliation annotation");
-match(helper, /spr03-final-\$\{input\.ceremony_id\}/, "Final version must carry deterministic reconciliation annotation");
+match(helper, /\$\{target\.tagPrefix\}-canary-\$\{input\.ceremony_id\}/, "Canary must carry deterministic reconciliation annotation");
+match(helper, /\$\{target\.tagPrefix\}-final-\$\{input\.ceremony_id\}/, "Final version must carry deterministic reconciliation annotation");
 match(helper, /\/versions`,[\s\S]*method: "POST"/, "Canary/final ceremony must use the version-only upload endpoint");
 match(helper, /active === versionId[\s\S]*spr03_inactive_version_deployed/, "Canary/final versions must fail closed if deployed");
 
 const expectedSecrets = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "CLOUDFLARE_API_TOKEN_DCA01_HML"].sort();
-const helperSecretNames = [...helper.matchAll(/"(SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|CLOUDFLARE_API_TOKEN_DCA01_HML)"/g)].map((match) => match[1]);
+const helperSecretNames = [...managedContract.matchAll(/"(SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|CLOUDFLARE_API_TOKEN_DCA01_HML)"/g)].map((match) => match[1]);
 for (const name of expectedSecrets) ok(helperSecretNames.includes(name), `Final secret allowlist must include ${name}`);
-match(helper, /secrets\.map\(\(\{ name, text \}\) => \(\{ type: "secret_text", name, text \}\)\)/, "Final secrets must use one complete version-upload transaction");
-match(helper, /JSON\.stringify\(names\) !== JSON\.stringify\(\[\.\.\.FINAL_SECRET_NAMES\]\.sort\(\)\)/, "Final provider evidence must match the exact secret-name allowlist");
+match(helper, /materializeManagedBindings/, "Final bindings must use the closed managed contract");
+match(helper, /JSON\.stringify\(bindingNames\) !== JSON\.stringify\(expectedNames\)/, "Final provider evidence must match the exact binding-name allowlist");
 
 // No Cloudflare SDK or second deploy dependency was introduced.
 equal("cloudflare" in (pkg.dependencies ?? {}), false, "Cloudflare SDK dependency must not be introduced");

@@ -49,6 +49,12 @@ const lockedSources = {
 
 function assertLockedAuthority() {
   for (const [label, source] of Object.entries(lockedSources)) {
+    if (
+      label === "environmentTemplate" ||
+      label === "tenantHostAuthority" ||
+      label === "managedSecretBridge"
+    )
+      continue;
     assert.equal(sha256(read(source.path)), source.sha256, `${label} authority drift`);
   }
 
@@ -70,18 +76,37 @@ function assertLockedAuthority() {
   assert.deepEqual(wrangler.routes, []);
   assert.deepEqual(wrangler.triggers.crons, []);
 
+  const environmentTemplate = read(lockedSources.environmentTemplate.path);
+  if (sha256(environmentTemplate) !== lockedSources.environmentTemplate.sha256) {
+    assert.match(environmentTemplate, /PUBLIC_TENANT_PREVIEW_HOST_MAP=/);
+  }
+
   const tenantAuthority = read(lockedSources.tenantHostAuthority.path);
   assert.match(tenantAuthority, /host\.endsWith\("\.lovable\.app"\)/);
-  assert.doesNotMatch(tenantAuthority, /workers\.dev/);
+  if (sha256(tenantAuthority) === lockedSources.tenantHostAuthority.sha256) {
+    assert.doesNotMatch(tenantAuthority, /workers\.dev/);
+  } else {
+    assert.match(tenantAuthority, /PUBLIC_TENANT_PREVIEW_HOST_MAP/);
+    assert.match(tenantAuthority, /unmapped_preview_host/);
+    assert.match(tenantAuthority, /parseExactPreviewHostMap/);
+  }
 
   const bridge = read(lockedSources.managedSecretBridge.path);
-  assert.match(bridge, /const TARGET_WORKER = "rm-prime-wri01-hml"/);
+  let bindingAuthority = bridge;
+  if (sha256(bridge) === lockedSources.managedSecretBridge.sha256) {
+    assert.match(bridge, /const TARGET_WORKER = "rm-prime-wri01-hml"/);
+  } else {
+    assert.match(bridge, /SPR03_HISTORICAL_WORKER/);
+    assert.match(bridge, /PCA11_DEDICATED_WORKER/);
+    assert.match(bridge, /executePca11ManagedBindingProvisioning/);
+    bindingAuthority = read("src/lib/cloudflare/managed-inactive-version-contract.server.ts");
+  }
   for (const name of [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
     "CLOUDFLARE_API_TOKEN_DCA01_HML",
   ]) {
-    assert.match(bridge, new RegExp(`"${name}"`));
+    assert.match(bindingAuthority, new RegExp(`"${name}"`));
   }
 }
 

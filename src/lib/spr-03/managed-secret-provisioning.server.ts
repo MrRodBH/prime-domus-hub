@@ -1,17 +1,22 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import {
+  expectedBindingNames,
+  materializeManagedBindings,
+  PCA11_DEDICATED_WORKER,
+  PCA11_PREVIEW_ALIAS,
+  resolveManagedInactiveVersionTarget,
+  SPR03_HISTORICAL_WORKER,
+  type ManagedInactiveVersionTarget,
+} from "@/lib/cloudflare/managed-inactive-version-contract.server";
 
 const CLOUDFLARE_ACCOUNT_ID = "68ec853e6b04a038f09fca5712d6b26b";
-const TARGET_WORKER = "rm-prime-wri01-hml";
+const TARGET_WORKER = SPR03_HISTORICAL_WORKER;
 const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
 const SOURCE_MAIN_MODULE = "index.mjs";
-const FINAL_SECRET_NAMES = [
-  "SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "CLOUDFLARE_API_TOKEN_DCA01_HML",
-] as const;
 
 const VERSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SOURCE_FINGERPRINT_RE = /^[0-9a-f]{64}$/;
 const CEREMONY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,119}$/;
 
 export type Spr03Phase = "canary" | "final";
@@ -21,6 +26,10 @@ export interface Spr03ProvisionRequest {
   expected_worker_id: string;
   expected_bootstrap_version_id: string;
   phase: Spr03Phase;
+}
+
+export interface Pca11ManagedBindingRequest extends Spr03ProvisionRequest {
+  expected_source_fingerprint: string;
 }
 
 export interface Spr03ProvisionResult {
@@ -34,7 +43,9 @@ export interface Spr03ProvisionResult {
   reconciledExistingVersion: boolean;
   activeDeploymentUnchanged: true;
   deployed: false;
+  bindingNames: string[];
   secretBindingNames: string[];
+  unavailableProviderBindings: string[];
 }
 
 export class Spr03ProvisioningError extends Error {
@@ -177,8 +188,60 @@ export function parseSpr03ProvisionRequest(input: unknown): Spr03ProvisionReques
   };
 }
 
-function deploymentVersions(result: any): Array<{ version_id: string; percentage: number }> {
+export function parsePca11ManagedBindingRequest(input: unknown): Pca11ManagedBindingRequest {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Spr03ProvisioningError("pca11_invalid_request", "Request body must be an object");
+  }
+  const record = input as Record<string, unknown>;
+  const allowed = new Set([
+    "ceremony_id",
+    "expected_worker_id",
+    "expected_bootstrap_version_id",
+    "expected_source_fingerprint",
+    "phase",
+  ]);
+  for (const key of Object.keys(record)) {
+    if (!allowed.has(key) || /(tenant|secret|token|authorization|role|user|key)/i.test(key)) {
+      throw new Spr03ProvisioningError("pca11_unknown_or_sensitive_field", `Field is not allowed: ${key}`);
+    }
+  }
+
+  const ceremonyId = record.ceremony_id;
+  const workerId = record.expected_worker_id;
+  const bootstrapVersionId = record.expected_bootstrap_version_id;
+  const sourceFingerprint = record.expected_source_fingerprint;
+  const phase = record.phase;
+  if (typeof ceremonyId !== "string" || !CEREMONY_ID_RE.test(ceremonyId)) {
+    throw new Spr03ProvisioningError("pca11_invalid_ceremony_id", "ceremony_id is invalid");
+  }
+  if (workerId !== PCA11_DEDICATED_WORKER) {
+    throw new Spr03ProvisioningError("pca11_worker_mismatch", "Worker identity does not match PCA-11 server authority");
+  }
+  if (typeof bootstrapVersionId !== "string" || !VERSION_ID_RE.test(bootstrapVersionId)) {
+    throw new Spr03ProvisioningError("pca11_invalid_bootstrap_version", "Bootstrap version identifier is invalid");
+  }
+  if (typeof sourceFingerprint !== "string" || !SOURCE_FINGERPRINT_RE.test(sourceFingerprint)) {
+    throw new Spr03ProvisioningError("pca11_invalid_source_fingerprint", "Source fingerprint must be an exact SHA-256 digest");
+  }
+  if (phase !== "canary" && phase !== "final") {
+    throw new Spr03ProvisioningError("pca11_invalid_phase", "phase must be canary or final");
+  }
+  return {
+    ceremony_id: ceremonyId,
+    expected_worker_id: PCA11_DEDICATED_WORKER,
+    expected_bootstrap_version_id: bootstrapVersionId,
+    expected_source_fingerprint: sourceFingerprint,
+    phase,
+  };
+}
+
+function deploymentRecords(result: any): any[] {
   const deployments = Array.isArray(result?.deployments) ? result.deployments : Array.isArray(result) ? result : [];
+  return deployments;
+}
+
+function deploymentVersions(result: any): Array<{ version_id: string; percentage: number }> {
+  const deployments = deploymentRecords(result);
   if (deployments.length === 0) {
     throw new Spr03ProvisioningError("spr03_deployment_cardinality", "At least one deployment record must exist", 409);
   }
@@ -191,26 +254,37 @@ function deploymentVersions(result: any): Array<{ version_id: string; percentage
   return versions;
 }
 
-async function assertBootstrapProviderState(provisioner: string, expectedBootstrapVersionId: string): Promise<void> {
+async function assertBootstrapProviderState(
+  provisioner: string,
+  target: ManagedInactiveVersionTarget,
+  expectedBootstrapVersionId: string,
+): Promise<void> {
   const deployments = await cloudflareGet<any>(
-    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/deployments`,
+    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/deployments`,
     provisioner,
   );
-  const versions = deploymentVersions(deployments);
-  if (versions[0].version_id !== expectedBootstrapVersionId) {
-    throw new Spr03ProvisioningError("spr03_bootstrap_version_drift", "Active deployment does not match the pinned bootstrap version", 409);
+  const records = deploymentRecords(deployments);
+  if (target.expectedActiveDeploymentCount === 0) {
+    if (records.length !== 0) {
+      throw new Spr03ProvisioningError("pca11_deployment_not_zero", "PCA-11 candidate must have zero active deployments", 409);
+    }
+  } else {
+    const versions = deploymentVersions(deployments);
+    if (versions[0].version_id !== expectedBootstrapVersionId) {
+      throw new Spr03ProvisioningError("spr03_bootstrap_version_drift", "Active deployment does not match the pinned bootstrap version", 409);
+    }
   }
 
   const subdomain = await cloudflareGet<any>(
-    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/subdomain`,
+    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/subdomain`,
     provisioner,
   );
-  if (subdomain?.enabled !== false || subdomain?.previews_enabled !== false) {
+  if (subdomain?.enabled !== false || subdomain?.previews_enabled !== target.expectedPreviewsEnabled) {
     throw new Spr03ProvisioningError("spr03_ingress_not_zero", "workers.dev and Preview URLs must both be disabled", 409);
   }
 
   const schedules = await cloudflareGet<any>(
-    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/schedules`,
+    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/schedules`,
     provisioner,
   );
   const scheduleList = Array.isArray(schedules?.schedules) ? schedules.schedules : Array.isArray(schedules) ? schedules : [];
@@ -227,6 +301,15 @@ function secretBindingNames(detail: any): string[] {
   const bindings = Array.isArray(detail?.resources?.bindings) ? detail.resources.bindings : [];
   return bindings
     .filter((binding: any) => binding?.type === "secret_text" || binding?.type === "secret_key")
+    .map((binding: any) => bindingName(binding))
+    .filter(Boolean)
+    .sort();
+}
+
+function runtimeBindingNames(detail: any): string[] {
+  const bindings = Array.isArray(detail?.resources?.bindings) ? detail.resources.bindings : [];
+  return bindings
+    .filter((binding: any) => binding?.type === "plain_text" || binding?.type === "secret_text" || binding?.type === "secret_key")
     .map((binding: any) => bindingName(binding))
     .filter(Boolean)
     .sort();
@@ -262,35 +345,39 @@ function versionListItems(result: any): any[] {
   return items;
 }
 
-async function listVersions(provisioner: string): Promise<any[]> {
+async function listVersions(target: ManagedInactiveVersionTarget, provisioner: string): Promise<any[]> {
   const response = await fetch(
-    `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/versions?per_page=100`,
+    `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/versions?per_page=100`,
     { method: "GET", headers: providerHeaders(provisioner), cache: "no-store" },
   );
   const result = await parseCloudflareJson<any>(response);
   return versionListItems(result);
 }
 
-async function versionDetail(versionId: string, provisioner: string): Promise<any> {
+async function versionDetail(target: ManagedInactiveVersionTarget, versionId: string, provisioner: string): Promise<any> {
   return cloudflareGet<any>(
-    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/versions/${versionId}`,
+    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/versions/${versionId}`,
     provisioner,
   );
 }
 
-async function findTaggedVersion(tag: string, provisioner: string): Promise<{ id: string; detail: any } | null> {
-  const versions = await listVersions(provisioner);
+async function findTaggedVersion(target: ManagedInactiveVersionTarget, tag: string, provisioner: string): Promise<{ id: string; detail: any } | null> {
+  const versions = await listVersions(target, provisioner);
   for (const candidate of versions.slice(0, 20)) {
     if (typeof candidate?.id !== "string") continue;
     if (readVersionTag(candidate) === tag) return { id: candidate.id, detail: candidate };
-    const detail = await versionDetail(candidate.id, provisioner);
+    const detail = await versionDetail(target, candidate.id, provisioner);
     if (readVersionTag(detail) === tag) return { id: candidate.id, detail };
   }
   return null;
 }
 
-async function readWorkerSource(provisioner: string, expectedBootstrapVersionId: string): Promise<WorkerSourceSnapshot> {
-  const bootstrapDetail = await versionDetail(expectedBootstrapVersionId, provisioner);
+async function readWorkerSource(
+  target: ManagedInactiveVersionTarget,
+  provisioner: string,
+  expectedBootstrapVersionId: string,
+): Promise<WorkerSourceSnapshot> {
+  const bootstrapDetail = await versionDetail(target, expectedBootstrapVersionId, provisioner);
   const runtime = bootstrapDetail?.resources?.script_runtime;
   const compatibilityDate = runtime?.compatibility_date;
   const compatibilityFlags = runtime?.compatibility_flags;
@@ -311,7 +398,7 @@ async function readWorkerSource(provisioner: string, expectedBootstrapVersionId:
   const nonSecretBindings: Array<Record<string, any>> = sourceBindings.map((binding: any) => ({ ...binding }));
 
   const response = await fetch(
-    `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/content/v2`,
+    `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/content/v2`,
     { method: "GET", headers: providerHeaders(provisioner), cache: "no-store" },
   );
   if (!response.ok) throw safeProviderError(response.status, null);
@@ -357,7 +444,12 @@ async function readWorkerSource(provisioner: string, expectedBootstrapVersionId:
   };
 }
 
-function cloneMetadata(source: WorkerSourceSnapshot, tag: string, secrets: Array<{ name: string; text: string }>): Record<string, any> {
+function cloneMetadata(
+  source: WorkerSourceSnapshot,
+  target: ManagedInactiveVersionTarget,
+  tag: string,
+  bindings: Array<{ type: "plain_text" | "secret_text"; name: string; text: string }>,
+): Record<string, any> {
   return {
     main_module: source.mainModule,
     compatibility_date: source.compatibilityDate,
@@ -365,29 +457,33 @@ function cloneMetadata(source: WorkerSourceSnapshot, tag: string, secrets: Array
     keep_assets: true,
     bindings: [
       ...source.nonSecretBindings,
-      ...secrets.map(({ name, text }) => ({ type: "secret_text", name, text })),
+      ...bindings,
     ],
     annotations: {
       "workers/tag": tag,
-      "workers/message": tag.startsWith("spr03-canary-")
-        ? "SPR-03 synthetic inactive canary"
-        : "SPR-03 final inactive managed-secret version",
+      ...(target.tagPrefix === "pca11" && tag.startsWith("pca11-final-")
+        ? { "workers/alias": PCA11_PREVIEW_ALIAS }
+        : {}),
+      "workers/message": tag.startsWith(`${target.tagPrefix}-canary-`)
+        ? `${target.tagPrefix.toUpperCase()} synthetic inactive canary`
+        : `${target.tagPrefix.toUpperCase()} final inactive managed-binding version`,
     },
   };
 }
 
 async function uploadInactiveVersion(
   source: WorkerSourceSnapshot,
+  target: ManagedInactiveVersionTarget,
   tag: string,
   provisioner: string,
-  secrets: Array<{ name: string; text: string }>,
+  bindings: Array<{ type: "plain_text" | "secret_text"; name: string; text: string }>,
 ): Promise<string> {
   const form = new FormData();
-  form.set("metadata", JSON.stringify(cloneMetadata(source, tag, secrets)));
+  form.set("metadata", JSON.stringify(cloneMetadata(source, target, tag, bindings)));
   for (const part of source.parts) form.append(part.field, part.blob, part.filename);
 
   const response = await fetch(
-    `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/versions`,
+    `${CLOUDFLARE_API_BASE}/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/versions`,
     { method: "POST", headers: providerHeaders(provisioner), body: form },
   );
   const result = await parseCloudflareJson<any>(response);
@@ -398,150 +494,244 @@ async function uploadInactiveVersion(
   return id;
 }
 
-async function assertVersionInactive(versionId: string, provisioner: string, bootstrapVersionId: string): Promise<any> {
-  await assertBootstrapProviderState(provisioner, bootstrapVersionId);
-  const detail = await versionDetail(versionId, provisioner);
+async function assertVersionInactive(
+  target: ManagedInactiveVersionTarget,
+  versionId: string,
+  provisioner: string,
+  bootstrapVersionId: string,
+): Promise<any> {
+  await assertBootstrapProviderState(provisioner, target, bootstrapVersionId);
+  const detail = await versionDetail(target, versionId, provisioner);
   const deployments = await cloudflareGet<any>(
-    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${TARGET_WORKER}/deployments`,
+    `/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${target.workerId}/deployments`,
     provisioner,
   );
-  const active = deploymentVersions(deployments)[0].version_id;
+  const records = deploymentRecords(deployments);
+  const active = records.length === 0 ? null : deploymentVersions(deployments)[0].version_id;
   if (active === versionId) {
     throw new Spr03ProvisioningError("spr03_inactive_version_deployed", "New SPR-03 version must remain inactive", 409);
   }
   return detail;
 }
 
-function loadFinalSecrets(): Array<{ name: string; text: string }> {
-  return FINAL_SECRET_NAMES.map((name) => ({ name, text: requireEnv(name) }));
+function loadBindings(target: ManagedInactiveVersionTarget, phase: Spr03Phase) {
+  try {
+    return materializeManagedBindings(
+      phase === "canary" ? target.canaryBindings : target.finalBindings,
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "missing_required_managed_binding";
+    throw new Spr03ProvisioningError(
+      `${target.tagPrefix}_missing_server_dependency`,
+      message,
+      503,
+    );
+  }
 }
 
-export async function executeSpr03Provisioning(request: Request, rawBody: unknown): Promise<Spr03ProvisionResult> {
-  await authenticateGlobalSuperAdmin(request);
-  const input = parseSpr03ProvisionRequest(rawBody);
+function assertBindingSet(
+  detail: any,
+  expectedNames: string[],
+  target: ManagedInactiveVersionTarget,
+): { bindingNames: string[]; secretNames: string[] } {
+  const bindingNames = runtimeBindingNames(detail);
+  if (JSON.stringify(bindingNames) !== JSON.stringify(expectedNames)) {
+    throw new Spr03ProvisioningError(
+      `${target.tagPrefix}_binding_mismatch`,
+      "Managed runtime binding names do not match the frozen allowlist",
+      409,
+    );
+  }
+  return { bindingNames, secretNames: secretBindingNames(detail) };
+}
 
-  // Must fail before any Cloudflare access when the stage-specific credential is absent.
-  const provisioner = requireEnv("CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER");
-  await assertBootstrapProviderState(provisioner, input.expected_bootstrap_version_id);
+async function executeManagedInactiveVersionProvisioning(
+  request: Request,
+  input: Spr03ProvisionRequest | Pca11ManagedBindingRequest,
+  target: ManagedInactiveVersionTarget,
+): Promise<Spr03ProvisionResult> {
+  // Stage-specific provisioners fail closed before any provider request.
+  const provisionerName = target.tagPrefix === "pca11"
+    ? "CLOUDFLARE_API_TOKEN_PCA11_PROVISIONER"
+    : "CLOUDFLARE_API_TOKEN_SPR03_PROVISIONER";
+  const provisioner = requireEnv(provisionerName);
+  await assertBootstrapProviderState(provisioner, target, input.expected_bootstrap_version_id);
 
-  const canaryTag = `spr03-canary-${input.ceremony_id}`;
-  const finalTag = `spr03-final-${input.ceremony_id}`;
-  const existingFinal = await findTaggedVersion(finalTag, provisioner);
+  const canaryTag = `${target.tagPrefix}-canary-${input.ceremony_id}`;
+  const finalTag = `${target.tagPrefix}-final-${input.ceremony_id}`;
+  const existingFinal = await findTaggedVersion(target, finalTag, provisioner);
   if (input.phase === "canary" && existingFinal) {
-    throw new Spr03ProvisioningError("spr03_final_already_exists", "Final version already exists for this ceremony", 409);
+    throw new Spr03ProvisioningError(`${target.tagPrefix}_final_already_exists`, "Final version already exists for this ceremony", 409);
   }
 
-  const source = await readWorkerSource(provisioner, input.expected_bootstrap_version_id);
+  const source = await readWorkerSource(target, provisioner, input.expected_bootstrap_version_id);
+  const expectedFingerprint = "expected_source_fingerprint" in input
+    ? input.expected_source_fingerprint
+    : null;
+  if (target.requireSourceFingerprint && source.fingerprint !== expectedFingerprint) {
+    throw new Spr03ProvisioningError(
+      "pca11_source_fingerprint_mismatch",
+      "Provider source fingerprint does not match the exact authorized artifact",
+      409,
+    );
+  }
 
   if (input.phase === "canary") {
-    const existingCanary = await findTaggedVersion(canaryTag, provisioner);
+    const canary = loadBindings(target, "canary");
+    const expectedNames = canary.bindings.map(({ name }) => name).sort();
+    const existingCanary = await findTaggedVersion(target, canaryTag, provisioner);
     if (existingCanary) {
-      const detail = await assertVersionInactive(existingCanary.id, provisioner, input.expected_bootstrap_version_id);
-      const secrets = secretBindingNames(detail);
-      if (secrets.length !== 0) throw new Spr03ProvisioningError("spr03_canary_secret_detected", "Synthetic canary contains a secret binding", 409);
+      const detail = await assertVersionInactive(target, existingCanary.id, provisioner, input.expected_bootstrap_version_id);
+      const observed = assertBindingSet(detail, expectedNames, target);
+      if (observed.secretNames.length !== 0) {
+        throw new Spr03ProvisioningError(`${target.tagPrefix}_canary_secret_detected`, "Synthetic canary contains a secret binding", 409);
+      }
       return {
         ok: true,
         phase: "canary",
         ceremonyId: input.ceremony_id,
-        workerId: TARGET_WORKER,
+        workerId: target.workerId,
         bootstrapVersionId: input.expected_bootstrap_version_id,
         createdVersionId: existingCanary.id,
         sourceFingerprint: source.fingerprint,
         reconciledExistingVersion: true,
         activeDeploymentUnchanged: true,
         deployed: false,
+        bindingNames: observed.bindingNames,
         secretBindingNames: [],
+        unavailableProviderBindings: canary.unavailableOptionalBindings,
       };
     }
 
     let versionId: string;
     try {
-      versionId = await uploadInactiveVersion(source, canaryTag, provisioner, []);
+      versionId = await uploadInactiveVersion(source, target, canaryTag, provisioner, canary.bindings);
     } catch (error) {
-      const reconciled = await findTaggedVersion(canaryTag, provisioner).catch(() => null);
+      const reconciled = await findTaggedVersion(target, canaryTag, provisioner).catch(() => null);
       if (!reconciled) throw error;
       versionId = reconciled.id;
     }
-    const detail = await assertVersionInactive(versionId, provisioner, input.expected_bootstrap_version_id);
-    if (secretBindingNames(detail).length !== 0) {
-      throw new Spr03ProvisioningError("spr03_canary_secret_detected", "Synthetic canary contains a secret binding", 409);
+    const detail = await assertVersionInactive(target, versionId, provisioner, input.expected_bootstrap_version_id);
+    const observed = assertBindingSet(detail, expectedNames, target);
+    if (observed.secretNames.length !== 0) {
+      throw new Spr03ProvisioningError(`${target.tagPrefix}_canary_secret_detected`, "Synthetic canary contains a secret binding", 409);
     }
     return {
       ok: true,
       phase: "canary",
       ceremonyId: input.ceremony_id,
-      workerId: TARGET_WORKER,
+      workerId: target.workerId,
       bootstrapVersionId: input.expected_bootstrap_version_id,
       createdVersionId: versionId,
       sourceFingerprint: source.fingerprint,
       reconciledExistingVersion: false,
       activeDeploymentUnchanged: true,
       deployed: false,
+      bindingNames: observed.bindingNames,
       secretBindingNames: [],
+      unavailableProviderBindings: canary.unavailableOptionalBindings,
     };
   }
 
-  const existingCanary = await findTaggedVersion(canaryTag, provisioner);
+  const existingCanary = await findTaggedVersion(target, canaryTag, provisioner);
   if (!existingCanary) {
-    throw new Spr03ProvisioningError("spr03_canary_required", "An inactive non-secret canary is required before the final version", 409);
+    throw new Spr03ProvisioningError(`${target.tagPrefix}_canary_required`, "An inactive non-secret canary is required before the final version", 409);
   }
-  const canaryDetail = await assertVersionInactive(existingCanary.id, provisioner, input.expected_bootstrap_version_id);
-  if (secretBindingNames(canaryDetail).length !== 0) {
-    throw new Spr03ProvisioningError("spr03_canary_secret_detected", "Synthetic canary contains a secret binding", 409);
+  const canaryBindings = loadBindings(target, "canary");
+  const canaryDetail = await assertVersionInactive(target, existingCanary.id, provisioner, input.expected_bootstrap_version_id);
+  const observedCanary = assertBindingSet(
+    canaryDetail,
+    canaryBindings.bindings.map(({ name }) => name).sort(),
+    target,
+  );
+  if (observedCanary.secretNames.length !== 0) {
+    throw new Spr03ProvisioningError(`${target.tagPrefix}_canary_secret_detected`, "Synthetic canary contains a secret binding", 409);
   }
 
+  const finalBindings = loadBindings(target, "final");
+  const expectedFinalNames = finalBindings.bindings.map(({ name }) => name).sort();
   if (existingFinal) {
-    const detail = await assertVersionInactive(existingFinal.id, provisioner, input.expected_bootstrap_version_id);
-    const names = secretBindingNames(detail);
-    if (JSON.stringify(names) !== JSON.stringify([...FINAL_SECRET_NAMES].sort())) {
-      throw new Spr03ProvisioningError("spr03_final_binding_mismatch", "Final version secret binding names do not match the frozen allowlist", 409);
-    }
+    const detail = await assertVersionInactive(target, existingFinal.id, provisioner, input.expected_bootstrap_version_id);
+    const observed = assertBindingSet(detail, expectedFinalNames, target);
     return {
       ok: true,
       phase: "final",
       ceremonyId: input.ceremony_id,
-      workerId: TARGET_WORKER,
+      workerId: target.workerId,
       bootstrapVersionId: input.expected_bootstrap_version_id,
       createdVersionId: existingFinal.id,
       sourceFingerprint: source.fingerprint,
       reconciledExistingVersion: true,
       activeDeploymentUnchanged: true,
       deployed: false,
-      secretBindingNames: names,
+      bindingNames: observed.bindingNames,
+      secretBindingNames: observed.secretNames,
+      unavailableProviderBindings: finalBindings.unavailableOptionalBindings,
     };
   }
 
-  const finalSecrets = loadFinalSecrets();
   let versionId: string;
   try {
-    versionId = await uploadInactiveVersion(source, finalTag, provisioner, finalSecrets);
+    versionId = await uploadInactiveVersion(source, target, finalTag, provisioner, finalBindings.bindings);
   } catch (error) {
-    const reconciled = await findTaggedVersion(finalTag, provisioner).catch(() => null);
+    const reconciled = await findTaggedVersion(target, finalTag, provisioner).catch(() => null);
     if (!reconciled) throw error;
     versionId = reconciled.id;
   }
-  const detail = await assertVersionInactive(versionId, provisioner, input.expected_bootstrap_version_id);
-  const names = secretBindingNames(detail);
-  if (JSON.stringify(names) !== JSON.stringify([...FINAL_SECRET_NAMES].sort())) {
-    throw new Spr03ProvisioningError("spr03_final_binding_mismatch", "Final version secret binding names do not match the frozen allowlist", 409);
-  }
+  const detail = await assertVersionInactive(target, versionId, provisioner, input.expected_bootstrap_version_id);
+  const observed = assertBindingSet(detail, expectedFinalNames, target);
   return {
     ok: true,
     phase: "final",
     ceremonyId: input.ceremony_id,
-    workerId: TARGET_WORKER,
+    workerId: target.workerId,
     bootstrapVersionId: input.expected_bootstrap_version_id,
     createdVersionId: versionId,
     sourceFingerprint: source.fingerprint,
     reconciledExistingVersion: false,
     activeDeploymentUnchanged: true,
     deployed: false,
-    secretBindingNames: names,
+    bindingNames: observed.bindingNames,
+    secretBindingNames: observed.secretNames,
+    unavailableProviderBindings: finalBindings.unavailableOptionalBindings,
   };
 }
+
+export async function executeSpr03Provisioning(request: Request, rawBody: unknown): Promise<Spr03ProvisionResult> {
+  await authenticateGlobalSuperAdmin(request);
+  const input = parseSpr03ProvisionRequest(rawBody);
+  const target = resolveManagedInactiveVersionTarget(input.expected_worker_id);
+  if (!target || target.workerId !== SPR03_HISTORICAL_WORKER) {
+    throw new Spr03ProvisioningError("spr03_worker_mismatch", "Worker identity does not match SPR-03 server authority");
+  }
+  return executeManagedInactiveVersionProvisioning(request, input, target);
+}
+
+export async function executePca11ManagedBindingProvisioning(request: Request, rawBody: unknown): Promise<Spr03ProvisionResult> {
+  await authenticateGlobalSuperAdmin(request);
+  const input = parsePca11ManagedBindingRequest(rawBody);
+  const target = resolveManagedInactiveVersionTarget(input.expected_worker_id);
+  if (!target || target.workerId !== PCA11_DEDICATED_WORKER) {
+    throw new Spr03ProvisioningError("pca11_worker_mismatch", "Worker identity does not match PCA-11 server authority");
+  }
+  return executeManagedInactiveVersionProvisioning(request, input, target);
+}
+
+const spr03Target = resolveManagedInactiveVersionTarget(SPR03_HISTORICAL_WORKER)!;
+const pca11Target = resolveManagedInactiveVersionTarget(PCA11_DEDICATED_WORKER)!;
 
 export const SPR03_FROZEN_CONTRACT = {
   accountId: CLOUDFLARE_ACCOUNT_ID,
   workerId: TARGET_WORKER,
-  finalSecretNames: [...FINAL_SECRET_NAMES],
+  finalSecretNames: expectedBindingNames(spr03Target.finalBindings),
+} as const;
+
+export const PCA11_MANAGED_BINDING_CONTRACT = {
+  accountId: CLOUDFLARE_ACCOUNT_ID,
+  workerId: PCA11_DEDICATED_WORKER,
+  expectedActiveDeploymentCount: 0,
+  canaryBindingNames: expectedBindingNames(pca11Target.canaryBindings),
+  finalBindingNames: expectedBindingNames(pca11Target.finalBindings),
+  sourceFingerprintRequired: true,
+  provisionerEnvironmentName: "CLOUDFLARE_API_TOKEN_PCA11_PROVISIONER",
 } as const;

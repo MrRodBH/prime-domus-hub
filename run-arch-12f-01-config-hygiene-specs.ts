@@ -78,6 +78,7 @@ const EXPECTED_TEMPLATE_NAMES = [
   "RM_PRIME_EMAIL_SENDER_DOMAIN",
   "RM_PRIME_EMAIL_FROM_DOMAIN",
   "RM_PRIME_AUTH_SITE_ORIGIN",
+  "PUBLIC_TENANT_PREVIEW_HOST_MAP",
   "VITE_SUPABASE_PROJECT_ID",
   "VITE_SUPABASE_PUBLISHABLE_KEY",
   "VITE_SUPABASE_URL",
@@ -148,9 +149,9 @@ assert.equal(
 );
 assert.equal(
   templateEntries.filter(([name]) => !name.startsWith("VITE_")).length,
-  11,
+  12,
 );
-pass("F05", "fourteen application and infrastructure names retain public/server classification");
+pass("F05", "fifteen application and infrastructure names retain public/server classification");
 
 const sampleValue = "must-never-appear-in-errors";
 assert.throws(
