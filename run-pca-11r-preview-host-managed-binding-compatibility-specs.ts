@@ -146,6 +146,7 @@ if (baseSha) {
     "docs/architecture/impact-analysis/manifests/PCA-11R-preview-host-managed-binding-compatibility-manifest.json",
     "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-11r-preview-host-managed-binding-compatibility.md",
     "package.json",
+    "run-arch-12f-01-config-hygiene-specs.ts",
     "run-pca-11r-preview-host-managed-binding-compatibility-specs.ts",
     "run-spr-03-worker-bootstrap-managed-secret-recovery-specs.ts",
     "scripts/build-pca-11-exact-main-runtime-candidate-envelope.mjs",
