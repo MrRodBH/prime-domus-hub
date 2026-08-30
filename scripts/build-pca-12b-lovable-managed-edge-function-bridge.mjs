@@ -1,0 +1,140 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+
+const ROOT = new URL("../", import.meta.url);
+const read = (path) => readFileSync(new URL(path, ROOT), "utf8");
+const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+
+export const GATE = "PCA-12B_LOVABLE_MANAGED_EDGE_FUNCTION_BRIDGE_REPOSITORY_IMPLEMENTATION";
+export const BRANCH = "agent/pca-12b-lovable-managed-edge-function-bridge";
+export const SOURCE_PROTECTED_MAIN = "ba70d12ec8c5a2340d4399748ccd58c7d0ad432f";
+export const SOURCE_TREE = "f8204bc1a2bf6df66db533a5fc00ff8213aabc01";
+export const LOCAL_EQUIVALENT_BASE = "23acdeba078d9797d48512e5def9b9ac9395b1fa";
+export const MANIFEST_PATH =
+  "docs/architecture/impact-analysis/manifests/PCA-12B-lovable-managed-edge-function-bridge-manifest.json";
+export const NEXT_GATE = "PCA-12B_PROTECTED_PUBLICATION_AND_DRAFT_PR";
+
+const lockedSources = {
+  edgeCore: {
+    path: "supabase/functions/_shared/pca11-managed-binding-core.ts",
+    sha256: "721f7617b0c1e813ed07de54a1fc1aa5983b1934b030f44447a8f39f074d7db2",
+  },
+  edgeEntrypoint: {
+    path: "supabase/functions/pca-11-managed-binding-provision/index.ts",
+    sha256: "21eb676675ca5ba4b2bc635fa9ccbb851a42f39e2fed9ab38245f6664f410fc4",
+  },
+  supabaseConfig: {
+    path: "supabase/config.toml",
+    sha256: "7d405383925631b3bd8b4f5be82b85370316407c631f5a2374d1cec29cbab020",
+  },
+  repositorySpecs: {
+    path: "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+    sha256: "1ce0f05743c97b475974f876985021c9fb0a1e58b06a82b5fd78524a8df219cf",
+  },
+  releaseGate: {
+    path: ".github/workflows/release-gate.yml",
+    sha256: "8e622b9a32faaf707b7726023a506c85ebf2affac3ad2c834e5e3260e9b60105",
+  },
+  packageScripts: {
+    path: "package.json",
+    sha256: "b808b688c21d76dfb60bd7f8c5785271b61e568f6a9d484a88279692352fc9ad",
+  },
+  implementationRecord: {
+    path: "docs/architecture/impact-analysis/PCA-12B-lovable-managed-edge-function-bridge-repository-implementation.md",
+    sha256: "8e4690e03cb4a661d426633ac0d639a30287ba1759a8bb6b6f38d29f294ab8c4",
+  },
+  governanceEnvelope: {
+    path: "docs/architecture/governance/PCA-12B-lovable-managed-edge-function-bridge-envelope.md",
+    sha256: "d260f2e6156b34d4924b42248f8101086d9c9dea12915abfbcd9f8561c4d1c36",
+  },
+  evidence: {
+    path: "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-12b-lovable-managed-edge-function-bridge.md",
+    sha256: "ee16eb66e39424f633de48ce7a1371dccda49f98c7f4259ac13dc47304d4d477",
+  },
+};
+
+function assertLockedSources() {
+  for (const [label, source] of Object.entries(lockedSources)) {
+    assert.equal(sha256(read(source.path)), source.sha256, `${label} authority drift`);
+  }
+}
+
+export function buildContract() {
+  assertLockedSources();
+  return {
+    schemaVersion: 1,
+    gate: GATE,
+    branch: BRANCH,
+    sourceProtectedMain: SOURCE_PROTECTED_MAIN,
+    sourceTree: SOURCE_TREE,
+    localEquivalentBase: LOCAL_EQUIVALENT_BASE,
+    releaseGateBaseAuthority: {
+      explicitEnvironment: "PCA_12B_BASE_SHA",
+      remoteDefault: SOURCE_PROTECTED_MAIN,
+      localEquivalentFallback: LOCAL_EQUIVALENT_BASE,
+      fallbackCondition: "SOURCE_PROTECTED_MAIN_COMMIT_ABSENT_LOCALLY",
+      diffAuthority: "COMMITTED_BASE_TO_HEAD_ONLY",
+    },
+    observedAtUtc: "2026-08-30T18:30:00Z",
+    authority: {
+      repository: "PROTECTED_GITHUB_MAIN_ONLY",
+      canonicalBackend: "LOVABLE_MANAGED_SUPABASE_ONLY",
+      ownerSupabaseAccess: "LOVABLE_ONLY",
+      lovableProjectId: "982b91d8-946d-4103-8eb3-40ddbaeedbf4",
+      lovableSupabaseProjectRef: "stmcnvzuzlyqammyycxj",
+      targetWorker: "rm-prime-pca11-hml",
+      lockedSources,
+    },
+    edgeBridge: {
+      functionName: "pca-11-managed-binding-provision",
+      runtime: "SUPABASE_EDGE_FUNCTION_DENO_2_1",
+      supabaseJs: "2.108.2",
+      verifyJwt: true,
+      authorization: "AUTHENTICATED_GLOBAL_SUPER_ADMIN_EXACTLY_ONE_ROLE_ROW",
+      tenantHeaderAllowed: false,
+      providerWriteMethods: ["POST /workers/scripts/rm-prime-pca11-hml/versions"],
+      deploymentMutationAllowed: false,
+      routeMutationAllowed: false,
+      dnsMutationAllowed: false,
+      cronMutationAllowed: false,
+      sourceFingerprintRequired: true,
+      canaryBeforeFinalRequired: true,
+      idempotentTagReconciliation: true,
+      provisionerMayBecomeWorkerBinding: false,
+      responseContainsSecretValues: false,
+    },
+    secretAuthority: {
+      automaticSupabaseUrl: "SUPABASE_URL",
+      automaticPublishableBundle: "SUPABASE_PUBLISHABLE_KEYS.default",
+      legacyPublishableFallback: "SUPABASE_ANON_KEY",
+      automaticPrivilegedBundle: "SUPABASE_SECRET_KEYS.default",
+      legacyPrivilegedFallback: "SUPABASE_SERVICE_ROLE_KEY",
+      customProvisioner: "CLOUDFLARE_API_TOKEN_PCA11_PROVISIONER",
+      customProvisionerPresentInRepository: false,
+      secretlessNegativeProofDeferred: true,
+    },
+    decision: {
+      repositoryImplementationReady: true,
+      frozenPca11rAuthorityChanged: false,
+      externalStateChanged: false,
+      functionDeployed: false,
+      providerVersionCreated: false,
+      previewCreated: false,
+      productionChanged: false,
+      ownerActionRequiredNow: false,
+      nextGateSelected: NEXT_GATE,
+      nextGateAuthorized: false,
+    },
+    controls: {
+      githubWrites: 0,
+      lovableAgentCalls: 0,
+      directSupabaseCalls: 0,
+      cloudflareWrites: 0,
+      deploy: false,
+      preview: false,
+      fixturesCreated: 0,
+      production: false,
+    },
+  };
+}
