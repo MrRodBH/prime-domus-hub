@@ -1,3 +1,6 @@
 # Local-only identity. A remote target must be selected explicitly with
 # `supabase link --project-ref "$SUPABASE_PROJECT_REF"` outside Git.
 project_id = "rm-prime-local"
+
+[functions.pca-11-managed-binding-provision]
+verify_jwt = true
