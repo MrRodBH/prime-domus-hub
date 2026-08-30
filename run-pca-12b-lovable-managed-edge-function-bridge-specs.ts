@@ -25,7 +25,21 @@ import {
   SOURCE_TREE,
 } from "./scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs";
 
-const BASE_COMMIT = process.env.PCA_12B_BASE_SHA ?? "23acdeba078d9797d48512e5def9b9ac9395b1fa";
+function commitExists(sha: string): boolean {
+  try {
+    execFileSync("git", ["cat-file", "-e", `${sha}^{commit}`], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const requestedBaseCommit = process.env.PCA_12B_BASE_SHA?.trim();
+if (requestedBaseCommit) assert.match(requestedBaseCommit, /^[0-9a-f]{40}$/);
+const BASE_COMMIT =
+  requestedBaseCommit ??
+  (commitExists(SOURCE_PROTECTED_MAIN) ? SOURCE_PROTECTED_MAIN : LOCAL_EQUIVALENT_BASE);
+assert.ok(commitExists(BASE_COMMIT), `PCA-12B base commit is unavailable: ${BASE_COMMIT}`);
 const BOOTSTRAP_ID = "11111111-1111-4111-8111-111111111111";
 const CANARY_ID = "22222222-2222-4222-8222-222222222222";
 const FINAL_ID = "33333333-3333-4333-8333-333333333333";
