@@ -9,7 +9,8 @@
     "explicitEnvironment": "PCA_12B_BASE_SHA",
     "remoteDefault": "ba70d12ec8c5a2340d4399748ccd58c7d0ad432f",
     "localEquivalentFallback": "23acdeba078d9797d48512e5def9b9ac9395b1fa",
-    "fallbackCondition": "SOURCE_PROTECTED_MAIN_COMMIT_ABSENT_LOCALLY"
+    "fallbackCondition": "SOURCE_PROTECTED_MAIN_COMMIT_ABSENT_LOCALLY",
+    "diffAuthority": "COMMITTED_BASE_TO_HEAD_ONLY"
   },
   "observedAtUtc": "2026-08-30T18:30:00Z",
   "authority": {
@@ -34,7 +35,7 @@
       },
       "repositorySpecs": {
         "path": "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
-        "sha256": "58bd2b95ab677ea792e91c218faf8164ef60391253e3ec11547fdf5a862a1755"
+        "sha256": "1ce0f05743c97b475974f876985021c9fb0a1e58b06a82b5fd78524a8df219cf"
       },
       "releaseGate": {
         "path": ".github/workflows/release-gate.yml",

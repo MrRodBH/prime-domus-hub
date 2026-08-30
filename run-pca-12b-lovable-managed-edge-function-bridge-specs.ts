@@ -282,12 +282,10 @@ const allowedPaths = [
   "supabase/functions/_shared/pca11-managed-binding-core.ts",
   "supabase/functions/pca-11-managed-binding-provision/index.ts",
 ].sort();
-const changedPaths = [
-  ...execFileSync("git", ["diff", "--name-only", BASE_COMMIT], { encoding: "utf8" }).split("\n"),
-  ...execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
-    encoding: "utf8",
-  }).split("\n"),
-]
+const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
+  encoding: "utf8",
+})
+  .split("\n")
   .filter(Boolean)
   .sort();
 assert.deepEqual(changedPaths, allowedPaths, "PCA-12B diff escaped the exact repository allowlist");

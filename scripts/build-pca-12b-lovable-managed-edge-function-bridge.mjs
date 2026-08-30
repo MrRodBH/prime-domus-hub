@@ -30,7 +30,7 @@ const lockedSources = {
   },
   repositorySpecs: {
     path: "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
-    sha256: "58bd2b95ab677ea792e91c218faf8164ef60391253e3ec11547fdf5a862a1755",
+    sha256: "1ce0f05743c97b475974f876985021c9fb0a1e58b06a82b5fd78524a8df219cf",
   },
   releaseGate: {
     path: ".github/workflows/release-gate.yml",
@@ -74,6 +74,7 @@ export function buildContract() {
       remoteDefault: SOURCE_PROTECTED_MAIN,
       localEquivalentFallback: LOCAL_EQUIVALENT_BASE,
       fallbackCondition: "SOURCE_PROTECTED_MAIN_COMMIT_ABSENT_LOCALLY",
+      diffAuthority: "COMMITTED_BASE_TO_HEAD_ONLY",
     },
     observedAtUtc: "2026-08-30T18:30:00Z",
     authority: {
