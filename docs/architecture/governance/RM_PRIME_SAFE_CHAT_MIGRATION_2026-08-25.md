@@ -919,3 +919,30 @@ DIRECT_SUPABASE_CALLS=0
 - Nenhum workflow GitHub publica o release candidate exato; runtime e pacote de operador permanecem ausentes.
 - PCA-09 absorve controles seguros do runbook histórico sem reabrir HVP-01/HRC-01.
 - DCA-02-BL2 R2 permanece não bloqueante para homologação e obrigatória antes de produção.
+
+---
+
+## 36. PCA-11 — envelope do candidato runtime exact-main
+
+```text
+PCA11_SOURCE_MAIN=43eb3ff63123e3b0a02b779121e398fec107938f
+PCA11_SOURCE_TREE=21a0d13bd0c4620dcdb46c00fe69a23ef779d738
+PCA10_RESULT=ACCEPTED_READ_ONLY
+PCA11_RESULT=REPOSITORY_ENVELOPE_IMPLEMENTED_NOT_EXECUTED
+PCA11_CANDIDATE=CLOUDFLARE_WORKERS/rm-prime-pca11-hml
+PCA11_CANDIDATE_MATERIALIZED=false
+PCA11_MATERIALIZATION_READY=false
+PCA11_ENTRY_STATE=BLOCKED_PREVIEW_HOST_AND_MANAGED_BINDING_COMPATIBILITY
+PCA11_BUNDLE=379_MODULES/161_ASSETS/1745.22_KIB_GZIP
+PCA11_NEXT_GATE_SELECTED=PCA-11R_CLOUDFLARE_DEDICATED_PREVIEW_HOST_AND_MANAGED_BINDING_COMPATIBILITY_CORRECTIVE_REPOSITORY_IMPLEMENTATION
+PCA11_NEXT_GATE_AUTHORIZED=false
+CONTROLLED_HOMOLOGATION_AUTHORIZED=false
+PRODUCTION_AUTHORIZED=false
+DIRECT_SUPABASE_CALLS=0
+```
+
+- O candidato selecionado é um novo Worker dedicado; publicação Lovable e Worker histórico permanecem inelegíveis.
+- O host versionado `.workers.dev` ainda não possui autoridade explícita e exata no runtime.
+- A ponte SPR-03 permanece vinculada ao Worker histórico e não pode transportar bindings para o candidato.
+- Nenhum deploy, provider write, segredo, fixture ou operação no Same-Backend ocorreu.
+- DCA-02-BL2 R2 permanece obrigatório após homologação e antes de produção.
