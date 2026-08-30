@@ -195,6 +195,11 @@ jobs:
             if [[ " ${changed_files[*]} " == *" run-pca-11r-preview-host-managed-binding-compatibility-specs.ts "* ]]; then
               pca_11r=true
             fi
+            # PCA-11R owns its exact multi-commit diff. Its compatibility update to the
+            # historical config-hygiene spec must not reopen the one-commit ARCH-12F-01 gate.
+            if [[ "$pca_11r" == "true" ]]; then
+              arch_12f_01=false
+            fi
             if [[ " ${changed_files[*]} " == *" run-dca-02-bl2-isolated-pitr-restore-envelope-specs.mjs "* ]]; then
               dca_02_bl2_envelope=true
             fi
