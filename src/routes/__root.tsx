@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import faviconAsset from "../assets/favicon.png.asset.json";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { structuredLog } from "../lib/structured-log";
-import { loadRequiredPublicRootData } from "../lib/public-tenant-read-guards";
+import { loadRequiredPublicRootDataForPath } from "../lib/public-tenant-read-guards";
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
 import { CmsPreviewOverlay } from "../components/site/CmsPreviewOverlay";
 import { CampaignRenderer } from "../components/site/CampaignRenderer";
@@ -88,8 +88,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  loader: async () => {
-    const { settings, meta: tracking } = await loadRequiredPublicRootData(
+  loader: async ({ location }) => {
+    const publicRootData = await loadRequiredPublicRootDataForPath(
+      location.pathname,
       async () => {
         const { obterSiteSettings } = await import("../lib/api/site.functions");
         return obterSiteSettings();
@@ -100,7 +101,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     );
 
+    if (!publicRootData) {
+      return {
+        tenantIndependent: true as const,
+        faviconUrl: null,
+        tracking: null,
+        brandingV2: {},
+        seoGlobal: {},
+        siteName: "RM Prime Imóveis",
+      };
+    }
+
+    const { settings, meta: tracking } = publicRootData;
+
     return {
+      tenantIndependent: false as const,
       faviconUrl: settings.branding.favicon_url ?? null,
       tracking,
       brandingV2: settings.branding_v2 ?? {},
@@ -109,8 +124,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     };
   },
   head: ({ loaderData }) => {
-    const seo = loaderData?.seoGlobal ?? {};
-    const bv2 = loaderData?.brandingV2 ?? {};
+    const seo = (loaderData?.seoGlobal ?? {}) as Record<string, string | undefined>;
+    const bv2 = (loaderData?.brandingV2 ?? {}) as Record<string, string | undefined>;
     const title = seo.default_title || "RM Prime Imóveis — Alto padrão em Belo Horizonte";
     const description =
       seo.default_description ||
@@ -216,19 +231,22 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    if (loaderData.tenantIndependent) return;
     import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
     return router.subscribe("onResolved", () => {
       import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
     });
-  }, [router]);
+  }, [loaderData.tenantIndependent, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CmsPreviewOverlay />
+      {loaderData.tenantIndependent ? null : <CmsPreviewOverlay />}
       <Outlet />
-      <WhatsAppFab />
-      <CampaignRenderer />
-      <PublicTrackingRuntime snapshot={loaderData.tracking} />
+      {loaderData.tenantIndependent ? null : <WhatsAppFab />}
+      {loaderData.tenantIndependent ? null : <CampaignRenderer />}
+      {loaderData.tenantIndependent ? null : (
+        <PublicTrackingRuntime snapshot={loaderData.tracking} />
+      )}
       <Toaster />
     </QueryClientProvider>
   );

@@ -339,17 +339,26 @@ const pca12cR3Paths = [
   "src/lib/spr-03/managed-secret-provisioning.server.ts",
   "src/routes/api/internal/pca-11-managed-binding-provision.ts",
 ].sort();
+const pca12cR6aPaths = [
+  "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts",
+  "src/lib/public-tenant-read-guards.ts",
+  "src/routes/__root.tsx",
+].sort();
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
 })
   .split("\n")
   .filter(Boolean)
   .sort();
-const downstreamAllowedPaths = new Set([...allowedPaths, ...pca12cR3Paths]);
+const downstreamAllowedPaths = new Set([
+  ...allowedPaths,
+  ...pca12cR3Paths,
+  ...pca12cR6aPaths,
+]);
 assert.deepEqual(
   changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),
   [],
-  "PCA-12B plus sanctioned PCA-12C-R3 diff escaped the repository allowlist",
+  "PCA-12B plus sanctioned PCA-12C-R3/R6A diff escaped the repository allowlist",
 );
 for (const path of allowedPaths) {
   assert.ok(changedPaths.includes(path), `PCA-12B historical path missing: ${path}`);

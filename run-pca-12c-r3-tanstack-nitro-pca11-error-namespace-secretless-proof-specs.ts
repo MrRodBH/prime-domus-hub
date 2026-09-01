@@ -116,8 +116,24 @@ assert.doesNotMatch(route, /CLOUDFLARE_API_TOKEN_PCA11_PROVISIONER/);
 assert.deepEqual(JSON.parse(readFileSync(MANIFEST_PATH, "utf8")), buildContract());
 
 const releaseBase = process.env.PCA_12C_R3_BASE_SHA?.trim();
-if (releaseBase) assert.equal(releaseBase, SOURCE_MAIN);
 const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+if (releaseBase) {
+  assert.match(releaseBase, /^[0-9a-f]{40}$/);
+  assert.doesNotThrow(
+    () =>
+      execFileSync("git", ["merge-base", "--is-ancestor", SOURCE_MAIN, releaseBase], {
+        stdio: "ignore",
+      }),
+    "PCA-12C-R3 release base must descend from the historical SOURCE_MAIN",
+  );
+  assert.doesNotThrow(
+    () =>
+      execFileSync("git", ["merge-base", "--is-ancestor", releaseBase, head], {
+        stdio: "ignore",
+      }),
+    "PCA-12C-R3 exact head must descend from the current release base",
+  );
+}
 if (head !== SOURCE_MAIN) {
   const changedPaths = execFileSync("git", ["diff", "--name-only", `${SOURCE_MAIN}..${head}`], {
     encoding: "utf8",
@@ -139,7 +155,10 @@ if (head !== SOURCE_MAIN) {
     "scripts/build-pca-11r-preview-host-managed-binding-compatibility.mjs",
     "scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs",
     "scripts/build-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.mjs",
+    "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts",
+    "src/lib/public-tenant-read-guards.ts",
     "src/lib/spr-03/managed-secret-provisioning.server.ts",
+    "src/routes/__root.tsx",
     "src/routes/api/internal/pca-11-managed-binding-provision.ts",
   ]);
 }

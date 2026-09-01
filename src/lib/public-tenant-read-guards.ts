@@ -37,3 +37,17 @@ export async function loadRequiredPublicRootData<TSettings, TMeta>(
   const meta = await loadMeta();
   return { settings, meta };
 }
+
+export function isTenantIndependentRootPath(pathname: string): boolean {
+  const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return normalizedPathname === "/auth";
+}
+
+export async function loadRequiredPublicRootDataForPath<TSettings, TMeta>(
+  pathname: string,
+  loadSettings: () => Promise<TSettings>,
+  loadMeta: () => Promise<TMeta>,
+): Promise<{ settings: TSettings; meta: TMeta } | null> {
+  if (isTenantIndependentRootPath(pathname)) return null;
+  return loadRequiredPublicRootData(loadSettings, loadMeta);
+}
