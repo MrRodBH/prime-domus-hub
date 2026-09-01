@@ -17,7 +17,7 @@ dist-ssr
 *.local
 
 # Local configuration and secrets
-.env
+# .env is intentionally tracked with browser-public VITE_* bindings only.
 .env.*
 !.env.example
 !.env.*.example

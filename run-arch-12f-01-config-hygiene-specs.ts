@@ -3,13 +3,9 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
-import {
-  MissingServerConfigError,
-  getRequiredSupabaseServerConfig,
-} from "./src/lib/config.server";
+import { MissingServerConfigError, getRequiredSupabaseServerConfig } from "./src/lib/config.server";
 
-const EXPECTED_BUN_LOCK_SHA256 =
-  "12df9c78b4a16f7661053906e8be6e9ccf750d9c62a1da3bffef27755cf2aadc";
+const EXPECTED_BUN_LOCK_SHA256 = "12df9c78b4a16f7661053906e8be6e9ccf750d9c62a1da3bffef27755cf2aadc";
 
 const ALLOWLIST = [
   ".env",
@@ -92,11 +88,22 @@ function pass(id: string, detail: string): void {
   console.log(`${id} PASS — ${detail}`);
 }
 
-assert.throws(
-  () => git("ls-files", "--error-unmatch", ".env"),
-  /error|pathspec|did not match/i,
+assert.equal(git("ls-files", "--error-unmatch", ".env"), ".env");
+const publicEnvironment = readFileSync(".env", "utf8");
+const publicEnvironmentEntries = publicEnvironment
+  .split(/\r?\n/)
+  .filter(Boolean)
+  .map((line) => {
+    const separator = line.indexOf("=");
+    assert.notEqual(separator, -1, "invalid public environment entry");
+    return [line.slice(0, separator), line.slice(separator + 1)] as const;
+  });
+assert.deepEqual(
+  publicEnvironmentEntries.map(([name]) => name),
+  ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"],
 );
-pass("F01", ".env is not tracked");
+assert.ok(publicEnvironmentEntries.every(([, value]) => value.length > 0));
+pass("F01", ".env tracks exactly two browser-public Supabase bindings");
 
 const template = readFileSync(".env.example", "utf8");
 const templateEntries = template
@@ -114,11 +121,9 @@ assert.deepEqual(
 assert.ok(templateEntries.every(([, value]) => value === ""));
 pass("F02", ".env.example contains names and empty values only");
 
-const ignoreRules = new Set(
-  readFileSync(".gitignore", "utf8").split(/\r?\n/),
-);
+const ignoreRules = new Set(readFileSync(".gitignore", "utf8").split(/\r?\n/));
+assert.ok(!ignoreRules.has(".env"), ".env must remain trackable by Lovable builds");
 for (const rule of [
-  ".env",
   ".env.*",
   "!.env.example",
   "!.env.*.example",
@@ -129,7 +134,7 @@ for (const rule of [
 ]) {
   assert.ok(ignoreRules.has(rule), `missing ignore rule: ${rule}`);
 }
-pass("F03", "local env files are ignored and templates are allowed");
+pass("F03", "tracked public .env is allowed while local variants remain ignored");
 
 const secretPatterns = [
   /\bsb_secret_/i,
@@ -138,19 +143,18 @@ const secretPatterns = [
   /\bsk_(?:live|test)_[A-Za-z0-9]+/i,
   /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/,
 ];
-for (const pattern of secretPatterns) {
-  assert.doesNotMatch(template, pattern);
+for (const content of [template, publicEnvironment]) {
+  for (const pattern of secretPatterns) {
+    assert.ok(!pattern.test(content), "forbidden secret pattern found in environment policy");
+  }
 }
-pass("F04", "template secret-pattern scan is clean");
+const publicEnvironmentMap = new Map(publicEnvironmentEntries);
+assert.ok(/^https:\/\//.test(publicEnvironmentMap.get("VITE_SUPABASE_URL") ?? ""));
+assert.ok(/^sb_publishable_/.test(publicEnvironmentMap.get("VITE_SUPABASE_PUBLISHABLE_KEY") ?? ""));
+pass("F04", "template and tracked public bindings exclude secret-class material");
 
-assert.equal(
-  templateEntries.filter(([name]) => name.startsWith("VITE_")).length,
-  3,
-);
-assert.equal(
-  templateEntries.filter(([name]) => !name.startsWith("VITE_")).length,
-  12,
-);
+assert.equal(templateEntries.filter(([name]) => name.startsWith("VITE_")).length, 3);
+assert.equal(templateEntries.filter(([name]) => !name.startsWith("VITE_")).length, 12);
 pass("F05", "fifteen application and infrastructure names retain public/server classification");
 
 const sampleValue = "must-never-appear-in-errors";
@@ -169,9 +173,7 @@ assert.throws(
 );
 pass("F06", "missing required server config fails closed with names only");
 
-const bunLockSha256 = createHash("sha256")
-  .update(readFileSync("bun.lock"))
-  .digest("hex");
+const bunLockSha256 = createHash("sha256").update(readFileSync("bun.lock")).digest("hex");
 assert.equal(bunLockSha256, EXPECTED_BUN_LOCK_SHA256);
 pass("F07", "bun.lock SHA-256 matches the audited dependency baseline");
 
@@ -182,10 +184,7 @@ assert.equal(
   packageJson.scripts?.["test:arch-12f-01"],
   "tsx --tsconfig tsconfig.json ./run-arch-12f-01-config-hygiene-specs.ts",
 );
-const releaseWorkflow = readFileSync(
-  ".github/workflows/release-gate.yml",
-  "utf8",
-);
+const releaseWorkflow = readFileSync(".github/workflows/release-gate.yml", "utf8");
 assert.match(releaseWorkflow, /bun run test:arch-12f-01/);
 pass("F08", "focused matrix is wired before existing release verification");
 
@@ -219,12 +218,15 @@ if (baseSha) {
     assert.ok(!changedFiles.includes("bun.lock"));
   }
 }
-pass("F10", integrationMode
-  ? "exact 42-path forward-only integration and zero lockfile scope"
-  : arch12f02aMode
-    ? "ARCH-12F-02A owns exact forward-only allowlist and zero lockfile scope"
-  : arch12f03Mode
-    ? "ARCH-12F-03 owns exact forward-only allowlist and audited lockfile scope"
-  : "one atomic source allowlist when exact diff authority is supplied");
+pass(
+  "F10",
+  integrationMode
+    ? "exact 42-path forward-only integration and zero lockfile scope"
+    : arch12f02aMode
+      ? "ARCH-12F-02A owns exact forward-only allowlist and zero lockfile scope"
+      : arch12f03Mode
+        ? "ARCH-12F-03 owns exact forward-only allowlist and audited lockfile scope"
+        : "one atomic source allowlist when exact diff authority is supplied",
+);
 
 console.log("ARCH-12F-01 CONFIG HYGIENE MATRIX PASS");

@@ -26,15 +26,15 @@ const lockedSources = {
   },
   specifications: {
     path: "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
-    sha256: "4e5930536d6e4ff09995cf4dfb42cf5798e1d68702a54c8790768e14cbb593bd",
+    sha256: "7bf0a2f529457f4753150f76c3ad97995975bd93c51edba08d6b0d1ec75227e0",
   },
   releaseGate: {
     path: ".github/workflows/release-gate.yml",
-    sha256: "5af19cc8f0cb08030b8bc76abe9349b7f70be4c1542aa03b98949963c2c5d63a",
+    sha256: "6474612fa58fe543ae6e923a8b43151e8f0f4bd44acb7377523e591dcfd7b87a",
   },
   packageScripts: {
     path: "package.json",
-    sha256: "c87d732c239c65513cd8516bca964970dcc83d0a777648292734c4e2a97f2ab9",
+    sha256: "b5eb02e99d2528a404c6cc9de2495f23a023aba2a7f08681f5baa18ddf8c9c30",
   },
   implementationRecord: {
     path: "docs/architecture/impact-analysis/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-repository-implementation.md",

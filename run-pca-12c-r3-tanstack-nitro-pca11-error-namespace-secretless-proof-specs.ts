@@ -142,7 +142,7 @@ if (head !== SOURCE_MAIN) {
     .split("\n")
     .filter(Boolean)
     .sort();
-  assert.deepEqual(changedPaths, [
+  const historicalPaths = [
     ".github/workflows/release-gate.yml",
     "docs/architecture/governance/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-envelope.md",
     "docs/architecture/impact-analysis/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-repository-implementation.md",
@@ -162,7 +162,19 @@ if (head !== SOURCE_MAIN) {
     "src/routes/__root.tsx",
     "src/routes/api/internal/pca-11-managed-binding-provision.ts",
     "vite.config.ts",
-  ]);
+  ].sort();
+  const r6gPaths = [
+    ".env",
+    ".gitignore",
+    "run-arch-12f-01-config-hygiene-specs.ts",
+    "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
+  ].sort();
+  assert.deepEqual(
+    changedPaths,
+    changedPaths.includes("run-pca-12c-r6g-public-supabase-vite-binding-specs.ts")
+      ? [...historicalPaths, ...r6gPaths].sort()
+      : historicalPaths,
+  );
 }
 
 console.log("PCA-12C-R3 TanStack/Nitro PCA-11 namespace and secretless proof: PASS");
