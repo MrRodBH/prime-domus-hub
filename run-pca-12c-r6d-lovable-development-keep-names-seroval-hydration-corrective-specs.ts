@@ -32,7 +32,7 @@ const changedPaths = [
   ...execFileSync("git", ["diff", "--name-only", SOURCE_MAIN, "--"], {
     encoding: "utf8",
   }).split("\n"),
-  ...execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
+  ...execFileSync("git", ["ls-files", "--others", "--exclude-standard", "--", ...R6D_PATHS], {
     encoding: "utf8",
   }).split("\n"),
 ]
