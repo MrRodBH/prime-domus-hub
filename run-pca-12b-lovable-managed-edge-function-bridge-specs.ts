@@ -344,6 +344,10 @@ const pca12cR6aPaths = [
   "src/lib/public-tenant-read-guards.ts",
   "src/routes/__root.tsx",
 ].sort();
+const pca12cR6dPaths = [
+  "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts",
+  "vite.config.ts",
+].sort();
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
 })
@@ -354,11 +358,12 @@ const downstreamAllowedPaths = new Set([
   ...allowedPaths,
   ...pca12cR3Paths,
   ...pca12cR6aPaths,
+  ...pca12cR6dPaths,
 ]);
 assert.deepEqual(
   changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),
   [],
-  "PCA-12B plus sanctioned PCA-12C-R3/R6A diff escaped the repository allowlist",
+  "PCA-12B plus sanctioned PCA-12C-R3/R6A/R6D diff escaped the repository allowlist",
 );
 for (const path of allowedPaths) {
   assert.ok(changedPaths.includes(path), `PCA-12B historical path missing: ${path}`);

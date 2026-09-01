@@ -22,6 +22,7 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    esbuild: { keepNames: false },
     nitro: {
       plugins: [wri01RuntimePlugin],
       output: {
