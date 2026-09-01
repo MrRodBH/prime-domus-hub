@@ -1,0 +1,147 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import {
+  executePca11ManagedBindingProvisioning,
+  executeSpr03Provisioning,
+  PCA11_MANAGED_BINDING_CONTRACT,
+  Spr03ProvisioningError,
+} from "./src/lib/spr-03/managed-secret-provisioning.server";
+import { PCA11_DEDICATED_WORKER } from "./src/lib/cloudflare/managed-inactive-version-contract.server";
+import { handlePca11ManagedBindingProvisionRequest } from "./src/routes/api/internal/pca-11-managed-binding-provision";
+import {
+  buildContract,
+  MANIFEST_PATH,
+  SOURCE_MAIN,
+  SOURCE_TREE,
+} from "./scripts/build-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.mjs";
+
+const PROVISIONER_ENVIRONMENT_NAME = "CLOUDFLARE_API_TOKEN_PCA11_PROVISIONER";
+
+assert.equal(
+  execFileSync("git", ["rev-parse", `${SOURCE_MAIN}^{tree}`], { encoding: "utf8" }).trim(),
+  SOURCE_TREE,
+);
+assert.equal(
+  PCA11_MANAGED_BINDING_CONTRACT.provisionerEnvironmentName,
+  PROVISIONER_ENVIRONMENT_NAME,
+);
+
+const validBody = {
+  ceremony_id: "pca12c-r3:secretless:2026-09-01",
+  expected_worker_id: PCA11_DEDICATED_WORKER,
+  expected_bootstrap_version_id: "11111111-1111-4111-8111-111111111111",
+  expected_source_fingerprint: "a".repeat(64),
+  phase: "canary" as const,
+};
+
+const authenticatedRequest = () =>
+  new Request("https://runtime.invalid/api/internal/pca-11-managed-binding-provision", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer authenticated-global-super-admin-proof",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(validBody),
+  });
+
+let networkCalls = 0;
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async () => {
+  networkCalls += 1;
+  throw new Error("network_call_prohibited_during_secretless_proof");
+};
+
+try {
+  const response = await handlePca11ManagedBindingProvisionRequest(authenticatedRequest(), {
+    execute: (request, body) =>
+      executePca11ManagedBindingProvisioning(request, body, {
+        authenticateGlobalSuperAdmin: async () => "global-super-admin-user-id",
+        readEnvironment: (name) =>
+          name === PROVISIONER_ENVIRONMENT_NAME ? undefined : `synthetic-${name}`,
+      }),
+  });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    code: "pca11_missing_server_dependency",
+  });
+  assert.equal(networkCalls, 0, "secretless route proof must perform zero network calls");
+
+  await assert.rejects(
+    executePca11ManagedBindingProvisioning(authenticatedRequest(), validBody, {
+      readEnvironment: () => undefined,
+    }),
+    (error: unknown) =>
+      error instanceof Spr03ProvisioningError &&
+      error.status === 503 &&
+      error.code === "pca11_missing_server_dependency",
+  );
+  assert.equal(
+    networkCalls,
+    0,
+    "PCA-11 auth dependencies must use the PCA-11 namespace before network access",
+  );
+
+  await assert.rejects(
+    executeSpr03Provisioning(
+      new Request("https://runtime.invalid/api/internal/spr-03-managed-secret-provision", {
+        method: "POST",
+      }),
+      {},
+    ),
+    (error: unknown) =>
+      error instanceof Spr03ProvisioningError &&
+      error.status === 401 &&
+      error.code === "spr03_unauthorized",
+  );
+  assert.equal(networkCalls, 0, "SPR-03 auth regression must remain local and namespaced");
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
+const helper = readFileSync("src/lib/spr-03/managed-secret-provisioning.server.ts", "utf8");
+const route = readFileSync("src/routes/api/internal/pca-11-managed-binding-provision.ts", "utf8");
+assert.match(helper, /authenticateGlobalSuperAdmin\(candidate, "pca11", readEnvironment\)/);
+assert.match(helper, /requireEnvironment\(name, target\.tagPrefix, readEnvironment\)/);
+assert.match(
+  helper,
+  /provisioningCode\(target\.tagPrefix, "cloudflare_invalid_response"\)|parseCloudflareJson<any>\(response, target\.tagPrefix\)/,
+);
+assert.match(
+  route,
+  /POST: \(\{ request \}\) => handlePca11ManagedBindingProvisionRequest\(request\)/,
+);
+assert.doesNotMatch(route, /CLOUDFLARE_API_TOKEN_PCA11_PROVISIONER/);
+assert.deepEqual(JSON.parse(readFileSync(MANIFEST_PATH, "utf8")), buildContract());
+
+const releaseBase = process.env.PCA_12C_R3_BASE_SHA?.trim();
+if (releaseBase) assert.equal(releaseBase, SOURCE_MAIN);
+const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+if (head !== SOURCE_MAIN) {
+  const changedPaths = execFileSync("git", ["diff", "--name-only", `${SOURCE_MAIN}..${head}`], {
+    encoding: "utf8",
+  })
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .sort();
+  assert.deepEqual(changedPaths, [
+    ".github/workflows/release-gate.yml",
+    "docs/architecture/governance/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-envelope.md",
+    "docs/architecture/impact-analysis/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-repository-implementation.md",
+    "docs/architecture/impact-analysis/manifests/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-manifest.json",
+    "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.md",
+    "package.json",
+    "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+    "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+    "run-spr-03-worker-bootstrap-managed-secret-recovery-specs.ts",
+    "scripts/build-pca-11r-preview-host-managed-binding-compatibility.mjs",
+    "scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs",
+    "scripts/build-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.mjs",
+    "src/lib/spr-03/managed-secret-provisioning.server.ts",
+    "src/routes/api/internal/pca-11-managed-binding-provision.ts",
+  ]);
+}
+
+console.log("PCA-12C-R3 TanStack/Nitro PCA-11 namespace and secretless proof: PASS");

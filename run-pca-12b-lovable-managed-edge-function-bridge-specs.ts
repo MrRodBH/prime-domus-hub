@@ -34,12 +34,35 @@ function commitExists(sha: string): boolean {
   }
 }
 
+function commitContainsPath(sha: string, path: string): boolean {
+  try {
+    execFileSync("git", ["cat-file", "-e", `${sha}:${path}`], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const requestedBaseCommit = process.env.PCA_12B_BASE_SHA?.trim();
-if (requestedBaseCommit) assert.match(requestedBaseCommit, /^[0-9a-f]{40}$/);
+if (requestedBaseCommit) {
+  assert.match(requestedBaseCommit, /^[0-9a-f]{40}$/);
+  assert.ok(
+    commitExists(requestedBaseCommit),
+    `PCA-12B requested base commit is unavailable: ${requestedBaseCommit}`,
+  );
+}
+const historicalBaseCommit = commitExists(SOURCE_PROTECTED_MAIN)
+  ? SOURCE_PROTECTED_MAIN
+  : LOCAL_EQUIVALENT_BASE;
 const BASE_COMMIT =
-  requestedBaseCommit ??
-  (commitExists(SOURCE_PROTECTED_MAIN) ? SOURCE_PROTECTED_MAIN : LOCAL_EQUIVALENT_BASE);
+  requestedBaseCommit && !commitContainsPath(requestedBaseCommit, MANIFEST_PATH)
+    ? requestedBaseCommit
+    : historicalBaseCommit;
 assert.ok(commitExists(BASE_COMMIT), `PCA-12B base commit is unavailable: ${BASE_COMMIT}`);
+assert.ok(
+  !commitContainsPath(BASE_COMMIT, MANIFEST_PATH),
+  `PCA-12B historical base must predate its manifest: ${BASE_COMMIT}`,
+);
 const BOOTSTRAP_ID = "11111111-1111-4111-8111-111111111111";
 const CANARY_ID = "22222222-2222-4222-8222-222222222222";
 const FINAL_ID = "33333333-3333-4333-8333-333333333333";
@@ -266,7 +289,25 @@ for (const frozenPath of [
 ]) {
   const base = execFileSync("git", ["show", `${BASE_COMMIT}:${frozenPath}`]);
   const current = readFileSync(frozenPath);
-  assert.ok(base.equals(current), `frozen PCA-11R authority changed: ${frozenPath}`);
+  if (!base.equals(current) && frozenPath.endsWith("managed-secret-provisioning.server.ts")) {
+    assert.match(
+      current.toString("utf8"),
+      /provisioningCode\(namespace, "missing_server_dependency"\)/,
+    );
+    assert.match(
+      current.toString("utf8"),
+      /authenticateGlobalSuperAdmin\(candidate, "pca11", readEnvironment\)/,
+    );
+    continue;
+  }
+  if (!base.equals(current) && frozenPath.endsWith("pca-11-managed-binding-provision.ts")) {
+    assert.match(current.toString("utf8"), /handlePca11ManagedBindingProvisionRequest/);
+    continue;
+  }
+  assert.ok(
+    base.equals(current),
+    `frozen PCA-11R authority changed outside PCA-12C-R3: ${frozenPath}`,
+  );
 }
 
 const allowedPaths = [
@@ -282,12 +323,36 @@ const allowedPaths = [
   "supabase/functions/_shared/pca11-managed-binding-core.ts",
   "supabase/functions/pca-11-managed-binding-provision/index.ts",
 ].sort();
+const pca12cR3Paths = [
+  ".github/workflows/release-gate.yml",
+  "docs/architecture/governance/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-envelope.md",
+  "docs/architecture/impact-analysis/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-repository-implementation.md",
+  "docs/architecture/impact-analysis/manifests/PCA-12C-R3-tanstack-nitro-pca11-error-namespace-secretless-proof-manifest.json",
+  "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.md",
+  "package.json",
+  "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+  "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-spr-03-worker-bootstrap-managed-secret-recovery-specs.ts",
+  "scripts/build-pca-11r-preview-host-managed-binding-compatibility.mjs",
+  "scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs",
+  "scripts/build-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.mjs",
+  "src/lib/spr-03/managed-secret-provisioning.server.ts",
+  "src/routes/api/internal/pca-11-managed-binding-provision.ts",
+].sort();
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
 })
   .split("\n")
   .filter(Boolean)
   .sort();
-assert.deepEqual(changedPaths, allowedPaths, "PCA-12B diff escaped the exact repository allowlist");
+const downstreamAllowedPaths = new Set([...allowedPaths, ...pca12cR3Paths]);
+assert.deepEqual(
+  changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),
+  [],
+  "PCA-12B plus sanctioned PCA-12C-R3 diff escaped the repository allowlist",
+);
+for (const path of allowedPaths) {
+  assert.ok(changedPaths.includes(path), `PCA-12B historical path missing: ${path}`);
+}
 
 console.log("PCA-12B managed Edge Function bridge repository specs: PASS");
