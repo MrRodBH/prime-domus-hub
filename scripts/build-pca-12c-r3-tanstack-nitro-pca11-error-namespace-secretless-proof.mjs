@@ -26,7 +26,7 @@ const lockedSources = {
   },
   specifications: {
     path: "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
-    sha256: "8771675c9c1a81cd1ed2c4f51be3516e65807e37fffd69adf7fb7f9244aeef8e",
+    sha256: "dbe28d92692c531ea01ac453b4864da0c834639c07cde5fb593babdbfcd8f16e",
   },
   releaseGate: {
     path: ".github/workflows/release-gate.yml",

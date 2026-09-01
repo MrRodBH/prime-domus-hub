@@ -139,7 +139,10 @@ if (head !== SOURCE_MAIN) {
     "scripts/build-pca-11r-preview-host-managed-binding-compatibility.mjs",
     "scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs",
     "scripts/build-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.mjs",
+    "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts",
+    "src/lib/public-tenant-read-guards.ts",
     "src/lib/spr-03/managed-secret-provisioning.server.ts",
+    "src/routes/__root.tsx",
     "src/routes/api/internal/pca-11-managed-binding-provision.ts",
   ]);
 }
