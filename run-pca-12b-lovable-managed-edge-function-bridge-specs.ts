@@ -34,12 +34,35 @@ function commitExists(sha: string): boolean {
   }
 }
 
+function commitContainsPath(sha: string, path: string): boolean {
+  try {
+    execFileSync("git", ["cat-file", "-e", `${sha}:${path}`], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const requestedBaseCommit = process.env.PCA_12B_BASE_SHA?.trim();
-if (requestedBaseCommit) assert.match(requestedBaseCommit, /^[0-9a-f]{40}$/);
+if (requestedBaseCommit) {
+  assert.match(requestedBaseCommit, /^[0-9a-f]{40}$/);
+  assert.ok(
+    commitExists(requestedBaseCommit),
+    `PCA-12B requested base commit is unavailable: ${requestedBaseCommit}`,
+  );
+}
+const historicalBaseCommit = commitExists(SOURCE_PROTECTED_MAIN)
+  ? SOURCE_PROTECTED_MAIN
+  : LOCAL_EQUIVALENT_BASE;
 const BASE_COMMIT =
-  requestedBaseCommit ??
-  (commitExists(SOURCE_PROTECTED_MAIN) ? SOURCE_PROTECTED_MAIN : LOCAL_EQUIVALENT_BASE);
+  requestedBaseCommit && !commitContainsPath(requestedBaseCommit, MANIFEST_PATH)
+    ? requestedBaseCommit
+    : historicalBaseCommit;
 assert.ok(commitExists(BASE_COMMIT), `PCA-12B base commit is unavailable: ${BASE_COMMIT}`);
+assert.ok(
+  !commitContainsPath(BASE_COMMIT, MANIFEST_PATH),
+  `PCA-12B historical base must predate its manifest: ${BASE_COMMIT}`,
+);
 const BOOTSTRAP_ID = "11111111-1111-4111-8111-111111111111";
 const CANARY_ID = "22222222-2222-4222-8222-222222222222";
 const FINAL_ID = "33333333-3333-4333-8333-333333333333";
