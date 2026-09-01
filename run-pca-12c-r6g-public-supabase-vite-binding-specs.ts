@@ -16,9 +16,30 @@ const R6G_PATHS = [
   "run-arch-12f-01-config-hygiene-specs.ts",
   "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
   "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts",
   "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
   "scripts/build-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.mjs",
 ].sort();
+
+const PUBLIC_VITE_ENVIRONMENT_NAMES = [
+  "VITE_SUPABASE_URL",
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+] as const;
+
+function loadTrackedPublicEnvironment(): Record<string, string> {
+  const processOverrides = new Map(
+    PUBLIC_VITE_ENVIRONMENT_NAMES.map((name) => [name, process.env[name]] as const),
+  );
+  for (const name of PUBLIC_VITE_ENVIRONMENT_NAMES) delete process.env[name];
+  try {
+    return loadEnv("development", process.cwd(), "VITE_");
+  } finally {
+    for (const [name, value] of processOverrides) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+}
 
 function git(...args: string[]): string {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -87,7 +108,7 @@ for (const rule of [
   assert.ok(ignoreRules.has(rule), `missing local-environment guard: ${rule}`);
 }
 
-const loadedEnvironment = loadEnv("development", process.cwd(), "VITE_");
+const loadedEnvironment = loadTrackedPublicEnvironment();
 assert.equal(loadedEnvironment.VITE_SUPABASE_URL, publicUrl);
 assert.equal(loadedEnvironment.VITE_SUPABASE_PUBLISHABLE_KEY, publishableKey);
 
@@ -122,15 +143,28 @@ const transformed = await transform("export const factory = (value) => value;", 
 });
 assert.doesNotMatch(transformed.code, /\b__name\b/);
 
-for (const path of [
+assert.deepEqual(
+  readFileSync("scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs"),
+  execFileSync("git", [
+    "show",
+    `${SOURCE_MAIN}:scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs`,
+  ]),
+  "PCA-12B build authority must remain byte-identical",
+);
+const r6dRunner = readFileSync(
   "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts",
-  "scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs",
+  "utf8",
+);
+assert.match(r6dRunner, /const R6G_SUCCESSOR_PATHS = new Set\(\[/);
+assert.match(r6dRunner, /\.filter\(\(path\) => !R6G_SUCCESSOR_PATHS\.has\(path\)\)/);
+for (const path of [
+  ".env",
+  ".github/workflows/release-gate.yml",
+  ".gitignore",
+  "run-arch-12f-01-config-hygiene-specs.ts",
+  "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
 ]) {
-  assert.deepEqual(
-    readFileSync(path),
-    execFileSync("git", ["show", `${SOURCE_MAIN}:${path}`]),
-    `${path} must remain byte-identical`,
-  );
+  assert.ok(r6dRunner.includes(JSON.stringify(path)), `R6D successor scope missing ${path}`);
 }
 
 for (const runner of [
