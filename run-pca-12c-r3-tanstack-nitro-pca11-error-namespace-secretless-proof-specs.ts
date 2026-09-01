@@ -151,6 +151,7 @@ if (head !== SOURCE_MAIN) {
     "package.json",
     "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
     "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+    "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts",
     "run-spr-03-worker-bootstrap-managed-secret-recovery-specs.ts",
     "scripts/build-pca-11r-preview-host-managed-binding-compatibility.mjs",
     "scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs",
@@ -160,6 +161,7 @@ if (head !== SOURCE_MAIN) {
     "src/lib/spr-03/managed-secret-provisioning.server.ts",
     "src/routes/__root.tsx",
     "src/routes/api/internal/pca-11-managed-binding-provision.ts",
+    "vite.config.ts",
   ]);
 }
 
