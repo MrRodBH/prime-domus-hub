@@ -3,7 +3,9 @@ import { resolve } from "node:path";
 import {
   assertOptionalTenantScopedRow,
   assertTenantScopedRows,
+  isTenantIndependentRootPath,
   loadRequiredPublicRootData,
+  loadRequiredPublicRootDataForPath,
   withoutTenantId,
 } from "@/lib/public-tenant-read-guards";
 import {
@@ -140,6 +142,104 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       );
       assert(result.settings.branding.site_name === "Tenant A", "settings preserved");
       assert(result.meta.pixel_id === "123", "Meta preserved");
+    },
+  },
+  {
+    name: "auth root path bypasses public tenant readers without weakening public fail-closed behavior",
+    run: async () => {
+      assert(isTenantIndependentRootPath("/auth"), "auth path is tenant-independent");
+      assert(isTenantIndependentRootPath("/auth/"), "auth trailing slash is normalized");
+      assert(!isTenantIndependentRootPath("/"), "public root remains tenant-bound");
+      assert(!isTenantIndependentRootPath("/admin"), "admin authority remains unchanged");
+
+      let settingsCalls = 0;
+      let trackingCalls = 0;
+      const authResult = await loadRequiredPublicRootDataForPath(
+        "/auth",
+        async () => {
+          settingsCalls++;
+          throw new Error("settings reader must not run for auth");
+        },
+        async () => {
+          trackingCalls++;
+          throw new Error("tracking reader must not run for auth");
+        },
+      );
+      assert(authResult === null, "auth receives tenant-independent root data authority");
+      assert(settingsCalls === 0, "auth performs zero public settings reads");
+      assert(trackingCalls === 0, "auth performs zero public tracking reads");
+
+      const publicFailure = new PublicTenantResolutionError();
+      await assertRejects(
+        () =>
+          loadRequiredPublicRootDataForPath(
+            "/imoveis",
+            async () => {
+              throw publicFailure;
+            },
+            async () => ({ connectors: [] }),
+          ),
+        publicFailure,
+        "public path still propagates missing tenant authority",
+      );
+    },
+  },
+  {
+    name: "auth UI isolation preserves Supabase login and PCA-11 global super-admin authority",
+    run: async () => {
+      const root = readFileSync(resolve(process.cwd(), "src/routes/__root.tsx"), "utf8");
+      const auth = readFileSync(resolve(process.cwd(), "src/routes/auth.tsx"), "utf8");
+      const route = readFileSync(
+        resolve(process.cwd(), "src/routes/api/internal/pca-11-managed-binding-provision.ts"),
+        "utf8",
+      );
+      const provisioning = readFileSync(
+        resolve(process.cwd(), "src/lib/spr-03/managed-secret-provisioning.server.ts"),
+        "utf8",
+      );
+
+      assert(root.includes("loader: async ({ location })"), "root loader receives exact pathname");
+      assert(
+        root.includes("loadRequiredPublicRootDataForPath(\n      location.pathname"),
+        "root delegates pathname policy",
+      );
+      assert(
+        root.includes("tenantIndependent: true as const"),
+        "auth root data is explicitly tagged",
+      );
+      assert(
+        root.includes("loaderData.tenantIndependent ? null : <CampaignRenderer />"),
+        "campaign runtime excluded from auth",
+      );
+      assert(
+        root.includes("<PublicTrackingRuntime snapshot={loaderData.tracking} />"),
+        "public tracking remains available on tenant-bound routes",
+      );
+      assert(auth.includes("supabase.auth.getUser()"), "existing Supabase session check preserved");
+      assert(
+        auth.includes("supabase.auth.signInWithPassword({ email, password })"),
+        "password login preserved",
+      );
+      assert(
+        !/SERVICE_ROLE|CLOUDFLARE_API_TOKEN|super_admin/i.test(auth),
+        "browser auth receives no privileged secret or role bypass",
+      );
+      assert(
+        route.includes('request.headers.has("x-tenant-id")'),
+        "tenant override remains prohibited",
+      );
+      assert(
+        route.includes('authorization.startsWith("Bearer ")'),
+        "Bearer transport remains mandatory",
+      );
+      assert(
+        provisioning.includes('authenticateGlobalSuperAdmin(candidate, "pca11", readEnvironment)'),
+        "PCA-11 global super-admin verification preserved",
+      );
+      assert(
+        provisioning.includes('.eq("role", "super_admin")'),
+        "exact super-admin role remains mandatory",
+      );
     },
   },
   {
