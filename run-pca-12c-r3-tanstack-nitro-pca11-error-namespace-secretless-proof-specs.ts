@@ -116,8 +116,24 @@ assert.doesNotMatch(route, /CLOUDFLARE_API_TOKEN_PCA11_PROVISIONER/);
 assert.deepEqual(JSON.parse(readFileSync(MANIFEST_PATH, "utf8")), buildContract());
 
 const releaseBase = process.env.PCA_12C_R3_BASE_SHA?.trim();
-if (releaseBase) assert.equal(releaseBase, SOURCE_MAIN);
 const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+if (releaseBase) {
+  assert.match(releaseBase, /^[0-9a-f]{40}$/);
+  assert.doesNotThrow(
+    () =>
+      execFileSync("git", ["merge-base", "--is-ancestor", SOURCE_MAIN, releaseBase], {
+        stdio: "ignore",
+      }),
+    "PCA-12C-R3 release base must descend from the historical SOURCE_MAIN",
+  );
+  assert.doesNotThrow(
+    () =>
+      execFileSync("git", ["merge-base", "--is-ancestor", releaseBase, head], {
+        stdio: "ignore",
+      }),
+    "PCA-12C-R3 exact head must descend from the current release base",
+  );
+}
 if (head !== SOURCE_MAIN) {
   const changedPaths = execFileSync("git", ["diff", "--name-only", `${SOURCE_MAIN}..${head}`], {
     encoding: "utf8",
