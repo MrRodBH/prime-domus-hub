@@ -40,7 +40,11 @@ export async function loadRequiredPublicRootData<TSettings, TMeta>(
 
 export function isTenantIndependentRootPath(pathname: string): boolean {
   const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  return normalizedPathname === "/auth";
+  const authenticatedControlPlanePrefixes = ["/admin", "/super", "/invitations"];
+  return normalizedPathname === "/auth"
+    || authenticatedControlPlanePrefixes.some(
+      (prefix) => normalizedPathname === prefix || normalizedPathname.startsWith(`${prefix}/`),
+    );
 }
 
 export async function loadRequiredPublicRootDataForPath<TSettings, TMeta>(
