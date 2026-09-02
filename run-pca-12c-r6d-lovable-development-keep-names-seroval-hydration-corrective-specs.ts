@@ -22,6 +22,13 @@ const R6D_PATHS = [
   "scripts/build-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof.mjs",
   "vite.config.ts",
 ].sort();
+const R6G_SUCCESSOR_PATHS = new Set([
+  ".env",
+  ".github/workflows/release-gate.yml",
+  ".gitignore",
+  "run-arch-12f-01-config-hygiene-specs.ts",
+  "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
+]);
 
 assert.equal(
   execFileSync("git", ["rev-parse", `${SOURCE_MAIN}^{tree}`], { encoding: "utf8" }).trim(),
@@ -37,6 +44,7 @@ const changedPaths = [
   }).split("\n"),
 ]
   .filter(Boolean)
+  .filter((path) => !R6G_SUCCESSOR_PATHS.has(path))
   .sort();
 assert.deepEqual(changedPaths, R6D_PATHS, "R6D diff escaped the closed repository allowlist");
 
@@ -102,7 +110,7 @@ async function transformAndSerialize(keepNames: boolean): Promise<string> {
   });
   const moduleUrl = `data:text/javascript;base64,${Buffer.from(transformed.code).toString("base64")}`;
   const loaded = (await import(moduleUrl)) as {
-    READABLE_STREAM_FACTORY_CONSTRUCTOR: Function;
+    READABLE_STREAM_FACTORY_CONSTRUCTOR: { toString(): string };
   };
   return loaded.READABLE_STREAM_FACTORY_CONSTRUCTOR.toString();
 }
