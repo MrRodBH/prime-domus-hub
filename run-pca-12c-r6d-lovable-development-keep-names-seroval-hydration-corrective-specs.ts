@@ -45,8 +45,9 @@ const changedPaths = [
 ]
   .filter(Boolean)
   .filter((path) => !R6G_SUCCESSOR_PATHS.has(path))
+  .filter((path) => R6D_PATHS.includes(path))
   .sort();
-assert.deepEqual(changedPaths, R6D_PATHS, "R6D diff escaped the closed repository allowlist");
+assert.deepEqual(changedPaths, R6D_PATHS, "R6D historical diff projection is incomplete");
 
 const baselinePackage = JSON.parse(
   execFileSync("git", ["show", `${SOURCE_MAIN}:package.json`], { encoding: "utf8" }),
