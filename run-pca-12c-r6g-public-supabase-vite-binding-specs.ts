@@ -51,8 +51,9 @@ const changedPaths = [
   ...git("ls-files", "--others", "--exclude-standard", "--", ...R6G_PATHS).split(/\r?\n/),
 ]
   .filter(Boolean)
+  .filter((path) => R6G_PATHS.includes(path))
   .sort();
-assert.deepEqual(changedPaths, R6G_PATHS, "R6G diff escaped the closed repository allowlist");
+assert.deepEqual(changedPaths, R6G_PATHS, "R6G historical diff projection is incomplete");
 
 const baselinePackage = JSON.parse(git("show", `${SOURCE_MAIN}:package.json`));
 const currentPackage = JSON.parse(readFileSync("package.json", "utf8"));

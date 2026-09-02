@@ -145,12 +145,17 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     },
   },
   {
-    name: "auth root path bypasses public tenant readers without weakening public fail-closed behavior",
+    name: "authenticated control-plane paths bypass public tenant readers without weakening public fail-closed behavior",
     run: async () => {
       assert(isTenantIndependentRootPath("/auth"), "auth path is tenant-independent");
       assert(isTenantIndependentRootPath("/auth/"), "auth trailing slash is normalized");
+      assert(isTenantIndependentRootPath("/admin"), "admin entry is tenant-independent");
+      assert(isTenantIndependentRootPath("/admin/memberships"), "admin descendants are tenant-independent");
+      assert(isTenantIndependentRootPath("/super"), "super-admin entry is tenant-independent");
+      assert(isTenantIndependentRootPath("/super/control-plane"), "super-admin descendants are tenant-independent");
+      assert(isTenantIndependentRootPath("/invitations"), "invitation entry is tenant-independent");
       assert(!isTenantIndependentRootPath("/"), "public root remains tenant-bound");
-      assert(!isTenantIndependentRootPath("/admin"), "admin authority remains unchanged");
+      assert(!isTenantIndependentRootPath("/administrator"), "near-match public path remains tenant-bound");
 
       let settingsCalls = 0;
       let trackingCalls = 0;
@@ -168,6 +173,21 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       assert(authResult === null, "auth receives tenant-independent root data authority");
       assert(settingsCalls === 0, "auth performs zero public settings reads");
       assert(trackingCalls === 0, "auth performs zero public tracking reads");
+
+      const superResult = await loadRequiredPublicRootDataForPath(
+        "/super",
+        async () => {
+          settingsCalls++;
+          throw new Error("settings reader must not run for super-admin control plane");
+        },
+        async () => {
+          trackingCalls++;
+          throw new Error("tracking reader must not run for super-admin control plane");
+        },
+      );
+      assert(superResult === null, "super-admin entry receives tenant-independent root data authority");
+      assert(settingsCalls === 0, "super-admin entry performs zero public settings reads");
+      assert(trackingCalls === 0, "super-admin entry performs zero public tracking reads");
 
       const publicFailure = new PublicTenantResolutionError();
       await assertRejects(
