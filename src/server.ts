@@ -237,10 +237,10 @@ export async function fetch(request: Request, env: unknown, ctx: unknown): Promi
 
   try {
     const handler = await getServerEntry();
-    const effectiveRequest = homologationEntry
-      ? new Request(homologationEntry, request)
-      : request;
-    const response = await handler.fetch(effectiveRequest, runtime.env, runtime.ctx);
+    if (homologationEntry) {
+      request = new Request(homologationEntry, request);
+    }
+    const response = await handler.fetch(request, runtime.env, runtime.ctx);
     const normalized = await normalizeCatastrophicSsrResponse(response);
     return applyTrackingSecurityHeaders(request, runtime.env, normalized);
   } catch (error) {
