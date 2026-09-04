@@ -187,6 +187,7 @@ if (head !== SOURCE_MAIN) {
     ".github/workflows/p0-visual-product-homologation-gate.yml",
     "package.json",
     "run-p0-visual-product-homologation-specs.ts",
+    "run-pr-m2-portal-functional-completion-specs.ts",
     "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
     "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
     "src/components/dashboard/DashboardInsightFeed.tsx",

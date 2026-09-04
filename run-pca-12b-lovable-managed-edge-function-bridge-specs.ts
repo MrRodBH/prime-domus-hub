@@ -372,6 +372,7 @@ const p0VisualProductHomologationPaths = [
   ".github/workflows/p0-visual-product-homologation-gate.yml",
   "package.json",
   "run-p0-visual-product-homologation-specs.ts",
+  "run-pr-m2-portal-functional-completion-specs.ts",
   "src/components/dashboard/DashboardInsightFeed.tsx",
   "src/components/dashboard/DashboardVisualizations.tsx",
   "src/components/demo/DemoWorkspace.tsx",
