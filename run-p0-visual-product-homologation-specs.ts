@@ -230,8 +230,8 @@ ok(workspace.includes("lg:hidden"), "a navegação deve oferecer modo móvel");
 ok(workspace.includes("lg:flex"), "a navegação deve oferecer modo desktop");
 ok(workspace.includes("dados inteiramente fictícios"), "o caráter sintético deve estar explícito");
 ok(
-  designSystem.includes("Labels ficam sempre visíveis"),
-  "a biblioteca deve registrar labels claros",
+  designSystem.includes("Os rótulos ficam sempre visíveis"),
+  "a biblioteca deve registrar rótulos claros em PT-BR",
 );
 ok(
   designSystem.includes("Gráficos responsivos"),

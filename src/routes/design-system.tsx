@@ -156,7 +156,7 @@ function PaginaDePadroesVisuais() {
 
         <Secao
           titulo="Campos e ações"
-          descricao="Labels ficam sempre visíveis, em português e associados ao campo correspondente."
+          descricao="Os rótulos ficam sempre visíveis, em português e associados ao campo correspondente."
         >
           <div className="grid gap-5 lg:grid-cols-2">
             <Card className="rounded-2xl border-[#123f47]/10">
