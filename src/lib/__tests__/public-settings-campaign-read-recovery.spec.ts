@@ -17,11 +17,7 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`ASSERT: ${message}`);
 }
 
-async function assertRejects(
-  run: () => Promise<unknown>,
-  expected: unknown,
-  message: string,
-) {
+async function assertRejects(run: () => Promise<unknown>, expected: unknown, message: string) {
   let caught: unknown;
   try {
     await run();
@@ -61,10 +57,11 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "foreign collection row fails closed",
     run: async () => {
       assertThrows(
-        () => assertTenantScopedRows(TENANT_A, [
-          { tenant_id: TENANT_A, id: "a" },
-          { tenant_id: TENANT_B, id: "b" },
-        ]),
+        () =>
+          assertTenantScopedRows(TENANT_A, [
+            { tenant_id: TENANT_A, id: "a" },
+            { tenant_id: TENANT_B, id: "b" },
+          ]),
         "foreign collection row must throw",
       );
     },
@@ -109,10 +106,16 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       const failure = new PublicTenantResolutionError();
       let metaCalled = false;
       await assertRejects(
-        () => loadRequiredPublicRootData(
-          async () => { throw failure; },
-          async () => { metaCalled = true; return { pixel_id: null }; },
-        ),
+        () =>
+          loadRequiredPublicRootData(
+            async () => {
+              throw failure;
+            },
+            async () => {
+              metaCalled = true;
+              return { pixel_id: null };
+            },
+          ),
         failure,
         "settings failure propagated",
       );
@@ -124,10 +127,13 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     run: async () => {
       const failure = new Error("meta query failed");
       await assertRejects(
-        () => loadRequiredPublicRootData(
-          async () => ({ branding: { site_name: "Tenant A" } }),
-          async () => { throw failure; },
-        ),
+        () =>
+          loadRequiredPublicRootData(
+            async () => ({ branding: { site_name: "Tenant A" } }),
+            async () => {
+              throw failure;
+            },
+          ),
         failure,
         "Meta failure propagated",
       );
@@ -149,13 +155,30 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     run: async () => {
       assert(isTenantIndependentRootPath("/auth"), "auth path is tenant-independent");
       assert(isTenantIndependentRootPath("/auth/"), "auth trailing slash is normalized");
+      assert(
+        isTenantIndependentRootPath("/demonstracao"),
+        "synthetic demonstration is tenant-independent",
+      );
+      assert(
+        isTenantIndependentRootPath("/design-system"),
+        "visual standards are tenant-independent",
+      );
       assert(isTenantIndependentRootPath("/admin"), "admin entry is tenant-independent");
-      assert(isTenantIndependentRootPath("/admin/memberships"), "admin descendants are tenant-independent");
+      assert(
+        isTenantIndependentRootPath("/admin/memberships"),
+        "admin descendants are tenant-independent",
+      );
       assert(isTenantIndependentRootPath("/super"), "super-admin entry is tenant-independent");
-      assert(isTenantIndependentRootPath("/super/control-plane"), "super-admin descendants are tenant-independent");
+      assert(
+        isTenantIndependentRootPath("/super/control-plane"),
+        "super-admin descendants are tenant-independent",
+      );
       assert(isTenantIndependentRootPath("/invitations"), "invitation entry is tenant-independent");
       assert(!isTenantIndependentRootPath("/"), "public root remains tenant-bound");
-      assert(!isTenantIndependentRootPath("/administrator"), "near-match public path remains tenant-bound");
+      assert(
+        !isTenantIndependentRootPath("/administrator"),
+        "near-match public path remains tenant-bound",
+      );
 
       let settingsCalls = 0;
       let trackingCalls = 0;
@@ -174,6 +197,24 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       assert(settingsCalls === 0, "auth performs zero public settings reads");
       assert(trackingCalls === 0, "auth performs zero public tracking reads");
 
+      const demonstrationResult = await loadRequiredPublicRootDataForPath(
+        "/demonstracao",
+        async () => {
+          settingsCalls++;
+          throw new Error("settings reader must not run for synthetic demonstration");
+        },
+        async () => {
+          trackingCalls++;
+          throw new Error("tracking reader must not run for synthetic demonstration");
+        },
+      );
+      assert(
+        demonstrationResult === null,
+        "synthetic demonstration receives tenant-independent root data authority",
+      );
+      assert(settingsCalls === 0, "synthetic demonstration performs zero public settings reads");
+      assert(trackingCalls === 0, "synthetic demonstration performs zero tracking reads");
+
       const superResult = await loadRequiredPublicRootDataForPath(
         "/super",
         async () => {
@@ -185,7 +226,10 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
           throw new Error("tracking reader must not run for super-admin control plane");
         },
       );
-      assert(superResult === null, "super-admin entry receives tenant-independent root data authority");
+      assert(
+        superResult === null,
+        "super-admin entry receives tenant-independent root data authority",
+      );
       assert(settingsCalls === 0, "super-admin entry performs zero public settings reads");
       assert(trackingCalls === 0, "super-admin entry performs zero public tracking reads");
 
@@ -266,12 +310,21 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "production readers use executable tenant response guards",
     run: async () => {
       const site = readFileSync(resolve(process.cwd(), "src/lib/api/site.functions.ts"), "utf8");
-      const authority = readFileSync(resolve(process.cwd(), "src/lib/api/tenant-configuration-authority.server.ts"), "utf8");
+      const authority = readFileSync(
+        resolve(process.cwd(), "src/lib/api/tenant-configuration-authority.server.ts"),
+        "utf8",
+      );
       const meta = readFileSync(resolve(process.cwd(), "src/lib/api/meta.functions.ts"), "utf8");
-      const campaigns = readFileSync(resolve(process.cwd(), "src/lib/api/campaigns.functions.ts"), "utf8");
+      const campaigns = readFileSync(
+        resolve(process.cwd(), "src/lib/api/campaigns.functions.ts"),
+        "utf8",
+      );
       const root = readFileSync(resolve(process.cwd(), "src/routes/__root.tsx"), "utf8");
 
-      const siteRead = site.slice(site.indexOf("export const obterSiteSettings"), site.indexOf("export const atualizarSiteSettings"));
+      const siteRead = site.slice(
+        site.indexOf("export const obterSiteSettings"),
+        site.indexOf("export const atualizarSiteSettings"),
+      );
       const ledgerRead = authority.slice(
         authority.indexOf("async function querySingleConfigurationVersion"),
         authority.indexOf("export async function loadTenantConfigurationState"),
@@ -280,32 +333,56 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
         site.indexOf("async function resolveConfigurationMedia"),
         site.indexOf("function normalizeLinkArray"),
       );
-      const metaRead = meta.slice(meta.indexOf("export const obterMetaPixelId"), meta.indexOf("export const obterMetaConfigAdmin"));
-      const campaignRead = campaigns.slice(campaigns.indexOf("export const listarCampanhasAtivas"), campaigns.indexOf("export const registrarEventoCampanha"));
+      const metaRead = meta.slice(
+        meta.indexOf("export const obterMetaPixelId"),
+        meta.indexOf("export const obterMetaConfigAdmin"),
+      );
+      const campaignRead = campaigns.slice(
+        campaigns.indexOf("export const listarCampanhasAtivas"),
+        campaigns.indexOf("export const registrarEventoCampanha"),
+      );
 
       assert(siteRead.includes("requirePublicTenantFromRequest"), "settings require Host tenant");
-      assert(siteRead.includes("loadPublishedConfigurationForTenant(tenant.id)"), "settings use published ledger boundary");
+      assert(
+        siteRead.includes("loadPublishedConfigurationForTenant(tenant.id)"),
+        "settings use published ledger boundary",
+      );
       assert(ledgerRead.includes('select("id, tenant_id, revision'), "ledger selects tenant_id");
       assert(ledgerRead.includes('.eq("tenant_id", tenantId)'), "ledger query has tenant equality");
       assert(ledgerRead.includes('.eq("key", "configuration")'), "ledger query has canonical key");
       assert(ledgerRead.includes('.eq("status", status)'), "ledger query has publication status");
       assert(ledgerRead.includes(".maybeSingle()"), "ledger enforces strict cardinality");
-      assert(mediaRead.includes('select("id, tenant_id, arquivo")'), "configuration media selects tenant_id");
-      assert(mediaRead.includes('.eq("tenant_id", tenantId)'), "configuration media is tenant-bound");
-      assert(mediaRead.includes("row.tenant_id !== tenantId"), "configuration media response guard");
+      assert(
+        mediaRead.includes('select("id, tenant_id, arquivo")'),
+        "configuration media selects tenant_id",
+      );
+      assert(
+        mediaRead.includes('.eq("tenant_id", tenantId)'),
+        "configuration media is tenant-bound",
+      );
+      assert(
+        mediaRead.includes("row.tenant_id !== tenantId"),
+        "configuration media response guard",
+      );
       assert(metaRead.includes('select("tenant_id, value")'), "Meta selects tenant_id");
       assert(metaRead.includes("if (error) throw"), "Meta query error propagated");
       assert(metaRead.includes("assertOptionalTenantScopedRow"), "Meta response guard");
       assert(campaignRead.includes("assertTenantScopedRows"), "campaign response guard");
       assert(!campaignRead.includes("tenantId"), "campaign read has no client tenant input");
       assert(root.includes("loadRequiredPublicRootData"), "root uses fail-closed loader");
-      assert(!root.includes("// ignore\n    }\n    try"), "root no longer chains ignored public reads");
+      assert(
+        !root.includes("// ignore\n    }\n    try"),
+        "root no longer chains ignored public reads",
+      );
     },
   },
   {
     name: "campaign event writer remains reserved for PTW-01",
     run: async () => {
-      const campaigns = readFileSync(resolve(process.cwd(), "src/lib/api/campaigns.functions.ts"), "utf8");
+      const campaigns = readFileSync(
+        resolve(process.cwd(), "src/lib/api/campaigns.functions.ts"),
+        "utf8",
+      );
       const writer = campaigns.slice(campaigns.indexOf("export const registrarEventoCampanha"));
       assert(writer.includes("tenantId?: string | null"), "writer contract preserved");
       assert(writer.includes("publicClient(data.tenantId ?? null)"), "writer transport preserved");
@@ -314,7 +391,10 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
   },
 ];
 
-export async function runPublicSettingsCampaignReadRecoverySpecs(): Promise<{ passed: number; failed: number }> {
+export async function runPublicSettingsCampaignReadRecoverySpecs(): Promise<{
+  passed: number;
+  failed: number;
+}> {
   let passed = 0;
   let failed = 0;
   for (const spec of specs) {

@@ -198,6 +198,7 @@ if (head !== SOURCE_MAIN) {
     "src/components/demo/demo-data.ts",
     "src/components/workspace/contexts.ts",
     "src/lib/ui-labels.ts",
+    "src/lib/error-page.ts",
     "src/routeTree.gen.ts",
     "src/routes/_authenticated.admin.marketing.tsx",
     "src/routes/_authenticated.admin.portais.tsx",

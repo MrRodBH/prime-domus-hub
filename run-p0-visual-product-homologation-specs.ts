@@ -30,6 +30,9 @@ const routeTree = read("src/routeTree.gen.ts");
 const auth = read("src/routes/auth.tsx");
 const contexts = read("src/components/workspace/contexts.ts");
 const dashboardFeed = read("src/components/dashboard/DashboardInsightFeed.tsx");
+const publicTenantGuards = read("src/lib/public-tenant-read-guards.ts");
+const rootRoute = read("src/routes/__root.tsx");
+const serverErrorPage = read("src/lib/error-page.ts");
 const priorityAdminSurfaces = [
   "src/routes/_authenticated.admin.marketing.tsx",
   "src/routes/_authenticated.admin.tracking.tsx",
@@ -46,6 +49,15 @@ for (const route of ["/demonstracao", "/design-system"]) {
 ok(demonstration.includes("ssr: false"), "a demonstração deve evitar dependências SSR");
 ok(designSystem.includes("ssr: false"), "os padrões visuais devem evitar dependências SSR");
 ok(auth.includes('to="/demonstracao"'), "a tela de acesso deve oferecer a demonstração");
+ok(
+  publicTenantGuards.includes('"/demonstracao", "/design-system"'),
+  "a demonstração e os padrões visuais devem abrir sem consultar tenant",
+);
+ok(
+  rootRoute.includes("Não foi possível carregar esta página") &&
+    serverErrorPage.includes("Não foi possível carregar esta página"),
+  "as mensagens de falha devem permanecer em PT-BR",
+);
 
 for (const moduleLabel of [
   "Visão geral",

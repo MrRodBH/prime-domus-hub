@@ -25,16 +25,16 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          O endereço informado não existe ou foi alterado.
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Voltar ao início
           </Link>
         </div>
       </div>
@@ -60,10 +60,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          Não foi possível carregar esta página
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Ocorreu uma falha inesperada. Tente novamente ou volte ao início.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -73,13 +73,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Tentar novamente
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Voltar ao início
           </a>
         </div>
       </div>
@@ -141,7 +141,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       fontFamilies.push(`${bv2.font_secondary}:wght@400;500;600`);
     if (fontFamilies.length > 0) {
       links.push({ rel: "preconnect", href: "https://fonts.googleapis.com" });
-      links.push({ rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" });
+      links.push({
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      });
       links.push({
         rel: "stylesheet",
         href: `https://fonts.googleapis.com/css2?${fontFamilies
@@ -155,7 +159,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         { title },
         { name: "description", content: description },
-        ...(seo.keywords ? [{ name: "keywords", content: seo.keywords } as Record<string, string>] : []),
+        ...(seo.keywords
+          ? [{ name: "keywords", content: seo.keywords } as Record<string, string>]
+          : []),
         { property: "og:type", content: "website" },
         { property: "og:site_name", content: loaderData?.siteName || "RM Prime Imóveis" },
         { property: "og:locale", content: "pt_BR" },
@@ -188,7 +194,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-function buildBrandingCss(bv2: Record<string, string | undefined | null> | undefined | null): string {
+function buildBrandingCss(
+  bv2: Record<string, string | undefined | null> | undefined | null,
+): string {
   if (!bv2) return "";
   const map: Record<string, string> = {
     color_primary: "--primary",
@@ -202,15 +210,19 @@ function buildBrandingCss(bv2: Record<string, string | undefined | null> | undef
     const val = bv2[k];
     if (val && typeof val === "string" && val.trim()) decls.push(`${v}: ${val.trim()};`);
   }
-  if (bv2.font_primary) decls.push(`--font-sans: "${bv2.font_primary}", ui-sans-serif, system-ui, sans-serif;`);
-  if (bv2.font_secondary) decls.push(`--font-display: "${bv2.font_secondary}", ui-serif, Georgia, serif;`);
+  if (bv2.font_primary)
+    decls.push(`--font-sans: "${bv2.font_primary}", ui-sans-serif, system-ui, sans-serif;`);
+  if (bv2.font_secondary)
+    decls.push(`--font-display: "${bv2.font_secondary}", ui-serif, Georgia, serif;`);
   if (!decls.length) return "";
   return `:root{${decls.join("")}}`;
 }
 
 function RootShell({ children }: { children: ReactNode }) {
   const loaderData = Route.useLoaderData();
-  const brandingCss = buildBrandingCss(loaderData?.brandingV2 as Record<string, string | undefined>);
+  const brandingCss = buildBrandingCss(
+    loaderData?.brandingV2 as Record<string, string | undefined>,
+  );
   return (
     <html lang="pt-BR">
       <head>

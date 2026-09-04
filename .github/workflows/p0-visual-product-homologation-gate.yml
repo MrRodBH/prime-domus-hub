@@ -11,6 +11,10 @@ on:
       - "src/components/workspace/contexts.ts"
       - "src/components/dashboard/DashboardInsightFeed.tsx"
       - "src/components/dashboard/DashboardVisualizations.tsx"
+      - "src/lib/public-tenant-read-guards.ts"
+      - "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts"
+      - "src/lib/error-page.ts"
+      - "src/routes/__root.tsx"
       - "src/routeTree.gen.ts"
       - "run-p0-visual-product-homologation-specs.ts"
       - "package.json"
@@ -53,5 +57,6 @@ jobs:
       - name: Validate visual product surface
         run: |
           bun run test:p0-visual
+          bun run test:psg-01:tenant-reads
           bun run typecheck
           bun run build
