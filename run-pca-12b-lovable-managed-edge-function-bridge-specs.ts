@@ -354,6 +354,20 @@ const pca12cR6gPaths = [
   "run-arch-12f-01-config-hygiene-specs.ts",
   "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
 ].sort();
+const pca15rPaths = [
+  "docs/architecture/governance/PCA-15R-managed-custody-source-reconciliation-envelope.md",
+  "docs/architecture/governance/RM_PRIME_PCA15R_RESTART_HANDOFF_AFTER_SOURCE_GUARD_2026-09-04.md",
+  "docs/architecture/impact-analysis/PCA-15R-managed-custody-source-reconciliation-repository-corrective.md",
+  "docs/architecture/impact-analysis/manifests/PCA-15R-managed-custody-source-reconciliation-manifest.json",
+  "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/pca-15r-managed-custody-source-reconciliation.md",
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  "scripts/build-pca-11r-preview-host-managed-binding-compatibility.mjs",
+  "src/lib/pca-15r/cloudflare-terminal-reconciliation.server.ts",
+  "src/lib/pca-15r/managed-custody-provisioning.server.ts",
+  "src/lib/pca-15r/managed-custody.server.ts",
+  "src/routes/api/internal/pca-15r-managed-custody-provision.ts",
+  "src/routeTree.gen.ts",
+].sort();
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
 })
@@ -366,6 +380,7 @@ const downstreamAllowedPaths = new Set([
   ...pca12cR6aPaths,
   ...pca12cR6dPaths,
   ...pca12cR6gPaths,
+  ...pca15rPaths,
 ]);
 assert.deepEqual(
   changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),

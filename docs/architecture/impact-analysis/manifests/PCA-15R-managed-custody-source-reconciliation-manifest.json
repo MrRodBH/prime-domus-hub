@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "gate": "PCA-15R_SUPPORT_INTAKE_MANAGED_CUSTODY_SOURCE_RECONCILIATION_AND_REPOSITORY_CORRECTIVE_END_TO_END",
+  "source": {
+    "repository": "MrRodBH/prime-domus-hub",
+    "baseHead": "3897936276a0760fe4594bb5e2420ec0cbba2adb",
+    "baseTree": "792210f61ad54265c46b7d931e6cebeff63a9817",
+    "lovableHead": "b48ebd7905b9fcc1d496d69df0e2ff46abb6c1f9",
+    "lovableCommitsClassified": 26,
+    "lovableCommitsPromoted": 0,
+    "lovableCommitClassifications": [
+      {
+        "sha": "6cbb8f01f093ca2156f592c89bc823e2446d2551",
+        "classification": "REJECTED_UNAUTHORIZED_RUNTIME_DRIFT"
+      },
+      {
+        "sha": "b65a17e1bd128a1f1dd00185c5cbc4ee28846b60",
+        "classification": "REJECTED_DERIVED_LOCK_DRIFT"
+      },
+      {
+        "sha": "412f0e72b5e9080289f13c0e9025df43ddb28a5b",
+        "classification": "REJECTED_MERGE_SNAPSHOT"
+      },
+      {
+        "sha": "03c25537e28a75fbd36276e686ea2b770622a07c",
+        "classification": "SUPERSEDED_PARTIAL_REVERT"
+      },
+      {
+        "sha": "ad75f82e7e2681303893282cf2ba589fc570454f",
+        "classification": "SUPERSEDED_LOCK_REVERT"
+      },
+      {
+        "sha": "ac9ec770d731189d90a988d16fc5b849433eb16c",
+        "classification": "SUPERSEDED_MERGE_SNAPSHOT"
+      },
+      {
+        "sha": "3a31413a9f640490e3eebbd9dff28f821f9d9190",
+        "classification": "REJECTED_REPEATED_RUNTIME_DRIFT"
+      },
+      {
+        "sha": "47926219c644be36a041e8fc70881001c5b0c0fc",
+        "classification": "REJECTED_TYPES_AND_LOCK_DRIFT"
+      },
+      {
+        "sha": "2d23cb64acd0eb6dcffd6769e48a339680fe9305",
+        "classification": "SUPERSEDED_PARTIAL_REVERT"
+      },
+      {
+        "sha": "98a1e2f3a3504c46d31ddc20e3445a9b573d9e7b",
+        "classification": "SUPERSEDED_LOCK_REVERT"
+      },
+      {
+        "sha": "0ad545776b88ce38c9f6ba8b685d4c9fc5d98ae1",
+        "classification": "SUPERSEDED_ZERO_NET_TREE"
+      },
+      {
+        "sha": "24acb93e5fb2614207288a76405f702fc4863858",
+        "classification": "REJECTED_REPEATED_RUNTIME_DRIFT"
+      },
+      {
+        "sha": "f99ae74f5702e226382461773aa60f1eb4d64f3a",
+        "classification": "REJECTED_DERIVED_LOCK_DRIFT"
+      },
+      {
+        "sha": "a8facd3cbcda9499d5705f261248bfc46b9e7239",
+        "classification": "REJECTED_UNEXPECTED_SCHEMA_DRIFT"
+      },
+      {
+        "sha": "518ae34b4e462fa5d050d66386153592439a8b51",
+        "classification": "REJECTED_UNQUALIFIED_RUNTIME_DEPENDENCY"
+      },
+      {
+        "sha": "3b2c4179f2c8cd386c92b68b831c6eb7f68965e4",
+        "classification": "REJECTED_HOST_AUTHORITY_EXPANSION"
+      },
+      {
+        "sha": "860f567f146936f8d71c87f3d9505475a9dc30d1",
+        "classification": "REJECTED_HEURISTIC_TENANT_FALLBACK"
+      },
+      {
+        "sha": "650d7c3ba7369d3ffb79ebfa0e1d1e4e17287ba4",
+        "classification": "REJECTED_MERGE_SNAPSHOT"
+      },
+      {
+        "sha": "ec7acdfff56dfb1ff98e88c1f85dd72d017be858",
+        "classification": "HISTORICAL_PLAN_ONLY"
+      },
+      {
+        "sha": "85809aadabafc283db108da0cb6fb8d9466f63db",
+        "classification": "HISTORICAL_PLAN_MERGE"
+      },
+      {
+        "sha": "44ae41a0f6346a00eb707f8c00857d7e5d4c4121",
+        "classification": "HISTORICAL_PLAN_AND_ROADMAP_ONLY"
+      },
+      {
+        "sha": "2354b7f0b9ee8b19b570498dacf3a1245d8af352",
+        "classification": "HISTORICAL_PLAN_MERGE"
+      },
+      {
+        "sha": "afd0c2b9923f5eccf3d22137c3b33450db7b54c4",
+        "classification": "PRESERVED_SUPPORT_EVIDENCE_ONLY"
+      },
+      {
+        "sha": "48b90876b6561f894422ed7a8c5c7dce91062ece",
+        "classification": "HISTORICAL_PLAN_MERGE"
+      },
+      {
+        "sha": "7fdf6a21d56a35be10100166477e8f7d0f7faba2",
+        "classification": "PRESERVED_ABORT_RECORD_ONLY"
+      },
+      {
+        "sha": "b48ebd7905b9fcc1d496d69df0e2ff46abb6c1f9",
+        "classification": "PRESERVED_TERMINAL_ABORT_MERGE"
+      }
+    ],
+    "selectedAuthority": "GITHUB_MAIN_PLUS_AUDITABLE_CORRECTIVE"
+  },
+  "continuity": {
+    "version": 4,
+    "updatedAt": "2026-09-04",
+    "sha256": "ad21e9c6eb7356d8b9c31f3cc1b42398ae39b00bd82eff7026a76fdcae27a17d"
+  },
+  "supportIntake": {
+    "newEdgeFunctionCreationAvailable": false,
+    "selectedRuntime": "TANSTACK_SERVER_ROUTE",
+    "managedCredentialsRemainServerOnly": true,
+    "environmentReadInsideHandler": true
+  },
+  "selectedEndpoint": "POST /api/internal/pca-15r-managed-custody-provision",
+  "ordering": [
+    "OPERATOR_AUTH",
+    "SYNTHETIC_PASSWORD_GRANTS",
+    "GLOBAL_ROLE_AND_ACTIVE_MEMBERSHIP",
+    "EXPLICIT_IMPERSONATION_AND_MEMBER_SELECTION",
+    "CLOUDFLARE_INACTIVE_VERSION",
+    "GET_ONLY_TERMINAL_RECONCILIATION"
+  ],
+  "terminalReads": [
+    "versions",
+    "deployments",
+    "subdomain",
+    "schedules",
+    "access_apps",
+    "access_reusable_policies",
+    "access_service_tokens",
+    "workers_custom_domains",
+    "zone_workers_routes"
+  ],
+  "secrets": {
+    "serviceRoleExported": false,
+    "passwordsExported": false,
+    "tokensExported": false,
+    "emailsExported": false,
+    "viteSecretNames": 0
+  },
+  "controls": {
+    "githubMainMutation": false,
+    "lovableCalls": 0,
+    "supabaseCalls": 0,
+    "cloudflareCalls": 0,
+    "providerWrites": 0,
+    "deployments": 0,
+    "previews": 0,
+    "restores": 0,
+    "realTenantActions": 0,
+    "package211Executed": false,
+    "lsr02DiffPaths": 0,
+    "prM3FrontendBlocked": false
+  },
+  "decision": "ACCEPTED_REPOSITORY_CORRECTIVE_PENDING_PROTECTED_MERGE"
+}
