@@ -62,7 +62,8 @@ ok(
 );
 ok(
   serverEntry.includes('request.headers.get("x-forwarded-host")') &&
-    serverEntry.includes("new Request(homologationEntry, request)"),
+    serverEntry.includes('status: 302') &&
+    serverEntry.includes('location: homologationEntry'),
   "a entrada do runtime deve reconhecer o host encaminhado antes da resolução comercial",
 );
 assert.equal(
@@ -89,7 +90,7 @@ assert.equal(
 assertions += 1;
 assert.equal(
   resolveP0HomologationEntry("http://runtime-interno/", "realone.com.br"),
-  "http://runtime-interno/demonstracao",
+  "https://realone.com.br/demonstracao",
 );
 assertions += 1;
 assert.equal(
@@ -97,7 +98,7 @@ assert.equal(
     "http://runtime-interno/",
     "id-preview--982b91d8-946d-4103-8eb3-40ddbaeedbf4.lovable.app",
   ),
-  "http://runtime-interno/demonstracao",
+  "https://id-preview--982b91d8-946d-4103-8eb3-40ddbaeedbf4.lovable.app/demonstracao",
 );
 assertions += 1;
 assert.equal(

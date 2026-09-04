@@ -27,7 +27,8 @@ export function resolveP0HomologationEntry(
     return null;
   }
 
-  const hostname = normalizeRequestHostname(requestHost) ?? url.hostname.toLowerCase();
+  const forwardedHostname = normalizeRequestHostname(requestHost);
+  const hostname = forwardedHostname ?? url.hostname.toLowerCase();
   if (
     url.pathname !== "/" ||
     (!P0_HOMOLOGATION_HOSTS.has(hostname) && !isLovableHomologationHost(hostname))
@@ -35,6 +36,11 @@ export function resolveP0HomologationEntry(
     return null;
   }
 
+  if (forwardedHostname) {
+    url.protocol = "https:";
+    url.hostname = forwardedHostname;
+    url.port = "";
+  }
   url.pathname = "/demonstracao";
   url.search = "";
   url.hash = "";
