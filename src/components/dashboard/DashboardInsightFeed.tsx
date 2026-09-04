@@ -30,17 +30,17 @@ export function DashboardInsightFeed({ model }: { model: DashboardReadModel }) {
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
-              Inteligência server-owned
+              Inteligência calculada no servidor
             </p>
             <h2 className="mt-1 text-lg font-semibold text-foreground">Insights do período</h2>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Sinais produzidos pelo servidor e apresentados sem inferência adicional no cliente.
+              Recomendações produzidas com dados consolidados e exibidas sem alteração no navegador.
             </p>
           </div>
         </header>
         {model.insights.length === 0 ? (
           <div className="rounded-xl border border-border bg-background/65 p-4 text-sm text-muted-foreground">
-            Ainda não há volume suficiente para um insight server-owned neste período.
+            Ainda não há volume suficiente para gerar uma recomendação neste período.
           </div>
         ) : (
           <ol className="space-y-2" aria-live="polite">
@@ -99,7 +99,7 @@ export function DashboardInsightFeed({ model }: { model: DashboardReadModel }) {
           ))}
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-3">
             <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-300">
-              Data completeness
+              Integridade dos dados
             </dt>
             <dd className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
               <BookOpenCheck className="size-4" aria-hidden="true" /> Completo
@@ -151,10 +151,10 @@ export function DashboardInsightFeed({ model }: { model: DashboardReadModel }) {
       <article className="min-w-0 rounded-2xl border border-border bg-workspace-elevated p-4 shadow-soft sm:p-5">
         <h2 className="text-base font-semibold text-foreground">Ranking e alertas</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Informação server-owned, sem ações comerciais no cliente.
+          Informação consolidada no servidor, sem executar ações comerciais automaticamente.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <ol className="space-y-2" aria-label="Ranking server-owned">
+          <ol className="space-y-2" aria-label="Classificação de desempenho">
             {model.ranking.length === 0 ? (
               <li className="text-xs text-muted-foreground">
                 Ranking indisponível para este escopo.

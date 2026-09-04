@@ -43,13 +43,13 @@ export const CONTEXTS: WorkspaceContext[] = [
   },
   {
     id: "pipeline",
-    label: "Pipeline",
+    label: "Funil de vendas",
     icon: Inbox,
     root: "/admin/pipeline",
     matches: ["/admin/pipeline", "/admin/leads", "/admin/crm-operacoes"],
     subs: [
-      { label: "Kanban", to: "/admin/pipeline" },
-      { label: "CRM Operacional", to: "/admin/crm-operacoes" },
+      { label: "Quadro de oportunidades", to: "/admin/pipeline" },
+      { label: "Operação comercial", to: "/admin/crm-operacoes" },
     ],
   },
   {
@@ -100,7 +100,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     subs: [
       { label: "Portais", to: "/admin/portais" },
       { label: "Marketing", to: "/admin/marketing" },
-      { label: "Tracking", to: "/admin/tracking" },
+      { label: "Rastreamento", to: "/admin/tracking" },
     ],
   },
   {
@@ -137,10 +137,10 @@ export const CONTEXTS: WorkspaceContext[] = [
     matches: ["/super"],
     superOnly: true,
     subs: [
-      { label: "Tenants", to: "/super" },
-      { label: "Control Plane", to: "/super/control-plane" },
+      { label: "Empresas", to: "/super" },
+      { label: "Controle da plataforma", to: "/super/control-plane" },
       { label: "Observabilidade", to: "/super/observabilidade" },
-      { label: "DLQ", to: "/super/dlq" },
+      { label: "Falhas pendentes", to: "/super/dlq" },
     ],
   },
 ];

@@ -163,8 +163,8 @@ export function DashboardVisualizations({ model }: { model: DashboardReadModel }
           <div>
             <h2 className="text-base font-semibold text-foreground">Funil de conversão</h2>
             <p id={funnelDescriptionId} className="mt-1 text-xs leading-5 text-muted-foreground">
-              Quantidade server-owned por etapa; a lista após o gráfico é a representação textual
-              integral.
+              Quantidade consolidada por etapa; a lista após o gráfico apresenta os mesmos valores
+              em formato textual.
             </p>
           </div>
         </header>

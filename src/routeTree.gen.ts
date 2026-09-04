@@ -16,6 +16,8 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as LancamentosRouteImport } from './routes/lancamentos'
 import { Route as ImoveisRouteImport } from './routes/imoveis'
+import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnuncieRouteImport } from './routes/anuncie'
@@ -121,6 +123,16 @@ const LancamentosRoute = LancamentosRouteImport.update({
 const ImoveisRoute = ImoveisRouteImport.update({
   id: '/imoveis',
   path: '/imoveis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesignSystemRoute = DesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemonstracaoRoute = DemonstracaoRouteImport.update({
+  id: '/demonstracao',
+  path: '/demonstracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContatoRoute = ContatoRouteImport.update({
@@ -531,6 +543,8 @@ export interface FileRoutesByFullPath {
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
+  '/demonstracao': typeof DemonstracaoRoute
+  '/design-system': typeof DesignSystemRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
@@ -610,6 +624,8 @@ export interface FileRoutesByTo {
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
+  '/demonstracao': typeof DemonstracaoRoute
+  '/design-system': typeof DesignSystemRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
@@ -688,6 +704,8 @@ export interface FileRoutesById {
   '/anuncie': typeof AnuncieRoute
   '/auth': typeof AuthRoute
   '/contato': typeof ContatoRoute
+  '/demonstracao': typeof DemonstracaoRoute
+  '/design-system': typeof DesignSystemRoute
   '/imoveis': typeof ImoveisRoute
   '/lancamentos': typeof LancamentosRouteWithChildren
   '/privacidade': typeof PrivacidadeRoute
@@ -769,6 +787,8 @@ export interface FileRouteTypes {
     | '/anuncie'
     | '/auth'
     | '/contato'
+    | '/demonstracao'
+    | '/design-system'
     | '/imoveis'
     | '/lancamentos'
     | '/privacidade'
@@ -848,6 +868,8 @@ export interface FileRouteTypes {
     | '/anuncie'
     | '/auth'
     | '/contato'
+    | '/demonstracao'
+    | '/design-system'
     | '/imoveis'
     | '/lancamentos'
     | '/privacidade'
@@ -925,6 +947,8 @@ export interface FileRouteTypes {
     | '/anuncie'
     | '/auth'
     | '/contato'
+    | '/demonstracao'
+    | '/design-system'
     | '/imoveis'
     | '/lancamentos'
     | '/privacidade'
@@ -1006,6 +1030,8 @@ export interface RootRouteChildren {
   AnuncieRoute: typeof AnuncieRoute
   AuthRoute: typeof AuthRoute
   ContatoRoute: typeof ContatoRoute
+  DemonstracaoRoute: typeof DemonstracaoRoute
+  DesignSystemRoute: typeof DesignSystemRoute
   ImoveisRoute: typeof ImoveisRoute
   LancamentosRoute: typeof LancamentosRouteWithChildren
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -1082,6 +1108,20 @@ declare module '@tanstack/react-router' {
       path: '/imoveis'
       fullPath: '/imoveis'
       preLoaderRoute: typeof ImoveisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/design-system': {
+      id: '/design-system'
+      path: '/design-system'
+      fullPath: '/design-system'
+      preLoaderRoute: typeof DesignSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demonstracao': {
+      id: '/demonstracao'
+      path: '/demonstracao'
+      fullPath: '/demonstracao'
+      preLoaderRoute: typeof DemonstracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contato': {
@@ -1741,6 +1781,8 @@ const rootRouteChildren: RootRouteChildren = {
   AnuncieRoute: AnuncieRoute,
   AuthRoute: AuthRoute,
   ContatoRoute: ContatoRoute,
+  DemonstracaoRoute: DemonstracaoRoute,
+  DesignSystemRoute: DesignSystemRoute,
   ImoveisRoute: ImoveisRoute,
   LancamentosRoute: LancamentosRouteWithChildren,
   PrivacidadeRoute: PrivacidadeRoute,
