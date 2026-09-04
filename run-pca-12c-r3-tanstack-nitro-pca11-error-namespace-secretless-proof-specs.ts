@@ -183,6 +183,29 @@ if (head !== SOURCE_MAIN) {
     "src/routes/api/internal/pca-15r-managed-custody-provision.ts",
     "src/routeTree.gen.ts",
   ].sort();
+  const p0VisualProductHomologationPaths = [
+    ".github/workflows/p0-visual-product-homologation-gate.yml",
+    "package.json",
+    "run-p0-visual-product-homologation-specs.ts",
+    "run-pr-m2-portal-functional-completion-specs.ts",
+    "run-pr-m2-marketing-channels-lead-ingestion-functional-completion-specs.ts",
+    "run-pr-m2-analytics-tracking-conversion-events-functional-completion-specs.ts",
+    "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+    "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+    "src/components/dashboard/DashboardInsightFeed.tsx",
+    "src/components/dashboard/DashboardVisualizations.tsx",
+    "src/components/demo/DemoWorkspace.tsx",
+    "src/components/demo/demo-data.ts",
+    "src/components/workspace/contexts.ts",
+    "src/lib/ui-labels.ts",
+    "src/routeTree.gen.ts",
+    "src/routes/_authenticated.admin.marketing.tsx",
+    "src/routes/_authenticated.admin.portais.tsx",
+    "src/routes/_authenticated.admin.tracking.tsx",
+    "src/routes/auth.tsx",
+    "src/routes/demonstracao.tsx",
+    "src/routes/design-system.tsx",
+  ].sort();
   assert.deepEqual(
     changedPaths,
     [
@@ -193,6 +216,9 @@ if (head !== SOURCE_MAIN) {
           : []),
         ...(changedPaths.includes("run-pca-15r-managed-custody-source-reconciliation-specs.ts")
           ? pca15rPaths
+          : []),
+        ...(changedPaths.includes("run-p0-visual-product-homologation-specs.ts")
+          ? p0VisualProductHomologationPaths
           : []),
       ]),
     ].sort(),

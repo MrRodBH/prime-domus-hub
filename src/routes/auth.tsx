@@ -9,7 +9,12 @@ import { toast } from "sonner";
 import logo from "@/assets/logo-rm-prime.png";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Acesso administrativo — RM Prime Imóveis" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [
+      { title: "Acesso administrativo — RM Prime Imóveis" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: AuthPage,
 });
 
@@ -50,20 +55,41 @@ function AuthPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
             </div>
             <div>
               <Label htmlFor="password">Senha</Label>
-              <PasswordInput id="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+              <PasswordInput
+                id="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Entrando…" : "Entrar"}
             </Button>
           </form>
         </div>
-        <p className="text-center mt-6 text-xs text-muted-foreground">
-          <Link to="/" className="hover:text-foreground transition-colors">← Voltar ao site</Link>
-        </p>
+        <div className="mt-6 grid gap-2 text-center text-xs text-muted-foreground">
+          <Link
+            to="/demonstracao"
+            className="rounded-md border border-border bg-card px-4 py-3 font-semibold text-foreground transition-colors hover:bg-muted"
+          >
+            Explorar demonstração visual
+          </Link>
+          <Link to="/" className="py-2 transition-colors hover:text-foreground">
+            ← Voltar ao site institucional
+          </Link>
+        </div>
       </div>
     </div>
   );

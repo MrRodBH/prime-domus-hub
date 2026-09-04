@@ -461,7 +461,33 @@ if (head !== SOURCE_MAIN) {
     .split("\n")
     .filter(Boolean)
     .sort();
-  assert.deepEqual(changed, PCA15R_PATHS);
+  const p0VisualProductHomologationPaths = [
+    ".github/workflows/p0-visual-product-homologation-gate.yml",
+    "package.json",
+    "run-p0-visual-product-homologation-specs.ts",
+    "run-pr-m2-portal-functional-completion-specs.ts",
+    "run-pr-m2-marketing-channels-lead-ingestion-functional-completion-specs.ts",
+    "run-pr-m2-analytics-tracking-conversion-events-functional-completion-specs.ts",
+    "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+    "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+    "src/components/dashboard/DashboardInsightFeed.tsx",
+    "src/components/dashboard/DashboardVisualizations.tsx",
+    "src/components/demo/DemoWorkspace.tsx",
+    "src/components/demo/demo-data.ts",
+    "src/components/workspace/contexts.ts",
+    "src/lib/ui-labels.ts",
+    "src/routeTree.gen.ts",
+    "src/routes/_authenticated.admin.marketing.tsx",
+    "src/routes/_authenticated.admin.portais.tsx",
+    "src/routes/_authenticated.admin.tracking.tsx",
+    "src/routes/auth.tsx",
+    "src/routes/demonstracao.tsx",
+    "src/routes/design-system.tsx",
+  ].sort();
+  assert.deepEqual(
+    changed,
+    [...new Set([...PCA15R_PATHS, ...p0VisualProductHomologationPaths])].sort(),
+  );
   assert.ok(!changed.includes(".env"));
   assert.ok(!changed.includes("src/integrations/supabase/types.ts"));
   assert.ok(!changed.includes("src/lib/tenant.server.ts"));
