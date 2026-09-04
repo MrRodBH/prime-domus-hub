@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { ArrowLeft, Check, Info, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Building2, Check, Globe2, Info, Sparkles, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/design-system")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Padrões visuais — RM Prime SaaS" },
+      { title: "Padrões visuais — Real One" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -50,12 +50,64 @@ function PaginaDePadroesVisuais() {
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#a56f19]">
             Biblioteca da interface
           </p>
-          <h1 className="mt-3 text-4xl font-semibold sm:text-5xl">Padrões visuais do RM Prime</h1>
+          <h1 className="mt-3 text-4xl font-semibold sm:text-5xl">Padrões visuais da Real One</h1>
           <p className="mt-4 text-base leading-7 text-[#587076]">
             Referência viva para revisar cores, textos, campos, componentes, gráficos e
-            comportamento responsivo antes de expandir o produto.
+            comportamento responsivo da plataforma e das experiências personalizadas de cada
+            empresa.
           </p>
         </div>
+
+        <Secao
+          titulo="Plataforma e empresa cliente"
+          descricao="A identidade do produto permanece separada da marca, do domínio e dos dados de cada cliente."
+        >
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Card className="overflow-hidden rounded-2xl border-[#123f47]/10">
+              <CardContent className="flex h-full flex-col p-6">
+                <span className="flex size-12 items-center justify-center rounded-xl bg-[#123f47] text-white">
+                  <Globe2 className="size-5" />
+                </span>
+                <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#a56f19]">
+                  Produto SaaS
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold">Real One</h3>
+                <p className="mt-2 text-sm leading-6 text-[#587076]">
+                  Interface central, acesso da equipe e operação de múltiplas empresas.
+                </p>
+                <div className="mt-5 rounded-xl bg-[#f6f4ef] p-4">
+                  <span className="block text-xs text-[#587076]">Domínio da plataforma</span>
+                  <code className="mt-1 block font-semibold text-[#123f47]">realone.com.br</code>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="overflow-hidden rounded-2xl border-[#d6a84b]/30">
+              <CardContent className="flex h-full flex-col p-6">
+                <span className="flex size-12 items-center justify-center rounded-xl bg-[#d6a84b] text-[#123f47]">
+                  <Building2 className="size-5" />
+                </span>
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#a56f19]">
+                    Primeira empresa cliente
+                  </p>
+                  <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900">
+                    Representação sintética
+                  </Badge>
+                </div>
+                <h3 className="mt-2 text-2xl font-semibold">RM Prime Imóveis</h3>
+                <p className="mt-2 text-sm leading-6 text-[#587076]">
+                  Marca, site, domínio e cadastros isolados do cliente dentro da Real One.
+                </p>
+                <div className="mt-5 rounded-xl bg-[#f6f4ef] p-4">
+                  <span className="block text-xs text-[#587076]">Domínio da primeira empresa</span>
+                  <code className="mt-1 block font-semibold text-[#123f47]">
+                    rmprimeimoveis.com.br
+                  </code>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Secao>
 
         <Secao
           titulo="Cores da plataforma"

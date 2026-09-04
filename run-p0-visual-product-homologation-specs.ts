@@ -52,6 +52,28 @@ ok(demonstration.includes("ssr: false"), "a demonstração deve evitar dependên
 ok(designSystem.includes("ssr: false"), "os padrões visuais devem evitar dependências SSR");
 ok(auth.includes('to="/demonstracao"'), "a tela de acesso deve oferecer a demonstração");
 ok(
+  demonstration.includes("Demonstração da plataforma — Real One"),
+  "a demonstração deve identificar a Real One como plataforma SaaS",
+);
+ok(
+  workspace.includes("Plataforma SaaS") && workspace.includes("Empresa demonstrativa"),
+  "o app shell deve distinguir a plataforma do tenant",
+);
+ok(
+  data.includes("realone.com.br") && data.includes("rmprimeimoveis.com.br"),
+  "a interface deve apresentar os domínios nos contextos corretos",
+);
+ok(
+  workspace.includes("rmprimeimoveis.com.br/imoveis") &&
+    !workspace.includes("realone.com.br/imoveis"),
+  "a prévia do site deve usar o domínio do tenant, não o domínio da plataforma",
+);
+ok(
+  designSystem.includes("Domínio da plataforma") &&
+    designSystem.includes("Domínio da primeira empresa"),
+  "a biblioteca visual deve documentar a separação de identidade",
+);
+ok(
   publicTenantGuards.includes('"/demonstracao", "/design-system"'),
   "a demonstração e os padrões visuais devem abrir sem consultar tenant",
 );
@@ -61,11 +83,9 @@ ok(
   "as mensagens de falha devem permanecer em PT-BR",
 );
 ok(
-  serverEntry.includes(
-    'request.headers.get("x-forwarded-host") ?? request.headers.get("host")',
-  ) &&
-    serverEntry.includes('status: 302') &&
-    serverEntry.includes('location: homologationEntry'),
+  serverEntry.includes('request.headers.get("x-forwarded-host") ?? request.headers.get("host")') &&
+    serverEntry.includes("status: 302") &&
+    serverEntry.includes("location: homologationEntry"),
   "a entrada do runtime deve priorizar o host público encaminhado antes da resolução comercial",
 );
 assert.equal(
