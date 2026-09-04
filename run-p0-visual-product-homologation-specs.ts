@@ -61,7 +61,8 @@ ok(
   "as mensagens de falha devem permanecer em PT-BR",
 );
 ok(
-  serverEntry.includes("resolveP0HomologationEntry(request.url)"),
+  serverEntry.includes("resolveP0HomologationEntry(request.url)") &&
+    serverEntry.includes("new Request(homologationEntry, request)"),
   "a entrada do runtime deve encaminhar o domínio P0 antes da resolução comercial",
 );
 assert.equal(
@@ -72,6 +73,18 @@ assertions += 1;
 assert.equal(
   resolveP0HomologationEntry("https://www.realone.com.br/?origem=teste"),
   "https://www.realone.com.br/demonstracao",
+);
+assertions += 1;
+assert.equal(
+  resolveP0HomologationEntry(
+    "https://id-preview--982b91d8-946d-4103-8eb3-40ddbaeedbf4.lovable.app/",
+  ),
+  "https://id-preview--982b91d8-946d-4103-8eb3-40ddbaeedbf4.lovable.app/demonstracao",
+);
+assertions += 1;
+assert.equal(
+  resolveP0HomologationEntry("https://preview--prime-domus-hub.lovable.app/"),
+  "https://preview--prime-domus-hub.lovable.app/demonstracao",
 );
 assertions += 1;
 for (const url of [

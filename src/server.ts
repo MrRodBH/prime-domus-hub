@@ -192,17 +192,9 @@ function resolveRuntimeContext(
 }
 
 export async function fetch(request: Request, env: unknown, ctx: unknown): Promise<Response> {
-  const homologationEntry = resolveP0HomologationEntry(request.url);
-  if (homologationEntry) {
-    return new Response(null, {
-      status: 302,
-      headers: {
-        location: homologationEntry,
-        "cache-control": "no-store",
-        "x-rm-prime-surface": "p0-synthetic-homologation",
-      },
-    });
-  }
+  const homologationEntry = request.method === "GET" || request.method === "HEAD"
+    ? resolveP0HomologationEntry(request.url)
+    : null;
 
   let runtime: { env: unknown; ctx: unknown };
   try {
@@ -222,28 +214,33 @@ export async function fetch(request: Request, env: unknown, ctx: unknown): Promi
     });
   }
 
-  try {
-    const redirect = await canonicalRedirect(request);
-    if (redirect) return redirect;
-  } catch (error) {
-    structuredLog({
-      level: "error",
-      event: "dca.canonical_redirect_failed_closed",
-      code: "canonical_redirect_unavailable",
-      route: new URL(request.url).pathname,
-      requestId: request.headers.get("x-request-id"),
-      context: { source: "[DCA-01] canonical redirect resolution failed closed" },
-      error,
-    });
-    return new Response("Domain resolution temporarily unavailable", {
-      status: 503,
-      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
-    });
+  if (!homologationEntry) {
+    try {
+      const redirect = await canonicalRedirect(request);
+      if (redirect) return redirect;
+    } catch (error) {
+      structuredLog({
+        level: "error",
+        event: "dca.canonical_redirect_failed_closed",
+        code: "canonical_redirect_unavailable",
+        route: new URL(request.url).pathname,
+        requestId: request.headers.get("x-request-id"),
+        context: { source: "[DCA-01] canonical redirect resolution failed closed" },
+        error,
+      });
+      return new Response("Domain resolution temporarily unavailable", {
+        status: 503,
+        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
   }
 
   try {
     const handler = await getServerEntry();
-    const response = await handler.fetch(request, runtime.env, runtime.ctx);
+    const effectiveRequest = homologationEntry
+      ? new Request(homologationEntry, request)
+      : request;
+    const response = await handler.fetch(effectiveRequest, runtime.env, runtime.ctx);
     const normalized = await normalizeCatastrophicSsrResponse(response);
     return applyTrackingSecurityHeaders(request, runtime.env, normalized);
   } catch (error) {
