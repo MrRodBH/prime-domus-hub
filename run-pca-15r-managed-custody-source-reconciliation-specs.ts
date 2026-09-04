@@ -476,6 +476,9 @@ if (head !== SOURCE_MAIN) {
     "src/components/demo/demo-data.ts",
     "src/components/workspace/contexts.ts",
     "src/lib/ui-labels.ts",
+    "src/lib/error-page.ts",
+    "src/lib/public-tenant-read-guards.ts",
+    "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts",
     "src/routeTree.gen.ts",
     "src/routes/_authenticated.admin.marketing.tsx",
     "src/routes/_authenticated.admin.portais.tsx",
@@ -483,6 +486,7 @@ if (head !== SOURCE_MAIN) {
     "src/routes/auth.tsx",
     "src/routes/demonstracao.tsx",
     "src/routes/design-system.tsx",
+    "src/routes/__root.tsx",
   ].sort();
   assert.deepEqual(
     changed,

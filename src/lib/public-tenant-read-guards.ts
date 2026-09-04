@@ -22,9 +22,7 @@ export function assertOptionalTenantScopedRow<T extends TenantScopedRow>(
   return row;
 }
 
-export function withoutTenantId<T extends TenantScopedRow>(
-  row: T,
-): Omit<T, "tenant_id"> {
+export function withoutTenantId<T extends TenantScopedRow>(row: T): Omit<T, "tenant_id"> {
   const { tenant_id: _tenantId, ...value } = row;
   return value;
 }
@@ -40,11 +38,14 @@ export async function loadRequiredPublicRootData<TSettings, TMeta>(
 
 export function isTenantIndependentRootPath(pathname: string): boolean {
   const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  const tenantIndependentPaths = ["/auth", "/demonstracao", "/design-system"];
   const authenticatedControlPlanePrefixes = ["/admin", "/super", "/invitations"];
-  return normalizedPathname === "/auth"
-    || authenticatedControlPlanePrefixes.some(
+  return (
+    tenantIndependentPaths.includes(normalizedPathname) ||
+    authenticatedControlPlanePrefixes.some(
       (prefix) => normalizedPathname === prefix || normalizedPathname.startsWith(`${prefix}/`),
-    );
+    )
+  );
 }
 
 export async function loadRequiredPublicRootDataForPath<TSettings, TMeta>(
