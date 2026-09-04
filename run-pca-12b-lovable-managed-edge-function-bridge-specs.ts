@@ -368,6 +368,24 @@ const pca15rPaths = [
   "src/routes/api/internal/pca-15r-managed-custody-provision.ts",
   "src/routeTree.gen.ts",
 ].sort();
+const p0VisualProductHomologationPaths = [
+  ".github/workflows/p0-visual-product-homologation-gate.yml",
+  "package.json",
+  "run-p0-visual-product-homologation-specs.ts",
+  "src/components/dashboard/DashboardInsightFeed.tsx",
+  "src/components/dashboard/DashboardVisualizations.tsx",
+  "src/components/demo/DemoWorkspace.tsx",
+  "src/components/demo/demo-data.ts",
+  "src/components/workspace/contexts.ts",
+  "src/lib/ui-labels.ts",
+  "src/routeTree.gen.ts",
+  "src/routes/_authenticated.admin.marketing.tsx",
+  "src/routes/_authenticated.admin.portais.tsx",
+  "src/routes/_authenticated.admin.tracking.tsx",
+  "src/routes/auth.tsx",
+  "src/routes/demonstracao.tsx",
+  "src/routes/design-system.tsx",
+].sort();
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
 })
@@ -381,6 +399,7 @@ const downstreamAllowedPaths = new Set([
   ...pca12cR6dPaths,
   ...pca12cR6gPaths,
   ...pca15rPaths,
+  ...p0VisualProductHomologationPaths,
 ]);
 assert.deepEqual(
   changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),
