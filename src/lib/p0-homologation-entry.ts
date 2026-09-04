@@ -1,5 +1,11 @@
 const P0_HOMOLOGATION_HOSTS = new Set(["realone.com.br", "www.realone.com.br"]);
 
+function isLovableHomologationHost(hostname: string): boolean {
+  if (hostname === "prime-domus-hub.lovable.app") return true;
+  if (!hostname.endsWith(".lovable.app")) return false;
+  return hostname.startsWith("id-preview--") || hostname === "preview--prime-domus-hub.lovable.app";
+}
+
 export function resolveP0HomologationEntry(requestUrl: string): string | null {
   let url: URL;
   try {
@@ -8,7 +14,11 @@ export function resolveP0HomologationEntry(requestUrl: string): string | null {
     return null;
   }
 
-  if (url.pathname !== "/" || !P0_HOMOLOGATION_HOSTS.has(url.hostname.toLowerCase())) {
+  const hostname = url.hostname.toLowerCase();
+  if (
+    url.pathname !== "/" ||
+    (!P0_HOMOLOGATION_HOSTS.has(hostname) && !isLovableHomologationHost(hostname))
+  ) {
     return null;
   }
 
