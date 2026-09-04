@@ -6,7 +6,20 @@ function isLovableHomologationHost(hostname: string): boolean {
   return hostname.startsWith("id-preview--") || hostname === "preview--prime-domus-hub.lovable.app";
 }
 
-export function resolveP0HomologationEntry(requestUrl: string): string | null {
+function normalizeRequestHostname(requestHost: string | null | undefined): string | null {
+  const firstHost = requestHost?.split(",", 1)[0]?.trim();
+  if (!firstHost) return null;
+  try {
+    return new URL(`http://${firstHost}`).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+export function resolveP0HomologationEntry(
+  requestUrl: string,
+  requestHost?: string | null,
+): string | null {
   let url: URL;
   try {
     url = new URL(requestUrl);
@@ -14,7 +27,7 @@ export function resolveP0HomologationEntry(requestUrl: string): string | null {
     return null;
   }
 
-  const hostname = url.hostname.toLowerCase();
+  const hostname = normalizeRequestHostname(requestHost) ?? url.hostname.toLowerCase();
   if (
     url.pathname !== "/" ||
     (!P0_HOMOLOGATION_HOSTS.has(hostname) && !isLovableHomologationHost(hostname))

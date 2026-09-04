@@ -61,9 +61,9 @@ ok(
   "as mensagens de falha devem permanecer em PT-BR",
 );
 ok(
-  serverEntry.includes("resolveP0HomologationEntry(request.url)") &&
+  serverEntry.includes('request.headers.get("x-forwarded-host")') &&
     serverEntry.includes("new Request(homologationEntry, request)"),
-  "a entrada do runtime deve encaminhar o domínio P0 antes da resolução comercial",
+  "a entrada do runtime deve reconhecer o host encaminhado antes da resolução comercial",
 );
 assert.equal(
   resolveP0HomologationEntry("https://realone.com.br/"),
@@ -85,6 +85,24 @@ assertions += 1;
 assert.equal(
   resolveP0HomologationEntry("https://preview--prime-domus-hub.lovable.app/"),
   "https://preview--prime-domus-hub.lovable.app/demonstracao",
+);
+assertions += 1;
+assert.equal(
+  resolveP0HomologationEntry("http://runtime-interno/", "realone.com.br"),
+  "http://runtime-interno/demonstracao",
+);
+assertions += 1;
+assert.equal(
+  resolveP0HomologationEntry(
+    "http://runtime-interno/",
+    "id-preview--982b91d8-946d-4103-8eb3-40ddbaeedbf4.lovable.app",
+  ),
+  "http://runtime-interno/demonstracao",
+);
+assertions += 1;
+assert.equal(
+  resolveP0HomologationEntry("https://realone.com.br/", "dominio-nao-autorizado.example"),
+  null,
 );
 assertions += 1;
 for (const url of [
