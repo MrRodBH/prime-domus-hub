@@ -199,6 +199,8 @@ if (head !== SOURCE_MAIN) {
     "src/components/workspace/contexts.ts",
     "src/lib/ui-labels.ts",
     "src/lib/error-page.ts",
+    "src/lib/p0-homologation-entry.ts",
+    "src/server.ts",
     "src/routeTree.gen.ts",
     "src/routes/_authenticated.admin.marketing.tsx",
     "src/routes/_authenticated.admin.portais.tsx",
