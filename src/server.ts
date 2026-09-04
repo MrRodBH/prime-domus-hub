@@ -192,12 +192,13 @@ function resolveRuntimeContext(
 }
 
 export async function fetch(request: Request, env: unknown, ctx: unknown): Promise<Response> {
-  const homologationEntry = request.method === "GET" || request.method === "HEAD"
-    ? resolveP0HomologationEntry(
-        request.url,
-        request.headers.get("host") ?? request.headers.get("x-forwarded-host"),
-      )
-    : null;
+  const homologationEntry =
+    request.method === "GET" || request.method === "HEAD"
+      ? resolveP0HomologationEntry(
+          request.url,
+          request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+        )
+      : null;
   if (homologationEntry) {
     return new Response(null, {
       status: 302,

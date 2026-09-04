@@ -61,10 +61,12 @@ ok(
   "as mensagens de falha devem permanecer em PT-BR",
 );
 ok(
-  serverEntry.includes('request.headers.get("x-forwarded-host")') &&
+  serverEntry.includes(
+    'request.headers.get("x-forwarded-host") ?? request.headers.get("host")',
+  ) &&
     serverEntry.includes('status: 302') &&
     serverEntry.includes('location: homologationEntry'),
-  "a entrada do runtime deve reconhecer o host encaminhado antes da resolução comercial",
+  "a entrada do runtime deve priorizar o host público encaminhado antes da resolução comercial",
 );
 assert.equal(
   resolveP0HomologationEntry("https://realone.com.br/"),
