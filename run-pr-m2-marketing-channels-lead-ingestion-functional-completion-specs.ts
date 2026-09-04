@@ -179,7 +179,17 @@ for (const token of [
 for (const token of ["net.http", "http_post", "automatic_merge", "fuzzy"]) lacks(files.migration, token);
 
 // UI and release integration.
-for (const token of ["Marketing & Lead Ingestion Center", "credential_required", "not_live_verified", "Preview server-side", "Persistir importação", "Ingestion ledger", "retry_available", "externalDeliveryProved=false"]) has(files.route, token);
+for (const token of [
+  "Central de marketing e captura de leads",
+  "friendlyStatus",
+  "credencial necessária",
+  "ainda não verificados ao vivo",
+  "Gerar prévia no servidor",
+  "Persistir importação",
+  "Histórico de entrada dos leads",
+  "Nova tentativa",
+  "Nenhuma entrega externa confirmada",
+]) has(files.route, token);
 lacks(files.route, "adapter_not_implemented</strong>");
 has(files.contexts, '{ label: "Marketing", to: "/admin/marketing" }');
 has(files.packageJson, '"test:pr-m2:marketing-channels-lead-ingestion-functional-completion"');

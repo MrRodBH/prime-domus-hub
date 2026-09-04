@@ -373,6 +373,8 @@ const p0VisualProductHomologationPaths = [
   "package.json",
   "run-p0-visual-product-homologation-specs.ts",
   "run-pr-m2-portal-functional-completion-specs.ts",
+  "run-pr-m2-marketing-channels-lead-ingestion-functional-completion-specs.ts",
+  "run-pr-m2-analytics-tracking-conversion-events-functional-completion-specs.ts",
   "src/components/dashboard/DashboardInsightFeed.tsx",
   "src/components/dashboard/DashboardVisualizations.tsx",
   "src/components/demo/DemoWorkspace.tsx",

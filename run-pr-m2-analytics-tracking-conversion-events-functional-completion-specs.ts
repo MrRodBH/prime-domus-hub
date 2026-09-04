@@ -117,9 +117,20 @@ for (const token of ["unsafe-eval", "https://*", "http://*", "script-src *", "co
 // Legacy path and functional UI.
 for (const token of ["Legacy compatibility read", "tenant_tracking_connectors", "legacy_configuration_writable: false", "adapter-not-implemented", "externalProviderCalled: false", "externalDeliveryProved: false"]) has(files.meta, token);
 for (const token of ["fetch(", ".upsert(", "graph.facebook.com", "return { ok: true", "conversions_api_token: data."]) lacks(files.meta, token);
-for (const token of ["Tracking governance", "connector.displayName", "providerKey", "csp_blocked", "Event bindings fechados", "Política explícita de consentimento", "Diagnósticos sanitizados", "saveTenantTrackingConnectorDraft", "publishTenantTrackingConnector", "saveTenantTrackingEventBindings"]) has(files.route, token);
+for (const token of [
+  "Análises, pixels e eventos de conversão",
+  "connector.displayName",
+  "providerKey",
+  "friendlyStatus",
+  "Eventos de conversão permitidos",
+  "Política explícita de consentimento",
+  "Diagnóstico protegido",
+  "saveTenantTrackingConnectorDraft",
+  "publishTenantTrackingConnector",
+  "saveTenantTrackingEventBindings",
+]) has(files.route, token);
 equal((files.contexts.match(/id: "(inicio|pipeline|catalogo|conteudo|distribuicao|administracao|operacao)"/g) ?? []).length, 7, "workspace count");
-for (const token of ["/admin/tracking", "{ label: \"Tracking\", to: \"/admin/tracking\" }"]) has(files.contexts, token);
+for (const token of ["/admin/tracking", "{ label: \"Rastreamento\", to: \"/admin/tracking\" }"]) has(files.contexts, token);
 for (const token of ["ga4_measurement_id", "google_tag_manager_container_id", "meta_pixel_id"]) has(files.configuration, token);
 
 // Database, cutover, RLS and ACL.
