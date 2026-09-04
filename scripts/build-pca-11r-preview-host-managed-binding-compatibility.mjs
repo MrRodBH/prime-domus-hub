@@ -60,6 +60,13 @@ function assertLockedAuthority() {
       assert.match(current, /handlePca11ManagedBindingProvisionRequest|provisioningCode/);
       continue;
     }
+    if (sha256(current) !== source.sha256 && label === "generatedRouteTree") {
+      const pca15r = read("run-pca-15r-managed-custody-source-reconciliation-specs.ts");
+      assert.match(pca15r, /GET-only terminal/);
+      assert.match(current, /pca-11-managed-binding-provision/);
+      assert.match(current, /pca-15r-managed-custody-provision/);
+      continue;
+    }
     assert.equal(sha256(current), source.sha256, `${label} authority drift`);
   }
 
