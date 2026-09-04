@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -33,6 +34,7 @@ const dashboardFeed = read("src/components/dashboard/DashboardInsightFeed.tsx");
 const publicTenantGuards = read("src/lib/public-tenant-read-guards.ts");
 const rootRoute = read("src/routes/__root.tsx");
 const serverErrorPage = read("src/lib/error-page.ts");
+const serverEntry = read("src/server.ts");
 const priorityAdminSurfaces = [
   "src/routes/_authenticated.admin.marketing.tsx",
   "src/routes/_authenticated.admin.tracking.tsx",
@@ -58,6 +60,28 @@ ok(
     serverErrorPage.includes("Não foi possível carregar esta página"),
   "as mensagens de falha devem permanecer em PT-BR",
 );
+ok(
+  serverEntry.includes("resolveP0HomologationEntry(request.url)"),
+  "a entrada do runtime deve encaminhar o domínio P0 antes da resolução comercial",
+);
+assert.equal(
+  resolveP0HomologationEntry("https://realone.com.br/"),
+  "https://realone.com.br/demonstracao",
+);
+assertions += 1;
+assert.equal(
+  resolveP0HomologationEntry("https://www.realone.com.br/?origem=teste"),
+  "https://www.realone.com.br/demonstracao",
+);
+assertions += 1;
+for (const url of [
+  "https://realone.com.br/auth",
+  "https://realone.com.br/imoveis",
+  "https://outro-dominio.example/",
+]) {
+  assert.equal(resolveP0HomologationEntry(url), null);
+  assertions += 1;
+}
 
 for (const moduleLabel of [
   "Visão geral",

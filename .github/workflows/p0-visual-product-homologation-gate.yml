@@ -14,6 +14,8 @@ on:
       - "src/lib/public-tenant-read-guards.ts"
       - "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts"
       - "src/lib/error-page.ts"
+      - "src/lib/p0-homologation-entry.ts"
+      - "src/server.ts"
       - "src/routes/__root.tsx"
       - "src/routeTree.gen.ts"
       - "run-p0-visual-product-homologation-specs.ts"

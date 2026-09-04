@@ -5,6 +5,7 @@ import { renderErrorPage } from "./lib/error-page";
 import { resolveCanonicalRedirectByHost } from "./lib/tenant.server";
 import { processScheduledDomainJobs } from "./lib/domains/domain-jobs.server";
 import { structuredLog } from "./lib/structured-log";
+import { resolveP0HomologationEntry } from "./lib/p0-homologation-entry";
 import {
   isCloudflareRuntimeRequest,
   readAuthoritativeCloudflareRuntimeContext,
@@ -191,6 +192,18 @@ function resolveRuntimeContext(
 }
 
 export async function fetch(request: Request, env: unknown, ctx: unknown): Promise<Response> {
+  const homologationEntry = resolveP0HomologationEntry(request.url);
+  if (homologationEntry) {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: homologationEntry,
+        "cache-control": "no-store",
+        "x-rm-prime-surface": "p0-synthetic-homologation",
+      },
+    });
+  }
+
   let runtime: { env: unknown; ctx: unknown };
   try {
     runtime = resolveRuntimeContext(request, env, ctx);
