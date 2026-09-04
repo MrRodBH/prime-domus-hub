@@ -477,6 +477,8 @@ if (head !== SOURCE_MAIN) {
     "src/components/workspace/contexts.ts",
     "src/lib/ui-labels.ts",
     "src/lib/error-page.ts",
+    "src/lib/p0-homologation-entry.ts",
+    "src/server.ts",
     "src/lib/public-tenant-read-guards.ts",
     "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts",
     "src/routeTree.gen.ts",
