@@ -57,6 +57,7 @@ import property1 from "@/assets/property-1.jpg";
 import property2 from "@/assets/property-2.jpg";
 import property3 from "@/assets/property-3.jpg";
 import {
+  CONTEXTO_DEMONSTRACAO,
   PALETA_GRAFICOS,
   campanhasSinteticas,
   etapasDoFunil,
@@ -206,6 +207,12 @@ export function DemoWorkspace() {
               <p className="hidden truncate text-xs text-[#587076] sm:block">{modulo.descricao}</p>
             </div>
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <Badge
+                variant="outline"
+                className="hidden border-[#123f47]/15 bg-white text-[#123f47] hover:bg-white xl:inline-flex"
+              >
+                Empresa demonstrativa: {CONTEXTO_DEMONSTRACAO.tenant.nome}
+              </Badge>
               <Badge className="hidden border-emerald-600/20 bg-emerald-50 text-emerald-800 hover:bg-emerald-50 md:inline-flex">
                 <span className="mr-1.5 size-1.5 rounded-full bg-emerald-500" /> Dados de
                 demonstração
@@ -259,13 +266,28 @@ function Navegacao({
 }) {
   return (
     <>
-      <div className="flex h-20 items-center border-b border-white/10 px-5">
-        <img src={logo} alt="RM Prime" className="h-16 w-auto brightness-0 invert" />
+      <div className="flex h-20 items-center gap-3 border-b border-white/10 px-5">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#d6a84b] text-sm font-black tracking-tight text-[#123f47]">
+          R1
+        </span>
+        <div className="min-w-0">
+          <p className="text-lg font-bold tracking-[0.16em] text-white">REAL ONE</p>
+          <p className="truncate text-[10px] text-white/50">Plataforma SaaS imobiliária</p>
+        </div>
       </div>
-      <div className="px-4 pb-2 pt-5">
-        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#9dd7d2]">
-          Plataforma imobiliária
+      <div className="px-4 pb-3 pt-4">
+        <p className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9dd7d2]">
+          Empresa demonstrativa
         </p>
+        <div className="mt-2 flex items-center gap-3 rounded-xl border border-white/10 bg-white/7 p-3">
+          <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1">
+            <img src={logo} alt="RM Prime Imóveis" className="h-full w-full object-contain" />
+          </span>
+          <span className="min-w-0">
+            <strong className="block truncate text-xs text-white">RM Prime Imóveis</strong>
+            <span className="block truncate text-[10px] text-white/45">rmprimeimoveis.com.br</span>
+          </span>
+        </div>
       </div>
       <nav
         className="flex-1 space-y-1 overflow-y-auto px-3 pb-5"
@@ -333,23 +355,60 @@ function Navegacao({
 
 function AvisoDemonstracao() {
   return (
-    <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-50 to-white p-4 sm:flex-row sm:items-center">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
-        <Lightbulb className="size-5" />
+    <section className="mb-5 overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-50 to-white">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+          <Lightbulb className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-amber-950">
+            Ambiente visual com dados inteiramente fictícios
+          </p>
+          <p className="mt-0.5 text-xs leading-5 text-amber-900/70">
+            Use a navegação para avaliar design, gráficos, jornadas e nomenclaturas. Nenhuma ação
+            alcança clientes ou campanhas reais.
+          </p>
+        </div>
+        <Badge variant="outline" className="w-fit border-amber-500/30 bg-white text-amber-900">
+          Homologação visual
+        </Badge>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-amber-950">
-          Ambiente visual com dados inteiramente fictícios
-        </p>
-        <p className="mt-0.5 text-xs leading-5 text-amber-900/70">
-          Use a navegação para avaliar design, gráficos, jornadas e nomenclaturas. Nenhuma ação
-          alcança clientes ou campanhas reais.
-        </p>
+      <div
+        className="grid border-t border-amber-400/20 bg-white/65 sm:grid-cols-2"
+        aria-label="Separação entre a plataforma e a empresa demonstrativa"
+      >
+        <div className="flex items-center gap-3 px-4 py-3 sm:border-r sm:border-amber-400/20">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#123f47] text-white">
+            <Globe2 className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+              Plataforma SaaS
+            </p>
+            <p className="truncate text-sm font-semibold">
+              {CONTEXTO_DEMONSTRACAO.plataforma.nome}
+            </p>
+            <p className="truncate text-[11px] text-[#587076]">
+              {CONTEXTO_DEMONSTRACAO.plataforma.dominio}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 border-t border-amber-400/20 px-4 py-3 sm:border-t-0">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#d6a84b] text-[#123f47]">
+            <Building2 className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+              Empresa demonstrativa
+            </p>
+            <p className="truncate text-sm font-semibold">{CONTEXTO_DEMONSTRACAO.tenant.nome}</p>
+            <p className="truncate text-[11px] text-[#587076]">
+              {CONTEXTO_DEMONSTRACAO.tenant.dominio}
+            </p>
+          </div>
+        </div>
       </div>
-      <Badge variant="outline" className="w-fit border-amber-500/30 bg-white text-amber-900">
-        Homologação visual
-      </Badge>
-    </div>
+    </section>
   );
 }
 
@@ -366,7 +425,7 @@ function CabecalhoPagina({
     <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
       <div>
         <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#b17a20]">
-          RM Prime SaaS
+          Real One · empresa RM Prime Imóveis
         </p>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{titulo}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[#587076]">{descricao}</p>
@@ -1108,8 +1167,8 @@ function InteligenciaArtificial() {
               <Bot className="size-5" />
             </span>
             <div>
-              <h2 className="font-semibold">Assistente RM Prime</h2>
-              <p className="text-xs text-[#587076]">Análise com contexto da operação sintética</p>
+              <h2 className="font-semibold">Assistente Real One</h2>
+              <p className="text-xs text-[#587076]">Contexto sintético da RM Prime Imóveis</p>
             </div>
             <Badge className="ml-auto bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
               Disponível
@@ -1174,7 +1233,7 @@ function SitesEPaginas() {
             <span className="size-2.5 rounded-full bg-amber-400" />
             <span className="size-2.5 rounded-full bg-emerald-400" />
             <div className="ml-3 flex-1 rounded-lg bg-white px-3 py-1.5 text-center text-[11px] text-[#587076]">
-              realone.com.br/imoveis
+              rmprimeimoveis.com.br/imoveis
             </div>
           </div>
           <div className="relative min-h-[430px] overflow-hidden bg-[#123f47] p-7 text-white sm:p-10">

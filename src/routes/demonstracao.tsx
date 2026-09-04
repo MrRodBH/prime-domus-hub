@@ -5,10 +5,11 @@ export const Route = createFileRoute("/demonstracao")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Demonstração da plataforma — RM Prime SaaS" },
+      { title: "Demonstração da plataforma — Real One" },
       {
         name: "description",
-        content: "Demonstração visual da plataforma imobiliária RM Prime SaaS com dados fictícios.",
+        content:
+          "Demonstração visual da plataforma SaaS imobiliária Real One com empresa e dados fictícios.",
       },
       { name: "robots", content: "noindex,nofollow" },
     ],

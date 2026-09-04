@@ -8,6 +8,19 @@ export const PALETA_GRAFICOS = {
   azulCeu: "#2694d1",
 } as const;
 
+export const CONTEXTO_DEMONSTRACAO = {
+  plataforma: {
+    nome: "Real One",
+    dominio: "realone.com.br",
+    descricao: "Plataforma SaaS imobiliária",
+  },
+  tenant: {
+    nome: "RM Prime Imóveis",
+    dominio: "rmprimeimoveis.com.br",
+    descricao: "Primeira empresa representada com dados sintéticos",
+  },
+} as const;
+
 export const evolucaoComercial = [
   { periodo: "1–7 ago", leads: 62, visitas: 21, propostas: 8, vendas: 3 },
   { periodo: "8–14 ago", leads: 78, visitas: 29, propostas: 12, vendas: 5 },
