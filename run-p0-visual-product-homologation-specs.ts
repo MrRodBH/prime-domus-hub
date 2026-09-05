@@ -230,6 +230,23 @@ ok(workspace.includes("lg:hidden"), "a navegação deve oferecer modo móvel");
 ok(workspace.includes("lg:flex"), "a navegação deve oferecer modo desktop");
 ok(workspace.includes("dados inteiramente fictícios"), "o caráter sintético deve estar explícito");
 ok(
+  workspace.includes('from "sonner"') && workspace.includes("Nenhum dado real foi alterado."),
+  "ações de homologação devem responder sem persistir dados reais",
+);
+ok(
+  workspace.includes("propriedadesFiltradas") && workspace.includes("leadsFiltrados"),
+  "as buscas de imóveis e contatos devem filtrar os dados sintéticos",
+);
+ok(
+  (workspace.match(/aria-live="polite"/g) ?? []).length >= 2,
+  "resultados das buscas devem ser anunciados de forma acessível",
+);
+ok(
+  workspace.includes("Nenhum imóvel encontrado") &&
+    workspace.includes("Nenhum contato corresponde à busca"),
+  "as buscas devem apresentar estados vazios amigáveis",
+);
+ok(
   designSystem.includes("Os rótulos ficam sempre visíveis"),
   "a biblioteca deve registrar rótulos claros em PT-BR",
 );

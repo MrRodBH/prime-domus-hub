@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   Area,
   AreaChart,
@@ -142,6 +143,12 @@ const estiloTooltip = {
   color: "#123f47",
 };
 
+function confirmarAcaoSintetica(titulo: string, detalhe: string) {
+  toast.success(titulo, {
+    description: `${detalhe} Nenhum dado real foi alterado.`,
+  });
+}
+
 export function DemoWorkspace() {
   const [moduloAtivo, setModuloAtivo] = useState<ModuloId>("visao-geral");
   const [menuAberto, setMenuAberto] = useState(false);
@@ -227,6 +234,12 @@ export function DemoWorkspace() {
               </Button>
               <button
                 type="button"
+                onClick={() =>
+                  confirmarAcaoSintetica(
+                    "Conta de demonstração",
+                    "Esta é uma representação visual do acesso do proprietário.",
+                  )
+                }
                 className="flex size-10 items-center justify-center rounded-full bg-[#123f47] text-sm font-semibold text-white"
                 aria-label="Conta de demonstração do proprietário"
               >
@@ -442,7 +455,15 @@ function VisaoGeral() {
         titulo="Bom trabalho, Rodolfo"
         descricao="Acompanhe a operação comercial, identifique oportunidades e priorize as próximas ações da equipe."
         acao={
-          <Button className="rounded-xl bg-[#123f47] hover:bg-[#0b3036]">
+          <Button
+            className="rounded-xl bg-[#123f47] hover:bg-[#0b3036]"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Análise sintética gerada",
+                "As recomendações foram atualizadas somente nesta demonstração.",
+              )
+            }
+          >
             <Sparkles className="mr-2 size-4" />
             Gerar análise com IA
           </Button>
@@ -638,6 +659,12 @@ function VisaoGeral() {
                   variant="outline"
                   size="sm"
                   className="mt-4 border-violet-300 bg-white text-violet-800 hover:bg-violet-100"
+                  onClick={() =>
+                    confirmarAcaoSintetica(
+                      "Contatos recomendados",
+                      "Três contatos fictícios foram priorizados para avaliação visual.",
+                    )
+                  }
                 >
                   Ver contatos recomendados <ArrowRight className="ml-2 size-4" />
                 </Button>
@@ -712,7 +739,15 @@ function FunilDeVendas() {
         titulo="Funil de vendas"
         descricao="Visualize o avanço das oportunidades e direcione a equipe para os atendimentos com maior potencial."
         acao={
-          <Button className="rounded-xl bg-[#123f47]">
+          <Button
+            className="rounded-xl bg-[#123f47]"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Novo lead simulado",
+                "O formulário foi representado sem criar um contato.",
+              )
+            }
+          >
             <Users className="mr-2 size-4" />
             Adicionar lead
           </Button>
@@ -768,13 +803,30 @@ function FunilDeVendas() {
 }
 
 function Imoveis() {
+  const [buscaImovel, setBuscaImovel] = useState("");
+  const termoBuscaImovel = buscaImovel.trim().toLocaleLowerCase("pt-BR");
+  const propriedadesFiltradas = propriedades.filter((imovel) =>
+    [imovel.titulo, imovel.bairro, imovel.detalhes, imovel.estado]
+      .join(" ")
+      .toLocaleLowerCase("pt-BR")
+      .includes(termoBuscaImovel),
+  );
+
   return (
     <>
       <CabecalhoPagina
         titulo="Catálogo de imóveis"
         descricao="Gerencie disponibilidade, qualidade dos anúncios e distribuição do portfólio em uma única visão."
         acao={
-          <Button className="rounded-xl bg-[#123f47]">
+          <Button
+            className="rounded-xl bg-[#123f47]"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Cadastro de imóvel simulado",
+                "A próxima etapa exibiria o formulário de cadastro.",
+              )
+            }
+          >
             <Building2 className="mr-2 size-4" />
             Cadastrar imóvel
           </Button>
@@ -787,17 +839,42 @@ function Imoveis() {
             className="h-11 rounded-xl bg-white pl-10"
             placeholder="Buscar por código, bairro ou característica"
             aria-label="Buscar imóveis"
+            value={buscaImovel}
+            onChange={(evento) => setBuscaImovel(evento.target.value)}
           />
         </div>
-        <Button variant="outline" className="h-11 rounded-xl">
+        <Button
+          variant="outline"
+          className="h-11 rounded-xl"
+          onClick={() =>
+            confirmarAcaoSintetica(
+              "Filtro de disponibilidade",
+              "Todos os estados permanecem selecionados.",
+            )
+          }
+        >
           Todos os estados <ChevronDown className="ml-2 size-4" />
         </Button>
-        <Button variant="outline" className="h-11 rounded-xl">
+        <Button
+          variant="outline"
+          className="h-11 rounded-xl"
+          onClick={() =>
+            confirmarAcaoSintetica(
+              "Ordenação da vitrine",
+              "Os imóveis estão organizados dos mais recentes para os mais antigos.",
+            )
+          }
+        >
           Mais recentes <ChevronDown className="ml-2 size-4" />
         </Button>
       </div>
+      <p className="mb-3 text-xs text-[#587076]" aria-live="polite">
+        {propriedadesFiltradas.length === 1
+          ? "1 imóvel encontrado"
+          : `${propriedadesFiltradas.length} imóveis encontrados`}
+      </p>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {propriedades.map((imovel) => (
+        {propriedadesFiltradas.map((imovel) => (
           <Card
             key={imovel.titulo}
             className="group overflow-hidden rounded-2xl border-[#123f47]/10"
@@ -818,26 +895,63 @@ function Imoveis() {
               <p className="mt-3 text-sm text-[#587076]">{imovel.detalhes}</p>
               <div className="mt-4 flex items-center justify-between border-t border-[#123f47]/8 pt-4">
                 <strong>{imovel.valor}</strong>
-                <Button size="sm" variant="ghost">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    confirmarAcaoSintetica(
+                      "Detalhes do imóvel",
+                      `${imovel.titulo} foi aberto em modo de demonstração.`,
+                    )
+                  }
+                >
                   Ver detalhes <ArrowRight className="ml-1 size-4" />
                 </Button>
               </div>
             </CardContent>
           </Card>
         ))}
+        {propriedadesFiltradas.length === 0 ? (
+          <Card className="rounded-2xl border-dashed border-[#123f47]/20 md:col-span-2 xl:col-span-3">
+            <CardContent className="p-8 text-center">
+              <Search className="mx-auto size-6 text-[#587076]" />
+              <h2 className="mt-3 font-semibold">Nenhum imóvel encontrado</h2>
+              <p className="mt-1 text-sm text-[#587076]">
+                Tente buscar por outro bairro, característica ou estado.
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </>
   );
 }
 
 function Leads() {
+  const [buscaLead, setBuscaLead] = useState("");
+  const termoBuscaLead = buscaLead.trim().toLocaleLowerCase("pt-BR");
+  const leadsFiltrados = leadsSinteticos.filter((lead) =>
+    [lead.nome, lead.interesse, lead.origem, lead.responsavel, lead.etapa, lead.temperatura]
+      .join(" ")
+      .toLocaleLowerCase("pt-BR")
+      .includes(termoBuscaLead),
+  );
+
   return (
     <>
       <CabecalhoPagina
         titulo="Gestão de leads"
         descricao="Centralize contatos, contexto de interesse, origem da campanha e responsável pelo próximo atendimento."
         acao={
-          <Button className="rounded-xl bg-[#123f47]">
+          <Button
+            className="rounded-xl bg-[#123f47]"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Novo contato simulado",
+                "A próxima etapa exibiria o formulário de atendimento.",
+              )
+            }
+          >
             <Users className="mr-2 size-4" />
             Novo contato
           </Button>
@@ -851,12 +965,31 @@ function Leads() {
               className="rounded-xl pl-10"
               placeholder="Buscar por nome, imóvel ou origem"
               aria-label="Buscar leads"
+              value={buscaLead}
+              onChange={(evento) => setBuscaLead(evento.target.value)}
             />
           </div>
-          <Button variant="outline" className="rounded-xl">
+          <Button
+            variant="outline"
+            className="rounded-xl"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Filtros de atendimento",
+                "A demonstração mantém todos os atendimentos visíveis.",
+              )
+            }
+          >
             Filtrar atendimentos
           </Button>
         </div>
+        <p
+          className="border-b border-[#123f47]/10 px-4 py-2 text-xs text-[#587076]"
+          aria-live="polite"
+        >
+          {leadsFiltrados.length === 1
+            ? "1 contato encontrado"
+            : `${leadsFiltrados.length} contatos encontrados`}
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[780px] text-sm">
             <caption className="sr-only">Leads fictícios para demonstração visual</caption>
@@ -870,7 +1003,7 @@ function Leads() {
               </tr>
             </thead>
             <tbody>
-              {leadsSinteticos.map((lead) => (
+              {leadsFiltrados.map((lead) => (
                 <tr key={lead.nome} className="border-t border-[#123f47]/8 hover:bg-[#faf8f4]">
                   <td className="px-5 py-4">
                     <strong className="block">{lead.nome}</strong>
@@ -897,6 +1030,13 @@ function Leads() {
                   </td>
                 </tr>
               ))}
+              {leadsFiltrados.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-[#587076]">
+                    Nenhum contato corresponde à busca. Tente outro nome, imóvel ou origem.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -912,7 +1052,15 @@ function Campanhas() {
         titulo="Campanhas e aquisição"
         descricao="Compare canais, investimento, custo por lead e conversões sem alternar entre diferentes plataformas."
         acao={
-          <Button className="rounded-xl bg-[#123f47]">
+          <Button
+            className="rounded-xl bg-[#123f47]"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Planejamento de campanha simulado",
+                "Nenhuma campanha foi criada ou enviada a um canal de mídia.",
+              )
+            }
+          >
             <Target className="mr-2 size-4" />
             Planejar campanha
           </Button>
@@ -937,7 +1085,16 @@ function Campanhas() {
                 <DadoCompacto rotulo="Custo por lead" valor={campanha.custo} />
                 <DadoCompacto rotulo="Conversão" valor={campanha.conversao} />
               </dl>
-              <Button variant="outline" className="mt-5 w-full rounded-xl">
+              <Button
+                variant="outline"
+                className="mt-5 w-full rounded-xl"
+                onClick={() =>
+                  confirmarAcaoSintetica(
+                    "Resultados da campanha",
+                    `${campanha.nome} utiliza somente indicadores fictícios.`,
+                  )
+                }
+              >
                 Analisar resultados
               </Button>
             </CardContent>
@@ -980,7 +1137,15 @@ function Campanhas() {
               Simule formulário, atribuição de campanha, consentimento e entrada no funil sem enviar
               dados para provedores.
             </p>
-            <Button className="mt-5 w-full rounded-xl bg-emerald-700 hover:bg-emerald-800">
+            <Button
+              className="mt-5 w-full rounded-xl bg-emerald-700 hover:bg-emerald-800"
+              onClick={() =>
+                confirmarAcaoSintetica(
+                  "Lead de teste recebido",
+                  "O formulário, o consentimento e a atribuição foram simulados localmente.",
+                )
+              }
+            >
               Iniciar simulação
             </Button>
           </CardContent>
@@ -1008,7 +1173,16 @@ function Analises() {
         titulo="Análises e desempenho"
         descricao="Explore resultados comerciais com visualizações acessíveis, cores distintas e legendas em português."
         acao={
-          <Button variant="outline" className="rounded-xl">
+          <Button
+            variant="outline"
+            className="rounded-xl"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Relatório de demonstração preparado",
+                "A exportação real permanece desativada nesta homologação.",
+              )
+            }
+          >
             Exportar relatório
           </Button>
         }
@@ -1152,7 +1326,16 @@ function InteligenciaArtificial() {
                   <div>
                     <h2 className="font-semibold">{item.titulo}</h2>
                     <p className="mt-1 text-sm leading-6 text-[#587076]">{item.texto}</p>
-                    <button type="button" className="mt-3 text-xs font-semibold text-violet-700">
+                    <button
+                      type="button"
+                      className="mt-3 text-xs font-semibold text-violet-700"
+                      onClick={() =>
+                        confirmarAcaoSintetica(
+                          "Recomendação detalhada",
+                          `${item.titulo} foi aberto apenas com contexto fictício.`,
+                        )
+                      }
+                    >
                       Ver recomendação detalhada →
                     </button>
                   </div>
@@ -1199,6 +1382,12 @@ function InteligenciaArtificial() {
                 size="icon"
                 className="size-11 shrink-0 rounded-xl bg-violet-600 hover:bg-violet-700"
                 aria-label="Enviar mensagem"
+                onClick={() =>
+                  confirmarAcaoSintetica(
+                    "Resposta sintética preparada",
+                    "O assistente não recebeu nem armazenou uma mensagem real.",
+                  )
+                }
               >
                 <Send className="size-4" />
               </Button>
@@ -1220,7 +1409,15 @@ function SitesEPaginas() {
         titulo="Sites e páginas"
         descricao="Edite conteúdo, organize páginas de captura e acompanhe a qualidade da presença digital de cada empresa."
         acao={
-          <Button className="rounded-xl bg-[#123f47]">
+          <Button
+            className="rounded-xl bg-[#123f47]"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Nova página simulada",
+                "O editor seria aberto sem publicar conteúdo ou domínio.",
+              )
+            }
+          >
             <FileText className="mr-2 size-4" />
             Criar página
           </Button>
@@ -1248,7 +1445,15 @@ function SitesEPaginas() {
               Curadoria imobiliária, tecnologia e atendimento consultivo em uma experiência
               integrada.
             </p>
-            <Button className="mt-7 rounded-xl bg-[#d6a84b] text-[#123f47] hover:bg-[#e1b75b]">
+            <Button
+              className="mt-7 rounded-xl bg-[#d6a84b] text-[#123f47] hover:bg-[#e1b75b]"
+              onClick={() =>
+                confirmarAcaoSintetica(
+                  "Vitrine sintética aberta",
+                  "A navegação permanece dentro da prévia da RM Prime Imóveis.",
+                )
+              }
+            >
               Explorar imóveis
             </Button>
             <div className="mt-10 grid grid-cols-3 gap-3">
@@ -1293,7 +1498,16 @@ function SitesEPaginas() {
                 Gere títulos, descrições, textos para redes sociais e informações para mecanismos de
                 busca.
               </p>
-              <Button variant="outline" className="mt-4 w-full rounded-xl">
+              <Button
+                variant="outline"
+                className="mt-4 w-full rounded-xl"
+                onClick={() =>
+                  confirmarAcaoSintetica(
+                    "Conteúdo de exemplo criado",
+                    "A inteligência artificial gerou apenas uma simulação visual.",
+                  )
+                }
+              >
                 Criar conteúdo com IA
               </Button>
             </CardContent>
@@ -1311,7 +1525,16 @@ function Integracoes() {
         titulo="Central de integrações"
         descricao="Entenda o papel de cada canal, sua situação atual e o que será necessário antes de conectá-lo com credenciais reais."
         acao={
-          <Button variant="outline" className="rounded-xl">
+          <Button
+            variant="outline"
+            className="rounded-xl"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Preferências de integração",
+                "Nenhum token, conta ou provedor foi acessado.",
+              )
+            }
+          >
             <Settings2 className="mr-2 size-4" />
             Preferências
           </Button>
@@ -1350,6 +1573,12 @@ function Integracoes() {
               <Button
                 variant="ghost"
                 className="mt-3 w-full justify-between rounded-xl px-0 hover:bg-transparent"
+                onClick={() =>
+                  confirmarAcaoSintetica(
+                    `Configuração de ${integracao.nome}`,
+                    "A jornada foi aberta como contrato visual, sem credenciais reais.",
+                  )
+                }
               >
                 Ver configuração{" "}
                 <ArrowRight className="size-4 transition group-hover:translate-x-1" />
@@ -1370,7 +1599,16 @@ function Integracoes() {
               reais só serão conectados em uma etapa autorizada.
             </p>
           </div>
-          <Button variant="outline" className="rounded-xl border-sky-300 bg-white text-sky-900">
+          <Button
+            variant="outline"
+            className="rounded-xl border-sky-300 bg-white text-sky-900"
+            onClick={() =>
+              confirmarAcaoSintetica(
+                "Plano de conexão protegido",
+                "A ativação real permanece fora desta homologação.",
+              )
+            }
+          >
             Ver plano de conexão <ExternalLink className="ml-2 size-4" />
           </Button>
         </CardContent>
