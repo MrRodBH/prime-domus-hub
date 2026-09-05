@@ -67,6 +67,7 @@ import {
   PALETA_GRAFICOS,
   PERIODOS_RELATORIO_COMERCIAL,
   RESPONSAVEIS_RELATORIO_COMERCIAL,
+  calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
   campanhasSinteticas,
@@ -79,6 +80,7 @@ import {
   type FiltroResponsavelRelatorio,
   type PeriodoRelatorioComercial,
   type RelatorioComercialSintetico,
+  type ResumoInsightsComerciaisSinteticos,
   type ResumoPrevisaoSintetica,
 } from "./demo-data";
 import {
@@ -452,6 +454,9 @@ export function DemoWorkspace() {
     resumoPrevisao: resumoPrevisaoSintetica,
     contatos: leadsCriados,
   });
+  const insightsComerciaisSinteticos = calcularInsightsComerciaisSinteticos({
+    relatorio: relatorioComercialSintetico,
+  });
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
@@ -737,6 +742,7 @@ export function DemoWorkspace() {
                 responsavelRelatorio={responsavelRelatorio}
                 onSelecionarPeriodoRelatorio={setPeriodoRelatorio}
                 onSelecionarResponsavelRelatorio={setResponsavelRelatorio}
+                insightsComerciaisSinteticos={insightsComerciaisSinteticos}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -786,9 +792,18 @@ export function DemoWorkspace() {
                 responsavel={responsavelRelatorio}
                 onSelecionarPeriodo={setPeriodoRelatorio}
                 onSelecionarResponsavel={setResponsavelRelatorio}
+                insights={insightsComerciaisSinteticos}
               />
             ) : null}
-            {moduloAtivo === "ia" ? <InteligenciaArtificial /> : null}
+            {moduloAtivo === "ia" ? (
+              <InteligenciaArtificial
+                insights={insightsComerciaisSinteticos}
+                periodo={periodoRelatorio}
+                responsavel={responsavelRelatorio}
+                onSelecionarPeriodo={setPeriodoRelatorio}
+                onSelecionarResponsavel={setResponsavelRelatorio}
+              />
+            ) : null}
             {moduloAtivo === "sites" ? (
               <SitesEPaginas
                 paginasCriadas={paginasCriadas}
@@ -1007,6 +1022,7 @@ function VisaoGeral({
   responsavelRelatorio,
   onSelecionarPeriodoRelatorio,
   onSelecionarResponsavelRelatorio,
+  insightsComerciaisSinteticos,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1032,6 +1048,7 @@ function VisaoGeral({
   responsavelRelatorio: FiltroResponsavelRelatorio;
   onSelecionarPeriodoRelatorio: (periodo: PeriodoRelatorioComercial) => void;
   onSelecionarResponsavelRelatorio: (responsavel: FiltroResponsavelRelatorio) => void;
+  insightsComerciaisSinteticos: ResumoInsightsComerciaisSinteticos;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1119,6 +1136,7 @@ function VisaoGeral({
         responsavel={responsavelRelatorio}
         onSelecionarPeriodo={onSelecionarPeriodoRelatorio}
         onSelecionarResponsavel={onSelecionarResponsavelRelatorio}
+        insights={insightsComerciaisSinteticos}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -1710,7 +1728,7 @@ function FiltrosRelatorioComercial({
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
   onSelecionarResponsavel: (responsavel: FiltroResponsavelRelatorio) => void;
-  contexto: "dashboard" | "analises";
+  contexto: "dashboard" | "analises" | "ia";
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -1764,12 +1782,14 @@ function FiltrosRelatorioComercial({
 
 function ResumoRelatorioDashboard({
   relatorio,
+  insights,
   periodo,
   responsavel,
   onSelecionarPeriodo,
   onSelecionarResponsavel,
 }: {
   relatorio: RelatorioComercialSintetico;
+  insights: ResumoInsightsComerciaisSinteticos;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -1887,8 +1907,171 @@ function ResumoRelatorioDashboard({
             </ResponsiveContainer>
           </div>
         </div>
+        <PainelInsightsExplicaveis resumo={insights} modo="resumo" />
       </div>
     </section>
+  );
+}
+
+function PainelInsightsExplicaveis({
+  resumo,
+  modo,
+}: {
+  resumo: ResumoInsightsComerciaisSinteticos;
+  modo: "resumo" | "detalhado";
+}) {
+  const coresPorTom = {
+    Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
+    Atenção: "border-orange-200 bg-orange-50 text-orange-950",
+    Informativo: "border-violet-200 bg-violet-50 text-violet-950",
+  } as const;
+  const insightsVisiveis = modo === "resumo" ? resumo.insights.slice(0, 2) : resumo.insights;
+  const recomendacoesVisiveis =
+    modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
+
+  return (
+    <section
+      className="mt-6 border-t border-[#123f47]/10 pt-6"
+      aria-labelledby={`titulo-insights-${modo}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700">
+            Leitura explicável · dados sintéticos
+          </p>
+          <h3 id={`titulo-insights-${modo}`} className="mt-1 text-lg font-semibold">
+            Insights comerciais explicáveis
+          </h3>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-[#587076]">
+            Cada conclusão mostra como foi calculada e qual evidência fictícia sustenta a leitura.
+          </p>
+        </div>
+        <Badge className="w-fit bg-violet-100 text-violet-800 hover:bg-violet-100">
+          {resumo.periodo} · {resumo.responsavel}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {resumo.alertas.map((alerta) => {
+          const positivo = alerta.valor >= 0;
+          return (
+            <div key={alerta.id} className={cn("rounded-2xl border p-4", coresPorTom[alerta.tom])}>
+              <div className="flex items-start justify-between gap-3">
+                <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                  {alerta.tom === "Positivo" ? (
+                    <CheckCircle2 className="size-4" />
+                  ) : (
+                    <TriangleAlert className="size-4" />
+                  )}
+                  Alerta de desempenho
+                </span>
+                <strong className="whitespace-nowrap text-lg">
+                  {positivo ? "+" : ""}
+                  {new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(
+                    alerta.valor,
+                  )}{" "}
+                  {alerta.unidade}
+                </strong>
+              </div>
+              <h4 className="mt-3 font-semibold">{alerta.titulo}</h4>
+              <p className="mt-1 text-xs leading-5 opacity-75">{alerta.detalhe}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        className={cn(
+          "mt-4 grid gap-3",
+          modo === "detalhado" ? "lg:grid-cols-3" : "md:grid-cols-2",
+        )}
+      >
+        {insightsVisiveis.map((insight) => (
+          <article
+            key={insight.id}
+            className={cn("rounded-2xl border p-4", coresPorTom[insight.tom])}
+          >
+            <div className="flex items-center gap-2">
+              <Lightbulb className="size-4" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">{insight.tom}</span>
+            </div>
+            <h4 className="mt-3 font-semibold">{insight.titulo}</h4>
+            <p className="mt-1 text-sm font-bold">{insight.leitura}</p>
+            <p className="mt-3 text-[10px] font-bold uppercase tracking-wider opacity-70">
+              Como foi calculado
+            </p>
+            <p className="mt-1 text-xs leading-5 opacity-80">{insight.explicacao}</p>
+            <p className="mt-3 text-[10px] font-bold uppercase tracking-wider opacity-70">
+              Evidência sintética
+            </p>
+            <p className="mt-1 text-xs leading-5 opacity-80">{insight.evidencia}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-6">
+        <div className="flex items-center gap-2">
+          <UserRound className="size-5 text-orange-600" />
+          <h3 className="font-semibold">Próximas ações sugeridas</h3>
+        </div>
+        <p className="mt-1 text-xs text-[#587076]">
+          Recomendações fictícias por responsável; nenhuma ação será executada automaticamente.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {recomendacoesVisiveis.map((recomendacao) => (
+            <CartaoRecomendacaoResponsavel
+              key={recomendacao.responsavel}
+              recomendacao={recomendacao}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CartaoRecomendacaoResponsavel({
+  recomendacao,
+}: {
+  recomendacao: ResumoInsightsComerciaisSinteticos["recomendacoes"][number];
+}) {
+  const corPrioridade = {
+    Alta: "bg-rose-100 text-rose-800 hover:bg-rose-100",
+    Média: "bg-amber-100 text-amber-800 hover:bg-amber-100",
+    Baixa: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
+  } as const;
+  return (
+    <article className="rounded-2xl border border-[#123f47]/10 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <strong>{recomendacao.responsavel}</strong>
+        <Badge className={corPrioridade[recomendacao.prioridade]}>
+          Prioridade {recomendacao.prioridade.toLocaleLowerCase("pt-BR")}
+        </Badge>
+      </div>
+      <h4 className="mt-3 font-semibold text-violet-800">{recomendacao.proximaAcao}</h4>
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+        Por que agora
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[#587076]">{recomendacao.motivo}</p>
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+        Resultado esperado
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[#587076]">{recomendacao.resultadoEsperado}</p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="mt-4 w-full rounded-xl"
+        onClick={() =>
+          confirmarAcaoSintetica(
+            "Próxima ação simulada",
+            `${recomendacao.proximaAcao} foi apenas sinalizada para ${recomendacao.responsavel}.`,
+          )
+        }
+      >
+        Simular próxima ação
+      </Button>
+    </article>
   );
 }
 
@@ -3118,12 +3301,14 @@ function DadoCompacto({ rotulo, valor }: { rotulo: string; valor: string }) {
 
 function Analises({
   relatorio,
+  insights,
   periodo,
   responsavel,
   onSelecionarPeriodo,
   onSelecionarResponsavel,
 }: {
   relatorio: RelatorioComercialSintetico;
+  insights: ResumoInsightsComerciaisSinteticos;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -3202,6 +3387,12 @@ function Analises({
           tom="coral"
         />
       </div>
+
+      <Card className="mt-5 rounded-2xl border-[#123f47]/10">
+        <CardContent className="p-5 sm:p-6">
+          <PainelInsightsExplicaveis resumo={insights} modo="detalhado" />
+        </CardContent>
+      </Card>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <Card className="min-w-0 rounded-2xl border-[#123f47]/10">
@@ -3428,70 +3619,69 @@ function CartaoAnalise({
   );
 }
 
-function InteligenciaArtificial() {
-  const sugestoes = [
-    {
-      titulo: "Priorizar atendimentos",
-      texto: "Sete leads apresentam alta intenção e aguardam retorno há mais de duas horas.",
-      icone: Target,
-      cor: "bg-violet-100 text-violet-700",
-    },
-    {
-      titulo: "Otimizar investimento",
-      texto: "A campanha de Vila da Serra pode receber 18% mais verba mantendo o custo por lead.",
-      icone: TrendingUp,
-      cor: "bg-orange-100 text-orange-700",
-    },
-    {
-      titulo: "Completar anúncios",
-      texto: "Quatro imóveis com boa procura ainda não possuem vídeo ou descrição otimizada.",
-      icone: Building2,
-      cor: "bg-emerald-100 text-emerald-700",
-    },
-  ];
+function InteligenciaArtificial({
+  insights,
+  periodo,
+  responsavel,
+  onSelecionarPeriodo,
+  onSelecionarResponsavel,
+}: {
+  insights: ResumoInsightsComerciaisSinteticos;
+  periodo: PeriodoRelatorioComercial;
+  responsavel: FiltroResponsavelRelatorio;
+  onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
+  onSelecionarResponsavel: (responsavel: FiltroResponsavelRelatorio) => void;
+}) {
+  const leituraPrincipal = insights.insights[0];
   return (
     <>
       <CabecalhoPagina
         titulo="Inteligência artificial"
-        descricao="Transforme dados comerciais em prioridades claras, conteúdo e apoio ao atendimento — sempre com confirmação humana."
+        descricao="Entenda por que cada prioridade comercial foi sugerida e simule a próxima ação — sempre com confirmação humana."
       />
-      <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-        <div className="space-y-4">
-          {sugestoes.map((item) => {
-            const Icone = item.icone;
-            return (
-              <Card key={item.titulo} className="rounded-2xl border-[#123f47]/10">
-                <CardContent className="flex gap-4 p-5">
-                  <span
-                    className={cn(
-                      "flex size-11 shrink-0 items-center justify-center rounded-xl",
-                      item.cor,
-                    )}
-                  >
-                    <Icone className="size-5" />
-                  </span>
-                  <div>
-                    <h2 className="font-semibold">{item.titulo}</h2>
-                    <p className="mt-1 text-sm leading-6 text-[#587076]">{item.texto}</p>
-                    <button
-                      type="button"
-                      className="mt-3 text-xs font-semibold text-violet-700"
-                      onClick={() =>
-                        confirmarAcaoSintetica(
-                          "Recomendação detalhada",
-                          `${item.titulo} foi aberto apenas com contexto fictício.`,
-                        )
-                      }
-                    >
-                      Ver recomendação detalhada →
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-        <Card className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white">
+      <Card className="rounded-2xl border-[#123f47]/10 bg-gradient-to-r from-violet-50 via-white to-orange-50">
+        <CardContent className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_0.9fr] lg:items-end">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700">
+              Recomendações comerciais explicáveis
+            </p>
+            <h2 className="mt-1 text-lg font-semibold">Escolha o contexto da análise</h2>
+            <p className="mt-1 text-xs leading-5 text-[#587076]">
+              Filtros compartilhados com Dashboard e Análises; nenhum dado real é consultado.
+            </p>
+          </div>
+          <FiltrosRelatorioComercial
+            periodo={periodo}
+            responsavel={responsavel}
+            onSelecionarPeriodo={onSelecionarPeriodo}
+            onSelecionarResponsavel={onSelecionarResponsavel}
+            contexto="ia"
+          />
+        </CardContent>
+      </Card>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <section aria-labelledby="titulo-acoes-ia">
+          <div className="flex items-center gap-2">
+            <Target className="size-5 text-orange-600" />
+            <h2 id="titulo-acoes-ia" className="font-semibold">
+              Próximas ações por responsável
+            </h2>
+          </div>
+          <p className="mt-1 text-xs text-[#587076]">
+            Prioridades fictícias recalculadas conforme os filtros desta sessão.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            {insights.recomendacoes.map((recomendacao) => (
+              <CartaoRecomendacaoResponsavel
+                key={recomendacao.responsavel}
+                recomendacao={recomendacao}
+              />
+            ))}
+          </div>
+        </section>
+
+        <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">
           <div className="flex items-center gap-3 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white p-5">
             <span className="flex size-11 items-center justify-center rounded-xl bg-violet-600 text-white">
               <Bot className="size-5" />
@@ -3506,23 +3696,31 @@ function InteligenciaArtificial() {
           </div>
           <div className="flex-1 space-y-4 p-5">
             <div className="max-w-[88%] rounded-2xl rounded-tl-md bg-[#f4f0fa] p-4 text-sm leading-6">
-              <strong className="mb-1 block text-violet-800">Resumo da manhã</strong>Há 12
-              oportunidades que merecem atenção. Recomendo começar pelos três contatos de Vila da
-              Serra e revisar a campanha de coberturas.
+              <strong className="mb-1 block text-violet-800">Leitura do recorte</strong>
+              {leituraPrincipal.titulo}: {leituraPrincipal.leitura}
             </div>
             <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-md bg-[#123f47] p-4 text-sm leading-6 text-white">
-              Quais imóveis possuem maior chance de visita nesta semana?
+              Como a IA chegou a esta leitura?
             </div>
             <div className="max-w-[88%] rounded-2xl rounded-tl-md bg-[#f4f0fa] p-4 text-sm leading-6">
-              Encontrei cinco imóveis. A cobertura de Lourdes lidera por número de visualizações,
-              intenção dos contatos e disponibilidade da equipe.
+              <strong className="mb-1 block text-violet-800">Explicação do cálculo</strong>
+              {leituraPrincipal.explicacao}
+              <span className="mt-3 block rounded-xl border border-violet-200 bg-white p-3 text-xs text-[#587076]">
+                <strong className="block text-[#123f47]">Evidência sintética</strong>
+                {leituraPrincipal.evidencia}
+              </span>
+            </div>
+            <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-xs leading-5 text-orange-950">
+              <strong className="block">Controle humano obrigatório</strong>
+              Nenhuma ação será executada automaticamente. Os botões apenas exibem uma confirmação
+              visual nesta sessão.
             </div>
           </div>
           <div className="border-t border-[#123f47]/10 p-4">
             <div className="flex gap-2">
               <Input
                 className="h-11 rounded-xl"
-                placeholder="Pergunte sobre leads, imóveis ou campanhas"
+                placeholder="Pergunte sobre este recorte comercial"
                 aria-label="Mensagem para o assistente"
               />
               <Button
@@ -3540,7 +3738,7 @@ function InteligenciaArtificial() {
               </Button>
             </div>
             <p className="mt-2 text-center text-[10px] text-[#587076]">
-              A IA pode cometer erros. Confirme informações antes de agir.
+              Conteúdo fictício e explicável. Confirme informações antes de agir.
             </p>
           </div>
         </Card>

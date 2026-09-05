@@ -557,3 +557,206 @@ export function calcularRelatorioComercialSintetico({
     },
   };
 }
+
+export type TomInsightComercial = "Positivo" | "Atenção" | "Informativo";
+
+export type InsightComercialSintetico = {
+  id: string;
+  titulo: string;
+  leitura: string;
+  explicacao: string;
+  evidencia: string;
+  tom: TomInsightComercial;
+};
+
+export type AlertaComercialSintetico = {
+  id: string;
+  titulo: string;
+  valor: number;
+  unidade: "p.p." | "%";
+  detalhe: string;
+  tom: TomInsightComercial;
+};
+
+export type RecomendacaoResponsavelSintetica = {
+  responsavel: Exclude<FiltroResponsavelRelatorio, "Toda a equipe">;
+  prioridade: "Alta" | "Média" | "Baixa";
+  proximaAcao: string;
+  motivo: string;
+  resultadoEsperado: string;
+};
+
+export type ResumoInsightsComerciaisSinteticos = {
+  periodo: PeriodoRelatorioComercial;
+  responsavel: FiltroResponsavelRelatorio;
+  taxaConversaoAtual: number;
+  taxaConversaoAnterior: number;
+  variacaoConversao: number;
+  coberturaMetaPrevista: number;
+  distanciaMetaPrevista: number;
+  insights: InsightComercialSintetico[];
+  alertas: AlertaComercialSintetico[];
+  recomendacoes: RecomendacaoResponsavelSintetica[];
+};
+
+const CONVERSAO_ANTERIOR_POR_PERIODO: Record<PeriodoRelatorioComercial, number> = {
+  "Últimos 7 dias": 7.2,
+  "Últimos 30 dias": 7.4,
+  "Últimos 90 dias": 7.7,
+};
+
+const AJUSTE_CONVERSAO_ANTERIOR_POR_RESPONSAVEL: Record<
+  Exclude<FiltroResponsavelRelatorio, "Toda a equipe">,
+  number
+> = {
+  "Amanda Reis": 1.2,
+  "Lucas Prado": 1.4,
+  "Bruno Lima": -0.3,
+  "Camila Torres": 0.4,
+};
+
+const PROXIMA_ACAO_POR_RESPONSAVEL: Record<
+  Exclude<FiltroResponsavelRelatorio, "Toda a equipe">,
+  { acao: string; resultado: string }
+> = {
+  "Amanda Reis": {
+    acao: "Retomar propostas após visita",
+    resultado: "Aumentar o avanço de propostas qualificadas para fechamento.",
+  },
+  "Lucas Prado": {
+    acao: "Priorizar negociações sem retorno recente",
+    resultado: "Reduzir o tempo parado entre proposta e decisão do cliente.",
+  },
+  "Bruno Lima": {
+    acao: "Transformar visitas concluídas em proposta",
+    resultado: "Aproveitar melhor os contatos que já demonstraram interesse presencial.",
+  },
+  "Camila Torres": {
+    acao: "Revisar oportunidades de maior valor",
+    resultado: "Elevar a cobertura prevista da meta com uma carteira mais focada.",
+  },
+};
+
+function formatarPercentualSintetico(valor: number) {
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(valor);
+}
+
+function formatarValorSintetico(valor: number) {
+  return `R$ ${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(
+    valor / 1_000_000,
+  )} mi`;
+}
+
+export function calcularInsightsComerciaisSinteticos({
+  relatorio,
+}: {
+  relatorio: RelatorioComercialSintetico;
+}): ResumoInsightsComerciaisSinteticos {
+  const ajusteResponsavel =
+    relatorio.responsavel === "Toda a equipe"
+      ? 0
+      : AJUSTE_CONVERSAO_ANTERIOR_POR_RESPONSAVEL[relatorio.responsavel];
+  const taxaConversaoAnterior =
+    CONVERSAO_ANTERIOR_POR_PERIODO[relatorio.periodo] + ajusteResponsavel;
+  const taxaConversaoAtual = relatorio.totais.taxaConversao;
+  const variacaoConversao = taxaConversaoAtual - taxaConversaoAnterior;
+  const coberturaMetaPrevista =
+    relatorio.totais.meta > 0 ? (relatorio.totais.previsto / relatorio.totais.meta) * 100 : 0;
+  const distanciaMetaPrevista = coberturaMetaPrevista - 100;
+  const etapasDeAvanco = relatorio.conversaoEtapas.filter(
+    (etapa) => etapa.etapa !== "Negócio perdido",
+  );
+  const maiorPerda = etapasDeAvanco.slice(1).reduce(
+    (maior, etapa, indice) => {
+      const anterior = etapasDeAvanco[indice];
+      const perda = anterior.taxa - etapa.taxa;
+      return perda > maior.perda ? { anterior, etapa, perda } : maior;
+    },
+    { anterior: etapasDeAvanco[0], etapa: etapasDeAvanco[1], perda: 0 },
+  );
+
+  const tendenciaPositiva = variacaoConversao >= 0;
+  const insights: InsightComercialSintetico[] = [
+    {
+      id: "tendencia-conversao",
+      titulo: tendenciaPositiva ? "Conversão avançou no período" : "Conversão recuou no período",
+      leitura: `${formatarPercentualSintetico(taxaConversaoAtual)}% agora, ${tendenciaPositiva ? "+" : ""}${formatarPercentualSintetico(variacaoConversao)} p.p.`,
+      explicacao:
+        "A leitura divide os negócios ganhos pelos leads do recorte e compara o resultado com a referência sintética do período anterior.",
+      evidencia: `${relatorio.totais.ganhos} ganhos em ${relatorio.totais.leads} leads; referência anterior de ${formatarPercentualSintetico(taxaConversaoAnterior)}%.`,
+      tom: tendenciaPositiva ? "Positivo" : "Atenção",
+    },
+    {
+      id: "cobertura-meta",
+      titulo:
+        coberturaMetaPrevista >= 100
+          ? "Previsão cobre a meta selecionada"
+          : "Previsão ainda não cobre a meta",
+      leitura: `${formatarPercentualSintetico(coberturaMetaPrevista)}% da meta prevista`,
+      explicacao:
+        "A cobertura compara a receita prevista do cenário atual com a meta fictícia do mesmo recorte.",
+      evidencia: `Previsão de ${formatarValorSintetico(relatorio.totais.previsto)} sobre meta de ${formatarValorSintetico(relatorio.totais.meta)}.`,
+      tom: coberturaMetaPrevista >= 100 ? "Positivo" : "Atenção",
+    },
+    {
+      id: "perda-entre-etapas",
+      titulo: `Maior perda entre ${maiorPerda.anterior.etapa.toLocaleLowerCase("pt-BR")} e ${maiorPerda.etapa.etapa.toLocaleLowerCase("pt-BR")}`,
+      leitura: `${formatarPercentualSintetico(maiorPerda.perda)} p.p. de diferença`,
+      explicacao:
+        "A etapa crítica é identificada pela maior queda percentual consecutiva no funil filtrado.",
+      evidencia: `${formatarPercentualSintetico(maiorPerda.anterior.taxa)}% chegam à etapa anterior e ${formatarPercentualSintetico(maiorPerda.etapa.taxa)}% avançam à seguinte.`,
+      tom: "Informativo",
+    },
+  ];
+
+  const alertas: AlertaComercialSintetico[] = [
+    {
+      id: "variacao-conversao",
+      titulo: tendenciaPositiva
+        ? "Conversão acima da referência"
+        : "Conversão abaixo da referência",
+      valor: variacaoConversao,
+      unidade: "p.p.",
+      detalhe: `Comparação com ${formatarPercentualSintetico(taxaConversaoAnterior)}% no período anterior sintético.`,
+      tom: tendenciaPositiva ? "Positivo" : "Atenção",
+    },
+    {
+      id: "distancia-meta",
+      titulo: distanciaMetaPrevista >= 0 ? "Meta prevista coberta" : "Previsão abaixo da meta",
+      valor: distanciaMetaPrevista,
+      unidade: "%",
+      detalhe: `${formatarPercentualSintetico(coberturaMetaPrevista)}% da meta está coberta pela previsão atual.`,
+      tom: distanciaMetaPrevista >= 0 ? "Positivo" : "Atenção",
+    },
+  ];
+
+  const recomendacoes = relatorio.desempenho.map((desempenho) => {
+    const cobertura = desempenho.meta > 0 ? (desempenho.previsto / desempenho.meta) * 100 : 0;
+    const modelo = PROXIMA_ACAO_POR_RESPONSAVEL[desempenho.responsavel];
+    return {
+      responsavel: desempenho.responsavel,
+      prioridade:
+        cobertura < 60
+          ? ("Alta" as const)
+          : cobertura < 75
+            ? ("Média" as const)
+            : ("Baixa" as const),
+      proximaAcao: modelo.acao,
+      motivo: `${desempenho.visitas} visitas, ${desempenho.propostas} propostas e cobertura prevista de ${formatarPercentualSintetico(cobertura)}% da meta no recorte.`,
+      resultadoEsperado: modelo.resultado,
+    };
+  });
+
+  return {
+    periodo: relatorio.periodo,
+    responsavel: relatorio.responsavel,
+    taxaConversaoAtual,
+    taxaConversaoAnterior,
+    variacaoConversao,
+    coberturaMetaPrevista,
+    distanciaMetaPrevista,
+    insights,
+    alertas,
+    recomendacoes,
+  };
+}
