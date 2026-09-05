@@ -71,6 +71,7 @@ import {
   aplicarDecisaoComercialSintetica,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
+  calcularResumoResultadosPlaybooksSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
   calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
@@ -82,16 +83,21 @@ import {
   leadsSinteticos,
   origemDosLeads,
   criarChaveDecisaoComercial,
+  registrarResultadoPlaybookComercialSintetico,
+  removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
   type AcaoDecisaoComercial,
   type CenarioPrevisao,
   type DecisoesComerciaisSinteticas,
   type EstadoDecisaoComercial,
   type FiltroResponsavelRelatorio,
+  type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
   type PlaybookComercialSintetico,
   type PlaybooksComerciaisSinteticos,
   type RecomendacaoResponsavelSintetica,
+  type ResultadoPlaybookComercialSintetico,
+  type ResultadosPlaybooksComerciaisSinteticos,
   type RegistroDecisaoComercial,
   type RelatorioComercialSintetico,
   type ResumoInsightsComerciaisSinteticos,
@@ -129,6 +135,11 @@ type ModuloId =
   | "integracoes";
 
 type RecomendacaoComercialSintetica = RecomendacaoResponsavelSintetica;
+type RegistrarResultadoPlaybook = (
+  playbook: PlaybookComercialSintetico,
+  recomendacao: RecomendacaoComercialSintetica,
+  faixa: FaixaResultadoPlaybookSintetico,
+) => void;
 
 type ItemNavegacao = {
   id: ModuloId;
@@ -358,6 +369,8 @@ export function DemoWorkspace() {
     useState<FiltroResponsavelRelatorio>("Toda a equipe");
   const [decisoesComerciais, setDecisoesComerciais] = useState<DecisoesComerciaisSinteticas>({});
   const [playbooksComerciais, setPlaybooksComerciais] = useState<PlaybooksComerciaisSinteticos>({});
+  const [resultadosPlaybooks, setResultadosPlaybooks] =
+    useState<ResultadosPlaybooksComerciaisSinteticos>({});
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -496,6 +509,12 @@ export function DemoWorkspace() {
         estado,
       }),
     );
+    if (estado !== "Aceita") {
+      const playbookId = criarChaveDecisaoComercial(periodoRelatorio, recomendacao.responsavel);
+      setResultadosPlaybooks((atuais) =>
+        removerResultadoPlaybookComercialSintetico(atuais, playbookId),
+      );
+    }
     const tituloPorEstado: Record<AcaoDecisaoComercial, string> = {
       Aceita: "Recomendação aceita na simulação",
       Adiada: "Recomendação adiada na simulação",
@@ -516,9 +535,33 @@ export function DemoWorkspace() {
         etapaId,
       }),
     );
+    if (estavaConcluida) {
+      setResultadosPlaybooks((atuais) =>
+        removerResultadoPlaybookComercialSintetico(atuais, playbook.id),
+      );
+    }
     confirmarAcaoSintetica(
       estavaConcluida ? "Etapa reaberta na simulação" : "Etapa concluída na simulação",
       `O progresso do playbook de ${playbook.responsavel} foi atualizado apenas nesta sessão.`,
+    );
+  }
+
+  function registrarResultadoPlaybook(
+    playbook: PlaybookComercialSintetico,
+    recomendacao: RecomendacaoComercialSintetica,
+    faixa: FaixaResultadoPlaybookSintetico,
+  ) {
+    setResultadosPlaybooks((atuais) =>
+      registrarResultadoPlaybookComercialSintetico({
+        resultados: atuais,
+        playbook,
+        recomendacao,
+        faixa,
+      }),
+    );
+    confirmarAcaoSintetica(
+      "Resultado do playbook registrado",
+      `O cenário ${faixa.toLocaleLowerCase("pt-BR")} de ${playbook.responsavel} alimentou apenas os indicadores desta sessão.`,
     );
   }
 
@@ -811,6 +854,8 @@ export function DemoWorkspace() {
                 onRegistrarDecisao={registrarDecisaoComercial}
                 playbooksComerciais={playbooksComerciais}
                 onAlternarEtapaPlaybook={alternarEtapaPlaybook}
+                resultadosPlaybooks={resultadosPlaybooks}
+                onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -865,6 +910,8 @@ export function DemoWorkspace() {
                 onRegistrarDecisao={registrarDecisaoComercial}
                 playbooksComerciais={playbooksComerciais}
                 onAlternarEtapaPlaybook={alternarEtapaPlaybook}
+                resultadosPlaybooks={resultadosPlaybooks}
+                onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -878,6 +925,8 @@ export function DemoWorkspace() {
                 onRegistrarDecisao={registrarDecisaoComercial}
                 playbooksComerciais={playbooksComerciais}
                 onAlternarEtapaPlaybook={alternarEtapaPlaybook}
+                resultadosPlaybooks={resultadosPlaybooks}
+                onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1103,6 +1152,8 @@ function VisaoGeral({
   onRegistrarDecisao,
   playbooksComerciais,
   onAlternarEtapaPlaybook,
+  resultadosPlaybooks,
+  onRegistrarResultadoPlaybook,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1136,6 +1187,8 @@ function VisaoGeral({
   ) => void;
   playbooksComerciais: PlaybooksComerciaisSinteticos;
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1228,6 +1281,8 @@ function VisaoGeral({
         onRegistrarDecisao={onRegistrarDecisao}
         playbooksComerciais={playbooksComerciais}
         onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
+        resultadosPlaybooks={resultadosPlaybooks}
+        onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -1878,6 +1933,8 @@ function ResumoRelatorioDashboard({
   onRegistrarDecisao,
   playbooksComerciais,
   onAlternarEtapaPlaybook,
+  resultadosPlaybooks,
+  onRegistrarResultadoPlaybook,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -1892,6 +1949,8 @@ function ResumoRelatorioDashboard({
   ) => void;
   playbooksComerciais: PlaybooksComerciaisSinteticos;
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -2016,6 +2075,8 @@ function ResumoRelatorioDashboard({
           onRegistrarDecisao={onRegistrarDecisao}
           playbooksComerciais={playbooksComerciais}
           onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
+          resultadosPlaybooks={resultadosPlaybooks}
+          onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
         />
       </div>
     </section>
@@ -2029,6 +2090,8 @@ function PainelInsightsExplicaveis({
   onRegistrarDecisao,
   playbooksComerciais,
   onAlternarEtapaPlaybook,
+  resultadosPlaybooks,
+  onRegistrarResultadoPlaybook,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2039,6 +2102,8 @@ function PainelInsightsExplicaveis({
   ) => void;
   playbooksComerciais: PlaybooksComerciaisSinteticos;
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
 }) {
   const coresPorTom = {
     Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -2134,6 +2199,8 @@ function PainelInsightsExplicaveis({
         onRegistrarDecisao={onRegistrarDecisao}
         playbooksComerciais={playbooksComerciais}
         onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
+        resultadosPlaybooks={resultadosPlaybooks}
+        onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
       />
     </section>
   );
@@ -2146,6 +2213,8 @@ function CentralDecisoesComerciais({
   onRegistrarDecisao,
   playbooksComerciais,
   onAlternarEtapaPlaybook,
+  resultadosPlaybooks,
+  onRegistrarResultadoPlaybook,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2156,6 +2225,8 @@ function CentralDecisoesComerciais({
   ) => void;
   playbooksComerciais: PlaybooksComerciaisSinteticos;
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
 }) {
   const recomendacoesVisiveis =
     modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
@@ -2234,6 +2305,8 @@ function CentralDecisoesComerciais({
         decisoesComerciais={decisoesComerciais}
         playbooksComerciais={playbooksComerciais}
         onAlternarEtapa={onAlternarEtapaPlaybook}
+        resultadosPlaybooks={resultadosPlaybooks}
+        onRegistrarResultado={onRegistrarResultadoPlaybook}
       />
     </section>
   );
@@ -2340,12 +2413,16 @@ function CentralPlaybooksComerciais({
   decisoesComerciais,
   playbooksComerciais,
   onAlternarEtapa,
+  resultadosPlaybooks,
+  onRegistrarResultado,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
   decisoesComerciais: DecisoesComerciaisSinteticas;
   playbooksComerciais: PlaybooksComerciaisSinteticos;
   onAlternarEtapa: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  onRegistrarResultado: RegistrarResultadoPlaybook;
 }) {
   const playbooksAtivos = resumo.recomendacoes.flatMap((recomendacao) => {
     const chave = criarChaveDecisaoComercial(resumo.periodo, recomendacao.responsavel);
@@ -2355,6 +2432,13 @@ function CentralPlaybooksComerciais({
   });
   const playbooksVisiveis = modo === "resumo" ? playbooksAtivos.slice(0, 1) : playbooksAtivos;
   const indicadores = calcularResumoPlaybooksComerciaisSinteticos({
+    playbooks: playbooksComerciais,
+    decisoes: decisoesComerciais,
+    periodo: resumo.periodo,
+    recomendacoes: resumo.recomendacoes,
+  });
+  const indicadoresResultados = calcularResumoResultadosPlaybooksSinteticos({
+    resultados: resultadosPlaybooks,
     playbooks: playbooksComerciais,
     decisoes: decisoesComerciais,
     periodo: resumo.periodo,
@@ -2384,7 +2468,7 @@ function CentralPlaybooksComerciais({
         </Badge>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-6">
         <IndicadorPlaybook
           rotulo="Playbooks ativos"
           valor={String(indicadores.playbooksAtivos)}
@@ -2399,6 +2483,21 @@ function CentralPlaybooksComerciais({
           rotulo="Progresso médio"
           valor={`${indicadores.progressoMedio}%`}
           classe="col-span-2 bg-orange-100 text-orange-900 sm:col-span-1"
+        />
+        <IndicadorPlaybook
+          rotulo="Playbooks concluídos"
+          valor={String(indicadoresResultados.playbooksConcluidos)}
+          classe="bg-cyan-100 text-cyan-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Resultados registrados"
+          valor={String(indicadoresResultados.resultadosRegistrados)}
+          classe="bg-fuchsia-100 text-fuchsia-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Efetividade média"
+          valor={`${indicadoresResultados.efetividadeMedia}%`}
+          classe="bg-lime-100 text-lime-900"
         />
       </div>
 
@@ -2418,6 +2517,11 @@ function CentralPlaybooksComerciais({
               key={playbook.id}
               playbook={playbook}
               onAlternarEtapa={onAlternarEtapa}
+              recomendacao={
+                resumo.recomendacoes.find((item) => item.responsavel === playbook.responsavel)!
+              }
+              resultado={resultadosPlaybooks[playbook.id]}
+              onRegistrarResultado={onRegistrarResultado}
             />
           ))}
         </div>
@@ -2446,11 +2550,29 @@ function IndicadorPlaybook({
 function CartaoPlaybookComercial({
   playbook,
   onAlternarEtapa,
+  recomendacao,
+  resultado,
+  onRegistrarResultado,
 }: {
   playbook: PlaybookComercialSintetico;
   onAlternarEtapa: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  recomendacao: RecomendacaoComercialSintetica;
+  resultado?: ResultadoPlaybookComercialSintetico;
+  onRegistrarResultado: RegistrarResultadoPlaybook;
 }) {
   const progresso = calcularProgressoPlaybookSintetico(playbook);
+  const playbookConcluido = progresso === 100;
+  const faixasResultado: Array<{
+    faixa: FaixaResultadoPlaybookSintetico;
+    classe: string;
+  }> = [
+    { faixa: "Abaixo do esperado", classe: "border-rose-300 text-rose-800 hover:bg-rose-50" },
+    { faixa: "Dentro do esperado", classe: "border-cyan-300 text-cyan-800 hover:bg-cyan-50" },
+    {
+      faixa: "Acima do esperado",
+      classe: "border-emerald-300 text-emerald-800 hover:bg-emerald-50",
+    },
+  ];
   return (
     <article className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
       <div className="border-b border-violet-100 bg-violet-50/70 p-4 sm:p-5">
@@ -2537,11 +2659,97 @@ function CartaoPlaybookComercial({
           );
         })}
       </ol>
+      <div className="border-t border-violet-100 bg-gradient-to-br from-white to-cyan-50 p-4 sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-cyan-800">
+              <Sparkles className="size-4" /> Resultado e aprendizado
+            </p>
+            <h6 className="mt-1 text-sm font-semibold">Como o playbook terminou?</h6>
+            <p className="mt-1 text-xs leading-5 text-[#587076]">
+              {playbookConcluido
+                ? "Escolha um desfecho fictício para comparar o resultado com o impacto esperado."
+                : "Conclua as 3 etapas para registrar o resultado fictício."}
+            </p>
+          </div>
+          {resultado ? (
+            <Badge className="w-fit bg-cyan-700 text-white hover:bg-cyan-700">
+              Efetividade sintética: {resultado.efetividade}%
+            </Badge>
+          ) : null}
+        </div>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {faixasResultado.map(({ faixa, classe }) => (
+            <Button
+              key={faixa}
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!playbookConcluido}
+              className={cn("h-auto min-h-9 whitespace-normal rounded-xl px-3 py-2", classe)}
+              aria-label={`Registrar resultado ${faixa.toLocaleLowerCase("pt-BR")} de ${playbook.responsavel}`}
+              aria-pressed={resultado?.faixa === faixa}
+              onClick={() => onRegistrarResultado(playbook, recomendacao, faixa)}
+            >
+              {faixa}
+            </Button>
+          ))}
+        </div>
+
+        {resultado ? (
+          <div className="mt-4 rounded-2xl border border-cyan-200 bg-white p-4" aria-live="polite">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <strong className="text-sm text-cyan-950">{resultado.faixa}</strong>
+              <span className="text-[10px] text-[#587076]">{resultado.registradoEm}</span>
+            </div>
+            <dl className="mt-3 grid gap-3 lg:grid-cols-2">
+              <ResultadoExplicavel
+                rotulo="Resultado fictício"
+                valor={resultado.resultadoFicticio}
+                classe="bg-cyan-50"
+              />
+              <ResultadoExplicavel
+                rotulo="Impacto esperado"
+                valor={resultado.impactoEsperado}
+                classe="bg-violet-50"
+              />
+              <ResultadoExplicavel
+                rotulo="Comparação explicável"
+                valor={resultado.comparacaoExplicavel}
+                classe="bg-orange-50"
+              />
+              <ResultadoExplicavel
+                rotulo="Aprendizado explicável"
+                valor={resultado.aprendizadoExplicavel}
+                classe="bg-lime-50"
+              />
+            </dl>
+          </div>
+        ) : null}
+      </div>
       <p className="border-t border-violet-100 bg-[#f8f7f3] px-4 py-3 text-center text-[10px] text-[#587076]">
         Progresso simulado: {playbook.etapasConcluidas.length} de {playbook.etapas.length} etapas ·
         nenhuma ação externa executada
       </p>
     </article>
+  );
+}
+
+function ResultadoExplicavel({
+  rotulo,
+  valor,
+  classe,
+}: {
+  rotulo: string;
+  valor: string;
+  classe: string;
+}) {
+  return (
+    <div className={cn("rounded-xl p-3", classe)}>
+      <dt className="text-[10px] font-bold uppercase tracking-wider text-[#587076]">{rotulo}</dt>
+      <dd className="mt-1 text-xs leading-5 text-[#123f47]">{valor}</dd>
+    </div>
   );
 }
 
@@ -3776,6 +3984,8 @@ function Analises({
   onRegistrarDecisao,
   playbooksComerciais,
   onAlternarEtapaPlaybook,
+  resultadosPlaybooks,
+  onRegistrarResultadoPlaybook,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -3790,6 +4000,8 @@ function Analises({
   ) => void;
   playbooksComerciais: PlaybooksComerciaisSinteticos;
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -3878,6 +4090,8 @@ function Analises({
             onRegistrarDecisao={onRegistrarDecisao}
             playbooksComerciais={playbooksComerciais}
             onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
+            resultadosPlaybooks={resultadosPlaybooks}
+            onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
           />
         </CardContent>
       </Card>
@@ -4113,6 +4327,8 @@ function InteligenciaArtificial({
   onRegistrarDecisao,
   playbooksComerciais,
   onAlternarEtapaPlaybook,
+  resultadosPlaybooks,
+  onRegistrarResultadoPlaybook,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -4126,6 +4342,8 @@ function InteligenciaArtificial({
   ) => void;
   playbooksComerciais: PlaybooksComerciaisSinteticos;
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -4167,6 +4385,8 @@ function InteligenciaArtificial({
           onRegistrarDecisao={onRegistrarDecisao}
           playbooksComerciais={playbooksComerciais}
           onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
+          resultadosPlaybooks={resultadosPlaybooks}
+          onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
         />
 
         <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">
