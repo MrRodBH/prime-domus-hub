@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
-import { calcularPrevisaoSintetica } from "./src/components/demo/synthetic-forecast";
+import { calcularPrevisaoSintetica } from "./src/components/demo/demo-data";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -19,7 +19,6 @@ const requiredFiles = [
   "src/components/demo/DemoWorkspace.tsx",
   "src/components/demo/demo-data.ts",
   "src/components/demo/SyntheticWorkflowDialogs.tsx",
-  "src/components/demo/synthetic-forecast.ts",
 ];
 
 for (const path of requiredFiles) {
@@ -31,7 +30,7 @@ const designSystem = read(requiredFiles[1]);
 const workspace = read(requiredFiles[2]);
 const data = read(requiredFiles[3]);
 const workflows = read(requiredFiles[4]);
-const syntheticForecast = read(requiredFiles[5]);
+const syntheticForecast = data;
 const dialog = read("src/components/ui/dialog.tsx");
 const routeTree = read("src/routeTree.gen.ts");
 const auth = read("src/routes/auth.tsx");

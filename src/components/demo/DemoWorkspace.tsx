@@ -63,13 +63,17 @@ import property2 from "@/assets/property-2.jpg";
 import property3 from "@/assets/property-3.jpg";
 import {
   CONTEXTO_DEMONSTRACAO,
+  CENARIOS_PREVISAO,
   PALETA_GRAFICOS,
+  calcularPrevisaoSintetica,
   campanhasSinteticas,
   etapasDoFunil,
   evolucaoComercial,
   integracoesSinteticas,
   leadsSinteticos,
   origemDosLeads,
+  type CenarioPrevisao,
+  type ResumoPrevisaoSintetica,
 } from "./demo-data";
 import {
   AcompanharLeadSinteticoDialog,
@@ -90,13 +94,6 @@ import {
   type TarefaSintetica,
   type TarefaSinteticaAtualizada,
 } from "./SyntheticWorkflowDialogs";
-import {
-  CENARIOS_PREVISAO,
-  calcularPrevisaoSintetica,
-  type CenarioPrevisao,
-  type ResumoPrevisaoSintetica,
-} from "./synthetic-forecast";
-
 type ModuloId =
   | "visao-geral"
   | "funil"
