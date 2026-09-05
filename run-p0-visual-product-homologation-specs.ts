@@ -283,8 +283,8 @@ for (const workflowTitle of [
   ok(workflows.includes(workflowTitle), `a homologação deve oferecer a jornada: ${workflowTitle}`);
 }
 ok(
-  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 4,
-  "os quatro formulários devem permanecer sob controle local",
+  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 5,
+  "os cinco formulários devem permanecer sob controle local",
 );
 ok(
   workflows.includes("permanece apenas nesta sessão") &&
@@ -332,6 +332,36 @@ ok(
   workspace.includes("Associada a 1 campanha sintética") &&
     workspace.includes("campanhasCriadas.filter"),
   "a área de sites deve informar as campanhas associadas ao rascunho",
+);
+ok(
+  workflows.includes("Simular captação de lead") &&
+    workflows.includes('rotulo="Campanha de origem"') &&
+    workflows.includes("Página associada à campanha"),
+  "a campanha deve oferecer uma captação sintética com página e origem explícitas",
+);
+ok(
+  workflows.includes("Consentimento fictício confirmado") &&
+    workflows.includes('rotulo="Nome completo do lead"') &&
+    workflows.includes('rotulo="Telefone com DDD"'),
+  "a captação deve validar dados e consentimento em PT-BR",
+);
+ok(
+  workflows.includes("campanhaOrigem: campanha.nome") &&
+    workflows.includes("paginaOrigem: campanha.paginaDestino") &&
+    workflows.includes("captadoPorCampanha: true") &&
+    workflows.includes("encaminhadoAoFunil: true"),
+  "o lead captado deve preservar atribuição e entrar automaticamente no funil",
+);
+ok(
+  workspace.includes("captarLeadDaCampanha") &&
+    workspace.includes("Lead captado e enviado ao funil") &&
+    workspace.includes("totalLeads") &&
+    workspace.includes("Indicadores atualizados pela jornada sintética"),
+  "a jornada deve atualizar campanha, funil e Dashboard na mesma sessão",
+);
+ok(
+  workspace.includes("Campanha de origem:") && workspace.includes("contatoCriado.campanhaOrigem"),
+  "Leads e funil devem mostrar a campanha e a página de origem",
 );
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(

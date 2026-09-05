@@ -67,11 +67,13 @@ import {
   origemDosLeads,
 } from "./demo-data";
 import {
+  CapturarLeadSinteticoDialog,
   NovaCampanhaSinteticaDialog,
   NovaPaginaSinteticaDialog,
   NovoContatoSinteticoDialog,
   NovoImovelSinteticoDialog,
   type CampanhaSinteticaCriada,
+  type CaptacaoSinteticaCriada,
   type ContatoSinteticoCriado,
   type ImovelSinteticoCriado,
   type PaginaSinteticaCriada,
@@ -219,6 +221,7 @@ export function DemoWorkspace() {
     ...paginasCriadas.map(({ titulo, caminho }) => ({ titulo, caminho })),
     paginaCatalogoDemonstracao,
   ];
+  const captacoesSinteticas = leadsCriados.filter((lead) => lead.captadoPorCampanha).length;
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
@@ -229,6 +232,31 @@ export function DemoWorkspace() {
     confirmarAcaoSintetica(
       "Contato encaminhado ao funil",
       `${contato.nome} entrou na etapa Novos contatos somente nesta sessão.`,
+    );
+    selecionarModulo("funil");
+  }
+
+  function captarLeadDaCampanha({ contato, campanha }: CaptacaoSinteticaCriada) {
+    setLeadsCriados((atuais) => [contato, ...atuais]);
+    setCampanhasCriadas((atuais) =>
+      atuais.map((item) => {
+        if (item !== campanha) return item;
+        const totalLeads = item.leads + 1;
+        const conversao = new Intl.NumberFormat("pt-BR", {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }).format(totalLeads * 1.2);
+        return {
+          ...item,
+          leads: totalLeads,
+          custo: formatadorMoeda.format(item.investimentoNumerico / totalLeads),
+          conversao: `${conversao}%`,
+        };
+      }),
+    );
+    confirmarAcaoSintetica(
+      "Lead captado e enviado ao funil",
+      `${contato.nome} veio de ${campanha.nome} e entrou em Novos contatos nesta sessão.`,
     );
     selecionarModulo("funil");
   }
@@ -324,7 +352,9 @@ export function DemoWorkspace() {
             tabIndex={-1}
           >
             <AvisoDemonstracao />
-            {moduloAtivo === "visao-geral" ? <VisaoGeral /> : null}
+            {moduloAtivo === "visao-geral" ? (
+              <VisaoGeral captacoesSinteticas={captacoesSinteticas} />
+            ) : null}
             {moduloAtivo === "funil" ? (
               <FunilDeVendas
                 leadsCriados={leadsCriados}
@@ -349,9 +379,11 @@ export function DemoWorkspace() {
               <Campanhas
                 campanhasCriadas={campanhasCriadas}
                 paginasDisponiveis={paginasDisponiveis}
+                imoveisDisponiveis={imoveisDisponiveis}
                 onCriarCampanha={(campanha) =>
                   setCampanhasCriadas((atuais) => [campanha, ...atuais])
                 }
+                onCaptarLead={captarLeadDaCampanha}
               />
             ) : null}
             {moduloAtivo === "analises" ? <Analises /> : null}
@@ -549,7 +581,7 @@ function CabecalhoPagina({
   );
 }
 
-function VisaoGeral() {
+function VisaoGeral({ captacoesSinteticas }: { captacoesSinteticas: number }) {
   return (
     <>
       <CabecalhoPagina
@@ -573,8 +605,12 @@ function VisaoGeral() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <CartaoMetrica
           rotulo="Leads no período"
-          valor="421"
-          variacao="18,2% acima do período anterior"
+          valor={String(421 + captacoesSinteticas)}
+          variacao={
+            captacoesSinteticas > 0
+              ? `${captacoesSinteticas} ${captacoesSinteticas === 1 ? "captação adicionada" : "captações adicionadas"} nesta sessão`
+              : "18,2% acima do período anterior"
+          }
           icone={Users}
           tom="violeta"
         />
@@ -600,6 +636,22 @@ function VisaoGeral() {
           tom="dourado"
         />
       </div>
+
+      {captacoesSinteticas > 0 ? (
+        <div
+          className="mt-4 flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950 sm:flex-row sm:items-center sm:justify-between"
+          aria-live="polite"
+        >
+          <span className="flex items-center gap-2 font-semibold">
+            <CheckCircle2 className="size-4 text-emerald-700" />
+            Indicadores atualizados pela jornada sintética
+          </span>
+          <span className="text-xs text-emerald-800">
+            {captacoesSinteticas} {captacoesSinteticas === 1 ? "lead captado" : "leads captados"} e
+            enviado ao funil nesta sessão
+          </span>
+        </div>
+      ) : null}
 
       <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)]">
         <Card className="min-w-0 rounded-2xl border-[#123f47]/10 shadow-sm">
@@ -882,9 +934,8 @@ function FunilDeVendas({
               </div>
               <div className="space-y-3">
                 {contatosDaEtapa.map((lead, leadIndice) => {
-                  const criadoNestaSessao = contatosEncaminhados.includes(
-                    lead as ContatoSinteticoCriado,
-                  );
+                  const contatoCriado = contatosEncaminhados.find((contato) => contato === lead);
+                  const criadoNestaSessao = Boolean(contatoCriado);
                   return (
                     <Card
                       key={`${etapa.nome}-${lead.nome}-${leadIndice}`}
@@ -906,6 +957,12 @@ function FunilDeVendas({
                               lead.nome)}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-[#587076]">{lead.interesse}</p>
+                        {contatoCriado?.campanhaOrigem ? (
+                          <p className="mt-2 rounded-lg bg-white/80 px-2 py-1.5 text-[10px] font-semibold text-violet-800">
+                            Campanha: {contatoCriado.campanhaOrigem} · Página:{" "}
+                            {contatoCriado.paginaOrigem}
+                          </p>
+                        ) : null}
                         <div className="mt-3 flex items-center justify-between border-t border-[#123f47]/8 pt-3">
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-[#587076]">
                             {lead.origem}
@@ -1176,6 +1233,12 @@ function Leads({
                       Imóvel vinculado: {contatoCriadoDaSessao(lead)?.imovelSelecionado}
                     </p>
                   ) : null}
+                  {contatoCriadoDaSessao(lead)?.campanhaOrigem ? (
+                    <p className="mt-1 text-[11px] font-medium text-emerald-700">
+                      Campanha de origem: {contatoCriadoDaSessao(lead)?.campanhaOrigem} · Página:{" "}
+                      {contatoCriadoDaSessao(lead)?.paginaOrigem}
+                    </p>
+                  ) : null}
                 </div>
                 <span
                   className={cn(
@@ -1253,6 +1316,12 @@ function Leads({
                         Imóvel vinculado: {contatoCriadoDaSessao(lead)?.imovelSelecionado}
                       </span>
                     ) : null}
+                    {contatoCriadoDaSessao(lead)?.campanhaOrigem ? (
+                      <span className="mt-1 block text-[11px] font-medium text-emerald-700">
+                        Campanha de origem: {contatoCriadoDaSessao(lead)?.campanhaOrigem} · Página:{" "}
+                        {contatoCriadoDaSessao(lead)?.paginaOrigem}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-5 py-4">{lead.origem}</td>
                   <td className="px-5 py-4">{lead.responsavel}</td>
@@ -1311,11 +1380,15 @@ function Leads({
 function Campanhas({
   campanhasCriadas,
   paginasDisponiveis,
+  imoveisDisponiveis,
   onCriarCampanha,
+  onCaptarLead,
 }: {
   campanhasCriadas: CampanhaSinteticaCriada[];
   paginasDisponiveis: Array<Pick<PaginaSinteticaCriada, "titulo" | "caminho">>;
+  imoveisDisponiveis: Array<Pick<ImovelSinteticoCriado, "titulo" | "bairro">>;
   onCriarCampanha: (campanha: CampanhaSinteticaCriada) => void;
+  onCaptarLead: (captacao: CaptacaoSinteticaCriada) => void;
 }) {
   const campanhasDaSessao = [...campanhasCriadas, ...campanhasSinteticas];
   const campanhaCriadaDaSessao = (campanha: (typeof campanhasDaSessao)[number]) =>
@@ -1374,18 +1447,28 @@ function Campanhas({
                 <DadoCompacto rotulo="Custo por lead" valor={campanha.custo} />
                 <DadoCompacto rotulo="Conversão" valor={campanha.conversao} />
               </dl>
-              <Button
-                variant="outline"
-                className="mt-5 w-full rounded-xl"
-                onClick={() =>
-                  confirmarAcaoSintetica(
-                    "Resultados da campanha",
-                    `${campanha.nome} utiliza somente indicadores fictícios.`,
-                  )
-                }
-              >
-                Analisar resultados
-              </Button>
+              {campanhaCriadaDaSessao(campanha) ? (
+                <CapturarLeadSinteticoDialog
+                  campanhasDisponiveis={[campanhaCriadaDaSessao(campanha)!]}
+                  imoveisDisponiveis={imoveisDisponiveis}
+                  onConfirmar={onCaptarLead}
+                  rotuloAcao="Simular captação nesta campanha"
+                  className="mt-5 w-full rounded-xl bg-emerald-700 hover:bg-emerald-800"
+                />
+              ) : (
+                <Button
+                  variant="outline"
+                  className="mt-5 w-full rounded-xl"
+                  onClick={() =>
+                    confirmarAcaoSintetica(
+                      "Resultados da campanha",
+                      `${campanha.nome} utiliza somente indicadores fictícios.`,
+                    )
+                  }
+                >
+                  Analisar resultados
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -1426,17 +1509,18 @@ function Campanhas({
               Simule formulário, atribuição de campanha, consentimento e entrada no funil sem enviar
               dados para provedores.
             </p>
-            <Button
-              className="mt-5 w-full rounded-xl bg-emerald-700 hover:bg-emerald-800"
-              onClick={() =>
-                confirmarAcaoSintetica(
-                  "Lead de teste recebido",
-                  "O formulário, o consentimento e a atribuição foram simulados localmente.",
-                )
-              }
-            >
-              Iniciar simulação
-            </Button>
+            <div className="mt-5">
+              <CapturarLeadSinteticoDialog
+                campanhasDisponiveis={campanhasCriadas}
+                imoveisDisponiveis={imoveisDisponiveis}
+                onConfirmar={onCaptarLead}
+              />
+            </div>
+            {campanhasCriadas.length === 0 ? (
+              <p className="mt-3 text-center text-xs leading-5 text-emerald-900/70">
+                Planeje uma campanha com página associada para habilitar esta simulação.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </div>
