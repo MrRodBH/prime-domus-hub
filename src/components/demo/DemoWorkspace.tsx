@@ -65,7 +65,10 @@ import {
   CONTEXTO_DEMONSTRACAO,
   CENARIOS_PREVISAO,
   PALETA_GRAFICOS,
+  PERIODOS_RELATORIO_COMERCIAL,
+  RESPONSAVEIS_RELATORIO_COMERCIAL,
   calcularPrevisaoSintetica,
+  calcularRelatorioComercialSintetico,
   campanhasSinteticas,
   etapasDoFunil,
   evolucaoComercial,
@@ -73,6 +76,9 @@ import {
   leadsSinteticos,
   origemDosLeads,
   type CenarioPrevisao,
+  type FiltroResponsavelRelatorio,
+  type PeriodoRelatorioComercial,
+  type RelatorioComercialSintetico,
   type ResumoPrevisaoSintetica,
 } from "./demo-data";
 import {
@@ -328,6 +334,10 @@ export function DemoWorkspace() {
   const [campanhasCriadas, setCampanhasCriadas] = useState<CampanhaSinteticaCriada[]>([]);
   const [paginasCriadas, setPaginasCriadas] = useState<PaginaSinteticaCriada[]>([]);
   const [cenarioPrevisao, setCenarioPrevisao] = useState<CenarioPrevisao>("Realista");
+  const [periodoRelatorio, setPeriodoRelatorio] =
+    useState<PeriodoRelatorioComercial>("Últimos 30 dias");
+  const [responsavelRelatorio, setResponsavelRelatorio] =
+    useState<FiltroResponsavelRelatorio>("Toda a equipe");
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -435,6 +445,12 @@ export function DemoWorkspace() {
     cenario: cenarioPrevisao,
     contatos: leadsCriados,
     valoresImoveis,
+  });
+  const relatorioComercialSintetico = calcularRelatorioComercialSintetico({
+    periodo: periodoRelatorio,
+    responsavel: responsavelRelatorio,
+    resumoPrevisao: resumoPrevisaoSintetica,
+    contatos: leadsCriados,
   });
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
@@ -716,6 +732,11 @@ export function DemoWorkspace() {
                 cargaEquipeSintetica={cargaEquipeSintetica}
                 resumoPrevisaoSintetica={resumoPrevisaoSintetica}
                 onSelecionarCenario={setCenarioPrevisao}
+                relatorioComercialSintetico={relatorioComercialSintetico}
+                periodoRelatorio={periodoRelatorio}
+                responsavelRelatorio={responsavelRelatorio}
+                onSelecionarPeriodoRelatorio={setPeriodoRelatorio}
+                onSelecionarResponsavelRelatorio={setResponsavelRelatorio}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -758,7 +779,15 @@ export function DemoWorkspace() {
                 onCaptarLead={captarLeadDaCampanha}
               />
             ) : null}
-            {moduloAtivo === "analises" ? <Analises /> : null}
+            {moduloAtivo === "analises" ? (
+              <Analises
+                relatorio={relatorioComercialSintetico}
+                periodo={periodoRelatorio}
+                responsavel={responsavelRelatorio}
+                onSelecionarPeriodo={setPeriodoRelatorio}
+                onSelecionarResponsavel={setResponsavelRelatorio}
+              />
+            ) : null}
             {moduloAtivo === "ia" ? <InteligenciaArtificial /> : null}
             {moduloAtivo === "sites" ? (
               <SitesEPaginas
@@ -973,6 +1002,11 @@ function VisaoGeral({
   cargaEquipeSintetica,
   resumoPrevisaoSintetica,
   onSelecionarCenario,
+  relatorioComercialSintetico,
+  periodoRelatorio,
+  responsavelRelatorio,
+  onSelecionarPeriodoRelatorio,
+  onSelecionarResponsavelRelatorio,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -993,6 +1027,11 @@ function VisaoGeral({
   cargaEquipeSintetica: CargaEquipeSintetica[];
   resumoPrevisaoSintetica: ResumoPrevisaoSintetica;
   onSelecionarCenario: (cenario: CenarioPrevisao) => void;
+  relatorioComercialSintetico: RelatorioComercialSintetico;
+  periodoRelatorio: PeriodoRelatorioComercial;
+  responsavelRelatorio: FiltroResponsavelRelatorio;
+  onSelecionarPeriodoRelatorio: (periodo: PeriodoRelatorioComercial) => void;
+  onSelecionarResponsavelRelatorio: (responsavel: FiltroResponsavelRelatorio) => void;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1072,6 +1111,14 @@ function VisaoGeral({
       <PainelPrevisaoDashboard
         resumo={resumoPrevisaoSintetica}
         onSelecionarCenario={onSelecionarCenario}
+      />
+
+      <ResumoRelatorioDashboard
+        relatorio={relatorioComercialSintetico}
+        periodo={periodoRelatorio}
+        responsavel={responsavelRelatorio}
+        onSelecionarPeriodo={onSelecionarPeriodoRelatorio}
+        onSelecionarResponsavel={onSelecionarResponsavelRelatorio}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -1645,6 +1692,199 @@ function PainelPrevisaoDashboard({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FiltrosRelatorioComercial({
+  periodo,
+  responsavel,
+  onSelecionarPeriodo,
+  onSelecionarResponsavel,
+  contexto,
+}: {
+  periodo: PeriodoRelatorioComercial;
+  responsavel: FiltroResponsavelRelatorio;
+  onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
+  onSelecionarResponsavel: (responsavel: FiltroResponsavelRelatorio) => void;
+  contexto: "dashboard" | "analises";
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div>
+        <label
+          htmlFor={`periodo-relatorio-${contexto}`}
+          className="mb-1.5 block text-xs font-semibold text-[#123f47]"
+        >
+          Período do relatório
+        </label>
+        <select
+          id={`periodo-relatorio-${contexto}`}
+          value={periodo}
+          onChange={(evento) =>
+            onSelecionarPeriodo(evento.target.value as PeriodoRelatorioComercial)
+          }
+          className="h-10 w-full rounded-xl border border-[#123f47]/15 bg-white px-3 text-sm text-[#123f47] outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        >
+          {PERIODOS_RELATORIO_COMERCIAL.map((opcao) => (
+            <option key={opcao} value={opcao}>
+              {opcao}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label
+          htmlFor={`responsavel-relatorio-${contexto}`}
+          className="mb-1.5 block text-xs font-semibold text-[#123f47]"
+        >
+          Responsável comercial
+        </label>
+        <select
+          id={`responsavel-relatorio-${contexto}`}
+          value={responsavel}
+          onChange={(evento) =>
+            onSelecionarResponsavel(evento.target.value as FiltroResponsavelRelatorio)
+          }
+          className="h-10 w-full rounded-xl border border-[#123f47]/15 bg-white px-3 text-sm text-[#123f47] outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+        >
+          {RESPONSAVEIS_RELATORIO_COMERCIAL.map((opcao) => (
+            <option key={opcao} value={opcao}>
+              {opcao}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function ResumoRelatorioDashboard({
+  relatorio,
+  periodo,
+  responsavel,
+  onSelecionarPeriodo,
+  onSelecionarResponsavel,
+}: {
+  relatorio: RelatorioComercialSintetico;
+  periodo: PeriodoRelatorioComercial;
+  responsavel: FiltroResponsavelRelatorio;
+  onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
+  onSelecionarResponsavel: (responsavel: FiltroResponsavelRelatorio) => void;
+}) {
+  return (
+    <section
+      className="mt-5 overflow-hidden rounded-2xl border border-[#123f47]/10 bg-white shadow-sm"
+      aria-labelledby="titulo-resumo-comercial"
+    >
+      <div className="grid gap-5 border-b border-[#123f47]/10 bg-gradient-to-r from-orange-50 via-white to-violet-50 p-5 sm:p-6 lg:grid-cols-[1fr_0.9fr] lg:items-end">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange-700">
+            Relatório exclusivamente sintético
+          </p>
+          <h2 id="titulo-resumo-comercial" className="mt-1 text-xl font-semibold">
+            Resumo comercial do período
+          </h2>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-[#587076]">
+            Os filtros são compartilhados entre Dashboard e Análises somente durante esta sessão.
+          </p>
+        </div>
+        <FiltrosRelatorioComercial
+          periodo={periodo}
+          responsavel={responsavel}
+          onSelecionarPeriodo={onSelecionarPeriodo}
+          onSelecionarResponsavel={onSelecionarResponsavel}
+          contexto="dashboard"
+        />
+      </div>
+      <div className="p-5 sm:p-6">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <ResumoPrevisao
+            rotulo="Leads no relatório"
+            valor={String(relatorio.totais.leads)}
+            detalhe={relatorio.periodo}
+            tom="violeta"
+          />
+          <ResumoPrevisao
+            rotulo="Conversão em ganhos"
+            valor={`${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(relatorio.totais.taxaConversao)}%`}
+            detalhe={`${relatorio.totais.ganhos} negócios fictícios ganhos`}
+            tom="esmeralda"
+          />
+          <ResumoPrevisao
+            rotulo="Receita realizada"
+            valor={formatarValorCompacto(relatorio.totais.realizado)}
+            detalhe="Resultado comercial fictício"
+            tom="dourado"
+          />
+          <ResumoPrevisao
+            rotulo="Receita prevista"
+            valor={formatarValorCompacto(relatorio.totais.previsto)}
+            detalhe={`Meta de ${formatarValorCompacto(relatorio.totais.meta)}`}
+            tom="violeta"
+          />
+        </div>
+        <div className="mt-5 min-w-0">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Meta, realizado e previsto por responsável</h3>
+              <p className="mt-1 text-xs text-[#587076]">
+                Comparação financeira do recorte selecionado em valores fictícios.
+              </p>
+            </div>
+            <span className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-orange-700 sm:mt-0">
+              {relatorio.responsavel}
+            </span>
+          </div>
+          <div
+            className="mt-4 h-[290px] w-full"
+            role="img"
+            aria-label="Gráfico de meta, receita realizada e receita prevista por responsável"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={relatorio.desempenho} margin={{ top: 10, right: 8, left: -10 }}>
+                <CartesianGrid vertical={false} stroke="#123f4715" strokeDasharray="4 6" />
+                <XAxis
+                  dataKey="responsavel"
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(valor) => String(valor).split(" ")[0]}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(valor) => `${Math.round(Number(valor) / 1_000_000)} mi`}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={estiloTooltip}
+                  formatter={(valor) => formatarValorCompacto(Number(valor))}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+                <Bar
+                  dataKey="meta"
+                  name="Meta"
+                  fill={PALETA_GRAFICOS.dourado}
+                  radius={[5, 5, 0, 0]}
+                />
+                <Bar
+                  dataKey="realizado"
+                  name="Realizado"
+                  fill={PALETA_GRAFICOS.esmeralda}
+                  radius={[5, 5, 0, 0]}
+                />
+                <Bar
+                  dataKey="previsto"
+                  name="Previsto"
+                  fill={PALETA_GRAFICOS.violeta}
+                  radius={[5, 5, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
@@ -2876,64 +3116,141 @@ function DadoCompacto({ rotulo, valor }: { rotulo: string; valor: string }) {
   );
 }
 
-function Analises() {
+function Analises({
+  relatorio,
+  periodo,
+  responsavel,
+  onSelecionarPeriodo,
+  onSelecionarResponsavel,
+}: {
+  relatorio: RelatorioComercialSintetico;
+  periodo: PeriodoRelatorioComercial;
+  responsavel: FiltroResponsavelRelatorio;
+  onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
+  onSelecionarResponsavel: (responsavel: FiltroResponsavelRelatorio) => void;
+}) {
   return (
     <>
       <CabecalhoPagina
         titulo="Análises e desempenho"
-        descricao="Explore resultados comerciais com visualizações acessíveis, cores distintas e legendas em português."
+        descricao="Compare conversão, resultados e desempenho fictício da equipe com filtros claros e visualizações responsivas."
         acao={
           <Button
             variant="outline"
             className="rounded-xl"
             onClick={() =>
               confirmarAcaoSintetica(
-                "Relatório de demonstração preparado",
-                "A exportação real permanece desativada nesta homologação.",
+                "Exportação simulada pronta",
+                `O relatório de ${periodo.toLocaleLowerCase("pt-BR")} para ${responsavel.toLocaleLowerCase("pt-BR")} foi apenas visualizado; nenhum arquivo foi gerado.`,
               )
             }
           >
-            Exportar relatório
+            <FileText className="mr-2 size-4" />
+            Simular exportação
           </Button>
         }
       />
-      <div className="grid gap-5 xl:grid-cols-[1.4fr_0.6fr]">
+
+      <Card className="rounded-2xl border-[#123f47]/10 bg-gradient-to-r from-orange-50 via-white to-violet-50">
+        <CardContent className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_0.9fr] lg:items-end">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-orange-700">
+              Relatório comercial sintético
+            </p>
+            <h2 className="mt-1 text-lg font-semibold">Filtros do desempenho</h2>
+            <p className="mt-1 text-xs leading-5 text-[#587076]">
+              A seleção acompanha o Dashboard nesta sessão e nunca consulta dados reais.
+            </p>
+          </div>
+          <FiltrosRelatorioComercial
+            periodo={periodo}
+            responsavel={responsavel}
+            onSelecionarPeriodo={onSelecionarPeriodo}
+            onSelecionarResponsavel={onSelecionarResponsavel}
+            contexto="analises"
+          />
+        </CardContent>
+      </Card>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <CartaoMetrica
+          rotulo="Leads analisados"
+          valor={String(relatorio.totais.leads)}
+          variacao={`${relatorio.totais.visitas} visitas no recorte`}
+          icone={Users}
+          tom="violeta"
+        />
+        <CartaoMetrica
+          rotulo="Conversão em ganhos"
+          valor={`${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(relatorio.totais.taxaConversao)}%`}
+          variacao={`${relatorio.totais.ganhos} ganhos e ${relatorio.totais.perdidos} perdas`}
+          icone={TrendingUp}
+          tom="esmeralda"
+        />
+        <CartaoMetrica
+          rotulo="Receita realizada"
+          valor={formatarValorCompacto(relatorio.totais.realizado)}
+          variacao={`Meta de ${formatarValorCompacto(relatorio.totais.meta)}`}
+          icone={CircleDollarSign}
+          tom="dourado"
+        />
+        <CartaoMetrica
+          rotulo="Receita prevista"
+          valor={formatarValorCompacto(relatorio.totais.previsto)}
+          variacao="Projeção do cenário selecionado"
+          icone={Target}
+          tom="coral"
+        />
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <Card className="min-w-0 rounded-2xl border-[#123f47]/10">
           <CardHeader>
             <CardTitle className="text-lg">Conversão por etapa</CardTitle>
             <p className="text-xs text-[#587076]">
-              Comparação entre volume de entrada e avanço no funil
+              Percentual de avanço em relação aos novos contatos do período
             </p>
           </CardHeader>
           <CardContent>
-            <div className="h-[360px]">
+            <div
+              className="h-[360px]"
+              role="img"
+              aria-label="Gráfico da taxa de conversão por etapa comercial"
+            >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={etapasDoFunil} layout="vertical" margin={{ left: 20, right: 20 }}>
+                <BarChart
+                  data={relatorio.conversaoEtapas}
+                  layout="vertical"
+                  margin={{ left: 18, right: 18 }}
+                >
                   <CartesianGrid horizontal={false} stroke="#123f4715" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    tickFormatter={(valor) => `${valor}%`}
+                    tick={{ fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <YAxis
                     type="category"
-                    dataKey="nome"
+                    dataKey="etapa"
                     width={118}
                     tick={{ fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip contentStyle={estiloTooltip} />
-                  <Bar dataKey="quantidade" name="Oportunidades" radius={[0, 8, 8, 0]}>
-                    {etapasDoFunil.map((_, index) => (
-                      <Cell
-                        key={index}
-                        fill={
-                          [
-                            PALETA_GRAFICOS.violeta,
-                            PALETA_GRAFICOS.azulCeu,
-                            PALETA_GRAFICOS.dourado,
-                            PALETA_GRAFICOS.coral,
-                            PALETA_GRAFICOS.esmeralda,
-                          ][index]
-                        }
-                      />
+                  <Tooltip
+                    contentStyle={estiloTooltip}
+                    formatter={(valor, _nome, item) => [
+                      `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(Number(valor))}% (${item.payload.quantidade} oportunidades)`,
+                      "Taxa de conversão",
+                    ]}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+                  <Bar dataKey="taxa" name="Taxa de conversão (%)" radius={[0, 8, 8, 0]}>
+                    {relatorio.conversaoEtapas.map((etapa) => (
+                      <Cell key={etapa.etapa} fill={etapa.cor} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -2941,26 +3258,146 @@ function Analises() {
             </div>
           </CardContent>
         </Card>
-        <div className="space-y-4">
-          <CartaoAnalise
-            titulo="Velocidade de atendimento"
-            valor="7 min"
-            detalhe="Tempo médio até o primeiro contato"
-            tom="bg-violet-600"
-          />
-          <CartaoAnalise
-            titulo="Retorno sobre mídia"
-            valor="6,2×"
-            detalhe="Receita potencial sobre investimento"
-            tom="bg-orange-500"
-          />
-          <CartaoAnalise
-            titulo="Qualidade dos dados"
-            valor="92%"
-            detalhe="Leads com cadastro completo"
-            tom="bg-emerald-600"
-          />
-        </div>
+
+        <Card className="min-w-0 rounded-2xl border-[#123f47]/10">
+          <CardHeader>
+            <CardTitle className="text-lg">Meta, realizado e previsto</CardTitle>
+            <p className="text-xs text-[#587076]">
+              Comparação financeira por responsável no cenário atual
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div
+              className="h-[360px]"
+              role="img"
+              aria-label="Gráfico comparativo de meta, realizado e previsto por responsável"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={relatorio.desempenho} margin={{ top: 10, right: 8, left: -8 }}>
+                  <CartesianGrid vertical={false} stroke="#123f4715" strokeDasharray="4 6" />
+                  <XAxis
+                    dataKey="responsavel"
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(valor) => String(valor).split(" ")[0]}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(valor) => `${Math.round(Number(valor) / 1_000_000)} mi`}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={estiloTooltip}
+                    formatter={(valor) => formatarValorCompacto(Number(valor))}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+                  <Bar
+                    dataKey="meta"
+                    name="Meta"
+                    fill={PALETA_GRAFICOS.dourado}
+                    radius={[5, 5, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="realizado"
+                    name="Realizado"
+                    fill={PALETA_GRAFICOS.esmeralda}
+                    radius={[5, 5, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="previsto"
+                    name="Previsto"
+                    fill={PALETA_GRAFICOS.violeta}
+                    radius={[5, 5, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mt-5 overflow-hidden rounded-2xl border-[#123f47]/10">
+        <CardHeader>
+          <CardTitle className="text-lg">Desempenho fictício por responsável</CardTitle>
+          <p className="text-xs text-[#587076]">
+            Volumes, resultados e atingimento da meta no período escolhido
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[920px] border-collapse text-left text-xs">
+              <thead className="bg-[#f6f4ef] text-[#587076]">
+                <tr>
+                  {[
+                    "Responsável",
+                    "Leads",
+                    "Visitas",
+                    "Propostas",
+                    "Ganhos",
+                    "Meta",
+                    "Realizado",
+                    "Previsto",
+                    "Atingimento",
+                  ].map((rotulo) => (
+                    <th key={rotulo} scope="col" className="px-4 py-3 font-semibold">
+                      {rotulo}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {relatorio.desempenho.map((item) => (
+                  <tr key={item.responsavel} className="border-t border-[#123f47]/10 bg-white">
+                    <th scope="row" className="whitespace-nowrap px-4 py-3 font-semibold">
+                      <span
+                        className="mr-2 inline-block size-2 rounded-full"
+                        style={{ backgroundColor: item.cor }}
+                      />
+                      {item.responsavel}
+                    </th>
+                    <td className="px-4 py-3">{item.leads}</td>
+                    <td className="px-4 py-3">{item.visitas}</td>
+                    <td className="px-4 py-3">{item.propostas}</td>
+                    <td className="px-4 py-3">{item.ganhos}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      {formatarValorCompacto(item.meta)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-emerald-700">
+                      {formatarValorCompacto(item.realizado)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-violet-700">
+                      {formatarValorCompacto(item.previsto)}
+                    </td>
+                    <td className="px-4 py-3">{formatadorPercentual.format(item.atingimento)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <CartaoAnalise
+          titulo="Velocidade de atendimento"
+          valor="7 min"
+          detalhe="Tempo médio sintético até o primeiro contato"
+          tom="bg-violet-600"
+        />
+        <CartaoAnalise
+          titulo="Retorno sobre mídia"
+          valor="6,2×"
+          detalhe="Receita potencial fictícia sobre investimento"
+          tom="bg-orange-500"
+        />
+        <CartaoAnalise
+          titulo="Qualidade dos dados"
+          valor="92%"
+          detalhe="Leads sintéticos com cadastro completo"
+          tom="bg-emerald-600"
+        />
       </div>
     </>
   );

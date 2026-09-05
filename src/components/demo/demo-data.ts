@@ -380,3 +380,180 @@ export function calcularPrevisaoSintetica({
     metasResponsaveis,
   };
 }
+
+export type PeriodoRelatorioComercial = "Últimos 7 dias" | "Últimos 30 dias" | "Últimos 90 dias";
+
+export type FiltroResponsavelRelatorio =
+  | "Toda a equipe"
+  | "Amanda Reis"
+  | "Lucas Prado"
+  | "Bruno Lima"
+  | "Camila Torres";
+
+export type DesempenhoResponsavelSintetico = {
+  responsavel: Exclude<FiltroResponsavelRelatorio, "Toda a equipe">;
+  leads: number;
+  visitas: number;
+  propostas: number;
+  ganhos: number;
+  perdidos: number;
+  meta: number;
+  realizado: number;
+  previsto: number;
+  atingimento: number;
+  cor: string;
+};
+
+export type ConversaoEtapaSintetica = {
+  etapa: string;
+  quantidade: number;
+  taxa: number;
+  cor: string;
+};
+
+export type RelatorioComercialSintetico = {
+  periodo: PeriodoRelatorioComercial;
+  responsavel: FiltroResponsavelRelatorio;
+  desempenho: DesempenhoResponsavelSintetico[];
+  conversaoEtapas: ConversaoEtapaSintetica[];
+  totais: {
+    leads: number;
+    visitas: number;
+    propostas: number;
+    ganhos: number;
+    perdidos: number;
+    meta: number;
+    realizado: number;
+    previsto: number;
+    taxaConversao: number;
+  };
+};
+
+export const PERIODOS_RELATORIO_COMERCIAL: PeriodoRelatorioComercial[] = [
+  "Últimos 7 dias",
+  "Últimos 30 dias",
+  "Últimos 90 dias",
+];
+
+export const RESPONSAVEIS_RELATORIO_COMERCIAL: FiltroResponsavelRelatorio[] = [
+  "Toda a equipe",
+  "Amanda Reis",
+  "Lucas Prado",
+  "Bruno Lima",
+  "Camila Torres",
+];
+
+const DESEMPENHO_BASE_30_DIAS = [
+  { responsavel: "Amanda Reis", leads: 128, visitas: 55, propostas: 25, ganhos: 12, perdidos: 8 },
+  { responsavel: "Lucas Prado", leads: 112, visitas: 46, propostas: 19, ganhos: 9, perdidos: 6 },
+  { responsavel: "Bruno Lima", leads: 96, visitas: 38, propostas: 15, ganhos: 8, perdidos: 5 },
+  { responsavel: "Camila Torres", leads: 85, visitas: 34, propostas: 9, ganhos: 6, perdidos: 4 },
+] as const;
+
+const FATOR_POR_PERIODO: Record<PeriodoRelatorioComercial, number> = {
+  "Últimos 7 dias": 0.24,
+  "Últimos 30 dias": 1,
+  "Últimos 90 dias": 2.72,
+};
+
+function arredondarVolume(valor: number) {
+  return Math.max(0, Math.round(valor));
+}
+
+export function calcularRelatorioComercialSintetico({
+  periodo,
+  responsavel,
+  resumoPrevisao,
+  contatos = [],
+}: {
+  periodo: PeriodoRelatorioComercial;
+  responsavel: FiltroResponsavelRelatorio;
+  resumoPrevisao: ResumoPrevisaoSintetica;
+  contatos?: ContatoSinteticoCriado[];
+}): RelatorioComercialSintetico {
+  const fator = FATOR_POR_PERIODO[periodo];
+  const desempenho = DESEMPENHO_BASE_30_DIAS.map((base) => {
+    const meta = resumoPrevisao.metasResponsaveis.find(
+      (item) => item.responsavel === base.responsavel,
+    );
+    const contatosDoResponsavel = contatos.filter(
+      (contato) => contato.responsavel === base.responsavel,
+    );
+    const negociosGanhos = contatosDoResponsavel.filter(
+      (contato) => contato.proposta?.estado === "Ganha",
+    );
+    const realizadoDaSessao = negociosGanhos.reduce(
+      (total, contato) => total + (contato.proposta?.valorNumerico ?? 0),
+      0,
+    );
+    const leads = arredondarVolume(base.leads * fator) + contatosDoResponsavel.length;
+    const visitas =
+      arredondarVolume(base.visitas * fator) +
+      contatosDoResponsavel.filter((contato) => contato.visitaAgendada).length;
+    const propostas =
+      arredondarVolume(base.propostas * fator) +
+      contatosDoResponsavel.filter((contato) => contato.proposta).length;
+    const ganhos = arredondarVolume(base.ganhos * fator) + negociosGanhos.length;
+    const perdidos =
+      arredondarVolume(base.perdidos * fator) +
+      contatosDoResponsavel.filter((contato) => contato.proposta?.estado === "Perdida").length;
+    const metaDoPeriodo = (meta?.meta ?? 0) * fator;
+    const realizado = (meta?.realizado ?? 0) * fator + realizadoDaSessao;
+    const previsto = Math.max(realizado, (meta?.previsao ?? 0) * fator);
+
+    return {
+      responsavel: base.responsavel,
+      leads,
+      visitas,
+      propostas,
+      ganhos,
+      perdidos,
+      meta: metaDoPeriodo,
+      realizado,
+      previsto,
+      atingimento: metaDoPeriodo > 0 ? (realizado / metaDoPeriodo) * 100 : 0,
+      cor: meta?.cor ?? PALETA_GRAFICOS.petroleo,
+    };
+  }).filter((item) => responsavel === "Toda a equipe" || item.responsavel === responsavel);
+
+  const somar = (campo: "leads" | "visitas" | "propostas" | "ganhos" | "perdidos") =>
+    desempenho.reduce((total, item) => total + item[campo], 0);
+  const somarValor = (campo: "meta" | "realizado" | "previsto") =>
+    desempenho.reduce((total, item) => total + item[campo], 0);
+  const leads = somar("leads");
+  const volumesEtapas = [
+    { etapa: "Novos contatos", quantidade: leads, cor: PALETA_GRAFICOS.violeta },
+    {
+      etapa: "Em atendimento",
+      quantidade: arredondarVolume(leads * 0.64),
+      cor: PALETA_GRAFICOS.azulCeu,
+    },
+    { etapa: "Visita agendada", quantidade: somar("visitas"), cor: PALETA_GRAFICOS.dourado },
+    { etapa: "Proposta enviada", quantidade: somar("propostas"), cor: PALETA_GRAFICOS.coral },
+    { etapa: "Negócio fechado", quantidade: somar("ganhos"), cor: PALETA_GRAFICOS.esmeralda },
+    { etapa: "Negócio perdido", quantidade: somar("perdidos"), cor: PALETA_GRAFICOS.magenta },
+  ];
+  const conversaoEtapas = volumesEtapas.map((etapa) => ({
+    ...etapa,
+    taxa: leads > 0 ? (etapa.quantidade / leads) * 100 : 0,
+  }));
+  const ganhos = somar("ganhos");
+
+  return {
+    periodo,
+    responsavel,
+    desempenho,
+    conversaoEtapas,
+    totais: {
+      leads,
+      visitas: somar("visitas"),
+      propostas: somar("propostas"),
+      ganhos,
+      perdidos: somar("perdidos"),
+      meta: somarValor("meta"),
+      realizado: somarValor("realizado"),
+      previsto: somarValor("previsto"),
+      taxaConversao: leads > 0 ? (ganhos / leads) * 100 : 0,
+    },
+  };
+}

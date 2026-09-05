@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
-import { calcularPrevisaoSintetica } from "./src/components/demo/demo-data";
+import {
+  calcularPrevisaoSintetica,
+  calcularRelatorioComercialSintetico,
+} from "./src/components/demo/demo-data";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -663,6 +666,115 @@ for (const previsao of [previsaoConservadora, previsaoRealista, previsaoOtimista
   );
   assertions += 1;
 }
+ok(
+  workspace.includes('useState<PeriodoRelatorioComercial>("Últimos 30 dias")') &&
+    workspace.includes('useState<FiltroResponsavelRelatorio>("Toda a equipe")') &&
+    workspace.includes(
+      "Os filtros são compartilhados entre Dashboard e Análises somente durante esta sessão",
+    ),
+  "Dashboard e Análises devem compartilhar filtros comerciais apenas em memória",
+);
+for (const periodo of ["Últimos 7 dias", "Últimos 30 dias", "Últimos 90 dias"]) {
+  ok(data.includes(periodo), `o relatório deve oferecer o período amigável ${periodo}`);
+}
+ok(
+  workspace.includes("Período do relatório") &&
+    workspace.includes("Responsável comercial") &&
+    workspace.includes("Toda a equipe"),
+  "os filtros do relatório devem ter rótulos autoexplicativos em PT-BR",
+);
+ok(
+  workspace.includes("Resumo comercial do período") &&
+    workspace.includes("Leads no relatório") &&
+    workspace.includes("Receita realizada") &&
+    workspace.includes("Receita prevista"),
+  "o Dashboard deve refletir o relatório comercial sintético",
+);
+ok(
+  workspace.includes("Conversão por etapa") &&
+    workspace.includes("Taxa de conversão (%)") &&
+    workspace.includes("Desempenho fictício por responsável"),
+  "Análises deve apresentar conversão e desempenho por responsável",
+);
+ok(
+  workspace.includes("Meta, realizado e previsto") &&
+    workspace.includes('name="Meta"') &&
+    workspace.includes('name="Realizado"') &&
+    workspace.includes('name="Previsto"'),
+  "os gráficos devem comparar meta, realizado e previsto com legendas em PT-BR",
+);
+ok(
+  workspace.includes("Simular exportação") &&
+    workspace.includes("Exportação simulada pronta") &&
+    workspace.includes("nenhum arquivo foi gerado") &&
+    !workspace.includes("createObjectURL") &&
+    !workspace.includes("download="),
+  "a exportação deve ser somente simulada, sem criar arquivo ou download",
+);
+
+const relatorio30Dias = calcularRelatorioComercialSintetico({
+  periodo: "Últimos 30 dias",
+  responsavel: "Toda a equipe",
+  resumoPrevisao: previsaoRealista,
+});
+assert.deepEqual(
+  {
+    leads: relatorio30Dias.totais.leads,
+    visitas: relatorio30Dias.totais.visitas,
+    propostas: relatorio30Dias.totais.propostas,
+    ganhos: relatorio30Dias.totais.ganhos,
+    perdidos: relatorio30Dias.totais.perdidos,
+  },
+  { leads: 421, visitas: 173, propostas: 68, ganhos: 35, perdidos: 23 },
+);
+assertions += 1;
+assert.equal(relatorio30Dias.totais.meta, 52_000_000);
+assertions += 1;
+assert.equal(relatorio30Dias.totais.realizado, 4_900_000);
+assertions += 1;
+assert.equal(Math.round(relatorio30Dias.totais.previsto), 31_315_000);
+assertions += 1;
+assert.deepEqual(
+  relatorio30Dias.conversaoEtapas.map((etapa) => etapa.etapa),
+  [
+    "Novos contatos",
+    "Em atendimento",
+    "Visita agendada",
+    "Proposta enviada",
+    "Negócio fechado",
+    "Negócio perdido",
+  ],
+);
+assertions += 1;
+assert.equal(relatorio30Dias.conversaoEtapas[0].taxa, 100);
+assertions += 1;
+
+const relatorio7Dias = calcularRelatorioComercialSintetico({
+  periodo: "Últimos 7 dias",
+  responsavel: "Toda a equipe",
+  resumoPrevisao: previsaoRealista,
+});
+const relatorio90Dias = calcularRelatorioComercialSintetico({
+  periodo: "Últimos 90 dias",
+  responsavel: "Toda a equipe",
+  resumoPrevisao: previsaoRealista,
+});
+ok(
+  relatorio7Dias.totais.leads < relatorio30Dias.totais.leads &&
+    relatorio30Dias.totais.leads < relatorio90Dias.totais.leads,
+  "os períodos devem produzir volumes crescentes e determinísticos",
+);
+const relatorioAmanda = calcularRelatorioComercialSintetico({
+  periodo: "Últimos 30 dias",
+  responsavel: "Amanda Reis",
+  resumoPrevisao: previsaoRealista,
+});
+assert.equal(relatorioAmanda.desempenho.length, 1);
+assertions += 1;
+assert.equal(relatorioAmanda.desempenho[0].responsavel, "Amanda Reis");
+assertions += 1;
+assert.equal(relatorioAmanda.totais.leads, 128);
+assertions += 1;
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(
     !`${workspace}\n${workflows}\n${syntheticForecast}`.includes(forbiddenPersistence),
