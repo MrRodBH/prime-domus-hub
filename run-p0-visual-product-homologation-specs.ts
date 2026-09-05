@@ -145,6 +145,7 @@ for (const moduleLabel of [
   "Funil de vendas",
   "Imóveis",
   "Leads",
+  "Agenda da equipe",
   "Campanhas",
   "Análises",
   "Inteligência artificial",
@@ -478,6 +479,7 @@ ok(
     workflows.includes("Próxima ação") &&
     workflows.includes('rotulo="Responsável pela tarefa"') &&
     workflows.includes('rotulo="Prazo da tarefa"') &&
+    workflows.includes('rotulo="Horário da tarefa"') &&
     workflows.includes('rotulo="Prioridade"'),
   "a tarefa deve usar campos claros e autoexplicativos em PT-BR",
 );
@@ -497,8 +499,9 @@ for (const valorAmigavel of [
 }
 ok(
   workflows.includes("Escolha um prazo de hoje ou futuro") &&
+    workflows.includes("Informe o horário da tarefa fictícia para organizar a agenda") &&
     workflows.includes("Descreva a próxima ação com pelo menos 10 caracteres"),
-  "prazo e descrição da tarefa devem ter validações amigáveis",
+  "prazo, horário e descrição da tarefa devem ter validações amigáveis",
 );
 ok(
   workflows.includes("Tarefa de acompanhamento criada") &&
@@ -534,6 +537,46 @@ ok(
     workspace.includes("Alertas ativos") &&
     workspace.includes("Nenhum alerta pendente nesta sessão"),
   "os alertas devem ordenar prioridade e prazo e possuir estado vazio amigável",
+);
+ok(
+  workspace.includes("AgendaDaEquipe") &&
+    workspace.includes("Visão diária") &&
+    workspace.includes("Visão semanal") &&
+    workspace.includes('htmlFor="agenda-data-referencia"'),
+  "a agenda deve oferecer visões diária e semanal com data de referência",
+);
+ok(
+  workspace.includes('htmlFor="agenda-responsavel"') &&
+    workspace.includes("Todos os responsáveis") &&
+    workspace.includes("responsavelSelecionado"),
+  "a agenda deve filtrar compromissos por responsável com rótulo claro",
+);
+ok(
+  workspace.includes("criarEventosAgendaSintetica") &&
+    workspace.includes('tipo: "Visita" as const') &&
+    workspace.includes('tipo: "Tarefa" as const'),
+  "visitas e tarefas devem compor uma agenda unificada em memória",
+);
+ok(
+  workspace.includes("identificarConflitosAgenda") &&
+    workspace.includes("Conflito de horário") &&
+    workspace.includes("Sem conflitos neste período"),
+  "a agenda deve identificar conflitos fictícios e explicar quando não há conflito",
+);
+ok(
+  workspace.includes("calcularCargaEquipeSintetica") &&
+    workspace.includes("Carga equilibrada") &&
+    workspace.includes("Atenção à carga") &&
+    workspace.includes("Nenhuma carga pendente neste período"),
+  "a agenda deve resumir a carga dos responsáveis com estados amigáveis",
+);
+ok(
+  workspace.includes("Carga da equipe nesta sessão") &&
+    workspace.includes('rotulo="Compromissos na agenda"') &&
+    workspace.includes('rotulo="Conflitos de horário"') &&
+    workspace.includes('rotulo="Responsáveis ativos"') &&
+    workspace.includes('rotulo="Maior carga individual"'),
+  "o Dashboard deve refletir agenda, conflitos e carga da equipe",
 );
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(
