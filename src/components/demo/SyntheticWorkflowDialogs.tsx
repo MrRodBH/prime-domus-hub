@@ -6,6 +6,7 @@ import {
   FileSignature,
   FileText,
   Handshake,
+  ListTodo,
   Target,
   Users,
 } from "lucide-react";
@@ -40,6 +41,7 @@ export type ContatoSinteticoCriado = {
   historicoAtendimento: HistoricoAtendimentoSintetico[];
   visitaAgendada?: VisitaSintetica;
   proposta?: PropostaSintetica;
+  tarefas?: TarefaSintetica[];
 };
 
 export type HistoricoAtendimentoSintetico = {
@@ -54,7 +56,8 @@ export type HistoricoAtendimentoSintetico = {
     | "Visita"
     | "Proposta"
     | "Negociação"
-    | "Resultado";
+    | "Resultado"
+    | "Tarefa";
 };
 
 export type VisitaSintetica = {
@@ -72,6 +75,17 @@ export type PropostaSintetica = {
   estado: "Em negociação" | "Ganha" | "Perdida";
   ultimaNegociacao: string;
   motivoResultado?: string;
+};
+
+export type TarefaSintetica = {
+  id: string;
+  titulo: string;
+  descricao: string;
+  responsavel: string;
+  prazo: string;
+  prazoExibicao: string;
+  prioridade: "Alta" | "Média" | "Baixa";
+  estado: "Pendente" | "Concluída";
 };
 
 export type ImovelSinteticoCriado = {
@@ -113,6 +127,13 @@ export type PropostaSinteticaAtualizada = {
   contato: ContatoSinteticoCriado;
   proposta: PropostaSintetica;
   etapaDestino: "Proposta enviada" | "Negócio fechado" | "Negócio perdido";
+  novosEventos: HistoricoAtendimentoSintetico[];
+};
+
+export type TarefaSinteticaAtualizada = {
+  contato: ContatoSinteticoCriado;
+  tarefa: TarefaSintetica;
+  acao: "Criar" | "Concluir";
   novosEventos: HistoricoAtendimentoSintetico[];
 };
 
@@ -1049,6 +1070,234 @@ export function AcompanharLeadSinteticoDialog({
           <RodapeFormulario
             rotulo={etapaDestino === etapaAtual ? "Registrar atendimento" : "Salvar e avançar"}
           />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const responsaveisFicticios = ["Ana Ribeiro", "Bruno Lima", "Camila Torres", "Diego Martins"];
+
+export function GerenciarTarefasSinteticasDialog({
+  contato,
+  onConfirmar,
+  className,
+}: {
+  contato: ContatoSinteticoCriado;
+  onConfirmar: (atualizacao: TarefaSinteticaAtualizada) => void;
+  className?: string;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [responsavel, setResponsavel] = useState(responsaveisFicticios[0]);
+  const [prazo, setPrazo] = useState("");
+  const [prioridade, setPrioridade] = useState<TarefaSintetica["prioridade"]>("Alta");
+  const [erro, setErro] = useState("");
+  const tarefas = contato.tarefas ?? [];
+
+  function prepararFormulario() {
+    setTitulo("");
+    setDescricao("");
+    setResponsavel(
+      responsaveisFicticios.includes(contato.responsavel)
+        ? contato.responsavel
+        : responsaveisFicticios[0],
+    );
+    setPrazo("");
+    setPrioridade("Alta");
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    if (proximo) prepararFormulario();
+    setAberto(proximo);
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (titulo.trim().length < 4) {
+      setErro("Informe uma tarefa com pelo menos 4 caracteres.");
+      return;
+    }
+    if (descricao.trim().length < 10) {
+      setErro("Descreva a próxima ação com pelo menos 10 caracteres.");
+      return;
+    }
+    if (!prazo || prazo < new Date().toISOString().slice(0, 10)) {
+      setErro("Escolha um prazo de hoje ou futuro para a tarefa fictícia.");
+      return;
+    }
+
+    const prazoExibicao = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
+      new Date(`${prazo}T12:00:00`),
+    );
+    const tarefa: TarefaSintetica = {
+      id: `tarefa-${Date.now()}`,
+      titulo: titulo.trim(),
+      descricao: descricao.trim(),
+      responsavel,
+      prazo,
+      prazoExibicao,
+      prioridade,
+      estado: "Pendente",
+    };
+    const novosEventos: HistoricoAtendimentoSintetico[] = [
+      {
+        titulo: "Tarefa de acompanhamento criada",
+        detalhe: `${tarefa.titulo} · ${tarefa.responsavel} · ${tarefa.prioridade} · prazo ${tarefa.prazoExibicao}`,
+        momento: "Agora",
+        tipo: "Tarefa",
+      },
+    ];
+    if (responsavel !== contato.responsavel) {
+      novosEventos.push({
+        titulo: "Responsável distribuído",
+        detalhe: `${contato.responsavel} → ${responsavel}`,
+        momento: "Agora",
+        tipo: "Tarefa",
+      });
+    }
+    onConfirmar({ contato, tarefa, acao: "Criar", novosEventos });
+    setAberto(false);
+  }
+
+  function concluirTarefa(tarefa: TarefaSintetica) {
+    onConfirmar({
+      contato,
+      tarefa: { ...tarefa, estado: "Concluída" },
+      acao: "Concluir",
+      novosEventos: [
+        {
+          titulo: "Tarefa concluída",
+          detalhe: `${tarefa.titulo} · responsável ${tarefa.responsavel}`,
+          momento: "Agora",
+          tipo: "Tarefa",
+        },
+      ],
+    });
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className={className ?? "w-full rounded-xl"}>
+          <ListTodo className="mr-2 size-4" />
+          Gerenciar tarefas
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>Gerenciar tarefas de demonstração</DialogTitle>
+          <DialogDescription>
+            Distribua a próxima ação da equipe e acompanhe o prazo sem notificação ou dado real.
+          </DialogDescription>
+        </DialogHeader>
+        <AvisoSessaoSintetica />
+        <div className="rounded-xl border border-[#123f47]/10 bg-[#f7f5f0] p-3">
+          <strong className="block text-sm text-[#123f47]">{contato.nome}</strong>
+          <span className="mt-1 block text-xs text-[#587076]">
+            Responsável atual: {contato.responsavel}
+          </span>
+        </div>
+        {tarefas.length > 0 ? (
+          <section aria-label="Tarefas do lead nesta sessão">
+            <p className="text-sm font-semibold text-[#123f47]">Tarefas desta sessão</p>
+            <ul className="mt-2 grid max-h-44 gap-2 overflow-y-auto">
+              {[...tarefas].reverse().map((tarefa) => (
+                <li
+                  key={tarefa.id}
+                  className="rounded-xl border border-[#123f47]/10 bg-white px-3 py-2"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <strong className="block text-xs text-[#123f47]">{tarefa.titulo}</strong>
+                      <span className="mt-1 block text-[11px] text-[#587076]">
+                        {tarefa.responsavel} · prazo {tarefa.prazoExibicao} · prioridade{" "}
+                        {tarefa.prioridade}
+                      </span>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                        tarefa.estado === "Concluída"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {tarefa.estado}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-[#587076]">{tarefa.descricao}</p>
+                  {tarefa.estado === "Pendente" ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="mt-2 w-full rounded-lg border-emerald-300 text-emerald-800"
+                      onClick={() => concluirTarefa(tarefa)}
+                    >
+                      Concluir tarefa
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <p className="text-sm font-semibold text-[#123f47]">Nova tarefa de acompanhamento</p>
+          <CampoTexto
+            id="tarefa-titulo"
+            rotulo="Tarefa"
+            value={titulo}
+            onChange={(evento) => setTitulo(evento.target.value)}
+            placeholder="Ex.: Confirmar documentos da proposta"
+          />
+          <label
+            htmlFor="tarefa-descricao"
+            className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+          >
+            Próxima ação
+            <Textarea
+              id="tarefa-descricao"
+              className="min-h-20 rounded-xl border-[#123f47]/15 bg-white"
+              value={descricao}
+              onChange={(evento) => setDescricao(evento.target.value)}
+              placeholder="Descreva de forma clara o que a equipe deverá fazer."
+            />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoSelecao
+              id="tarefa-responsavel"
+              rotulo="Responsável pela tarefa"
+              value={responsavel}
+              onChange={setResponsavel}
+            >
+              {responsaveisFicticios.map((nome) => (
+                <option key={nome}>{nome}</option>
+              ))}
+            </CampoSelecao>
+            <CampoSelecao
+              id="tarefa-prioridade"
+              rotulo="Prioridade"
+              value={prioridade}
+              onChange={(valor) => setPrioridade(valor as TarefaSintetica["prioridade"])}
+            >
+              <option>Alta</option>
+              <option>Média</option>
+              <option>Baixa</option>
+            </CampoSelecao>
+          </div>
+          <CampoTexto
+            id="tarefa-prazo"
+            rotulo="Prazo da tarefa"
+            type="date"
+            min={new Date().toISOString().slice(0, 10)}
+            value={prazo}
+            onChange={(evento) => setPrazo(evento.target.value)}
+          />
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario rotulo="Criar tarefa fictícia" />
         </form>
       </DialogContent>
     </Dialog>

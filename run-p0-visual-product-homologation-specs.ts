@@ -281,12 +281,13 @@ for (const workflowTitle of [
   "Criar página de demonstração",
   "Criar proposta de demonstração",
   "Atualizar negociação de demonstração",
+  "Gerenciar tarefas de demonstração",
 ]) {
   ok(workflows.includes(workflowTitle), `a homologação deve oferecer a jornada: ${workflowTitle}`);
 }
 ok(
-  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 7,
-  "os sete formulários devem permanecer sob controle local",
+  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 8,
+  "os oito formulários devem permanecer sob controle local",
 );
 ok(
   workflows.includes("permanece apenas nesta sessão") &&
@@ -471,6 +472,68 @@ ok(
   workspace.includes("valorNegociosGanhosSinteticos") &&
     workspace.includes("38_700_000 + valorNegociosGanhosSinteticos"),
   "o valor geral de vendas deve incorporar somente negócios sintéticos ganhos",
+);
+ok(
+  workflows.includes('rotulo="Tarefa"') &&
+    workflows.includes("Próxima ação") &&
+    workflows.includes('rotulo="Responsável pela tarefa"') &&
+    workflows.includes('rotulo="Prazo da tarefa"') &&
+    workflows.includes('rotulo="Prioridade"'),
+  "a tarefa deve usar campos claros e autoexplicativos em PT-BR",
+);
+for (const valorAmigavel of [
+  "Ana Ribeiro",
+  "Bruno Lima",
+  "Camila Torres",
+  "Diego Martins",
+  "Alta",
+  "Média",
+  "Baixa",
+]) {
+  ok(
+    workflows.includes(valorAmigavel),
+    `a distribuição da tarefa deve oferecer a opção amigável: ${valorAmigavel}`,
+  );
+}
+ok(
+  workflows.includes("Escolha um prazo de hoje ou futuro") &&
+    workflows.includes("Descreva a próxima ação com pelo menos 10 caracteres"),
+  "prazo e descrição da tarefa devem ter validações amigáveis",
+);
+ok(
+  workflows.includes("Tarefa de acompanhamento criada") &&
+    workflows.includes("Responsável distribuído") &&
+    workflows.includes("Tarefa concluída") &&
+    workflows.includes('tipo: "Tarefa"'),
+  "criação, distribuição e conclusão devem entrar no histórico do lead",
+);
+ok(
+  workspace.includes("salvarTarefaSintetica") &&
+    workspace.includes('acao === "Criar"') &&
+    workspace.includes("tarefa.responsavel") &&
+    workspace.includes("historicoAtendimento: [...item.historicoAtendimento, ...novosEventos]"),
+  "o estado local deve manter tarefa, responsável e histórico no mesmo lead",
+);
+ok(
+  workspace.includes("GerenciarTarefasSinteticasDialog") &&
+    workspace.includes("ResumoTarefasSinteticas") &&
+    workspace.includes("Todas as tarefas foram concluídas"),
+  "Funil e Leads devem exibir e operar as tarefas da sessão",
+);
+ok(
+  workspace.includes("Tarefas e alertas da equipe nesta sessão") &&
+    workspace.includes('rotulo="Tarefas pendentes"') &&
+    workspace.includes('rotulo="Alta prioridade"') &&
+    workspace.includes('rotulo="Vencem hoje"') &&
+    workspace.includes('rotulo="Tarefas concluídas"'),
+  "o Dashboard deve refletir prazos, prioridades e conclusão das tarefas",
+);
+ok(
+  workspace.includes("ordemPrioridade") &&
+    workspace.includes("a.prazo.localeCompare(b.prazo)") &&
+    workspace.includes("Alertas ativos") &&
+    workspace.includes("Nenhum alerta pendente nesta sessão"),
+  "os alertas devem ordenar prioridade e prazo e possuir estado vazio amigável",
 );
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(
