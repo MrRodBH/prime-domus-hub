@@ -247,6 +247,31 @@ ok(
   "as buscas devem apresentar estados vazios amigáveis",
 );
 ok(
+  workspace.includes("window.location.hash.slice(1)") &&
+    workspace.includes('window.addEventListener("hashchange"'),
+  "cada módulo deve poder ser aberto por um endereço compartilhável",
+);
+ok(
+  workspace.includes('aria-label="Filtrar imóveis por disponibilidade"') &&
+    workspace.includes('aria-label="Ordenar imóveis"'),
+  "o catálogo deve oferecer filtros sintéticos funcionais e autoexplicativos",
+);
+ok(
+  workspace.includes('aria-label="Filtrar contatos por prioridade"') &&
+    workspace.includes("prioridadeLead"),
+  "a gestão de leads deve filtrar prioridades sintéticas na própria tela",
+);
+ok(
+  workspace.includes('className="grid gap-3 p-4 md:hidden"') &&
+    workspace.includes('className="hidden overflow-x-auto md:block"'),
+  "leads devem usar cartões no celular e tabela em telas maiores",
+);
+ok(
+  workspace.includes("Bom trabalho, equipe comercial") &&
+    !workspace.includes("Bom trabalho, Rodolfo"),
+  "a demonstração pública deve acolher owner e equipe sem personalização fixa",
+);
+ok(
   designSystem.includes("Os rótulos ficam sempre visíveis"),
   "a biblioteca deve registrar rótulos claros em PT-BR",
 );
