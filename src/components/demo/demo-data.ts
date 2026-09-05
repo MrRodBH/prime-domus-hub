@@ -635,6 +635,35 @@ export type ResultadosPlaybooksComerciaisSinteticos = Record<
   ResultadoPlaybookComercialSintetico
 >;
 
+export type ComparacaoPlaybookSintetico = {
+  posicao: number;
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"];
+  faixa: FaixaResultadoPlaybookSintetico;
+  efetividade: number;
+  praticaEficaz: string;
+  justificativaPratica: string;
+  recomendacaoMelhoria: string;
+  justificativaMelhoria: string;
+  aprendizadoBase: string;
+  origemPlaybookId: string;
+};
+
+export type PlaybookMelhoriaContinuaSintetico = {
+  id: string;
+  origemPlaybookId: string;
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"];
+  titulo: string;
+  praticaBase: string;
+  aprendizadoBase: string;
+  objetivoMelhoria: string;
+  justificativa: string;
+  prazoFicticio: string;
+  etapas: string[];
+  criadoEm: string;
+};
+
+export type PlaybooksMelhoriaContinuaSinteticos = Record<string, PlaybookMelhoriaContinuaSintetico>;
+
 export function criarChaveDecisaoComercial(
   periodo: PeriodoRelatorioComercial,
   responsavel: RecomendacaoResponsavelSintetica["responsavel"],
@@ -837,6 +866,86 @@ export function calcularResumoResultadosPlaybooksSinteticos({
           )
         : 0,
   };
+}
+
+export function calcularComparativoPlaybooksSinteticos({
+  resultados,
+  periodo,
+  recomendacoes,
+}: {
+  resultados: ResultadosPlaybooksComerciaisSinteticos;
+  periodo: PeriodoRelatorioComercial;
+  recomendacoes: RecomendacaoResponsavelSintetica[];
+}): ComparacaoPlaybookSintetico[] {
+  return recomendacoes
+    .flatMap((recomendacao) => {
+      const resultado = resultados[criarChaveDecisaoComercial(periodo, recomendacao.responsavel)];
+      if (!resultado) return [];
+      const pratica = PRATICA_MELHORIA_POR_RESPONSAVEL[resultado.responsavel];
+      const orientacao = ORIENTACAO_MELHORIA_POR_FAIXA[resultado.faixa];
+      return [
+        {
+          posicao: 0,
+          responsavel: resultado.responsavel,
+          faixa: resultado.faixa,
+          efetividade: resultado.efetividade,
+          praticaEficaz: pratica.pratica,
+          justificativaPratica: pratica.justificativa,
+          recomendacaoMelhoria: `${orientacao} ${pratica.proximoTeste}`,
+          justificativaMelhoria: `${resultado.comparacaoExplicavel} Por isso, o próximo ciclo deve preservar o que funcionou e testar uma única melhoria por vez.`,
+          aprendizadoBase: resultado.aprendizadoExplicavel,
+          origemPlaybookId: resultado.playbookId,
+        },
+      ];
+    })
+    .sort(
+      (a, b) =>
+        b.efetividade - a.efetividade || a.responsavel.localeCompare(b.responsavel, "pt-BR"),
+    )
+    .map((comparacao, indice) => ({ ...comparacao, posicao: indice + 1 }));
+}
+
+export function reaplicarAprendizadoEmNovoPlaybookSintetico({
+  playbooks,
+  comparacao,
+}: {
+  playbooks: PlaybooksMelhoriaContinuaSinteticos;
+  comparacao: ComparacaoPlaybookSintetico;
+}): PlaybooksMelhoriaContinuaSinteticos {
+  const id = `melhoria:${comparacao.origemPlaybookId}`;
+  if (playbooks[id]) return playbooks;
+  const modelo = PRATICA_MELHORIA_POR_RESPONSAVEL[comparacao.responsavel];
+  return {
+    ...playbooks,
+    [id]: {
+      id,
+      origemPlaybookId: comparacao.origemPlaybookId,
+      responsavel: comparacao.responsavel,
+      titulo: `Novo ciclo: ${modelo.pratica}`,
+      praticaBase: modelo.pratica,
+      aprendizadoBase: comparacao.aprendizadoBase,
+      objetivoMelhoria: comparacao.recomendacaoMelhoria,
+      justificativa: comparacao.justificativaMelhoria,
+      prazoFicticio: "Próximos 3 dias úteis (fictício)",
+      etapas: [
+        `Preparar um novo conjunto sintético para testar ${modelo.pratica.toLocaleLowerCase("pt-BR")}.`,
+        `Aplicar a prática com a melhoria proposta: ${modelo.proximoTeste}`,
+        "Comparar o novo resultado fictício com o ciclo anterior e registrar o aprendizado.",
+      ],
+      criadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function removerPlaybookMelhoriaContinuaPorOrigem(
+  playbooks: PlaybooksMelhoriaContinuaSinteticos,
+  origemPlaybookId: string,
+) {
+  const id = `melhoria:${origemPlaybookId}`;
+  if (!playbooks[id]) return playbooks;
+  const atualizados = { ...playbooks };
+  delete atualizados[id];
+  return atualizados;
 }
 
 export function calcularResumoDecisoesComerciaisSinteticas({
@@ -1115,6 +1224,42 @@ const RESULTADO_PLAYBOOK_POR_RESPONSAVEL: Record<
         "Revisar risco, argumento e prazo em conjunto aumentou a qualidade da carteira priorizada.",
       efetividade: 95,
     },
+  },
+};
+
+const ORIENTACAO_MELHORIA_POR_FAIXA: Record<FaixaResultadoPlaybookSintetico, string> = {
+  "Abaixo do esperado": "Reformular a prática antes de ampliar seu uso.",
+  "Dentro do esperado": "Padronizar a prática e testar um refinamento controlado.",
+  "Acima do esperado": "Reaplicar a prática preservando os fatores que elevaram o resultado.",
+};
+
+const PRATICA_MELHORIA_POR_RESPONSAVEL: Record<
+  RecomendacaoResponsavelSintetica["responsavel"],
+  { pratica: string; justificativa: string; proximoTeste: string }
+> = {
+  "Amanda Reis": {
+    pratica: "Retomada contextualizada pela visita",
+    justificativa:
+      "A mensagem recupera o interesse já demonstrado e reduz a distância entre visita e proposta.",
+    proximoTeste: "variar o horário da retomada mantendo o contexto individual da visita.",
+  },
+  "Lucas Prado": {
+    pratica: "Priorização por urgência, valor e chance de avanço",
+    justificativa:
+      "A combinação direciona o esforço para negociações paradas com maior retorno potencial.",
+    proximoTeste: "adicionar um prazo curto de retorno às negociações de maior prioridade.",
+  },
+  "Bruno Lima": {
+    pratica: "Confirmação de interesse logo após a visita",
+    justificativa:
+      "O contato próximo da visita preserva o contexto e antecipa a definição de condições da proposta.",
+    proximoTeste: "validar condições e imóvel preferido na mesma retomada fictícia.",
+  },
+  "Camila Torres": {
+    pratica: "Priorização equilibrada entre valor e probabilidade",
+    justificativa:
+      "O equilíbrio evita concentrar a previsão apenas em oportunidades valiosas, porém pouco prováveis.",
+    proximoTeste: "dar peso maior ao risco antes de definir o próximo passo da carteira.",
   },
 };
 

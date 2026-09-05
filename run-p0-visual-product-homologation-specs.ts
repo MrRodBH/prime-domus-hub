@@ -5,6 +5,7 @@ import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
 import {
   alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
+  calcularComparativoPlaybooksSinteticos,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -13,6 +14,8 @@ import {
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
   registrarResultadoPlaybookComercialSintetico,
+  reaplicarAprendizadoEmNovoPlaybookSintetico,
+  removerPlaybookMelhoriaContinuaPorOrigem,
   removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
 } from "./src/components/demo/demo-data";
@@ -815,6 +818,24 @@ ok(
     workspace.includes("useState<ResultadosPlaybooksComerciaisSinteticos>({})"),
   "o aprendizado deve depender da conclusão e permanecer exclusivamente em memória",
 );
+ok(
+  workspace.includes("Central de melhoria contínua") &&
+    workspace.includes("Comparação de efetividade por responsável") &&
+    workspace.includes("Prática fictícia mais eficaz"),
+  "Dashboard, Análises e IA devem comparar playbooks e práticas por responsável",
+);
+ok(
+  workspace.includes("Recomendação explicável de melhoria") &&
+    workspace.includes("Reaplicar aprendizado") &&
+    workspace.includes("Novos playbooks por aprendizado reaplicado"),
+  "a melhoria contínua deve explicar a recomendação e permitir reaplicação simulada",
+);
+ok(
+  data.includes("calcularComparativoPlaybooksSinteticos") &&
+    data.includes("reaplicarAprendizadoEmNovoPlaybookSintetico") &&
+    workspace.includes("useState<PlaybooksMelhoriaContinuaSinteticos>({})"),
+  "comparação e reaplicação devem permanecer exclusivamente em memória",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -1063,6 +1084,92 @@ const playbooksRemovidos = sincronizarPlaybookComDecisaoSintetica({
 assert.deepEqual(playbooksRemovidos, {});
 assertions += 1;
 assert.deepEqual(playbooksVazios, {});
+assertions += 1;
+let playbooksAmandaEBruno = sincronizarPlaybookComDecisaoSintetica({
+  playbooks: playbooksAmandaConcluido,
+  periodo: "Últimos 30 dias",
+  recomendacao: insightsEquipe.recomendacoes[2],
+  estado: "Aceita",
+});
+const playbookBruno = Object.values(playbooksAmandaEBruno).find(
+  (playbook) => playbook.responsavel === "Bruno Lima",
+);
+ok(playbookBruno, "a comparação deve incluir o playbook fictício de Bruno Lima");
+for (const etapa of playbookBruno.etapas) {
+  playbooksAmandaEBruno = alternarEtapaPlaybookComercialSintetico({
+    playbooks: playbooksAmandaEBruno,
+    playbookId: playbookBruno.id,
+    etapaId: etapa.id,
+  });
+}
+const resultadosAmandaEBruno = registrarResultadoPlaybookComercialSintetico({
+  resultados: resultadoAmandaDentro,
+  playbook: playbooksAmandaEBruno[playbookBruno.id],
+  recomendacao: insightsEquipe.recomendacoes[2],
+  faixa: "Dentro do esperado",
+});
+const comparativoPlaybooks = calcularComparativoPlaybooksSinteticos({
+  resultados: resultadosAmandaEBruno,
+  periodo: "Últimos 30 dias",
+  recomendacoes: insightsEquipe.recomendacoes,
+});
+assert.deepEqual(
+  comparativoPlaybooks.map(({ posicao, responsavel, efetividade }) => ({
+    posicao,
+    responsavel,
+    efetividade,
+  })),
+  [
+    { posicao: 1, responsavel: "Bruno Lima", efetividade: 81 },
+    { posicao: 2, responsavel: "Amanda Reis", efetividade: 76 },
+  ],
+);
+assertions += 1;
+ok(
+  comparativoPlaybooks.every(
+    (item) =>
+      item.praticaEficaz.length > 20 &&
+      item.justificativaPratica.length > 40 &&
+      item.recomendacaoMelhoria.length > 40 &&
+      item.justificativaMelhoria.length > 40,
+  ),
+  "cada comparação deve explicar prática, recomendação e justificativa em PT-BR",
+);
+const playbooksMelhoriaVazios = {};
+const playbooksMelhoriaBruno = reaplicarAprendizadoEmNovoPlaybookSintetico({
+  playbooks: playbooksMelhoriaVazios,
+  comparacao: comparativoPlaybooks[0],
+});
+const novoPlaybookBruno = Object.values(playbooksMelhoriaBruno)[0];
+assert.deepEqual(
+  {
+    responsavel: novoPlaybookBruno.responsavel,
+    origemPlaybookId: novoPlaybookBruno.origemPlaybookId,
+    aprendizadoBase: novoPlaybookBruno.aprendizadoBase,
+    quantidadeEtapas: novoPlaybookBruno.etapas.length,
+  },
+  {
+    responsavel: "Bruno Lima",
+    origemPlaybookId: playbookBruno.id,
+    aprendizadoBase: resultadosAmandaEBruno[playbookBruno.id].aprendizadoExplicavel,
+    quantidadeEtapas: 3,
+  },
+);
+assertions += 1;
+assert.equal(
+  reaplicarAprendizadoEmNovoPlaybookSintetico({
+    playbooks: playbooksMelhoriaBruno,
+    comparacao: comparativoPlaybooks[0],
+  }),
+  playbooksMelhoriaBruno,
+);
+assertions += 1;
+assert.deepEqual(
+  removerPlaybookMelhoriaContinuaPorOrigem(playbooksMelhoriaBruno, playbookBruno.id),
+  {},
+);
+assertions += 1;
+assert.deepEqual(playbooksMelhoriaVazios, {});
 assertions += 1;
 const insightsAmanda = calcularInsightsComerciaisSinteticos({ relatorio: relatorioAmanda });
 assert.equal(insightsAmanda.recomendacoes.length, 1);
