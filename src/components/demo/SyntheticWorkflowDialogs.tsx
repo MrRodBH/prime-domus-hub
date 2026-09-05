@@ -1,0 +1,640 @@
+import { useState, type ComponentProps, type FormEvent, type ReactNode } from "react";
+import { Building2, FileText, Target, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+export type ContatoSinteticoCriado = {
+  nome: string;
+  interesse: string;
+  origem: string;
+  responsavel: string;
+  etapa: string;
+  temperatura: string;
+};
+
+export type ImovelSinteticoCriado = {
+  titulo: string;
+  bairro: string;
+  valorNumerico: number;
+  detalhes: string;
+  estado: string;
+};
+
+export type CampanhaSinteticaCriada = {
+  nome: string;
+  canal: string;
+  estado: string;
+  investimento: string;
+  leads: number;
+  custo: string;
+  conversao: string;
+  cor: string;
+};
+
+export type PaginaSinteticaCriada = {
+  titulo: string;
+  caminho: string;
+  objetivo: string;
+  chamada: string;
+};
+
+const campoClasse =
+  "h-11 rounded-xl border-[#123f47]/15 bg-white focus-visible:border-[#123f47] focus-visible:ring-[#123f47]/15";
+
+function CampoTexto({
+  id,
+  rotulo,
+  observacao,
+  ...props
+}: ComponentProps<typeof Input> & {
+  id: string;
+  rotulo: string;
+  observacao?: string;
+}) {
+  return (
+    <label htmlFor={id} className="grid gap-1.5 text-sm font-semibold text-[#123f47]">
+      {rotulo}
+      <Input id={id} className={campoClasse} {...props} />
+      {observacao ? (
+        <span className="text-xs font-normal leading-5 text-[#587076]">{observacao}</span>
+      ) : null}
+    </label>
+  );
+}
+
+function CampoSelecao({
+  id,
+  rotulo,
+  value,
+  onChange,
+  children,
+}: {
+  id: string;
+  rotulo: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label htmlFor={id} className="grid gap-1.5 text-sm font-semibold text-[#123f47]">
+      {rotulo}
+      <select
+        id={id}
+        className={`${campoClasse} w-full px-3 text-sm font-normal outline-none`}
+        value={value}
+        onChange={(evento) => onChange(evento.target.value)}
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function AvisoSessaoSintetica() {
+  return (
+    <p className="rounded-xl border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-950">
+      Simulação segura: o registro permanece apenas nesta sessão e será descartado ao recarregar a
+      página.
+    </p>
+  );
+}
+
+function ErroFormulario({ mensagem }: { mensagem: string }) {
+  return mensagem ? (
+    <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800">
+      {mensagem}
+    </p>
+  ) : null;
+}
+
+function RodapeFormulario({ rotulo }: { rotulo: string }) {
+  return (
+    <DialogFooter className="gap-2 pt-1">
+      <DialogClose asChild>
+        <Button type="button" variant="outline" className="rounded-xl">
+          Cancelar
+        </Button>
+      </DialogClose>
+      <Button type="submit" className="rounded-xl bg-[#123f47] hover:bg-[#0b3036]">
+        {rotulo}
+      </Button>
+    </DialogFooter>
+  );
+}
+
+const conteudoDialogClasse =
+  "max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border-[#123f47]/10 p-5 sm:max-w-xl sm:p-6";
+
+export function NovoContatoSinteticoDialog({
+  onConfirmar,
+}: {
+  onConfirmar: (contato: ContatoSinteticoCriado) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [interesse, setInteresse] = useState("");
+  const [origem, setOrigem] = useState("Site institucional");
+  const [prioridade, setPrioridade] = useState("Novo");
+  const [erro, setErro] = useState("");
+
+  function limpar() {
+    setNome("");
+    setTelefone("");
+    setInteresse("");
+    setOrigem("Site institucional");
+    setPrioridade("Novo");
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    setAberto(proximo);
+    if (!proximo) limpar();
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (nome.trim().length < 3) {
+      setErro("Informe o nome completo do contato.");
+      return;
+    }
+    if (telefone.replace(/\D/g, "").length < 10) {
+      setErro("Informe um telefone com DDD para continuar.");
+      return;
+    }
+    if (interesse.trim().length < 3) {
+      setErro("Descreva o imóvel ou região de interesse.");
+      return;
+    }
+
+    onConfirmar({
+      nome: nome.trim(),
+      interesse: interesse.trim(),
+      origem,
+      responsavel: "Equipe de demonstração",
+      etapa: "Novo contato",
+      temperatura: prioridade,
+    });
+    alterarAberto(false);
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button className="rounded-xl bg-[#123f47]">
+          <Users className="mr-2 size-4" />
+          Novo contato
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>Novo contato de demonstração</DialogTitle>
+          <DialogDescription>
+            Preencha os campos para visualizar a entrada de um lead no atendimento.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <AvisoSessaoSintetica />
+          <CampoTexto
+            id="contato-nome"
+            rotulo="Nome completo"
+            value={nome}
+            onChange={(evento) => setNome(evento.target.value)}
+            placeholder="Ex.: Marina Oliveira"
+            autoComplete="off"
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoTexto
+              id="contato-telefone"
+              rotulo="Telefone com DDD"
+              value={telefone}
+              onChange={(evento) => setTelefone(evento.target.value)}
+              placeholder="(31) 99999-0000"
+              inputMode="tel"
+              autoComplete="off"
+            />
+            <CampoSelecao
+              id="contato-origem"
+              rotulo="Origem do contato"
+              value={origem}
+              onChange={setOrigem}
+            >
+              <option>Site institucional</option>
+              <option>Meta Ads</option>
+              <option>Google Ads</option>
+              <option>Portal imobiliário</option>
+            </CampoSelecao>
+          </div>
+          <CampoTexto
+            id="contato-interesse"
+            rotulo="Imóvel ou região de interesse"
+            value={interesse}
+            onChange={(evento) => setInteresse(evento.target.value)}
+            placeholder="Ex.: Cobertura em Lourdes"
+            autoComplete="off"
+          />
+          <CampoSelecao
+            id="contato-prioridade"
+            rotulo="Prioridade inicial"
+            value={prioridade}
+            onChange={setPrioridade}
+          >
+            <option value="Novo">Contato novo</option>
+            <option value="Morno">Prioridade morna</option>
+            <option value="Quente">Prioridade quente</option>
+          </CampoSelecao>
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario rotulo="Adicionar à demonstração" />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function NovoImovelSinteticoDialog({
+  onConfirmar,
+}: {
+  onConfirmar: (imovel: ImovelSinteticoCriado) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [localizacao, setLocalizacao] = useState("");
+  const [valor, setValor] = useState("");
+  const [area, setArea] = useState("");
+  const [quartos, setQuartos] = useState("");
+  const [erro, setErro] = useState("");
+
+  function limpar() {
+    setTitulo("");
+    setLocalizacao("");
+    setValor("");
+    setArea("");
+    setQuartos("");
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    setAberto(proximo);
+    if (!proximo) limpar();
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const valorNumerico = Number(valor);
+    const areaNumerica = Number(area);
+    const quartosNumericos = Number(quartos);
+    if (titulo.trim().length < 4) {
+      setErro("Informe um título claro para o imóvel.");
+      return;
+    }
+    if (localizacao.trim().length < 4) {
+      setErro("Informe o bairro e a cidade do imóvel.");
+      return;
+    }
+    if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+      setErro("Informe um valor de venda maior que zero.");
+      return;
+    }
+    if (!Number.isFinite(areaNumerica) || areaNumerica <= 0 || quartosNumericos < 1) {
+      setErro("Informe área e quantidade de quartos válidas.");
+      return;
+    }
+
+    onConfirmar({
+      titulo: titulo.trim(),
+      bairro: localizacao.trim(),
+      valorNumerico,
+      detalhes: `${areaNumerica} m² · ${quartosNumericos} quartos · cadastro sintético`,
+      estado: "Disponível",
+    });
+    alterarAberto(false);
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button className="rounded-xl bg-[#123f47]">
+          <Building2 className="mr-2 size-4" />
+          Cadastrar imóvel
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>Cadastrar imóvel de demonstração</DialogTitle>
+          <DialogDescription>
+            Crie um cartão temporário para avaliar a jornada de cadastro e o catálogo.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <AvisoSessaoSintetica />
+          <CampoTexto
+            id="imovel-titulo"
+            rotulo="Título do imóvel"
+            value={titulo}
+            onChange={(evento) => setTitulo(evento.target.value)}
+            placeholder="Ex.: Apartamento com vista definitiva"
+            autoComplete="off"
+          />
+          <CampoTexto
+            id="imovel-localizacao"
+            rotulo="Bairro e cidade"
+            value={localizacao}
+            onChange={(evento) => setLocalizacao(evento.target.value)}
+            placeholder="Ex.: Savassi · Belo Horizonte"
+            autoComplete="off"
+          />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <CampoTexto
+              id="imovel-valor"
+              rotulo="Valor de venda (R$)"
+              value={valor}
+              onChange={(evento) => setValor(evento.target.value)}
+              type="number"
+              min="1"
+              step="1000"
+              placeholder="2500000"
+            />
+            <CampoTexto
+              id="imovel-area"
+              rotulo="Área privativa (m²)"
+              value={area}
+              onChange={(evento) => setArea(evento.target.value)}
+              type="number"
+              min="1"
+              placeholder="180"
+            />
+            <CampoTexto
+              id="imovel-quartos"
+              rotulo="Quartos"
+              value={quartos}
+              onChange={(evento) => setQuartos(evento.target.value)}
+              type="number"
+              min="1"
+              placeholder="4"
+            />
+          </div>
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario rotulo="Adicionar ao catálogo" />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function NovaCampanhaSinteticaDialog({
+  onConfirmar,
+}: {
+  onConfirmar: (campanha: CampanhaSinteticaCriada) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [nome, setNome] = useState("");
+  const [canal, setCanal] = useState("Meta Ads");
+  const [investimento, setInvestimento] = useState("");
+  const [objetivo, setObjetivo] = useState("");
+  const [erro, setErro] = useState("");
+
+  function limpar() {
+    setNome("");
+    setCanal("Meta Ads");
+    setInvestimento("");
+    setObjetivo("");
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    setAberto(proximo);
+    if (!proximo) limpar();
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const valorInvestimento = Number(investimento);
+    if (nome.trim().length < 4) {
+      setErro("Informe um nome claro para a campanha.");
+      return;
+    }
+    if (!Number.isFinite(valorInvestimento) || valorInvestimento <= 0) {
+      setErro("Informe um orçamento maior que zero.");
+      return;
+    }
+    if (objetivo.trim().length < 10) {
+      setErro("Descreva o objetivo da campanha com pelo menos 10 caracteres.");
+      return;
+    }
+
+    const corPorCanal: Record<string, string> = {
+      "Meta Ads": "from-violet-500 to-fuchsia-500",
+      "Google Ads": "from-orange-500 to-amber-400",
+      "Página de captura": "from-emerald-500 to-teal-400",
+    };
+    onConfirmar({
+      nome: nome.trim(),
+      canal,
+      estado: "Rascunho sintético",
+      investimento: new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        maximumFractionDigits: 0,
+      }).format(valorInvestimento),
+      leads: 0,
+      custo: "—",
+      conversao: "0%",
+      cor: corPorCanal[canal] ?? "from-sky-500 to-cyan-400",
+    });
+    alterarAberto(false);
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button className="rounded-xl bg-[#123f47]">
+          <Target className="mr-2 size-4" />
+          Planejar campanha
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>Planejar campanha de demonstração</DialogTitle>
+          <DialogDescription>
+            Simule canal, orçamento e objetivo sem criar campanha em um provedor.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <AvisoSessaoSintetica />
+          <CampoTexto
+            id="campanha-nome"
+            rotulo="Nome da campanha"
+            value={nome}
+            onChange={(evento) => setNome(evento.target.value)}
+            placeholder="Ex.: Imóveis em Lourdes — setembro"
+            autoComplete="off"
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoSelecao
+              id="campanha-canal"
+              rotulo="Canal de divulgação"
+              value={canal}
+              onChange={setCanal}
+            >
+              <option>Meta Ads</option>
+              <option>Google Ads</option>
+              <option>Página de captura</option>
+            </CampoSelecao>
+            <CampoTexto
+              id="campanha-investimento"
+              rotulo="Orçamento simulado (R$)"
+              value={investimento}
+              onChange={(evento) => setInvestimento(evento.target.value)}
+              type="number"
+              min="1"
+              step="100"
+              placeholder="5000"
+            />
+          </div>
+          <label
+            htmlFor="campanha-objetivo"
+            className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+          >
+            Objetivo da campanha
+            <Textarea
+              id="campanha-objetivo"
+              className="min-h-24 rounded-xl border-[#123f47]/15 bg-white"
+              value={objetivo}
+              onChange={(evento) => setObjetivo(evento.target.value)}
+              placeholder="Ex.: Gerar contatos interessados em apartamentos de alto padrão."
+            />
+          </label>
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario rotulo="Criar rascunho sintético" />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function NovaPaginaSinteticaDialog({
+  onConfirmar,
+}: {
+  onConfirmar: (pagina: PaginaSinteticaCriada) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [caminho, setCaminho] = useState("");
+  const [objetivo, setObjetivo] = useState("");
+  const [chamada, setChamada] = useState("");
+  const [erro, setErro] = useState("");
+
+  function limpar() {
+    setTitulo("");
+    setCaminho("");
+    setObjetivo("");
+    setChamada("");
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    setAberto(proximo);
+    if (!proximo) limpar();
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (titulo.trim().length < 4) {
+      setErro("Informe um título claro para a página.");
+      return;
+    }
+    if (!/^\/[a-z0-9]+(?:[/-][a-z0-9]+)*$/.test(caminho.trim())) {
+      setErro("Use um endereço iniciado por /, com letras minúsculas, números e hífens.");
+      return;
+    }
+    if (objetivo.trim().length < 10) {
+      setErro("Descreva o objetivo da página com pelo menos 10 caracteres.");
+      return;
+    }
+    if (chamada.trim().length < 3) {
+      setErro("Informe o texto principal do botão da página.");
+      return;
+    }
+
+    onConfirmar({
+      titulo: titulo.trim(),
+      caminho: caminho.trim(),
+      objetivo: objetivo.trim(),
+      chamada: chamada.trim(),
+    });
+    alterarAberto(false);
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button className="rounded-xl bg-[#123f47]">
+          <FileText className="mr-2 size-4" />
+          Criar página
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>Criar página de demonstração</DialogTitle>
+          <DialogDescription>
+            Monte um rascunho temporário para avaliar conteúdo e chamada principal.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <AvisoSessaoSintetica />
+          <CampoTexto
+            id="pagina-titulo"
+            rotulo="Título da página"
+            value={titulo}
+            onChange={(evento) => setTitulo(evento.target.value)}
+            placeholder="Ex.: Coberturas em Belo Horizonte"
+            autoComplete="off"
+          />
+          <CampoTexto
+            id="pagina-caminho"
+            rotulo="Endereço da página"
+            value={caminho}
+            onChange={(evento) => setCaminho(evento.target.value)}
+            placeholder="/coberturas-belo-horizonte"
+            observacao="Este endereço é apenas uma prévia e não será publicado."
+            autoComplete="off"
+          />
+          <label
+            htmlFor="pagina-objetivo"
+            className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+          >
+            Objetivo da página
+            <Textarea
+              id="pagina-objetivo"
+              className="min-h-24 rounded-xl border-[#123f47]/15 bg-white"
+              value={objetivo}
+              onChange={(evento) => setObjetivo(evento.target.value)}
+              placeholder="Ex.: Apresentar imóveis selecionados e captar pedidos de visita."
+            />
+          </label>
+          <CampoTexto
+            id="pagina-chamada"
+            rotulo="Texto do botão principal"
+            value={chamada}
+            onChange={(evento) => setChamada(evento.target.value)}
+            placeholder="Ex.: Quero conhecer os imóveis"
+            autoComplete="off"
+          />
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario rotulo="Criar rascunho da página" />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

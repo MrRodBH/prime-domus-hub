@@ -17,6 +17,7 @@ const requiredFiles = [
   "src/routes/design-system.tsx",
   "src/components/demo/DemoWorkspace.tsx",
   "src/components/demo/demo-data.ts",
+  "src/components/demo/SyntheticWorkflowDialogs.tsx",
 ];
 
 for (const path of requiredFiles) {
@@ -27,6 +28,8 @@ const demonstration = read(requiredFiles[0]);
 const designSystem = read(requiredFiles[1]);
 const workspace = read(requiredFiles[2]);
 const data = read(requiredFiles[3]);
+const workflows = read(requiredFiles[4]);
+const dialog = read("src/components/ui/dialog.tsx");
 const routeTree = read("src/routeTree.gen.ts");
 const auth = read("src/routes/auth.tsx");
 const contexts = read("src/components/workspace/contexts.ts");
@@ -42,7 +45,7 @@ const priorityAdminSurfaces = [
 ]
   .map(read)
   .join("\n");
-const combinedPublicSurface = `${demonstration}\n${designSystem}\n${workspace}\n${data}`;
+const combinedPublicSurface = `${demonstration}\n${designSystem}\n${workspace}\n${data}\n${workflows}`;
 
 for (const route of ["/demonstracao", "/design-system"]) {
   ok(routeTree.includes(route), `a árvore gerada deve registrar ${route}`);
@@ -270,6 +273,38 @@ ok(
   workspace.includes("Bom trabalho, equipe comercial") &&
     !workspace.includes("Bom trabalho, Rodolfo"),
   "a demonstração pública deve acolher owner e equipe sem personalização fixa",
+);
+for (const workflowTitle of [
+  "Novo contato de demonstração",
+  "Cadastrar imóvel de demonstração",
+  "Planejar campanha de demonstração",
+  "Criar página de demonstração",
+]) {
+  ok(workflows.includes(workflowTitle), `a homologação deve oferecer a jornada: ${workflowTitle}`);
+}
+ok(
+  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 4,
+  "os quatro formulários devem permanecer sob controle local",
+);
+ok(
+  workflows.includes("permanece apenas nesta sessão") &&
+    workflows.includes("será descartado ao recarregar"),
+  "os formulários devem explicar a persistência exclusivamente em memória",
+);
+ok(
+  workflows.includes('role="alert"') && workflows.includes("Informe o nome completo do contato"),
+  "validações devem apresentar mensagens amigáveis em PT-BR",
+);
+ok(
+  workspace.includes("setLeadsCriados") &&
+    workspace.includes("setImoveisCriados") &&
+    workspace.includes("setCampanhasCriadas") &&
+    workspace.includes("setPaginasCriadas"),
+  "registros sintéticos devem aparecer imediatamente nas quatro jornadas",
+);
+ok(
+  dialog.includes('className="sr-only">Fechar</span>'),
+  "o fechamento dos diálogos deve usar PT-BR",
 );
 ok(
   designSystem.includes("Os rótulos ficam sempre visíveis"),

@@ -66,6 +66,16 @@ import {
   leadsSinteticos,
   origemDosLeads,
 } from "./demo-data";
+import {
+  NovaCampanhaSinteticaDialog,
+  NovaPaginaSinteticaDialog,
+  NovoContatoSinteticoDialog,
+  NovoImovelSinteticoDialog,
+  type CampanhaSinteticaCriada,
+  type ContatoSinteticoCriado,
+  type ImovelSinteticoCriado,
+  type PaginaSinteticaCriada,
+} from "./SyntheticWorkflowDialogs";
 
 type ModuloId =
   | "visao-geral"
@@ -147,6 +157,12 @@ const estiloTooltip = {
   boxShadow: "0 18px 50px -24px rgba(18, 63, 71, 0.35)",
   color: "#123f47",
 };
+
+const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
 
 function confirmarAcaoSintetica(titulo: string, detalhe: string) {
   toast.success(titulo, {
@@ -829,8 +845,18 @@ function Imoveis() {
   const [buscaImovel, setBuscaImovel] = useState("");
   const [estadoImovel, setEstadoImovel] = useState("todos");
   const [ordenacaoImovel, setOrdenacaoImovel] = useState("recentes");
+  const [imoveisCriados, setImoveisCriados] = useState<ImovelSinteticoCriado[]>([]);
   const termoBuscaImovel = buscaImovel.trim().toLocaleLowerCase("pt-BR");
-  const propriedadesFiltradas = propriedades
+  const propriedadesDaSessao = [
+    ...imoveisCriados.map((imovel, indice) => ({
+      ...imovel,
+      valor: formatadorMoeda.format(imovel.valorNumerico),
+      imagem: property1,
+      ordemRecente: indice - imoveisCriados.length,
+    })),
+    ...propriedades,
+  ];
+  const propriedadesFiltradas = propriedadesDaSessao
     .filter((imovel) =>
       [imovel.titulo, imovel.bairro, imovel.detalhes, imovel.estado]
         .join(" ")
@@ -850,18 +876,15 @@ function Imoveis() {
         titulo="Catálogo de imóveis"
         descricao="Gerencie disponibilidade, qualidade dos anúncios e distribuição do portfólio em uma única visão."
         acao={
-          <Button
-            className="rounded-xl bg-[#123f47]"
-            onClick={() =>
+          <NovoImovelSinteticoDialog
+            onConfirmar={(imovel) => {
+              setImoveisCriados((atuais) => [imovel, ...atuais]);
               confirmarAcaoSintetica(
-                "Cadastro de imóvel simulado",
-                "A próxima etapa exibiria o formulário de cadastro.",
-              )
-            }
-          >
-            <Building2 className="mr-2 size-4" />
-            Cadastrar imóvel
-          </Button>
+                "Imóvel adicionado ao catálogo",
+                `${imovel.titulo} ficará visível somente nesta sessão.`,
+              );
+            }}
+          />
         }
       />
       <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto_auto]">
@@ -909,9 +932,9 @@ function Imoveis() {
           : `${propriedadesFiltradas.length} imóveis encontrados`}
       </p>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {propriedadesFiltradas.map((imovel) => (
+        {propriedadesFiltradas.map((imovel, indice) => (
           <Card
-            key={imovel.titulo}
+            key={`${imovel.titulo}-${imovel.bairro}-${indice}`}
             className="group overflow-hidden rounded-2xl border-[#123f47]/10"
           >
             <div className="relative aspect-[16/10] overflow-hidden">
@@ -965,8 +988,10 @@ function Imoveis() {
 function Leads() {
   const [buscaLead, setBuscaLead] = useState("");
   const [prioridadeLead, setPrioridadeLead] = useState("todas");
+  const [leadsCriados, setLeadsCriados] = useState<ContatoSinteticoCriado[]>([]);
   const termoBuscaLead = buscaLead.trim().toLocaleLowerCase("pt-BR");
-  const leadsFiltrados = leadsSinteticos
+  const leadsDaSessao = [...leadsCriados, ...leadsSinteticos];
+  const leadsFiltrados = leadsDaSessao
     .filter((lead) =>
       [lead.nome, lead.interesse, lead.origem, lead.responsavel, lead.etapa, lead.temperatura]
         .join(" ")
@@ -981,18 +1006,15 @@ function Leads() {
         titulo="Gestão de leads"
         descricao="Centralize contatos, contexto de interesse, origem da campanha e responsável pelo próximo atendimento."
         acao={
-          <Button
-            className="rounded-xl bg-[#123f47]"
-            onClick={() =>
+          <NovoContatoSinteticoDialog
+            onConfirmar={(contato) => {
+              setLeadsCriados((atuais) => [contato, ...atuais]);
               confirmarAcaoSintetica(
-                "Novo contato simulado",
-                "A próxima etapa exibiria o formulário de atendimento.",
-              )
-            }
-          >
-            <Users className="mr-2 size-4" />
-            Novo contato
-          </Button>
+                "Contato adicionado ao atendimento",
+                `${contato.nome} ficará visível somente nesta sessão.`,
+              );
+            }}
+          />
         }
       />
       <Card className="overflow-hidden rounded-2xl border-[#123f47]/10">
@@ -1031,8 +1053,11 @@ function Leads() {
             : `${leadsFiltrados.length} contatos encontrados`}
         </p>
         <div className="grid gap-3 p-4 md:hidden">
-          {leadsFiltrados.map((lead) => (
-            <article key={lead.nome} className="rounded-xl border border-[#123f47]/10 bg-white p-4">
+          {leadsFiltrados.map((lead, indice) => (
+            <article
+              key={`${lead.nome}-${lead.origem}-${indice}`}
+              className="rounded-xl border border-[#123f47]/10 bg-white p-4"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold">{lead.nome}</h2>
@@ -1086,8 +1111,11 @@ function Leads() {
               </tr>
             </thead>
             <tbody>
-              {leadsFiltrados.map((lead) => (
-                <tr key={lead.nome} className="border-t border-[#123f47]/8 hover:bg-[#faf8f4]">
+              {leadsFiltrados.map((lead, indice) => (
+                <tr
+                  key={`${lead.nome}-${lead.origem}-${indice}`}
+                  className="border-t border-[#123f47]/8 hover:bg-[#faf8f4]"
+                >
                   <td className="px-5 py-4">
                     <strong className="block">{lead.nome}</strong>
                     <span className="mt-1 block text-xs text-[#587076]">{lead.interesse}</span>
@@ -1130,29 +1158,32 @@ function Leads() {
 }
 
 function Campanhas() {
+  const [campanhasCriadas, setCampanhasCriadas] = useState<CampanhaSinteticaCriada[]>([]);
+  const campanhasDaSessao = [...campanhasCriadas, ...campanhasSinteticas];
+
   return (
     <>
       <CabecalhoPagina
         titulo="Campanhas e aquisição"
         descricao="Compare canais, investimento, custo por lead e conversões sem alternar entre diferentes plataformas."
         acao={
-          <Button
-            className="rounded-xl bg-[#123f47]"
-            onClick={() =>
+          <NovaCampanhaSinteticaDialog
+            onConfirmar={(campanha) => {
+              setCampanhasCriadas((atuais) => [campanha, ...atuais]);
               confirmarAcaoSintetica(
-                "Planejamento de campanha simulado",
-                "Nenhuma campanha foi criada ou enviada a um canal de mídia.",
-              )
-            }
-          >
-            <Target className="mr-2 size-4" />
-            Planejar campanha
-          </Button>
+                "Rascunho de campanha criado",
+                `${campanha.nome} ficará visível somente nesta sessão.`,
+              );
+            }}
+          />
         }
       />
       <div className="grid gap-5 lg:grid-cols-3">
-        {campanhasSinteticas.map((campanha) => (
-          <Card key={campanha.nome} className="overflow-hidden rounded-2xl border-[#123f47]/10">
+        {campanhasDaSessao.map((campanha, indice) => (
+          <Card
+            key={`${campanha.nome}-${campanha.canal}-${indice}`}
+            className="overflow-hidden rounded-2xl border-[#123f47]/10"
+          >
             <div className={cn("h-2 bg-gradient-to-r", campanha.cor)} />
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-3">
@@ -1487,24 +1518,23 @@ function InteligenciaArtificial() {
 }
 
 function SitesEPaginas() {
+  const [paginasCriadas, setPaginasCriadas] = useState<PaginaSinteticaCriada[]>([]);
+
   return (
     <>
       <CabecalhoPagina
         titulo="Sites e páginas"
         descricao="Edite conteúdo, organize páginas de captura e acompanhe a qualidade da presença digital de cada empresa."
         acao={
-          <Button
-            className="rounded-xl bg-[#123f47]"
-            onClick={() =>
+          <NovaPaginaSinteticaDialog
+            onConfirmar={(pagina) => {
+              setPaginasCriadas((atuais) => [pagina, ...atuais]);
               confirmarAcaoSintetica(
-                "Nova página simulada",
-                "O editor seria aberto sem publicar conteúdo ou domínio.",
-              )
-            }
-          >
-            <FileText className="mr-2 size-4" />
-            Criar página
-          </Button>
+                "Rascunho de página criado",
+                `${pagina.titulo} ficará visível somente nesta sessão.`,
+              );
+            }}
+          />
         }
       />
       <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
@@ -1598,6 +1628,49 @@ function SitesEPaginas() {
           </Card>
         </div>
       </div>
+      <Card className="mt-5 rounded-2xl border-[#123f47]/10">
+        <CardHeader className="flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">Rascunhos criados nesta sessão</CardTitle>
+            <p className="mt-1 text-xs text-[#587076]">
+              Prévia local para revisão; nenhuma página será publicada.
+            </p>
+          </div>
+          <Badge variant="secondary">{paginasCriadas.length}</Badge>
+        </CardHeader>
+        <CardContent>
+          {paginasCriadas.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[#123f47]/15 p-6 text-center">
+              <FileText className="mx-auto size-6 text-[#587076]" />
+              <p className="mt-2 text-sm font-semibold">Nenhum rascunho criado</p>
+              <p className="mt-1 text-xs text-[#587076]">
+                Use “Criar página” para testar a jornada completa.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {paginasCriadas.map((pagina) => (
+                <article
+                  key={pagina.caminho}
+                  className="rounded-xl border border-[#123f47]/10 bg-[#faf8f4] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="font-semibold">{pagina.titulo}</h2>
+                      <p className="mt-1 text-xs font-medium text-violet-700">{pagina.caminho}</p>
+                    </div>
+                    <Badge variant="outline">Rascunho</Badge>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#587076]">{pagina.objetivo}</p>
+                  <div className="mt-4 rounded-lg bg-white px-3 py-2 text-xs">
+                    Botão principal: <strong>{pagina.chamada}</strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </>
   );
 }
