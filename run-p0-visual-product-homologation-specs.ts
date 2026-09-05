@@ -7,10 +7,13 @@ import {
   aplicarDecisaoComercialSintetica,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
+  calcularResumoResultadosPlaybooksSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
   calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
+  registrarResultadoPlaybookComercialSintetico,
+  removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
 } from "./src/components/demo/demo-data";
 
@@ -797,6 +800,21 @@ ok(
     workspace.includes("useState<PlaybooksComerciaisSinteticos>({})"),
   "playbooks e progresso devem existir exclusivamente em memória",
 );
+ok(
+  workspace.includes("Resultado e aprendizado") &&
+    workspace.includes("Resultado fictício") &&
+    workspace.includes("Impacto esperado") &&
+    workspace.includes("Comparação explicável") &&
+    workspace.includes("Aprendizado explicável") &&
+    workspace.includes("Efetividade sintética:"),
+  "Dashboard, Análises e IA devem explicar resultado, comparação, aprendizado e efetividade",
+);
+ok(
+  workspace.includes("Conclua as 3 etapas para registrar o resultado fictício.") &&
+    workspace.includes("Registrar resultado") &&
+    workspace.includes("useState<ResultadosPlaybooksComerciaisSinteticos>({})"),
+  "o aprendizado deve depender da conclusão e permanecer exclusivamente em memória",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -956,6 +974,78 @@ assert.deepEqual(
   }),
   { playbooksAtivos: 1, totalEtapas: 3, etapasConcluidas: 1, progressoMedio: 33 },
 );
+assertions += 1;
+let playbooksAmandaConcluido = playbooksAmandaComEtapa;
+for (const etapa of playbookAmanda.etapas.slice(1)) {
+  playbooksAmandaConcluido = alternarEtapaPlaybookComercialSintetico({
+    playbooks: playbooksAmandaConcluido,
+    playbookId: playbookAmanda.id,
+    etapaId: etapa.id,
+  });
+}
+assert.equal(calcularProgressoPlaybookSintetico(playbooksAmandaConcluido[playbookAmanda.id]), 100);
+assertions += 1;
+const resultadosVazios = {};
+const resultadoAntesDaConclusao = registrarResultadoPlaybookComercialSintetico({
+  resultados: resultadosVazios,
+  playbook: playbooksAmandaComEtapa[playbookAmanda.id],
+  recomendacao: insightsEquipe.recomendacoes[0],
+  faixa: "Dentro do esperado",
+});
+assert.equal(resultadoAntesDaConclusao, resultadosVazios);
+assertions += 1;
+const resultadoAmandaDentro = registrarResultadoPlaybookComercialSintetico({
+  resultados: resultadosVazios,
+  playbook: playbooksAmandaConcluido[playbookAmanda.id],
+  recomendacao: insightsEquipe.recomendacoes[0],
+  faixa: "Dentro do esperado",
+});
+assert.deepEqual(
+  {
+    faixa: resultadoAmandaDentro[playbookAmanda.id].faixa,
+    efetividade: resultadoAmandaDentro[playbookAmanda.id].efetividade,
+    impactoEsperado: resultadoAmandaDentro[playbookAmanda.id].impactoEsperado,
+  },
+  {
+    faixa: "Dentro do esperado",
+    efetividade: 76,
+    impactoEsperado: insightsEquipe.recomendacoes[0].impactoEsperado,
+  },
+);
+assertions += 1;
+ok(
+  resultadoAmandaDentro[playbookAmanda.id].comparacaoExplicavel.length > 40 &&
+    resultadoAmandaDentro[playbookAmanda.id].aprendizadoExplicavel.length > 40,
+  "o resultado concluído deve explicar a comparação e o aprendizado em PT-BR",
+);
+assert.deepEqual(
+  calcularResumoResultadosPlaybooksSinteticos({
+    resultados: resultadoAmandaDentro,
+    playbooks: playbooksAmandaConcluido,
+    decisoes: decisaoAmandaAceita,
+    periodo: "Últimos 30 dias",
+    recomendacoes: insightsEquipe.recomendacoes,
+  }),
+  { playbooksConcluidos: 1, resultadosRegistrados: 1, efetividadeMedia: 76 },
+);
+assertions += 1;
+const resultadoAmandaAcima = registrarResultadoPlaybookComercialSintetico({
+  resultados: resultadoAmandaDentro,
+  playbook: playbooksAmandaConcluido[playbookAmanda.id],
+  recomendacao: insightsEquipe.recomendacoes[0],
+  faixa: "Acima do esperado",
+});
+assert.equal(Object.keys(resultadoAmandaAcima).length, 1);
+assertions += 1;
+assert.equal(resultadoAmandaAcima[playbookAmanda.id].efetividade, 94);
+assertions += 1;
+const resultadosAmandaRemovidos = removerResultadoPlaybookComercialSintetico(
+  resultadoAmandaAcima,
+  playbookAmanda.id,
+);
+assert.deepEqual(resultadosAmandaRemovidos, {});
+assertions += 1;
+assert.deepEqual(resultadosVazios, {});
 assertions += 1;
 const playbooksAmandaReaberto = alternarEtapaPlaybookComercialSintetico({
   playbooks: playbooksAmandaComEtapa,

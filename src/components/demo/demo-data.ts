@@ -613,6 +613,28 @@ export type PlaybookComercialSintetico = {
 
 export type PlaybooksComerciaisSinteticos = Record<string, PlaybookComercialSintetico>;
 
+export type FaixaResultadoPlaybookSintetico =
+  | "Abaixo do esperado"
+  | "Dentro do esperado"
+  | "Acima do esperado";
+
+export type ResultadoPlaybookComercialSintetico = {
+  playbookId: string;
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"];
+  faixa: FaixaResultadoPlaybookSintetico;
+  impactoEsperado: string;
+  resultadoFicticio: string;
+  comparacaoExplicavel: string;
+  aprendizadoExplicavel: string;
+  efetividade: number;
+  registradoEm: string;
+};
+
+export type ResultadosPlaybooksComerciaisSinteticos = Record<
+  string,
+  ResultadoPlaybookComercialSintetico
+>;
+
 export function criarChaveDecisaoComercial(
   periodo: PeriodoRelatorioComercial,
   responsavel: RecomendacaoResponsavelSintetica["responsavel"],
@@ -739,6 +761,81 @@ export function calcularResumoPlaybooksComerciaisSinteticos({
     totalEtapas,
     etapasConcluidas,
     progressoMedio: totalEtapas > 0 ? Math.round((etapasConcluidas / totalEtapas) * 100) : 0,
+  };
+}
+
+export function registrarResultadoPlaybookComercialSintetico({
+  resultados,
+  playbook,
+  recomendacao,
+  faixa,
+}: {
+  resultados: ResultadosPlaybooksComerciaisSinteticos;
+  playbook: PlaybookComercialSintetico;
+  recomendacao: RecomendacaoResponsavelSintetica;
+  faixa: FaixaResultadoPlaybookSintetico;
+}): ResultadosPlaybooksComerciaisSinteticos {
+  if (calcularProgressoPlaybookSintetico(playbook) !== 100) return resultados;
+  const modelo = RESULTADO_PLAYBOOK_POR_RESPONSAVEL[playbook.responsavel][faixa];
+  return {
+    ...resultados,
+    [playbook.id]: {
+      playbookId: playbook.id,
+      responsavel: playbook.responsavel,
+      faixa,
+      impactoEsperado: recomendacao.impactoEsperado,
+      resultadoFicticio: modelo.resultadoFicticio,
+      comparacaoExplicavel: modelo.comparacaoExplicavel,
+      aprendizadoExplicavel: modelo.aprendizadoExplicavel,
+      efetividade: modelo.efetividade,
+      registradoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function removerResultadoPlaybookComercialSintetico(
+  resultados: ResultadosPlaybooksComerciaisSinteticos,
+  playbookId: string,
+) {
+  if (!resultados[playbookId]) return resultados;
+  const atualizados = { ...resultados };
+  delete atualizados[playbookId];
+  return atualizados;
+}
+
+export function calcularResumoResultadosPlaybooksSinteticos({
+  resultados,
+  playbooks,
+  decisoes,
+  periodo,
+  recomendacoes,
+}: {
+  resultados: ResultadosPlaybooksComerciaisSinteticos;
+  playbooks: PlaybooksComerciaisSinteticos;
+  decisoes: DecisoesComerciaisSinteticas;
+  periodo: PeriodoRelatorioComercial;
+  recomendacoes: RecomendacaoResponsavelSintetica[];
+}) {
+  const ativos = recomendacoes.flatMap((recomendacao) => {
+    const chave = criarChaveDecisaoComercial(periodo, recomendacao.responsavel);
+    return decisoes[chave]?.estado === "Aceita" && playbooks[chave] ? [playbooks[chave]] : [];
+  });
+  const concluidos = ativos.filter(
+    (playbook) => calcularProgressoPlaybookSintetico(playbook) === 100,
+  );
+  const registrados = concluidos.flatMap((playbook) =>
+    resultados[playbook.id] ? [resultados[playbook.id]] : [],
+  );
+  return {
+    playbooksConcluidos: concluidos.length,
+    resultadosRegistrados: registrados.length,
+    efetividadeMedia:
+      registrados.length > 0
+        ? Math.round(
+            registrados.reduce((total, resultado) => total + resultado.efetividade, 0) /
+              registrados.length,
+          )
+        : 0,
   };
 }
 
@@ -898,6 +995,126 @@ const PLAYBOOK_POR_RESPONSAVEL: Record<
         criterioConclusao: "Cada oportunidade prioritária recebeu próximo passo e prazo.",
       },
     ],
+  },
+};
+
+type ModeloResultadoPlaybook = Omit<
+  ResultadoPlaybookComercialSintetico,
+  "playbookId" | "responsavel" | "faixa" | "impactoEsperado" | "registradoEm"
+>;
+
+const RESULTADO_PLAYBOOK_POR_RESPONSAVEL: Record<
+  RecomendacaoResponsavelSintetica["responsavel"],
+  Record<FaixaResultadoPlaybookSintetico, ModeloResultadoPlaybook>
+> = {
+  "Amanda Reis": {
+    "Abaixo do esperado": {
+      resultadoFicticio: "1 das 3 propostas priorizadas avançou para a próxima conversa.",
+      comparacaoExplicavel:
+        "O avanço ficou abaixo do potencial de três propostas porque duas retomadas simuladas não tiveram retorno.",
+      aprendizadoExplicavel:
+        "Testar horários e abordagens diferentes pode aumentar a resposta sem ampliar a carteira.",
+      efetividade: 42,
+    },
+    "Dentro do esperado": {
+      resultadoFicticio: "2 das 3 propostas priorizadas avançaram para a próxima conversa.",
+      comparacaoExplicavel:
+        "A maior parte do impacto esperado apareceu: duas propostas avançaram e uma permaneceu sem retorno.",
+      aprendizadoExplicavel:
+        "A retomada com contexto da visita funcionou; a proposta sem retorno merece uma abordagem alternativa.",
+      efetividade: 76,
+    },
+    "Acima do esperado": {
+      resultadoFicticio: "As 3 propostas priorizadas avançaram e uma ganhou urgência fictícia.",
+      comparacaoExplicavel:
+        "Todo o potencial esperado foi alcançado, com avanço adicional de urgência em uma oportunidade.",
+      aprendizadoExplicavel:
+        "Personalizar a retomada com detalhes da visita foi a prática mais eficaz desta simulação.",
+      efetividade: 94,
+    },
+  },
+  "Lucas Prado": {
+    "Abaixo do esperado": {
+      resultadoFicticio:
+        "A fila foi organizada, mas apenas 1 negociação simulada voltou a avançar.",
+      comparacaoExplicavel:
+        "A organização reduziu a incerteza, porém não diminuiu de forma relevante o volume parado.",
+      aprendizadoExplicavel:
+        "Prioridade sem prazo curto de retorno não foi suficiente; o próximo teste deve combinar os dois.",
+      efetividade: 38,
+    },
+    "Dentro do esperado": {
+      resultadoFicticio: "3 negociações simuladas receberam retorno e 2 voltaram ao fluxo.",
+      comparacaoExplicavel:
+        "A fila parada diminuiu conforme esperado, embora uma negociação ainda dependa de resposta.",
+      aprendizadoExplicavel:
+        "Ordenar por urgência e valor ajudou a equipe a agir primeiro onde havia melhor chance de avanço.",
+      efetividade: 73,
+    },
+    "Acima do esperado": {
+      resultadoFicticio: "4 negociações simuladas voltaram ao fluxo e 1 avançou para decisão.",
+      comparacaoExplicavel:
+        "O volume parado caiu mais do que o previsto e uma oportunidade alcançou a etapa seguinte.",
+      aprendizadoExplicavel:
+        "A combinação de urgência, valor e mensagem específica deve orientar a próxima fila fictícia.",
+      efetividade: 92,
+    },
+  },
+  "Bruno Lima": {
+    "Abaixo do esperado": {
+      resultadoFicticio:
+        "As visitas foram revisadas, mas nenhuma nova proposta fictícia foi concluída.",
+      comparacaoExplicavel:
+        "O potencial de duas propostas não se confirmou porque faltaram condições adequadas nos casos simulados.",
+      aprendizadoExplicavel:
+        "Validar condições antes de montar a proposta evita esforço em visitas com baixa aderência.",
+      efetividade: 31,
+    },
+    "Dentro do esperado": {
+      resultadoFicticio: "2 propostas fictícias foram montadas a partir das visitas priorizadas.",
+      comparacaoExplicavel:
+        "O resultado atingiu exatamente o potencial esperado de gerar até duas novas propostas.",
+      aprendizadoExplicavel:
+        "Confirmar interesse e condições logo após a visita tornou a preparação das propostas mais objetiva.",
+      efetividade: 81,
+    },
+    "Acima do esperado": {
+      resultadoFicticio:
+        "2 propostas foram montadas e 1 recebeu sinal positivo fictício para negociação.",
+      comparacaoExplicavel:
+        "Além das duas propostas esperadas, uma delas já avançou na simulação para negociação.",
+      aprendizadoExplicavel:
+        "Selecionar imóvel e condição ainda durante o retorno da visita acelerou o próximo passo.",
+      efetividade: 96,
+    },
+  },
+  "Camila Torres": {
+    "Abaixo do esperado": {
+      resultadoFicticio:
+        "A carteira foi priorizada, mas a cobertura fictícia da meta subiu apenas 1 p.p.",
+      comparacaoExplicavel:
+        "O ganho ficou quatro pontos abaixo do potencial porque as maiores oportunidades mantiveram riscos altos.",
+      aprendizadoExplicavel:
+        "Valor alto sem probabilidade suficiente distorce a prioridade; risco deve ter peso maior no próximo ciclo.",
+      efetividade: 35,
+    },
+    "Dentro do esperado": {
+      resultadoFicticio: "A cobertura fictícia da meta subiu 4 p.p. após a revisão da carteira.",
+      comparacaoExplicavel:
+        "O resultado ficou próximo do potencial de cinco pontos, com uma oportunidade ainda sob revisão.",
+      aprendizadoExplicavel:
+        "Equilibrar valor e probabilidade trouxe uma previsão mais útil para orientar o foco comercial.",
+      efetividade: 78,
+    },
+    "Acima do esperado": {
+      resultadoFicticio:
+        "A cobertura fictícia da meta subiu 6 p.p. e duas prioridades ganharam próximo passo.",
+      comparacaoExplicavel:
+        "A elevação superou em um ponto o potencial esperado e tornou duas oportunidades acionáveis.",
+      aprendizadoExplicavel:
+        "Revisar risco, argumento e prazo em conjunto aumentou a qualidade da carteira priorizada.",
+      efetividade: 95,
+    },
   },
 };
 
