@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
+import { calcularPrevisaoSintetica } from "./src/components/demo/synthetic-forecast";
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -18,6 +19,7 @@ const requiredFiles = [
   "src/components/demo/DemoWorkspace.tsx",
   "src/components/demo/demo-data.ts",
   "src/components/demo/SyntheticWorkflowDialogs.tsx",
+  "src/components/demo/synthetic-forecast.ts",
 ];
 
 for (const path of requiredFiles) {
@@ -29,6 +31,7 @@ const designSystem = read(requiredFiles[1]);
 const workspace = read(requiredFiles[2]);
 const data = read(requiredFiles[3]);
 const workflows = read(requiredFiles[4]);
+const syntheticForecast = read(requiredFiles[5]);
 const dialog = read("src/components/ui/dialog.tsx");
 const routeTree = read("src/routeTree.gen.ts");
 const auth = read("src/routes/auth.tsx");
@@ -578,9 +581,92 @@ ok(
     workspace.includes('rotulo="Maior carga individual"'),
   "o Dashboard deve refletir agenda, conflitos e carga da equipe",
 );
+ok(
+  workspace.includes('useState<CenarioPrevisao>("Realista")') &&
+    workspace.includes("Previsão compartilhada com o Dashboard") &&
+    workspace.includes("compartilhado com o Funil durante esta sessão"),
+  "Dashboard e Funil devem compartilhar o cenário escolhido somente em memória",
+);
+for (const cenario of ["Conservador", "Realista", "Otimista"]) {
+  ok(
+    syntheticForecast.includes(cenario) && workspace.includes("SeletorCenarioPrevisao"),
+    `a previsão deve oferecer o cenário amigável ${cenario}`,
+  );
+}
+for (const probabilidadeAmigavel of [
+  "Chance inicial",
+  "Em avaliação",
+  "Boa chance",
+  "Chance alta",
+  "Confirmado",
+  "Encerrado",
+]) {
+  ok(
+    syntheticForecast.includes(probabilidadeAmigavel),
+    `a etapa deve explicar sua probabilidade como ${probabilidadeAmigavel}`,
+  );
+}
+ok(
+  workspace.includes("Receita prevista por etapa") &&
+    workspace.includes("Valor em cada etapa × probabilidade ajustada pelo cenário") &&
+    workspace.includes('layout="vertical"'),
+  "o Dashboard deve explicar e representar a previsão por etapa em gráfico responsivo",
+);
+ok(
+  workspace.includes("Metas fictícias por responsável") &&
+    workspace.includes("Realizado") &&
+    workspace.includes("% previsto"),
+  "o Dashboard deve apresentar meta, realizado e previsão por responsável",
+);
+for (const responsavel of ["Amanda Reis", "Lucas Prado", "Bruno Lima", "Camila Torres"]) {
+  ok(
+    syntheticForecast.includes(responsavel),
+    `a demonstração deve conter a meta fictícia de ${responsavel}`,
+  );
+}
+ok(
+  workspace.includes("Probabilidade de fechamento") &&
+    workspace.includes("Receita prevista:") &&
+    workspace.includes("Potencial no funil"),
+  "o Funil deve refletir probabilidade, previsão e potencial por etapa",
+);
+
+const previsaoConservadora = calcularPrevisaoSintetica({
+  cenario: "Conservador",
+  contatos: [],
+  valoresImoveis: {},
+});
+const previsaoRealista = calcularPrevisaoSintetica({
+  cenario: "Realista",
+  contatos: [],
+  valoresImoveis: {},
+});
+const previsaoOtimista = calcularPrevisaoSintetica({
+  cenario: "Otimista",
+  contatos: [],
+  valoresImoveis: {},
+});
+assert.equal(Math.round(previsaoConservadora.totalPrevisto), 26_032_000);
+assertions += 1;
+assert.equal(Math.round(previsaoRealista.totalPrevisto), 31_315_000);
+assertions += 1;
+assert.equal(Math.round(previsaoOtimista.totalPrevisto), 36_444_000);
+assertions += 1;
+ok(
+  previsaoConservadora.totalPrevisto < previsaoRealista.totalPrevisto &&
+    previsaoRealista.totalPrevisto < previsaoOtimista.totalPrevisto,
+  "os três cenários devem produzir previsões crescentes e determinísticas",
+);
+for (const previsao of [previsaoConservadora, previsaoRealista, previsaoOtimista]) {
+  assert.equal(
+    Math.round(previsao.metasResponsaveis.reduce((total, meta) => total + meta.previsao, 0)),
+    Math.round(previsao.totalPrevisto),
+  );
+  assertions += 1;
+}
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(
-    !`${workspace}\n${workflows}`.includes(forbiddenPersistence),
+    !`${workspace}\n${workflows}\n${syntheticForecast}`.includes(forbiddenPersistence),
     `as jornadas cruzadas devem permanecer somente em memória: ${forbiddenPersistence}`,
   );
 }

@@ -90,6 +90,12 @@ import {
   type TarefaSintetica,
   type TarefaSinteticaAtualizada,
 } from "./SyntheticWorkflowDialogs";
+import {
+  CENARIOS_PREVISAO,
+  calcularPrevisaoSintetica,
+  type CenarioPrevisao,
+  type ResumoPrevisaoSintetica,
+} from "./synthetic-forecast";
 
 type ModuloId =
   | "visao-geral"
@@ -297,6 +303,20 @@ const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 0,
 });
 
+const formatadorPercentual = new Intl.NumberFormat("pt-BR", {
+  maximumFractionDigits: 0,
+});
+
+function formatarValorCompacto(valor: number) {
+  if (valor >= 1_000_000) {
+    return `R$ ${new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(valor / 1_000_000)} mi`;
+  }
+  return formatadorMoeda.format(valor);
+}
+
 function confirmarAcaoSintetica(titulo: string, detalhe: string) {
   toast.success(titulo, {
     description: `${detalhe} Nenhum dado real foi alterado.`,
@@ -310,6 +330,7 @@ export function DemoWorkspace() {
   const [leadsCriados, setLeadsCriados] = useState<ContatoSinteticoCriado[]>([]);
   const [campanhasCriadas, setCampanhasCriadas] = useState<CampanhaSinteticaCriada[]>([]);
   const [paginasCriadas, setPaginasCriadas] = useState<PaginaSinteticaCriada[]>([]);
+  const [cenarioPrevisao, setCenarioPrevisao] = useState<CenarioPrevisao>("Realista");
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -409,6 +430,15 @@ export function DemoWorkspace() {
   const compromissosAgendaSinteticos = eventosAgendaSintetica.filter(
     (evento) => evento.estado === "Pendente",
   ).length;
+  const valoresImoveis = Object.fromEntries([
+    ...propriedades.map((imovel) => [imovel.titulo, imovel.valorNumerico] as const),
+    ...imoveisCriados.map((imovel) => [imovel.titulo, imovel.valorNumerico] as const),
+  ]);
+  const resumoPrevisaoSintetica = calcularPrevisaoSintetica({
+    cenario: cenarioPrevisao,
+    contatos: leadsCriados,
+    valoresImoveis,
+  });
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
@@ -687,6 +717,8 @@ export function DemoWorkspace() {
                 compromissosAgendaSinteticos={compromissosAgendaSinteticos}
                 conflitosAgendaSinteticos={conflitosAgendaSintetica.total}
                 cargaEquipeSintetica={cargaEquipeSintetica}
+                resumoPrevisaoSintetica={resumoPrevisaoSintetica}
+                onSelecionarCenario={setCenarioPrevisao}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -696,6 +728,8 @@ export function DemoWorkspace() {
                 onAcompanharLead={salvarAcompanhamento}
                 onSalvarProposta={salvarPropostaSintetica}
                 onSalvarTarefa={salvarTarefaSintetica}
+                resumoPrevisaoSintetica={resumoPrevisaoSintetica}
+                onSelecionarCenario={setCenarioPrevisao}
               />
             ) : null}
             {moduloAtivo === "imoveis" ? (
@@ -940,6 +974,8 @@ function VisaoGeral({
   compromissosAgendaSinteticos,
   conflitosAgendaSinteticos,
   cargaEquipeSintetica,
+  resumoPrevisaoSintetica,
+  onSelecionarCenario,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -958,6 +994,8 @@ function VisaoGeral({
   compromissosAgendaSinteticos: number;
   conflitosAgendaSinteticos: number;
   cargaEquipeSintetica: CargaEquipeSintetica[];
+  resumoPrevisaoSintetica: ResumoPrevisaoSintetica;
+  onSelecionarCenario: (cenario: CenarioPrevisao) => void;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1033,6 +1071,11 @@ function VisaoGeral({
           tom="dourado"
         />
       </div>
+
+      <PainelPrevisaoDashboard
+        resumo={resumoPrevisaoSintetica}
+        onSelecionarCenario={onSelecionarCenario}
+      />
 
       {captacoesSinteticas > 0 ? (
         <div
@@ -1332,8 +1375,8 @@ function VisaoGeral({
         </Card>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        <Card className="rounded-2xl border-violet-200 bg-gradient-to-br from-violet-50 to-white lg:col-span-2">
+      <div className="mt-5">
+        <Card className="rounded-2xl border-violet-200 bg-gradient-to-br from-violet-50 to-white">
           <CardContent className="p-5 sm:p-6">
             <div className="flex items-start gap-4">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white">
@@ -1365,21 +1408,6 @@ function VisaoGeral({
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-2xl border-[#123f47]/10">
-          <CardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#587076]">
-              Meta mensal
-            </p>
-            <div className="mt-3 flex items-end justify-between">
-              <strong className="text-3xl">74%</strong>
-              <span className="text-xs text-[#587076]">R$ 38,7 mi de R$ 52 mi</span>
-            </div>
-            <Progress value={74} className="mt-4 h-2.5" />
-            <p className="mt-3 text-xs leading-5 text-[#587076]">
-              Faltam R$ 13,3 milhões para atingir a meta definida.
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -1437,18 +1465,237 @@ function CartaoMetrica({
   );
 }
 
+function SeletorCenarioPrevisao({
+  cenario,
+  onSelecionar,
+}: {
+  cenario: CenarioPrevisao;
+  onSelecionar: (cenario: CenarioPrevisao) => void;
+}) {
+  return (
+    <div
+      role="group"
+      className="inline-flex w-full rounded-xl border border-[#123f47]/10 bg-white p-1 sm:w-auto"
+      aria-label="Escolher cenário de previsão"
+    >
+      {(Object.keys(CENARIOS_PREVISAO) as CenarioPrevisao[]).map((opcao) => (
+        <button
+          key={opcao}
+          type="button"
+          aria-pressed={cenario === opcao}
+          onClick={() => onSelecionar(opcao)}
+          className={cn(
+            "min-w-0 flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition sm:flex-none",
+            cenario === opcao
+              ? "bg-[#123f47] text-white shadow-sm"
+              : "text-[#587076] hover:bg-[#e6f4f1] hover:text-[#123f47]",
+          )}
+        >
+          {opcao}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PainelPrevisaoDashboard({
+  resumo,
+  onSelecionarCenario,
+}: {
+  resumo: ResumoPrevisaoSintetica;
+  onSelecionarCenario: (cenario: CenarioPrevisao) => void;
+}) {
+  const dadosGrafico = resumo.etapas;
+
+  return (
+    <section
+      className="mt-5 overflow-hidden rounded-2xl border border-[#123f47]/10 bg-white shadow-sm"
+      aria-labelledby="titulo-previsao-receita"
+    >
+      <div className="border-b border-[#123f47]/10 bg-gradient-to-r from-violet-50 via-white to-emerald-50 p-5 sm:p-6">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700">
+              Planejamento comercial fictício
+            </p>
+            <h2 id="titulo-previsao-receita" className="mt-1 text-xl font-semibold">
+              Previsão de receita do funil
+            </h2>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-[#587076]">
+              Compare hipóteses sem alterar clientes ou negociações reais. O cenário escolhido é
+              compartilhado com o Funil durante esta sessão.
+            </p>
+          </div>
+          <SeletorCenarioPrevisao cenario={resumo.cenario} onSelecionar={onSelecionarCenario} />
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <ResumoPrevisao
+            rotulo={`Previsão ${resumo.cenario.toLocaleLowerCase("pt-BR")}`}
+            valor={formatarValorCompacto(resumo.totalPrevisto)}
+            detalhe={resumo.descricaoCenario}
+            tom="violeta"
+          />
+          <ResumoPrevisao
+            rotulo="Potencial no funil"
+            valor={formatarValorCompacto(resumo.totalPotencial)}
+            detalhe="Soma de todas as oportunidades"
+            tom="dourado"
+          />
+          <ResumoPrevisao
+            rotulo="Cobertura da meta"
+            valor={`${formatadorPercentual.format(resumo.coberturaMeta)}%`}
+            detalhe={`Meta fictícia de ${formatarValorCompacto(resumo.metaTotal)}`}
+            tom="esmeralda"
+          />
+        </div>
+      </div>
+
+      <div className="grid min-w-0 gap-6 p-5 sm:p-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="min-w-0">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Receita prevista por etapa</h3>
+              <p className="mt-1 text-xs text-[#587076]">
+                Valor em cada etapa × probabilidade ajustada pelo cenário.
+              </p>
+            </div>
+            <span className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-violet-700 sm:mt-0">
+              Valores exclusivamente sintéticos
+            </span>
+          </div>
+          <div
+            className="mt-4 h-[310px] w-full"
+            role="img"
+            aria-label={`Gráfico da previsão de receita por etapa no cenário ${resumo.cenario}`}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={dadosGrafico}
+                layout="vertical"
+                margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
+              >
+                <CartesianGrid horizontal={false} stroke="#123f4715" strokeDasharray="4 6" />
+                <XAxis
+                  type="number"
+                  tickFormatter={(valor) => `${Math.round(Number(valor) / 1_000_000)} mi`}
+                  tick={{ fontSize: 10 }}
+                  stroke="#6b7e82"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="nome"
+                  tick={{ fontSize: 10 }}
+                  stroke="#6b7e82"
+                  tickLine={false}
+                  axisLine={false}
+                  width={108}
+                />
+                <Tooltip
+                  contentStyle={estiloTooltip}
+                  formatter={(valor) => [formatarValorCompacto(Number(valor)), "Receita prevista"]}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+                <Bar
+                  dataKey="valorPrevisto"
+                  name="Receita prevista"
+                  radius={[2, 8, 8, 2]}
+                  maxBarSize={30}
+                >
+                  {dadosGrafico.map((etapa) => (
+                    <Cell key={etapa.nome} fill={etapa.cor} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold">Metas fictícias por responsável</h3>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Projeção individual no cenário {resumo.cenario.toLocaleLowerCase("pt-BR")}.
+          </p>
+          <div className="mt-4 space-y-3">
+            {resumo.metasResponsaveis.map((meta) => (
+              <div key={meta.responsavel} className="rounded-xl bg-[#f6f4ef] p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold">{meta.responsavel}</p>
+                    <p className="mt-1 text-[10px] text-[#587076]">
+                      Realizado {formatarValorCompacto(meta.realizado)} · Meta{" "}
+                      {formatarValorCompacto(meta.meta)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <strong className="block text-xs">
+                      {formatarValorCompacto(meta.previsao)}
+                    </strong>
+                    <span className="text-[10px] text-[#587076]">
+                      {formatadorPercentual.format(meta.atingimentoPrevisto)}% previsto
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, meta.atingimentoPrevisto)}%`,
+                      backgroundColor: meta.cor,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ResumoPrevisao({
+  rotulo,
+  valor,
+  detalhe,
+  tom,
+}: {
+  rotulo: string;
+  valor: string;
+  detalhe: string;
+  tom: "violeta" | "dourado" | "esmeralda";
+}) {
+  const cores = {
+    violeta: "border-violet-200 bg-violet-50 text-violet-950",
+    dourado: "border-amber-200 bg-amber-50 text-amber-950",
+    esmeralda: "border-emerald-200 bg-emerald-50 text-emerald-950",
+  };
+  return (
+    <div className={cn("rounded-xl border p-4", cores[tom])}>
+      <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">{rotulo}</p>
+      <p className="mt-1 text-2xl font-bold tracking-tight">{valor}</p>
+      <p className="mt-1 text-[11px] opacity-70">{detalhe}</p>
+    </div>
+  );
+}
+
 function FunilDeVendas({
   leadsCriados,
   onAdicionarLead,
   onAcompanharLead,
   onSalvarProposta,
   onSalvarTarefa,
+  resumoPrevisaoSintetica,
+  onSelecionarCenario,
 }: {
   leadsCriados: ContatoSinteticoCriado[];
   onAdicionarLead: () => void;
   onAcompanharLead: (acompanhamento: AcompanhamentoSinteticoCriado) => void;
   onSalvarProposta: (atualizacao: PropostaSinteticaAtualizada) => void;
   onSalvarTarefa: (atualizacao: TarefaSinteticaAtualizada) => void;
+  resumoPrevisaoSintetica: ResumoPrevisaoSintetica;
+  onSelecionarCenario: (cenario: CenarioPrevisao) => void;
 }) {
   const contatosEncaminhados = leadsCriados.filter((lead) => lead.encaminhadoAoFunil);
 
@@ -1473,8 +1720,39 @@ function FunilDeVendas({
           </Button>
         }
       />
+      <section
+        className="mb-5 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-white to-emerald-50 p-4 sm:p-5"
+        aria-label="Resumo da previsão do funil"
+      >
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-700">
+              Previsão compartilhada com o Dashboard
+            </p>
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <strong className="text-2xl tracking-tight">
+                {formatarValorCompacto(resumoPrevisaoSintetica.totalPrevisto)}
+              </strong>
+              <span className="text-xs text-[#587076]">
+                {formatadorPercentual.format(resumoPrevisaoSintetica.coberturaMeta)}% da meta no
+                cenário {resumoPrevisaoSintetica.cenario.toLocaleLowerCase("pt-BR")}
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] text-[#587076]">
+              Cada etapa combina seu valor potencial com uma chance amigável de fechamento.
+            </p>
+          </div>
+          <SeletorCenarioPrevisao
+            cenario={resumoPrevisaoSintetica.cenario}
+            onSelecionar={onSelecionarCenario}
+          />
+        </div>
+      </section>
       <div className="grid gap-4 xl:grid-cols-3 2xl:grid-cols-6">
         {etapasDoFunil.map((etapa, indice) => {
+          const previsaoEtapa = resumoPrevisaoSintetica.etapas.find(
+            (item) => item.nome === etapa.nome,
+          );
           const contatosCriadosNaEtapa = contatosEncaminhados.filter((contato) => {
             const etapaDoContato =
               contato.etapa === "Novo contato" ? "Novos contatos" : contato.etapa;
@@ -1497,6 +1775,22 @@ function FunilDeVendas({
                   {etapa.quantidade + contatosCriadosNaEtapa.length}
                 </Badge>
               </div>
+              {previsaoEtapa ? (
+                <div className="mb-3 rounded-xl border border-[#123f47]/10 bg-white p-3 shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#587076]">
+                    Probabilidade de fechamento
+                  </p>
+                  <div className="mt-1 flex items-end justify-between gap-2">
+                    <strong className="text-sm">{previsaoEtapa.leituraAmigavel}</strong>
+                    <span className="text-lg font-bold" style={{ color: previsaoEtapa.cor }}>
+                      {formatadorPercentual.format(previsaoEtapa.probabilidadeAjustada * 100)}%
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-[#587076]">
+                    Receita prevista: {formatarValorCompacto(previsaoEtapa.valorPrevisto)}
+                  </p>
+                </div>
+              ) : null}
               <div className="space-y-3">
                 {contatosDaEtapa.map((lead, leadIndice) => {
                   const contatoCriado = contatosCriadosNaEtapa.find((contato) => contato === lead);
@@ -1583,7 +1877,8 @@ function FunilDeVendas({
                 })}
               </div>
               <div className="mt-3 rounded-lg border border-dashed border-[#123f47]/15 p-3 text-center text-xs text-[#587076]">
-                {etapa.valor} em oportunidades
+                {previsaoEtapa ? formatarValorCompacto(previsaoEtapa.valorPotencial) : etapa.valor}{" "}
+                em oportunidades
               </div>
             </section>
           );
