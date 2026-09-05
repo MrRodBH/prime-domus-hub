@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -22,7 +22,6 @@ import {
   Bot,
   Building2,
   CheckCircle2,
-  ChevronDown,
   CircleDollarSign,
   ExternalLink,
   FileText,
@@ -116,6 +115,8 @@ const propriedades = [
     detalhes: "312 m² · 4 suítes · 5 vagas",
     imagem: property1,
     estado: "Disponível",
+    valorNumerico: 4_850_000,
+    ordemRecente: 0,
   },
   {
     titulo: "Apartamento com vista definitiva",
@@ -124,6 +125,8 @@ const propriedades = [
     detalhes: "248 m² · 4 quartos · 4 vagas",
     imagem: property2,
     estado: "Em negociação",
+    valorNumerico: 3_290_000,
+    ordemRecente: 1,
   },
   {
     titulo: "Residência autoral",
@@ -132,6 +135,8 @@ const propriedades = [
     detalhes: "480 m² · 5 suítes · 6 vagas",
     imagem: property3,
     estado: "Exclusividade",
+    valorNumerico: 6_780_000,
+    ordemRecente: 2,
   },
 ];
 
@@ -157,9 +162,27 @@ export function DemoWorkspace() {
     [moduloAtivo],
   );
 
+  useEffect(() => {
+    function sincronizarModuloComEndereco() {
+      const id = window.location.hash.slice(1);
+      if (itensNavegacao.some((item) => item.id === id)) {
+        setModuloAtivo(id as ModuloId);
+      }
+    }
+
+    sincronizarModuloComEndereco();
+    window.addEventListener("hashchange", sincronizarModuloComEndereco);
+    return () => window.removeEventListener("hashchange", sincronizarModuloComEndereco);
+  }, []);
+
   function selecionarModulo(id: ModuloId) {
     setModuloAtivo(id);
     setMenuAberto(false);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${window.location.search}#${id}`,
+    );
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -237,13 +260,13 @@ export function DemoWorkspace() {
                 onClick={() =>
                   confirmarAcaoSintetica(
                     "Conta de demonstração",
-                    "Esta é uma representação visual do acesso do proprietário.",
+                    "Esta é uma representação visual do acesso da equipe.",
                   )
                 }
                 className="flex size-10 items-center justify-center rounded-full bg-[#123f47] text-sm font-semibold text-white"
-                aria-label="Conta de demonstração do proprietário"
+                aria-label="Conta de demonstração da equipe"
               >
-                RV
+                EQ
               </button>
             </div>
           </header>
@@ -452,7 +475,7 @@ function VisaoGeral() {
   return (
     <>
       <CabecalhoPagina
-        titulo="Bom trabalho, Rodolfo"
+        titulo="Bom trabalho, equipe comercial"
         descricao="Acompanhe a operação comercial, identifique oportunidades e priorize as próximas ações da equipe."
         acao={
           <Button
@@ -804,13 +827,22 @@ function FunilDeVendas() {
 
 function Imoveis() {
   const [buscaImovel, setBuscaImovel] = useState("");
+  const [estadoImovel, setEstadoImovel] = useState("todos");
+  const [ordenacaoImovel, setOrdenacaoImovel] = useState("recentes");
   const termoBuscaImovel = buscaImovel.trim().toLocaleLowerCase("pt-BR");
-  const propriedadesFiltradas = propriedades.filter((imovel) =>
-    [imovel.titulo, imovel.bairro, imovel.detalhes, imovel.estado]
-      .join(" ")
-      .toLocaleLowerCase("pt-BR")
-      .includes(termoBuscaImovel),
-  );
+  const propriedadesFiltradas = propriedades
+    .filter((imovel) =>
+      [imovel.titulo, imovel.bairro, imovel.detalhes, imovel.estado]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR")
+        .includes(termoBuscaImovel),
+    )
+    .filter((imovel) => estadoImovel === "todos" || imovel.estado === estadoImovel)
+    .sort((a, b) => {
+      if (ordenacaoImovel === "menor-valor") return a.valorNumerico - b.valorNumerico;
+      if (ordenacaoImovel === "maior-valor") return b.valorNumerico - a.valorNumerico;
+      return a.ordemRecente - b.ordemRecente;
+    });
 
   return (
     <>
@@ -843,30 +875,33 @@ function Imoveis() {
             onChange={(evento) => setBuscaImovel(evento.target.value)}
           />
         </div>
-        <Button
-          variant="outline"
-          className="h-11 rounded-xl"
-          onClick={() =>
-            confirmarAcaoSintetica(
-              "Filtro de disponibilidade",
-              "Todos os estados permanecem selecionados.",
-            )
-          }
-        >
-          Todos os estados <ChevronDown className="ml-2 size-4" />
-        </Button>
-        <Button
-          variant="outline"
-          className="h-11 rounded-xl"
-          onClick={() =>
-            confirmarAcaoSintetica(
-              "Ordenação da vitrine",
-              "Os imóveis estão organizados dos mais recentes para os mais antigos.",
-            )
-          }
-        >
-          Mais recentes <ChevronDown className="ml-2 size-4" />
-        </Button>
+        <label>
+          <span className="sr-only">Filtrar imóveis por disponibilidade</span>
+          <select
+            aria-label="Filtrar imóveis por disponibilidade"
+            className="h-11 w-full rounded-xl border border-input bg-white px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            value={estadoImovel}
+            onChange={(evento) => setEstadoImovel(evento.target.value)}
+          >
+            <option value="todos">Todos os estados</option>
+            <option value="Disponível">Disponíveis</option>
+            <option value="Em negociação">Em negociação</option>
+            <option value="Exclusividade">Exclusividade</option>
+          </select>
+        </label>
+        <label>
+          <span className="sr-only">Ordenar imóveis</span>
+          <select
+            aria-label="Ordenar imóveis"
+            className="h-11 w-full rounded-xl border border-input bg-white px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            value={ordenacaoImovel}
+            onChange={(evento) => setOrdenacaoImovel(evento.target.value)}
+          >
+            <option value="recentes">Mais recentes</option>
+            <option value="menor-valor">Menor valor</option>
+            <option value="maior-valor">Maior valor</option>
+          </select>
+        </label>
       </div>
       <p className="mb-3 text-xs text-[#587076]" aria-live="polite">
         {propriedadesFiltradas.length === 1
@@ -929,13 +964,16 @@ function Imoveis() {
 
 function Leads() {
   const [buscaLead, setBuscaLead] = useState("");
+  const [prioridadeLead, setPrioridadeLead] = useState("todas");
   const termoBuscaLead = buscaLead.trim().toLocaleLowerCase("pt-BR");
-  const leadsFiltrados = leadsSinteticos.filter((lead) =>
-    [lead.nome, lead.interesse, lead.origem, lead.responsavel, lead.etapa, lead.temperatura]
-      .join(" ")
-      .toLocaleLowerCase("pt-BR")
-      .includes(termoBuscaLead),
-  );
+  const leadsFiltrados = leadsSinteticos
+    .filter((lead) =>
+      [lead.nome, lead.interesse, lead.origem, lead.responsavel, lead.etapa, lead.temperatura]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR")
+        .includes(termoBuscaLead),
+    )
+    .filter((lead) => prioridadeLead === "todas" || lead.temperatura === prioridadeLead);
 
   return (
     <>
@@ -969,18 +1007,20 @@ function Leads() {
               onChange={(evento) => setBuscaLead(evento.target.value)}
             />
           </div>
-          <Button
-            variant="outline"
-            className="rounded-xl"
-            onClick={() =>
-              confirmarAcaoSintetica(
-                "Filtros de atendimento",
-                "A demonstração mantém todos os atendimentos visíveis.",
-              )
-            }
-          >
-            Filtrar atendimentos
-          </Button>
+          <label>
+            <span className="sr-only">Filtrar contatos por prioridade</span>
+            <select
+              aria-label="Filtrar contatos por prioridade"
+              className="h-10 w-full rounded-xl border border-input bg-white px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:w-auto"
+              value={prioridadeLead}
+              onChange={(evento) => setPrioridadeLead(evento.target.value)}
+            >
+              <option value="todas">Todas as prioridades</option>
+              <option value="Quente">Prioridade quente</option>
+              <option value="Morno">Prioridade morna</option>
+              <option value="Novo">Contato novo</option>
+            </select>
+          </label>
         </div>
         <p
           className="border-b border-[#123f47]/10 px-4 py-2 text-xs text-[#587076]"
@@ -990,7 +1030,50 @@ function Leads() {
             ? "1 contato encontrado"
             : `${leadsFiltrados.length} contatos encontrados`}
         </p>
-        <div className="overflow-x-auto">
+        <div className="grid gap-3 p-4 md:hidden">
+          {leadsFiltrados.map((lead) => (
+            <article key={lead.nome} className="rounded-xl border border-[#123f47]/10 bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold">{lead.nome}</h2>
+                  <p className="mt-1 text-xs leading-5 text-[#587076]">{lead.interesse}</p>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold",
+                    lead.temperatura === "Quente"
+                      ? "bg-rose-100 text-rose-800"
+                      : lead.temperatura === "Morno"
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-sky-100 text-sky-800",
+                  )}
+                >
+                  {lead.temperatura}
+                </span>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[#123f47]/8 pt-3 text-xs">
+                <div>
+                  <dt className="text-[#587076]">Origem</dt>
+                  <dd className="mt-1 font-medium">{lead.origem}</dd>
+                </div>
+                <div>
+                  <dt className="text-[#587076]">Responsável</dt>
+                  <dd className="mt-1 font-medium">{lead.responsavel}</dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-[#587076]">Etapa atual</dt>
+                  <dd className="mt-1 font-medium">{lead.etapa}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+          {leadsFiltrados.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[#123f47]/20 p-6 text-center text-sm text-[#587076]">
+              Nenhum contato corresponde à busca. Tente outro nome, imóvel, origem ou prioridade.
+            </div>
+          ) : null}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[780px] text-sm">
             <caption className="sr-only">Leads fictícios para demonstração visual</caption>
             <thead className="bg-[#f7f5f0] text-left text-xs text-[#587076]">
@@ -1033,7 +1116,8 @@ function Leads() {
               {leadsFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center text-sm text-[#587076]">
-                    Nenhum contato corresponde à busca. Tente outro nome, imóvel ou origem.
+                    Nenhum contato corresponde à busca. Tente outro nome, imóvel, origem ou
+                    prioridade.
                   </td>
                 </tr>
               ) : null}
