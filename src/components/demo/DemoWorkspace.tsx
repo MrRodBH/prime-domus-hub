@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import {
   ArrowRight,
+  BellRing,
   BarChart3,
   Bot,
   Building2,
@@ -30,6 +31,7 @@ import {
   Inbox,
   LayoutDashboard,
   Lightbulb,
+  ListChecks,
   Menu,
   MessageCircle,
   MousePointerClick,
@@ -69,6 +71,7 @@ import {
 import {
   AcompanharLeadSinteticoDialog,
   CapturarLeadSinteticoDialog,
+  GerenciarTarefasSinteticasDialog,
   NovaCampanhaSinteticaDialog,
   NovaPaginaSinteticaDialog,
   NovoContatoSinteticoDialog,
@@ -81,6 +84,8 @@ import {
   type ImovelSinteticoCriado,
   type PaginaSinteticaCriada,
   type PropostaSinteticaAtualizada,
+  type TarefaSintetica,
+  type TarefaSinteticaAtualizada,
 } from "./SyntheticWorkflowDialogs";
 
 type ModuloId =
@@ -249,6 +254,38 @@ export function DemoWorkspace() {
     (total, lead) => total + (lead.proposta?.estado === "Ganha" ? lead.proposta.valorNumerico : 0),
     0,
   );
+  const hoje = new Date().toISOString().slice(0, 10);
+  const tarefasSinteticas = leadsCriados.flatMap((lead) =>
+    (lead.tarefas ?? []).map((tarefa) => ({
+      ...tarefa,
+      contatoNome: lead.nome,
+      etapaContato: lead.etapa,
+    })),
+  );
+  const tarefasPendentesSinteticas = tarefasSinteticas.filter(
+    (tarefa) => tarefa.estado === "Pendente",
+  );
+  const tarefasConcluidasSinteticas = tarefasSinteticas.filter(
+    (tarefa) => tarefa.estado === "Concluída",
+  ).length;
+  const tarefasAltaPrioridadeSinteticas = tarefasPendentesSinteticas.filter(
+    (tarefa) => tarefa.prioridade === "Alta",
+  ).length;
+  const tarefasVencendoHojeSinteticas = tarefasPendentesSinteticas.filter(
+    (tarefa) => tarefa.prazo === hoje,
+  ).length;
+  const ordemPrioridade: Record<TarefaSintetica["prioridade"], number> = {
+    Alta: 0,
+    Média: 1,
+    Baixa: 2,
+  };
+  const alertasTarefasSinteticas = [...tarefasPendentesSinteticas]
+    .sort(
+      (a, b) =>
+        ordemPrioridade[a.prioridade] - ordemPrioridade[b.prioridade] ||
+        a.prazo.localeCompare(b.prazo),
+    )
+    .slice(0, 4);
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
@@ -389,6 +426,34 @@ export function DemoWorkspace() {
     confirmarAcaoSintetica(titulo, `${contato.nome} permanece somente na sessão de demonstração.`);
   }
 
+  function salvarTarefaSintetica({
+    contato,
+    tarefa,
+    acao,
+    novosEventos,
+  }: TarefaSinteticaAtualizada) {
+    setLeadsCriados((atuais) =>
+      atuais.map((item) => {
+        if (item !== contato) return item;
+        const tarefasAtuais = item.tarefas ?? [];
+        const tarefas =
+          acao === "Criar"
+            ? [...tarefasAtuais, tarefa]
+            : tarefasAtuais.map((existente) => (existente.id === tarefa.id ? tarefa : existente));
+        return {
+          ...item,
+          responsavel: acao === "Criar" ? tarefa.responsavel : item.responsavel,
+          tarefas,
+          historicoAtendimento: [...item.historicoAtendimento, ...novosEventos],
+        };
+      }),
+    );
+    confirmarAcaoSintetica(
+      acao === "Criar" ? "Tarefa fictícia distribuída" : "Tarefa fictícia concluída",
+      `${tarefa.titulo} permanece somente na sessão de demonstração.`,
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-[#f6f4ef] text-[#123f47]">
       <a
@@ -491,6 +556,11 @@ export function DemoWorkspace() {
                 negociosGanhosSinteticos={negociosGanhosSinteticos}
                 negociosPerdidosSinteticos={negociosPerdidosSinteticos}
                 valorNegociosGanhosSinteticos={valorNegociosGanhosSinteticos}
+                tarefasPendentesSinteticas={tarefasPendentesSinteticas.length}
+                tarefasAltaPrioridadeSinteticas={tarefasAltaPrioridadeSinteticas}
+                tarefasVencendoHojeSinteticas={tarefasVencendoHojeSinteticas}
+                tarefasConcluidasSinteticas={tarefasConcluidasSinteticas}
+                alertasTarefasSinteticas={alertasTarefasSinteticas}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -499,6 +569,7 @@ export function DemoWorkspace() {
                 onAdicionarLead={() => selecionarModulo("leads")}
                 onAcompanharLead={salvarAcompanhamento}
                 onSalvarProposta={salvarPropostaSintetica}
+                onSalvarTarefa={salvarTarefaSintetica}
               />
             ) : null}
             {moduloAtivo === "imoveis" ? (
@@ -515,6 +586,7 @@ export function DemoWorkspace() {
                 onEncaminharAoFunil={encaminharContatoAoFunil}
                 onAcompanharLead={salvarAcompanhamento}
                 onSalvarProposta={salvarPropostaSintetica}
+                onSalvarTarefa={salvarTarefaSintetica}
               />
             ) : null}
             {moduloAtivo === "campanhas" ? (
@@ -733,6 +805,11 @@ function VisaoGeral({
   negociosGanhosSinteticos,
   negociosPerdidosSinteticos,
   valorNegociosGanhosSinteticos,
+  tarefasPendentesSinteticas,
+  tarefasAltaPrioridadeSinteticas,
+  tarefasVencendoHojeSinteticas,
+  tarefasConcluidasSinteticas,
+  alertasTarefasSinteticas,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -743,6 +820,11 @@ function VisaoGeral({
   negociosGanhosSinteticos: number;
   negociosPerdidosSinteticos: number;
   valorNegociosGanhosSinteticos: number;
+  tarefasPendentesSinteticas: number;
+  tarefasAltaPrioridadeSinteticas: number;
+  tarefasVencendoHojeSinteticas: number;
+  tarefasConcluidasSinteticas: number;
+  alertasTarefasSinteticas: Array<TarefaSintetica & { contatoNome: string; etapaContato: string }>;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -857,6 +939,70 @@ function VisaoGeral({
           <IndicadorDaSessao rotulo="Em negociação" valor={propostasEmNegociacaoSinteticas} />
           <IndicadorDaSessao rotulo="Negócios ganhos" valor={negociosGanhosSinteticos} />
           <IndicadorDaSessao rotulo="Negócios perdidos" valor={negociosPerdidosSinteticos} />
+        </section>
+      ) : null}
+
+      {tarefasPendentesSinteticas + tarefasConcluidasSinteticas > 0 ? (
+        <section
+          className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4"
+          aria-label="Tarefas e alertas da equipe nesta sessão"
+          aria-live="polite"
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2 font-semibold text-amber-950">
+              <BellRing className="size-4 text-amber-700" /> Central de tarefas da equipe
+            </span>
+            <span className="text-xs text-amber-800">
+              Apenas simulação local; nenhuma pessoa receberá notificação.
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <IndicadorDaSessao rotulo="Tarefas pendentes" valor={tarefasPendentesSinteticas} />
+            <IndicadorDaSessao rotulo="Alta prioridade" valor={tarefasAltaPrioridadeSinteticas} />
+            <IndicadorDaSessao rotulo="Vencem hoje" valor={tarefasVencendoHojeSinteticas} />
+            <IndicadorDaSessao rotulo="Tarefas concluídas" valor={tarefasConcluidasSinteticas} />
+          </div>
+          <div className="mt-4 rounded-xl border border-amber-200 bg-white/80 p-3">
+            <p className="flex items-center gap-2 text-sm font-semibold text-[#123f47]">
+              <ListChecks className="size-4 text-amber-700" /> Alertas ativos
+            </p>
+            {alertasTarefasSinteticas.length > 0 ? (
+              <ul className="mt-3 grid gap-2 md:grid-cols-2">
+                {alertasTarefasSinteticas.map((tarefa) => (
+                  <li
+                    key={tarefa.id}
+                    className="rounded-xl border border-[#123f47]/10 bg-white px-3 py-2"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <strong className="text-xs text-[#123f47]">{tarefa.titulo}</strong>
+                      <Badge
+                        className={cn(
+                          "text-[10px]",
+                          tarefa.prioridade === "Alta"
+                            ? "bg-rose-100 text-rose-800 hover:bg-rose-100"
+                            : tarefa.prioridade === "Média"
+                              ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
+                              : "bg-sky-100 text-sky-800 hover:bg-sky-100",
+                        )}
+                      >
+                        Prioridade {tarefa.prioridade.toLocaleLowerCase("pt-BR")}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-[11px] text-[#587076]">
+                      {tarefa.contatoNome} · {tarefa.responsavel} · prazo {tarefa.prazoExibicao}
+                    </p>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
+                      {tarefa.prazo === new Date().toISOString().slice(0, 10)
+                        ? "Vence hoje"
+                        : tarefa.etapaContato}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-xs text-emerald-800">Nenhum alerta pendente nesta sessão.</p>
+            )}
+          </div>
         </section>
       ) : null}
 
@@ -1107,11 +1253,13 @@ function FunilDeVendas({
   onAdicionarLead,
   onAcompanharLead,
   onSalvarProposta,
+  onSalvarTarefa,
 }: {
   leadsCriados: ContatoSinteticoCriado[];
   onAdicionarLead: () => void;
   onAcompanharLead: (acompanhamento: AcompanhamentoSinteticoCriado) => void;
   onSalvarProposta: (atualizacao: PropostaSinteticaAtualizada) => void;
+  onSalvarTarefa: (atualizacao: TarefaSinteticaAtualizada) => void;
 }) {
   const contatosEncaminhados = leadsCriados.filter((lead) => lead.encaminhadoAoFunil);
 
@@ -1211,6 +1359,7 @@ function FunilDeVendas({
                             {contatoCriado.proposta?.motivoResultado ? (
                               <span>Motivo: {contatoCriado.proposta.motivoResultado}</span>
                             ) : null}
+                            <ResumoTarefasSinteticas contato={contatoCriado} />
                             <span>
                               {contatoCriado.historicoAtendimento.length}{" "}
                               {contatoCriado.historicoAtendimento.length === 1
@@ -1235,6 +1384,7 @@ function FunilDeVendas({
                             contato={contatoCriado}
                             onAcompanharLead={onAcompanharLead}
                             onSalvarProposta={onSalvarProposta}
+                            onSalvarTarefa={onSalvarTarefa}
                             className="mt-3"
                           />
                         ) : null}
@@ -1258,11 +1408,13 @@ function AcoesLeadSintetico({
   contato,
   onAcompanharLead,
   onSalvarProposta,
+  onSalvarTarefa,
   className,
 }: {
   contato: ContatoSinteticoCriado;
   onAcompanharLead: (acompanhamento: AcompanhamentoSinteticoCriado) => void;
   onSalvarProposta: (atualizacao: PropostaSinteticaAtualizada) => void;
+  onSalvarTarefa: (atualizacao: TarefaSinteticaAtualizada) => void;
   className?: string;
 }) {
   const propostaDisponivel =
@@ -1285,6 +1437,11 @@ function AcoesLeadSintetico({
           className="w-full rounded-xl border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100"
         />
       ) : null}
+      <GerenciarTarefasSinteticasDialog
+        contato={contato}
+        onConfirmar={onSalvarTarefa}
+        className="w-full rounded-xl border-amber-300 bg-white text-amber-800 hover:bg-amber-100"
+      />
       {jornadaConcluida ? (
         <Badge
           className={cn(
@@ -1297,6 +1454,35 @@ function AcoesLeadSintetico({
           Jornada concluída: {contato.proposta?.estado}
         </Badge>
       ) : null}
+    </div>
+  );
+}
+
+function ResumoTarefasSinteticas({ contato }: { contato: ContatoSinteticoCriado }) {
+  const tarefas = contato.tarefas ?? [];
+  if (tarefas.length === 0) return null;
+  const pendentes = tarefas.filter((tarefa) => tarefa.estado === "Pendente");
+  const concluidas = tarefas.length - pendentes.length;
+  const proximaTarefa = [...pendentes].sort((a, b) => a.prazo.localeCompare(b.prazo))[0];
+
+  return (
+    <div
+      className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] text-amber-950"
+      aria-label={`Resumo de tarefas de ${contato.nome}`}
+    >
+      <strong className="block">
+        Tarefas: {pendentes.length} {pendentes.length === 1 ? "pendente" : "pendentes"} ·{" "}
+        {concluidas} {concluidas === 1 ? "concluída" : "concluídas"}
+      </strong>
+      {proximaTarefa ? (
+        <span className="mt-1 block">
+          Próxima: {proximaTarefa.titulo} · {proximaTarefa.responsavel} · prioridade{" "}
+          {proximaTarefa.prioridade.toLocaleLowerCase("pt-BR")} · prazo{" "}
+          {proximaTarefa.prazoExibicao}
+        </span>
+      ) : (
+        <span className="mt-1 block text-emerald-800">Todas as tarefas foram concluídas.</span>
+      )}
     </div>
   );
 }
@@ -1457,6 +1643,7 @@ function Leads({
   onEncaminharAoFunil,
   onAcompanharLead,
   onSalvarProposta,
+  onSalvarTarefa,
 }: {
   leadsCriados: ContatoSinteticoCriado[];
   imoveisDisponiveis: Array<Pick<ImovelSinteticoCriado, "titulo" | "bairro">>;
@@ -1464,6 +1651,7 @@ function Leads({
   onEncaminharAoFunil: (contato: ContatoSinteticoCriado) => void;
   onAcompanharLead: (acompanhamento: AcompanhamentoSinteticoCriado) => void;
   onSalvarProposta: (atualizacao: PropostaSinteticaAtualizada) => void;
+  onSalvarTarefa: (atualizacao: TarefaSinteticaAtualizada) => void;
 }) {
   const [buscaLead, setBuscaLead] = useState("");
   const [prioridadeLead, setPrioridadeLead] = useState("todas");
@@ -1605,6 +1793,7 @@ function Leads({
                         Motivo: {contatoCriadoDaSessao(lead)?.proposta?.motivoResultado}
                       </dd>
                     ) : null}
+                    <ResumoTarefasSinteticas contato={contatoCriadoDaSessao(lead)!} />
                   </div>
                 ) : null}
               </dl>
@@ -1613,6 +1802,7 @@ function Leads({
                   contato={contatoCriadoDaSessao(lead)!}
                   onAcompanharLead={onAcompanharLead}
                   onSalvarProposta={onSalvarProposta}
+                  onSalvarTarefa={onSalvarTarefa}
                   className="mt-4"
                 />
               ) : contatoCriadoDaSessao(lead) ? (
@@ -1695,6 +1885,9 @@ function Leads({
                         Motivo: {contatoCriadoDaSessao(lead)?.proposta?.motivoResultado}
                       </span>
                     ) : null}
+                    {contatoCriadoDaSessao(lead) ? (
+                      <ResumoTarefasSinteticas contato={contatoCriadoDaSessao(lead)!} />
+                    ) : null}
                   </td>
                   <td className="px-5 py-4">
                     <span
@@ -1716,6 +1909,7 @@ function Leads({
                         contato={contatoCriadoDaSessao(lead)!}
                         onAcompanharLead={onAcompanharLead}
                         onSalvarProposta={onSalvarProposta}
+                        onSalvarTarefa={onSalvarTarefa}
                       />
                     ) : contatoCriadoDaSessao(lead) ? (
                       <Button
