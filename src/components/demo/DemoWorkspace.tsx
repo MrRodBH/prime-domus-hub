@@ -19,6 +19,7 @@ import {
 import {
   ArrowRight,
   CalendarDays,
+  Award,
   BellRing,
   BarChart3,
   Bot,
@@ -38,6 +39,7 @@ import {
   MessageCircle,
   MousePointerClick,
   Network,
+  RefreshCcw,
   Search,
   Send,
   Settings2,
@@ -70,6 +72,7 @@ import {
   alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
   calcularProgressoPlaybookSintetico,
+  calcularComparativoPlaybooksSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
@@ -84,17 +87,22 @@ import {
   origemDosLeads,
   criarChaveDecisaoComercial,
   registrarResultadoPlaybookComercialSintetico,
+  reaplicarAprendizadoEmNovoPlaybookSintetico,
+  removerPlaybookMelhoriaContinuaPorOrigem,
   removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
   type AcaoDecisaoComercial,
   type CenarioPrevisao,
+  type ComparacaoPlaybookSintetico,
   type DecisoesComerciaisSinteticas,
   type EstadoDecisaoComercial,
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
   type PlaybookComercialSintetico,
+  type PlaybookMelhoriaContinuaSintetico,
   type PlaybooksComerciaisSinteticos,
+  type PlaybooksMelhoriaContinuaSinteticos,
   type RecomendacaoResponsavelSintetica,
   type ResultadoPlaybookComercialSintetico,
   type ResultadosPlaybooksComerciaisSinteticos,
@@ -140,6 +148,7 @@ type RegistrarResultadoPlaybook = (
   recomendacao: RecomendacaoComercialSintetica,
   faixa: FaixaResultadoPlaybookSintetico,
 ) => void;
+type ReaplicarAprendizadoPlaybook = (comparacao: ComparacaoPlaybookSintetico) => void;
 
 type ItemNavegacao = {
   id: ModuloId;
@@ -371,6 +380,8 @@ export function DemoWorkspace() {
   const [playbooksComerciais, setPlaybooksComerciais] = useState<PlaybooksComerciaisSinteticos>({});
   const [resultadosPlaybooks, setResultadosPlaybooks] =
     useState<ResultadosPlaybooksComerciaisSinteticos>({});
+  const [playbooksMelhoriaContinua, setPlaybooksMelhoriaContinua] =
+    useState<PlaybooksMelhoriaContinuaSinteticos>({});
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -514,6 +525,9 @@ export function DemoWorkspace() {
       setResultadosPlaybooks((atuais) =>
         removerResultadoPlaybookComercialSintetico(atuais, playbookId),
       );
+      setPlaybooksMelhoriaContinua((atuais) =>
+        removerPlaybookMelhoriaContinuaPorOrigem(atuais, playbookId),
+      );
     }
     const tituloPorEstado: Record<AcaoDecisaoComercial, string> = {
       Aceita: "Recomendação aceita na simulação",
@@ -539,6 +553,9 @@ export function DemoWorkspace() {
       setResultadosPlaybooks((atuais) =>
         removerResultadoPlaybookComercialSintetico(atuais, playbook.id),
       );
+      setPlaybooksMelhoriaContinua((atuais) =>
+        removerPlaybookMelhoriaContinuaPorOrigem(atuais, playbook.id),
+      );
     }
     confirmarAcaoSintetica(
       estavaConcluida ? "Etapa reaberta na simulação" : "Etapa concluída na simulação",
@@ -551,6 +568,9 @@ export function DemoWorkspace() {
     recomendacao: RecomendacaoComercialSintetica,
     faixa: FaixaResultadoPlaybookSintetico,
   ) {
+    setPlaybooksMelhoriaContinua((atuais) =>
+      removerPlaybookMelhoriaContinuaPorOrigem(atuais, playbook.id),
+    );
     setResultadosPlaybooks((atuais) =>
       registrarResultadoPlaybookComercialSintetico({
         resultados: atuais,
@@ -562,6 +582,19 @@ export function DemoWorkspace() {
     confirmarAcaoSintetica(
       "Resultado do playbook registrado",
       `O cenário ${faixa.toLocaleLowerCase("pt-BR")} de ${playbook.responsavel} alimentou apenas os indicadores desta sessão.`,
+    );
+  }
+
+  function reaplicarAprendizadoPlaybook(comparacao: ComparacaoPlaybookSintetico) {
+    setPlaybooksMelhoriaContinua((atuais) =>
+      reaplicarAprendizadoEmNovoPlaybookSintetico({
+        playbooks: atuais,
+        comparacao,
+      }),
+    );
+    confirmarAcaoSintetica(
+      "Aprendizado reaplicado em novo playbook",
+      `Um novo ciclo fictício foi preparado para ${comparacao.responsavel} somente nesta sessão.`,
     );
   }
 
@@ -856,6 +889,8 @@ export function DemoWorkspace() {
                 onAlternarEtapaPlaybook={alternarEtapaPlaybook}
                 resultadosPlaybooks={resultadosPlaybooks}
                 onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
+                playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+                onReaplicarAprendizado={reaplicarAprendizadoPlaybook}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -912,6 +947,8 @@ export function DemoWorkspace() {
                 onAlternarEtapaPlaybook={alternarEtapaPlaybook}
                 resultadosPlaybooks={resultadosPlaybooks}
                 onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
+                playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+                onReaplicarAprendizado={reaplicarAprendizadoPlaybook}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -927,6 +964,8 @@ export function DemoWorkspace() {
                 onAlternarEtapaPlaybook={alternarEtapaPlaybook}
                 resultadosPlaybooks={resultadosPlaybooks}
                 onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
+                playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+                onReaplicarAprendizado={reaplicarAprendizadoPlaybook}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1154,6 +1193,8 @@ function VisaoGeral({
   onAlternarEtapaPlaybook,
   resultadosPlaybooks,
   onRegistrarResultadoPlaybook,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1189,6 +1230,8 @@ function VisaoGeral({
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1283,6 +1326,8 @@ function VisaoGeral({
         onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
         resultadosPlaybooks={resultadosPlaybooks}
         onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
+        playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+        onReaplicarAprendizado={onReaplicarAprendizado}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -1935,6 +1980,8 @@ function ResumoRelatorioDashboard({
   onAlternarEtapaPlaybook,
   resultadosPlaybooks,
   onRegistrarResultadoPlaybook,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -1951,6 +1998,8 @@ function ResumoRelatorioDashboard({
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -2077,6 +2126,8 @@ function ResumoRelatorioDashboard({
           onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
           resultadosPlaybooks={resultadosPlaybooks}
           onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
+          playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+          onReaplicarAprendizado={onReaplicarAprendizado}
         />
       </div>
     </section>
@@ -2092,6 +2143,8 @@ function PainelInsightsExplicaveis({
   onAlternarEtapaPlaybook,
   resultadosPlaybooks,
   onRegistrarResultadoPlaybook,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2104,6 +2157,8 @@ function PainelInsightsExplicaveis({
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
 }) {
   const coresPorTom = {
     Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -2201,6 +2256,8 @@ function PainelInsightsExplicaveis({
         onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
         resultadosPlaybooks={resultadosPlaybooks}
         onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
+        playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+        onReaplicarAprendizado={onReaplicarAprendizado}
       />
     </section>
   );
@@ -2215,6 +2272,8 @@ function CentralDecisoesComerciais({
   onAlternarEtapaPlaybook,
   resultadosPlaybooks,
   onRegistrarResultadoPlaybook,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2227,6 +2286,8 @@ function CentralDecisoesComerciais({
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
 }) {
   const recomendacoesVisiveis =
     modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
@@ -2307,6 +2368,8 @@ function CentralDecisoesComerciais({
         onAlternarEtapa={onAlternarEtapaPlaybook}
         resultadosPlaybooks={resultadosPlaybooks}
         onRegistrarResultado={onRegistrarResultadoPlaybook}
+        playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+        onReaplicarAprendizado={onReaplicarAprendizado}
       />
     </section>
   );
@@ -2415,6 +2478,8 @@ function CentralPlaybooksComerciais({
   onAlternarEtapa,
   resultadosPlaybooks,
   onRegistrarResultado,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2423,6 +2488,8 @@ function CentralPlaybooksComerciais({
   onAlternarEtapa: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   onRegistrarResultado: RegistrarResultadoPlaybook;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
 }) {
   const playbooksAtivos = resumo.recomendacoes.flatMap((recomendacao) => {
     const chave = criarChaveDecisaoComercial(resumo.periodo, recomendacao.responsavel);
@@ -2526,7 +2593,241 @@ function CentralPlaybooksComerciais({
           ))}
         </div>
       )}
+
+      <CentralMelhoriaContinuaComercial
+        resumo={resumo}
+        modo={modo}
+        resultadosPlaybooks={resultadosPlaybooks}
+        playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+        onReaplicarAprendizado={onReaplicarAprendizado}
+      />
     </section>
+  );
+}
+
+function CentralMelhoriaContinuaComercial({
+  resumo,
+  modo,
+  resultadosPlaybooks,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
+}: {
+  resumo: ResumoInsightsComerciaisSinteticos;
+  modo: "resumo" | "detalhado";
+  resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+}) {
+  const comparativo = calcularComparativoPlaybooksSinteticos({
+    resultados: resultadosPlaybooks,
+    periodo: resumo.periodo,
+    recomendacoes: resumo.recomendacoes,
+  });
+  const comparacoesVisiveis = modo === "resumo" ? comparativo.slice(0, 2) : comparativo;
+  const comparacoesComNovoPlaybook = modo === "resumo" ? comparativo.slice(0, 2) : comparativo;
+  const novosPlaybooks = comparacoesComNovoPlaybook.flatMap((item) => {
+    const playbook = playbooksMelhoriaContinua[`melhoria:${item.origemPlaybookId}`];
+    return playbook ? [playbook] : [];
+  });
+  const melhorEfetividade = comparativo[0]?.efetividade ?? 0;
+
+  return (
+    <section
+      className="mt-6 rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-fuchsia-50 p-4 sm:p-5"
+      aria-labelledby={`titulo-melhoria-continua-${modo}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-800">
+            <RefreshCcw className="size-4" /> Aprender, comparar e reaplicar
+          </p>
+          <h4 id={`titulo-melhoria-continua-${modo}`} className="mt-1 text-lg font-semibold">
+            Central de melhoria contínua
+          </h4>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-[#587076]">
+            Compare os playbooks concluídos, entenda as práticas fictícias mais eficazes e simule um
+            novo ciclo sem alterar dados reais.
+          </p>
+        </div>
+        <Badge className="w-fit bg-cyan-800 text-white hover:bg-cyan-800">
+          {comparativo.length}{" "}
+          {comparativo.length === 1 ? "responsável comparado" : "responsáveis comparados"}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <IndicadorPlaybook
+          rotulo="Responsáveis comparados"
+          valor={String(comparativo.length)}
+          classe="bg-cyan-100 text-cyan-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Melhor efetividade"
+          valor={`${melhorEfetividade}%`}
+          classe="bg-fuchsia-100 text-fuchsia-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Novos playbooks"
+          valor={String(novosPlaybooks.length)}
+          classe="bg-lime-100 text-lime-900"
+        />
+      </div>
+
+      {comparacoesVisiveis.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-cyan-300 bg-white/70 p-5 text-center">
+          <Award className="mx-auto size-7 text-cyan-700" />
+          <p className="mt-2 text-sm font-semibold">Nenhum resultado para comparar</p>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Conclua um playbook e registre seu resultado fictício para iniciar o aprendizado.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h5 className="text-sm font-semibold">Comparação de efetividade por responsável</h5>
+              <p className="mt-1 text-xs text-[#587076]">
+                Ranking sintético ordenado pelo resultado de cada playbook no período.
+              </p>
+            </div>
+            {comparativo.length === 1 ? (
+              <span className="mt-2 text-[10px] font-semibold text-orange-700 sm:mt-0">
+                Registre outro resultado para comparar duas práticas
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-3 grid gap-3 xl:grid-cols-2">
+            {comparacoesVisiveis.map((item) => {
+              const reaplicado = Boolean(
+                playbooksMelhoriaContinua[`melhoria:${item.origemPlaybookId}`],
+              );
+              return (
+                <article
+                  key={item.origemPlaybookId}
+                  className="overflow-hidden rounded-2xl border border-cyan-200 bg-white shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3 border-b border-cyan-100 bg-cyan-50/70 p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex size-9 items-center justify-center rounded-full bg-cyan-800 text-sm font-bold text-white">
+                        {item.posicao}º
+                      </span>
+                      <div>
+                        <strong className="text-sm">{item.responsavel}</strong>
+                        <p className="text-[10px] text-[#587076]">{item.faixa}</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-fuchsia-100 text-fuchsia-900 hover:bg-fuchsia-100">
+                      {item.efetividade}% de efetividade
+                    </Badge>
+                  </div>
+                  <div className="p-4">
+                    <Progress
+                      value={item.efetividade}
+                      className="h-2 bg-cyan-100 [&>div]:bg-gradient-to-r [&>div]:from-cyan-600 [&>div]:to-fuchsia-500"
+                      aria-label={`Efetividade do playbook de ${item.responsavel}`}
+                    />
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <ResultadoExplicavel
+                        rotulo="Prática fictícia mais eficaz"
+                        valor={item.praticaEficaz}
+                        classe="bg-cyan-50"
+                      />
+                      <ResultadoExplicavel
+                        rotulo="Por que se destacou"
+                        valor={item.justificativaPratica}
+                        classe="bg-violet-50"
+                      />
+                      <ResultadoExplicavel
+                        rotulo="Recomendação explicável de melhoria"
+                        valor={item.recomendacaoMelhoria}
+                        classe="bg-lime-50"
+                      />
+                      <ResultadoExplicavel
+                        rotulo="Justificativa da melhoria"
+                        valor={item.justificativaMelhoria}
+                        classe="bg-orange-50"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={reaplicado}
+                      className="mt-4 w-full rounded-xl bg-cyan-800 hover:bg-cyan-900 sm:w-auto"
+                      aria-label={`Reaplicar aprendizado de ${item.responsavel}`}
+                      onClick={() => onReaplicarAprendizado(item)}
+                    >
+                      <RefreshCcw className="mr-2 size-4" />
+                      {reaplicado ? "Aprendizado reaplicado" : "Reaplicar aprendizado"}
+                    </Button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {novosPlaybooks.length > 0 ? (
+        <div className="mt-5">
+          <h5 className="text-sm font-semibold">Novos playbooks por aprendizado reaplicado</h5>
+          <p className="mt-1 text-xs text-[#587076]">
+            Cada novo ciclo herda um aprendizado e propõe somente um refinamento controlado.
+          </p>
+          <div className="mt-3 grid gap-3 xl:grid-cols-2">
+            {novosPlaybooks.map((playbook) => (
+              <CartaoPlaybookMelhoriaContinua key={playbook.id} playbook={playbook} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function CartaoPlaybookMelhoriaContinua({
+  playbook,
+}: {
+  playbook: PlaybookMelhoriaContinuaSintetico;
+}) {
+  return (
+    <article className="rounded-2xl border border-lime-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-lime-800">
+            Novo playbook fictício de {playbook.responsavel}
+          </p>
+          <h6 className="mt-1 text-sm font-semibold">{playbook.titulo}</h6>
+        </div>
+        <Badge className="w-fit bg-lime-100 text-lime-900 hover:bg-lime-100">
+          {playbook.prazoFicticio}
+        </Badge>
+      </div>
+      <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+        <ResultadoExplicavel
+          rotulo="Aprendizado reaplicado"
+          valor={playbook.aprendizadoBase}
+          classe="bg-lime-50"
+        />
+        <ResultadoExplicavel
+          rotulo="Objetivo do novo ciclo"
+          valor={playbook.objetivoMelhoria}
+          classe="bg-cyan-50"
+        />
+      </dl>
+      <ol className="mt-3 grid gap-2">
+        {playbook.etapas.map((etapa, indice) => (
+          <li key={etapa} className="flex gap-2 rounded-xl bg-[#f8f7f3] p-3 text-xs leading-5">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-lime-700 font-bold text-white">
+              {indice + 1}
+            </span>
+            {etapa}
+          </li>
+        ))}
+      </ol>
+      <p className="mt-3 text-[10px] text-[#587076]">
+        Criado {playbook.criadoEm.toLocaleLowerCase("pt-BR")} · nenhuma ação real executada
+      </p>
+    </article>
   );
 }
 
@@ -3986,6 +4287,8 @@ function Analises({
   onAlternarEtapaPlaybook,
   resultadosPlaybooks,
   onRegistrarResultadoPlaybook,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -4002,6 +4305,8 @@ function Analises({
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -4092,6 +4397,8 @@ function Analises({
             onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
             resultadosPlaybooks={resultadosPlaybooks}
             onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
+            playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+            onReaplicarAprendizado={onReaplicarAprendizado}
           />
         </CardContent>
       </Card>
@@ -4329,6 +4636,8 @@ function InteligenciaArtificial({
   onAlternarEtapaPlaybook,
   resultadosPlaybooks,
   onRegistrarResultadoPlaybook,
+  playbooksMelhoriaContinua,
+  onReaplicarAprendizado,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -4344,6 +4653,8 @@ function InteligenciaArtificial({
   onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
+  playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
+  onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -4387,6 +4698,8 @@ function InteligenciaArtificial({
           onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
           resultadosPlaybooks={resultadosPlaybooks}
           onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
+          playbooksMelhoriaContinua={playbooksMelhoriaContinua}
+          onReaplicarAprendizado={onReaplicarAprendizado}
         />
 
         <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">
