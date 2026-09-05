@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
 import {
+  calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
 } from "./src/components/demo/demo-data";
@@ -711,6 +712,43 @@ ok(
     !workspace.includes("download="),
   "a exportação deve ser somente simulada, sem criar arquivo ou download",
 );
+ok(
+  data.includes("calcularInsightsComerciaisSinteticos") &&
+    data.includes("taxaConversaoAnterior") &&
+    data.includes("distanciaMetaPrevista"),
+  "o motor deve calcular insights e variações comerciais de forma determinística",
+);
+ok(
+  workspace.includes("Insights comerciais explicáveis") &&
+    workspace.includes("Como foi calculado") &&
+    workspace.includes("Evidência sintética"),
+  "Dashboard e Análises devem explicar cálculo e evidência dos insights",
+);
+ok(
+  workspace.includes("Alerta de desempenho") &&
+    data.includes("Conversão abaixo da referência") &&
+    data.includes("Previsão abaixo da meta") &&
+    data.includes('unidade: "p.p."'),
+  "a interface deve alertar variações de conversão e meta com unidades claras",
+);
+ok(
+  workspace.includes("Próximas ações sugeridas") &&
+    workspace.includes("Por que agora") &&
+    workspace.includes("Resultado esperado"),
+  "as recomendações devem apresentar motivo e resultado esperado em PT-BR",
+);
+ok(
+  workspace.includes("Recomendações comerciais explicáveis") &&
+    workspace.includes("Filtros compartilhados com Dashboard e Análises") &&
+    workspace.includes("Como a IA chegou a esta leitura?"),
+  "IA deve refletir filtros compartilhados e explicar sua leitura",
+);
+ok(
+  workspace.includes("Nenhuma ação será executada automaticamente") &&
+    workspace.includes("Simular próxima ação") &&
+    workspace.includes("Próxima ação simulada"),
+  "as próximas ações devem permanecer sob controle humano e somente simuladas",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -775,6 +813,42 @@ assert.equal(relatorioAmanda.desempenho[0].responsavel, "Amanda Reis");
 assertions += 1;
 assert.equal(relatorioAmanda.totais.leads, 128);
 assertions += 1;
+const insightsEquipe = calcularInsightsComerciaisSinteticos({ relatorio: relatorio30Dias });
+assert.equal(Math.round(insightsEquipe.variacaoConversao * 10) / 10, 0.9);
+assertions += 1;
+assert.equal(Math.round(insightsEquipe.coberturaMetaPrevista * 10) / 10, 60.2);
+assertions += 1;
+assert.equal(Math.round(insightsEquipe.distanciaMetaPrevista * 10) / 10, -39.8);
+assertions += 1;
+assert.equal(insightsEquipe.insights.length, 3);
+assertions += 1;
+assert.equal(insightsEquipe.alertas.length, 2);
+assertions += 1;
+assert.equal(insightsEquipe.recomendacoes.length, 4);
+assertions += 1;
+assert.equal(insightsEquipe.alertas[0].unidade, "p.p.");
+assertions += 1;
+const insightsAmanda = calcularInsightsComerciaisSinteticos({ relatorio: relatorioAmanda });
+assert.equal(insightsAmanda.recomendacoes.length, 1);
+assertions += 1;
+assert.deepEqual(
+  {
+    responsavel: insightsAmanda.recomendacoes[0].responsavel,
+    proximaAcao: insightsAmanda.recomendacoes[0].proximaAcao,
+  },
+  { responsavel: "Amanda Reis", proximaAcao: "Retomar propostas após visita" },
+);
+assertions += 1;
+const relatorioLucas = calcularRelatorioComercialSintetico({
+  periodo: "Últimos 30 dias",
+  responsavel: "Lucas Prado",
+  resumoPrevisao: previsaoRealista,
+});
+const insightsLucas = calcularInsightsComerciaisSinteticos({ relatorio: relatorioLucas });
+ok(
+  insightsLucas.variacaoConversao < 0 && insightsLucas.alertas[0].tom === "Atenção",
+  "a queda de conversão filtrada deve gerar alerta de atenção",
+);
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(
     !`${workspace}\n${workflows}\n${syntheticForecast}`.includes(forbiddenPersistence),
