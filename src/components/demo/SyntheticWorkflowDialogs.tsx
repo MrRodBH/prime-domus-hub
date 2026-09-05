@@ -16,13 +16,17 @@ import { Textarea } from "@/components/ui/textarea";
 
 export type ContatoSinteticoCriado = {
   nome: string;
+  telefone: string;
   interesse: string;
   imovelSelecionado: string;
   origem: string;
+  campanhaOrigem?: string;
+  paginaOrigem?: string;
   responsavel: string;
   etapa: string;
   temperatura: string;
   encaminhadoAoFunil: boolean;
+  captadoPorCampanha?: boolean;
 };
 
 export type ImovelSinteticoCriado = {
@@ -40,10 +44,16 @@ export type CampanhaSinteticaCriada = {
   paginaTitulo: string;
   estado: string;
   investimento: string;
+  investimentoNumerico: number;
   leads: number;
   custo: string;
   conversao: string;
   cor: string;
+};
+
+export type CaptacaoSinteticaCriada = {
+  contato: ContatoSinteticoCriado;
+  campanha: CampanhaSinteticaCriada;
 };
 
 export type PaginaSinteticaCriada = {
@@ -189,6 +199,7 @@ export function NovoContatoSinteticoDialog({
 
     onConfirmar({
       nome: nome.trim(),
+      telefone: telefone.trim(),
       interesse: observacaoInteresse.trim() || `${imovel.titulo} · ${imovel.bairro}`,
       imovelSelecionado: imovel.titulo,
       origem,
@@ -481,6 +492,7 @@ export function NovaCampanhaSinteticaDialog({
         currency: "BRL",
         maximumFractionDigits: 0,
       }).format(valorInvestimento),
+      investimentoNumerico: valorInvestimento,
       leads: 0,
       custo: "—",
       conversao: "0%",
@@ -563,6 +575,190 @@ export function NovaCampanhaSinteticaDialog({
           </label>
           <ErroFormulario mensagem={erro} />
           <RodapeFormulario rotulo="Criar rascunho sintético" />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function CapturarLeadSinteticoDialog({
+  campanhasDisponiveis,
+  imoveisDisponiveis,
+  onConfirmar,
+  rotuloAcao = "Iniciar simulação",
+  className,
+}: {
+  campanhasDisponiveis: CampanhaSinteticaCriada[];
+  imoveisDisponiveis: Array<Pick<ImovelSinteticoCriado, "titulo" | "bairro">>;
+  onConfirmar: (captacao: CaptacaoSinteticaCriada) => void;
+  rotuloAcao?: string;
+  className?: string;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [campanhaSelecionada, setCampanhaSelecionada] = useState(
+    campanhasDisponiveis[0]?.nome ?? "",
+  );
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [imovelSelecionado, setImovelSelecionado] = useState(imoveisDisponiveis[0]?.titulo ?? "");
+  const [consentimento, setConsentimento] = useState(false);
+  const [erro, setErro] = useState("");
+
+  function limpar() {
+    setCampanhaSelecionada(campanhasDisponiveis[0]?.nome ?? "");
+    setNome("");
+    setTelefone("");
+    setImovelSelecionado(imoveisDisponiveis[0]?.titulo ?? "");
+    setConsentimento(false);
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    if (
+      proximo &&
+      !campanhasDisponiveis.some((campanha) => campanha.nome === campanhaSelecionada)
+    ) {
+      setCampanhaSelecionada(campanhasDisponiveis[0]?.nome ?? "");
+    }
+    setAberto(proximo);
+    if (!proximo) limpar();
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const campanha = campanhasDisponiveis.find((item) => item.nome === campanhaSelecionada);
+    const imovel = imoveisDisponiveis.find((item) => item.titulo === imovelSelecionado);
+    if (!campanha) {
+      setErro("Crie ou selecione uma campanha com página associada para continuar.");
+      return;
+    }
+    if (nome.trim().length < 3) {
+      setErro("Informe o nome completo do lead captado.");
+      return;
+    }
+    if (telefone.replace(/\D/g, "").length < 10) {
+      setErro("Informe um telefone com DDD para continuar.");
+      return;
+    }
+    if (!imovel) {
+      setErro("Selecione o imóvel de interesse do lead.");
+      return;
+    }
+    if (!consentimento) {
+      setErro("Confirme o consentimento fictício para concluir a simulação.");
+      return;
+    }
+
+    onConfirmar({
+      campanha,
+      contato: {
+        nome: nome.trim(),
+        telefone: telefone.trim(),
+        interesse: `${imovel.titulo} · ${imovel.bairro}`,
+        imovelSelecionado: imovel.titulo,
+        origem: campanha.canal,
+        campanhaOrigem: campanha.nome,
+        paginaOrigem: campanha.paginaDestino,
+        responsavel: "Equipe de demonstração",
+        etapa: "Novos contatos",
+        temperatura: "Quente",
+        encaminhadoAoFunil: true,
+        captadoPorCampanha: true,
+      },
+    });
+    alterarAberto(false);
+  }
+
+  const campanhaAtual = campanhasDisponiveis.find((item) => item.nome === campanhaSelecionada);
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button
+          className={className ?? "w-full rounded-xl bg-emerald-700 hover:bg-emerald-800"}
+          disabled={campanhasDisponiveis.length === 0}
+        >
+          <Users className="mr-2 size-4" />
+          {rotuloAcao}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>Simular captação de lead</DialogTitle>
+          <DialogDescription>
+            Teste a jornada da campanha até o funil sem enviar dados a qualquer provedor.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <AvisoSessaoSintetica />
+          <CampoSelecao
+            id="captacao-campanha"
+            rotulo="Campanha de origem"
+            value={campanhaSelecionada}
+            onChange={setCampanhaSelecionada}
+          >
+            {campanhasDisponiveis.map((campanha) => (
+              <option key={`${campanha.nome}-${campanha.paginaDestino}`} value={campanha.nome}>
+                {campanha.nome} — {campanha.canal}
+              </option>
+            ))}
+          </CampoSelecao>
+          {campanhaAtual ? (
+            <div className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-950">
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-violet-700">
+                Página associada à campanha
+              </span>
+              <strong className="mt-1 block">{campanhaAtual.paginaTitulo}</strong>
+              <span className="text-xs text-violet-700">{campanhaAtual.paginaDestino}</span>
+            </div>
+          ) : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoTexto
+              id="captacao-nome"
+              rotulo="Nome completo do lead"
+              value={nome}
+              onChange={(evento) => setNome(evento.target.value)}
+              placeholder="Ex.: Marina Souza"
+              autoComplete="off"
+            />
+            <CampoTexto
+              id="captacao-telefone"
+              rotulo="Telefone com DDD"
+              value={telefone}
+              onChange={(evento) => setTelefone(evento.target.value)}
+              placeholder="(31) 99999-0000"
+              inputMode="tel"
+              autoComplete="off"
+            />
+          </div>
+          <CampoSelecao
+            id="captacao-imovel"
+            rotulo="Imóvel de interesse"
+            value={imovelSelecionado}
+            onChange={setImovelSelecionado}
+          >
+            {imoveisDisponiveis.map((imovel) => (
+              <option key={imovel.titulo} value={imovel.titulo}>
+                {imovel.titulo} — {imovel.bairro}
+              </option>
+            ))}
+          </CampoSelecao>
+          <label className="flex items-start gap-3 rounded-xl border border-[#123f47]/10 bg-[#f7f5f0] p-3 text-sm text-[#123f47]">
+            <input
+              type="checkbox"
+              checked={consentimento}
+              onChange={(evento) => setConsentimento(evento.target.checked)}
+              className="mt-0.5 size-4 accent-[#123f47]"
+            />
+            <span>
+              <strong className="block">Consentimento fictício confirmado</strong>
+              <span className="mt-1 block text-xs leading-5 text-[#587076]">
+                Representa a autorização do lead para contato somente nesta demonstração.
+              </span>
+            </span>
+          </label>
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario rotulo="Captar e enviar ao funil" />
         </form>
       </DialogContent>
     </Dialog>
