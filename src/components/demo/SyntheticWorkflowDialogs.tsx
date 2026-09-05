@@ -84,6 +84,7 @@ export type TarefaSintetica = {
   responsavel: string;
   prazo: string;
   prazoExibicao: string;
+  horario: string;
   prioridade: "Alta" | "Média" | "Baixa";
   estado: "Pendente" | "Concluída";
 };
@@ -1092,6 +1093,7 @@ export function GerenciarTarefasSinteticasDialog({
   const [descricao, setDescricao] = useState("");
   const [responsavel, setResponsavel] = useState(responsaveisFicticios[0]);
   const [prazo, setPrazo] = useState("");
+  const [horario, setHorario] = useState("");
   const [prioridade, setPrioridade] = useState<TarefaSintetica["prioridade"]>("Alta");
   const [erro, setErro] = useState("");
   const tarefas = contato.tarefas ?? [];
@@ -1105,6 +1107,7 @@ export function GerenciarTarefasSinteticasDialog({
         : responsaveisFicticios[0],
     );
     setPrazo("");
+    setHorario("");
     setPrioridade("Alta");
     setErro("");
   }
@@ -1128,6 +1131,10 @@ export function GerenciarTarefasSinteticasDialog({
       setErro("Escolha um prazo de hoje ou futuro para a tarefa fictícia.");
       return;
     }
+    if (!horario) {
+      setErro("Informe o horário da tarefa fictícia para organizar a agenda.");
+      return;
+    }
 
     const prazoExibicao = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
       new Date(`${prazo}T12:00:00`),
@@ -1139,13 +1146,14 @@ export function GerenciarTarefasSinteticasDialog({
       responsavel,
       prazo,
       prazoExibicao,
+      horario,
       prioridade,
       estado: "Pendente",
     };
     const novosEventos: HistoricoAtendimentoSintetico[] = [
       {
         titulo: "Tarefa de acompanhamento criada",
-        detalhe: `${tarefa.titulo} · ${tarefa.responsavel} · ${tarefa.prioridade} · prazo ${tarefa.prazoExibicao}`,
+        detalhe: `${tarefa.titulo} · ${tarefa.responsavel} · ${tarefa.prioridade} · ${tarefa.prazoExibicao} às ${tarefa.horario}`,
         momento: "Agora",
         tipo: "Tarefa",
       },
@@ -1213,8 +1221,8 @@ export function GerenciarTarefasSinteticasDialog({
                     <div>
                       <strong className="block text-xs text-[#123f47]">{tarefa.titulo}</strong>
                       <span className="mt-1 block text-[11px] text-[#587076]">
-                        {tarefa.responsavel} · prazo {tarefa.prazoExibicao} · prioridade{" "}
-                        {tarefa.prioridade}
+                        {tarefa.responsavel} · {tarefa.prazoExibicao} às {tarefa.horario} ·
+                        prioridade {tarefa.prioridade}
                       </span>
                     </div>
                     <span
@@ -1288,14 +1296,23 @@ export function GerenciarTarefasSinteticasDialog({
               <option>Baixa</option>
             </CampoSelecao>
           </div>
-          <CampoTexto
-            id="tarefa-prazo"
-            rotulo="Prazo da tarefa"
-            type="date"
-            min={new Date().toISOString().slice(0, 10)}
-            value={prazo}
-            onChange={(evento) => setPrazo(evento.target.value)}
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoTexto
+              id="tarefa-prazo"
+              rotulo="Prazo da tarefa"
+              type="date"
+              min={new Date().toISOString().slice(0, 10)}
+              value={prazo}
+              onChange={(evento) => setPrazo(evento.target.value)}
+            />
+            <CampoTexto
+              id="tarefa-horario"
+              rotulo="Horário da tarefa"
+              type="time"
+              value={horario}
+              onChange={(evento) => setHorario(evento.target.value)}
+            />
+          </div>
           <ErroFormulario mensagem={erro} />
           <RodapeFormulario rotulo="Criar tarefa fictícia" />
         </form>

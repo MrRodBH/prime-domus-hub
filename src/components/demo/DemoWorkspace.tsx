@@ -18,11 +18,13 @@ import {
 } from "recharts";
 import {
   ArrowRight,
+  CalendarDays,
   BellRing,
   BarChart3,
   Bot,
   Building2,
   CheckCircle2,
+  Clock3,
   CircleDollarSign,
   ExternalLink,
   FileText,
@@ -41,6 +43,7 @@ import {
   Settings2,
   Sparkles,
   Target,
+  TriangleAlert,
   TrendingUp,
   UserRound,
   Users,
@@ -93,6 +96,7 @@ type ModuloId =
   | "funil"
   | "imoveis"
   | "leads"
+  | "agenda"
   | "campanhas"
   | "analises"
   | "ia"
@@ -116,6 +120,12 @@ const itensNavegacao: ItemNavegacao[] = [
   { id: "funil", rotulo: "Funil de vendas", descricao: "Oportunidades por etapa", icone: Inbox },
   { id: "imoveis", rotulo: "Imóveis", descricao: "Catálogo e disponibilidade", icone: Building2 },
   { id: "leads", rotulo: "Leads", descricao: "Contatos e atendimento", icone: Users },
+  {
+    id: "agenda",
+    rotulo: "Agenda da equipe",
+    descricao: "Visitas, tarefas e carga",
+    icone: CalendarDays,
+  },
   { id: "campanhas", rotulo: "Campanhas", descricao: "Aquisição e conversão", icone: Target },
   { id: "analises", rotulo: "Análises", descricao: "Resultados e tendências", icone: BarChart3 },
   {
@@ -173,6 +183,113 @@ const estiloTooltip = {
   boxShadow: "0 18px 50px -24px rgba(18, 63, 71, 0.35)",
   color: "#123f47",
 };
+
+type EventoAgendaSintetica = {
+  id: string;
+  tipo: "Visita" | "Tarefa";
+  titulo: string;
+  contatoNome: string;
+  responsavel: string;
+  data: string;
+  dataExibicao: string;
+  horario: string;
+  estado: "Pendente" | "Concluída";
+  prioridade?: TarefaSintetica["prioridade"];
+};
+
+type CargaEquipeSintetica = {
+  responsavel: string;
+  compromissos: number;
+  classificacao: "Livre" | "Carga equilibrada" | "Atenção à carga";
+};
+
+function criarEventosAgendaSintetica(leads: ContatoSinteticoCriado[]): EventoAgendaSintetica[] {
+  return leads.flatMap((lead) => [
+    ...(lead.visitaAgendada
+      ? [
+          {
+            id: `visita-${lead.nome}-${lead.visitaAgendada.data}-${lead.visitaAgendada.horario}`,
+            tipo: "Visita" as const,
+            titulo: `Visita · ${lead.imovelSelecionado}`,
+            contatoNome: lead.nome,
+            responsavel: lead.responsavel,
+            data: lead.visitaAgendada.data,
+            dataExibicao: lead.visitaAgendada.dataExibicao,
+            horario: lead.visitaAgendada.horario,
+            estado: "Pendente" as const,
+          },
+        ]
+      : []),
+    ...(lead.tarefas ?? []).map((tarefa) => ({
+      id: tarefa.id,
+      tipo: "Tarefa" as const,
+      titulo: tarefa.titulo,
+      contatoNome: lead.nome,
+      responsavel: tarefa.responsavel,
+      data: tarefa.prazo,
+      dataExibicao: tarefa.prazoExibicao,
+      horario: tarefa.horario,
+      estado: tarefa.estado,
+      prioridade: tarefa.prioridade,
+    })),
+  ]);
+}
+
+function identificarConflitosAgenda(eventos: EventoAgendaSintetica[]) {
+  const grupos = new Map<string, EventoAgendaSintetica[]>();
+  eventos
+    .filter((evento) => evento.estado === "Pendente")
+    .forEach((evento) => {
+      const chave = `${evento.responsavel}|${evento.data}|${evento.horario}`;
+      grupos.set(chave, [...(grupos.get(chave) ?? []), evento]);
+    });
+  const gruposComConflito = [...grupos.values()].filter((grupo) => grupo.length > 1);
+  return {
+    total: gruposComConflito.length,
+    ids: new Set(gruposComConflito.flatMap((grupo) => grupo.map((evento) => evento.id))),
+  };
+}
+
+function calcularCargaEquipeSintetica(eventos: EventoAgendaSintetica[]): CargaEquipeSintetica[] {
+  const porResponsavel = new Map<string, number>();
+  eventos
+    .filter((evento) => evento.estado === "Pendente")
+    .forEach((evento) =>
+      porResponsavel.set(evento.responsavel, (porResponsavel.get(evento.responsavel) ?? 0) + 1),
+    );
+  return [...porResponsavel.entries()]
+    .map(([responsavel, compromissos]) => ({
+      responsavel,
+      compromissos,
+      classificacao:
+        compromissos >= 3
+          ? ("Atenção à carga" as const)
+          : compromissos > 0
+            ? ("Carga equilibrada" as const)
+            : ("Livre" as const),
+    }))
+    .sort((a, b) => b.compromissos - a.compromissos || a.responsavel.localeCompare(b.responsavel));
+}
+
+function somarDias(data: string, quantidade: number) {
+  const valor = new Date(`${data}T12:00:00`);
+  valor.setDate(valor.getDate() + quantidade);
+  return valor.toISOString().slice(0, 10);
+}
+
+function inicioDaSemana(data: string) {
+  const valor = new Date(`${data}T12:00:00`);
+  const deslocamento = valor.getDay() === 0 ? -6 : 1 - valor.getDay();
+  return somarDias(data, deslocamento);
+}
+
+function exibirDataAgenda(data: string, formato: "curto" | "completo" = "completo") {
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: formato === "completo" ? "short" : undefined,
+    day: "2-digit",
+    month: formato === "completo" ? "long" : "2-digit",
+  }).format(new Date(`${data}T12:00:00`));
+}
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -286,6 +403,12 @@ export function DemoWorkspace() {
         a.prazo.localeCompare(b.prazo),
     )
     .slice(0, 4);
+  const eventosAgendaSintetica = criarEventosAgendaSintetica(leadsCriados);
+  const conflitosAgendaSintetica = identificarConflitosAgenda(eventosAgendaSintetica);
+  const cargaEquipeSintetica = calcularCargaEquipeSintetica(eventosAgendaSintetica);
+  const compromissosAgendaSinteticos = eventosAgendaSintetica.filter(
+    (evento) => evento.estado === "Pendente",
+  ).length;
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
@@ -561,6 +684,9 @@ export function DemoWorkspace() {
                 tarefasVencendoHojeSinteticas={tarefasVencendoHojeSinteticas}
                 tarefasConcluidasSinteticas={tarefasConcluidasSinteticas}
                 alertasTarefasSinteticas={alertasTarefasSinteticas}
+                compromissosAgendaSinteticos={compromissosAgendaSinteticos}
+                conflitosAgendaSinteticos={conflitosAgendaSintetica.total}
+                cargaEquipeSintetica={cargaEquipeSintetica}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -589,6 +715,7 @@ export function DemoWorkspace() {
                 onSalvarTarefa={salvarTarefaSintetica}
               />
             ) : null}
+            {moduloAtivo === "agenda" ? <AgendaDaEquipe leadsCriados={leadsCriados} /> : null}
             {moduloAtivo === "campanhas" ? (
               <Campanhas
                 campanhasCriadas={campanhasCriadas}
@@ -810,6 +937,9 @@ function VisaoGeral({
   tarefasVencendoHojeSinteticas,
   tarefasConcluidasSinteticas,
   alertasTarefasSinteticas,
+  compromissosAgendaSinteticos,
+  conflitosAgendaSinteticos,
+  cargaEquipeSintetica,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -825,6 +955,9 @@ function VisaoGeral({
   tarefasVencendoHojeSinteticas: number;
   tarefasConcluidasSinteticas: number;
   alertasTarefasSinteticas: Array<TarefaSintetica & { contatoNome: string; etapaContato: string }>;
+  compromissosAgendaSinteticos: number;
+  conflitosAgendaSinteticos: number;
+  cargaEquipeSintetica: CargaEquipeSintetica[];
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1002,6 +1135,62 @@ function VisaoGeral({
             ) : (
               <p className="mt-3 text-xs text-emerald-800">Nenhum alerta pendente nesta sessão.</p>
             )}
+          </div>
+        </section>
+      ) : null}
+
+      {compromissosAgendaSinteticos > 0 ? (
+        <section
+          className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-4"
+          aria-label="Carga da equipe nesta sessão"
+          aria-live="polite"
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2 font-semibold text-cyan-950">
+              <CalendarDays className="size-4 text-cyan-700" /> Carga da agenda da equipe
+            </span>
+            <span className="text-xs text-cyan-800">
+              Visitas e tarefas pendentes criadas apenas nesta sessão.
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <IndicadorDaSessao
+              rotulo="Compromissos na agenda"
+              valor={compromissosAgendaSinteticos}
+            />
+            <IndicadorDaSessao rotulo="Conflitos de horário" valor={conflitosAgendaSinteticos} />
+            <IndicadorDaSessao rotulo="Responsáveis ativos" valor={cargaEquipeSintetica.length} />
+            <IndicadorDaSessao
+              rotulo="Maior carga individual"
+              valor={cargaEquipeSintetica[0]?.compromissos ?? 0}
+            />
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {cargaEquipeSintetica.map((carga, indice) => (
+              <div
+                key={carga.responsavel}
+                className="rounded-xl border border-cyan-200 bg-white/85 p-3"
+              >
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <strong className="text-[#123f47]">{carga.responsavel}</strong>
+                  <span className="font-semibold text-cyan-800">
+                    {carga.compromissos} {carga.compromissos === 1 ? "compromisso" : "compromissos"}
+                  </span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-cyan-100">
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      ["bg-violet-500", "bg-orange-500", "bg-emerald-500", "bg-sky-500"][
+                        indice % 4
+                      ],
+                    )}
+                    style={{ width: `${Math.min(100, carga.compromissos * 25)}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-[#587076]">{carga.classificacao}</p>
+              </div>
+            ))}
           </div>
         </section>
       ) : null}
@@ -1478,12 +1667,303 @@ function ResumoTarefasSinteticas({ contato }: { contato: ContatoSinteticoCriado 
         <span className="mt-1 block">
           Próxima: {proximaTarefa.titulo} · {proximaTarefa.responsavel} · prioridade{" "}
           {proximaTarefa.prioridade.toLocaleLowerCase("pt-BR")} · prazo{" "}
-          {proximaTarefa.prazoExibicao}
+          {proximaTarefa.prazoExibicao} às {proximaTarefa.horario}
         </span>
       ) : (
         <span className="mt-1 block text-emerald-800">Todas as tarefas foram concluídas.</span>
       )}
     </div>
+  );
+}
+
+function AgendaDaEquipe({ leadsCriados }: { leadsCriados: ContatoSinteticoCriado[] }) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const [tipoVisao, setTipoVisao] = useState<"dia" | "semana">("dia");
+  const [dataReferencia, setDataReferencia] = useState(hoje);
+  const [responsavelSelecionado, setResponsavelSelecionado] = useState("todos");
+  const eventos = criarEventosAgendaSintetica(leadsCriados);
+  const responsaveis = [...new Set(eventos.map((evento) => evento.responsavel))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const primeiraData = tipoVisao === "dia" ? dataReferencia : inicioDaSemana(dataReferencia);
+  const datasExibidas = Array.from({ length: tipoVisao === "dia" ? 1 : 7 }, (_, indice) =>
+    somarDias(primeiraData, indice),
+  );
+  const eventosDoPeriodo = eventos
+    .filter((evento) => datasExibidas.includes(evento.data))
+    .filter(
+      (evento) =>
+        responsavelSelecionado === "todos" || evento.responsavel === responsavelSelecionado,
+    )
+    .sort(
+      (a, b) =>
+        a.data.localeCompare(b.data) ||
+        a.horario.localeCompare(b.horario) ||
+        a.titulo.localeCompare(b.titulo),
+    );
+  const conflitos = identificarConflitosAgenda(eventosDoPeriodo);
+  const cargaEquipe = calcularCargaEquipeSintetica(eventosDoPeriodo);
+  const rotuloPeriodo =
+    tipoVisao === "dia"
+      ? exibirDataAgenda(primeiraData)
+      : `${exibirDataAgenda(primeiraData, "curto")} a ${exibirDataAgenda(datasExibidas[6], "curto")}`;
+
+  return (
+    <>
+      <CabecalhoPagina
+        titulo="Agenda da equipe"
+        descricao="Reúna visitas e tarefas em uma visão clara, identifique choques de horário e distribua melhor a carga da equipe."
+        acao={
+          <Badge className="w-fit border-cyan-200 bg-cyan-50 px-3 py-1.5 text-cyan-800 hover:bg-cyan-50">
+            Agenda exclusivamente fictícia
+          </Badge>
+        }
+      />
+
+      <section className="rounded-2xl border border-[#123f47]/10 bg-white p-4 shadow-sm sm:p-5">
+        <div className="grid gap-4 lg:grid-cols-[auto_minmax(180px,0.7fr)_minmax(200px,1fr)] lg:items-end">
+          <div>
+            <p className="mb-1.5 text-sm font-semibold text-[#123f47]">Formato da agenda</p>
+            <div
+              className="inline-flex rounded-xl border border-[#123f47]/10 bg-[#f6f4ef] p-1"
+              aria-label="Escolher visão da agenda"
+            >
+              <button
+                type="button"
+                className={cn(
+                  "rounded-lg px-3 py-2 text-xs font-semibold transition",
+                  tipoVisao === "dia" ? "bg-[#123f47] text-white" : "text-[#587076]",
+                )}
+                aria-pressed={tipoVisao === "dia"}
+                onClick={() => setTipoVisao("dia")}
+              >
+                Visão diária
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-lg px-3 py-2 text-xs font-semibold transition",
+                  tipoVisao === "semana" ? "bg-[#123f47] text-white" : "text-[#587076]",
+                )}
+                aria-pressed={tipoVisao === "semana"}
+                onClick={() => setTipoVisao("semana")}
+              >
+                Visão semanal
+              </button>
+            </div>
+          </div>
+          <label
+            htmlFor="agenda-data-referencia"
+            className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+          >
+            Data de referência
+            <Input
+              id="agenda-data-referencia"
+              type="date"
+              value={dataReferencia}
+              onChange={(evento) => setDataReferencia(evento.target.value)}
+              className="h-11 rounded-xl border-[#123f47]/15 bg-white"
+            />
+          </label>
+          <label
+            htmlFor="agenda-responsavel"
+            className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+          >
+            Responsável
+            <select
+              id="agenda-responsavel"
+              value={responsavelSelecionado}
+              onChange={(evento) => setResponsavelSelecionado(evento.target.value)}
+              className="h-11 w-full rounded-xl border border-[#123f47]/15 bg-white px-3 text-sm font-normal outline-none"
+            >
+              <option value="todos">Todos os responsáveis</option>
+              {responsaveis.map((responsavel) => (
+                <option key={responsavel} value={responsavel}>
+                  {responsavel}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 border-t border-[#123f47]/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-semibold capitalize text-[#123f47]">{rotuloPeriodo}</p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-fit rounded-xl"
+            onClick={() => setDataReferencia(hoje)}
+          >
+            Voltar para hoje
+          </Button>
+        </div>
+      </section>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.5fr)]">
+        <section
+          className="min-w-0 rounded-2xl border border-[#123f47]/10 bg-white p-4 shadow-sm sm:p-5"
+          aria-label="Compromissos da agenda sintética"
+          aria-live="polite"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Compromissos</h2>
+              <p className="mt-1 text-xs text-[#587076]">
+                {eventosDoPeriodo.length}{" "}
+                {eventosDoPeriodo.length === 1 ? "item encontrado" : "itens encontrados"}
+              </p>
+            </div>
+            {conflitos.total > 0 ? (
+              <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-100">
+                <TriangleAlert className="mr-1.5 size-3.5" /> {conflitos.total}{" "}
+                {conflitos.total === 1 ? "conflito de horário" : "conflitos de horário"}
+              </Badge>
+            ) : (
+              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                Sem conflitos neste período
+              </Badge>
+            )}
+          </div>
+
+          {eventosDoPeriodo.length > 0 ? (
+            <div
+              className={cn(
+                "mt-4 grid gap-3",
+                tipoVisao === "semana" && "md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7",
+              )}
+            >
+              {datasExibidas.map((data) => {
+                const eventosDaData = eventosDoPeriodo.filter((evento) => evento.data === data);
+                if (eventosDaData.length === 0 && tipoVisao === "dia") return null;
+                return (
+                  <section key={data} className="min-w-0 rounded-xl bg-[#f7f5f0] p-3">
+                    <h3 className="text-xs font-bold capitalize text-[#123f47]">
+                      {exibirDataAgenda(data)}
+                    </h3>
+                    {eventosDaData.length > 0 ? (
+                      <div className="mt-3 grid gap-2">
+                        {eventosDaData.map((evento) => {
+                          const possuiConflito = conflitos.ids.has(evento.id);
+                          return (
+                            <article
+                              key={evento.id}
+                              className={cn(
+                                "rounded-xl border bg-white p-3",
+                                possuiConflito ? "border-rose-300" : "border-[#123f47]/10",
+                                evento.estado === "Concluída" && "opacity-65",
+                              )}
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <Badge
+                                  className={cn(
+                                    "text-[10px]",
+                                    evento.tipo === "Visita"
+                                      ? "bg-violet-100 text-violet-800 hover:bg-violet-100"
+                                      : "bg-orange-100 text-orange-800 hover:bg-orange-100",
+                                  )}
+                                >
+                                  {evento.tipo}
+                                </Badge>
+                                <span className="flex items-center gap-1 text-xs font-bold text-[#123f47]">
+                                  <Clock3 className="size-3.5" /> {evento.horario}
+                                </span>
+                              </div>
+                              <strong className="mt-2 block text-xs leading-5 text-[#123f47]">
+                                {evento.titulo}
+                              </strong>
+                              <p className="mt-1 text-[11px] leading-5 text-[#587076]">
+                                {evento.contatoNome} · {evento.responsavel}
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {possuiConflito ? (
+                                  <Badge className="bg-rose-100 text-[10px] text-rose-800 hover:bg-rose-100">
+                                    Conflito de horário
+                                  </Badge>
+                                ) : null}
+                                {evento.prioridade ? (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    Prioridade {evento.prioridade.toLocaleLowerCase("pt-BR")}
+                                  </Badge>
+                                ) : null}
+                                {evento.estado === "Concluída" ? (
+                                  <Badge className="bg-emerald-100 text-[10px] text-emerald-800 hover:bg-emerald-100">
+                                    Concluída
+                                  </Badge>
+                                ) : null}
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-[11px] text-[#587076]">Sem compromissos.</p>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-xl border border-dashed border-[#123f47]/20 bg-[#f7f5f0] p-6 text-center">
+              <CalendarDays className="mx-auto size-7 text-[#9aadaf]" />
+              <p className="mt-2 text-sm font-semibold text-[#123f47]">
+                Nenhum compromisso encontrado
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[#587076]">
+                Agende uma visita ou crie uma tarefa fictícia para visualizar a agenda.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <aside className="rounded-2xl border border-[#123f47]/10 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-lg font-semibold">Carga da equipe</h2>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Compromissos pendentes no período e no filtro selecionado.
+          </p>
+          {cargaEquipe.length > 0 ? (
+            <div className="mt-4 grid gap-3">
+              {cargaEquipe.map((carga, indice) => (
+                <div key={carga.responsavel} className="rounded-xl bg-[#f7f5f0] p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="text-xs text-[#123f47]">{carga.responsavel}</strong>
+                    <span className="text-xs font-bold text-[#123f47]">{carga.compromissos}</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
+                    <div
+                      className={cn(
+                        "h-full rounded-full",
+                        ["bg-violet-500", "bg-orange-500", "bg-emerald-500", "bg-sky-500"][
+                          indice % 4
+                        ],
+                      )}
+                      style={{ width: `${Math.min(100, carga.compromissos * 25)}%` }}
+                    />
+                  </div>
+                  <p
+                    className={cn(
+                      "mt-2 text-[11px] font-semibold",
+                      carga.classificacao === "Atenção à carga"
+                        ? "text-rose-700"
+                        : "text-emerald-700",
+                    )}
+                  >
+                    {carga.classificacao}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800">
+              Nenhuma carga pendente neste período.
+            </p>
+          )}
+          <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-[11px] leading-5 text-cyan-900">
+            A carga é calculada somente com visitas e tarefas fictícias ainda pendentes. Nenhuma
+            agenda externa é consultada.
+          </div>
+        </aside>
+      </div>
+    </>
   );
 }
 
