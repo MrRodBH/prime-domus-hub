@@ -3,6 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
 import {
+  aplicarDecisaoComercialSintetica,
+  calcularResumoDecisoesComerciaisSinteticas,
   calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
@@ -733,9 +735,10 @@ ok(
 );
 ok(
   workspace.includes("Próximas ações sugeridas") &&
-    workspace.includes("Por que agora") &&
+    workspace.includes("Justificativa explicável") &&
+    workspace.includes("Impacto esperado") &&
     workspace.includes("Resultado esperado"),
-  "as recomendações devem apresentar motivo e resultado esperado em PT-BR",
+  "as recomendações devem apresentar justificativa, impacto e resultado esperado em PT-BR",
 );
 ok(
   workspace.includes("Recomendações comerciais explicáveis") &&
@@ -745,9 +748,30 @@ ok(
 );
 ok(
   workspace.includes("Nenhuma ação será executada automaticamente") &&
-    workspace.includes("Simular próxima ação") &&
-    workspace.includes("Próxima ação simulada"),
-  "as próximas ações devem permanecer sob controle humano e somente simuladas",
+    workspace.includes("Aceitar recomendação de") &&
+    workspace.includes("Adiar recomendação de") &&
+    workspace.includes("Dispensar recomendação de"),
+  "as decisões devem permanecer sob controle humano e somente simuladas",
+);
+ok(
+  workspace.includes("Central de decisões comerciais") &&
+    workspace.includes("Visão do owner e da equipe") &&
+    workspace.includes("Aguardando decisão") &&
+    workspace.includes("Decisão atual:"),
+  "Dashboard, Análises e IA devem refletir a Central de Decisões em PT-BR",
+);
+ok(
+  workspace.includes("Recomendação aceita na simulação") &&
+    workspace.includes("Recomendação adiada na simulação") &&
+    workspace.includes("Recomendação dispensada na simulação") &&
+    workspace.includes("não gerou nenhuma ação real"),
+  "aceitar, adiar e dispensar devem produzir somente confirmações sintéticas",
+);
+ok(
+  data.includes("aplicarDecisaoComercialSintetica") &&
+    data.includes("calcularResumoDecisoesComerciaisSinteticas") &&
+    workspace.includes("useState<DecisoesComerciaisSinteticas>({})"),
+  "o estado da Central de Decisões deve existir exclusivamente em memória",
 );
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
@@ -827,6 +851,49 @@ assertions += 1;
 assert.equal(insightsEquipe.recomendacoes.length, 4);
 assertions += 1;
 assert.equal(insightsEquipe.alertas[0].unidade, "p.p.");
+assertions += 1;
+ok(
+  insightsEquipe.recomendacoes.every((recomendacao) => recomendacao.impactoEsperado.length > 20),
+  "cada recomendação deve informar impacto esperado amigável",
+);
+const decisoesVazias = {};
+const decisaoAmandaAceita = aplicarDecisaoComercialSintetica({
+  decisoes: decisoesVazias,
+  periodo: "Últimos 30 dias",
+  recomendacao: insightsEquipe.recomendacoes[0],
+  estado: "Aceita",
+});
+const decisaoLucasAdiada = aplicarDecisaoComercialSintetica({
+  decisoes: decisaoAmandaAceita,
+  periodo: "Últimos 30 dias",
+  recomendacao: insightsEquipe.recomendacoes[1],
+  estado: "Adiada",
+});
+const decisoesDoRecorte = aplicarDecisaoComercialSintetica({
+  decisoes: decisaoLucasAdiada,
+  periodo: "Últimos 30 dias",
+  recomendacao: insightsEquipe.recomendacoes[2],
+  estado: "Dispensada",
+});
+assert.deepEqual(
+  calcularResumoDecisoesComerciaisSinteticas({
+    decisoes: decisoesDoRecorte,
+    periodo: "Últimos 30 dias",
+    recomendacoes: insightsEquipe.recomendacoes,
+  }),
+  { Pendente: 1, Aceita: 1, Adiada: 1, Dispensada: 1 },
+);
+assertions += 1;
+assert.deepEqual(decisoesVazias, {});
+assertions += 1;
+assert.deepEqual(
+  calcularResumoDecisoesComerciaisSinteticas({
+    decisoes: decisoesDoRecorte,
+    periodo: "Últimos 7 dias",
+    recomendacoes: insightsEquipe.recomendacoes,
+  }),
+  { Pendente: 4, Aceita: 0, Adiada: 0, Dispensada: 0 },
+);
 assertions += 1;
 const insightsAmanda = calcularInsightsComerciaisSinteticos({ relatorio: relatorioAmanda });
 assert.equal(insightsAmanda.recomendacoes.length, 1);

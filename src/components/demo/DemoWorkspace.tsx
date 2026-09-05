@@ -67,6 +67,8 @@ import {
   PALETA_GRAFICOS,
   PERIODOS_RELATORIO_COMERCIAL,
   RESPONSAVEIS_RELATORIO_COMERCIAL,
+  aplicarDecisaoComercialSintetica,
+  calcularResumoDecisoesComerciaisSinteticas,
   calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
@@ -76,9 +78,15 @@ import {
   integracoesSinteticas,
   leadsSinteticos,
   origemDosLeads,
+  criarChaveDecisaoComercial,
+  type AcaoDecisaoComercial,
   type CenarioPrevisao,
+  type DecisoesComerciaisSinteticas,
+  type EstadoDecisaoComercial,
   type FiltroResponsavelRelatorio,
   type PeriodoRelatorioComercial,
+  type RecomendacaoResponsavelSintetica,
+  type RegistroDecisaoComercial,
   type RelatorioComercialSintetico,
   type ResumoInsightsComerciaisSinteticos,
   type ResumoPrevisaoSintetica,
@@ -113,6 +121,8 @@ type ModuloId =
   | "ia"
   | "sites"
   | "integracoes";
+
+type RecomendacaoComercialSintetica = RecomendacaoResponsavelSintetica;
 
 type ItemNavegacao = {
   id: ModuloId;
@@ -340,6 +350,7 @@ export function DemoWorkspace() {
     useState<PeriodoRelatorioComercial>("Últimos 30 dias");
   const [responsavelRelatorio, setResponsavelRelatorio] =
     useState<FiltroResponsavelRelatorio>("Toda a equipe");
+  const [decisoesComerciais, setDecisoesComerciais] = useState<DecisoesComerciaisSinteticas>({});
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -457,6 +468,29 @@ export function DemoWorkspace() {
   const insightsComerciaisSinteticos = calcularInsightsComerciaisSinteticos({
     relatorio: relatorioComercialSintetico,
   });
+
+  function registrarDecisaoComercial(
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) {
+    setDecisoesComerciais((atuais) =>
+      aplicarDecisaoComercialSintetica({
+        decisoes: atuais,
+        periodo: periodoRelatorio,
+        recomendacao,
+        estado,
+      }),
+    );
+    const tituloPorEstado: Record<AcaoDecisaoComercial, string> = {
+      Aceita: "Recomendação aceita na simulação",
+      Adiada: "Recomendação adiada na simulação",
+      Dispensada: "Recomendação dispensada na simulação",
+    };
+    confirmarAcaoSintetica(
+      tituloPorEstado[estado],
+      `${recomendacao.proximaAcao} para ${recomendacao.responsavel} não gerou nenhuma ação real.`,
+    );
+  }
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
@@ -743,6 +777,8 @@ export function DemoWorkspace() {
                 onSelecionarPeriodoRelatorio={setPeriodoRelatorio}
                 onSelecionarResponsavelRelatorio={setResponsavelRelatorio}
                 insightsComerciaisSinteticos={insightsComerciaisSinteticos}
+                decisoesComerciais={decisoesComerciais}
+                onRegistrarDecisao={registrarDecisaoComercial}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -793,6 +829,8 @@ export function DemoWorkspace() {
                 onSelecionarPeriodo={setPeriodoRelatorio}
                 onSelecionarResponsavel={setResponsavelRelatorio}
                 insights={insightsComerciaisSinteticos}
+                decisoesComerciais={decisoesComerciais}
+                onRegistrarDecisao={registrarDecisaoComercial}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -802,6 +840,8 @@ export function DemoWorkspace() {
                 responsavel={responsavelRelatorio}
                 onSelecionarPeriodo={setPeriodoRelatorio}
                 onSelecionarResponsavel={setResponsavelRelatorio}
+                decisoesComerciais={decisoesComerciais}
+                onRegistrarDecisao={registrarDecisaoComercial}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1023,6 +1063,8 @@ function VisaoGeral({
   onSelecionarPeriodoRelatorio,
   onSelecionarResponsavelRelatorio,
   insightsComerciaisSinteticos,
+  decisoesComerciais,
+  onRegistrarDecisao,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1049,6 +1091,11 @@ function VisaoGeral({
   onSelecionarPeriodoRelatorio: (periodo: PeriodoRelatorioComercial) => void;
   onSelecionarResponsavelRelatorio: (responsavel: FiltroResponsavelRelatorio) => void;
   insightsComerciaisSinteticos: ResumoInsightsComerciaisSinteticos;
+  decisoesComerciais: DecisoesComerciaisSinteticas;
+  onRegistrarDecisao: (
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) => void;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1137,6 +1184,8 @@ function VisaoGeral({
         onSelecionarPeriodo={onSelecionarPeriodoRelatorio}
         onSelecionarResponsavel={onSelecionarResponsavelRelatorio}
         insights={insightsComerciaisSinteticos}
+        decisoesComerciais={decisoesComerciais}
+        onRegistrarDecisao={onRegistrarDecisao}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -1783,6 +1832,8 @@ function FiltrosRelatorioComercial({
 function ResumoRelatorioDashboard({
   relatorio,
   insights,
+  decisoesComerciais,
+  onRegistrarDecisao,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -1790,6 +1841,11 @@ function ResumoRelatorioDashboard({
 }: {
   relatorio: RelatorioComercialSintetico;
   insights: ResumoInsightsComerciaisSinteticos;
+  decisoesComerciais: DecisoesComerciaisSinteticas;
+  onRegistrarDecisao: (
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) => void;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -1907,7 +1963,12 @@ function ResumoRelatorioDashboard({
             </ResponsiveContainer>
           </div>
         </div>
-        <PainelInsightsExplicaveis resumo={insights} modo="resumo" />
+        <PainelInsightsExplicaveis
+          resumo={insights}
+          modo="resumo"
+          decisoesComerciais={decisoesComerciais}
+          onRegistrarDecisao={onRegistrarDecisao}
+        />
       </div>
     </section>
   );
@@ -1916,9 +1977,16 @@ function ResumoRelatorioDashboard({
 function PainelInsightsExplicaveis({
   resumo,
   modo,
+  decisoesComerciais,
+  onRegistrarDecisao,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
+  decisoesComerciais: DecisoesComerciaisSinteticas;
+  onRegistrarDecisao: (
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) => void;
 }) {
   const coresPorTom = {
     Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -1926,8 +1994,6 @@ function PainelInsightsExplicaveis({
     Informativo: "border-violet-200 bg-violet-50 text-violet-950",
   } as const;
   const insightsVisiveis = modo === "resumo" ? resumo.insights.slice(0, 2) : resumo.insights;
-  const recomendacoesVisiveis =
-    modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
 
   return (
     <section
@@ -2009,19 +2075,96 @@ function PainelInsightsExplicaveis({
         ))}
       </div>
 
-      <div className="mt-6">
-        <div className="flex items-center gap-2">
-          <UserRound className="size-5 text-orange-600" />
-          <h3 className="font-semibold">Próximas ações sugeridas</h3>
+      <CentralDecisoesComerciais
+        resumo={resumo}
+        modo={modo}
+        decisoesComerciais={decisoesComerciais}
+        onRegistrarDecisao={onRegistrarDecisao}
+      />
+    </section>
+  );
+}
+
+function CentralDecisoesComerciais({
+  resumo,
+  modo,
+  decisoesComerciais,
+  onRegistrarDecisao,
+}: {
+  resumo: ResumoInsightsComerciaisSinteticos;
+  modo: "resumo" | "detalhado";
+  decisoesComerciais: DecisoesComerciaisSinteticas;
+  onRegistrarDecisao: (
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) => void;
+}) {
+  const recomendacoesVisiveis =
+    modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
+  const obterRegistro = (recomendacao: RecomendacaoComercialSintetica) =>
+    decisoesComerciais[criarChaveDecisaoComercial(resumo.periodo, recomendacao.responsavel)];
+  const resumoEstados = calcularResumoDecisoesComerciaisSinteticas({
+    decisoes: decisoesComerciais,
+    periodo: resumo.periodo,
+    recomendacoes: resumo.recomendacoes,
+  });
+  const indicadores: Array<{
+    estado: EstadoDecisaoComercial;
+    rotulo: string;
+    classe: string;
+  }> = [
+    { estado: "Pendente", rotulo: "Aguardando decisão", classe: "bg-slate-100 text-slate-800" },
+    { estado: "Aceita", rotulo: "Aceitas", classe: "bg-emerald-100 text-emerald-800" },
+    { estado: "Adiada", rotulo: "Adiadas", classe: "bg-amber-100 text-amber-800" },
+    { estado: "Dispensada", rotulo: "Dispensadas", classe: "bg-rose-100 text-rose-800" },
+  ];
+
+  return (
+    <section
+      className="mt-6 rounded-2xl border border-[#123f47]/10 bg-[#f8f7f3] p-4 sm:p-5"
+      aria-labelledby={`titulo-central-decisoes-${modo}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-orange-700">
+            <UserRound className="size-4" /> Visão do owner e da equipe
+          </p>
+          <h3 id={`titulo-central-decisoes-${modo}`} className="mt-1 text-lg font-semibold">
+            Central de decisões comerciais
+          </h3>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-[#587076]">
+            Consolide as próximas ações sugeridas e simule aceitar, adiar ou dispensar cada uma.
+            Nenhuma ação será executada automaticamente.
+          </p>
         </div>
+        <Badge className="w-fit bg-[#123f47] text-white hover:bg-[#123f47]">
+          {resumo.recomendacoes.length} decisões no recorte
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {indicadores.map((indicador) => (
+          <div key={indicador.estado} className={cn("rounded-xl p-3", indicador.classe)}>
+            <strong className="block text-xl">{resumoEstados[indicador.estado]}</strong>
+            <span className="text-[10px] font-semibold uppercase tracking-wider">
+              {indicador.rotulo}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4">
+        <h4 className="text-sm font-semibold">Próximas ações sugeridas</h4>
         <p className="mt-1 text-xs text-[#587076]">
-          Recomendações fictícias por responsável; nenhuma ação será executada automaticamente.
+          Prioridade, impacto esperado e justificativa explicável por responsável.
         </p>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           {recomendacoesVisiveis.map((recomendacao) => (
             <CartaoRecomendacaoResponsavel
               key={recomendacao.responsavel}
               recomendacao={recomendacao}
+              registro={obterRegistro(recomendacao)}
+              onRegistrarDecisao={onRegistrarDecisao}
             />
           ))}
         </div>
@@ -2032,45 +2175,95 @@ function PainelInsightsExplicaveis({
 
 function CartaoRecomendacaoResponsavel({
   recomendacao,
+  registro,
+  onRegistrarDecisao,
 }: {
-  recomendacao: ResumoInsightsComerciaisSinteticos["recomendacoes"][number];
+  recomendacao: RecomendacaoComercialSintetica;
+  registro?: RegistroDecisaoComercial;
+  onRegistrarDecisao: (
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) => void;
 }) {
   const corPrioridade = {
     Alta: "bg-rose-100 text-rose-800 hover:bg-rose-100",
     Média: "bg-amber-100 text-amber-800 hover:bg-amber-100",
     Baixa: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100",
   } as const;
+  const estado = registro?.estado ?? "Pendente";
+  const corEstado: Record<EstadoDecisaoComercial, string> = {
+    Pendente: "border-slate-200 bg-slate-50 text-slate-700",
+    Aceita: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    Adiada: "border-amber-200 bg-amber-50 text-amber-800",
+    Dispensada: "border-rose-200 bg-rose-50 text-rose-800",
+  };
   return (
     <article className="rounded-2xl border border-[#123f47]/10 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong>{recomendacao.responsavel}</strong>
-        <Badge className={corPrioridade[recomendacao.prioridade]}>
-          Prioridade {recomendacao.prioridade.toLocaleLowerCase("pt-BR")}
-        </Badge>
+        <div className="flex flex-wrap gap-2">
+          <Badge className={corPrioridade[recomendacao.prioridade]}>
+            Prioridade {recomendacao.prioridade.toLocaleLowerCase("pt-BR")}
+          </Badge>
+          <Badge variant="outline" className={corEstado[estado]}>
+            {estado === "Pendente" ? "Aguardando decisão" : estado}
+          </Badge>
+        </div>
       </div>
       <h4 className="mt-3 font-semibold text-violet-800">{recomendacao.proximaAcao}</h4>
       <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-[#587076]">
-        Por que agora
+        Justificativa explicável
       </p>
       <p className="mt-1 text-xs leading-5 text-[#587076]">{recomendacao.motivo}</p>
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+        Impacto esperado
+      </p>
+      <p className="mt-1 text-xs leading-5 text-[#587076]">{recomendacao.impactoEsperado}</p>
       <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-[#587076]">
         Resultado esperado
       </p>
       <p className="mt-1 text-xs leading-5 text-[#587076]">{recomendacao.resultadoEsperado}</p>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="mt-4 w-full rounded-xl"
-        onClick={() =>
-          confirmarAcaoSintetica(
-            "Próxima ação simulada",
-            `${recomendacao.proximaAcao} foi apenas sinalizada para ${recomendacao.responsavel}.`,
-          )
-        }
+      <div
+        className="mt-4 grid grid-cols-3 gap-2"
+        aria-label={`Decisão sobre ${recomendacao.responsavel}`}
       >
-        Simular próxima ação
-      </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="rounded-xl bg-emerald-600 px-2 hover:bg-emerald-700"
+          aria-label={`Aceitar recomendação de ${recomendacao.responsavel}`}
+          aria-pressed={estado === "Aceita"}
+          onClick={() => onRegistrarDecisao(recomendacao, "Aceita")}
+        >
+          <CheckCircle2 className="mr-1 size-3.5" /> Aceitar
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl border-amber-300 px-2 text-amber-800 hover:bg-amber-50"
+          aria-label={`Adiar recomendação de ${recomendacao.responsavel}`}
+          aria-pressed={estado === "Adiada"}
+          onClick={() => onRegistrarDecisao(recomendacao, "Adiada")}
+        >
+          <Clock3 className="mr-1 size-3.5" /> Adiar
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl border-rose-300 px-2 text-rose-800 hover:bg-rose-50"
+          aria-label={`Dispensar recomendação de ${recomendacao.responsavel}`}
+          aria-pressed={estado === "Dispensada"}
+          onClick={() => onRegistrarDecisao(recomendacao, "Dispensada")}
+        >
+          <X className="mr-1 size-3.5" /> Dispensar
+        </Button>
+      </div>
+      <p className="mt-3 text-center text-[10px] text-[#587076]" aria-live="polite">
+        Decisão atual: {estado.toLocaleLowerCase("pt-BR")}
+        {registro ? ` · ${registro.atualizadoEm}` : " · ainda não avaliada"}
+      </p>
     </article>
   );
 }
@@ -3302,6 +3495,8 @@ function DadoCompacto({ rotulo, valor }: { rotulo: string; valor: string }) {
 function Analises({
   relatorio,
   insights,
+  decisoesComerciais,
+  onRegistrarDecisao,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -3309,6 +3504,11 @@ function Analises({
 }: {
   relatorio: RelatorioComercialSintetico;
   insights: ResumoInsightsComerciaisSinteticos;
+  decisoesComerciais: DecisoesComerciaisSinteticas;
+  onRegistrarDecisao: (
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) => void;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -3390,7 +3590,12 @@ function Analises({
 
       <Card className="mt-5 rounded-2xl border-[#123f47]/10">
         <CardContent className="p-5 sm:p-6">
-          <PainelInsightsExplicaveis resumo={insights} modo="detalhado" />
+          <PainelInsightsExplicaveis
+            resumo={insights}
+            modo="detalhado"
+            decisoesComerciais={decisoesComerciais}
+            onRegistrarDecisao={onRegistrarDecisao}
+          />
         </CardContent>
       </Card>
 
@@ -3621,12 +3826,19 @@ function CartaoAnalise({
 
 function InteligenciaArtificial({
   insights,
+  decisoesComerciais,
+  onRegistrarDecisao,
   periodo,
   responsavel,
   onSelecionarPeriodo,
   onSelecionarResponsavel,
 }: {
   insights: ResumoInsightsComerciaisSinteticos;
+  decisoesComerciais: DecisoesComerciaisSinteticas;
+  onRegistrarDecisao: (
+    recomendacao: RecomendacaoComercialSintetica,
+    estado: AcaoDecisaoComercial,
+  ) => void;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -3661,25 +3873,12 @@ function InteligenciaArtificial({
       </Card>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <section aria-labelledby="titulo-acoes-ia">
-          <div className="flex items-center gap-2">
-            <Target className="size-5 text-orange-600" />
-            <h2 id="titulo-acoes-ia" className="font-semibold">
-              Próximas ações por responsável
-            </h2>
-          </div>
-          <p className="mt-1 text-xs text-[#587076]">
-            Prioridades fictícias recalculadas conforme os filtros desta sessão.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {insights.recomendacoes.map((recomendacao) => (
-              <CartaoRecomendacaoResponsavel
-                key={recomendacao.responsavel}
-                recomendacao={recomendacao}
-              />
-            ))}
-          </div>
-        </section>
+        <CentralDecisoesComerciais
+          resumo={insights}
+          modo="detalhado"
+          decisoesComerciais={decisoesComerciais}
+          onRegistrarDecisao={onRegistrarDecisao}
+        />
 
         <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">
           <div className="flex items-center gap-3 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white p-5">

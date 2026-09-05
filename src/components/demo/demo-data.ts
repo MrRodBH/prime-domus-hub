@@ -583,8 +583,66 @@ export type RecomendacaoResponsavelSintetica = {
   prioridade: "Alta" | "Média" | "Baixa";
   proximaAcao: string;
   motivo: string;
+  impactoEsperado: string;
   resultadoEsperado: string;
 };
+
+export type EstadoDecisaoComercial = "Pendente" | "Aceita" | "Adiada" | "Dispensada";
+export type AcaoDecisaoComercial = Exclude<EstadoDecisaoComercial, "Pendente">;
+export type RegistroDecisaoComercial = {
+  estado: EstadoDecisaoComercial;
+  atualizadoEm: string;
+};
+export type DecisoesComerciaisSinteticas = Record<string, RegistroDecisaoComercial>;
+
+export function criarChaveDecisaoComercial(
+  periodo: PeriodoRelatorioComercial,
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"],
+) {
+  return `${periodo}:${responsavel}`;
+}
+
+export function aplicarDecisaoComercialSintetica({
+  decisoes,
+  periodo,
+  recomendacao,
+  estado,
+}: {
+  decisoes: DecisoesComerciaisSinteticas;
+  periodo: PeriodoRelatorioComercial;
+  recomendacao: RecomendacaoResponsavelSintetica;
+  estado: AcaoDecisaoComercial;
+}): DecisoesComerciaisSinteticas {
+  return {
+    ...decisoes,
+    [criarChaveDecisaoComercial(periodo, recomendacao.responsavel)]: {
+      estado,
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularResumoDecisoesComerciaisSinteticas({
+  decisoes,
+  periodo,
+  recomendacoes,
+}: {
+  decisoes: DecisoesComerciaisSinteticas;
+  periodo: PeriodoRelatorioComercial;
+  recomendacoes: RecomendacaoResponsavelSintetica[];
+}): Record<EstadoDecisaoComercial, number> {
+  const resumo: Record<EstadoDecisaoComercial, number> = {
+    Pendente: 0,
+    Aceita: 0,
+    Adiada: 0,
+    Dispensada: 0,
+  };
+  recomendacoes.forEach((recomendacao) => {
+    const registro = decisoes[criarChaveDecisaoComercial(periodo, recomendacao.responsavel)];
+    resumo[registro?.estado ?? "Pendente"] += 1;
+  });
+  return resumo;
+}
 
 export type ResumoInsightsComerciaisSinteticos = {
   periodo: PeriodoRelatorioComercial;
@@ -617,22 +675,26 @@ const AJUSTE_CONVERSAO_ANTERIOR_POR_RESPONSAVEL: Record<
 
 const PROXIMA_ACAO_POR_RESPONSAVEL: Record<
   Exclude<FiltroResponsavelRelatorio, "Toda a equipe">,
-  { acao: string; resultado: string }
+  { acao: string; impacto: string; resultado: string }
 > = {
   "Amanda Reis": {
     acao: "Retomar propostas após visita",
+    impacto: "Potencial de acelerar até 3 propostas que já passaram pela visita.",
     resultado: "Aumentar o avanço de propostas qualificadas para fechamento.",
   },
   "Lucas Prado": {
     acao: "Priorizar negociações sem retorno recente",
+    impacto: "Potencial de reduzir o volume de oportunidades paradas em negociação.",
     resultado: "Reduzir o tempo parado entre proposta e decisão do cliente.",
   },
   "Bruno Lima": {
     acao: "Transformar visitas concluídas em proposta",
+    impacto: "Potencial de gerar até 2 novas propostas a partir das visitas realizadas.",
     resultado: "Aproveitar melhor os contatos que já demonstraram interesse presencial.",
   },
   "Camila Torres": {
     acao: "Revisar oportunidades de maior valor",
+    impacto: "Potencial de elevar em até 5 p.p. a cobertura prevista da meta.",
     resultado: "Elevar a cobertura prevista da meta com uma carteira mais focada.",
   },
 };
@@ -743,6 +805,7 @@ export function calcularInsightsComerciaisSinteticos({
             : ("Baixa" as const),
       proximaAcao: modelo.acao,
       motivo: `${desempenho.visitas} visitas, ${desempenho.propostas} propostas e cobertura prevista de ${formatarPercentualSintetico(cobertura)}% da meta no recorte.`,
+      impactoEsperado: modelo.impacto,
       resultadoEsperado: modelo.resultado,
     };
   });
