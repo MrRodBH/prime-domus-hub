@@ -150,6 +150,11 @@ const propriedades = [
   },
 ];
 
+const paginaCatalogoDemonstracao = {
+  titulo: "Catálogo principal de imóveis",
+  caminho: "/imoveis",
+};
+
 const estiloTooltip = {
   background: "#ffffff",
   border: "1px solid rgba(18, 63, 71, 0.12)",
@@ -173,6 +178,10 @@ function confirmarAcaoSintetica(titulo: string, detalhe: string) {
 export function DemoWorkspace() {
   const [moduloAtivo, setModuloAtivo] = useState<ModuloId>("visao-geral");
   const [menuAberto, setMenuAberto] = useState(false);
+  const [imoveisCriados, setImoveisCriados] = useState<ImovelSinteticoCriado[]>([]);
+  const [leadsCriados, setLeadsCriados] = useState<ContatoSinteticoCriado[]>([]);
+  const [campanhasCriadas, setCampanhasCriadas] = useState<CampanhaSinteticaCriada[]>([]);
+  const [paginasCriadas, setPaginasCriadas] = useState<PaginaSinteticaCriada[]>([]);
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -200,6 +209,28 @@ export function DemoWorkspace() {
       `${window.location.pathname}${window.location.search}#${id}`,
     );
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const imoveisDisponiveis = [
+    ...imoveisCriados.map(({ titulo, bairro }) => ({ titulo, bairro })),
+    ...propriedades.map(({ titulo, bairro }) => ({ titulo, bairro })),
+  ];
+  const paginasDisponiveis = [
+    ...paginasCriadas.map(({ titulo, caminho }) => ({ titulo, caminho })),
+    paginaCatalogoDemonstracao,
+  ];
+
+  function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
+    setLeadsCriados((atuais) =>
+      atuais.map((item) =>
+        item === contato ? { ...item, etapa: "Novos contatos", encaminhadoAoFunil: true } : item,
+      ),
+    );
+    confirmarAcaoSintetica(
+      "Contato encaminhado ao funil",
+      `${contato.nome} entrou na etapa Novos contatos somente nesta sessão.`,
+    );
+    selecionarModulo("funil");
   }
 
   return (
@@ -294,13 +325,44 @@ export function DemoWorkspace() {
           >
             <AvisoDemonstracao />
             {moduloAtivo === "visao-geral" ? <VisaoGeral /> : null}
-            {moduloAtivo === "funil" ? <FunilDeVendas /> : null}
-            {moduloAtivo === "imoveis" ? <Imoveis /> : null}
-            {moduloAtivo === "leads" ? <Leads /> : null}
-            {moduloAtivo === "campanhas" ? <Campanhas /> : null}
+            {moduloAtivo === "funil" ? (
+              <FunilDeVendas
+                leadsCriados={leadsCriados}
+                onAdicionarLead={() => selecionarModulo("leads")}
+              />
+            ) : null}
+            {moduloAtivo === "imoveis" ? (
+              <Imoveis
+                imoveisCriados={imoveisCriados}
+                onCriarImovel={(imovel) => setImoveisCriados((atuais) => [imovel, ...atuais])}
+              />
+            ) : null}
+            {moduloAtivo === "leads" ? (
+              <Leads
+                leadsCriados={leadsCriados}
+                imoveisDisponiveis={imoveisDisponiveis}
+                onCriarContato={(contato) => setLeadsCriados((atuais) => [contato, ...atuais])}
+                onEncaminharAoFunil={encaminharContatoAoFunil}
+              />
+            ) : null}
+            {moduloAtivo === "campanhas" ? (
+              <Campanhas
+                campanhasCriadas={campanhasCriadas}
+                paginasDisponiveis={paginasDisponiveis}
+                onCriarCampanha={(campanha) =>
+                  setCampanhasCriadas((atuais) => [campanha, ...atuais])
+                }
+              />
+            ) : null}
             {moduloAtivo === "analises" ? <Analises /> : null}
             {moduloAtivo === "ia" ? <InteligenciaArtificial /> : null}
-            {moduloAtivo === "sites" ? <SitesEPaginas /> : null}
+            {moduloAtivo === "sites" ? (
+              <SitesEPaginas
+                paginasCriadas={paginasCriadas}
+                campanhasCriadas={campanhasCriadas}
+                onCriarPagina={(pagina) => setPaginasCriadas((atuais) => [pagina, ...atuais])}
+              />
+            ) : null}
             {moduloAtivo === "integracoes" ? <Integracoes /> : null}
           </main>
         </div>
@@ -771,7 +833,15 @@ function CartaoMetrica({
   );
 }
 
-function FunilDeVendas() {
+function FunilDeVendas({
+  leadsCriados,
+  onAdicionarLead,
+}: {
+  leadsCriados: ContatoSinteticoCriado[];
+  onAdicionarLead: () => void;
+}) {
+  const contatosEncaminhados = leadsCriados.filter((lead) => lead.encaminhadoAoFunil);
+
   return (
     <>
       <CabecalhoPagina
@@ -780,12 +850,13 @@ function FunilDeVendas() {
         acao={
           <Button
             className="rounded-xl bg-[#123f47]"
-            onClick={() =>
+            onClick={() => {
               confirmarAcaoSintetica(
-                "Novo lead simulado",
-                "O formulário foi representado sem criar um contato.",
-              )
-            }
+                "Gestão de leads aberta",
+                "Use Novo contato, escolha um imóvel e depois selecione Enviar ao funil.",
+              );
+              onAdicionarLead();
+            }}
           >
             <Users className="mr-2 size-4" />
             Adicionar lead
@@ -793,59 +864,85 @@ function FunilDeVendas() {
         }
       />
       <div className="grid gap-4 xl:grid-cols-5">
-        {etapasDoFunil.map((etapa, indice) => (
-          <section key={etapa.nome} className="min-w-0">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <span className={cn("size-2.5 rounded-full", etapa.cor)} />
-                {etapa.nome}
-              </span>
-              <Badge variant="secondary">{etapa.quantidade}</Badge>
-            </div>
-            <div className="space-y-3">
-              {leadsSinteticos.slice(0, Math.max(2, 4 - indice)).map((lead, leadIndice) => (
-                <Card
-                  key={`${etapa.nome}-${lead.nome}`}
-                  className="rounded-xl border-[#123f47]/10 transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <CardContent className="p-4">
-                    <p className="text-sm font-semibold">
-                      {leadIndice === 0
-                        ? lead.nome
-                        : (["Fernanda Costa", "André Moura", "Paula Azevedo"][leadIndice - 1] ??
-                          lead.nome)}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-[#587076]">{lead.interesse}</p>
-                    <div className="mt-3 flex items-center justify-between border-t border-[#123f47]/8 pt-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#587076]">
-                        {lead.origem}
-                      </span>
-                      <span className="size-6 rounded-full bg-[#e2d7c4] text-center text-[9px] font-bold leading-6">
-                        {lead.responsavel
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <div className="mt-3 rounded-lg border border-dashed border-[#123f47]/15 p-3 text-center text-xs text-[#587076]">
-              {etapa.valor} em oportunidades
-            </div>
-          </section>
-        ))}
+        {etapasDoFunil.map((etapa, indice) => {
+          const contatosDaEtapa = [
+            ...(indice === 0 ? contatosEncaminhados : []),
+            ...leadsSinteticos.slice(0, Math.max(2, 4 - indice)),
+          ];
+          return (
+            <section key={etapa.nome} className="min-w-0">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <span className={cn("size-2.5 rounded-full", etapa.cor)} />
+                  {etapa.nome}
+                </span>
+                <Badge variant="secondary">
+                  {etapa.quantidade + (indice === 0 ? contatosEncaminhados.length : 0)}
+                </Badge>
+              </div>
+              <div className="space-y-3">
+                {contatosDaEtapa.map((lead, leadIndice) => {
+                  const criadoNestaSessao = contatosEncaminhados.includes(
+                    lead as ContatoSinteticoCriado,
+                  );
+                  return (
+                    <Card
+                      key={`${etapa.nome}-${lead.nome}-${leadIndice}`}
+                      className={cn(
+                        "rounded-xl border-[#123f47]/10 transition hover:-translate-y-0.5 hover:shadow-md",
+                        criadoNestaSessao && "border-violet-300 bg-violet-50/60",
+                      )}
+                    >
+                      <CardContent className="p-4">
+                        {criadoNestaSessao ? (
+                          <Badge className="mb-2 bg-violet-100 text-violet-800 hover:bg-violet-100">
+                            Jornada sintética
+                          </Badge>
+                        ) : null}
+                        <p className="text-sm font-semibold">
+                          {criadoNestaSessao || leadIndice === 0
+                            ? lead.nome
+                            : (["Fernanda Costa", "André Moura", "Paula Azevedo"][leadIndice - 1] ??
+                              lead.nome)}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-[#587076]">{lead.interesse}</p>
+                        <div className="mt-3 flex items-center justify-between border-t border-[#123f47]/8 pt-3">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-[#587076]">
+                            {lead.origem}
+                          </span>
+                          <span className="size-6 rounded-full bg-[#e2d7c4] text-center text-[9px] font-bold leading-6">
+                            {lead.responsavel
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+              <div className="mt-3 rounded-lg border border-dashed border-[#123f47]/15 p-3 text-center text-xs text-[#587076]">
+                {etapa.valor} em oportunidades
+              </div>
+            </section>
+          );
+        })}
       </div>
     </>
   );
 }
 
-function Imoveis() {
+function Imoveis({
+  imoveisCriados,
+  onCriarImovel,
+}: {
+  imoveisCriados: ImovelSinteticoCriado[];
+  onCriarImovel: (imovel: ImovelSinteticoCriado) => void;
+}) {
   const [buscaImovel, setBuscaImovel] = useState("");
   const [estadoImovel, setEstadoImovel] = useState("todos");
   const [ordenacaoImovel, setOrdenacaoImovel] = useState("recentes");
-  const [imoveisCriados, setImoveisCriados] = useState<ImovelSinteticoCriado[]>([]);
   const termoBuscaImovel = buscaImovel.trim().toLocaleLowerCase("pt-BR");
   const propriedadesDaSessao = [
     ...imoveisCriados.map((imovel, indice) => ({
@@ -878,7 +975,7 @@ function Imoveis() {
         acao={
           <NovoImovelSinteticoDialog
             onConfirmar={(imovel) => {
-              setImoveisCriados((atuais) => [imovel, ...atuais]);
+              onCriarImovel(imovel);
               confirmarAcaoSintetica(
                 "Imóvel adicionado ao catálogo",
                 `${imovel.titulo} ficará visível somente nesta sessão.`,
@@ -985,10 +1082,19 @@ function Imoveis() {
   );
 }
 
-function Leads() {
+function Leads({
+  leadsCriados,
+  imoveisDisponiveis,
+  onCriarContato,
+  onEncaminharAoFunil,
+}: {
+  leadsCriados: ContatoSinteticoCriado[];
+  imoveisDisponiveis: Array<Pick<ImovelSinteticoCriado, "titulo" | "bairro">>;
+  onCriarContato: (contato: ContatoSinteticoCriado) => void;
+  onEncaminharAoFunil: (contato: ContatoSinteticoCriado) => void;
+}) {
   const [buscaLead, setBuscaLead] = useState("");
   const [prioridadeLead, setPrioridadeLead] = useState("todas");
-  const [leadsCriados, setLeadsCriados] = useState<ContatoSinteticoCriado[]>([]);
   const termoBuscaLead = buscaLead.trim().toLocaleLowerCase("pt-BR");
   const leadsDaSessao = [...leadsCriados, ...leadsSinteticos];
   const leadsFiltrados = leadsDaSessao
@@ -999,6 +1105,8 @@ function Leads() {
         .includes(termoBuscaLead),
     )
     .filter((lead) => prioridadeLead === "todas" || lead.temperatura === prioridadeLead);
+  const contatoCriadoDaSessao = (lead: (typeof leadsDaSessao)[number]) =>
+    leadsCriados.find((contato) => contato === lead);
 
   return (
     <>
@@ -1007,8 +1115,9 @@ function Leads() {
         descricao="Centralize contatos, contexto de interesse, origem da campanha e responsável pelo próximo atendimento."
         acao={
           <NovoContatoSinteticoDialog
+            imoveisDisponiveis={imoveisDisponiveis}
             onConfirmar={(contato) => {
-              setLeadsCriados((atuais) => [contato, ...atuais]);
+              onCriarContato(contato);
               confirmarAcaoSintetica(
                 "Contato adicionado ao atendimento",
                 `${contato.nome} ficará visível somente nesta sessão.`,
@@ -1062,6 +1171,11 @@ function Leads() {
                 <div>
                   <h2 className="text-sm font-semibold">{lead.nome}</h2>
                   <p className="mt-1 text-xs leading-5 text-[#587076]">{lead.interesse}</p>
+                  {contatoCriadoDaSessao(lead)?.imovelSelecionado ? (
+                    <p className="mt-1 text-[11px] font-medium text-violet-700">
+                      Imóvel vinculado: {contatoCriadoDaSessao(lead)?.imovelSelecionado}
+                    </p>
+                  ) : null}
                 </div>
                 <span
                   className={cn(
@@ -1090,6 +1204,20 @@ function Leads() {
                   <dd className="mt-1 font-medium">{lead.etapa}</dd>
                 </div>
               </dl>
+              {contatoCriadoDaSessao(lead) ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-4 w-full rounded-xl"
+                  disabled={contatoCriadoDaSessao(lead)?.encaminhadoAoFunil}
+                  onClick={() => onEncaminharAoFunil(contatoCriadoDaSessao(lead)!)}
+                >
+                  {contatoCriadoDaSessao(lead)?.encaminhadoAoFunil
+                    ? "Contato no funil"
+                    : "Enviar ao funil"}
+                  <ArrowRight className="ml-2 size-4" />
+                </Button>
+              ) : null}
             </article>
           ))}
           {leadsFiltrados.length === 0 ? (
@@ -1108,6 +1236,7 @@ function Leads() {
                 <th className="px-5 py-3 font-semibold">Responsável</th>
                 <th className="px-5 py-3 font-semibold">Etapa atual</th>
                 <th className="px-5 py-3 font-semibold">Prioridade</th>
+                <th className="px-5 py-3 font-semibold">Próxima ação</th>
               </tr>
             </thead>
             <tbody>
@@ -1119,6 +1248,11 @@ function Leads() {
                   <td className="px-5 py-4">
                     <strong className="block">{lead.nome}</strong>
                     <span className="mt-1 block text-xs text-[#587076]">{lead.interesse}</span>
+                    {contatoCriadoDaSessao(lead)?.imovelSelecionado ? (
+                      <span className="mt-1 block text-[11px] font-medium text-violet-700">
+                        Imóvel vinculado: {contatoCriadoDaSessao(lead)?.imovelSelecionado}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-5 py-4">{lead.origem}</td>
                   <td className="px-5 py-4">{lead.responsavel}</td>
@@ -1139,11 +1273,28 @@ function Leads() {
                       {lead.temperatura}
                     </span>
                   </td>
+                  <td className="px-5 py-4">
+                    {contatoCriadoDaSessao(lead) ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        disabled={contatoCriadoDaSessao(lead)?.encaminhadoAoFunil}
+                        onClick={() => onEncaminharAoFunil(contatoCriadoDaSessao(lead)!)}
+                      >
+                        {contatoCriadoDaSessao(lead)?.encaminhadoAoFunil
+                          ? "Contato no funil"
+                          : "Enviar ao funil"}
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-[#587076]">Somente leitura</span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {leadsFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-[#587076]">
+                  <td colSpan={6} className="px-5 py-10 text-center text-sm text-[#587076]">
                     Nenhum contato corresponde à busca. Tente outro nome, imóvel, origem ou
                     prioridade.
                   </td>
@@ -1157,9 +1308,18 @@ function Leads() {
   );
 }
 
-function Campanhas() {
-  const [campanhasCriadas, setCampanhasCriadas] = useState<CampanhaSinteticaCriada[]>([]);
+function Campanhas({
+  campanhasCriadas,
+  paginasDisponiveis,
+  onCriarCampanha,
+}: {
+  campanhasCriadas: CampanhaSinteticaCriada[];
+  paginasDisponiveis: Array<Pick<PaginaSinteticaCriada, "titulo" | "caminho">>;
+  onCriarCampanha: (campanha: CampanhaSinteticaCriada) => void;
+}) {
   const campanhasDaSessao = [...campanhasCriadas, ...campanhasSinteticas];
+  const campanhaCriadaDaSessao = (campanha: (typeof campanhasDaSessao)[number]) =>
+    campanhasCriadas.find((item) => item === campanha);
 
   return (
     <>
@@ -1168,8 +1328,9 @@ function Campanhas() {
         descricao="Compare canais, investimento, custo por lead e conversões sem alternar entre diferentes plataformas."
         acao={
           <NovaCampanhaSinteticaDialog
+            paginasDisponiveis={paginasDisponiveis}
             onConfirmar={(campanha) => {
-              setCampanhasCriadas((atuais) => [campanha, ...atuais]);
+              onCriarCampanha(campanha);
               confirmarAcaoSintetica(
                 "Rascunho de campanha criado",
                 `${campanha.nome} ficará visível somente nesta sessão.`,
@@ -1194,6 +1355,19 @@ function Campanhas() {
                 <span className="size-2.5 rounded-full bg-emerald-500" title={campanha.estado} />
               </div>
               <p className="mt-1 text-xs text-[#587076]">{campanha.estado}</p>
+              {campanhaCriadaDaSessao(campanha) ? (
+                <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-700">
+                    Página de destino
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-violet-950">
+                    {campanhaCriadaDaSessao(campanha)?.paginaTitulo}
+                  </p>
+                  <p className="mt-0.5 text-xs text-violet-700">
+                    {campanhaCriadaDaSessao(campanha)?.paginaDestino}
+                  </p>
+                </div>
+              ) : null}
               <dl className="mt-5 grid grid-cols-2 gap-3">
                 <DadoCompacto rotulo="Investimento" valor={campanha.investimento} />
                 <DadoCompacto rotulo="Leads" valor={String(campanha.leads)} />
@@ -1517,9 +1691,15 @@ function InteligenciaArtificial() {
   );
 }
 
-function SitesEPaginas() {
-  const [paginasCriadas, setPaginasCriadas] = useState<PaginaSinteticaCriada[]>([]);
-
+function SitesEPaginas({
+  paginasCriadas,
+  campanhasCriadas,
+  onCriarPagina,
+}: {
+  paginasCriadas: PaginaSinteticaCriada[];
+  campanhasCriadas: CampanhaSinteticaCriada[];
+  onCriarPagina: (pagina: PaginaSinteticaCriada) => void;
+}) {
   return (
     <>
       <CabecalhoPagina
@@ -1528,7 +1708,7 @@ function SitesEPaginas() {
         acao={
           <NovaPaginaSinteticaDialog
             onConfirmar={(pagina) => {
-              setPaginasCriadas((atuais) => [pagina, ...atuais]);
+              onCriarPagina(pagina);
               confirmarAcaoSintetica(
                 "Rascunho de página criado",
                 `${pagina.titulo} ficará visível somente nesta sessão.`,
@@ -1665,6 +1845,17 @@ function SitesEPaginas() {
                   <div className="mt-4 rounded-lg bg-white px-3 py-2 text-xs">
                     Botão principal: <strong>{pagina.chamada}</strong>
                   </div>
+                  <p className="mt-3 text-xs font-medium text-[#587076]">
+                    {campanhasCriadas.filter(
+                      (campanha) => campanha.paginaDestino === pagina.caminho,
+                    ).length === 1
+                      ? "Associada a 1 campanha sintética"
+                      : `Associada a ${
+                          campanhasCriadas.filter(
+                            (campanha) => campanha.paginaDestino === pagina.caminho,
+                          ).length
+                        } campanhas sintéticas`}
+                  </p>
                 </article>
               ))}
             </div>

@@ -17,10 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 export type ContatoSinteticoCriado = {
   nome: string;
   interesse: string;
+  imovelSelecionado: string;
   origem: string;
   responsavel: string;
   etapa: string;
   temperatura: string;
+  encaminhadoAoFunil: boolean;
 };
 
 export type ImovelSinteticoCriado = {
@@ -34,6 +36,8 @@ export type ImovelSinteticoCriado = {
 export type CampanhaSinteticaCriada = {
   nome: string;
   canal: string;
+  paginaDestino: string;
+  paginaTitulo: string;
   estado: string;
   investimento: string;
   leads: number;
@@ -138,13 +142,16 @@ const conteudoDialogClasse =
 
 export function NovoContatoSinteticoDialog({
   onConfirmar,
+  imoveisDisponiveis,
 }: {
   onConfirmar: (contato: ContatoSinteticoCriado) => void;
+  imoveisDisponiveis: Array<Pick<ImovelSinteticoCriado, "titulo" | "bairro">>;
 }) {
   const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [interesse, setInteresse] = useState("");
+  const [imovelSelecionado, setImovelSelecionado] = useState(imoveisDisponiveis[0]?.titulo ?? "");
+  const [observacaoInteresse, setObservacaoInteresse] = useState("");
   const [origem, setOrigem] = useState("Site institucional");
   const [prioridade, setPrioridade] = useState("Novo");
   const [erro, setErro] = useState("");
@@ -152,7 +159,8 @@ export function NovoContatoSinteticoDialog({
   function limpar() {
     setNome("");
     setTelefone("");
-    setInteresse("");
+    setImovelSelecionado(imoveisDisponiveis[0]?.titulo ?? "");
+    setObservacaoInteresse("");
     setOrigem("Site institucional");
     setPrioridade("Novo");
     setErro("");
@@ -173,18 +181,21 @@ export function NovoContatoSinteticoDialog({
       setErro("Informe um telefone com DDD para continuar.");
       return;
     }
-    if (interesse.trim().length < 3) {
-      setErro("Descreva o imóvel ou região de interesse.");
+    const imovel = imoveisDisponiveis.find((item) => item.titulo === imovelSelecionado);
+    if (!imovel) {
+      setErro("Selecione um imóvel de interesse para continuar.");
       return;
     }
 
     onConfirmar({
       nome: nome.trim(),
-      interesse: interesse.trim(),
+      interesse: observacaoInteresse.trim() || `${imovel.titulo} · ${imovel.bairro}`,
+      imovelSelecionado: imovel.titulo,
       origem,
       responsavel: "Equipe de demonstração",
       etapa: "Novo contato",
       temperatura: prioridade,
+      encaminhadoAoFunil: false,
     });
     alterarAberto(false);
   }
@@ -236,12 +247,24 @@ export function NovoContatoSinteticoDialog({
               <option>Portal imobiliário</option>
             </CampoSelecao>
           </div>
+          <CampoSelecao
+            id="contato-imovel"
+            rotulo="Imóvel de interesse"
+            value={imovelSelecionado}
+            onChange={setImovelSelecionado}
+          >
+            {imoveisDisponiveis.map((imovel) => (
+              <option key={`${imovel.titulo}-${imovel.bairro}`} value={imovel.titulo}>
+                {imovel.titulo} — {imovel.bairro}
+              </option>
+            ))}
+          </CampoSelecao>
           <CampoTexto
             id="contato-interesse"
-            rotulo="Imóvel ou região de interesse"
-            value={interesse}
-            onChange={(evento) => setInteresse(evento.target.value)}
-            placeholder="Ex.: Cobertura em Lourdes"
+            rotulo="Observação do interesse (opcional)"
+            value={observacaoInteresse}
+            onChange={(evento) => setObservacaoInteresse(evento.target.value)}
+            placeholder="Ex.: Prefere visita no período da manhã"
             autoComplete="off"
           />
           <CampoSelecao
@@ -394,12 +417,15 @@ export function NovoImovelSinteticoDialog({
 
 export function NovaCampanhaSinteticaDialog({
   onConfirmar,
+  paginasDisponiveis,
 }: {
   onConfirmar: (campanha: CampanhaSinteticaCriada) => void;
+  paginasDisponiveis: Array<Pick<PaginaSinteticaCriada, "titulo" | "caminho">>;
 }) {
   const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState("");
   const [canal, setCanal] = useState("Meta Ads");
+  const [paginaDestino, setPaginaDestino] = useState(paginasDisponiveis[0]?.caminho ?? "");
   const [investimento, setInvestimento] = useState("");
   const [objetivo, setObjetivo] = useState("");
   const [erro, setErro] = useState("");
@@ -407,6 +433,7 @@ export function NovaCampanhaSinteticaDialog({
   function limpar() {
     setNome("");
     setCanal("Meta Ads");
+    setPaginaDestino(paginasDisponiveis[0]?.caminho ?? "");
     setInvestimento("");
     setObjetivo("");
     setErro("");
@@ -432,6 +459,11 @@ export function NovaCampanhaSinteticaDialog({
       setErro("Descreva o objetivo da campanha com pelo menos 10 caracteres.");
       return;
     }
+    const pagina = paginasDisponiveis.find((item) => item.caminho === paginaDestino);
+    if (!pagina) {
+      setErro("Selecione uma página de destino para continuar.");
+      return;
+    }
 
     const corPorCanal: Record<string, string> = {
       "Meta Ads": "from-violet-500 to-fuchsia-500",
@@ -441,6 +473,8 @@ export function NovaCampanhaSinteticaDialog({
     onConfirmar({
       nome: nome.trim(),
       canal,
+      paginaDestino: pagina.caminho,
+      paginaTitulo: pagina.titulo,
       estado: "Rascunho sintético",
       investimento: new Intl.NumberFormat("pt-BR", {
         style: "currency",
@@ -502,6 +536,18 @@ export function NovaCampanhaSinteticaDialog({
               placeholder="5000"
             />
           </div>
+          <CampoSelecao
+            id="campanha-pagina-destino"
+            rotulo="Página de destino"
+            value={paginaDestino}
+            onChange={setPaginaDestino}
+          >
+            {paginasDisponiveis.map((pagina) => (
+              <option key={pagina.caminho} value={pagina.caminho}>
+                {pagina.titulo} — {pagina.caminho}
+              </option>
+            ))}
+          </CampoSelecao>
           <label
             htmlFor="campanha-objetivo"
             className="grid gap-1.5 text-sm font-semibold text-[#123f47]"

@@ -303,6 +303,43 @@ ok(
   "registros sintéticos devem aparecer imediatamente nas quatro jornadas",
 );
 ok(
+  workflows.includes('rotulo="Imóvel de interesse"') &&
+    workflows.includes("imovelSelecionado: string") &&
+    workspace.includes("Imóvel vinculado:"),
+  "o novo contato deve selecionar um imóvel disponível na mesma sessão",
+);
+ok(
+  workspace.includes("onEncaminharAoFunil") &&
+    workspace.includes("Contato encaminhado ao funil") &&
+    workspace.includes('selecionarModulo("funil")'),
+  "a gestão de leads deve encaminhar o contato sintético ao funil",
+);
+ok(
+  workspace.includes("contatosEncaminhados") && workspace.includes("Jornada sintética"),
+  "o funil deve destacar os contatos encaminhados durante a sessão",
+);
+ok(
+  workflows.includes('rotulo="Página de destino"') &&
+    workflows.includes("paginaDestino: string") &&
+    workflows.includes("paginaTitulo: string"),
+  "o planejamento da campanha deve associar uma página disponível",
+);
+ok(
+  workspace.includes("campanhaCriadaDaSessao") && workspace.includes("Página de destino"),
+  "a campanha criada deve exibir sua página de destino",
+);
+ok(
+  workspace.includes("Associada a 1 campanha sintética") &&
+    workspace.includes("campanhasCriadas.filter"),
+  "a área de sites deve informar as campanhas associadas ao rascunho",
+);
+for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
+  ok(
+    !`${workspace}\n${workflows}`.includes(forbiddenPersistence),
+    `as jornadas cruzadas devem permanecer somente em memória: ${forbiddenPersistence}`,
+  );
+}
+ok(
   dialog.includes('className="sr-only">Fechar</span>'),
   "o fechamento dos diálogos deve usar PT-BR",
 );
