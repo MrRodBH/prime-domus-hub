@@ -1,5 +1,14 @@
 import { useState, type ComponentProps, type FormEvent, type ReactNode } from "react";
-import { Building2, CalendarDays, ClipboardCheck, FileText, Target, Users } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  ClipboardCheck,
+  FileSignature,
+  FileText,
+  Handshake,
+  Target,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,19 +39,39 @@ export type ContatoSinteticoCriado = {
   qualificacao: "Em qualificação" | "Qualificado";
   historicoAtendimento: HistoricoAtendimentoSintetico[];
   visitaAgendada?: VisitaSintetica;
+  proposta?: PropostaSintetica;
 };
 
 export type HistoricoAtendimentoSintetico = {
   titulo: string;
   detalhe: string;
   momento: string;
-  tipo: "Cadastro" | "Captação" | "Atendimento" | "Avanço de etapa" | "Visita";
+  tipo:
+    | "Cadastro"
+    | "Captação"
+    | "Atendimento"
+    | "Avanço de etapa"
+    | "Visita"
+    | "Proposta"
+    | "Negociação"
+    | "Resultado";
 };
 
 export type VisitaSintetica = {
   data: string;
   dataExibicao: string;
   horario: string;
+};
+
+export type PropostaSintetica = {
+  valorNumerico: number;
+  valorExibicao: string;
+  validade: string;
+  validadeExibicao: string;
+  condicoes: string;
+  estado: "Em negociação" | "Ganha" | "Perdida";
+  ultimaNegociacao: string;
+  motivoResultado?: string;
 };
 
 export type ImovelSinteticoCriado = {
@@ -78,6 +107,13 @@ export type AcompanhamentoSinteticoCriado = {
   etapaDestino: string;
   registroAtendimento: string;
   visitaAgendada?: VisitaSintetica;
+};
+
+export type PropostaSinteticaAtualizada = {
+  contato: ContatoSinteticoCriado;
+  proposta: PropostaSintetica;
+  etapaDestino: "Proposta enviada" | "Negócio fechado" | "Negócio perdido";
+  novosEventos: HistoricoAtendimentoSintetico[];
 };
 
 export type PaginaSinteticaCriada = {
@@ -813,6 +849,7 @@ const etapasAcompanhamento = [
   "Visita agendada",
   "Proposta enviada",
   "Negócio fechado",
+  "Negócio perdido",
 ] as const;
 
 function etapaAtualNormalizada(contato: ContatoSinteticoCriado) {
@@ -821,8 +858,10 @@ function etapaAtualNormalizada(contato: ContatoSinteticoCriado) {
 
 function proximaEtapaPermitida(contato: ContatoSinteticoCriado) {
   const etapaAtual = etapaAtualNormalizada(contato);
-  const indiceAtual = Math.max(0, etapasAcompanhamento.indexOf(etapaAtual as never));
-  return etapasAcompanhamento[Math.min(indiceAtual + 1, etapasAcompanhamento.length - 1)];
+  const indiceAtual = etapasAcompanhamento.indexOf(etapaAtual as never);
+  const indiceVisita = etapasAcompanhamento.indexOf("Visita agendada");
+  if (indiceAtual < 0 || indiceAtual >= indiceVisita) return etapaAtual;
+  return etapasAcompanhamento[indiceAtual + 1];
 }
 
 export function AcompanharLeadSinteticoDialog({
@@ -1009,6 +1048,316 @@ export function AcompanharLeadSinteticoDialog({
           <ErroFormulario mensagem={erro} />
           <RodapeFormulario
             rotulo={etapaDestino === etapaAtual ? "Registrar atendimento" : "Salvar e avançar"}
+          />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const motivosGanho = [
+  "Condições aceitas pelo cliente",
+  "Imóvel aderente às necessidades",
+  "Atendimento e negociação bem-sucedidos",
+];
+
+const motivosPerda = [
+  "Valor acima do esperado",
+  "Cliente escolheu outro imóvel",
+  "Desistência ou adiamento da compra",
+  "Financiamento não aprovado",
+];
+
+const formatadorMoedaProposta = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+
+export function PropostaEFechamentoSinteticoDialog({
+  contato,
+  onConfirmar,
+  className,
+}: {
+  contato: ContatoSinteticoCriado;
+  onConfirmar: (atualizacao: PropostaSinteticaAtualizada) => void;
+  className?: string;
+}) {
+  const criandoProposta = !contato.proposta;
+  const [aberto, setAberto] = useState(false);
+  const [valor, setValor] = useState(
+    contato.proposta ? String(contato.proposta.valorNumerico) : "",
+  );
+  const [validade, setValidade] = useState(contato.proposta?.validade ?? "");
+  const [condicoes, setCondicoes] = useState(contato.proposta?.condicoes ?? "");
+  const [registroNegociacao, setRegistroNegociacao] = useState("");
+  const [resultado, setResultado] = useState<
+    "Continuar em negociação" | "Negócio ganho" | "Negócio perdido"
+  >("Continuar em negociação");
+  const [motivoResultado, setMotivoResultado] = useState("");
+  const [erro, setErro] = useState("");
+
+  const motivosDisponiveis = resultado === "Negócio ganho" ? motivosGanho : motivosPerda;
+
+  function prepararFormulario() {
+    setValor(contato.proposta ? String(contato.proposta.valorNumerico) : "");
+    setValidade(contato.proposta?.validade ?? "");
+    setCondicoes(contato.proposta?.condicoes ?? "");
+    setRegistroNegociacao("");
+    setResultado("Continuar em negociação");
+    setMotivoResultado("");
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    if (proximo) prepararFormulario();
+    setAberto(proximo);
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (criandoProposta) {
+      const valorNumerico = Number(valor);
+      if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+        setErro("Informe um valor de proposta maior que zero.");
+        return;
+      }
+      if (!validade || validade < new Date().toISOString().slice(0, 10)) {
+        setErro("Escolha uma validade de hoje ou futura para a proposta fictícia.");
+        return;
+      }
+      if (condicoes.trim().length < 10) {
+        setErro("Descreva as condições da proposta com pelo menos 10 caracteres.");
+        return;
+      }
+
+      const validadeExibicao = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
+        new Date(`${validade}T12:00:00`),
+      );
+      const valorExibicao = formatadorMoedaProposta.format(valorNumerico);
+      onConfirmar({
+        contato,
+        etapaDestino: "Proposta enviada",
+        proposta: {
+          valorNumerico,
+          valorExibicao,
+          validade,
+          validadeExibicao,
+          condicoes: condicoes.trim(),
+          estado: "Em negociação",
+          ultimaNegociacao: "Proposta criada e enviada na demonstração.",
+        },
+        novosEventos: [
+          {
+            titulo: "Proposta fictícia criada",
+            detalhe: `${valorExibicao} · válida até ${validadeExibicao} · ${condicoes.trim()}`,
+            momento: "Agora",
+            tipo: "Proposta",
+          },
+          {
+            titulo: "Avanço de etapa",
+            detalhe: "Visita agendada → Proposta enviada",
+            momento: "Agora",
+            tipo: "Avanço de etapa",
+          },
+        ],
+      });
+      setAberto(false);
+      return;
+    }
+
+    if (registroNegociacao.trim().length < 10) {
+      setErro("Descreva a negociação com pelo menos 10 caracteres.");
+      return;
+    }
+    if (resultado !== "Continuar em negociação" && !motivoResultado) {
+      setErro("Selecione um motivo amigável para registrar o resultado.");
+      return;
+    }
+
+    const estado: PropostaSintetica["estado"] =
+      resultado === "Negócio ganho"
+        ? "Ganha"
+        : resultado === "Negócio perdido"
+          ? "Perdida"
+          : "Em negociação";
+    const etapaDestino =
+      estado === "Ganha"
+        ? ("Negócio fechado" as const)
+        : estado === "Perdida"
+          ? ("Negócio perdido" as const)
+          : ("Proposta enviada" as const);
+    const novosEventos: HistoricoAtendimentoSintetico[] = [
+      {
+        titulo: "Negociação registrada",
+        detalhe: registroNegociacao.trim(),
+        momento: "Agora",
+        tipo: "Negociação",
+      },
+    ];
+    if (estado !== "Em negociação") {
+      novosEventos.push(
+        {
+          titulo: estado === "Ganha" ? "Negócio ganho" : "Negócio perdido",
+          detalhe: motivoResultado,
+          momento: "Agora",
+          tipo: "Resultado",
+        },
+        {
+          titulo: "Avanço de etapa",
+          detalhe: `Proposta enviada → ${etapaDestino}`,
+          momento: "Agora",
+          tipo: "Avanço de etapa",
+        },
+      );
+    }
+
+    onConfirmar({
+      contato,
+      etapaDestino,
+      proposta: {
+        ...contato.proposta!,
+        estado,
+        ultimaNegociacao: registroNegociacao.trim(),
+        motivoResultado: estado === "Em negociação" ? undefined : motivoResultado,
+      },
+      novosEventos,
+    });
+    setAberto(false);
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className={className ?? "w-full rounded-xl"}>
+          {criandoProposta ? (
+            <FileSignature className="mr-2 size-4" />
+          ) : (
+            <Handshake className="mr-2 size-4" />
+          )}
+          {criandoProposta ? "Criar proposta" : "Atualizar negociação"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>
+            {criandoProposta
+              ? "Criar proposta de demonstração"
+              : "Atualizar negociação de demonstração"}
+          </DialogTitle>
+          <DialogDescription>
+            {criandoProposta
+              ? "Registre valor, validade e condições sem gerar documento ou envio real."
+              : "Registre a conversa e mantenha, ganhe ou encerre a oportunidade fictícia."}
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <AvisoSessaoSintetica />
+          <div className="rounded-xl border border-[#123f47]/10 bg-[#f7f5f0] p-3">
+            <strong className="block text-sm text-[#123f47]">{contato.nome}</strong>
+            <span className="mt-1 block text-xs text-[#587076]">{contato.imovelSelecionado}</span>
+          </div>
+          {criandoProposta ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CampoTexto
+                  id="proposta-valor"
+                  rotulo="Valor proposto (R$)"
+                  type="number"
+                  min="1"
+                  step="1000"
+                  value={valor}
+                  onChange={(evento) => setValor(evento.target.value)}
+                  placeholder="1850000"
+                />
+                <CampoTexto
+                  id="proposta-validade"
+                  rotulo="Validade da proposta"
+                  type="date"
+                  min={new Date().toISOString().slice(0, 10)}
+                  value={validade}
+                  onChange={(evento) => setValidade(evento.target.value)}
+                />
+              </div>
+              <label
+                htmlFor="proposta-condicoes"
+                className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+              >
+                Condições da proposta
+                <Textarea
+                  id="proposta-condicoes"
+                  className="min-h-24 rounded-xl border-[#123f47]/15 bg-white"
+                  value={condicoes}
+                  onChange={(evento) => setCondicoes(evento.target.value)}
+                  placeholder="Ex.: Entrada de 30% e saldo por financiamento fictício."
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <div className="grid gap-2 rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-950 sm:grid-cols-2">
+                <span>
+                  <strong className="block">Valor proposto</strong>
+                  {contato.proposta?.valorExibicao}
+                </span>
+                <span>
+                  <strong className="block">Validade</strong>
+                  {contato.proposta?.validadeExibicao}
+                </span>
+                <span className="sm:col-span-2">
+                  <strong className="block">Condições</strong>
+                  {contato.proposta?.condicoes}
+                </span>
+              </div>
+              <label
+                htmlFor="negociacao-registro"
+                className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+              >
+                Registro da negociação
+                <Textarea
+                  id="negociacao-registro"
+                  className="min-h-24 rounded-xl border-[#123f47]/15 bg-white"
+                  value={registroNegociacao}
+                  onChange={(evento) => setRegistroNegociacao(evento.target.value)}
+                  placeholder="Ex.: Cliente analisou as condições e confirmou sua decisão."
+                />
+              </label>
+              <CampoSelecao
+                id="negociacao-resultado"
+                rotulo="Resultado da negociação"
+                value={resultado}
+                onChange={(valorSelecionado) => {
+                  setResultado(
+                    valorSelecionado as
+                      | "Continuar em negociação"
+                      | "Negócio ganho"
+                      | "Negócio perdido",
+                  );
+                  setMotivoResultado("");
+                }}
+              >
+                <option>Continuar em negociação</option>
+                <option>Negócio ganho</option>
+                <option>Negócio perdido</option>
+              </CampoSelecao>
+              {resultado !== "Continuar em negociação" ? (
+                <CampoSelecao
+                  id="negociacao-motivo"
+                  rotulo="Motivo do resultado"
+                  value={motivoResultado}
+                  onChange={setMotivoResultado}
+                >
+                  <option value="">Selecione o motivo</option>
+                  {motivosDisponiveis.map((motivo) => (
+                    <option key={motivo}>{motivo}</option>
+                  ))}
+                </CampoSelecao>
+              ) : null}
+            </>
+          )}
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario
+            rotulo={criandoProposta ? "Criar proposta fictícia" : "Salvar negociação"}
           />
         </form>
       </DialogContent>

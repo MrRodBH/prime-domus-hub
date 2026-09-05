@@ -279,12 +279,14 @@ for (const workflowTitle of [
   "Cadastrar imóvel de demonstração",
   "Planejar campanha de demonstração",
   "Criar página de demonstração",
+  "Criar proposta de demonstração",
+  "Atualizar negociação de demonstração",
 ]) {
   ok(workflows.includes(workflowTitle), `a homologação deve oferecer a jornada: ${workflowTitle}`);
 }
 ok(
-  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 6,
-  "os seis formulários devem permanecer sob controle local",
+  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 7,
+  "os sete formulários devem permanecer sob controle local",
 );
 ok(
   workflows.includes("permanece apenas nesta sessão") &&
@@ -410,6 +412,65 @@ ok(
     workspace.includes('rotulo="Visitas agendadas"') &&
     workspace.includes('rotulo="Avanços no funil"'),
   "o Dashboard deve refletir qualificação, visita e avanços da sessão",
+);
+ok(
+  workflows.includes('rotulo="Valor proposto (R$)"') &&
+    workflows.includes('rotulo="Validade da proposta"') &&
+    workflows.includes("Condições da proposta") &&
+    workflows.includes("Criar proposta fictícia"),
+  "a proposta deve registrar valor, validade e condições em PT-BR",
+);
+ok(
+  workflows.includes("Registro da negociação") &&
+    workflows.includes('rotulo="Resultado da negociação"') &&
+    workflows.includes('rotulo="Motivo do resultado"'),
+  "a negociação deve registrar conversa, resultado e motivo amigável",
+);
+for (const motivo of [
+  "Condições aceitas pelo cliente",
+  "Imóvel aderente às necessidades",
+  "Valor acima do esperado",
+  "Cliente escolheu outro imóvel",
+  "Financiamento não aprovado",
+]) {
+  ok(workflows.includes(motivo), `a decisão deve oferecer o motivo amigável: ${motivo}`);
+}
+ok(
+  workflows.includes("Proposta fictícia criada") &&
+    workflows.includes("Visita agendada → Proposta enviada") &&
+    workflows.includes('tipo: "Proposta"'),
+  "a criação da proposta deve avançar o funil e entrar no histórico",
+);
+ok(
+  workflows.includes('titulo: estado === "Ganha" ? "Negócio ganho" : "Negócio perdido"') &&
+    workflows.includes("Proposta enviada → ${etapaDestino}") &&
+    workflows.includes('tipo: "Resultado"'),
+  "ganho ou perda deve produzir resultado terminal auditável no histórico",
+);
+ok(
+  data.includes('nome: "Negócio perdido"') &&
+    data.includes('cor: "bg-rose-500"') &&
+    workspace.includes('contato.etapa === "Negócio perdido"'),
+  "o funil deve representar visualmente a etapa terminal de negócio perdido",
+);
+ok(
+  workspace.includes("salvarPropostaSintetica") &&
+    workspace.includes("PropostaEFechamentoSinteticoDialog") &&
+    workspace.includes("Jornada concluída:"),
+  "Funil e Leads devem operar a proposta e expor seu resultado",
+);
+ok(
+  workspace.includes("Indicadores da proposta e fechamento nesta sessão") &&
+    workspace.includes('rotulo="Propostas criadas"') &&
+    workspace.includes('rotulo="Em negociação"') &&
+    workspace.includes('rotulo="Negócios ganhos"') &&
+    workspace.includes('rotulo="Negócios perdidos"'),
+  "o Dashboard deve refletir proposta, negociação, ganho e perda",
+);
+ok(
+  workspace.includes("valorNegociosGanhosSinteticos") &&
+    workspace.includes("38_700_000 + valorNegociosGanhosSinteticos"),
+  "o valor geral de vendas deve incorporar somente negócios sintéticos ganhos",
 );
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(
