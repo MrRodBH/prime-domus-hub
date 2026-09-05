@@ -67,7 +67,10 @@ import {
   PALETA_GRAFICOS,
   PERIODOS_RELATORIO_COMERCIAL,
   RESPONSAVEIS_RELATORIO_COMERCIAL,
+  alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
+  calcularProgressoPlaybookSintetico,
+  calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
   calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
@@ -79,12 +82,15 @@ import {
   leadsSinteticos,
   origemDosLeads,
   criarChaveDecisaoComercial,
+  sincronizarPlaybookComDecisaoSintetica,
   type AcaoDecisaoComercial,
   type CenarioPrevisao,
   type DecisoesComerciaisSinteticas,
   type EstadoDecisaoComercial,
   type FiltroResponsavelRelatorio,
   type PeriodoRelatorioComercial,
+  type PlaybookComercialSintetico,
+  type PlaybooksComerciaisSinteticos,
   type RecomendacaoResponsavelSintetica,
   type RegistroDecisaoComercial,
   type RelatorioComercialSintetico,
@@ -351,6 +357,7 @@ export function DemoWorkspace() {
   const [responsavelRelatorio, setResponsavelRelatorio] =
     useState<FiltroResponsavelRelatorio>("Toda a equipe");
   const [decisoesComerciais, setDecisoesComerciais] = useState<DecisoesComerciaisSinteticas>({});
+  const [playbooksComerciais, setPlaybooksComerciais] = useState<PlaybooksComerciaisSinteticos>({});
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -481,6 +488,14 @@ export function DemoWorkspace() {
         estado,
       }),
     );
+    setPlaybooksComerciais((atuais) =>
+      sincronizarPlaybookComDecisaoSintetica({
+        playbooks: atuais,
+        periodo: periodoRelatorio,
+        recomendacao,
+        estado,
+      }),
+    );
     const tituloPorEstado: Record<AcaoDecisaoComercial, string> = {
       Aceita: "Recomendação aceita na simulação",
       Adiada: "Recomendação adiada na simulação",
@@ -489,6 +504,21 @@ export function DemoWorkspace() {
     confirmarAcaoSintetica(
       tituloPorEstado[estado],
       `${recomendacao.proximaAcao} para ${recomendacao.responsavel} não gerou nenhuma ação real.`,
+    );
+  }
+
+  function alternarEtapaPlaybook(playbook: PlaybookComercialSintetico, etapaId: string) {
+    const estavaConcluida = playbook.etapasConcluidas.includes(etapaId);
+    setPlaybooksComerciais((atuais) =>
+      alternarEtapaPlaybookComercialSintetico({
+        playbooks: atuais,
+        playbookId: playbook.id,
+        etapaId,
+      }),
+    );
+    confirmarAcaoSintetica(
+      estavaConcluida ? "Etapa reaberta na simulação" : "Etapa concluída na simulação",
+      `O progresso do playbook de ${playbook.responsavel} foi atualizado apenas nesta sessão.`,
     );
   }
 
@@ -779,6 +809,8 @@ export function DemoWorkspace() {
                 insightsComerciaisSinteticos={insightsComerciaisSinteticos}
                 decisoesComerciais={decisoesComerciais}
                 onRegistrarDecisao={registrarDecisaoComercial}
+                playbooksComerciais={playbooksComerciais}
+                onAlternarEtapaPlaybook={alternarEtapaPlaybook}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -831,6 +863,8 @@ export function DemoWorkspace() {
                 insights={insightsComerciaisSinteticos}
                 decisoesComerciais={decisoesComerciais}
                 onRegistrarDecisao={registrarDecisaoComercial}
+                playbooksComerciais={playbooksComerciais}
+                onAlternarEtapaPlaybook={alternarEtapaPlaybook}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -842,6 +876,8 @@ export function DemoWorkspace() {
                 onSelecionarResponsavel={setResponsavelRelatorio}
                 decisoesComerciais={decisoesComerciais}
                 onRegistrarDecisao={registrarDecisaoComercial}
+                playbooksComerciais={playbooksComerciais}
+                onAlternarEtapaPlaybook={alternarEtapaPlaybook}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1065,6 +1101,8 @@ function VisaoGeral({
   insightsComerciaisSinteticos,
   decisoesComerciais,
   onRegistrarDecisao,
+  playbooksComerciais,
+  onAlternarEtapaPlaybook,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1096,6 +1134,8 @@ function VisaoGeral({
     recomendacao: RecomendacaoComercialSintetica,
     estado: AcaoDecisaoComercial,
   ) => void;
+  playbooksComerciais: PlaybooksComerciaisSinteticos;
+  onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1186,6 +1226,8 @@ function VisaoGeral({
         insights={insightsComerciaisSinteticos}
         decisoesComerciais={decisoesComerciais}
         onRegistrarDecisao={onRegistrarDecisao}
+        playbooksComerciais={playbooksComerciais}
+        onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -1834,6 +1876,8 @@ function ResumoRelatorioDashboard({
   insights,
   decisoesComerciais,
   onRegistrarDecisao,
+  playbooksComerciais,
+  onAlternarEtapaPlaybook,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -1846,6 +1890,8 @@ function ResumoRelatorioDashboard({
     recomendacao: RecomendacaoComercialSintetica,
     estado: AcaoDecisaoComercial,
   ) => void;
+  playbooksComerciais: PlaybooksComerciaisSinteticos;
+  onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -1968,6 +2014,8 @@ function ResumoRelatorioDashboard({
           modo="resumo"
           decisoesComerciais={decisoesComerciais}
           onRegistrarDecisao={onRegistrarDecisao}
+          playbooksComerciais={playbooksComerciais}
+          onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
         />
       </div>
     </section>
@@ -1979,6 +2027,8 @@ function PainelInsightsExplicaveis({
   modo,
   decisoesComerciais,
   onRegistrarDecisao,
+  playbooksComerciais,
+  onAlternarEtapaPlaybook,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -1987,6 +2037,8 @@ function PainelInsightsExplicaveis({
     recomendacao: RecomendacaoComercialSintetica,
     estado: AcaoDecisaoComercial,
   ) => void;
+  playbooksComerciais: PlaybooksComerciaisSinteticos;
+  onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
 }) {
   const coresPorTom = {
     Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -2080,6 +2132,8 @@ function PainelInsightsExplicaveis({
         modo={modo}
         decisoesComerciais={decisoesComerciais}
         onRegistrarDecisao={onRegistrarDecisao}
+        playbooksComerciais={playbooksComerciais}
+        onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
       />
     </section>
   );
@@ -2090,6 +2144,8 @@ function CentralDecisoesComerciais({
   modo,
   decisoesComerciais,
   onRegistrarDecisao,
+  playbooksComerciais,
+  onAlternarEtapaPlaybook,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2098,6 +2154,8 @@ function CentralDecisoesComerciais({
     recomendacao: RecomendacaoComercialSintetica,
     estado: AcaoDecisaoComercial,
   ) => void;
+  playbooksComerciais: PlaybooksComerciaisSinteticos;
+  onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
 }) {
   const recomendacoesVisiveis =
     modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
@@ -2169,6 +2227,14 @@ function CentralDecisoesComerciais({
           ))}
         </div>
       </div>
+
+      <CentralPlaybooksComerciais
+        resumo={resumo}
+        modo={modo}
+        decisoesComerciais={decisoesComerciais}
+        playbooksComerciais={playbooksComerciais}
+        onAlternarEtapa={onAlternarEtapaPlaybook}
+      />
     </section>
   );
 }
@@ -2263,6 +2329,217 @@ function CartaoRecomendacaoResponsavel({
       <p className="mt-3 text-center text-[10px] text-[#587076]" aria-live="polite">
         Decisão atual: {estado.toLocaleLowerCase("pt-BR")}
         {registro ? ` · ${registro.atualizadoEm}` : " · ainda não avaliada"}
+      </p>
+    </article>
+  );
+}
+
+function CentralPlaybooksComerciais({
+  resumo,
+  modo,
+  decisoesComerciais,
+  playbooksComerciais,
+  onAlternarEtapa,
+}: {
+  resumo: ResumoInsightsComerciaisSinteticos;
+  modo: "resumo" | "detalhado";
+  decisoesComerciais: DecisoesComerciaisSinteticas;
+  playbooksComerciais: PlaybooksComerciaisSinteticos;
+  onAlternarEtapa: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+}) {
+  const playbooksAtivos = resumo.recomendacoes.flatMap((recomendacao) => {
+    const chave = criarChaveDecisaoComercial(resumo.periodo, recomendacao.responsavel);
+    return decisoesComerciais[chave]?.estado === "Aceita" && playbooksComerciais[chave]
+      ? [playbooksComerciais[chave]]
+      : [];
+  });
+  const playbooksVisiveis = modo === "resumo" ? playbooksAtivos.slice(0, 1) : playbooksAtivos;
+  const indicadores = calcularResumoPlaybooksComerciaisSinteticos({
+    playbooks: playbooksComerciais,
+    decisoes: decisoesComerciais,
+    periodo: resumo.periodo,
+    recomendacoes: resumo.recomendacoes,
+  });
+
+  return (
+    <section
+      className="mt-6 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-emerald-50 p-4 sm:p-5"
+      aria-labelledby={`titulo-playbooks-${modo}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700">
+            <ListChecks className="size-4" /> Orientação para execução
+          </p>
+          <h4 id={`titulo-playbooks-${modo}`} className="mt-1 text-lg font-semibold">
+            Playbooks comerciais aceitos
+          </h4>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-[#587076]">
+            Cada recomendação aceita ganha etapas orientadas, prazo e critérios fictícios. O
+            progresso existe somente nesta sessão.
+          </p>
+        </div>
+        <Badge className="w-fit bg-violet-700 text-white hover:bg-violet-700">
+          {indicadores.playbooksAtivos} {indicadores.playbooksAtivos === 1 ? "ativo" : "ativos"}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <IndicadorPlaybook
+          rotulo="Playbooks ativos"
+          valor={String(indicadores.playbooksAtivos)}
+          classe="bg-violet-100 text-violet-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Etapas concluídas"
+          valor={`${indicadores.etapasConcluidas}/${indicadores.totalEtapas}`}
+          classe="bg-emerald-100 text-emerald-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Progresso médio"
+          valor={`${indicadores.progressoMedio}%`}
+          classe="col-span-2 bg-orange-100 text-orange-900 sm:col-span-1"
+        />
+      </div>
+
+      {playbooksVisiveis.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-violet-300 bg-white/70 p-5 text-center">
+          <ListChecks className="mx-auto size-7 text-violet-500" />
+          <p className="mt-2 text-sm font-semibold">Nenhum playbook ativo</p>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Aceite uma recomendação acima para visualizar o roteiro de execução — sempre sem
+            contato, envio ou alteração real.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-4">
+          {playbooksVisiveis.map((playbook) => (
+            <CartaoPlaybookComercial
+              key={playbook.id}
+              playbook={playbook}
+              onAlternarEtapa={onAlternarEtapa}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function IndicadorPlaybook({
+  rotulo,
+  valor,
+  classe,
+}: {
+  rotulo: string;
+  valor: string;
+  classe: string;
+}) {
+  return (
+    <div className={cn("rounded-xl p-3", classe)}>
+      <strong className="block text-xl">{valor}</strong>
+      <span className="text-[10px] font-semibold uppercase tracking-wider">{rotulo}</span>
+    </div>
+  );
+}
+
+function CartaoPlaybookComercial({
+  playbook,
+  onAlternarEtapa,
+}: {
+  playbook: PlaybookComercialSintetico;
+  onAlternarEtapa: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
+}) {
+  const progresso = calcularProgressoPlaybookSintetico(playbook);
+  return (
+    <article className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+      <div className="border-b border-violet-100 bg-violet-50/70 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-violet-700">
+              Playbook de {playbook.responsavel}
+            </p>
+            <h5 className="mt-1 font-semibold text-[#123f47]">{playbook.titulo}</h5>
+          </div>
+          <Badge className="w-fit bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+            {progresso}% concluído
+          </Badge>
+        </div>
+        <Progress
+          value={progresso}
+          className="mt-3 h-2 bg-violet-100 [&>div]:bg-gradient-to-r [&>div]:from-violet-600 [&>div]:to-emerald-500"
+          aria-label={`Progresso do playbook de ${playbook.responsavel}`}
+        />
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl bg-white p-3">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+              <UserRound className="size-3.5" /> Responsável
+            </span>
+            <strong className="mt-1 block text-sm">{playbook.responsavel}</strong>
+          </div>
+          <div className="rounded-xl bg-white p-3">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+              <Clock3 className="size-3.5" /> Prazo fictício
+            </span>
+            <strong className="mt-1 block text-sm">{playbook.prazoFicticio}</strong>
+          </div>
+        </div>
+        <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
+          <span className="text-[10px] font-bold uppercase tracking-wider">
+            Critério de conclusão
+          </span>
+          <p className="mt-1 text-xs leading-5">{playbook.criterioConclusao}</p>
+        </div>
+      </div>
+
+      <ol className="divide-y divide-[#123f47]/10">
+        {playbook.etapas.map((etapa, indice) => {
+          const concluida = playbook.etapasConcluidas.includes(etapa.id);
+          return (
+            <li
+              key={etapa.id}
+              className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5"
+            >
+              <span
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                  concluida ? "bg-emerald-600 text-white" : "bg-violet-100 text-violet-800",
+                )}
+                aria-hidden="true"
+              >
+                {concluida ? <CheckCircle2 className="size-4" /> : indice + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className={cn("text-sm font-semibold", concluida && "text-emerald-800")}>
+                  {etapa.orientacao}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[#587076]">
+                  <strong>Concluída quando:</strong> {etapa.criterioConclusao}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant={concluida ? "outline" : "default"}
+                className={cn(
+                  "w-full shrink-0 rounded-xl sm:w-auto",
+                  concluida
+                    ? "border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                    : "bg-violet-700 hover:bg-violet-800",
+                )}
+                aria-label={`${concluida ? "Reabrir" : "Concluir"} etapa ${indice + 1} do playbook de ${playbook.responsavel}`}
+                aria-pressed={concluida}
+                onClick={() => onAlternarEtapa(playbook, etapa.id)}
+              >
+                {concluida ? "Reabrir etapa" : "Concluir etapa"}
+              </Button>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="border-t border-violet-100 bg-[#f8f7f3] px-4 py-3 text-center text-[10px] text-[#587076]">
+        Progresso simulado: {playbook.etapasConcluidas.length} de {playbook.etapas.length} etapas ·
+        nenhuma ação externa executada
       </p>
     </article>
   );
@@ -3497,6 +3774,8 @@ function Analises({
   insights,
   decisoesComerciais,
   onRegistrarDecisao,
+  playbooksComerciais,
+  onAlternarEtapaPlaybook,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -3509,6 +3788,8 @@ function Analises({
     recomendacao: RecomendacaoComercialSintetica,
     estado: AcaoDecisaoComercial,
   ) => void;
+  playbooksComerciais: PlaybooksComerciaisSinteticos;
+  onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -3595,6 +3876,8 @@ function Analises({
             modo="detalhado"
             decisoesComerciais={decisoesComerciais}
             onRegistrarDecisao={onRegistrarDecisao}
+            playbooksComerciais={playbooksComerciais}
+            onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
           />
         </CardContent>
       </Card>
@@ -3828,6 +4111,8 @@ function InteligenciaArtificial({
   insights,
   decisoesComerciais,
   onRegistrarDecisao,
+  playbooksComerciais,
+  onAlternarEtapaPlaybook,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -3839,6 +4124,8 @@ function InteligenciaArtificial({
     recomendacao: RecomendacaoComercialSintetica,
     estado: AcaoDecisaoComercial,
   ) => void;
+  playbooksComerciais: PlaybooksComerciaisSinteticos;
+  onAlternarEtapaPlaybook: (playbook: PlaybookComercialSintetico, etapaId: string) => void;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -3878,6 +4165,8 @@ function InteligenciaArtificial({
           modo="detalhado"
           decisoesComerciais={decisoesComerciais}
           onRegistrarDecisao={onRegistrarDecisao}
+          playbooksComerciais={playbooksComerciais}
+          onAlternarEtapaPlaybook={onAlternarEtapaPlaybook}
         />
 
         <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">

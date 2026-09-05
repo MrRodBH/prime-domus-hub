@@ -595,6 +595,24 @@ export type RegistroDecisaoComercial = {
 };
 export type DecisoesComerciaisSinteticas = Record<string, RegistroDecisaoComercial>;
 
+export type EtapaPlaybookComercialSintetico = {
+  id: string;
+  orientacao: string;
+  criterioConclusao: string;
+};
+
+export type PlaybookComercialSintetico = {
+  id: string;
+  titulo: string;
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"];
+  prazoFicticio: string;
+  criterioConclusao: string;
+  etapas: EtapaPlaybookComercialSintetico[];
+  etapasConcluidas: string[];
+};
+
+export type PlaybooksComerciaisSinteticos = Record<string, PlaybookComercialSintetico>;
+
 export function criarChaveDecisaoComercial(
   periodo: PeriodoRelatorioComercial,
   responsavel: RecomendacaoResponsavelSintetica["responsavel"],
@@ -619,6 +637,108 @@ export function aplicarDecisaoComercialSintetica({
       estado,
       atualizadoEm: "Agora, nesta sessão",
     },
+  };
+}
+
+export function criarPlaybookComercialSintetico({
+  periodo,
+  recomendacao,
+}: {
+  periodo: PeriodoRelatorioComercial;
+  recomendacao: RecomendacaoResponsavelSintetica;
+}): PlaybookComercialSintetico {
+  const modelo = PLAYBOOK_POR_RESPONSAVEL[recomendacao.responsavel];
+  return {
+    id: criarChaveDecisaoComercial(periodo, recomendacao.responsavel),
+    titulo: recomendacao.proximaAcao,
+    responsavel: recomendacao.responsavel,
+    prazoFicticio: modelo.prazoFicticio,
+    criterioConclusao: modelo.criterioConclusao,
+    etapas: modelo.etapas.map((etapa, indice) => ({
+      id: `etapa-${indice + 1}`,
+      ...etapa,
+    })),
+    etapasConcluidas: [],
+  };
+}
+
+export function sincronizarPlaybookComDecisaoSintetica({
+  playbooks,
+  periodo,
+  recomendacao,
+  estado,
+}: {
+  playbooks: PlaybooksComerciaisSinteticos;
+  periodo: PeriodoRelatorioComercial;
+  recomendacao: RecomendacaoResponsavelSintetica;
+  estado: AcaoDecisaoComercial;
+}): PlaybooksComerciaisSinteticos {
+  const chave = criarChaveDecisaoComercial(periodo, recomendacao.responsavel);
+  if (estado === "Aceita") {
+    return playbooks[chave]
+      ? playbooks
+      : { ...playbooks, [chave]: criarPlaybookComercialSintetico({ periodo, recomendacao }) };
+  }
+  if (!playbooks[chave]) return playbooks;
+  const atualizados = { ...playbooks };
+  delete atualizados[chave];
+  return atualizados;
+}
+
+export function alternarEtapaPlaybookComercialSintetico({
+  playbooks,
+  playbookId,
+  etapaId,
+}: {
+  playbooks: PlaybooksComerciaisSinteticos;
+  playbookId: string;
+  etapaId: string;
+}): PlaybooksComerciaisSinteticos {
+  const playbook = playbooks[playbookId];
+  if (!playbook || !playbook.etapas.some((etapa) => etapa.id === etapaId)) return playbooks;
+  const concluida = playbook.etapasConcluidas.includes(etapaId);
+  return {
+    ...playbooks,
+    [playbookId]: {
+      ...playbook,
+      etapasConcluidas: concluida
+        ? playbook.etapasConcluidas.filter((id) => id !== etapaId)
+        : [...playbook.etapasConcluidas, etapaId],
+    },
+  };
+}
+
+export function calcularProgressoPlaybookSintetico(playbook: PlaybookComercialSintetico) {
+  return playbook.etapas.length > 0
+    ? Math.round((playbook.etapasConcluidas.length / playbook.etapas.length) * 100)
+    : 0;
+}
+
+export function calcularResumoPlaybooksComerciaisSinteticos({
+  playbooks,
+  decisoes,
+  periodo,
+  recomendacoes,
+}: {
+  playbooks: PlaybooksComerciaisSinteticos;
+  decisoes: DecisoesComerciaisSinteticas;
+  periodo: PeriodoRelatorioComercial;
+  recomendacoes: RecomendacaoResponsavelSintetica[];
+}) {
+  const ativos = recomendacoes.flatMap((recomendacao) => {
+    const chave = criarChaveDecisaoComercial(periodo, recomendacao.responsavel);
+    return decisoes[chave]?.estado === "Aceita" && playbooks[chave] ? [playbooks[chave]] : [];
+  });
+  const totalEtapas = ativos.reduce((total, playbook) => total + playbook.etapas.length, 0);
+  const etapasConcluidas = ativos.reduce(
+    (total, playbook) => total + playbook.etapasConcluidas.length,
+    0,
+  );
+  return {
+    playbooksAtivos: ativos.length,
+    totalEtapas,
+    etapasConcluidas,
+    progressoMedio: totalEtapas > 0 ? Math.round((etapasConcluidas / totalEtapas) * 100) : 0,
   };
 }
 
@@ -696,6 +816,88 @@ const PROXIMA_ACAO_POR_RESPONSAVEL: Record<
     acao: "Revisar oportunidades de maior valor",
     impacto: "Potencial de elevar em até 5 p.p. a cobertura prevista da meta.",
     resultado: "Elevar a cobertura prevista da meta com uma carteira mais focada.",
+  },
+};
+
+const PLAYBOOK_POR_RESPONSAVEL: Record<
+  Exclude<FiltroResponsavelRelatorio, "Toda a equipe">,
+  {
+    prazoFicticio: string;
+    criterioConclusao: string;
+    etapas: Array<{ orientacao: string; criterioConclusao: string }>;
+  }
+> = {
+  "Amanda Reis": {
+    prazoFicticio: "Até amanhã, 17h (fictício)",
+    criterioConclusao: "Três propostas priorizadas com próximo passo fictício definido.",
+    etapas: [
+      {
+        orientacao: "Reunir as propostas sintéticas de clientes que já visitaram imóveis.",
+        criterioConclusao: "Lista fictícia com três propostas priorizadas.",
+      },
+      {
+        orientacao: "Preparar uma abordagem simulada de retomada para cada proposta.",
+        criterioConclusao: "Três roteiros sintéticos revisados pela equipe.",
+      },
+      {
+        orientacao: "Simular os contatos e classificar o retorno esperado.",
+        criterioConclusao: "Três retornos fictícios registrados com próximo passo.",
+      },
+    ],
+  },
+  "Lucas Prado": {
+    prazoFicticio: "Hoje, 16h (fictício)",
+    criterioConclusao: "Negociações paradas classificadas e ordenadas para acompanhamento.",
+    etapas: [
+      {
+        orientacao: "Identificar negociações sintéticas sem retorno recente.",
+        criterioConclusao: "Fila fictícia de negociações sem retorno criada.",
+      },
+      {
+        orientacao: "Classificar urgência, valor e chance simulada de avanço.",
+        criterioConclusao: "Cada negociação fictícia recebeu uma prioridade.",
+      },
+      {
+        orientacao: "Definir a próxima abordagem simulada para os casos prioritários.",
+        criterioConclusao: "Próximo passo fictício documentado para cada prioridade.",
+      },
+    ],
+  },
+  "Bruno Lima": {
+    prazoFicticio: "Em até 2 dias úteis (fictício)",
+    criterioConclusao: "Visitas com potencial convertidas em propostas apenas simuladas.",
+    etapas: [
+      {
+        orientacao: "Revisar as visitas sintéticas concluídas no período.",
+        criterioConclusao: "Visitas fictícias com interesse confirmado foram separadas.",
+      },
+      {
+        orientacao: "Selecionar imóveis e condições para uma proposta simulada.",
+        criterioConclusao: "Condições fictícias definidas para até duas oportunidades.",
+      },
+      {
+        orientacao: "Montar e revisar as propostas sem qualquer envio real.",
+        criterioConclusao: "Até duas propostas sintéticas prontas para avaliação interna.",
+      },
+    ],
+  },
+  "Camila Torres": {
+    prazoFicticio: "Até sexta-feira, 12h (fictício)",
+    criterioConclusao: "Carteira de maior valor revisada com foco e justificativa explicável.",
+    etapas: [
+      {
+        orientacao: "Ordenar oportunidades sintéticas por valor e probabilidade.",
+        criterioConclusao: "Ranking fictício de oportunidades concluído.",
+      },
+      {
+        orientacao: "Revisar riscos e argumentos comerciais simulados.",
+        criterioConclusao: "Riscos e argumentos documentados para as prioridades.",
+      },
+      {
+        orientacao: "Definir um plano fictício de avanço para a carteira priorizada.",
+        criterioConclusao: "Cada oportunidade prioritária recebeu próximo passo e prazo.",
+      },
+    ],
   },
 };
 
