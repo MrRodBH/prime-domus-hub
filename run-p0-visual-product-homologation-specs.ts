@@ -3,11 +3,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
 import {
+  alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
+  calcularProgressoPlaybookSintetico,
+  calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
   calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
+  sincronizarPlaybookComDecisaoSintetica,
 } from "./src/components/demo/demo-data";
 
 const root = process.cwd();
@@ -773,6 +777,26 @@ ok(
     workspace.includes("useState<DecisoesComerciaisSinteticas>({})"),
   "o estado da Central de Decisões deve existir exclusivamente em memória",
 );
+ok(
+  workspace.includes("Playbooks comerciais aceitos") &&
+    workspace.includes("Orientação para execução") &&
+    workspace.includes("Prazo fictício") &&
+    workspace.includes("Critério de conclusão"),
+  "Dashboard, Análises e IA devem orientar a execução dos playbooks aceitos em PT-BR",
+);
+ok(
+  workspace.includes("Concluir etapa") &&
+    workspace.includes("Reabrir etapa") &&
+    workspace.includes("Progresso simulado:") &&
+    workspace.includes("nenhuma ação externa executada"),
+  "o progresso do playbook deve ser controlável, reversível e somente simulado",
+);
+ok(
+  data.includes("sincronizarPlaybookComDecisaoSintetica") &&
+    data.includes("alternarEtapaPlaybookComercialSintetico") &&
+    workspace.includes("useState<PlaybooksComerciaisSinteticos>({})"),
+  "playbooks e progresso devem existir exclusivamente em memória",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -894,6 +918,61 @@ assert.deepEqual(
   }),
   { Pendente: 4, Aceita: 0, Adiada: 0, Dispensada: 0 },
 );
+assertions += 1;
+const playbooksVazios = {};
+const playbooksAmanda = sincronizarPlaybookComDecisaoSintetica({
+  playbooks: playbooksVazios,
+  periodo: "Últimos 30 dias",
+  recomendacao: insightsEquipe.recomendacoes[0],
+  estado: "Aceita",
+});
+const playbookAmanda = Object.values(playbooksAmanda)[0];
+assert.equal(Object.keys(playbooksAmanda).length, 1);
+assertions += 1;
+assert.equal(playbookAmanda.responsavel, "Amanda Reis");
+assertions += 1;
+assert.equal(playbookAmanda.etapas.length, 3);
+assertions += 1;
+ok(
+  playbookAmanda.prazoFicticio.includes("fictício") &&
+    playbookAmanda.etapas.every(
+      (etapa) => etapa.orientacao.length > 20 && etapa.criterioConclusao.length > 20,
+    ),
+  "cada playbook deve conter prazo e três etapas orientadas com critérios claros",
+);
+const playbooksAmandaComEtapa = alternarEtapaPlaybookComercialSintetico({
+  playbooks: playbooksAmanda,
+  playbookId: playbookAmanda.id,
+  etapaId: playbookAmanda.etapas[0].id,
+});
+assert.equal(calcularProgressoPlaybookSintetico(playbooksAmandaComEtapa[playbookAmanda.id]), 33);
+assertions += 1;
+assert.deepEqual(
+  calcularResumoPlaybooksComerciaisSinteticos({
+    playbooks: playbooksAmandaComEtapa,
+    decisoes: decisaoAmandaAceita,
+    periodo: "Últimos 30 dias",
+    recomendacoes: insightsEquipe.recomendacoes,
+  }),
+  { playbooksAtivos: 1, totalEtapas: 3, etapasConcluidas: 1, progressoMedio: 33 },
+);
+assertions += 1;
+const playbooksAmandaReaberto = alternarEtapaPlaybookComercialSintetico({
+  playbooks: playbooksAmandaComEtapa,
+  playbookId: playbookAmanda.id,
+  etapaId: playbookAmanda.etapas[0].id,
+});
+assert.equal(calcularProgressoPlaybookSintetico(playbooksAmandaReaberto[playbookAmanda.id]), 0);
+assertions += 1;
+const playbooksRemovidos = sincronizarPlaybookComDecisaoSintetica({
+  playbooks: playbooksAmandaComEtapa,
+  periodo: "Últimos 30 dias",
+  recomendacao: insightsEquipe.recomendacoes[0],
+  estado: "Adiada",
+});
+assert.deepEqual(playbooksRemovidos, {});
+assertions += 1;
+assert.deepEqual(playbooksVazios, {});
 assertions += 1;
 const insightsAmanda = calcularInsightsComerciaisSinteticos({ relatorio: relatorioAmanda });
 assert.equal(insightsAmanda.recomendacoes.length, 1);
