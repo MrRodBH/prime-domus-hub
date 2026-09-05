@@ -67,12 +67,14 @@ import {
   origemDosLeads,
 } from "./demo-data";
 import {
+  AcompanharLeadSinteticoDialog,
   CapturarLeadSinteticoDialog,
   NovaCampanhaSinteticaDialog,
   NovaPaginaSinteticaDialog,
   NovoContatoSinteticoDialog,
   NovoImovelSinteticoDialog,
   type CampanhaSinteticaCriada,
+  type AcompanhamentoSinteticoCriado,
   type CaptacaoSinteticaCriada,
   type ContatoSinteticoCriado,
   type ImovelSinteticoCriado,
@@ -222,6 +224,15 @@ export function DemoWorkspace() {
     paginaCatalogoDemonstracao,
   ];
   const captacoesSinteticas = leadsCriados.filter((lead) => lead.captadoPorCampanha).length;
+  const qualificacoesSinteticas = leadsCriados.filter(
+    (lead) => lead.qualificacao === "Qualificado",
+  ).length;
+  const visitasAgendadasSinteticas = leadsCriados.filter((lead) => lead.visitaAgendada).length;
+  const avancosFunilSinteticos = leadsCriados.reduce(
+    (total, lead) =>
+      total + lead.historicoAtendimento.filter((item) => item.tipo === "Avanço de etapa").length,
+    0,
+  );
 
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
@@ -259,6 +270,78 @@ export function DemoWorkspace() {
       `${contato.nome} veio de ${campanha.nome} e entrou em Novos contatos nesta sessão.`,
     );
     selecionarModulo("funil");
+  }
+
+  function salvarAcompanhamento({
+    contato,
+    qualificacao,
+    etapaDestino,
+    registroAtendimento,
+    visitaAgendada,
+  }: AcompanhamentoSinteticoCriado) {
+    const etapaAnterior = contato.etapa === "Novo contato" ? "Novos contatos" : contato.etapa;
+    const mudouEtapa = etapaDestino !== etapaAnterior;
+    const qualificouAgora =
+      contato.qualificacao !== "Qualificado" && qualificacao === "Qualificado";
+    const agendouAgora =
+      Boolean(visitaAgendada) &&
+      `${contato.visitaAgendada?.data}-${contato.visitaAgendada?.horario}` !==
+        `${visitaAgendada?.data}-${visitaAgendada?.horario}`;
+
+    setLeadsCriados((atuais) =>
+      atuais.map((item) => {
+        if (item !== contato) return item;
+        const novosEventos = [
+          {
+            titulo: "Atendimento registrado",
+            detalhe: registroAtendimento,
+            momento: "Agora",
+            tipo: "Atendimento" as const,
+          },
+          ...(qualificouAgora
+            ? [
+                {
+                  titulo: "Lead qualificado",
+                  detalhe: "Interesse e disponibilidade confirmados pela equipe.",
+                  momento: "Agora",
+                  tipo: "Atendimento" as const,
+                },
+              ]
+            : []),
+          ...(mudouEtapa
+            ? [
+                {
+                  titulo: "Avanço de etapa",
+                  detalhe: `${etapaAnterior} → ${etapaDestino}`,
+                  momento: "Agora",
+                  tipo: "Avanço de etapa" as const,
+                },
+              ]
+            : []),
+          ...(agendouAgora && visitaAgendada
+            ? [
+                {
+                  titulo: "Visita agendada",
+                  detalhe: `${visitaAgendada.dataExibicao} às ${visitaAgendada.horario} · ${contato.imovelSelecionado}`,
+                  momento: "Agora",
+                  tipo: "Visita" as const,
+                },
+              ]
+            : []),
+        ];
+        return {
+          ...item,
+          qualificacao,
+          etapa: etapaDestino,
+          visitaAgendada,
+          historicoAtendimento: [...item.historicoAtendimento, ...novosEventos],
+        };
+      }),
+    );
+    confirmarAcaoSintetica(
+      mudouEtapa ? "Atendimento salvo e etapa avançada" : "Atendimento salvo no histórico",
+      `${contato.nome} permanece somente na sessão de demonstração.`,
+    );
   }
 
   return (
@@ -353,12 +436,18 @@ export function DemoWorkspace() {
           >
             <AvisoDemonstracao />
             {moduloAtivo === "visao-geral" ? (
-              <VisaoGeral captacoesSinteticas={captacoesSinteticas} />
+              <VisaoGeral
+                captacoesSinteticas={captacoesSinteticas}
+                qualificacoesSinteticas={qualificacoesSinteticas}
+                visitasAgendadasSinteticas={visitasAgendadasSinteticas}
+                avancosFunilSinteticos={avancosFunilSinteticos}
+              />
             ) : null}
             {moduloAtivo === "funil" ? (
               <FunilDeVendas
                 leadsCriados={leadsCriados}
                 onAdicionarLead={() => selecionarModulo("leads")}
+                onAcompanharLead={salvarAcompanhamento}
               />
             ) : null}
             {moduloAtivo === "imoveis" ? (
@@ -373,6 +462,7 @@ export function DemoWorkspace() {
                 imoveisDisponiveis={imoveisDisponiveis}
                 onCriarContato={(contato) => setLeadsCriados((atuais) => [contato, ...atuais])}
                 onEncaminharAoFunil={encaminharContatoAoFunil}
+                onAcompanharLead={salvarAcompanhamento}
               />
             ) : null}
             {moduloAtivo === "campanhas" ? (
@@ -581,7 +671,20 @@ function CabecalhoPagina({
   );
 }
 
-function VisaoGeral({ captacoesSinteticas }: { captacoesSinteticas: number }) {
+function VisaoGeral({
+  captacoesSinteticas,
+  qualificacoesSinteticas,
+  visitasAgendadasSinteticas,
+  avancosFunilSinteticos,
+}: {
+  captacoesSinteticas: number;
+  qualificacoesSinteticas: number;
+  visitasAgendadasSinteticas: number;
+  avancosFunilSinteticos: number;
+}) {
+  const acompanhamentosSinteticos =
+    qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
+
   return (
     <>
       <CabecalhoPagina
@@ -615,9 +718,13 @@ function VisaoGeral({ captacoesSinteticas }: { captacoesSinteticas: number }) {
           tom="violeta"
         />
         <CartaoMetrica
-          rotulo="Visitas realizadas"
-          valor="173"
-          variacao="24 visitas nesta semana"
+          rotulo="Visitas agendadas"
+          valor={String(173 + visitasAgendadasSinteticas)}
+          variacao={
+            visitasAgendadasSinteticas > 0
+              ? `${visitasAgendadasSinteticas} ${visitasAgendadasSinteticas === 1 ? "nova visita fictícia" : "novas visitas fictícias"} nesta sessão`
+              : "24 visitas nesta semana"
+          }
           icone={Home}
           tom="coral"
         />
@@ -651,6 +758,18 @@ function VisaoGeral({ captacoesSinteticas }: { captacoesSinteticas: number }) {
             enviado ao funil nesta sessão
           </span>
         </div>
+      ) : null}
+
+      {acompanhamentosSinteticos > 0 ? (
+        <section
+          className="mt-4 grid gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 sm:grid-cols-3"
+          aria-label="Indicadores do acompanhamento nesta sessão"
+          aria-live="polite"
+        >
+          <IndicadorDaSessao rotulo="Leads qualificados" valor={qualificacoesSinteticas} />
+          <IndicadorDaSessao rotulo="Visitas agendadas" valor={visitasAgendadasSinteticas} />
+          <IndicadorDaSessao rotulo="Avanços no funil" valor={avancosFunilSinteticos} />
+        </section>
       ) : null}
 
       <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)]">
@@ -845,6 +964,16 @@ function VisaoGeral({ captacoesSinteticas }: { captacoesSinteticas: number }) {
   );
 }
 
+function IndicadorDaSessao({ rotulo, valor }: { rotulo: string; valor: number }) {
+  return (
+    <div className="rounded-xl border border-sky-200 bg-white px-4 py-3">
+      <p className="text-xs font-medium text-sky-800">{rotulo}</p>
+      <p className="mt-1 text-2xl font-bold text-[#123f47]">{valor}</p>
+      <p className="mt-1 text-[10px] uppercase tracking-wider text-[#587076]">Nesta sessão</p>
+    </div>
+  );
+}
+
 function CartaoMetrica({
   rotulo,
   valor,
@@ -888,9 +1017,11 @@ function CartaoMetrica({
 function FunilDeVendas({
   leadsCriados,
   onAdicionarLead,
+  onAcompanharLead,
 }: {
   leadsCriados: ContatoSinteticoCriado[];
   onAdicionarLead: () => void;
+  onAcompanharLead: (acompanhamento: AcompanhamentoSinteticoCriado) => void;
 }) {
   const contatosEncaminhados = leadsCriados.filter((lead) => lead.encaminhadoAoFunil);
 
@@ -917,8 +1048,13 @@ function FunilDeVendas({
       />
       <div className="grid gap-4 xl:grid-cols-5">
         {etapasDoFunil.map((etapa, indice) => {
+          const contatosCriadosNaEtapa = contatosEncaminhados.filter((contato) => {
+            const etapaDoContato =
+              contato.etapa === "Novo contato" ? "Novos contatos" : contato.etapa;
+            return etapaDoContato === etapa.nome;
+          });
           const contatosDaEtapa = [
-            ...(indice === 0 ? contatosEncaminhados : []),
+            ...contatosCriadosNaEtapa,
             ...leadsSinteticos.slice(0, Math.max(2, 4 - indice)),
           ];
           return (
@@ -929,12 +1065,12 @@ function FunilDeVendas({
                   {etapa.nome}
                 </span>
                 <Badge variant="secondary">
-                  {etapa.quantidade + (indice === 0 ? contatosEncaminhados.length : 0)}
+                  {etapa.quantidade + contatosCriadosNaEtapa.length}
                 </Badge>
               </div>
               <div className="space-y-3">
                 {contatosDaEtapa.map((lead, leadIndice) => {
-                  const contatoCriado = contatosEncaminhados.find((contato) => contato === lead);
+                  const contatoCriado = contatosCriadosNaEtapa.find((contato) => contato === lead);
                   const criadoNestaSessao = Boolean(contatoCriado);
                   return (
                     <Card
@@ -963,6 +1099,25 @@ function FunilDeVendas({
                             {contatoCriado.paginaOrigem}
                           </p>
                         ) : null}
+                        {contatoCriado ? (
+                          <div className="mt-2 grid gap-1 rounded-lg bg-white/80 px-2 py-1.5 text-[10px] text-[#587076]">
+                            <span className="font-semibold text-[#123f47]">
+                              Qualificação: {contatoCriado.qualificacao}
+                            </span>
+                            {contatoCriado.visitaAgendada ? (
+                              <span>
+                                Visita: {contatoCriado.visitaAgendada.dataExibicao} às{" "}
+                                {contatoCriado.visitaAgendada.horario}
+                              </span>
+                            ) : null}
+                            <span>
+                              {contatoCriado.historicoAtendimento.length}{" "}
+                              {contatoCriado.historicoAtendimento.length === 1
+                                ? "registro no histórico"
+                                : "registros no histórico"}
+                            </span>
+                          </div>
+                        ) : null}
                         <div className="mt-3 flex items-center justify-between border-t border-[#123f47]/8 pt-3">
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-[#587076]">
                             {lead.origem}
@@ -974,6 +1129,13 @@ function FunilDeVendas({
                               .join("")}
                           </span>
                         </div>
+                        {contatoCriado ? (
+                          <AcompanharLeadSinteticoDialog
+                            contato={contatoCriado}
+                            onConfirmar={onAcompanharLead}
+                            className="mt-3 w-full rounded-xl border-violet-300 bg-white text-violet-800 hover:bg-violet-100"
+                          />
+                        ) : null}
                       </CardContent>
                     </Card>
                   );
@@ -1144,11 +1306,13 @@ function Leads({
   imoveisDisponiveis,
   onCriarContato,
   onEncaminharAoFunil,
+  onAcompanharLead,
 }: {
   leadsCriados: ContatoSinteticoCriado[];
   imoveisDisponiveis: Array<Pick<ImovelSinteticoCriado, "titulo" | "bairro">>;
   onCriarContato: (contato: ContatoSinteticoCriado) => void;
   onEncaminharAoFunil: (contato: ContatoSinteticoCriado) => void;
+  onAcompanharLead: (acompanhamento: AcompanhamentoSinteticoCriado) => void;
 }) {
   const [buscaLead, setBuscaLead] = useState("");
   const [prioridadeLead, setPrioridadeLead] = useState("todas");
@@ -1266,18 +1430,36 @@ function Leads({
                   <dt className="text-[#587076]">Etapa atual</dt>
                   <dd className="mt-1 font-medium">{lead.etapa}</dd>
                 </div>
+                {contatoCriadoDaSessao(lead) ? (
+                  <div className="col-span-2">
+                    <dt className="text-[#587076]">Acompanhamento</dt>
+                    <dd className="mt-1 font-medium">
+                      {contatoCriadoDaSessao(lead)?.qualificacao} ·{" "}
+                      {contatoCriadoDaSessao(lead)?.historicoAtendimento.length} registros
+                    </dd>
+                    {contatoCriadoDaSessao(lead)?.visitaAgendada ? (
+                      <dd className="mt-1 text-emerald-700">
+                        Visita em {contatoCriadoDaSessao(lead)?.visitaAgendada?.dataExibicao} às{" "}
+                        {contatoCriadoDaSessao(lead)?.visitaAgendada?.horario}
+                      </dd>
+                    ) : null}
+                  </div>
+                ) : null}
               </dl>
-              {contatoCriadoDaSessao(lead) ? (
+              {contatoCriadoDaSessao(lead)?.encaminhadoAoFunil ? (
+                <AcompanharLeadSinteticoDialog
+                  contato={contatoCriadoDaSessao(lead)!}
+                  onConfirmar={onAcompanharLead}
+                  className="mt-4 w-full rounded-xl"
+                />
+              ) : contatoCriadoDaSessao(lead) ? (
                 <Button
                   size="sm"
                   variant="outline"
                   className="mt-4 w-full rounded-xl"
-                  disabled={contatoCriadoDaSessao(lead)?.encaminhadoAoFunil}
                   onClick={() => onEncaminharAoFunil(contatoCriadoDaSessao(lead)!)}
                 >
-                  {contatoCriadoDaSessao(lead)?.encaminhadoAoFunil
-                    ? "Contato no funil"
-                    : "Enviar ao funil"}
+                  Enviar ao funil
                   <ArrowRight className="ml-2 size-4" />
                 </Button>
               ) : null}
@@ -1327,6 +1509,18 @@ function Leads({
                   <td className="px-5 py-4">{lead.responsavel}</td>
                   <td className="px-5 py-4">
                     <Badge variant="outline">{lead.etapa}</Badge>
+                    {contatoCriadoDaSessao(lead) ? (
+                      <span className="mt-2 block text-[11px] text-[#587076]">
+                        {contatoCriadoDaSessao(lead)?.qualificacao} ·{" "}
+                        {contatoCriadoDaSessao(lead)?.historicoAtendimento.length} registros
+                      </span>
+                    ) : null}
+                    {contatoCriadoDaSessao(lead)?.visitaAgendada ? (
+                      <span className="mt-1 block text-[11px] font-medium text-emerald-700">
+                        Visita: {contatoCriadoDaSessao(lead)?.visitaAgendada?.dataExibicao} às{" "}
+                        {contatoCriadoDaSessao(lead)?.visitaAgendada?.horario}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-5 py-4">
                     <span
@@ -1343,17 +1537,20 @@ function Leads({
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    {contatoCriadoDaSessao(lead) ? (
+                    {contatoCriadoDaSessao(lead)?.encaminhadoAoFunil ? (
+                      <AcompanharLeadSinteticoDialog
+                        contato={contatoCriadoDaSessao(lead)!}
+                        onConfirmar={onAcompanharLead}
+                        className="rounded-xl"
+                      />
+                    ) : contatoCriadoDaSessao(lead) ? (
                       <Button
                         size="sm"
                         variant="outline"
                         className="rounded-xl"
-                        disabled={contatoCriadoDaSessao(lead)?.encaminhadoAoFunil}
                         onClick={() => onEncaminharAoFunil(contatoCriadoDaSessao(lead)!)}
                       >
-                        {contatoCriadoDaSessao(lead)?.encaminhadoAoFunil
-                          ? "Contato no funil"
-                          : "Enviar ao funil"}
+                        Enviar ao funil
                       </Button>
                     ) : (
                       <span className="text-xs text-[#587076]">Somente leitura</span>

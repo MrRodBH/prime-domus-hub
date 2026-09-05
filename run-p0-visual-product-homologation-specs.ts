@@ -283,8 +283,8 @@ for (const workflowTitle of [
   ok(workflows.includes(workflowTitle), `a homologação deve oferecer a jornada: ${workflowTitle}`);
 }
 ok(
-  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 5,
-  "os cinco formulários devem permanecer sob controle local",
+  (workflows.match(/evento\.preventDefault\(\)/g) ?? []).length === 6,
+  "os seis formulários devem permanecer sob controle local",
 );
 ok(
   workflows.includes("permanece apenas nesta sessão") &&
@@ -362,6 +362,54 @@ ok(
 ok(
   workspace.includes("Campanha de origem:") && workspace.includes("contatoCriado.campanhaOrigem"),
   "Leads e funil devem mostrar a campanha e a página de origem",
+);
+ok(
+  workflows.includes("Acompanhar lead de demonstração") &&
+    workflows.includes('rotulo="Situação da qualificação"') &&
+    workflows.includes("Registro do atendimento") &&
+    workflows.includes('rotulo="Próxima etapa do funil"'),
+  "o acompanhamento deve apresentar campos amigáveis em PT-BR",
+);
+ok(
+  workflows.includes('rotulo="Data da visita"') &&
+    workflows.includes('rotulo="Horário da visita"') &&
+    workflows.includes("Agendamento fictício da visita"),
+  "o acompanhamento deve permitir agendar uma visita exclusivamente fictícia",
+);
+ok(
+  workflows.includes('"Novos contatos"') &&
+    workflows.includes('"Em atendimento"') &&
+    workflows.includes('"Visita agendada"') &&
+    workflows.includes("proximaEtapaPermitida") &&
+    workflows.includes("Avançar para"),
+  "o funil deve permitir somente a próxima etapa controlada",
+);
+ok(
+  workflows.includes("Marque o lead como qualificado antes de avançar") &&
+    workflows.includes("Escolha uma data de hoje ou futura") &&
+    workflows.includes("Informe o horário da visita fictícia"),
+  "o acompanhamento deve validar qualificação e visita em PT-BR",
+);
+ok(
+  workspace.includes("salvarAcompanhamento") &&
+    workspace.includes('titulo: "Atendimento registrado"') &&
+    workspace.includes('titulo: "Lead qualificado"') &&
+    workspace.includes('titulo: "Avanço de etapa"') &&
+    workspace.includes('titulo: "Visita agendada"'),
+  "a jornada deve registrar um histórico temporal do atendimento",
+);
+ok(
+  workspace.includes("contatosCriadosNaEtapa") &&
+    workspace.includes('contato.etapa === "Novo contato"') &&
+    workspace.includes("AcompanharLeadSinteticoDialog"),
+  "o contato deve mover de coluna e continuar acompanhável no funil",
+);
+ok(
+  workspace.includes("Indicadores do acompanhamento nesta sessão") &&
+    workspace.includes('rotulo="Leads qualificados"') &&
+    workspace.includes('rotulo="Visitas agendadas"') &&
+    workspace.includes('rotulo="Avanços no funil"'),
+  "o Dashboard deve refletir qualificação, visita e avanços da sessão",
 );
 for (const forbiddenPersistence of ["localStorage", "sessionStorage", "fetch(", "axios"]) {
   ok(

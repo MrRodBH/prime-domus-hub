@@ -1,5 +1,5 @@
 import { useState, type ComponentProps, type FormEvent, type ReactNode } from "react";
-import { Building2, FileText, Target, Users } from "lucide-react";
+import { Building2, CalendarDays, ClipboardCheck, FileText, Target, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +27,22 @@ export type ContatoSinteticoCriado = {
   temperatura: string;
   encaminhadoAoFunil: boolean;
   captadoPorCampanha?: boolean;
+  qualificacao: "Em qualificação" | "Qualificado";
+  historicoAtendimento: HistoricoAtendimentoSintetico[];
+  visitaAgendada?: VisitaSintetica;
+};
+
+export type HistoricoAtendimentoSintetico = {
+  titulo: string;
+  detalhe: string;
+  momento: string;
+  tipo: "Cadastro" | "Captação" | "Atendimento" | "Avanço de etapa" | "Visita";
+};
+
+export type VisitaSintetica = {
+  data: string;
+  dataExibicao: string;
+  horario: string;
 };
 
 export type ImovelSinteticoCriado = {
@@ -54,6 +70,14 @@ export type CampanhaSinteticaCriada = {
 export type CaptacaoSinteticaCriada = {
   contato: ContatoSinteticoCriado;
   campanha: CampanhaSinteticaCriada;
+};
+
+export type AcompanhamentoSinteticoCriado = {
+  contato: ContatoSinteticoCriado;
+  qualificacao: ContatoSinteticoCriado["qualificacao"];
+  etapaDestino: string;
+  registroAtendimento: string;
+  visitaAgendada?: VisitaSintetica;
 };
 
 export type PaginaSinteticaCriada = {
@@ -207,6 +231,15 @@ export function NovoContatoSinteticoDialog({
       etapa: "Novo contato",
       temperatura: prioridade,
       encaminhadoAoFunil: false,
+      qualificacao: "Em qualificação",
+      historicoAtendimento: [
+        {
+          titulo: "Contato cadastrado",
+          detalhe: "Registro criado manualmente na demonstração.",
+          momento: "Agora",
+          tipo: "Cadastro",
+        },
+      ],
     });
     alterarAberto(false);
   }
@@ -664,6 +697,15 @@ export function CapturarLeadSinteticoDialog({
         temperatura: "Quente",
         encaminhadoAoFunil: true,
         captadoPorCampanha: true,
+        qualificacao: "Em qualificação",
+        historicoAtendimento: [
+          {
+            titulo: "Lead captado pela campanha",
+            detalhe: `${campanha.canal} · ${campanha.nome} · ${campanha.paginaDestino}`,
+            momento: "Agora",
+            tipo: "Captação",
+          },
+        ],
       },
     });
     alterarAberto(false);
@@ -759,6 +801,215 @@ export function CapturarLeadSinteticoDialog({
           </label>
           <ErroFormulario mensagem={erro} />
           <RodapeFormulario rotulo="Captar e enviar ao funil" />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const etapasAcompanhamento = [
+  "Novos contatos",
+  "Em atendimento",
+  "Visita agendada",
+  "Proposta enviada",
+  "Negócio fechado",
+] as const;
+
+function etapaAtualNormalizada(contato: ContatoSinteticoCriado) {
+  return contato.etapa === "Novo contato" ? "Novos contatos" : contato.etapa;
+}
+
+function proximaEtapaPermitida(contato: ContatoSinteticoCriado) {
+  const etapaAtual = etapaAtualNormalizada(contato);
+  const indiceAtual = Math.max(0, etapasAcompanhamento.indexOf(etapaAtual as never));
+  return etapasAcompanhamento[Math.min(indiceAtual + 1, etapasAcompanhamento.length - 1)];
+}
+
+export function AcompanharLeadSinteticoDialog({
+  contato,
+  onConfirmar,
+  className,
+}: {
+  contato: ContatoSinteticoCriado;
+  onConfirmar: (acompanhamento: AcompanhamentoSinteticoCriado) => void;
+  className?: string;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [qualificacao, setQualificacao] = useState(contato.qualificacao);
+  const [etapaDestino, setEtapaDestino] = useState<string>(proximaEtapaPermitida(contato));
+  const [registroAtendimento, setRegistroAtendimento] = useState("");
+  const [dataVisita, setDataVisita] = useState(contato.visitaAgendada?.data ?? "");
+  const [horarioVisita, setHorarioVisita] = useState(contato.visitaAgendada?.horario ?? "");
+  const [erro, setErro] = useState("");
+
+  const etapaAtual = etapaAtualNormalizada(contato);
+  const proximaEtapa = proximaEtapaPermitida(contato);
+  const podeAvancar = proximaEtapa !== etapaAtual;
+  const exigeVisita = etapaDestino === "Visita agendada";
+
+  function prepararFormulario() {
+    setQualificacao(contato.qualificacao);
+    setEtapaDestino(proximaEtapaPermitida(contato));
+    setRegistroAtendimento("");
+    setDataVisita(contato.visitaAgendada?.data ?? "");
+    setHorarioVisita(contato.visitaAgendada?.horario ?? "");
+    setErro("");
+  }
+
+  function alterarAberto(proximo: boolean) {
+    if (proximo) prepararFormulario();
+    setAberto(proximo);
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (registroAtendimento.trim().length < 10) {
+      setErro("Descreva o atendimento realizado com pelo menos 10 caracteres.");
+      return;
+    }
+    if (etapaDestino === "Em atendimento" && qualificacao !== "Qualificado") {
+      setErro("Marque o lead como qualificado antes de avançar para Em atendimento.");
+      return;
+    }
+
+    let visitaAgendada = contato.visitaAgendada;
+    if (exigeVisita) {
+      if (!dataVisita || dataVisita < new Date().toISOString().slice(0, 10)) {
+        setErro("Escolha uma data de hoje ou futura para a visita fictícia.");
+        return;
+      }
+      if (!horarioVisita) {
+        setErro("Informe o horário da visita fictícia.");
+        return;
+      }
+      visitaAgendada = {
+        data: dataVisita,
+        dataExibicao: new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
+          new Date(`${dataVisita}T12:00:00`),
+        ),
+        horario: horarioVisita,
+      };
+    }
+
+    onConfirmar({
+      contato,
+      qualificacao,
+      etapaDestino,
+      registroAtendimento: registroAtendimento.trim(),
+      visitaAgendada,
+    });
+    setAberto(false);
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={alterarAberto}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className={className ?? "w-full rounded-xl"}>
+          <ClipboardCheck className="mr-2 size-4" />
+          Acompanhar lead
+        </Button>
+      </DialogTrigger>
+      <DialogContent className={conteudoDialogClasse}>
+        <DialogHeader>
+          <DialogTitle>Acompanhar lead de demonstração</DialogTitle>
+          <DialogDescription>
+            Qualifique, registre o atendimento e avance uma etapa por vez, somente nesta sessão.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={enviar} noValidate>
+          <AvisoSessaoSintetica />
+          <div className="rounded-xl border border-[#123f47]/10 bg-[#f7f5f0] p-3">
+            <strong className="block text-sm text-[#123f47]">{contato.nome}</strong>
+            <span className="mt-1 block text-xs text-[#587076]">{contato.interesse}</span>
+            <span className="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-[#123f47]">
+              Etapa atual: {etapaAtual}
+            </span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoSelecao
+              id="acompanhamento-qualificacao"
+              rotulo="Situação da qualificação"
+              value={qualificacao}
+              onChange={(valor) => setQualificacao(valor as ContatoSinteticoCriado["qualificacao"])}
+            >
+              <option>Em qualificação</option>
+              <option>Qualificado</option>
+            </CampoSelecao>
+            <CampoSelecao
+              id="acompanhamento-etapa"
+              rotulo="Próxima etapa do funil"
+              value={etapaDestino}
+              onChange={setEtapaDestino}
+            >
+              <option value={etapaAtual}>Manter em {etapaAtual}</option>
+              {podeAvancar ? (
+                <option value={proximaEtapa}>Avançar para {proximaEtapa}</option>
+              ) : null}
+            </CampoSelecao>
+          </div>
+          <label
+            htmlFor="acompanhamento-registro"
+            className="grid gap-1.5 text-sm font-semibold text-[#123f47]"
+          >
+            Registro do atendimento
+            <Textarea
+              id="acompanhamento-registro"
+              className="min-h-24 rounded-xl border-[#123f47]/15 bg-white"
+              value={registroAtendimento}
+              onChange={(evento) => setRegistroAtendimento(evento.target.value)}
+              placeholder="Ex.: Lead confirmou interesse e disponibilidade para visita."
+            />
+            <span className="text-xs font-normal leading-5 text-[#587076]">
+              Este texto entrará no histórico temporário do lead.
+            </span>
+          </label>
+          {exigeVisita ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-950">
+                <CalendarDays className="size-4" /> Agendamento fictício da visita
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CampoTexto
+                  id="acompanhamento-data-visita"
+                  rotulo="Data da visita"
+                  type="date"
+                  value={dataVisita}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(evento) => setDataVisita(evento.target.value)}
+                />
+                <CampoTexto
+                  id="acompanhamento-horario-visita"
+                  rotulo="Horário da visita"
+                  type="time"
+                  value={horarioVisita}
+                  onChange={(evento) => setHorarioVisita(evento.target.value)}
+                />
+              </div>
+            </div>
+          ) : null}
+          {contato.historicoAtendimento.length > 0 ? (
+            <section aria-label="Histórico de atendimento do lead">
+              <p className="text-sm font-semibold text-[#123f47]">Histórico de atendimento</p>
+              <ol className="mt-2 grid max-h-40 gap-2 overflow-y-auto">
+                {[...contato.historicoAtendimento].reverse().map((item, indice) => (
+                  <li
+                    key={`${item.titulo}-${indice}`}
+                    className="rounded-xl border border-[#123f47]/10 bg-white px-3 py-2"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="text-xs text-[#123f47]">{item.titulo}</strong>
+                      <span className="text-[10px] text-[#587076]">{item.momento}</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-[#587076]">{item.detalhe}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+          <ErroFormulario mensagem={erro} />
+          <RodapeFormulario
+            rotulo={etapaDestino === etapaAtual ? "Registrar atendimento" : "Salvar e avançar"}
+          />
         </form>
       </DialogContent>
     </Dialog>
