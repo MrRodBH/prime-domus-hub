@@ -12,6 +12,7 @@ import {
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
   calcularResumoRolloutsSinteticos,
+  calcularResumoMonitoramentoRolloutsSinteticos,
   calcularProgressoRolloutSintetico,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
