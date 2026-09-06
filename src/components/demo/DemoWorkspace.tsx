@@ -75,6 +75,8 @@ import {
   aplicarDecisaoComercialSintetica,
   calcularMonitoramentoResultadosRolloutSintetico,
   calcularHistoricoDecisoesRolloutsSinteticos,
+  calcularCatalogoAprendizadosSinteticos,
+  calcularTrilhaPoliticasAprendizadoSinteticas,
   calcularAprendizadoCruzadoRolloutsSinteticos,
   calcularProgressoRolloutSintetico,
   calcularProgressoPlaybookSintetico,
@@ -101,6 +103,7 @@ import {
   registrarResultadoPlaybookComercialSintetico,
   registrarResultadoVersaoExperimentoSintetico,
   registrarDecisaoOwnerPortfolioSintetica,
+  registrarDecisaoPoliticaAprendizadoSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
@@ -118,6 +121,7 @@ import {
   type ComparacaoPlaybookSintetico,
   type DecisoesComerciaisSinteticas,
   type DecisaoOwnerPortfolioSintetica,
+  type DecisaoOwnerPoliticaAprendizadoSintetica,
   type EstadoDecisaoComercial,
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
@@ -199,6 +203,10 @@ type RegistrarResultadoEtapaRollout = (
 type SimularReaplicacaoAprendizadoRollout = (
   origem: RolloutExperimentoSintetico,
   destino: RolloutExperimentoSintetico,
+) => void;
+type RegistrarDecisaoPoliticaAprendizado = (
+  rollout: RolloutExperimentoSintetico,
+  decisao: DecisaoOwnerPoliticaAprendizadoSintetica,
 ) => void;
 
 type ItemNavegacao = {
@@ -817,6 +825,23 @@ export function DemoWorkspace() {
     );
   }
 
+  function registrarDecisaoPoliticaAprendizado(
+    rollout: RolloutExperimentoSintetico,
+    decisao: DecisaoOwnerPoliticaAprendizadoSintetica,
+  ) {
+    setRolloutsExperimentos((atuais) =>
+      registrarDecisaoPoliticaAprendizadoSintetica({
+        rollouts: atuais,
+        rolloutId: rollout.id,
+        decisao,
+      }),
+    );
+    confirmarAcaoSintetica(
+      `Política fictícia: ${decisao.toLocaleLowerCase("pt-BR")}`,
+      `A decisão sobre o aprendizado de ${rollout.responsavel} foi registrada somente nesta sessão.`,
+    );
+  }
+
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
       atuais.map((item) =>
@@ -1121,6 +1146,7 @@ export function DemoWorkspace() {
                 onReverterRollout={reverterRollout}
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
                 onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
+                onRegistrarDecisaoPoliticaAprendizado={registrarDecisaoPoliticaAprendizado}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -1190,6 +1216,7 @@ export function DemoWorkspace() {
                 onReverterRollout={reverterRollout}
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
                 onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
+                onRegistrarDecisaoPoliticaAprendizado={registrarDecisaoPoliticaAprendizado}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -1218,6 +1245,7 @@ export function DemoWorkspace() {
                 onReverterRollout={reverterRollout}
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
                 onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
+                onRegistrarDecisaoPoliticaAprendizado={registrarDecisaoPoliticaAprendizado}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1458,6 +1486,7 @@ function VisaoGeral({
   onReverterRollout,
   onRegistrarResultadoEtapaRollout,
   onSimularReaplicacaoAprendizadoRollout,
+  onRegistrarDecisaoPoliticaAprendizado,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1506,6 +1535,7 @@ function VisaoGeral({
   onReverterRollout: ControlarRollout;
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
+  onRegistrarDecisaoPoliticaAprendizado: RegistrarDecisaoPoliticaAprendizado;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1617,6 +1647,7 @@ function VisaoGeral({
         onReverter={onReverterRollout}
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
         onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
+        onRegistrarDecisaoPolitica={onRegistrarDecisaoPoliticaAprendizado}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -3520,6 +3551,7 @@ function CentralGovernancaRolloutsSinteticos({
   onReverter,
   onRegistrarResultado,
   onSimularReaplicacao,
+  onRegistrarDecisaoPolitica,
 }: {
   modo: "resumo" | "detalhado";
   rollouts: RolloutsExperimentosSinteticos;
@@ -3529,6 +3561,7 @@ function CentralGovernancaRolloutsSinteticos({
   onReverter: ControlarRollout;
   onRegistrarResultado: RegistrarResultadoEtapaRollout;
   onSimularReaplicacao: SimularReaplicacaoAprendizadoRollout;
+  onRegistrarDecisaoPolitica: RegistrarDecisaoPoliticaAprendizado;
 }) {
   const lista = Object.values(rollouts);
   const rolloutsVisiveis = modo === "resumo" ? lista.slice(0, 1) : lista;
@@ -3606,6 +3639,11 @@ function CentralGovernancaRolloutsSinteticos({
         rollouts={rollouts}
         modo={modo}
         onSimularReaplicacao={onSimularReaplicacao}
+      />
+      <CatalogoAprendizadosPoliticas
+        rollouts={rollouts}
+        modo={modo}
+        onRegistrarDecisao={onRegistrarDecisaoPolitica}
       />
 
       {rolloutsVisiveis.length === 0 ? (
@@ -3788,6 +3826,178 @@ function CentralGovernancaRolloutsSinteticos({
   );
 }
 
+
+
+function CatalogoAprendizadosPoliticas({
+  rollouts,
+  modo,
+  onRegistrarDecisao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  modo: "resumo" | "detalhado";
+  onRegistrarDecisao: RegistrarDecisaoPoliticaAprendizado;
+}) {
+  const catalogo = calcularCatalogoAprendizadosSinteticos(rollouts);
+  const trilha = calcularTrilhaPoliticasAprendizadoSinteticas(rollouts);
+  const itensVisiveis = modo === "resumo" ? catalogo.slice(0, 1) : catalogo;
+  const trilhaVisivel = modo === "resumo" ? trilha.slice(-2) : trilha;
+  const elegiveis = catalogo.filter((item) => item.elegivel).length;
+  const promovidos = catalogo.filter((item) => item.estadoPolitica === "Promovido").length;
+  const altoImpacto = catalogo.filter((item) => item.nivelImpacto === "Alto").length;
+  const corEstado = {
+    "Em avaliação": "bg-slate-100 text-slate-800 hover:bg-slate-100",
+    Promovido: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+    Rejeitado: "bg-rose-100 text-rose-900 hover:bg-rose-100",
+    Retirado: "bg-amber-100 text-amber-900 hover:bg-amber-100",
+  } as const;
+
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 via-white to-orange-50 p-4"
+      aria-label="Catálogo de aprendizados e políticas comerciais"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-fuchsia-800">
+            <Award className="size-4" /> Elegibilidade explicável e versionamento
+          </p>
+          <h4 className="mt-1 text-sm font-semibold">
+            Catálogo de aprendizados e políticas comerciais
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Revise evidências, critérios e impacto fictício antes de promover, rejeitar ou retirar
+            um aprendizado. Toda decisão exige ação humana e permanece nesta sessão.
+          </p>
+        </div>
+        <Badge className="w-fit bg-fuchsia-700 text-white hover:bg-fuchsia-700">
+          Owner decide
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <IndicadorPlaybook rotulo="Aprendizados catalogados" valor={String(catalogo.length)} classe="bg-fuchsia-100 text-fuchsia-900" />
+        <IndicadorPlaybook rotulo="Elegíveis" valor={String(elegiveis)} classe="bg-cyan-100 text-cyan-900" />
+        <IndicadorPlaybook rotulo="Políticas promovidas" valor={String(promovidos)} classe="bg-emerald-100 text-emerald-900" />
+        <IndicadorPlaybook rotulo="Alto impacto projetado" valor={String(altoImpacto)} classe="bg-orange-100 text-orange-900" />
+      </div>
+
+      {itensVisiveis.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-fuchsia-300 bg-white p-4 text-center">
+          <p className="text-sm font-semibold">Nenhum aprendizado catalogado</p>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Registre resultados fictícios nas etapas para gerar a primeira versão elegível.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {itensVisiveis.map((item) => {
+            const rollout = rollouts[item.rolloutId];
+            const podeRetirar = item.estadoPolitica === "Promovido";
+            return (
+              <article key={item.rolloutId} className="rounded-xl border border-fuchsia-200 bg-white p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-fuchsia-800">
+                      {item.responsavel} · versão {item.versao}
+                    </p>
+                    <h5 className="mt-1 text-sm font-semibold">{item.titulo}</h5>
+                  </div>
+                  <Badge className={corEstado[item.estadoPolitica]}>{item.estadoPolitica}</Badge>
+                </div>
+
+                <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_0.8fr]">
+                  <div>
+                    <p className="text-xs font-semibold">Critérios explicáveis de elegibilidade</p>
+                    <div className="mt-2 grid gap-2">
+                      {item.criterios.map((criterio) => (
+                        <p
+                          key={criterio.rotulo}
+                          className={cn(
+                            "rounded-lg px-3 py-2 text-xs",
+                            criterio.atendido
+                              ? "bg-emerald-50 text-emerald-900"
+                              : "bg-rose-50 text-rose-900",
+                          )}
+                        >
+                          {criterio.atendido ? "Atendido" : "Não atendido"} · {criterio.rotulo}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-orange-50 p-3 text-xs leading-5 text-orange-950">
+                    <p className="font-semibold">Projeção de impacto fictícia</p>
+                    <p className="mt-1">{item.impactoProjetado}</p>
+                    <p className="mt-2">
+                      <strong>Elegibilidade:</strong> {item.elegivel ? "Aprovada" : "Bloqueada"}
+                    </p>
+                    <p>
+                      <strong>Recomendação rastreada:</strong> {item.recomendacao}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2" aria-label={`Decisão de política para ${item.responsavel}`}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={!item.elegivel}
+                    className="rounded-xl bg-emerald-700 text-white hover:bg-emerald-800"
+                    onClick={() => onRegistrarDecisao(rollout, "Promover")}
+                  >
+                    Promover
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="rounded-xl border-rose-300 text-rose-800"
+                    onClick={() => onRegistrarDecisao(rollout, "Rejeitar")}
+                  >
+                    Rejeitar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!podeRetirar}
+                    className="rounded-xl border-amber-300 text-amber-900"
+                    onClick={() => onRegistrarDecisao(rollout, "Retirar")}
+                  >
+                    Retirar
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-3">
+        <h5 className="text-xs font-semibold text-violet-950">Trilha auditável das políticas</h5>
+        {trilhaVisivel.length > 0 ? (
+          <div className="mt-2 grid gap-2">
+            {trilhaVisivel.map((registro) => (
+              <div key={registro.id} className="rounded-lg bg-white p-3 text-xs leading-5">
+                <strong>{registro.decisao} · {registro.responsavel} · {registro.versao}</strong>
+                <p className="text-[#587076]">{registro.justificativaExplicavel}</p>
+                <p className="text-[#587076]">{registro.impactoProjetado}</p>
+                <p className="font-semibold text-violet-900">{registro.decididoEm}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Nenhuma decisão de política registrada nesta sessão.
+          </p>
+        )}
+      </div>
+
+      <p className="mt-3 text-[11px] font-semibold text-fuchsia-800">
+        Nenhuma política é publicada, aplicada ou retirada de sistemas reais.
+      </p>
+    </section>
+  );
+}
 
 function HistoricoDecisoesAprendizadoCruzado({
   rollouts,
@@ -5768,6 +5978,7 @@ function Analises({
   onReverterRollout,
   onRegistrarResultadoEtapaRollout,
   onSimularReaplicacaoAprendizadoRollout,
+  onRegistrarDecisaoPoliticaAprendizado,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -5797,6 +6008,7 @@ function Analises({
   onReverterRollout: ControlarRollout;
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
+  onRegistrarDecisaoPoliticaAprendizado: RegistrarDecisaoPoliticaAprendizado;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -5906,6 +6118,7 @@ function Analises({
         onReverter={onReverterRollout}
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
         onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
+        onRegistrarDecisaoPolitica={onRegistrarDecisaoPoliticaAprendizado}
       />
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
@@ -6154,6 +6367,7 @@ function InteligenciaArtificial({
   onReverterRollout,
   onRegistrarResultadoEtapaRollout,
   onSimularReaplicacaoAprendizadoRollout,
+  onRegistrarDecisaoPoliticaAprendizado,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -6182,6 +6396,7 @@ function InteligenciaArtificial({
   onReverterRollout: ControlarRollout;
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
+  onRegistrarDecisaoPoliticaAprendizado: RegistrarDecisaoPoliticaAprendizado;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -6305,6 +6520,7 @@ function InteligenciaArtificial({
         onReverter={onReverterRollout}
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
         onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
+        onRegistrarDecisaoPolitica={onRegistrarDecisaoPoliticaAprendizado}
       />
     </>
   );

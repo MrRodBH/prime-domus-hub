@@ -750,6 +750,19 @@ export type ReaplicacaoAprendizadoRolloutSintetica = {
   simuladoEm: string;
 };
 
+export type DecisaoOwnerPoliticaAprendizadoSintetica =
+  | "Promover"
+  | "Rejeitar"
+  | "Retirar";
+
+export type RegistroPoliticaAprendizadoSintetica = {
+  decisao: DecisaoOwnerPoliticaAprendizadoSintetica;
+  versao: string;
+  justificativaExplicavel: string;
+  impactoProjetado: string;
+  decididoEm: string;
+};
+
 export type EtapaRolloutExperimentoSintetico = {
   id: "piloto-interno" | "expansao-controlada" | "cobertura-ampliada";
   titulo: string;
@@ -772,6 +785,7 @@ export type RolloutExperimentoSintetico = {
   criteriosReversao: string[];
   motivoEstado?: string;
   aprendizadoReaplicado?: ReaplicacaoAprendizadoRolloutSintetica;
+  historicoPoliticaAprendizado?: RegistroPoliticaAprendizadoSintetica[];
   atualizadoEm: string;
 };
 
@@ -1641,6 +1655,135 @@ export function simularReaplicacaoAprendizadoEntreRolloutsSinteticos({
       atualizadoEm: "Agora, nesta sessão",
     },
   };
+}
+
+
+export function calcularCatalogoAprendizadosSinteticos(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  return Object.values(rollouts).flatMap((rollout) => {
+    const monitoramento = calcularMonitoramentoResultadosRolloutSintetico(rollout);
+    if (monitoramento.resultadosRegistrados === 0) return [];
+    const criterios = [
+      {
+        rotulo: "Existe evidência fictícia registrada",
+        atendido: monitoramento.resultadosRegistrados > 0,
+      },
+      {
+        rotulo: "Efetividade média igual ou superior a 80%",
+        atendido:
+          monitoramento.efetividadeMedia !== null && monitoramento.efetividadeMedia >= 80,
+      },
+      {
+        rotulo: "Nenhum limite de segurança violado",
+        atendido: monitoramento.violacoes === 0,
+      },
+      {
+        rotulo: "Recomendação consolidada é continuar",
+        atendido: monitoramento.recomendacao === "Continuar",
+      },
+    ];
+    const elegivel = criterios.every((criterio) => criterio.atendido);
+    const pontuacaoImpacto = Math.max(
+      0,
+      Math.min(
+        100,
+        50 +
+          ((monitoramento.efetividadeMedia ?? 0) - 80) * 4 +
+          monitoramento.resultadosRegistrados * 5 -
+          monitoramento.alertasSeguranca * 10,
+      ),
+    );
+    const nivelImpacto =
+      pontuacaoImpacto >= 70 ? "Alto" : pontuacaoImpacto >= 45 ? "Médio" : "Baixo";
+    const versao = `v1.${monitoramento.resultadosRegistrados}`;
+    const historico = rollout.historicoPoliticaAprendizado ?? [];
+    const ultimaDecisao = historico[historico.length - 1];
+    const estadoPolitica =
+      ultimaDecisao?.decisao === "Promover"
+        ? "Promovido"
+        : ultimaDecisao?.decisao === "Rejeitar"
+          ? "Rejeitado"
+          : ultimaDecisao?.decisao === "Retirar"
+            ? "Retirado"
+            : "Em avaliação";
+    return [{
+      rolloutId: rollout.id,
+      experimentoId: rollout.experimentoId,
+      responsavel: rollout.responsavel,
+      titulo: rollout.titulo,
+      versao,
+      elegivel,
+      criterios,
+      recomendacao: monitoramento.recomendacao,
+      efetividadeMedia: monitoramento.efetividadeMedia,
+      pontuacaoImpacto,
+      nivelImpacto,
+      impactoProjetado:
+        `${nivelImpacto}: índice fictício ${pontuacaoImpacto}/100, calculado por efetividade, volume de evidências e alertas.`,
+      estadoPolitica,
+      historico,
+    }];
+  });
+}
+
+export function registrarDecisaoPoliticaAprendizadoSintetica({
+  rollouts,
+  rolloutId,
+  decisao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  decisao: DecisaoOwnerPoliticaAprendizadoSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const item = calcularCatalogoAprendizadosSinteticos(rollouts).find(
+    (catalogado) => catalogado.rolloutId === rolloutId,
+  );
+  if (!rollout || !item) return rollouts;
+  const podePromover = decisao === "Promover" && item.elegivel;
+  const podeRejeitar = decisao === "Rejeitar";
+  const podeRetirar =
+    decisao === "Retirar" &&
+    item.historico[item.historico.length - 1]?.decisao === "Promover";
+  if (!podePromover && !podeRejeitar && !podeRetirar) return rollouts;
+  const justificativaExplicavel =
+    decisao === "Promover"
+      ? "Todos os quatro critérios fictícios de elegibilidade foram atendidos."
+      : decisao === "Rejeitar"
+        ? "O owner simulou a rejeição após revisar evidências, critérios e impacto projetado."
+        : "O owner simulou a retirada de uma política previamente promovida.";
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      historicoPoliticaAprendizado: [
+        ...(rollout.historicoPoliticaAprendizado ?? []),
+        {
+          decisao,
+          versao: item.versao,
+          justificativaExplicavel,
+          impactoProjetado: item.impactoProjetado,
+          decididoEm: "Agora, nesta sessão",
+        },
+      ],
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularTrilhaPoliticasAprendizadoSinteticas(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  return Object.values(rollouts).flatMap((rollout) =>
+    (rollout.historicoPoliticaAprendizado ?? []).map((registro, indice) => ({
+      id: `${rollout.id}:${indice}:${registro.decisao}`,
+      rolloutId: rollout.id,
+      responsavel: rollout.responsavel,
+      titulo: rollout.titulo,
+      ...registro,
+    })),
+  );
 }
 
 export function calcularProgressoRolloutSintetico(rollout: RolloutExperimentoSintetico) {
