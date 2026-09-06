@@ -12,6 +12,8 @@ import {
   calcularMonitoramentoConformidadePoliticaSintetica,
   calcularRevisaoCicloVidaPoliticaSintetica,
   calcularResumoRevisoesCicloVidaPoliticasSinteticas,
+  calcularComparacaoPropostaAjustePoliticaSintetica,
+  calcularResumoPropostasAjustePoliticasSinteticas,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -37,6 +39,8 @@ import {
   decidirAdocaoPoliticaSintetica,
   decidirCicloVidaPoliticaSintetica,
   registrarRevisaoEficaciaPoliticaSintetica,
+  sincronizarPropostaAjustePoliticaSintetica,
+  decidirPropostaAjustePoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   registrarResultadoPlaybookComercialSintetico,
@@ -1044,6 +1048,27 @@ ok(
   "o ciclo de vida das políticas deve permanecer exclusivamente em memória e sem ações reais",
 );
 
+ok(
+  workspace.includes("Planejamento de ajuste, versionamento e sucessão") &&
+    workspace.includes("Versão sucessora e transição controlada") &&
+    workspace.includes("Impacto projetado"),
+  "Dashboard, Análises e IA devem comparar política vigente e proposta sucessora",
+);
+ok(
+  workspace.includes("Critérios de aprovação") &&
+    workspace.includes("Riscos projetados") &&
+    workspace.includes("Aprovar") &&
+    workspace.includes("Rejeitar") &&
+    workspace.includes("Retirar"),
+  "a proposta deve explicar elegibilidade, riscos e decisões simuladas do owner",
+);
+ok(
+  workspace.includes("Nenhuma proposta, versão ou transição altera políticas, pessoas ou sistemas reais") &&
+    data.includes("sincronizarPropostaAjustePoliticaSintetica") &&
+    data.includes("decidirPropostaAjustePoliticaSintetica"),
+  "o planejamento de sucessão deve permanecer exclusivamente em memória",
+);
+
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
   responsavel: "Toda a equipe",
@@ -1863,6 +1888,136 @@ assert.equal(
   "Em ajuste",
 );
 assertions += 1;
+assert.equal(
+  sincronizarPropostaAjustePoliticaSintetica(
+    rolloutsPoliticaMantida,
+    rolloutBruno.id,
+  ),
+  rolloutsPoliticaMantida,
+);
+assertions += 1;
+const rolloutsComPropostaAjuste = sincronizarPropostaAjustePoliticaSintetica(
+  rolloutsPoliticaEmAjuste,
+  rolloutBruno.id,
+);
+const comparacaoPropostaAjuste = calcularComparacaoPropostaAjustePoliticaSintetica(
+  rolloutsComPropostaAjuste[rolloutBruno.id],
+);
+assert.deepEqual(
+  {
+    estado:
+      rolloutsComPropostaAjuste[rolloutBruno.id].adocaoPolitica?.propostaAjuste?.estado,
+    vigente: comparacaoPropostaAjuste?.versaoVigente,
+    proposta: comparacaoPropostaAjuste?.versaoProposta,
+    ganho: comparacaoPropostaAjuste?.ganhoProjetado,
+    criterios: comparacaoPropostaAjuste?.criteriosAtendidos,
+    elegivel: comparacaoPropostaAjuste?.elegivel,
+    riscos:
+      rolloutsComPropostaAjuste[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.riscosProjetados.length,
+  },
+  {
+    estado: "Em avaliação",
+    vigente: "v1.1",
+    proposta: "v1.2",
+    ganho: 9,
+    criterios: 4,
+    elegivel: true,
+    riscos: 2,
+  },
+);
+assertions += 1;
+assert.equal(
+  decidirPropostaAjustePoliticaSintetica({
+    rollouts: rolloutsComPropostaAjuste,
+    rolloutId: rolloutBruno.id,
+    decisao: "Retirar",
+  }),
+  rolloutsComPropostaAjuste,
+);
+assertions += 1;
+const rolloutsPropostaRejeitada = decidirPropostaAjustePoliticaSintetica({
+  rollouts: rolloutsComPropostaAjuste,
+  rolloutId: rolloutBruno.id,
+  decisao: "Rejeitar",
+});
+assert.deepEqual(
+  {
+    estado:
+      rolloutsPropostaRejeitada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.estado,
+    trilha:
+      rolloutsPropostaRejeitada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.historicoDecisoes.length,
+  },
+  { estado: "Rejeitada", trilha: 1 },
+);
+assertions += 1;
+assert.equal(
+  decidirPropostaAjustePoliticaSintetica({
+    rollouts: rolloutsPropostaRejeitada,
+    rolloutId: rolloutBruno.id,
+    decisao: "Aprovar",
+  }),
+  rolloutsPropostaRejeitada,
+);
+assertions += 1;
+const rolloutsPropostaAprovada = decidirPropostaAjustePoliticaSintetica({
+  rollouts: rolloutsComPropostaAjuste,
+  rolloutId: rolloutBruno.id,
+  decisao: "Aprovar",
+});
+assert.deepEqual(
+  {
+    estado:
+      rolloutsPropostaAprovada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.estado,
+    transicao:
+      rolloutsPropostaAprovada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.transicaoSimulada,
+  },
+  {
+    estado: "Aprovada",
+    transicao: {
+      de: "v1.1",
+      para: "v1.2",
+      estado: "Aprovada para sucessão",
+    },
+  },
+);
+assertions += 1;
+const rolloutsPropostaRetirada = decidirPropostaAjustePoliticaSintetica({
+  rollouts: rolloutsPropostaAprovada,
+  rolloutId: rolloutBruno.id,
+  decisao: "Retirar",
+});
+assert.deepEqual(
+  {
+    estado:
+      rolloutsPropostaRetirada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.estado,
+    trilha:
+      rolloutsPropostaRetirada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.historicoDecisoes.length,
+    resumo: calcularResumoPropostasAjustePoliticasSinteticas(
+      rolloutsPropostaRetirada,
+    ),
+  },
+  {
+    estado: "Retirada",
+    trilha: 2,
+    resumo: {
+      propostas: 1,
+      emAvaliacao: 0,
+      aprovadas: 0,
+      rejeitadas: 0,
+      retiradas: 1,
+      transicoesSimuladas: 1,
+    },
+  },
+);
+assertions += 1;
+
 const rolloutsRevisaoCritica = registrarRevisaoEficaciaPoliticaSintetica({
   rollouts: rolloutsPoliticaEmAjuste,
   rolloutId: rolloutBruno.id,
