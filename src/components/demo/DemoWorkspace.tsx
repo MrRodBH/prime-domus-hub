@@ -44,6 +44,7 @@ import {
   Search,
   Send,
   Settings2,
+  ShieldCheck,
   Sparkles,
   Target,
   TriangleAlert,
@@ -79,6 +80,7 @@ import {
   calcularMonitoramentoConformidadePoliticaSintetica,
   calcularRevisaoCicloVidaPoliticaSintetica,
   calcularComparacaoPropostaAjustePoliticaSintetica,
+  calcularProntidaoAtivacaoSucessoraPoliticaSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -93,6 +95,7 @@ import {
   calcularResumoAdocoesPoliticasSinteticas,
   calcularResumoRevisoesCicloVidaPoliticasSinteticas,
   calcularResumoPropostasAjustePoliticasSinteticas,
+  calcularResumoValidacoesSucessorasPoliticasSinteticas,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -118,6 +121,9 @@ import {
   registrarRevisaoEficaciaPoliticaSintetica,
   sincronizarPropostaAjustePoliticaSintetica,
   decidirPropostaAjustePoliticaSintetica,
+  sincronizarValidacaoSucessoraPoliticaSintetica,
+  registrarCicloValidacaoSucessoraPoliticaSintetica,
+  decidirValidacaoSucessoraPoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
@@ -140,6 +146,7 @@ import {
   type DecisaoOwnerAdocaoPoliticaSintetica,
   type DecisaoOwnerCicloVidaPoliticaSintetica,
   type DecisaoOwnerPropostaAjustePoliticaSintetica,
+  type DecisaoOwnerValidacaoSucessoraSintetica,
   type EstadoDecisaoComercial,
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
@@ -147,6 +154,7 @@ import {
   type FaixaResultadoEtapaRolloutSintetico,
   type FaixaAderenciaPoliticaSintetica,
   type FaixaEficaciaPoliticaSintetica,
+  type FaixaCicloValidacaoSucessoraSintetica,
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
@@ -234,7 +242,10 @@ type AcaoGovernancaPoliticaSintetica =
   | { tipo: "Registrar revisão"; faixa: FaixaEficaciaPoliticaSintetica }
   | { tipo: "Decidir ciclo de vida"; decisao: DecisaoOwnerCicloVidaPoliticaSintetica }
   | { tipo: "Preparar proposta de ajuste" }
-  | { tipo: "Decidir proposta de ajuste"; decisao: DecisaoOwnerPropostaAjustePoliticaSintetica };
+  | { tipo: "Decidir proposta de ajuste"; decisao: DecisaoOwnerPropostaAjustePoliticaSintetica }
+  | { tipo: "Iniciar validação sucessora" }
+  | { tipo: "Registrar ciclo sucessor"; faixa: FaixaCicloValidacaoSucessoraSintetica }
+  | { tipo: "Decidir validação sucessora"; decisao: DecisaoOwnerValidacaoSucessoraSintetica };
 type ControlarAdocaoPolitica = (
   rollout: RolloutExperimentoSintetico,
   acao: AcaoGovernancaPoliticaSintetica,
@@ -909,6 +920,23 @@ export function DemoWorkspace() {
           decisao: acao.decisao,
         });
       }
+      if (typeof acao === "object" && acao.tipo === "Iniciar validação sucessora") {
+        return sincronizarValidacaoSucessoraPoliticaSintetica(atuais, rollout.id);
+      }
+      if (typeof acao === "object" && acao.tipo === "Registrar ciclo sucessor") {
+        return registrarCicloValidacaoSucessoraPoliticaSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          faixa: acao.faixa,
+        });
+      }
+      if (typeof acao === "object" && acao.tipo === "Decidir validação sucessora") {
+        return decidirValidacaoSucessoraPoliticaSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          decisao: acao.decisao,
+        });
+      }
       return acao === "Avançar etapa"
         ? avancarEtapaAdocaoPoliticaSintetica({ rollouts: atuais, rolloutId: rollout.id })
         : decidirAdocaoPoliticaSintetica({
@@ -923,7 +951,11 @@ export function DemoWorkspace() {
           ? acao.faixa
           : acao.tipo === "Preparar proposta de ajuste"
             ? "Proposta de ajuste preparada"
-            : acao.decisao
+            : acao.tipo === "Iniciar validação sucessora"
+              ? "Validação sucessora iniciada"
+              : acao.tipo === "Registrar ciclo sucessor"
+                ? acao.faixa
+                : acao.decisao
         : acao;
     confirmarAcaoSintetica(
       "Governança de política atualizada",
@@ -3785,6 +3817,11 @@ function CentralGovernancaRolloutsSinteticos({
         modo={modo}
         onControlar={onControlarAdocao}
       />
+      <ValidacaoProntidaoAtivacaoSucessoras
+        rollouts={rollouts}
+        modo={modo}
+        onControlar={onControlarAdocao}
+      />
 
       {rolloutsVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-emerald-300 bg-white/70 p-5 text-center">
@@ -4506,6 +4543,214 @@ function PlanejamentoAjusteSucessaoPoliticas({
 
       <p className="mt-3 text-[11px] font-semibold text-teal-800">
         Nenhuma proposta, versão ou transição altera políticas, pessoas ou sistemas reais.
+      </p>
+    </section>
+  );
+}
+
+function ValidacaoProntidaoAtivacaoSucessoras({
+  rollouts,
+  modo,
+  onControlar,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  modo: "resumo" | "detalhado";
+  onControlar: ControlarAdocaoPolitica;
+}) {
+  const resumo = calcularResumoValidacoesSucessorasPoliticasSinteticas(rollouts);
+  const propostas = Object.values(rollouts).filter(
+    (rollout) => rollout.adocaoPolitica?.propostaAjuste,
+  );
+  const visiveis = modo === "resumo" ? propostas.slice(0, 1) : propostas;
+  const faixas: FaixaCicloValidacaoSucessoraSintetica[] = [
+    "Dentro dos limites",
+    "Atenção",
+    "Risco crítico",
+  ];
+  const decisoes: DecisaoOwnerValidacaoSucessoraSintetica[] = [
+    "Ativar",
+    "Adiar",
+    "Reverter",
+  ];
+  const corEstado: Record<string, string> = {
+    "Em validação": "bg-cyan-100 text-cyan-900 hover:bg-cyan-100",
+    "Pronta para ativação": "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+    Adiada: "bg-amber-100 text-amber-900 hover:bg-amber-100",
+    Revertida: "bg-rose-100 text-rose-900 hover:bg-rose-100",
+  };
+
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-4"
+      aria-label="Validação sucessora e prontidão para ativação"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-sky-800">
+            <ShieldCheck className="size-4" /> Ciclos fictícios e decisão auditável
+          </p>
+          <h4 className="mt-1 text-sm font-semibold">
+            Validação da política sucessora e prontidão para ativação
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Compare política vigente e sucessora, monitore limites de risco e registre a decisão
+            simulada do owner entre ativar, adiar ou reverter.
+          </p>
+        </div>
+        <Badge className="w-fit whitespace-nowrap bg-sky-700 text-white hover:bg-sky-700">
+          Sem ativação real
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-5">
+        <IndicadorPlaybook rotulo="Validações" valor={String(resumo.validacoes)} classe="bg-sky-100 text-sky-900" />
+        <IndicadorPlaybook rotulo="Ciclos fictícios" valor={String(resumo.ciclos)} classe="bg-cyan-100 text-cyan-900" />
+        <IndicadorPlaybook rotulo="Prontas" valor={String(resumo.prontas)} classe="bg-emerald-100 text-emerald-900" />
+        <IndicadorPlaybook rotulo="Adiadas" valor={String(resumo.adiadas)} classe="bg-amber-100 text-amber-900" />
+        <IndicadorPlaybook rotulo="Revertidas" valor={String(resumo.revertidas)} classe="bg-rose-100 text-rose-900" />
+      </div>
+
+      {visiveis.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-sky-300 bg-white p-4 text-center">
+          <p className="text-sm font-semibold">Nenhuma sucessora aprovada para validação</p>
+          <p className="mt-1 text-xs text-[#587076]">
+            A validação só pode começar após a aprovação simulada de uma proposta sucessora.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {visiveis.map((rollout) => {
+            const proposta = rollout.adocaoPolitica!.propostaAjuste!;
+            const validacao = proposta.validacaoSucessora;
+            const prontidao = calcularProntidaoAtivacaoSucessoraPoliticaSintetica(rollout);
+            const podeIniciar = proposta.estado === "Aprovada" && !validacao;
+            return (
+              <article key={rollout.id} className="rounded-xl border border-sky-200 bg-white p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-sky-800">
+                      {proposta.versaoVigente} vigente · {proposta.versaoProposta} sucessora
+                    </p>
+                    <h5 className="mt-1 text-sm font-semibold">{rollout.titulo}</h5>
+                  </div>
+                  {validacao ? (
+                    <Badge className={corEstado[validacao.estado]}>{validacao.estado}</Badge>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!podeIniciar}
+                      className="rounded-xl border-sky-300 text-sky-900"
+                      onClick={() => onControlar(rollout, { tipo: "Iniciar validação sucessora" })}
+                    >
+                      Iniciar validação
+                    </Button>
+                  )}
+                </div>
+
+                {!validacao || !prontidao ? (
+                  <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-[#587076]">
+                    {podeIniciar
+                      ? "A proposta aprovada está elegível para ciclos exclusivamente fictícios."
+                      : "Aguardando aprovação simulada; nenhuma validação foi iniciada."}
+                  </p>
+                ) : (
+                  <>
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-xl border border-sky-200 bg-sky-50 p-3">
+                        <p className="text-xs font-semibold text-sky-950">Comparação por ciclo</p>
+                        {validacao.ciclos.length === 0 ? (
+                          <p className="mt-1 text-xs text-sky-900">Nenhum ciclo registrado.</p>
+                        ) : (
+                          validacao.ciclos.map((ciclo) => (
+                            <p key={ciclo.ciclo} className="mt-2 text-xs leading-5 text-sky-900">
+                              <strong>Ciclo {ciclo.ciclo} · {ciclo.faixa}</strong> — vigente {ciclo.eficaciaVigente}% versus sucessora {ciclo.eficaciaSucessora}% ({ciclo.ganhoSucessora >= 0 ? "+" : ""}{ciclo.ganhoSucessora} p.p.). {ciclo.explicacao}
+                            </p>
+                          ))
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                        <p className="text-xs font-semibold text-rose-950">Limites de risco</p>
+                        {validacao.limitesRisco.map((limite) => (
+                          <p key={limite} className="mt-1 text-xs leading-5 text-rose-900">• {limite}</p>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="text-xs font-semibold text-emerald-950">
+                        Critérios de prontidão · {prontidao.criteriosAtendidos}/{prontidao.totalCriterios}
+                      </p>
+                      {prontidao.criterios.map((criterio) => (
+                        <p key={criterio.descricao} className="mt-1 text-xs leading-5 text-emerald-900">
+                          {criterio.atendido ? "✓" : "—"} {criterio.descricao}
+                        </p>
+                      ))}
+                      <p className="mt-2 text-xs font-semibold text-emerald-950">
+                        Recomendação: {prontidao.recomendacao} · ganho médio {prontidao.ganhoMedio >= 0 ? "+" : ""}{prontidao.ganhoMedio} p.p.
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-emerald-900">{prontidao.explicacao}</p>
+                    </div>
+
+                    {validacao.estado === "Em validação" && validacao.ciclos.length < 3 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {faixas.map((faixa) => (
+                          <Button
+                            key={faixa}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl text-xs"
+                            onClick={() => onControlar(rollout, { tipo: "Registrar ciclo sucessor", faixa })}
+                          >
+                            Registrar {faixa.toLocaleLowerCase("pt-BR")}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-xs font-semibold text-amber-950">Decisão simulada do owner</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {decisoes.map((decisao) => (
+                          <Button
+                            key={decisao}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={validacao.estado !== "Em validação" || decisao !== prontidao.recomendacao}
+                            className="rounded-xl text-xs"
+                            onClick={() => onControlar(rollout, { tipo: "Decidir validação sucessora", decisao })}
+                          >
+                            {decisao}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs font-semibold">Trilha auditável da validação</p>
+                      {validacao.historicoDecisoes.length === 0 ? (
+                        <p className="mt-1 text-xs text-[#587076]">Nenhuma decisão registrada.</p>
+                      ) : (
+                        validacao.historicoDecisoes.map((registro, indice) => (
+                          <p key={`${registro.decisao}:${indice}`} className="mt-1 text-xs leading-5 text-[#587076]">
+                            <strong>{registro.decisao}</strong> · {registro.justificativaExplicavel}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="mt-3 text-[11px] font-semibold text-sky-800">
+        Validações e decisões existem apenas nesta sessão; nenhuma política real é ativada ou revertida.
       </p>
     </section>
   );
