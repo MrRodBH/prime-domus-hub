@@ -805,6 +805,7 @@ export type AdocaoPoliticaSintetica = {
   estadoCicloVida?: EstadoCicloVidaPoliticaSintetica;
   revisoesEficacia?: RegistroRevisaoEficaciaPoliticaSintetica[];
   historicoDecisoesCicloVida?: RegistroDecisaoCicloVidaPoliticaSintetica[];
+  propostaAjuste?: PropostaAjustePoliticaSintetica;
   atualizadoEm: string;
 };
 
@@ -839,6 +840,50 @@ export type RegistroDecisaoCicloVidaPoliticaSintetica = {
 };
 
 export type EstadoCicloVidaPoliticaSintetica = "Ativa" | "Em ajuste" | "Aposentada";
+
+export type EstadoPropostaAjustePoliticaSintetica =
+  | "Em avaliação"
+  | "Aprovada"
+  | "Rejeitada"
+  | "Retirada";
+
+export type DecisaoOwnerPropostaAjustePoliticaSintetica =
+  | "Aprovar"
+  | "Rejeitar"
+  | "Retirar";
+
+export type CriterioPropostaAjustePoliticaSintetica = {
+  id: "ajuste-recomendado" | "versao-incremental" | "impacto-explicado" | "riscos-mapeados";
+  descricao: string;
+  atendido: boolean;
+};
+
+export type RegistroDecisaoPropostaAjustePoliticaSintetica = {
+  decisao: DecisaoOwnerPropostaAjustePoliticaSintetica;
+  justificativaExplicavel: string;
+  decididoEm: string;
+};
+
+export type PropostaAjustePoliticaSintetica = {
+  id: string;
+  versaoVigente: string;
+  versaoProposta: string;
+  regraVigente: string;
+  regraProposta: string;
+  impactoAtual: number;
+  impactoProjetado: number;
+  riscosProjetados: string[];
+  criterios: CriterioPropostaAjustePoliticaSintetica[];
+  estado: EstadoPropostaAjustePoliticaSintetica;
+  transicaoSimulada?: {
+    de: string;
+    para: string;
+    estado: "Aprovada para sucessão" | "Retirada antes de aplicação";
+  };
+  historicoDecisoes: RegistroDecisaoPropostaAjustePoliticaSintetica[];
+  criadoEm: string;
+  atualizadoEm: string;
+};
 
 export type EtapaRolloutExperimentoSintetico = {
   id: "piloto-interno" | "expansao-controlada" | "cobertura-ampliada";
@@ -2268,6 +2313,186 @@ export function calcularResumoRevisoesCicloVidaPoliticasSinteticas(
     aposentadas: adocoes.filter(
       (rollout) => rollout.adocaoPolitica?.estadoCicloVida === "Aposentada",
     ).length,
+  };
+}
+
+function calcularProximaVersaoPoliticaSintetica(versao: string) {
+  const partes = /^v(\d+)\.(\d+)$/.exec(versao);
+  if (!partes) return `${versao}-ajuste-1`;
+  return `v${partes[1]}.${Number(partes[2]) + 1}`;
+}
+
+export function sincronizarPropostaAjustePoliticaSintetica(
+  rollouts: RolloutsExperimentosSinteticos,
+  rolloutId: string,
+): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  if (!rollout || !adocao || adocao.propostaAjuste) return rollouts;
+  const revisao = calcularRevisaoCicloVidaPoliticaSintetica(rollout);
+  if (adocao.estadoCicloVida !== "Em ajuste" || revisao.recomendacao !== "Ajustar") {
+    return rollouts;
+  }
+  const versaoProposta = calcularProximaVersaoPoliticaSintetica(adocao.politicaVersao);
+  const impactoAtual = revisao.impactoMedio ?? 0;
+  const impactoProjetado = Math.min(95, impactoAtual + 9);
+  const riscosProjetados = [
+    "A regra ajustada pode reduzir temporariamente a aderência fictícia durante a transição.",
+    "O ganho projetado depende de validação em um novo ciclo exclusivamente simulado.",
+  ];
+  const criterios: CriterioPropostaAjustePoliticaSintetica[] = [
+    {
+      id: "ajuste-recomendado",
+      descricao: "A revisão de eficácia recomenda ajuste, não aposentadoria.",
+      atendido: revisao.recomendacao === "Ajustar",
+    },
+    {
+      id: "versao-incremental",
+      descricao: "A versão proposta sucede a vigente sem sobrescrevê-la.",
+      atendido: versaoProposta !== adocao.politicaVersao,
+    },
+    {
+      id: "impacto-explicado",
+      descricao: "O impacto projetado possui comparação quantitativa com o ciclo atual.",
+      atendido: impactoProjetado > impactoAtual,
+    },
+    {
+      id: "riscos-mapeados",
+      descricao: "Riscos e dependência de nova validação fictícia estão explicitados.",
+      atendido: riscosProjetados.length >= 2,
+    },
+  ];
+  const proposta: PropostaAjustePoliticaSintetica = {
+    id: `proposta:${rolloutId}:${versaoProposta}`,
+    versaoVigente: adocao.politicaVersao,
+    versaoProposta,
+    regraVigente: "Manter a política vigente sem alterar seus limites de eficácia.",
+    regraProposta:
+      "Recalibrar o critério de revisão e exigir novo ciclo fictício antes de confirmar eficácia.",
+    impactoAtual,
+    impactoProjetado,
+    riscosProjetados,
+    criterios,
+    estado: "Em avaliação",
+    historicoDecisoes: [],
+    criadoEm: "Agora, nesta sessão",
+    atualizadoEm: "Agora, nesta sessão",
+  };
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: proposta,
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularComparacaoPropostaAjustePoliticaSintetica(
+  rollout: RolloutExperimentoSintetico,
+) {
+  const proposta = rollout.adocaoPolitica?.propostaAjuste;
+  if (!proposta) return null;
+  const criteriosAtendidos = proposta.criterios.filter((criterio) => criterio.atendido).length;
+  return {
+    versaoVigente: proposta.versaoVigente,
+    versaoProposta: proposta.versaoProposta,
+    ganhoProjetado: proposta.impactoProjetado - proposta.impactoAtual,
+    criteriosAtendidos,
+    totalCriterios: proposta.criterios.length,
+    elegivel: criteriosAtendidos === proposta.criterios.length,
+    leituraExplicavel:
+      criteriosAtendidos === proposta.criterios.length
+        ? "A proposta atende todos os critérios e pode receber decisão simulada do owner."
+        : "A proposta falha fechada enquanto houver critério não atendido.",
+  };
+}
+
+export function decidirPropostaAjustePoliticaSintetica({
+  rollouts,
+  rolloutId,
+  decisao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  decisao: DecisaoOwnerPropostaAjustePoliticaSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  if (!rollout || !adocao || !proposta) return rollouts;
+  const comparacao = calcularComparacaoPropostaAjustePoliticaSintetica(rollout);
+  const permitido =
+    (decisao === "Aprovar" && proposta.estado === "Em avaliação" && comparacao?.elegivel) ||
+    (decisao === "Rejeitar" && proposta.estado === "Em avaliação") ||
+    (decisao === "Retirar" && proposta.estado === "Aprovada");
+  if (!permitido) return rollouts;
+
+  const estado: EstadoPropostaAjustePoliticaSintetica =
+    decisao === "Aprovar" ? "Aprovada" : decisao === "Rejeitar" ? "Rejeitada" : "Retirada";
+  const justificativaExplicavel =
+    decisao === "Aprovar"
+      ? `Sucessão ${proposta.versaoVigente} → ${proposta.versaoProposta} aprovada somente na simulação.`
+      : decisao === "Rejeitar"
+        ? "Proposta rejeitada pelo owner; a versão vigente permanece preservada."
+        : "Proposta retirada antes de qualquer aplicação; a versão vigente permanece preservada.";
+  const registro: RegistroDecisaoPropostaAjustePoliticaSintetica = {
+    decisao,
+    justificativaExplicavel,
+    decididoEm: "Agora, nesta sessão",
+  };
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: {
+          ...proposta,
+          estado,
+          transicaoSimulada:
+            decisao === "Aprovar"
+              ? {
+                  de: proposta.versaoVigente,
+                  para: proposta.versaoProposta,
+                  estado: "Aprovada para sucessão",
+                }
+              : decisao === "Retirar"
+                ? {
+                    de: proposta.versaoVigente,
+                    para: proposta.versaoProposta,
+                    estado: "Retirada antes de aplicação",
+                  }
+                : proposta.transicaoSimulada,
+          historicoDecisoes: [...proposta.historicoDecisoes, registro],
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularResumoPropostasAjustePoliticasSinteticas(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const propostas = Object.values(rollouts).flatMap((rollout) =>
+    rollout.adocaoPolitica?.propostaAjuste
+      ? [rollout.adocaoPolitica.propostaAjuste]
+      : [],
+  );
+  return {
+    propostas: propostas.length,
+    emAvaliacao: propostas.filter((proposta) => proposta.estado === "Em avaliação").length,
+    aprovadas: propostas.filter((proposta) => proposta.estado === "Aprovada").length,
+    rejeitadas: propostas.filter((proposta) => proposta.estado === "Rejeitada").length,
+    retiradas: propostas.filter((proposta) => proposta.estado === "Retirada").length,
+    transicoesSimuladas: propostas.filter((proposta) => proposta.transicaoSimulada).length,
   };
 }
 

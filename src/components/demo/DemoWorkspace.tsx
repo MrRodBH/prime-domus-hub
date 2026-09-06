@@ -30,6 +30,7 @@ import {
   ExternalLink,
   FileText,
   Globe2,
+  GitCompareArrows,
   Home,
   Inbox,
   LayoutDashboard,
@@ -77,6 +78,7 @@ import {
   calcularMonitoramentoResultadosRolloutSintetico,
   calcularMonitoramentoConformidadePoliticaSintetica,
   calcularRevisaoCicloVidaPoliticaSintetica,
+  calcularComparacaoPropostaAjustePoliticaSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -90,6 +92,7 @@ import {
   calcularResumoRolloutsSinteticos,
   calcularResumoAdocoesPoliticasSinteticas,
   calcularResumoRevisoesCicloVidaPoliticasSinteticas,
+  calcularResumoPropostasAjustePoliticasSinteticas,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -113,6 +116,8 @@ import {
   decidirAdocaoPoliticaSintetica,
   decidirCicloVidaPoliticaSintetica,
   registrarRevisaoEficaciaPoliticaSintetica,
+  sincronizarPropostaAjustePoliticaSintetica,
+  decidirPropostaAjustePoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
@@ -134,6 +139,7 @@ import {
   type DecisaoOwnerPoliticaAprendizadoSintetica,
   type DecisaoOwnerAdocaoPoliticaSintetica,
   type DecisaoOwnerCicloVidaPoliticaSintetica,
+  type DecisaoOwnerPropostaAjustePoliticaSintetica,
   type EstadoDecisaoComercial,
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
@@ -226,7 +232,9 @@ type AcaoGovernancaPoliticaSintetica =
   | DecisaoOwnerAdocaoPoliticaSintetica
   | "Avançar etapa"
   | { tipo: "Registrar revisão"; faixa: FaixaEficaciaPoliticaSintetica }
-  | { tipo: "Decidir ciclo de vida"; decisao: DecisaoOwnerCicloVidaPoliticaSintetica };
+  | { tipo: "Decidir ciclo de vida"; decisao: DecisaoOwnerCicloVidaPoliticaSintetica }
+  | { tipo: "Preparar proposta de ajuste" }
+  | { tipo: "Decidir proposta de ajuste"; decisao: DecisaoOwnerPropostaAjustePoliticaSintetica };
 type ControlarAdocaoPolitica = (
   rollout: RolloutExperimentoSintetico,
   acao: AcaoGovernancaPoliticaSintetica,
@@ -891,6 +899,16 @@ export function DemoWorkspace() {
           decisao: acao.decisao,
         });
       }
+      if (typeof acao === "object" && acao.tipo === "Preparar proposta de ajuste") {
+        return sincronizarPropostaAjustePoliticaSintetica(atuais, rollout.id);
+      }
+      if (typeof acao === "object" && acao.tipo === "Decidir proposta de ajuste") {
+        return decidirPropostaAjustePoliticaSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          decisao: acao.decisao,
+        });
+      }
       return acao === "Avançar etapa"
         ? avancarEtapaAdocaoPoliticaSintetica({ rollouts: atuais, rolloutId: rollout.id })
         : decidirAdocaoPoliticaSintetica({
@@ -903,7 +921,9 @@ export function DemoWorkspace() {
       typeof acao === "object"
         ? acao.tipo === "Registrar revisão"
           ? acao.faixa
-          : acao.decisao
+          : acao.tipo === "Preparar proposta de ajuste"
+            ? "Proposta de ajuste preparada"
+            : acao.decisao
         : acao;
     confirmarAcaoSintetica(
       "Governança de política atualizada",
@@ -3760,6 +3780,11 @@ function CentralGovernancaRolloutsSinteticos({
         modo={modo}
         onControlar={onControlarAdocao}
       />
+      <PlanejamentoAjusteSucessaoPoliticas
+        rollouts={rollouts}
+        modo={modo}
+        onControlar={onControlarAdocao}
+      />
 
       {rolloutsVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-emerald-300 bg-white/70 p-5 text-center">
@@ -4280,6 +4305,207 @@ function RevisaoEficaciaCicloVidaPoliticas({
 
       <p className="mt-3 text-[11px] font-semibold text-indigo-800">
         Revisões, recomendações e decisões existem apenas nesta sessão; nenhuma política real é alterada.
+      </p>
+    </section>
+  );
+}
+
+function PlanejamentoAjusteSucessaoPoliticas({
+  rollouts,
+  modo,
+  onControlar,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  modo: "resumo" | "detalhado";
+  onControlar: ControlarAdocaoPolitica;
+}) {
+  const resumo = calcularResumoPropostasAjustePoliticasSinteticas(rollouts);
+  const politicas = Object.values(rollouts).filter((rollout) => rollout.adocaoPolitica);
+  const visiveis = modo === "resumo" ? politicas.slice(0, 1) : politicas;
+  const decisoes: DecisaoOwnerPropostaAjustePoliticaSintetica[] = [
+    "Aprovar",
+    "Rejeitar",
+    "Retirar",
+  ];
+  const corEstado: Record<string, string> = {
+    "Em avaliação": "bg-amber-100 text-amber-900 hover:bg-amber-100",
+    Aprovada: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+    Rejeitada: "bg-rose-100 text-rose-900 hover:bg-rose-100",
+    Retirada: "bg-slate-200 text-slate-900 hover:bg-slate-200",
+  };
+
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 via-white to-violet-50 p-4"
+      aria-label="Planejamento de ajuste, versionamento e sucessão das políticas"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-teal-800">
+            <GitCompareArrows className="size-4" /> Versão sucessora e transição controlada
+          </p>
+          <h4 className="mt-1 text-sm font-semibold">
+            Planejamento de ajuste, versionamento e sucessão
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Compare a política vigente com a proposta ajustada, avalie impacto e riscos fictícios
+            e registre a decisão do owner sem substituir qualquer política real.
+          </p>
+        </div>
+        <Badge className="w-fit whitespace-nowrap bg-teal-700 text-white hover:bg-teal-700">
+          Fail-closed
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-6">
+        <IndicadorPlaybook rotulo="Propostas" valor={String(resumo.propostas)} classe="bg-teal-100 text-teal-900" />
+        <IndicadorPlaybook rotulo="Em avaliação" valor={String(resumo.emAvaliacao)} classe="bg-amber-100 text-amber-900" />
+        <IndicadorPlaybook rotulo="Aprovadas" valor={String(resumo.aprovadas)} classe="bg-emerald-100 text-emerald-900" />
+        <IndicadorPlaybook rotulo="Rejeitadas" valor={String(resumo.rejeitadas)} classe="bg-rose-100 text-rose-900" />
+        <IndicadorPlaybook rotulo="Retiradas" valor={String(resumo.retiradas)} classe="bg-slate-200 text-slate-900" />
+        <IndicadorPlaybook rotulo="Transições simuladas" valor={String(resumo.transicoesSimuladas)} classe="bg-violet-100 text-violet-900" />
+      </div>
+
+      {visiveis.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-teal-300 bg-white p-4 text-center">
+          <p className="text-sm font-semibold">Nenhuma política disponível para ajuste</p>
+          <p className="mt-1 text-xs text-[#587076]">
+            Uma política adotada precisa chegar ao estado Em ajuste antes de propor sua sucessão.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {visiveis.map((rollout) => {
+            const adocao = rollout.adocaoPolitica!;
+            const proposta = adocao.propostaAjuste;
+            const comparacao = calcularComparacaoPropostaAjustePoliticaSintetica(rollout);
+            const podePreparar = adocao.estadoCicloVida === "Em ajuste" && !proposta;
+            return (
+              <article key={rollout.id} className="rounded-xl border border-teal-200 bg-white p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
+                      {rollout.responsavel} · política vigente {adocao.politicaVersao}
+                    </p>
+                    <h5 className="mt-1 text-sm font-semibold">{rollout.titulo}</h5>
+                  </div>
+                  {proposta ? (
+                    <Badge className={corEstado[proposta.estado]}>{proposta.estado}</Badge>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!podePreparar}
+                      className="rounded-xl border-teal-300 text-teal-900"
+                      onClick={() => onControlar(rollout, { tipo: "Preparar proposta de ajuste" })}
+                    >
+                      Preparar proposta
+                    </Button>
+                  )}
+                </div>
+
+                {!proposta || !comparacao ? (
+                  <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-[#587076]">
+                    {podePreparar
+                      ? "A recomendação de ajuste permite preparar uma proposta exclusivamente fictícia."
+                      : "Aguardando decisão Ajustar no ciclo de vida; nenhuma proposta é criada antecipadamente."}
+                  </p>
+                ) : (
+                  <>
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-xs font-semibold">Vigente · {proposta.versaoVigente}</p>
+                        <p className="mt-1 text-xs leading-5 text-[#587076]">{proposta.regraVigente}</p>
+                        <p className="mt-2 text-xs font-semibold">Impacto fictício atual: {proposta.impactoAtual}%</p>
+                      </div>
+                      <div className="rounded-xl border border-teal-200 bg-teal-50 p-3">
+                        <p className="text-xs font-semibold text-teal-950">Proposta · {proposta.versaoProposta}</p>
+                        <p className="mt-1 text-xs leading-5 text-teal-900">{proposta.regraProposta}</p>
+                        <p className="mt-2 text-xs font-semibold text-teal-950">
+                          Impacto projetado: {proposta.impactoProjetado}% · ganho +{comparacao.ganhoProjetado} p.p.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                        <p className="text-xs font-semibold text-emerald-950">
+                          Critérios de aprovação · {comparacao.criteriosAtendidos}/{comparacao.totalCriterios}
+                        </p>
+                        {proposta.criterios.map((criterio) => (
+                          <p key={criterio.id} className="mt-1 text-xs leading-5 text-emerald-900">
+                            {criterio.atendido ? "✓" : "—"} {criterio.descricao}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                        <p className="text-xs font-semibold text-rose-950">Riscos projetados</p>
+                        {proposta.riscosProjetados.map((risco) => (
+                          <p key={risco} className="mt-1 text-xs leading-5 text-rose-900">• {risco}</p>
+                        ))}
+                      </div>
+                    </div>
+
+                    <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-xs leading-5 text-violet-950">
+                      <strong>Leitura explicável:</strong> {comparacao.leituraExplicavel}
+                    </p>
+
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-xs font-semibold text-amber-950">Decisão simulada do owner</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {decisoes.map((decisao) => {
+                          const permitido =
+                            (decisao === "Aprovar" && proposta.estado === "Em avaliação" && comparacao.elegivel) ||
+                            (decisao === "Rejeitar" && proposta.estado === "Em avaliação") ||
+                            (decisao === "Retirar" && proposta.estado === "Aprovada");
+                          return (
+                            <Button
+                              key={decisao}
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!permitido}
+                              className="rounded-xl text-xs"
+                              onClick={() =>
+                                onControlar(rollout, { tipo: "Decidir proposta de ajuste", decisao })
+                              }
+                            >
+                              {decisao}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {proposta.transicaoSimulada ? (
+                      <p className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs leading-5 text-violet-950">
+                        <strong>Transição simulada:</strong> {proposta.transicaoSimulada.de} → {proposta.transicaoSimulada.para} · {proposta.transicaoSimulada.estado}.
+                      </p>
+                    ) : null}
+
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs font-semibold">Trilha auditável da proposta</p>
+                      {proposta.historicoDecisoes.length === 0 ? (
+                        <p className="mt-1 text-xs text-[#587076]">Nenhuma decisão registrada.</p>
+                      ) : (
+                        proposta.historicoDecisoes.map((registro, indice) => (
+                          <p key={`${registro.decisao}:${indice}`} className="mt-1 text-xs leading-5 text-[#587076]">
+                            <strong>{registro.decisao}</strong> · {registro.justificativaExplicavel}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="mt-3 text-[11px] font-semibold text-teal-800">
+        Nenhuma proposta, versão ou transição altera políticas, pessoas ou sistemas reais.
       </p>
     </section>
   );
