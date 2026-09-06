@@ -30,6 +30,7 @@ import {
   ExternalLink,
   FileText,
   Globe2,
+  GitCompareArrows,
   Home,
   Inbox,
   LayoutDashboard,
@@ -4351,7 +4352,7 @@ function PlanejamentoAjusteSucessaoPoliticas({
             e registre a decisão do owner sem substituir qualquer política real.
           </p>
         </div>
-        <Badge className="w-nowrap w-fit bg-teal-700 text-white hover:bg-teal-700">
+        <Badge className="w-fit whitespace-nowrap bg-teal-700 text-white hover:bg-teal-700">
           Fail-closed
         </Badge>
       </div>
