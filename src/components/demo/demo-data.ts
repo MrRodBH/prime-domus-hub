@@ -664,6 +664,47 @@ export type PlaybookMelhoriaContinuaSintetico = {
 
 export type PlaybooksMelhoriaContinuaSinteticos = Record<string, PlaybookMelhoriaContinuaSintetico>;
 
+export type FaixaResultadoExperimentoSintetico =
+  | "Abaixo do critério"
+  | "Próximo do critério"
+  | "Acima do critério";
+
+export type RecomendacaoVersaoExperimentoSintetico = "Manter" | "Ajustar" | "Encerrar";
+
+export type ResultadoVersaoExperimentoSintetico = {
+  faixa: FaixaResultadoExperimentoSintetico;
+  efetividade: number;
+  atingiuCriterio: boolean;
+  resultadoFicticio: string;
+  leituraExplicavel: string;
+  recomendacao: RecomendacaoVersaoExperimentoSintetico;
+  justificativaRecomendacao: string;
+  registradoEm: string;
+};
+
+export type VersaoExperimentoPlaybookSintetico = {
+  id: "versao-a" | "versao-b";
+  rotulo: "Versão A — prática atual" | "Versão B — prática aprimorada";
+  titulo: string;
+  descricao: string;
+  resultado?: ResultadoVersaoExperimentoSintetico;
+};
+
+export type ExperimentoPlaybookSintetico = {
+  id: string;
+  playbookMelhoriaId: string;
+  origemPlaybookId: string;
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"];
+  titulo: string;
+  hipotese: string;
+  criterioSucesso: string;
+  valorCriterio: number;
+  versoes: VersaoExperimentoPlaybookSintetico[];
+  criadoEm: string;
+};
+
+export type ExperimentosPlaybooksSinteticos = Record<string, ExperimentoPlaybookSintetico>;
+
 export function criarChaveDecisaoComercial(
   periodo: PeriodoRelatorioComercial,
   responsavel: RecomendacaoResponsavelSintetica["responsavel"],
@@ -944,6 +985,130 @@ export function removerPlaybookMelhoriaContinuaPorOrigem(
   const id = `melhoria:${origemPlaybookId}`;
   if (!playbooks[id]) return playbooks;
   const atualizados = { ...playbooks };
+  delete atualizados[id];
+  return atualizados;
+}
+
+export function criarExperimentoComparativoPlaybookSintetico({
+  experimentos,
+  playbook,
+}: {
+  experimentos: ExperimentosPlaybooksSinteticos;
+  playbook: PlaybookMelhoriaContinuaSintetico;
+}): ExperimentosPlaybooksSinteticos {
+  const id = `experimento:${playbook.id}`;
+  if (experimentos[id]) return experimentos;
+  return {
+    ...experimentos,
+    [id]: {
+      id,
+      playbookMelhoriaId: playbook.id,
+      origemPlaybookId: playbook.origemPlaybookId,
+      responsavel: playbook.responsavel,
+      titulo: `Teste entre versões do playbook de ${playbook.responsavel}`,
+      hipotese: `Se a melhoria proposta for aplicada, a Versão B deve superar a Versão A em pelo menos 8 p.p. de efetividade.`,
+      criterioSucesso:
+        "Uma versão é considerada bem-sucedida ao alcançar 80% de efetividade no conjunto sintético.",
+      valorCriterio: 80,
+      versoes: [
+        {
+          id: "versao-a",
+          rotulo: "Versão A — prática atual",
+          titulo: playbook.praticaBase,
+          descricao: "Repete a prática eficaz sem incorporar o refinamento do novo ciclo.",
+        },
+        {
+          id: "versao-b",
+          rotulo: "Versão B — prática aprimorada",
+          titulo: playbook.titulo,
+          descricao: playbook.objetivoMelhoria,
+        },
+      ],
+      criadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function registrarResultadoVersaoExperimentoSintetico({
+  experimentos,
+  experimentoId,
+  versaoId,
+  faixa,
+}: {
+  experimentos: ExperimentosPlaybooksSinteticos;
+  experimentoId: string;
+  versaoId: VersaoExperimentoPlaybookSintetico["id"];
+  faixa: FaixaResultadoExperimentoSintetico;
+}): ExperimentosPlaybooksSinteticos {
+  const experimento = experimentos[experimentoId];
+  const versao = experimento?.versoes.find((item) => item.id === versaoId);
+  if (!experimento || !versao) return experimentos;
+  const efetividade = RESULTADO_EXPERIMENTO_POR_VERSAO[versaoId][faixa];
+  const diferencaCriterio = efetividade - experimento.valorCriterio;
+  const recomendacao: RecomendacaoVersaoExperimentoSintetico =
+    faixa === "Acima do critério"
+      ? "Manter"
+      : faixa === "Próximo do critério"
+        ? "Ajustar"
+        : "Encerrar";
+  const justificativaPorRecomendacao: Record<RecomendacaoVersaoExperimentoSintetico, string> = {
+    Manter: `A versão superou o critério em ${diferencaCriterio} p.p. e pode seguir como referência para o próximo teste fictício.`,
+    Ajustar: `A versão ficou a ${Math.abs(diferencaCriterio)} p.p. do critério; um refinamento pequeno deve ser testado antes de nova comparação.`,
+    Encerrar: `A versão ficou ${Math.abs(diferencaCriterio)} p.p. abaixo do critério e não justifica ampliar este caminho na simulação.`,
+  };
+  return {
+    ...experimentos,
+    [experimentoId]: {
+      ...experimento,
+      versoes: experimento.versoes.map((item) =>
+        item.id === versaoId
+          ? {
+              ...item,
+              resultado: {
+                faixa,
+                efetividade,
+                atingiuCriterio: efetividade >= experimento.valorCriterio,
+                resultadoFicticio: `${efetividade}% de efetividade em 20 oportunidades exclusivamente sintéticas.`,
+                leituraExplicavel:
+                  diferencaCriterio >= 0
+                    ? `O resultado ficou ${diferencaCriterio} p.p. acima do critério de ${experimento.valorCriterio}%.`
+                    : `O resultado ficou ${Math.abs(diferencaCriterio)} p.p. abaixo do critério de ${experimento.valorCriterio}%.`,
+                recomendacao,
+                justificativaRecomendacao: justificativaPorRecomendacao[recomendacao],
+                registradoEm: "Agora, nesta sessão",
+              },
+            }
+          : item,
+      ),
+    },
+  };
+}
+
+export function calcularResumoExperimentosPlaybooksSinteticos(
+  experimentos: ExperimentosPlaybooksSinteticos,
+) {
+  const lista = Object.values(experimentos);
+  const versoesAvaliadas = lista.reduce(
+    (total, experimento) =>
+      total + experimento.versoes.filter((versao) => Boolean(versao.resultado)).length,
+    0,
+  );
+  return {
+    experimentosAtivos: lista.length,
+    versoesAvaliadas,
+    comparacoesConcluidas: lista.filter((experimento) =>
+      experimento.versoes.every((versao) => Boolean(versao.resultado)),
+    ).length,
+  };
+}
+
+export function removerExperimentoPorPlaybookMelhoriaSintetico(
+  experimentos: ExperimentosPlaybooksSinteticos,
+  playbookMelhoriaId: string,
+) {
+  const id = `experimento:${playbookMelhoriaId}`;
+  if (!experimentos[id]) return experimentos;
+  const atualizados = { ...experimentos };
   delete atualizados[id];
   return atualizados;
 }
@@ -1260,6 +1425,22 @@ const PRATICA_MELHORIA_POR_RESPONSAVEL: Record<
     justificativa:
       "O equilíbrio evita concentrar a previsão apenas em oportunidades valiosas, porém pouco prováveis.",
     proximoTeste: "dar peso maior ao risco antes de definir o próximo passo da carteira.",
+  },
+};
+
+const RESULTADO_EXPERIMENTO_POR_VERSAO: Record<
+  VersaoExperimentoPlaybookSintetico["id"],
+  Record<FaixaResultadoExperimentoSintetico, number>
+> = {
+  "versao-a": {
+    "Abaixo do critério": 58,
+    "Próximo do critério": 77,
+    "Acima do critério": 86,
+  },
+  "versao-b": {
+    "Abaixo do critério": 61,
+    "Próximo do critério": 79,
+    "Acima do critério": 91,
   },
 };
 
