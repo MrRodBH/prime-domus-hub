@@ -723,6 +723,25 @@ export type EstadoRolloutExperimentoSintetico =
   | "Revertido"
   | "Concluído";
 
+export type FaixaResultadoEtapaRolloutSintetico =
+  | "Dentro do limite"
+  | "Atenção"
+  | "Limite violado";
+
+export type RecomendacaoMonitoramentoRolloutSintetico =
+  | "Continuar"
+  | "Pausar"
+  | "Reverter";
+
+export type ResultadoEtapaRolloutSintetico = {
+  faixa: FaixaResultadoEtapaRolloutSintetico;
+  efetividade: number;
+  desvioDoLimite: number;
+  alertasSeguranca: number;
+  leituraExplicavel: string;
+  registradoEm: string;
+};
+
 export type EtapaRolloutExperimentoSintetico = {
   id: "piloto-interno" | "expansao-controlada" | "cobertura-ampliada";
   titulo: string;
@@ -730,6 +749,7 @@ export type EtapaRolloutExperimentoSintetico = {
   percentualPublico: number;
   criterioAvanco: string;
   concluida: boolean;
+  resultado?: ResultadoEtapaRolloutSintetico;
 };
 
 export type RolloutExperimentoSintetico = {
@@ -1372,6 +1392,132 @@ export function sincronizarRolloutComDecisaoOwnerSintetica({
       ],
       atualizadoEm: "Agora, nesta sessão",
     },
+  };
+}
+
+export function registrarResultadoEtapaRolloutSintetico({
+  rollouts,
+  rolloutId,
+  etapaId,
+  faixa,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  etapaId: EtapaRolloutExperimentoSintetico["id"];
+  faixa: FaixaResultadoEtapaRolloutSintetico;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const etapa = rollout?.etapas.find((item) => item.id === etapaId);
+  if (!rollout || !etapa?.concluida) return rollouts;
+  const resultadoPorFaixa: Record<
+    FaixaResultadoEtapaRolloutSintetico,
+    Omit<ResultadoEtapaRolloutSintetico, "faixa" | "registradoEm">
+  > = {
+    "Dentro do limite": {
+      efetividade: 86,
+      desvioDoLimite: 6,
+      alertasSeguranca: 0,
+      leituraExplicavel:
+        "Efetividade fictícia 6 p.p. acima do limite de 80%, sem alertas simulados.",
+    },
+    Atenção: {
+      efetividade: 76,
+      desvioDoLimite: -4,
+      alertasSeguranca: 1,
+      leituraExplicavel:
+        "Efetividade fictícia 4 p.p. abaixo do limite de 80%, com um alerta preventivo simulado.",
+    },
+    "Limite violado": {
+      efetividade: 68,
+      desvioDoLimite: -12,
+      alertasSeguranca: 2,
+      leituraExplicavel:
+        "Efetividade fictícia 12 p.p. abaixo do limite de 80%, com dois alertas de segurança simulados.",
+    },
+  };
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      etapas: rollout.etapas.map((item) =>
+        item.id === etapaId
+          ? {
+              ...item,
+              resultado: {
+                faixa,
+                ...resultadoPorFaixa[faixa],
+                registradoEm: "Agora, nesta sessão",
+              },
+            }
+          : item,
+      ),
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularMonitoramentoResultadosRolloutSintetico(
+  rollout: RolloutExperimentoSintetico,
+) {
+  const resultados = rollout.etapas.flatMap((etapa) =>
+    etapa.resultado ? [{ etapa, resultado: etapa.resultado }] : [],
+  );
+  const violacoes = resultados.filter(
+    ({ resultado }) => resultado.faixa === "Limite violado",
+  ).length;
+  const atencoes = resultados.filter(({ resultado }) => resultado.faixa === "Atenção").length;
+  const alertasSeguranca = resultados.reduce(
+    (total, { resultado }) => total + resultado.alertasSeguranca,
+    0,
+  );
+  const efetividadeMedia =
+    resultados.length > 0
+      ? Math.round(
+          resultados.reduce((total, { resultado }) => total + resultado.efetividade, 0) /
+            resultados.length,
+        )
+      : null;
+  const recomendacao: RecomendacaoMonitoramentoRolloutSintetico =
+    violacoes > 0 || rollout.estado === "Revertido"
+      ? "Reverter"
+      : atencoes > 0 || rollout.estado === "Pausado"
+        ? "Pausar"
+        : "Continuar";
+  const explicacaoRecomendacao =
+    recomendacao === "Reverter"
+      ? `${violacoes} violação(ões) fictícia(s) ou reversão registrada exigem retorno ao ponto seguro.`
+      : recomendacao === "Pausar"
+        ? `${atencoes} resultado(s) em atenção pedem revisão humana antes de nova expansão.`
+        : resultados.length === 0
+          ? "Ainda não há resultado de etapa; prossiga somente após registrar evidência fictícia."
+          : "Os resultados fictícios permanecem dentro dos limites e sustentam continuidade controlada.";
+  const dentroDoLimite = resultados.length - atencoes - violacoes;
+  const aprendizadoConsolidado =
+    resultados.length === 0
+      ? "Aguardando resultados fictícios para consolidar aprendizado."
+      : `${dentroDoLimite} etapa(s) dentro do limite, ${atencoes} em atenção e ${violacoes} com violação. ${alertasSeguranca} alerta(s) simulado(s) no total.`;
+  return {
+    resultadosRegistrados: resultados.length,
+    efetividadeMedia,
+    alertasSeguranca,
+    violacoes,
+    recomendacao,
+    explicacaoRecomendacao,
+    aprendizadoConsolidado,
+  };
+}
+
+export function calcularResumoMonitoramentoRolloutsSinteticos(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const resultados = Object.values(rollouts).flatMap((rollout) =>
+    rollout.etapas.flatMap((etapa) => (etapa.resultado ? [etapa.resultado] : [])),
+  );
+  return {
+    resultadosMonitorados: resultados.length,
+    dentroDoLimite: resultados.filter((resultado) => resultado.faixa === "Dentro do limite").length,
+    emAtencao: resultados.filter((resultado) => resultado.faixa === "Atenção").length,
+    limitesViolados: resultados.filter((resultado) => resultado.faixa === "Limite violado").length,
   };
 }
 
