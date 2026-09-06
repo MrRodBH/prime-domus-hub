@@ -73,6 +73,7 @@ import {
   aplicarDecisaoComercialSintetica,
   calcularProgressoPlaybookSintetico,
   calcularComparativoPlaybooksSinteticos,
+  calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
@@ -86,8 +87,11 @@ import {
   leadsSinteticos,
   origemDosLeads,
   criarChaveDecisaoComercial,
+  criarExperimentoComparativoPlaybookSintetico,
   registrarResultadoPlaybookComercialSintetico,
+  registrarResultadoVersaoExperimentoSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
+  removerExperimentoPorPlaybookMelhoriaSintetico,
   removerPlaybookMelhoriaContinuaPorOrigem,
   removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
@@ -96,6 +100,9 @@ import {
   type ComparacaoPlaybookSintetico,
   type DecisoesComerciaisSinteticas,
   type EstadoDecisaoComercial,
+  type ExperimentoPlaybookSintetico,
+  type ExperimentosPlaybooksSinteticos,
+  type FaixaResultadoExperimentoSintetico,
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
@@ -110,6 +117,7 @@ import {
   type RelatorioComercialSintetico,
   type ResumoInsightsComerciaisSinteticos,
   type ResumoPrevisaoSintetica,
+  type VersaoExperimentoPlaybookSintetico,
 } from "./demo-data";
 import {
   AcompanharLeadSinteticoDialog,
@@ -149,6 +157,12 @@ type RegistrarResultadoPlaybook = (
   faixa: FaixaResultadoPlaybookSintetico,
 ) => void;
 type ReaplicarAprendizadoPlaybook = (comparacao: ComparacaoPlaybookSintetico) => void;
+type CriarExperimentoPlaybook = (playbook: PlaybookMelhoriaContinuaSintetico) => void;
+type RegistrarResultadoExperimentoPlaybook = (
+  experimento: ExperimentoPlaybookSintetico,
+  versaoId: VersaoExperimentoPlaybookSintetico["id"],
+  faixa: FaixaResultadoExperimentoSintetico,
+) => void;
 
 type ItemNavegacao = {
   id: ModuloId;
@@ -382,6 +396,8 @@ export function DemoWorkspace() {
     useState<ResultadosPlaybooksComerciaisSinteticos>({});
   const [playbooksMelhoriaContinua, setPlaybooksMelhoriaContinua] =
     useState<PlaybooksMelhoriaContinuaSinteticos>({});
+  const [experimentosPlaybooks, setExperimentosPlaybooks] =
+    useState<ExperimentosPlaybooksSinteticos>({});
   const modulo = useMemo(
     () => itensNavegacao.find((item) => item.id === moduloAtivo) ?? itensNavegacao[0],
     [moduloAtivo],
@@ -528,6 +544,9 @@ export function DemoWorkspace() {
       setPlaybooksMelhoriaContinua((atuais) =>
         removerPlaybookMelhoriaContinuaPorOrigem(atuais, playbookId),
       );
+      setExperimentosPlaybooks((atuais) =>
+        removerExperimentoPorPlaybookMelhoriaSintetico(atuais, `melhoria:${playbookId}`),
+      );
     }
     const tituloPorEstado: Record<AcaoDecisaoComercial, string> = {
       Aceita: "Recomendação aceita na simulação",
@@ -556,6 +575,9 @@ export function DemoWorkspace() {
       setPlaybooksMelhoriaContinua((atuais) =>
         removerPlaybookMelhoriaContinuaPorOrigem(atuais, playbook.id),
       );
+      setExperimentosPlaybooks((atuais) =>
+        removerExperimentoPorPlaybookMelhoriaSintetico(atuais, `melhoria:${playbook.id}`),
+      );
     }
     confirmarAcaoSintetica(
       estavaConcluida ? "Etapa reaberta na simulação" : "Etapa concluída na simulação",
@@ -570,6 +592,9 @@ export function DemoWorkspace() {
   ) {
     setPlaybooksMelhoriaContinua((atuais) =>
       removerPlaybookMelhoriaContinuaPorOrigem(atuais, playbook.id),
+    );
+    setExperimentosPlaybooks((atuais) =>
+      removerExperimentoPorPlaybookMelhoriaSintetico(atuais, `melhoria:${playbook.id}`),
     );
     setResultadosPlaybooks((atuais) =>
       registrarResultadoPlaybookComercialSintetico({
@@ -595,6 +620,35 @@ export function DemoWorkspace() {
     confirmarAcaoSintetica(
       "Aprendizado reaplicado em novo playbook",
       `Um novo ciclo fictício foi preparado para ${comparacao.responsavel} somente nesta sessão.`,
+    );
+  }
+
+  function criarExperimentoPlaybook(playbook: PlaybookMelhoriaContinuaSintetico) {
+    setExperimentosPlaybooks((atuais) =>
+      criarExperimentoComparativoPlaybookSintetico({ experimentos: atuais, playbook }),
+    );
+    confirmarAcaoSintetica(
+      "Experimento comparativo criado",
+      `As versões A e B do playbook de ${playbook.responsavel} foram preparadas somente nesta sessão.`,
+    );
+  }
+
+  function registrarResultadoExperimentoPlaybook(
+    experimento: ExperimentoPlaybookSintetico,
+    versaoId: VersaoExperimentoPlaybookSintetico["id"],
+    faixa: FaixaResultadoExperimentoSintetico,
+  ) {
+    setExperimentosPlaybooks((atuais) =>
+      registrarResultadoVersaoExperimentoSintetico({
+        experimentos: atuais,
+        experimentoId: experimento.id,
+        versaoId,
+        faixa,
+      }),
+    );
+    confirmarAcaoSintetica(
+      "Resultado da versão simulado",
+      `${faixa} foi registrado no experimento de ${experimento.responsavel} apenas em memória.`,
     );
   }
 
@@ -891,6 +945,9 @@ export function DemoWorkspace() {
                 onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
                 playbooksMelhoriaContinua={playbooksMelhoriaContinua}
                 onReaplicarAprendizado={reaplicarAprendizadoPlaybook}
+                experimentosPlaybooks={experimentosPlaybooks}
+                onCriarExperimento={criarExperimentoPlaybook}
+                onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -949,6 +1006,9 @@ export function DemoWorkspace() {
                 onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
                 playbooksMelhoriaContinua={playbooksMelhoriaContinua}
                 onReaplicarAprendizado={reaplicarAprendizadoPlaybook}
+                experimentosPlaybooks={experimentosPlaybooks}
+                onCriarExperimento={criarExperimentoPlaybook}
+                onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -966,6 +1026,9 @@ export function DemoWorkspace() {
                 onRegistrarResultadoPlaybook={registrarResultadoPlaybook}
                 playbooksMelhoriaContinua={playbooksMelhoriaContinua}
                 onReaplicarAprendizado={reaplicarAprendizadoPlaybook}
+                experimentosPlaybooks={experimentosPlaybooks}
+                onCriarExperimento={criarExperimentoPlaybook}
+                onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1195,6 +1258,9 @@ function VisaoGeral({
   onRegistrarResultadoPlaybook,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1232,6 +1298,9 @@ function VisaoGeral({
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1328,6 +1397,9 @@ function VisaoGeral({
         onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
         playbooksMelhoriaContinua={playbooksMelhoriaContinua}
         onReaplicarAprendizado={onReaplicarAprendizado}
+        experimentosPlaybooks={experimentosPlaybooks}
+        onCriarExperimento={onCriarExperimento}
+        onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -1982,6 +2054,9 @@ function ResumoRelatorioDashboard({
   onRegistrarResultadoPlaybook,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -2000,6 +2075,9 @@ function ResumoRelatorioDashboard({
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -2128,6 +2206,9 @@ function ResumoRelatorioDashboard({
           onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
           playbooksMelhoriaContinua={playbooksMelhoriaContinua}
           onReaplicarAprendizado={onReaplicarAprendizado}
+          experimentosPlaybooks={experimentosPlaybooks}
+          onCriarExperimento={onCriarExperimento}
+          onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
         />
       </div>
     </section>
@@ -2145,6 +2226,9 @@ function PainelInsightsExplicaveis({
   onRegistrarResultadoPlaybook,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2159,6 +2243,9 @@ function PainelInsightsExplicaveis({
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
 }) {
   const coresPorTom = {
     Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -2258,6 +2345,9 @@ function PainelInsightsExplicaveis({
         onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
         playbooksMelhoriaContinua={playbooksMelhoriaContinua}
         onReaplicarAprendizado={onReaplicarAprendizado}
+        experimentosPlaybooks={experimentosPlaybooks}
+        onCriarExperimento={onCriarExperimento}
+        onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
       />
     </section>
   );
@@ -2274,6 +2364,9 @@ function CentralDecisoesComerciais({
   onRegistrarResultadoPlaybook,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2288,6 +2381,9 @@ function CentralDecisoesComerciais({
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
 }) {
   const recomendacoesVisiveis =
     modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
@@ -2370,6 +2466,9 @@ function CentralDecisoesComerciais({
         onRegistrarResultado={onRegistrarResultadoPlaybook}
         playbooksMelhoriaContinua={playbooksMelhoriaContinua}
         onReaplicarAprendizado={onReaplicarAprendizado}
+        experimentosPlaybooks={experimentosPlaybooks}
+        onCriarExperimento={onCriarExperimento}
+        onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
       />
     </section>
   );
@@ -2480,6 +2579,9 @@ function CentralPlaybooksComerciais({
   onRegistrarResultado,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2490,6 +2592,9 @@ function CentralPlaybooksComerciais({
   onRegistrarResultado: RegistrarResultadoPlaybook;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
 }) {
   const playbooksAtivos = resumo.recomendacoes.flatMap((recomendacao) => {
     const chave = criarChaveDecisaoComercial(resumo.periodo, recomendacao.responsavel);
@@ -2600,6 +2705,9 @@ function CentralPlaybooksComerciais({
         resultadosPlaybooks={resultadosPlaybooks}
         playbooksMelhoriaContinua={playbooksMelhoriaContinua}
         onReaplicarAprendizado={onReaplicarAprendizado}
+        experimentosPlaybooks={experimentosPlaybooks}
+        onCriarExperimento={onCriarExperimento}
+        onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
       />
     </section>
   );
@@ -2611,12 +2719,18 @@ function CentralMelhoriaContinuaComercial({
   resultadosPlaybooks,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
   resultadosPlaybooks: ResultadosPlaybooksComerciaisSinteticos;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
 }) {
   const comparativo = calcularComparativoPlaybooksSinteticos({
     resultados: resultadosPlaybooks,
@@ -2775,19 +2889,34 @@ function CentralMelhoriaContinuaComercial({
           </p>
           <div className="mt-3 grid gap-3 xl:grid-cols-2">
             {novosPlaybooks.map((playbook) => (
-              <CartaoPlaybookMelhoriaContinua key={playbook.id} playbook={playbook} />
+              <CartaoPlaybookMelhoriaContinua
+                key={playbook.id}
+                playbook={playbook}
+                experimentoAtivo={Boolean(experimentosPlaybooks[`experimento:${playbook.id}`])}
+                onCriarExperimento={onCriarExperimento}
+              />
             ))}
           </div>
         </div>
       ) : null}
+
+      <LaboratorioExperimentosPlaybooks
+        modo={modo}
+        experimentos={experimentosPlaybooks}
+        onRegistrarResultado={onRegistrarResultadoExperimento}
+      />
     </section>
   );
 }
 
 function CartaoPlaybookMelhoriaContinua({
   playbook,
+  experimentoAtivo,
+  onCriarExperimento,
 }: {
   playbook: PlaybookMelhoriaContinuaSintetico;
+  experimentoAtivo: boolean;
+  onCriarExperimento: CriarExperimentoPlaybook;
 }) {
   return (
     <article className="rounded-2xl border border-lime-200 bg-white p-4 shadow-sm">
@@ -2827,7 +2956,281 @@ function CartaoPlaybookMelhoriaContinua({
       <p className="mt-3 text-[10px] text-[#587076]">
         Criado {playbook.criadoEm.toLocaleLowerCase("pt-BR")} · nenhuma ação real executada
       </p>
+      <Button
+        type="button"
+        size="sm"
+        disabled={experimentoAtivo}
+        className="mt-3 w-full rounded-xl bg-violet-700 hover:bg-violet-800 sm:w-auto"
+        aria-label={`Criar experimento comparativo do playbook de ${playbook.responsavel}`}
+        onClick={() => onCriarExperimento(playbook)}
+      >
+        <Network className="mr-2 size-4" />
+        {experimentoAtivo ? "Experimento criado" : "Comparar versões A e B"}
+      </Button>
     </article>
+  );
+}
+
+function LaboratorioExperimentosPlaybooks({
+  modo,
+  experimentos,
+  onRegistrarResultado,
+}: {
+  modo: "resumo" | "detalhado";
+  experimentos: ExperimentosPlaybooksSinteticos;
+  onRegistrarResultado: RegistrarResultadoExperimentoPlaybook;
+}) {
+  const resumo = calcularResumoExperimentosPlaybooksSinteticos(experimentos);
+  const listaCompleta = Object.values(experimentos);
+  const experimentosVisiveis = modo === "resumo" ? listaCompleta.slice(0, 1) : listaCompleta;
+  return (
+    <section
+      className="mt-6 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-orange-50 p-4 sm:p-5"
+      aria-labelledby={`titulo-laboratorio-experimentos-${modo}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700">
+            <Network className="size-4" /> Testar antes de padronizar
+          </p>
+          <h5
+            id={`titulo-laboratorio-experimentos-${modo}`}
+            className="mt-1 text-base font-semibold"
+          >
+            Laboratório de experimentos de playbook
+          </h5>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-[#587076]">
+            Compare versões com hipótese, critério de sucesso e resultados fictícios antes de
+            decidir qual prática preservar.
+          </p>
+        </div>
+        <Badge className="w-fit bg-violet-700 text-white hover:bg-violet-700">
+          {resumo.experimentosAtivos}{" "}
+          {resumo.experimentosAtivos === 1 ? "experimento ativo" : "experimentos ativos"}
+        </Badge>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <IndicadorPlaybook
+          rotulo="Experimentos ativos"
+          valor={String(resumo.experimentosAtivos)}
+          classe="bg-violet-100 text-violet-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Versões avaliadas"
+          valor={String(resumo.versoesAvaliadas)}
+          classe="bg-orange-100 text-orange-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Comparações concluídas"
+          valor={String(resumo.comparacoesConcluidas)}
+          classe="bg-emerald-100 text-emerald-900"
+        />
+      </div>
+      {experimentosVisiveis.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-violet-300 bg-white/70 p-5 text-center">
+          <Network className="mx-auto size-7 text-violet-700" />
+          <p className="mt-2 text-sm font-semibold">Nenhum experimento criado</p>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Reaplique um aprendizado e escolha comparar as versões A e B do novo playbook.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-4">
+          {experimentosVisiveis.map((experimento) => (
+            <CartaoExperimentoPlaybook
+              key={experimento.id}
+              experimento={experimento}
+              onRegistrarResultado={onRegistrarResultado}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CartaoExperimentoPlaybook({
+  experimento,
+  onRegistrarResultado,
+}: {
+  experimento: ExperimentoPlaybookSintetico;
+  onRegistrarResultado: RegistrarResultadoExperimentoPlaybook;
+}) {
+  const [versaoA, versaoB] = experimento.versoes;
+  const comparacaoConcluida = Boolean(versaoA.resultado && versaoB.resultado);
+  const diferencaVersaoB = comparacaoConcluida
+    ? versaoB.resultado!.efetividade - versaoA.resultado!.efetividade
+    : 0;
+  const hipoteseConfirmada = comparacaoConcluida && diferencaVersaoB >= 8;
+  const conclusaoComparativa = comparacaoConcluida
+    ? hipoteseConfirmada
+      ? `Hipótese confirmada: a Versão B superou a Versão A em ${diferencaVersaoB} p.p.`
+      : diferencaVersaoB > 0
+        ? `Hipótese não confirmada: a Versão B avançou ${diferencaVersaoB} p.p., abaixo dos 8 p.p. esperados.`
+        : `Hipótese não confirmada: a Versão A ficou ${Math.abs(diferencaVersaoB)} p.p. à frente da Versão B.`
+    : null;
+  return (
+    <article className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+      <div className="border-b border-violet-100 bg-white p-4 sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-violet-700">
+              Experimento comparativo · {experimento.responsavel}
+            </p>
+            <h6 className="mt-1 text-sm font-semibold">{experimento.titulo}</h6>
+          </div>
+          <Badge
+            className={cn(
+              "w-fit",
+              comparacaoConcluida
+                ? "bg-emerald-100 text-emerald-900 hover:bg-emerald-100"
+                : "bg-orange-100 text-orange-900 hover:bg-orange-100",
+            )}
+          >
+            {comparacaoConcluida ? "Comparação concluída" : "Aguardando resultados"}
+          </Badge>
+        </div>
+        <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+          <ResultadoExplicavel
+            rotulo="Hipótese do experimento"
+            valor={experimento.hipotese}
+            classe="bg-violet-50"
+          />
+          <ResultadoExplicavel
+            rotulo="Critério fictício de sucesso"
+            valor={experimento.criterioSucesso}
+            classe="bg-orange-50"
+          />
+        </dl>
+        {conclusaoComparativa ? (
+          <p
+            className={cn(
+              "mt-3 rounded-xl p-3 text-xs font-semibold",
+              hipoteseConfirmada ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900",
+            )}
+            aria-live="polite"
+          >
+            Comparação explicável: {conclusaoComparativa}
+          </p>
+        ) : null}
+      </div>
+      <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-2">
+        {experimento.versoes.map((versao) => (
+          <CartaoVersaoExperimento
+            key={versao.id}
+            experimento={experimento}
+            versao={versao}
+            onRegistrarResultado={onRegistrarResultado}
+          />
+        ))}
+      </div>
+      <p className="border-t border-violet-100 bg-[#f8f7f3] px-4 py-3 text-center text-[10px] text-[#587076]">
+        Criado {experimento.criadoEm.toLocaleLowerCase("pt-BR")} · amostra e resultados inteiramente
+        fictícios · nenhuma ação real executada
+      </p>
+    </article>
+  );
+}
+
+function CartaoVersaoExperimento({
+  experimento,
+  versao,
+  onRegistrarResultado,
+}: {
+  experimento: ExperimentoPlaybookSintetico;
+  versao: VersaoExperimentoPlaybookSintetico;
+  onRegistrarResultado: RegistrarResultadoExperimentoPlaybook;
+}) {
+  const nomeVersao = versao.id === "versao-a" ? "Versão A" : "Versão B";
+  const faixas: Array<{ faixa: FaixaResultadoExperimentoSintetico; rotulo: string }> = [
+    { faixa: "Abaixo do critério", rotulo: "Abaixo" },
+    { faixa: "Próximo do critério", rotulo: "Próximo" },
+    { faixa: "Acima do critério", rotulo: "Acima" },
+  ];
+  const corRecomendacao = {
+    Manter: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+    Ajustar: "bg-amber-100 text-amber-900 hover:bg-amber-100",
+    Encerrar: "bg-rose-100 text-rose-900 hover:bg-rose-100",
+  } as const;
+  return (
+    <section
+      className="rounded-2xl border border-[#123f47]/10 bg-[#fbfaf7] p-4"
+      aria-label={`${nomeVersao} do experimento de ${experimento.responsavel}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#587076]">
+            {versao.rotulo}
+          </p>
+          <strong className="mt-1 block text-sm">{versao.titulo}</strong>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">{versao.descricao}</p>
+        </div>
+        {versao.resultado ? (
+          <Badge className={cn("w-fit", corRecomendacao[versao.resultado.recomendacao])}>
+            {versao.resultado.recomendacao}
+          </Badge>
+        ) : null}
+      </div>
+      <div className="mt-3">
+        <div className="flex items-center justify-between gap-2 text-[10px] font-semibold text-[#587076]">
+          <span>Efetividade da versão</span>
+          <strong className="text-sm text-[#123f47]">{versao.resultado?.efetividade ?? 0}%</strong>
+        </div>
+        <Progress
+          value={versao.resultado?.efetividade ?? 0}
+          className={cn(
+            "mt-2 h-2 bg-slate-100",
+            versao.id === "versao-a" ? "[&>div]:bg-violet-600" : "[&>div]:bg-orange-500",
+          )}
+          aria-label={`Efetividade da ${nomeVersao} de ${experimento.responsavel}`}
+        />
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {faixas.map(({ faixa, rotulo }) => (
+          <Button
+            key={faixa}
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-auto min-h-9 whitespace-normal rounded-xl px-2 py-2 text-[11px]"
+            aria-label={`Simular resultado ${faixa.toLocaleLowerCase("pt-BR")} da ${nomeVersao} de ${experimento.responsavel}`}
+            aria-pressed={versao.resultado?.faixa === faixa}
+            onClick={() => onRegistrarResultado(experimento, versao.id, faixa)}
+          >
+            {rotulo}
+          </Button>
+        ))}
+      </div>
+      {versao.resultado ? (
+        <dl className="mt-3 grid gap-2">
+          <ResultadoExplicavel
+            rotulo="Resultado simulado"
+            valor={versao.resultado.resultadoFicticio}
+            classe="bg-white"
+          />
+          <ResultadoExplicavel
+            rotulo="Leitura explicável"
+            valor={versao.resultado.leituraExplicavel}
+            classe="bg-cyan-50"
+          />
+          <ResultadoExplicavel
+            rotulo={`Recomendação explicável: ${versao.resultado.recomendacao}`}
+            valor={versao.resultado.justificativaRecomendacao}
+            classe={
+              versao.resultado.recomendacao === "Manter"
+                ? "bg-emerald-50"
+                : versao.resultado.recomendacao === "Ajustar"
+                  ? "bg-amber-50"
+                  : "bg-rose-50"
+            }
+          />
+        </dl>
+      ) : (
+        <p className="mt-3 text-center text-[10px] text-[#587076]">
+          Escolha um resultado fictício para avaliar esta versão.
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -4289,6 +4692,9 @@ function Analises({
   onRegistrarResultadoPlaybook,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -4307,6 +4713,9 @@ function Analises({
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -4399,6 +4808,9 @@ function Analises({
             onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
             playbooksMelhoriaContinua={playbooksMelhoriaContinua}
             onReaplicarAprendizado={onReaplicarAprendizado}
+            experimentosPlaybooks={experimentosPlaybooks}
+            onCriarExperimento={onCriarExperimento}
+            onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
           />
         </CardContent>
       </Card>
@@ -4638,6 +5050,9 @@ function InteligenciaArtificial({
   onRegistrarResultadoPlaybook,
   playbooksMelhoriaContinua,
   onReaplicarAprendizado,
+  experimentosPlaybooks,
+  onCriarExperimento,
+  onRegistrarResultadoExperimento,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -4655,6 +5070,9 @@ function InteligenciaArtificial({
   onRegistrarResultadoPlaybook: RegistrarResultadoPlaybook;
   playbooksMelhoriaContinua: PlaybooksMelhoriaContinuaSinteticos;
   onReaplicarAprendizado: ReaplicarAprendizadoPlaybook;
+  experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
+  onCriarExperimento: CriarExperimentoPlaybook;
+  onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -4700,6 +5118,9 @@ function InteligenciaArtificial({
           onRegistrarResultadoPlaybook={onRegistrarResultadoPlaybook}
           playbooksMelhoriaContinua={playbooksMelhoriaContinua}
           onReaplicarAprendizado={onReaplicarAprendizado}
+          experimentosPlaybooks={experimentosPlaybooks}
+          onCriarExperimento={onCriarExperimento}
+          onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
         />
 
         <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">

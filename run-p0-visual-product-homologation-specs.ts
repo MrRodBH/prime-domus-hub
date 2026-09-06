@@ -6,6 +6,7 @@ import {
   alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
   calcularComparativoPlaybooksSinteticos,
+  calcularResumoExperimentosPlaybooksSinteticos,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -13,8 +14,11 @@ import {
   calcularInsightsComerciaisSinteticos,
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
+  criarExperimentoComparativoPlaybookSintetico,
   registrarResultadoPlaybookComercialSintetico,
+  registrarResultadoVersaoExperimentoSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
+  removerExperimentoPorPlaybookMelhoriaSintetico,
   removerPlaybookMelhoriaContinuaPorOrigem,
   removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
@@ -836,6 +840,28 @@ ok(
     workspace.includes("useState<PlaybooksMelhoriaContinuaSinteticos>({})"),
   "comparação e reaplicação devem permanecer exclusivamente em memória",
 );
+ok(
+  workspace.includes("Laboratório de experimentos de playbook") &&
+    combinedPublicSurface.includes("Versão A — prática atual") &&
+    combinedPublicSurface.includes("Versão B — prática aprimorada"),
+  "Dashboard, Análises e IA devem comparar versões claras do playbook",
+);
+ok(
+  workspace.includes("Hipótese do experimento") &&
+    workspace.includes("Critério fictício de sucesso") &&
+    workspace.includes("Resultado simulado") &&
+    workspace.includes("Recomendação explicável:") &&
+    workspace.includes("Hipótese confirmada:") &&
+    workspace.includes("Hipótese não confirmada:"),
+  "cada experimento deve explicar hipótese, critério, resultado e recomendação em PT-BR",
+);
+ok(
+  workspace.includes("Manter") &&
+    workspace.includes("Ajustar") &&
+    workspace.includes("Encerrar") &&
+    workspace.includes("useState<ExperimentosPlaybooksSinteticos>({})"),
+  "as três recomendações devem existir somente no estado em memória",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -1170,6 +1196,121 @@ assert.deepEqual(
 );
 assertions += 1;
 assert.deepEqual(playbooksMelhoriaVazios, {});
+assertions += 1;
+const experimentosVazios = {};
+const experimentosBruno = criarExperimentoComparativoPlaybookSintetico({
+  experimentos: experimentosVazios,
+  playbook: novoPlaybookBruno,
+});
+const experimentoBruno = Object.values(experimentosBruno)[0];
+assert.deepEqual(
+  {
+    responsavel: experimentoBruno.responsavel,
+    playbookMelhoriaId: experimentoBruno.playbookMelhoriaId,
+    quantidadeVersoes: experimentoBruno.versoes.length,
+    rotulos: experimentoBruno.versoes.map((versao) => versao.rotulo),
+    valorCriterio: experimentoBruno.valorCriterio,
+  },
+  {
+    responsavel: "Bruno Lima",
+    playbookMelhoriaId: novoPlaybookBruno.id,
+    quantidadeVersoes: 2,
+    rotulos: ["Versão A — prática atual", "Versão B — prática aprimorada"],
+    valorCriterio: 80,
+  },
+);
+assertions += 1;
+assert.equal(
+  criarExperimentoComparativoPlaybookSintetico({
+    experimentos: experimentosBruno,
+    playbook: novoPlaybookBruno,
+  }),
+  experimentosBruno,
+);
+assertions += 1;
+assert.deepEqual(calcularResumoExperimentosPlaybooksSinteticos(experimentosBruno), {
+  experimentosAtivos: 1,
+  versoesAvaliadas: 0,
+  comparacoesConcluidas: 0,
+});
+assertions += 1;
+const experimentoBrunoVersaoAManter = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentosBruno,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-a",
+  faixa: "Acima do critério",
+});
+assert.deepEqual(
+  experimentoBrunoVersaoAManter[experimentoBruno.id].versoes[0].resultado && {
+    efetividade:
+      experimentoBrunoVersaoAManter[experimentoBruno.id].versoes[0].resultado.efetividade,
+    recomendacao:
+      experimentoBrunoVersaoAManter[experimentoBruno.id].versoes[0].resultado.recomendacao,
+    atingiuCriterio:
+      experimentoBrunoVersaoAManter[experimentoBruno.id].versoes[0].resultado.atingiuCriterio,
+  },
+  { efetividade: 86, recomendacao: "Manter", atingiuCriterio: true },
+);
+assertions += 1;
+const experimentoBrunoVersaoBAjustar = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentoBrunoVersaoAManter,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-b",
+  faixa: "Próximo do critério",
+});
+assert.deepEqual(
+  experimentoBrunoVersaoBAjustar[experimentoBruno.id].versoes[1].resultado && {
+    efetividade:
+      experimentoBrunoVersaoBAjustar[experimentoBruno.id].versoes[1].resultado.efetividade,
+    recomendacao:
+      experimentoBrunoVersaoBAjustar[experimentoBruno.id].versoes[1].resultado.recomendacao,
+    atingiuCriterio:
+      experimentoBrunoVersaoBAjustar[experimentoBruno.id].versoes[1].resultado.atingiuCriterio,
+  },
+  { efetividade: 79, recomendacao: "Ajustar", atingiuCriterio: false },
+);
+assertions += 1;
+assert.deepEqual(calcularResumoExperimentosPlaybooksSinteticos(experimentoBrunoVersaoBAjustar), {
+  experimentosAtivos: 1,
+  versoesAvaliadas: 2,
+  comparacoesConcluidas: 1,
+});
+assertions += 1;
+const experimentoBrunoVersaoBEncerrar = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentoBrunoVersaoBAjustar,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-b",
+  faixa: "Abaixo do critério",
+});
+assert.deepEqual(
+  experimentoBrunoVersaoBEncerrar[experimentoBruno.id].versoes[1].resultado && {
+    efetividade:
+      experimentoBrunoVersaoBEncerrar[experimentoBruno.id].versoes[1].resultado.efetividade,
+    recomendacao:
+      experimentoBrunoVersaoBEncerrar[experimentoBruno.id].versoes[1].resultado.recomendacao,
+    atingiuCriterio:
+      experimentoBrunoVersaoBEncerrar[experimentoBruno.id].versoes[1].resultado.atingiuCriterio,
+  },
+  { efetividade: 61, recomendacao: "Encerrar", atingiuCriterio: false },
+);
+assertions += 1;
+ok(
+  experimentoBrunoVersaoBEncerrar[experimentoBruno.id].versoes.every(
+    (versao) =>
+      Boolean(versao.resultado?.leituraExplicavel.length) &&
+      Boolean(versao.resultado?.justificativaRecomendacao.length),
+  ),
+  "cada versão avaliada deve explicar a leitura e a recomendação",
+);
+assert.deepEqual(
+  removerExperimentoPorPlaybookMelhoriaSintetico(
+    experimentoBrunoVersaoBEncerrar,
+    novoPlaybookBruno.id,
+  ),
+  {},
+);
+assertions += 1;
+assert.deepEqual(experimentosVazios, {});
 assertions += 1;
 const insightsAmanda = calcularInsightsComerciaisSinteticos({ relatorio: relatorioAmanda });
 assert.equal(insightsAmanda.recomendacoes.length, 1);
