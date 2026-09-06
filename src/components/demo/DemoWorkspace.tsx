@@ -3844,12 +3844,12 @@ function CatalogoAprendizadosPoliticas({
   const elegiveis = catalogo.filter((item) => item.elegivel).length;
   const promovidos = catalogo.filter((item) => item.estadoPolitica === "Promovido").length;
   const altoImpacto = catalogo.filter((item) => item.nivelImpacto === "Alto").length;
-  const corEstado = {
+  const corEstado: Record<string, string> = {
     "Em avaliação": "bg-slate-100 text-slate-800 hover:bg-slate-100",
     Promovido: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
     Rejeitado: "bg-rose-100 text-rose-900 hover:bg-rose-100",
     Retirado: "bg-amber-100 text-amber-900 hover:bg-amber-100",
-  } as const;
+  };
 
   return (
     <section
