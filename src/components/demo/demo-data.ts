@@ -716,6 +716,38 @@ export type ExperimentoPlaybookSintetico = {
 
 export type ExperimentosPlaybooksSinteticos = Record<string, ExperimentoPlaybookSintetico>;
 
+export type EstadoRolloutExperimentoSintetico =
+  | "Não iniciado"
+  | "Em andamento"
+  | "Pausado"
+  | "Revertido"
+  | "Concluído";
+
+export type EtapaRolloutExperimentoSintetico = {
+  id: "piloto-interno" | "expansao-controlada" | "cobertura-ampliada";
+  titulo: string;
+  publicoFicticio: string;
+  percentualPublico: number;
+  criterioAvanco: string;
+  concluida: boolean;
+};
+
+export type RolloutExperimentoSintetico = {
+  id: string;
+  experimentoId: string;
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"];
+  titulo: string;
+  estado: EstadoRolloutExperimentoSintetico;
+  etapas: EtapaRolloutExperimentoSintetico[];
+  limitesSeguranca: string[];
+  criteriosPausa: string[];
+  criteriosReversao: string[];
+  motivoEstado?: string;
+  atualizadoEm: string;
+};
+
+export type RolloutsExperimentosSinteticos = Record<string, RolloutExperimentoSintetico>;
+
 export type ItemPortfolioExperimentoSintetico = {
   experimentoId: string;
   responsavel: RecomendacaoResponsavelSintetica["responsavel"];
@@ -1262,6 +1294,208 @@ export function registrarDecisaoOwnerPortfolioSintetica({
       decisaoOwner: { decisao, registradoEm: "Agora, nesta sessão" },
     },
   };
+}
+
+export function sincronizarRolloutComDecisaoOwnerSintetica({
+  rollouts,
+  experimento,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  experimento: ExperimentoPlaybookSintetico;
+}): RolloutsExperimentosSinteticos {
+  const id = `rollout:${experimento.id}`;
+  const itemPortfolio = calcularPortfolioExperimentosSinteticos({
+    [experimento.id]: experimento,
+  })[0];
+  const aprovadoParaRollout =
+    itemPortfolio?.comparacaoConcluida &&
+    itemPortfolio.recomendacaoAtual === "Escalar" &&
+    experimento.decisaoOwner?.decisao === "Escalar";
+
+  if (!aprovadoParaRollout) {
+    if (!rollouts[id]) return rollouts;
+    const atualizados = { ...rollouts };
+    delete atualizados[id];
+    return atualizados;
+  }
+  if (rollouts[id]) return rollouts;
+
+  return {
+    ...rollouts,
+    [id]: {
+      id,
+      experimentoId: experimento.id,
+      responsavel: experimento.responsavel,
+      titulo: `Expansão governada do playbook de ${experimento.responsavel}`,
+      estado: "Não iniciado",
+      etapas: [
+        {
+          id: "piloto-interno",
+          titulo: "Piloto interno",
+          publicoFicticio: "Equipe sintética reduzida",
+          percentualPublico: 10,
+          criterioAvanco:
+            "Concluir 20 oportunidades fictícias com efetividade mínima de 80% e sem violar limites.",
+          concluida: false,
+        },
+        {
+          id: "expansao-controlada",
+          titulo: "Expansão controlada",
+          publicoFicticio: "Carteira sintética segmentada",
+          percentualPublico: 40,
+          criterioAvanco:
+            "Manter ganho mínimo de 8 p.p. sobre a versão anterior em dois ciclos fictícios.",
+          concluida: false,
+        },
+        {
+          id: "cobertura-ampliada",
+          titulo: "Cobertura ampliada",
+          publicoFicticio: "Público fictício completo",
+          percentualPublico: 100,
+          criterioAvanco:
+            "Confirmar estabilidade dos indicadores sintéticos e revisão final do owner.",
+          concluida: false,
+        },
+      ],
+      limitesSeguranca: [
+        "Máximo de 20 oportunidades exclusivamente sintéticas por ciclo de avaliação.",
+        "Nenhum contato, campanha, integração, cobrança ou dado real pode ser acionado.",
+        "A mudança de etapa exige confirmação humana e evidência fictícia dentro do critério.",
+      ],
+      criteriosPausa: [
+        "Pausar se a efetividade simulada cair abaixo de 80%.",
+        "Pausar diante de divergência entre os indicadores fictícios e o histórico do teste.",
+      ],
+      criteriosReversao: [
+        "Reverter se a versão aprovada perder 8 p.p. ou mais contra a prática de referência.",
+        "Reverter imediatamente se qualquer limite de segurança for violado na simulação.",
+      ],
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularProgressoRolloutSintetico(rollout: RolloutExperimentoSintetico) {
+  return rollout.etapas.length > 0
+    ? Math.round(
+        (rollout.etapas.filter((etapa) => etapa.concluida).length / rollout.etapas.length) * 100,
+      )
+    : 0;
+}
+
+export function avancarEtapaRolloutSintetico({
+  rollouts,
+  rolloutId,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  if (!rollout || ["Pausado", "Revertido", "Concluído"].includes(rollout.estado)) {
+    return rollouts;
+  }
+  const proximaEtapa = rollout.etapas.find((etapa) => !etapa.concluida);
+  if (!proximaEtapa) return rollouts;
+  const etapas = rollout.etapas.map((etapa) =>
+    etapa.id === proximaEtapa.id ? { ...etapa, concluida: true } : etapa,
+  );
+  const concluido = etapas.every((etapa) => etapa.concluida);
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      etapas,
+      estado: concluido ? "Concluído" : "Em andamento",
+      motivoEstado: concluido
+        ? "Todas as etapas fictícias foram concluídas com confirmação humana."
+        : `Etapa ${proximaEtapa.titulo.toLocaleLowerCase("pt-BR")} concluída na simulação.`,
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function pausarRolloutSintetico({
+  rollouts,
+  rolloutId,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  if (!rollout || rollout.estado !== "Em andamento") return rollouts;
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      estado: "Pausado",
+      motivoEstado:
+        "Pausa preventiva simulada para revisar efetividade e limites antes de continuar.",
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function retomarRolloutSintetico({
+  rollouts,
+  rolloutId,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  if (!rollout || rollout.estado !== "Pausado") return rollouts;
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      estado: "Em andamento",
+      motivoEstado:
+        "Retomada simulada após confirmação humana de que os limites permanecem atendidos.",
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function reverterRolloutSintetico({
+  rollouts,
+  rolloutId,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  if (!rollout || !["Em andamento", "Pausado"].includes(rollout.estado)) return rollouts;
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      estado: "Revertido",
+      motivoEstado:
+        "Reversão preventiva simulada; o histórico foi preservado e nenhuma ação real ocorreu.",
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularResumoRolloutsSinteticos(rollouts: RolloutsExperimentosSinteticos) {
+  const lista = Object.values(rollouts);
+  return {
+    rolloutsGovernados: lista.length,
+    emAndamento: lista.filter((rollout) => rollout.estado === "Em andamento").length,
+    pausados: lista.filter((rollout) => rollout.estado === "Pausado").length,
+    concluidos: lista.filter((rollout) => rollout.estado === "Concluído").length,
+  };
+}
+
+export function removerRolloutPorExperimentoSintetico(
+  rollouts: RolloutsExperimentosSinteticos,
+  experimentoId: string,
+) {
+  const id = `rollout:${experimentoId}`;
+  if (!rollouts[id]) return rollouts;
+  const atualizados = { ...rollouts };
+  delete atualizados[id];
+  return atualizados;
 }
 
 export function removerExperimentoPorPlaybookMelhoriaSintetico(
