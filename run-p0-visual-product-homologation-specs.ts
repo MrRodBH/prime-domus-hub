@@ -8,6 +8,8 @@ import {
   aplicarDecisaoComercialSintetica,
   calcularComparativoPlaybooksSinteticos,
   calcularMonitoramentoResultadosRolloutSintetico,
+  calcularHistoricoDecisoesRolloutsSinteticos,
+  calcularAprendizadoCruzadoRolloutsSinteticos,
   calcularPortfolioExperimentosSinteticos,
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
@@ -35,6 +37,7 @@ import {
   removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
   sincronizarRolloutComDecisaoOwnerSintetica,
+  simularReaplicacaoAprendizadoEntreRolloutsSinteticos,
 } from "./src/components/demo/demo-data";
 
 const root = process.cwd();
@@ -948,6 +951,25 @@ ok(
   "resultados e recomendações devem permanecer em memória e sob decisão humana",
 );
 
+ok(
+  workspace.includes("Histórico de decisões e aprendizado cruzado") &&
+    workspace.includes("Comparação entre experimentos") &&
+    workspace.includes("Padrões entre experimentos"),
+  "Dashboard, Análises e IA devem comparar experimentos e consolidar padrões explicáveis",
+);
+ok(
+  workspace.includes("Trilha explicável das recomendações") &&
+    workspace.includes("Simular reaplicação segura") &&
+    workspace.includes("A simulação não altera clientes, campanhas, sistemas externos ou decisões reais"),
+  "o histórico deve rastrear recomendações e preservar a simulação exclusivamente em memória",
+);
+ok(
+  data.includes("calcularHistoricoDecisoesRolloutsSinteticos") &&
+    data.includes("calcularAprendizadoCruzadoRolloutsSinteticos") &&
+    data.includes("simularReaplicacaoAprendizadoEntreRolloutsSinteticos"),
+  "histórico, comparação e reaplicação devem usar funções sintéticas determinísticas",
+);
+
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
   responsavel: "Toda a equipe",
@@ -1480,6 +1502,70 @@ assert.deepEqual(calcularResumoMonitoramentoRolloutsSinteticos(rolloutsBrunoMoni
   limitesViolados: 0,
 });
 assertions += 1;
+const historicoBruno = calcularHistoricoDecisoesRolloutsSinteticos(rolloutsBrunoMonitorado);
+assert.deepEqual(
+  {
+    total: historicoBruno.length,
+    faixa: historicoBruno[0]?.faixa,
+    recomendacao: historicoBruno[0]?.recomendacao,
+    efetividade: historicoBruno[0]?.efetividade,
+  },
+  { total: 1, faixa: "Dentro do limite", recomendacao: "Continuar", efetividade: 86 },
+);
+assertions += 1;
+const rolloutBrunoComparado = {
+  ...rolloutsBrunoMonitorado[rolloutBruno.id],
+  id: "rollout-comparado",
+  experimentoId: "experimento-comparado",
+  responsavel: "Amanda Reis" as const,
+  titulo: "Experimento comparado fictício",
+};
+const rolloutsCruzados = registrarResultadoEtapaRolloutSintetico({
+  rollouts: {
+    ...rolloutsBrunoMonitorado,
+    [rolloutBrunoComparado.id]: rolloutBrunoComparado,
+  },
+  rolloutId: rolloutBrunoComparado.id,
+  etapaId: "piloto-interno",
+  faixa: "Atenção",
+});
+const aprendizadoCruzado = calcularAprendizadoCruzadoRolloutsSinteticos(rolloutsCruzados);
+assert.deepEqual(
+  {
+    comparados: aprendizadoCruzado.comparacoes.length,
+    sucesso: aprendizadoCruzado.padroes.sucesso,
+    atencao: aprendizadoCruzado.padroes.atencao,
+    risco: aprendizadoCruzado.padroes.risco,
+    fonte: aprendizadoCruzado.fonteRecomendada?.rolloutId,
+  },
+  { comparados: 2, sucesso: 1, atencao: 1, risco: 0, fonte: rolloutBruno.id },
+);
+assertions += 1;
+const rolloutsComReaplicacao = simularReaplicacaoAprendizadoEntreRolloutsSinteticos({
+  rollouts: rolloutsCruzados,
+  origemRolloutId: rolloutBruno.id,
+  destinoRolloutId: rolloutBrunoComparado.id,
+});
+assert.deepEqual(
+  {
+    origem: rolloutsComReaplicacao[rolloutBrunoComparado.id].aprendizadoReaplicado?.origemRolloutId,
+    recomendacao:
+      rolloutsComReaplicacao[rolloutBrunoComparado.id].aprendizadoReaplicado?.recomendacaoRastreada,
+    momento: rolloutsComReaplicacao[rolloutBrunoComparado.id].aprendizadoReaplicado?.simuladoEm,
+  },
+  { origem: rolloutBruno.id, recomendacao: "Continuar", momento: "Agora, nesta sessão" },
+);
+assertions += 1;
+assert.equal(
+  simularReaplicacaoAprendizadoEntreRolloutsSinteticos({
+    rollouts: rolloutsCruzados,
+    origemRolloutId: rolloutBrunoComparado.id,
+    destinoRolloutId: rolloutBruno.id,
+  }),
+  rolloutsCruzados,
+);
+assertions += 1;
+
 const rolloutsBrunoAtencao = registrarResultadoEtapaRolloutSintetico({
   rollouts: rolloutsBrunoMonitorado,
   rolloutId: rolloutBruno.id,

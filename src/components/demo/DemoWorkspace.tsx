@@ -74,6 +74,8 @@ import {
   avancarEtapaRolloutSintetico,
   aplicarDecisaoComercialSintetica,
   calcularMonitoramentoResultadosRolloutSintetico,
+  calcularHistoricoDecisoesRolloutsSinteticos,
+  calcularAprendizadoCruzadoRolloutsSinteticos,
   calcularProgressoRolloutSintetico,
   calcularProgressoPlaybookSintetico,
   calcularComparativoPlaybooksSinteticos,
@@ -110,6 +112,7 @@ import {
   removerRolloutPorExperimentoSintetico,
   sincronizarPlaybookComDecisaoSintetica,
   sincronizarRolloutComDecisaoOwnerSintetica,
+  simularReaplicacaoAprendizadoEntreRolloutsSinteticos,
   type AcaoDecisaoComercial,
   type CenarioPrevisao,
   type ComparacaoPlaybookSintetico,
@@ -192,6 +195,10 @@ type RegistrarResultadoEtapaRollout = (
   rollout: RolloutExperimentoSintetico,
   etapaId: RolloutExperimentoSintetico["etapas"][number]["id"],
   faixa: FaixaResultadoEtapaRolloutSintetico,
+) => void;
+type SimularReaplicacaoAprendizadoRollout = (
+  origem: RolloutExperimentoSintetico,
+  destino: RolloutExperimentoSintetico,
 ) => void;
 
 type ItemNavegacao = {
@@ -793,6 +800,23 @@ export function DemoWorkspace() {
     );
   }
 
+  function simularReaplicacaoAprendizadoRollout(
+    origem: RolloutExperimentoSintetico,
+    destino: RolloutExperimentoSintetico,
+  ) {
+    setRolloutsExperimentos((atuais) =>
+      simularReaplicacaoAprendizadoEntreRolloutsSinteticos({
+        rollouts: atuais,
+        origemRolloutId: origem.id,
+        destinoRolloutId: destino.id,
+      }),
+    );
+    confirmarAcaoSintetica(
+      "Aprendizado fictício reaplicado",
+      `O padrão seguro de ${origem.responsavel} foi simulado no rollout de ${destino.responsavel} somente nesta sessão.`,
+    );
+  }
+
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
       atuais.map((item) =>
@@ -1096,6 +1120,7 @@ export function DemoWorkspace() {
                 onRetomarRollout={retomarRollout}
                 onReverterRollout={reverterRollout}
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
+                onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -1164,6 +1189,7 @@ export function DemoWorkspace() {
                 onRetomarRollout={retomarRollout}
                 onReverterRollout={reverterRollout}
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
+                onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -1191,6 +1217,7 @@ export function DemoWorkspace() {
                 onRetomarRollout={retomarRollout}
                 onReverterRollout={reverterRollout}
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
+                onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1430,6 +1457,7 @@ function VisaoGeral({
   onRetomarRollout,
   onReverterRollout,
   onRegistrarResultadoEtapaRollout,
+  onSimularReaplicacaoAprendizadoRollout,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1477,6 +1505,7 @@ function VisaoGeral({
   onRetomarRollout: ControlarRollout;
   onReverterRollout: ControlarRollout;
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
+  onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1587,6 +1616,7 @@ function VisaoGeral({
         onRetomar={onRetomarRollout}
         onReverter={onReverterRollout}
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
+        onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -3489,6 +3519,7 @@ function CentralGovernancaRolloutsSinteticos({
   onRetomar,
   onReverter,
   onRegistrarResultado,
+  onSimularReaplicacao,
 }: {
   modo: "resumo" | "detalhado";
   rollouts: RolloutsExperimentosSinteticos;
@@ -3497,6 +3528,7 @@ function CentralGovernancaRolloutsSinteticos({
   onRetomar: ControlarRollout;
   onReverter: ControlarRollout;
   onRegistrarResultado: RegistrarResultadoEtapaRollout;
+  onSimularReaplicacao: SimularReaplicacaoAprendizadoRollout;
 }) {
   const lista = Object.values(rollouts);
   const rolloutsVisiveis = modo === "resumo" ? lista.slice(0, 1) : lista;
@@ -3569,6 +3601,12 @@ function CentralGovernancaRolloutsSinteticos({
           {resumoMonitoramento.limitesViolados} limite(s) violado(s)
         </Badge>
       </div>
+
+      <HistoricoDecisoesAprendizadoCruzado
+        rollouts={rollouts}
+        modo={modo}
+        onSimularReaplicacao={onSimularReaplicacao}
+      />
 
       {rolloutsVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-emerald-300 bg-white/70 p-5 text-center">
@@ -3746,6 +3784,157 @@ function CentralGovernancaRolloutsSinteticos({
           })}
         </div>
       )}
+    </section>
+  );
+}
+
+
+function HistoricoDecisoesAprendizadoCruzado({
+  rollouts,
+  modo,
+  onSimularReaplicacao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  modo: "resumo" | "detalhado";
+  onSimularReaplicacao: SimularReaplicacaoAprendizadoRollout;
+}) {
+  const historico = calcularHistoricoDecisoesRolloutsSinteticos(rollouts);
+  const aprendizado = calcularAprendizadoCruzadoRolloutsSinteticos(rollouts);
+  const historicoVisivel = modo === "resumo" ? historico.slice(-2) : historico;
+  const destinos = aprendizado.fonteRecomendada
+    ? Object.values(rollouts).filter((item) => item.id !== aprendizado.fonteRecomendada?.rolloutId)
+    : [];
+
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-emerald-50 p-4"
+      aria-label="Histórico de decisões e aprendizado cruzado"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-800">
+            <Network className="size-4" /> Comparação entre experimentos
+          </p>
+          <h4 className="mt-1 text-sm font-semibold">
+            Histórico de decisões e aprendizado cruzado
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Rastreie resultados e recomendações fictícias, identifique padrões e simule a
+            reaplicação segura sem executar qualquer ação real.
+          </p>
+        </div>
+        <Badge className="w-fit bg-indigo-700 text-white hover:bg-indigo-700">
+          Somente nesta sessão
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <IndicadorPlaybook rotulo="Experimentos comparados" valor={String(aprendizado.comparacoes.length)} classe="bg-indigo-100 text-indigo-900" />
+        <IndicadorPlaybook rotulo="Padrões de sucesso" valor={String(aprendizado.padroes.sucesso)} classe="bg-emerald-100 text-emerald-900" />
+        <IndicadorPlaybook rotulo="Pontos de atenção" valor={String(aprendizado.padroes.atencao)} classe="bg-amber-100 text-amber-900" />
+        <IndicadorPlaybook rotulo="Padrões de risco" valor={String(aprendizado.padroes.risco)} classe="bg-rose-100 text-rose-900" />
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-xl border border-indigo-200 bg-white p-3">
+          <h5 className="text-xs font-semibold">Padrões entre experimentos</h5>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">{aprendizado.padroes.explicacao}</p>
+          {aprendizado.comparacoes.map((item) => (
+            <div key={item.rolloutId} className="mt-2 rounded-xl bg-indigo-50 p-3 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <strong>{item.responsavel}</strong>
+                <Badge className="bg-white text-indigo-900 hover:bg-white">{item.recomendacao}</Badge>
+              </div>
+              <p className="mt-1 text-[#587076]">
+                {item.efetividadeMedia}% de efetividade média · {item.alertas} alerta(s) ·{" "}
+                {item.violacoes} violação(ões)
+              </p>
+              <p className="mt-1 text-[#587076]">{item.explicacao}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-xl border border-emerald-200 bg-white p-3">
+          <h5 className="text-xs font-semibold">Simular reaplicação segura</h5>
+          {aprendizado.fonteRecomendada ? (
+            <>
+              <p className="mt-1 text-xs leading-5 text-[#587076]">
+                Fonte recomendada: {aprendizado.fonteRecomendada.responsavel} ·{" "}
+                {aprendizado.fonteRecomendada.efetividadeMedia}% de efetividade média, sem
+                recomendação de pausa ou reversão.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {destinos.map((destino) => (
+                  <Button
+                    key={destino.id}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-auto rounded-xl border-emerald-300 text-xs"
+                    onClick={() =>
+                      onSimularReaplicacao(
+                        rollouts[aprendizado.fonteRecomendada!.rolloutId],
+                        destino,
+                      )
+                    }
+                  >
+                    Reaplicar em {destino.responsavel}
+                  </Button>
+                ))}
+              </div>
+              {destinos.length === 0 ? (
+                <p className="mt-2 text-xs text-[#587076]">
+                  Inclua outro rollout fictício para habilitar a simulação cruzada.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="mt-1 text-xs leading-5 text-[#587076]">
+              Aguardando um experimento com resultados dentro dos limites para recomendar uma
+              fonte segura.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+        <h5 className="text-xs font-semibold text-cyan-950">Trilha explicável das recomendações</h5>
+        {historicoVisivel.length > 0 ? (
+          <div className="mt-2 grid gap-2">
+            {historicoVisivel.map((registro) => (
+              <div key={registro.id} className="rounded-xl bg-white p-3 text-xs leading-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong>{registro.responsavel} · {registro.etapa}</strong>
+                  <Badge className="bg-cyan-100 text-cyan-900 hover:bg-cyan-100">
+                    {registro.recomendacao}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-[#587076]">
+                  {registro.faixa} · {registro.efetividade}% · {registro.explicacao}
+                </p>
+                <p className="mt-1 font-semibold text-cyan-900">{registro.registradoEm}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Nenhuma decisão de resultado registrada nesta sessão.
+          </p>
+        )}
+      </div>
+
+      {Object.values(rollouts)
+        .filter((item) => item.aprendizadoReaplicado)
+        .map((item) => (
+          <p key={item.id} className="mt-3 rounded-xl bg-emerald-100 px-3 py-2 text-xs text-emerald-950" aria-live="polite">
+            <strong>Reaplicação simulada em {item.responsavel}:</strong>{" "}
+            {item.aprendizadoReaplicado?.criterioPreservado}
+          </p>
+        ))}
+
+      <p className="mt-3 text-[11px] font-semibold text-indigo-800">
+        A simulação não altera clientes, campanhas, sistemas externos ou decisões reais.
+      </p>
     </section>
   );
 }
@@ -5578,6 +5767,7 @@ function Analises({
   onRetomarRollout,
   onReverterRollout,
   onRegistrarResultadoEtapaRollout,
+  onSimularReaplicacaoAprendizadoRollout,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -5606,6 +5796,7 @@ function Analises({
   onRetomarRollout: ControlarRollout;
   onReverterRollout: ControlarRollout;
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
+  onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -5714,6 +5905,7 @@ function Analises({
         onRetomar={onRetomarRollout}
         onReverter={onReverterRollout}
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
+        onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
       />
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
@@ -5961,6 +6153,7 @@ function InteligenciaArtificial({
   onRetomarRollout,
   onReverterRollout,
   onRegistrarResultadoEtapaRollout,
+  onSimularReaplicacaoAprendizadoRollout,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -5988,6 +6181,7 @@ function InteligenciaArtificial({
   onRetomarRollout: ControlarRollout;
   onReverterRollout: ControlarRollout;
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
+  onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -6110,6 +6304,7 @@ function InteligenciaArtificial({
         onRetomar={onRetomarRollout}
         onReverter={onReverterRollout}
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
+        onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
       />
     </>
   );
