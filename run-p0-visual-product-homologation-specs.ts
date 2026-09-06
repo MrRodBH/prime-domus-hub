@@ -6,7 +6,9 @@ import {
   alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
   calcularComparativoPlaybooksSinteticos,
+  calcularPortfolioExperimentosSinteticos,
   calcularResumoExperimentosPlaybooksSinteticos,
+  calcularResumoPortfolioExperimentosSinteticos,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -15,6 +17,7 @@ import {
   calcularPrevisaoSintetica,
   calcularRelatorioComercialSintetico,
   criarExperimentoComparativoPlaybookSintetico,
+  registrarDecisaoOwnerPortfolioSintetica,
   registrarResultadoPlaybookComercialSintetico,
   registrarResultadoVersaoExperimentoSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
@@ -862,6 +865,29 @@ ok(
     workspace.includes("useState<ExperimentosPlaybooksSinteticos>({})"),
   "as três recomendações devem existir somente no estado em memória",
 );
+ok(
+  workspace.includes("Portfólio consolidado de experimentos") &&
+    workspace.includes("Priorizar por impacto e confiança") &&
+    workspace.includes("Como a prioridade foi calculada"),
+  "Dashboard, Análises e IA devem apresentar o portfólio e sua priorização explicável",
+);
+ok(
+  workspace.includes("Critérios explicáveis para decidir") &&
+    workspace.includes("Recomendação atual:") &&
+    workspace.includes("Decisão do owner:"),
+  "o portfólio deve explicar os critérios, a recomendação e a decisão humana",
+);
+ok(
+  workspace.includes('(["Escalar", "Repetir", "Arquivar"]') &&
+    workspace.includes("onRegistrarDecisaoPortfolio") &&
+    data.includes("registrarDecisaoOwnerPortfolioSintetica"),
+  "o owner deve poder simular escalar, repetir ou arquivar sem ação externa",
+);
+ok(
+  data.includes("pontuacaoImpacto * 0.6 + pontuacaoConfianca * 0.4") &&
+    data.includes("delete experimentoRevalidado.decisaoOwner"),
+  "a prioridade deve ser transparente e uma nova evidência deve invalidar decisão anterior",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -1233,6 +1259,118 @@ assert.deepEqual(calcularResumoExperimentosPlaybooksSinteticos(experimentosBruno
   versoesAvaliadas: 0,
   comparacoesConcluidas: 0,
 });
+assertions += 1;
+assert.deepEqual(calcularResumoPortfolioExperimentosSinteticos(experimentosBruno), {
+  experimentosNoPortfolio: 1,
+  prioridadesAltas: 0,
+  prontosParaEscalar: 0,
+  decisoesDoOwner: 0,
+});
+assertions += 1;
+assert.equal(
+  registrarDecisaoOwnerPortfolioSintetica({
+    experimentos: experimentosBruno,
+    experimentoId: experimentoBruno.id,
+    decisao: "Escalar",
+  }),
+  experimentosBruno,
+);
+assertions += 1;
+const experimentoBrunoVersaoAAbaixo = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentosBruno,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-a",
+  faixa: "Abaixo do critério",
+});
+const experimentoBrunoEscalavel = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentoBrunoVersaoAAbaixo,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-b",
+  faixa: "Acima do critério",
+});
+const portfolioEscalavel = calcularPortfolioExperimentosSinteticos(experimentoBrunoEscalavel);
+assert.deepEqual(
+  {
+    diferencaVersaoB: portfolioEscalavel[0].diferencaVersaoB,
+    impacto: portfolioEscalavel[0].impacto,
+    confianca: portfolioEscalavel[0].confianca,
+    prioridade: portfolioEscalavel[0].prioridade,
+    pontuacaoPrioridade: portfolioEscalavel[0].pontuacaoPrioridade,
+    recomendacaoAtual: portfolioEscalavel[0].recomendacaoAtual,
+  },
+  {
+    diferencaVersaoB: 33,
+    impacto: "Alto",
+    confianca: "Alta",
+    prioridade: "Alto",
+    pontuacaoPrioridade: 93,
+    recomendacaoAtual: "Escalar",
+  },
+);
+assertions += 1;
+const experimentoBrunoComDecisao = registrarDecisaoOwnerPortfolioSintetica({
+  experimentos: experimentoBrunoEscalavel,
+  experimentoId: experimentoBruno.id,
+  decisao: "Escalar",
+});
+assert.equal(experimentoBrunoComDecisao[experimentoBruno.id].decisaoOwner?.decisao, "Escalar");
+assertions += 1;
+assert.deepEqual(calcularResumoPortfolioExperimentosSinteticos(experimentoBrunoComDecisao), {
+  experimentosNoPortfolio: 1,
+  prioridadesAltas: 1,
+  prontosParaEscalar: 1,
+  decisoesDoOwner: 1,
+});
+assertions += 1;
+const experimentoBrunoParaRepetir = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentoBrunoComDecisao,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-b",
+  faixa: "Próximo do critério",
+});
+const portfolioParaRepetir = calcularPortfolioExperimentosSinteticos(experimentoBrunoParaRepetir);
+assert.deepEqual(
+  {
+    diferencaVersaoB: portfolioParaRepetir[0].diferencaVersaoB,
+    recomendacaoAtual: portfolioParaRepetir[0].recomendacaoAtual,
+    decisaoOwner: portfolioParaRepetir[0].decisaoOwner,
+  },
+  { diferencaVersaoB: 21, recomendacaoAtual: "Repetir", decisaoOwner: undefined },
+);
+assertions += 1;
+const experimentoBrunoVersaoAAlta = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentoBrunoParaRepetir,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-a",
+  faixa: "Acima do critério",
+});
+const experimentoBrunoParaArquivar = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: experimentoBrunoVersaoAAlta,
+  experimentoId: experimentoBruno.id,
+  versaoId: "versao-b",
+  faixa: "Abaixo do critério",
+});
+const portfolioParaArquivar = calcularPortfolioExperimentosSinteticos(experimentoBrunoParaArquivar);
+assert.deepEqual(
+  {
+    diferencaVersaoB: portfolioParaArquivar[0].diferencaVersaoB,
+    impacto: portfolioParaArquivar[0].impacto,
+    confianca: portfolioParaArquivar[0].confianca,
+    prioridade: portfolioParaArquivar[0].prioridade,
+    pontuacaoPrioridade: portfolioParaArquivar[0].pontuacaoPrioridade,
+    recomendacaoAtual: portfolioParaArquivar[0].recomendacaoAtual,
+  },
+  {
+    diferencaVersaoB: -25,
+    impacto: "Baixo",
+    confianca: "Alta",
+    prioridade: "Médio",
+    pontuacaoPrioridade: 54,
+    recomendacaoAtual: "Arquivar",
+  },
+);
+assertions += 1;
+assert.deepEqual(experimentosVazios, {});
 assertions += 1;
 const experimentoBrunoVersaoAManter = registrarResultadoVersaoExperimentoSintetico({
   experimentos: experimentosBruno,

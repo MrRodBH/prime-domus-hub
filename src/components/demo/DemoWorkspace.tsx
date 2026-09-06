@@ -64,6 +64,7 @@ import property1 from "@/assets/property-1.jpg";
 import property2 from "@/assets/property-2.jpg";
 import property3 from "@/assets/property-3.jpg";
 import {
+  CRITERIOS_DECISAO_PORTFOLIO_SINTETICOS,
   CONTEXTO_DEMONSTRACAO,
   CENARIOS_PREVISAO,
   PALETA_GRAFICOS,
@@ -73,7 +74,9 @@ import {
   aplicarDecisaoComercialSintetica,
   calcularProgressoPlaybookSintetico,
   calcularComparativoPlaybooksSinteticos,
+  calcularPortfolioExperimentosSinteticos,
   calcularResumoExperimentosPlaybooksSinteticos,
+  calcularResumoPortfolioExperimentosSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
@@ -90,6 +93,7 @@ import {
   criarExperimentoComparativoPlaybookSintetico,
   registrarResultadoPlaybookComercialSintetico,
   registrarResultadoVersaoExperimentoSintetico,
+  registrarDecisaoOwnerPortfolioSintetica,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
   removerExperimentoPorPlaybookMelhoriaSintetico,
   removerPlaybookMelhoriaContinuaPorOrigem,
@@ -99,6 +103,7 @@ import {
   type CenarioPrevisao,
   type ComparacaoPlaybookSintetico,
   type DecisoesComerciaisSinteticas,
+  type DecisaoOwnerPortfolioSintetica,
   type EstadoDecisaoComercial,
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
@@ -106,6 +111,7 @@ import {
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
+  type ItemPortfolioExperimentoSintetico,
   type PlaybookComercialSintetico,
   type PlaybookMelhoriaContinuaSintetico,
   type PlaybooksComerciaisSinteticos,
@@ -162,6 +168,10 @@ type RegistrarResultadoExperimentoPlaybook = (
   experimento: ExperimentoPlaybookSintetico,
   versaoId: VersaoExperimentoPlaybookSintetico["id"],
   faixa: FaixaResultadoExperimentoSintetico,
+) => void;
+type RegistrarDecisaoPortfolio = (
+  experimento: ExperimentoPlaybookSintetico,
+  decisao: DecisaoOwnerPortfolioSintetica,
 ) => void;
 
 type ItemNavegacao = {
@@ -652,6 +662,23 @@ export function DemoWorkspace() {
     );
   }
 
+  function registrarDecisaoPortfolio(
+    experimento: ExperimentoPlaybookSintetico,
+    decisao: DecisaoOwnerPortfolioSintetica,
+  ) {
+    setExperimentosPlaybooks((atuais) =>
+      registrarDecisaoOwnerPortfolioSintetica({
+        experimentos: atuais,
+        experimentoId: experimento.id,
+        decisao,
+      }),
+    );
+    confirmarAcaoSintetica(
+      `Decisão do owner: ${decisao.toLocaleLowerCase("pt-BR")}`,
+      `O experimento de ${experimento.responsavel} foi classificado somente nesta sessão, sem executar a decisão.`,
+    );
+  }
+
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
       atuais.map((item) =>
@@ -948,6 +975,7 @@ export function DemoWorkspace() {
                 experimentosPlaybooks={experimentosPlaybooks}
                 onCriarExperimento={criarExperimentoPlaybook}
                 onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
+                onRegistrarDecisaoPortfolio={registrarDecisaoPortfolio}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -1009,6 +1037,7 @@ export function DemoWorkspace() {
                 experimentosPlaybooks={experimentosPlaybooks}
                 onCriarExperimento={criarExperimentoPlaybook}
                 onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
+                onRegistrarDecisaoPortfolio={registrarDecisaoPortfolio}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -1029,6 +1058,7 @@ export function DemoWorkspace() {
                 experimentosPlaybooks={experimentosPlaybooks}
                 onCriarExperimento={criarExperimentoPlaybook}
                 onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
+                onRegistrarDecisaoPortfolio={registrarDecisaoPortfolio}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1261,6 +1291,7 @@ function VisaoGeral({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1301,6 +1332,7 @@ function VisaoGeral({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1400,6 +1432,7 @@ function VisaoGeral({
         experimentosPlaybooks={experimentosPlaybooks}
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
+        onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -2057,6 +2090,7 @@ function ResumoRelatorioDashboard({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -2078,6 +2112,7 @@ function ResumoRelatorioDashboard({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -2209,6 +2244,7 @@ function ResumoRelatorioDashboard({
           experimentosPlaybooks={experimentosPlaybooks}
           onCriarExperimento={onCriarExperimento}
           onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
+          onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
         />
       </div>
     </section>
@@ -2229,6 +2265,7 @@ function PainelInsightsExplicaveis({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2246,6 +2283,7 @@ function PainelInsightsExplicaveis({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
 }) {
   const coresPorTom = {
     Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -2348,6 +2386,7 @@ function PainelInsightsExplicaveis({
         experimentosPlaybooks={experimentosPlaybooks}
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
+        onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
       />
     </section>
   );
@@ -2367,6 +2406,7 @@ function CentralDecisoesComerciais({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2384,6 +2424,7 @@ function CentralDecisoesComerciais({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
 }) {
   const recomendacoesVisiveis =
     modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
@@ -2469,6 +2510,7 @@ function CentralDecisoesComerciais({
         experimentosPlaybooks={experimentosPlaybooks}
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
+        onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
       />
     </section>
   );
@@ -2582,6 +2624,7 @@ function CentralPlaybooksComerciais({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2595,6 +2638,7 @@ function CentralPlaybooksComerciais({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
 }) {
   const playbooksAtivos = resumo.recomendacoes.flatMap((recomendacao) => {
     const chave = criarChaveDecisaoComercial(resumo.periodo, recomendacao.responsavel);
@@ -2708,6 +2752,7 @@ function CentralPlaybooksComerciais({
         experimentosPlaybooks={experimentosPlaybooks}
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
+        onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
       />
     </section>
   );
@@ -2722,6 +2767,7 @@ function CentralMelhoriaContinuaComercial({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2731,6 +2777,7 @@ function CentralMelhoriaContinuaComercial({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
 }) {
   const comparativo = calcularComparativoPlaybooksSinteticos({
     resultados: resultadosPlaybooks,
@@ -2905,6 +2952,11 @@ function CentralMelhoriaContinuaComercial({
         experimentos={experimentosPlaybooks}
         onRegistrarResultado={onRegistrarResultadoExperimento}
       />
+      <PortfolioExperimentosComerciais
+        modo={modo}
+        experimentos={experimentosPlaybooks}
+        onRegistrarDecisao={onRegistrarDecisaoPortfolio}
+      />
     </section>
   );
 }
@@ -3046,6 +3098,232 @@ function LaboratorioExperimentosPlaybooks({
         </div>
       )}
     </section>
+  );
+}
+
+function PortfolioExperimentosComerciais({
+  modo,
+  experimentos,
+  onRegistrarDecisao,
+}: {
+  modo: "resumo" | "detalhado";
+  experimentos: ExperimentosPlaybooksSinteticos;
+  onRegistrarDecisao: RegistrarDecisaoPortfolio;
+}) {
+  const portfolio = calcularPortfolioExperimentosSinteticos(experimentos);
+  const resumo = calcularResumoPortfolioExperimentosSinteticos(experimentos);
+  const itensVisiveis = modo === "resumo" ? portfolio.slice(0, 1) : portfolio;
+
+  return (
+    <section
+      className="mt-6 rounded-2xl border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 via-white to-cyan-50 p-4 sm:p-5"
+      aria-labelledby={`titulo-portfolio-experimentos-${modo}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-fuchsia-800">
+            <Target className="size-4" /> Priorizar por impacto e confiança
+          </p>
+          <h5 id={`titulo-portfolio-experimentos-${modo}`} className="mt-1 text-base font-semibold">
+            Portfólio consolidado de experimentos
+          </h5>
+          <p className="mt-1 max-w-3xl text-xs leading-5 text-[#587076]">
+            Compare o potencial e a força das evidências, entenda os critérios e simule a decisão do
+            owner sem escalar, repetir ou arquivar qualquer ação real.
+          </p>
+        </div>
+        <Badge className="w-fit bg-fuchsia-700 text-white hover:bg-fuchsia-700">
+          {resumo.experimentosNoPortfolio}{" "}
+          {resumo.experimentosNoPortfolio === 1
+            ? "experimento priorizado"
+            : "experimentos priorizados"}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <IndicadorPlaybook
+          rotulo="Experimentos no portfólio"
+          valor={String(resumo.experimentosNoPortfolio)}
+          classe="bg-fuchsia-100 text-fuchsia-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Prioridades altas"
+          valor={String(resumo.prioridadesAltas)}
+          classe="bg-orange-100 text-orange-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Prontos para escalar"
+          valor={String(resumo.prontosParaEscalar)}
+          classe="bg-emerald-100 text-emerald-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Decisões do owner"
+          valor={String(resumo.decisoesDoOwner)}
+          classe="bg-cyan-100 text-cyan-900"
+        />
+      </div>
+
+      {itensVisiveis.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-fuchsia-300 bg-white/70 p-5 text-center">
+          <Target className="mx-auto size-7 text-fuchsia-700" />
+          <p className="mt-2 text-sm font-semibold">Nenhum experimento no portfólio</p>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Crie um experimento no laboratório para calcular sua prioridade de forma explicável.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-4">
+          {itensVisiveis.map((item, indice) => (
+            <CartaoPortfolioExperimento
+              key={item.experimentoId}
+              item={item}
+              posicao={indice + 1}
+              experimento={experimentos[item.experimentoId]}
+              onRegistrarDecisao={onRegistrarDecisao}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CartaoPortfolioExperimento({
+  item,
+  posicao,
+  experimento,
+  onRegistrarDecisao,
+}: {
+  item: ItemPortfolioExperimentoSintetico;
+  posicao: number;
+  experimento: ExperimentoPlaybookSintetico;
+  onRegistrarDecisao: RegistrarDecisaoPortfolio;
+}) {
+  const corPrioridade = {
+    Alto: "bg-rose-100 text-rose-900 hover:bg-rose-100",
+    Médio: "bg-orange-100 text-orange-900 hover:bg-orange-100",
+    Baixo: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+  } as const;
+  const corDecisao: Record<DecisaoOwnerPortfolioSintetica, string> = {
+    Escalar: "bg-emerald-700 hover:bg-emerald-800",
+    Repetir: "bg-violet-700 hover:bg-violet-800",
+    Arquivar: "bg-rose-700 hover:bg-rose-800",
+  };
+  const iconeDecisao = {
+    Escalar: TrendingUp,
+    Repetir: RefreshCcw,
+    Arquivar: X,
+  } as const;
+  const estadoOwner = item.decisaoOwner
+    ? `Decisão do owner: ${item.decisaoOwner.decisao.toLocaleLowerCase("pt-BR")} · ${item.decisaoOwner.registradoEm}`
+    : item.comparacaoConcluida
+      ? "Decisão do owner: pendente"
+      : "Decisão do owner: aguardando comparação completa";
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-fuchsia-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-fuchsia-100 bg-white p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-fuchsia-700 text-sm font-bold text-white">
+            {posicao}º
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-fuchsia-800">
+              Prioridade #{posicao} · {item.responsavel}
+            </p>
+            <h6 className="mt-1 text-sm font-semibold">{item.titulo}</h6>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge className={corPrioridade[item.prioridade]}>
+            Prioridade {item.prioridade.toLocaleLowerCase("pt-BR")}
+          </Badge>
+          <Badge className="bg-cyan-100 text-cyan-900 hover:bg-cyan-100">
+            {item.pontuacaoPrioridade}/100 pontos
+          </Badge>
+        </div>
+      </div>
+
+      <div className="p-4 sm:p-5">
+        <div className="grid gap-3 md:grid-cols-3">
+          <ResultadoExplicavel
+            rotulo="Impacto esperado"
+            valor={`${item.impacto} · ${item.impactoEsperado}`}
+            classe="bg-orange-50"
+          />
+          <ResultadoExplicavel
+            rotulo="Confiança da evidência"
+            valor={`${item.confianca} · ${item.pontuacaoConfianca}/100`}
+            classe="bg-cyan-50"
+          />
+          <ResultadoExplicavel
+            rotulo="Como a prioridade foi calculada"
+            valor={`60% impacto (${item.pontuacaoImpacto}) + 40% confiança (${item.pontuacaoConfianca}) = ${item.pontuacaoPrioridade}/100.`}
+            classe="bg-violet-50"
+          />
+        </div>
+
+        <div className="mt-4">
+          <h6 className="text-xs font-semibold">Critérios explicáveis para decidir</h6>
+          <div className="mt-2 grid gap-2 lg:grid-cols-3">
+            {CRITERIOS_DECISAO_PORTFOLIO_SINTETICOS.map((criterio) => (
+              <div
+                key={criterio.decisao}
+                className={cn(
+                  "rounded-xl border p-3 text-xs leading-5",
+                  criterio.decisao === "Escalar"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+                    : criterio.decisao === "Repetir"
+                      ? "border-violet-200 bg-violet-50 text-violet-950"
+                      : "border-rose-200 bg-rose-50 text-rose-950",
+                )}
+              >
+                <strong className="block">{criterio.decisao}</strong>
+                {criterio.descricao}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-[#123f47]/10 bg-[#f8f7f3] p-3">
+          <p className="text-xs font-bold text-[#123f47]">
+            Recomendação atual: {item.recomendacaoAtual}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">{item.justificativaRecomendacao}</p>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {(["Escalar", "Repetir", "Arquivar"] as DecisaoOwnerPortfolioSintetica[]).map(
+            (decisao) => {
+              const Icone = iconeDecisao[decisao];
+              return (
+                <Button
+                  key={decisao}
+                  type="button"
+                  size="sm"
+                  disabled={!item.comparacaoConcluida}
+                  className={cn("w-full rounded-xl text-white sm:w-auto", corDecisao[decisao])}
+                  aria-label={`${decisao} experimento de ${item.responsavel}`}
+                  onClick={() => onRegistrarDecisao(experimento, decisao)}
+                >
+                  <Icone className="mr-2 size-4" />
+                  {decisao}
+                </Button>
+              );
+            },
+          )}
+        </div>
+        <p
+          className={cn(
+            "mt-3 rounded-xl px-3 py-2 text-xs font-semibold",
+            item.decisaoOwner ? "bg-emerald-50 text-emerald-900" : "bg-slate-100 text-slate-700",
+          )}
+          aria-live="polite"
+        >
+          {estadoOwner}
+        </p>
+      </div>
+    </article>
   );
 }
 
@@ -4695,6 +4973,7 @@ function Analises({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -4716,6 +4995,7 @@ function Analises({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -4811,6 +5091,7 @@ function Analises({
             experimentosPlaybooks={experimentosPlaybooks}
             onCriarExperimento={onCriarExperimento}
             onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
+            onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
           />
         </CardContent>
       </Card>
@@ -5053,6 +5334,7 @@ function InteligenciaArtificial({
   experimentosPlaybooks,
   onCriarExperimento,
   onRegistrarResultadoExperimento,
+  onRegistrarDecisaoPortfolio,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -5073,6 +5355,7 @@ function InteligenciaArtificial({
   experimentosPlaybooks: ExperimentosPlaybooksSinteticos;
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
+  onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -5121,6 +5404,7 @@ function InteligenciaArtificial({
           experimentosPlaybooks={experimentosPlaybooks}
           onCriarExperimento={onCriarExperimento}
           onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
+          onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
         />
 
         <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">
