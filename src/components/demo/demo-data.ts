@@ -763,6 +763,48 @@ export type RegistroPoliticaAprendizadoSintetica = {
   decididoEm: string;
 };
 
+export type EstadoAdocaoPoliticaSintetica =
+  | "Não iniciada"
+  | "Em andamento"
+  | "Pausada"
+  | "Revogada"
+  | "Concluída";
+
+export type FaixaAderenciaPoliticaSintetica =
+  | "Conforme"
+  | "Atenção"
+  | "Desvio crítico";
+
+export type DecisaoOwnerAdocaoPoliticaSintetica =
+  | "Continuar"
+  | "Pausar"
+  | "Revogar";
+
+export type EtapaAdocaoPoliticaSintetica = {
+  id: "orientacao-interna" | "adocao-assistida" | "cobertura-simulada";
+  titulo: string;
+  publicoInternoFicticio: string;
+  percentualPublico: number;
+  concluida: boolean;
+  aderencia?: {
+    faixa: FaixaAderenciaPoliticaSintetica;
+    indice: number;
+    desvioDoLimite: number;
+    alertas: number;
+    explicacao: string;
+    registradoEm: string;
+  };
+};
+
+export type AdocaoPoliticaSintetica = {
+  politicaVersao: string;
+  estado: EstadoAdocaoPoliticaSintetica;
+  etapas: EtapaAdocaoPoliticaSintetica[];
+  criteriosConformidade: string[];
+  motivoEstado: string;
+  atualizadoEm: string;
+};
+
 export type EtapaRolloutExperimentoSintetico = {
   id: "piloto-interno" | "expansao-controlada" | "cobertura-ampliada";
   titulo: string;
@@ -786,6 +828,7 @@ export type RolloutExperimentoSintetico = {
   motivoEstado?: string;
   aprendizadoReaplicado?: ReaplicacaoAprendizadoRolloutSintetica;
   historicoPoliticaAprendizado?: RegistroPoliticaAprendizadoSintetica[];
+  adocaoPolitica?: AdocaoPoliticaSintetica;
   atualizadoEm: string;
 };
 
@@ -1784,6 +1827,211 @@ export function calcularTrilhaPoliticasAprendizadoSinteticas(
       ...registro,
     })),
   );
+}
+
+
+export function sincronizarAdocaoComPoliticaPromovidaSintetica(
+  rollouts: RolloutsExperimentosSinteticos,
+): RolloutsExperimentosSinteticos {
+  return Object.fromEntries(
+    Object.entries(rollouts).map(([rolloutId, rollout]) => {
+      const historico = rollout.historicoPoliticaAprendizado ?? [];
+      const ultimaDecisao = historico[historico.length - 1];
+      if (ultimaDecisao?.decisao !== "Promover") {
+        if (!rollout.adocaoPolitica) return [rolloutId, rollout];
+        const { adocaoPolitica: _removida, ...semAdocao } = rollout;
+        return [rolloutId, semAdocao];
+      }
+      if (rollout.adocaoPolitica?.politicaVersao === ultimaDecisao.versao) {
+        return [rolloutId, rollout];
+      }
+      return [rolloutId, {
+        ...rollout,
+        adocaoPolitica: {
+          politicaVersao: ultimaDecisao.versao,
+          estado: "Não iniciada" as const,
+          etapas: [
+            { id: "orientacao-interna" as const, titulo: "Orientação interna", publicoInternoFicticio: "Equipe piloto fictícia", percentualPublico: 25, concluida: false },
+            { id: "adocao-assistida" as const, titulo: "Adoção assistida", publicoInternoFicticio: "Núcleo comercial fictício", percentualPublico: 60, concluida: false },
+            { id: "cobertura-simulada" as const, titulo: "Cobertura simulada", publicoInternoFicticio: "Equipe interna fictícia completa", percentualPublico: 100, concluida: false },
+          ],
+          criteriosConformidade: [
+            "Índice fictício de aderência igual ou superior a 85%.",
+            "Nenhum desvio crítico ou alerta de segurança não revisado.",
+            "Confirmação humana antes de ampliar a adoção.",
+          ],
+          motivoEstado: "Política promovida e pronta para adoção simulada.",
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      }];
+    }),
+  ) as RolloutsExperimentosSinteticos;
+}
+
+export function avancarEtapaAdocaoPoliticaSintetica({
+  rollouts,
+  rolloutId,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  if (!rollout || !adocao || ["Pausada", "Revogada", "Concluída"].includes(adocao.estado)) return rollouts;
+  const proxima = adocao.etapas.find((etapa) => !etapa.concluida);
+  if (!proxima) return rollouts;
+  const etapas = adocao.etapas.map((etapa) =>
+    etapa.id === proxima.id ? { ...etapa, concluida: true } : etapa,
+  );
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        etapas,
+        estado: etapas.every((etapa) => etapa.concluida) ? "Concluída" : "Em andamento",
+        motivoEstado: `Etapa ${proxima.titulo.toLocaleLowerCase("pt-BR")} concluída na simulação.`,
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function registrarAderenciaEtapaAdocaoPoliticaSintetica({
+  rollouts,
+  rolloutId,
+  etapaId,
+  faixa,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  etapaId: EtapaAdocaoPoliticaSintetica["id"];
+  faixa: FaixaAderenciaPoliticaSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const etapa = adocao?.etapas.find((item) => item.id === etapaId);
+  if (!rollout || !adocao || !etapa?.concluida || adocao.estado === "Revogada") return rollouts;
+  const resultado = {
+    Conforme: { indice: 92, desvioDoLimite: 7, alertas: 0, explicacao: "Aderência fictícia 7 p.p. acima do limite de conformidade de 85%." },
+    Atenção: { indice: 82, desvioDoLimite: -3, alertas: 1, explicacao: "Aderência fictícia 3 p.p. abaixo do limite, com um alerta preventivo." },
+    "Desvio crítico": { indice: 68, desvioDoLimite: -17, alertas: 2, explicacao: "Aderência fictícia 17 p.p. abaixo do limite, com dois alertas críticos." },
+  }[faixa];
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        etapas: adocao.etapas.map((item) =>
+          item.id === etapaId
+            ? { ...item, aderencia: { faixa, ...resultado, registradoEm: "Agora, nesta sessão" } }
+            : item,
+        ),
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+
+export function calcularMonitoramentoConformidadePoliticaSintetica(
+  rollout: RolloutExperimentoSintetico,
+) {
+  const resultados =
+    rollout.adocaoPolitica?.etapas.flatMap((etapa) =>
+      etapa.aderencia ? [etapa.aderencia] : [],
+    ) ?? [];
+  const atencoes = resultados.filter((resultado) => resultado.faixa === "Atenção").length;
+  const desviosCriticos = resultados.filter(
+    (resultado) => resultado.faixa === "Desvio crítico",
+  ).length;
+  const alertas = resultados.reduce((total, resultado) => total + resultado.alertas, 0);
+  const aderenciaMedia =
+    resultados.length > 0
+      ? Math.round(
+          resultados.reduce((total, resultado) => total + resultado.indice, 0) /
+            resultados.length,
+        )
+      : null;
+  const recomendacao: DecisaoOwnerAdocaoPoliticaSintetica =
+    desviosCriticos > 0 ? "Revogar" : atencoes > 0 ? "Pausar" : "Continuar";
+  return {
+    resultadosRegistrados: resultados.length,
+    aderenciaMedia,
+    alertas,
+    desviosIdentificados: atencoes + desviosCriticos,
+    desviosCriticos,
+    recomendacao,
+    explicacao:
+      recomendacao === "Revogar"
+        ? `${desviosCriticos} desvio(s) crítico(s) exigem revogação simulada da política.`
+        : recomendacao === "Pausar"
+          ? `${atencoes} ponto(s) de atenção exigem revisão humana antes de continuar.`
+          : resultados.length === 0
+            ? "Aguardando evidência fictícia de aderência; nenhuma decisão é automática."
+            : "A aderência fictícia permanece conforme e permite continuidade controlada.",
+  };
+}
+
+export function decidirAdocaoPoliticaSintetica({
+  rollouts,
+  rolloutId,
+  decisao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  decisao: DecisaoOwnerAdocaoPoliticaSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  if (!rollout || !adocao || adocao.estado === "Revogada") return rollouts;
+  const monitoramento = calcularMonitoramentoConformidadePoliticaSintetica(rollout);
+  const permitido =
+    (decisao === "Continuar" && monitoramento.recomendacao === "Continuar") ||
+    (decisao === "Pausar" &&
+      monitoramento.recomendacao === "Pausar" &&
+      adocao.estado === "Em andamento") ||
+    (decisao === "Revogar" && monitoramento.recomendacao === "Revogar");
+  if (!permitido) return rollouts;
+  const estado: EstadoAdocaoPoliticaSintetica =
+    decisao === "Continuar" ? "Em andamento" : decisao === "Pausar" ? "Pausada" : "Revogada";
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        estado,
+        motivoEstado: `${decisao} registrado pelo owner na simulação: ${monitoramento.explicacao}`,
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularResumoAdocoesPoliticasSinteticas(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const adocoes = Object.values(rollouts).flatMap((rollout) =>
+    rollout.adocaoPolitica ? [{ rollout, adocao: rollout.adocaoPolitica }] : [],
+  );
+  return {
+    politicasEmAdocao: adocoes.length,
+    emAndamento: adocoes.filter(({ adocao }) => adocao.estado === "Em andamento").length,
+    pausadas: adocoes.filter(({ adocao }) => adocao.estado === "Pausada").length,
+    revogadas: adocoes.filter(({ adocao }) => adocao.estado === "Revogada").length,
+    desvios: adocoes.reduce(
+      (total, { rollout }) =>
+        total + calcularMonitoramentoConformidadePoliticaSintetica(rollout).desviosIdentificados,
+      0,
+    ),
+  };
 }
 
 export function calcularProgressoRolloutSintetico(rollout: RolloutExperimentoSintetico) {

@@ -5,9 +5,11 @@ import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
 import {
   alternarEtapaPlaybookComercialSintetico,
   avancarEtapaRolloutSintetico,
+  avancarEtapaAdocaoPoliticaSintetica,
   aplicarDecisaoComercialSintetica,
   calcularComparativoPlaybooksSinteticos,
   calcularMonitoramentoResultadosRolloutSintetico,
+  calcularMonitoramentoConformidadePoliticaSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -16,6 +18,7 @@ import {
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
   calcularResumoRolloutsSinteticos,
+  calcularResumoAdocoesPoliticasSinteticas,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularProgressoRolloutSintetico,
   calcularProgressoPlaybookSintetico,
@@ -28,6 +31,8 @@ import {
   criarExperimentoComparativoPlaybookSintetico,
   registrarDecisaoOwnerPortfolioSintetica,
   registrarDecisaoPoliticaAprendizadoSintetica,
+  registrarAderenciaEtapaAdocaoPoliticaSintetica,
+  decidirAdocaoPoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   registrarResultadoPlaybookComercialSintetico,
@@ -40,6 +45,7 @@ import {
   removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
   sincronizarRolloutComDecisaoOwnerSintetica,
+  sincronizarAdocaoComPoliticaPromovidaSintetica,
   simularReaplicacaoAprendizadoEntreRolloutsSinteticos,
 } from "./src/components/demo/demo-data";
 
@@ -993,6 +999,27 @@ ok(
   "as políticas e sua trilha devem permanecer exclusivamente em memória",
 );
 
+ok(
+  workspace.includes("Adoção e conformidade das políticas comerciais") &&
+    workspace.includes("Público interno fictício e decisão humana") &&
+    workspace.includes("limite de 85%"),
+  "Dashboard, Análises e IA devem acompanhar adoção interna e conformidade explicável",
+);
+ok(
+  workspace.includes("Desvios identificados") &&
+    workspace.includes("Critérios de conformidade") &&
+    workspace.includes("Continuar") &&
+    workspace.includes("Pausar") &&
+    workspace.includes("Revogar"),
+  "o monitoramento deve explicar desvios e oferecer as três decisões simuladas do owner",
+);
+ok(
+  workspace.includes("A adoção não alcança equipes, clientes, políticas ou sistemas reais") &&
+    data.includes("sincronizarAdocaoComPoliticaPromovidaSintetica") &&
+    data.includes("decidirAdocaoPoliticaSintetica"),
+  "a adoção de políticas deve permanecer exclusivamente em memória e sem ações reais",
+);
+
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
   responsavel: "Toda a equipe",
@@ -1639,6 +1666,120 @@ assert.deepEqual(
   { estado: "Retirado", trilha: 2 },
 );
 assertions += 1;
+const rolloutsComAdocao = sincronizarAdocaoComPoliticaPromovidaSintetica(
+  rolloutsPoliticaPromovida,
+);
+assert.deepEqual(
+  {
+    estado: rolloutsComAdocao[rolloutBruno.id].adocaoPolitica?.estado,
+    versao: rolloutsComAdocao[rolloutBruno.id].adocaoPolitica?.politicaVersao,
+    etapas: rolloutsComAdocao[rolloutBruno.id].adocaoPolitica?.etapas.length,
+    publico:
+      rolloutsComAdocao[rolloutBruno.id].adocaoPolitica?.etapas[0].publicoInternoFicticio,
+  },
+  {
+    estado: "Não iniciada",
+    versao: "v1.1",
+    etapas: 3,
+    publico: "Equipe piloto fictícia",
+  },
+);
+assertions += 1;
+const rolloutsAdocaoIniciada = decidirAdocaoPoliticaSintetica({
+  rollouts: rolloutsComAdocao,
+  rolloutId: rolloutBruno.id,
+  decisao: "Continuar",
+});
+assert.equal(rolloutsAdocaoIniciada[rolloutBruno.id].adocaoPolitica?.estado, "Em andamento");
+assertions += 1;
+assert.equal(
+  registrarAderenciaEtapaAdocaoPoliticaSintetica({
+    rollouts: rolloutsAdocaoIniciada,
+    rolloutId: rolloutBruno.id,
+    etapaId: "orientacao-interna",
+    faixa: "Conforme",
+  }),
+  rolloutsAdocaoIniciada,
+);
+assertions += 1;
+const rolloutsAdocaoEtapa1 = avancarEtapaAdocaoPoliticaSintetica({
+  rollouts: rolloutsAdocaoIniciada,
+  rolloutId: rolloutBruno.id,
+});
+const rolloutsAdocaoConforme = registrarAderenciaEtapaAdocaoPoliticaSintetica({
+  rollouts: rolloutsAdocaoEtapa1,
+  rolloutId: rolloutBruno.id,
+  etapaId: "orientacao-interna",
+  faixa: "Conforme",
+});
+assert.deepEqual(
+  calcularMonitoramentoConformidadePoliticaSintetica(
+    rolloutsAdocaoConforme[rolloutBruno.id],
+  ),
+  {
+    resultadosRegistrados: 1,
+    aderenciaMedia: 92,
+    alertas: 0,
+    desviosIdentificados: 0,
+    desviosCriticos: 0,
+    recomendacao: "Continuar",
+    explicacao: "A aderência fictícia permanece conforme e permite continuidade controlada.",
+  },
+);
+assertions += 1;
+const rolloutsAdocaoAtencao = registrarAderenciaEtapaAdocaoPoliticaSintetica({
+  rollouts: rolloutsAdocaoEtapa1,
+  rolloutId: rolloutBruno.id,
+  etapaId: "orientacao-interna",
+  faixa: "Atenção",
+});
+assert.deepEqual(
+  {
+    recomendacao: calcularMonitoramentoConformidadePoliticaSintetica(
+      rolloutsAdocaoAtencao[rolloutBruno.id],
+    ).recomendacao,
+    desvios: calcularResumoAdocoesPoliticasSinteticas(rolloutsAdocaoAtencao).desvios,
+    estado: decidirAdocaoPoliticaSintetica({
+      rollouts: rolloutsAdocaoAtencao,
+      rolloutId: rolloutBruno.id,
+      decisao: "Pausar",
+    })[rolloutBruno.id].adocaoPolitica?.estado,
+  },
+  { recomendacao: "Pausar", desvios: 1, estado: "Pausada" },
+);
+assertions += 1;
+const rolloutsAdocaoCritica = registrarAderenciaEtapaAdocaoPoliticaSintetica({
+  rollouts: rolloutsAdocaoEtapa1,
+  rolloutId: rolloutBruno.id,
+  etapaId: "orientacao-interna",
+  faixa: "Desvio crítico",
+});
+assert.deepEqual(
+  {
+    recomendacao: calcularMonitoramentoConformidadePoliticaSintetica(
+      rolloutsAdocaoCritica[rolloutBruno.id],
+    ).recomendacao,
+    estado: decidirAdocaoPoliticaSintetica({
+      rollouts: rolloutsAdocaoCritica,
+      rolloutId: rolloutBruno.id,
+      decisao: "Revogar",
+    })[rolloutBruno.id].adocaoPolitica?.estado,
+  },
+  { recomendacao: "Revogar", estado: "Revogada" },
+);
+assertions += 1;
+const rolloutsRetiradaAposAdocao = registrarDecisaoPoliticaAprendizadoSintetica({
+  rollouts: rolloutsComAdocao,
+  rolloutId: rolloutBruno.id,
+  decisao: "Retirar",
+});
+assert.equal(
+  sincronizarAdocaoComPoliticaPromovidaSintetica(rolloutsRetiradaAposAdocao)[rolloutBruno.id]
+    .adocaoPolitica,
+  undefined,
+);
+assertions += 1;
+
 const rolloutsPoliticaRejeitada = registrarDecisaoPoliticaAprendizadoSintetica({
   rollouts: rolloutsCruzados,
   rolloutId: rolloutBrunoComparado.id,

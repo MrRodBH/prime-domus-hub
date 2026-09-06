@@ -72,8 +72,10 @@ import {
   RESPONSAVEIS_RELATORIO_COMERCIAL,
   alternarEtapaPlaybookComercialSintetico,
   avancarEtapaRolloutSintetico,
+  avancarEtapaAdocaoPoliticaSintetica,
   aplicarDecisaoComercialSintetica,
   calcularMonitoramentoResultadosRolloutSintetico,
+  calcularMonitoramentoConformidadePoliticaSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -85,6 +87,7 @@ import {
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
   calcularResumoRolloutsSinteticos,
+  calcularResumoAdocoesPoliticasSinteticas,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -104,6 +107,8 @@ import {
   registrarResultadoVersaoExperimentoSintetico,
   registrarDecisaoOwnerPortfolioSintetica,
   registrarDecisaoPoliticaAprendizadoSintetica,
+  registrarAderenciaEtapaAdocaoPoliticaSintetica,
+  decidirAdocaoPoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
@@ -115,6 +120,7 @@ import {
   removerRolloutPorExperimentoSintetico,
   sincronizarPlaybookComDecisaoSintetica,
   sincronizarRolloutComDecisaoOwnerSintetica,
+  sincronizarAdocaoComPoliticaPromovidaSintetica,
   simularReaplicacaoAprendizadoEntreRolloutsSinteticos,
   type AcaoDecisaoComercial,
   type CenarioPrevisao,
@@ -122,11 +128,13 @@ import {
   type DecisoesComerciaisSinteticas,
   type DecisaoOwnerPortfolioSintetica,
   type DecisaoOwnerPoliticaAprendizadoSintetica,
+  type DecisaoOwnerAdocaoPoliticaSintetica,
   type EstadoDecisaoComercial,
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
   type FaixaResultadoExperimentoSintetico,
   type FaixaResultadoEtapaRolloutSintetico,
+  type FaixaAderenciaPoliticaSintetica,
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
@@ -207,6 +215,15 @@ type SimularReaplicacaoAprendizadoRollout = (
 type RegistrarDecisaoPoliticaAprendizado = (
   rollout: RolloutExperimentoSintetico,
   decisao: DecisaoOwnerPoliticaAprendizadoSintetica,
+) => void;
+type ControlarAdocaoPolitica = (
+  rollout: RolloutExperimentoSintetico,
+  acao: DecisaoOwnerAdocaoPoliticaSintetica | "Avançar etapa",
+) => void;
+type RegistrarAderenciaPolitica = (
+  rollout: RolloutExperimentoSintetico,
+  etapaId: NonNullable<RolloutExperimentoSintetico["adocaoPolitica"]>["etapas"][number]["id"],
+  faixa: FaixaAderenciaPoliticaSintetica,
 ) => void;
 
 type ItemNavegacao = {
@@ -830,15 +847,55 @@ export function DemoWorkspace() {
     decisao: DecisaoOwnerPoliticaAprendizadoSintetica,
   ) {
     setRolloutsExperimentos((atuais) =>
-      registrarDecisaoPoliticaAprendizadoSintetica({
-        rollouts: atuais,
-        rolloutId: rollout.id,
-        decisao,
-      }),
+      sincronizarAdocaoComPoliticaPromovidaSintetica(
+        registrarDecisaoPoliticaAprendizadoSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          decisao,
+        }),
+      ),
     );
     confirmarAcaoSintetica(
       `Política fictícia: ${decisao.toLocaleLowerCase("pt-BR")}`,
       `A decisão sobre o aprendizado de ${rollout.responsavel} foi registrada somente nesta sessão.`,
+    );
+  }
+
+  function controlarAdocaoPolitica(
+    rollout: RolloutExperimentoSintetico,
+    acao: DecisaoOwnerAdocaoPoliticaSintetica | "Avançar etapa",
+  ) {
+    setRolloutsExperimentos((atuais) =>
+      acao === "Avançar etapa"
+        ? avancarEtapaAdocaoPoliticaSintetica({ rollouts: atuais, rolloutId: rollout.id })
+        : decidirAdocaoPoliticaSintetica({
+            rollouts: atuais,
+            rolloutId: rollout.id,
+            decisao: acao,
+          }),
+    );
+    confirmarAcaoSintetica(
+      "Adoção de política atualizada",
+      `${acao} foi registrado para ${rollout.responsavel} somente nesta sessão.`,
+    );
+  }
+
+  function registrarAderenciaPolitica(
+    rollout: RolloutExperimentoSintetico,
+    etapaId: NonNullable<RolloutExperimentoSintetico["adocaoPolitica"]>["etapas"][number]["id"],
+    faixa: FaixaAderenciaPoliticaSintetica,
+  ) {
+    setRolloutsExperimentos((atuais) =>
+      registrarAderenciaEtapaAdocaoPoliticaSintetica({
+        rollouts: atuais,
+        rolloutId: rollout.id,
+        etapaId,
+        faixa,
+      }),
+    );
+    confirmarAcaoSintetica(
+      "Aderência fictícia registrada",
+      `${faixa} foi registrado na adoção de ${rollout.responsavel} somente nesta sessão.`,
     );
   }
 
@@ -1147,6 +1204,8 @@ export function DemoWorkspace() {
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
                 onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
                 onRegistrarDecisaoPoliticaAprendizado={registrarDecisaoPoliticaAprendizado}
+                onControlarAdocaoPolitica={controlarAdocaoPolitica}
+                onRegistrarAderenciaPolitica={registrarAderenciaPolitica}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -1217,6 +1276,8 @@ export function DemoWorkspace() {
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
                 onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
                 onRegistrarDecisaoPoliticaAprendizado={registrarDecisaoPoliticaAprendizado}
+                onControlarAdocaoPolitica={controlarAdocaoPolitica}
+                onRegistrarAderenciaPolitica={registrarAderenciaPolitica}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -1246,6 +1307,8 @@ export function DemoWorkspace() {
                 onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
                 onSimularReaplicacaoAprendizadoRollout={simularReaplicacaoAprendizadoRollout}
                 onRegistrarDecisaoPoliticaAprendizado={registrarDecisaoPoliticaAprendizado}
+                onControlarAdocaoPolitica={controlarAdocaoPolitica}
+                onRegistrarAderenciaPolitica={registrarAderenciaPolitica}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1487,6 +1550,8 @@ function VisaoGeral({
   onRegistrarResultadoEtapaRollout,
   onSimularReaplicacaoAprendizadoRollout,
   onRegistrarDecisaoPoliticaAprendizado,
+  onControlarAdocaoPolitica,
+  onRegistrarAderenciaPolitica,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1536,6 +1601,8 @@ function VisaoGeral({
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
   onRegistrarDecisaoPoliticaAprendizado: RegistrarDecisaoPoliticaAprendizado;
+  onControlarAdocaoPolitica: ControlarAdocaoPolitica;
+  onRegistrarAderenciaPolitica: RegistrarAderenciaPolitica;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1648,6 +1715,8 @@ function VisaoGeral({
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
         onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
         onRegistrarDecisaoPolitica={onRegistrarDecisaoPoliticaAprendizado}
+        onControlarAdocao={onControlarAdocaoPolitica}
+        onRegistrarAderencia={onRegistrarAderenciaPolitica}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -3552,6 +3621,8 @@ function CentralGovernancaRolloutsSinteticos({
   onRegistrarResultado,
   onSimularReaplicacao,
   onRegistrarDecisaoPolitica,
+  onControlarAdocao,
+  onRegistrarAderencia,
 }: {
   modo: "resumo" | "detalhado";
   rollouts: RolloutsExperimentosSinteticos;
@@ -3562,6 +3633,8 @@ function CentralGovernancaRolloutsSinteticos({
   onRegistrarResultado: RegistrarResultadoEtapaRollout;
   onSimularReaplicacao: SimularReaplicacaoAprendizadoRollout;
   onRegistrarDecisaoPolitica: RegistrarDecisaoPoliticaAprendizado;
+  onControlarAdocao: ControlarAdocaoPolitica;
+  onRegistrarAderencia: RegistrarAderenciaPolitica;
 }) {
   const lista = Object.values(rollouts);
   const rolloutsVisiveis = modo === "resumo" ? lista.slice(0, 1) : lista;
@@ -3644,6 +3717,12 @@ function CentralGovernancaRolloutsSinteticos({
         rollouts={rollouts}
         modo={modo}
         onRegistrarDecisao={onRegistrarDecisaoPolitica}
+      />
+      <MonitoramentoAdocaoConformidadePoliticas
+        rollouts={rollouts}
+        modo={modo}
+        onControlar={onControlarAdocao}
+        onRegistrarAderencia={onRegistrarAderencia}
       />
 
       {rolloutsVisiveis.length === 0 ? (
@@ -3827,6 +3906,175 @@ function CentralGovernancaRolloutsSinteticos({
 }
 
 
+
+
+function MonitoramentoAdocaoConformidadePoliticas({
+  rollouts,
+  modo,
+  onControlar,
+  onRegistrarAderencia,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  modo: "resumo" | "detalhado";
+  onControlar: ControlarAdocaoPolitica;
+  onRegistrarAderencia: RegistrarAderenciaPolitica;
+}) {
+  const resumo = calcularResumoAdocoesPoliticasSinteticas(rollouts);
+  const lista = Object.values(rollouts).filter((rollout) => rollout.adocaoPolitica);
+  const visiveis = modo === "resumo" ? lista.slice(0, 1) : lista;
+  const faixas: FaixaAderenciaPoliticaSintetica[] = ["Conforme", "Atenção", "Desvio crítico"];
+  const corEstado: Record<string, string> = {
+    "Não iniciada": "bg-slate-100 text-slate-800 hover:bg-slate-100",
+    "Em andamento": "bg-cyan-100 text-cyan-900 hover:bg-cyan-100",
+    Pausada: "bg-amber-100 text-amber-900 hover:bg-amber-100",
+    Revogada: "bg-rose-100 text-rose-900 hover:bg-rose-100",
+    Concluída: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+  };
+
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-amber-50 p-4"
+      aria-label="Adoção e conformidade das políticas comerciais"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-800">
+            <ListChecks className="size-4" /> Público interno fictício e decisão humana
+          </p>
+          <h4 className="mt-1 text-sm font-semibold">
+            Adoção e conformidade das políticas comerciais
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Acompanhe etapas internas, aderência ao limite de 85%, desvios explicáveis e a
+            recomendação simulada antes de continuar, pausar ou revogar.
+          </p>
+        </div>
+        <Badge className="w-fit bg-cyan-700 text-white hover:bg-cyan-700">
+          Nenhuma decisão automática
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-5">
+        <IndicadorPlaybook rotulo="Políticas em adoção" valor={String(resumo.politicasEmAdocao)} classe="bg-cyan-100 text-cyan-900" />
+        <IndicadorPlaybook rotulo="Em andamento" valor={String(resumo.emAndamento)} classe="bg-indigo-100 text-indigo-900" />
+        <IndicadorPlaybook rotulo="Pausadas" valor={String(resumo.pausadas)} classe="bg-amber-100 text-amber-900" />
+        <IndicadorPlaybook rotulo="Revogadas" valor={String(resumo.revogadas)} classe="bg-rose-100 text-rose-900" />
+        <IndicadorPlaybook rotulo="Desvios identificados" valor={String(resumo.desvios)} classe="bg-orange-100 text-orange-900" />
+      </div>
+
+      {visiveis.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-cyan-300 bg-white p-4 text-center">
+          <p className="text-sm font-semibold">Nenhuma política promovida em adoção</p>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Promova um aprendizado elegível no catálogo para preparar a adoção simulada.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {visiveis.map((rollout) => {
+            const adocao = rollout.adocaoPolitica!;
+            const monitoramento = calcularMonitoramentoConformidadePoliticaSintetica(rollout);
+            const concluidas = adocao.etapas.filter((etapa) => etapa.concluida).length;
+            return (
+              <article key={rollout.id} className="rounded-xl border border-cyan-200 bg-white p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-800">
+                      {rollout.responsavel} · política {adocao.politicaVersao}
+                    </p>
+                    <h5 className="mt-1 text-sm font-semibold">{rollout.titulo}</h5>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={corEstado[adocao.estado]}>{adocao.estado}</Badge>
+                    <Badge className="bg-violet-100 text-violet-900 hover:bg-violet-100">
+                      Recomendação: {monitoramento.recomendacao}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  <IndicadorPlaybook rotulo="Etapas concluídas" valor={`${concluidas}/${adocao.etapas.length}`} classe="bg-cyan-50 text-cyan-900" />
+                  <IndicadorPlaybook rotulo="Aderência média" valor={monitoramento.aderenciaMedia === null ? "Aguardando" : `${monitoramento.aderenciaMedia}%`} classe="bg-emerald-50 text-emerald-900" />
+                  <IndicadorPlaybook rotulo="Alertas simulados" valor={String(monitoramento.alertas)} classe="bg-amber-50 text-amber-900" />
+                  <IndicadorPlaybook rotulo="Desvios" valor={String(monitoramento.desviosIdentificados)} classe="bg-rose-50 text-rose-900" />
+                </div>
+
+                <p className="mt-3 rounded-xl bg-violet-50 px-3 py-2 text-xs leading-5 text-violet-950">
+                  <strong>Explicação:</strong> {monitoramento.explicacao}
+                </p>
+
+                <div className="mt-3 grid gap-2 lg:grid-cols-3">
+                  {adocao.etapas.map((etapa) => (
+                    <div key={etapa.id} className="rounded-xl border border-cyan-200 bg-cyan-50/60 p-3 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <strong>{etapa.titulo}</strong>
+                        <span className="font-bold">{etapa.percentualPublico}%</span>
+                      </div>
+                      <p className="mt-1 text-[#587076]">{etapa.publicoInternoFicticio}</p>
+                      <p className="mt-2 font-semibold">{etapa.concluida ? "Etapa concluída" : "Etapa pendente"}</p>
+                      {etapa.aderencia ? (
+                        <p className="mt-2 rounded-lg bg-white p-2 leading-5 text-[#587076]">
+                          <strong>{etapa.aderencia.faixa} · {etapa.aderencia.indice}%</strong><br />
+                          {etapa.aderencia.explicacao}
+                        </p>
+                      ) : null}
+                      <div className="mt-2 grid gap-1.5">
+                        {faixas.map((faixa) => (
+                          <Button
+                            key={faixa}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={!etapa.concluida || adocao.estado === "Revogada"}
+                            className="h-auto min-h-8 justify-start whitespace-normal rounded-lg text-left text-xs"
+                            onClick={() => onRegistrarAderencia(rollout, etapa.id, faixa)}
+                          >
+                            {faixa}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_0.85fr]">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="text-xs font-semibold text-emerald-950">Critérios de conformidade</p>
+                    {adocao.criteriosConformidade.map((criterio) => (
+                      <p key={criterio} className="mt-1 text-xs leading-5 text-emerald-900">• {criterio}</p>
+                    ))}
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-xs font-semibold text-amber-950">Decisão simulada do owner</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" disabled={["Pausada", "Revogada", "Concluída"].includes(adocao.estado)} className="rounded-xl" onClick={() => onControlar(rollout, "Avançar etapa")}>
+                        Avançar etapa
+                      </Button>
+                      <Button type="button" size="sm" disabled={monitoramento.recomendacao !== "Continuar" || adocao.estado === "Revogada"} className="rounded-xl bg-emerald-700 text-white" onClick={() => onControlar(rollout, "Continuar")}>
+                        Continuar
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" disabled={monitoramento.recomendacao !== "Pausar" || adocao.estado !== "Em andamento"} className="rounded-xl border-amber-300 text-amber-900" onClick={() => onControlar(rollout, "Pausar")}>
+                        Pausar
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" disabled={monitoramento.recomendacao !== "Revogar" || adocao.estado === "Revogada"} className="rounded-xl border-rose-300 text-rose-900" onClick={() => onControlar(rollout, "Revogar")}>
+                        Revogar
+                      </Button>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-amber-900">{adocao.motivoEstado}</p>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="mt-3 text-[11px] font-semibold text-cyan-800">
+        A adoção não alcança equipes, clientes, políticas ou sistemas reais.
+      </p>
+    </section>
+  );
+}
 
 function CatalogoAprendizadosPoliticas({
   rollouts,
@@ -5979,6 +6227,8 @@ function Analises({
   onRegistrarResultadoEtapaRollout,
   onSimularReaplicacaoAprendizadoRollout,
   onRegistrarDecisaoPoliticaAprendizado,
+  onControlarAdocaoPolitica,
+  onRegistrarAderenciaPolitica,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -6009,6 +6259,8 @@ function Analises({
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
   onRegistrarDecisaoPoliticaAprendizado: RegistrarDecisaoPoliticaAprendizado;
+  onControlarAdocaoPolitica: ControlarAdocaoPolitica;
+  onRegistrarAderenciaPolitica: RegistrarAderenciaPolitica;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -6119,6 +6371,8 @@ function Analises({
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
         onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
         onRegistrarDecisaoPolitica={onRegistrarDecisaoPoliticaAprendizado}
+        onControlarAdocao={onControlarAdocaoPolitica}
+        onRegistrarAderencia={onRegistrarAderenciaPolitica}
       />
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
@@ -6368,6 +6622,8 @@ function InteligenciaArtificial({
   onRegistrarResultadoEtapaRollout,
   onSimularReaplicacaoAprendizadoRollout,
   onRegistrarDecisaoPoliticaAprendizado,
+  onControlarAdocaoPolitica,
+  onRegistrarAderenciaPolitica,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -6397,6 +6653,8 @@ function InteligenciaArtificial({
   onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   onSimularReaplicacaoAprendizadoRollout: SimularReaplicacaoAprendizadoRollout;
   onRegistrarDecisaoPoliticaAprendizado: RegistrarDecisaoPoliticaAprendizado;
+  onControlarAdocaoPolitica: ControlarAdocaoPolitica;
+  onRegistrarAderenciaPolitica: RegistrarAderenciaPolitica;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -6521,6 +6779,8 @@ function InteligenciaArtificial({
         onRegistrarResultado={onRegistrarResultadoEtapaRollout}
         onSimularReaplicacao={onSimularReaplicacaoAprendizadoRollout}
         onRegistrarDecisaoPolitica={onRegistrarDecisaoPoliticaAprendizado}
+        onControlarAdocao={onControlarAdocaoPolitica}
+        onRegistrarAderencia={onRegistrarAderenciaPolitica}
       />
     </>
   );
