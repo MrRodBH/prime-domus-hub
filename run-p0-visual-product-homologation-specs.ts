@@ -14,6 +14,8 @@ import {
   calcularResumoRevisoesCicloVidaPoliticasSinteticas,
   calcularComparacaoPropostaAjustePoliticaSintetica,
   calcularResumoPropostasAjustePoliticasSinteticas,
+  calcularProntidaoAtivacaoSucessoraPoliticaSintetica,
+  calcularResumoValidacoesSucessorasPoliticasSinteticas,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -41,6 +43,9 @@ import {
   registrarRevisaoEficaciaPoliticaSintetica,
   sincronizarPropostaAjustePoliticaSintetica,
   decidirPropostaAjustePoliticaSintetica,
+  sincronizarValidacaoSucessoraPoliticaSintetica,
+  registrarCicloValidacaoSucessoraPoliticaSintetica,
+  decidirValidacaoSucessoraPoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   registrarResultadoPlaybookComercialSintetico,
@@ -1069,6 +1074,27 @@ ok(
   "o planejamento de sucessão deve permanecer exclusivamente em memória",
 );
 
+ok(
+  workspace.includes("Validação da política sucessora e prontidão para ativação") &&
+    workspace.includes("Ciclos fictícios e decisão auditável") &&
+    workspace.includes("Comparação por ciclo"),
+  "Dashboard, Análises e IA devem validar a sucessora em ciclos fictícios comparáveis",
+);
+ok(
+  workspace.includes("Limites de risco") &&
+    workspace.includes("Critérios de prontidão") &&
+    workspace.includes("Ativar") &&
+    workspace.includes("Adiar") &&
+    workspace.includes("Reverter"),
+  "a validação deve explicar riscos, prontidão e as três decisões simuladas do owner",
+);
+ok(
+  workspace.includes("nenhuma política real é ativada ou revertida") &&
+    data.includes("sincronizarValidacaoSucessoraPoliticaSintetica") &&
+    data.includes("decidirValidacaoSucessoraPoliticaSintetica"),
+  "a validação da sucessora deve permanecer exclusivamente em memória",
+);
+
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
   responsavel: "Toda a equipe",
@@ -1984,6 +2010,130 @@ assert.deepEqual(
       estado: "Aprovada para sucessão",
     },
   },
+);
+assertions += 1;
+assert.equal(
+  sincronizarValidacaoSucessoraPoliticaSintetica(
+    rolloutsComPropostaAjuste,
+    rolloutBruno.id,
+  ),
+  rolloutsComPropostaAjuste,
+);
+assertions += 1;
+const rolloutsValidacaoIniciada = sincronizarValidacaoSucessoraPoliticaSintetica(
+  rolloutsPropostaAprovada,
+  rolloutBruno.id,
+);
+assert.deepEqual(
+  {
+    estado:
+      rolloutsValidacaoIniciada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.estado,
+    limites:
+      rolloutsValidacaoIniciada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.limitesRisco.length,
+    recomendacao: calcularProntidaoAtivacaoSucessoraPoliticaSintetica(
+      rolloutsValidacaoIniciada[rolloutBruno.id],
+    )?.recomendacao,
+  },
+  { estado: "Em validação", limites: 3, recomendacao: "Adiar" },
+);
+assertions += 1;
+assert.equal(
+  decidirValidacaoSucessoraPoliticaSintetica({
+    rollouts: rolloutsValidacaoIniciada,
+    rolloutId: rolloutBruno.id,
+    decisao: "Ativar",
+  }),
+  rolloutsValidacaoIniciada,
+);
+assertions += 1;
+const rolloutsValidacaoAdiada = decidirValidacaoSucessoraPoliticaSintetica({
+  rollouts: rolloutsValidacaoIniciada,
+  rolloutId: rolloutBruno.id,
+  decisao: "Adiar",
+});
+assert.equal(
+  rolloutsValidacaoAdiada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+    ?.validacaoSucessora?.estado,
+  "Adiada",
+);
+assertions += 1;
+let rolloutsValidacaoPronta = rolloutsValidacaoIniciada;
+for (let ciclo = 0; ciclo < 3; ciclo += 1) {
+  rolloutsValidacaoPronta = registrarCicloValidacaoSucessoraPoliticaSintetica({
+    rollouts: rolloutsValidacaoPronta,
+    rolloutId: rolloutBruno.id,
+    faixa: "Dentro dos limites",
+  });
+}
+const prontidaoAtivacao = calcularProntidaoAtivacaoSucessoraPoliticaSintetica(
+  rolloutsValidacaoPronta[rolloutBruno.id],
+);
+assert.deepEqual(
+  {
+    ciclos: prontidaoAtivacao?.ciclosConcluidos,
+    ganho: prontidaoAtivacao?.ganhoMedio,
+    criterios: prontidaoAtivacao?.criteriosAtendidos,
+    recomendacao: prontidaoAtivacao?.recomendacao,
+  },
+  { ciclos: 3, ganho: 9, criterios: 5, recomendacao: "Ativar" },
+);
+assertions += 1;
+const rolloutsSucessoraPronta = decidirValidacaoSucessoraPoliticaSintetica({
+  rollouts: rolloutsValidacaoPronta,
+  rolloutId: rolloutBruno.id,
+  decisao: "Ativar",
+});
+assert.deepEqual(
+  {
+    estado:
+      rolloutsSucessoraPronta[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.estado,
+    trilha:
+      rolloutsSucessoraPronta[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.historicoDecisoes.length,
+    resumo: calcularResumoValidacoesSucessorasPoliticasSinteticas(
+      rolloutsSucessoraPronta,
+    ),
+  },
+  {
+    estado: "Pronta para ativação",
+    trilha: 1,
+    resumo: { validacoes: 1, ciclos: 3, prontas: 1, adiadas: 0, revertidas: 0 },
+  },
+);
+assertions += 1;
+assert.equal(
+  registrarCicloValidacaoSucessoraPoliticaSintetica({
+    rollouts: rolloutsSucessoraPronta,
+    rolloutId: rolloutBruno.id,
+    faixa: "Dentro dos limites",
+  }),
+  rolloutsSucessoraPronta,
+);
+assertions += 1;
+const rolloutsValidacaoCritica = registrarCicloValidacaoSucessoraPoliticaSintetica({
+  rollouts: rolloutsValidacaoIniciada,
+  rolloutId: rolloutBruno.id,
+  faixa: "Risco crítico",
+});
+assert.equal(
+  calcularProntidaoAtivacaoSucessoraPoliticaSintetica(
+    rolloutsValidacaoCritica[rolloutBruno.id],
+  )?.recomendacao,
+  "Reverter",
+);
+assertions += 1;
+const rolloutsSucessoraRevertida = decidirValidacaoSucessoraPoliticaSintetica({
+  rollouts: rolloutsValidacaoCritica,
+  rolloutId: rolloutBruno.id,
+  decisao: "Reverter",
+});
+assert.equal(
+  rolloutsSucessoraRevertida[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+    ?.validacaoSucessora?.estado,
+  "Revertida",
 );
 assertions += 1;
 const rolloutsPropostaRetirada = decidirPropostaAjustePoliticaSintetica({

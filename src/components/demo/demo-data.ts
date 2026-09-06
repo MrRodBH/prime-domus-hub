@@ -881,7 +881,44 @@ export type PropostaAjustePoliticaSintetica = {
     estado: "Aprovada para sucessão" | "Retirada antes de aplicação";
   };
   historicoDecisoes: RegistroDecisaoPropostaAjustePoliticaSintetica[];
+  validacaoSucessora?: ValidacaoSucessoraPoliticaSintetica;
   criadoEm: string;
+  atualizadoEm: string;
+};
+
+export type FaixaCicloValidacaoSucessoraSintetica =
+  | "Dentro dos limites"
+  | "Atenção"
+  | "Risco crítico";
+
+export type DecisaoOwnerValidacaoSucessoraSintetica =
+  | "Ativar"
+  | "Adiar"
+  | "Reverter";
+
+export type CicloValidacaoSucessoraSintetica = {
+  ciclo: number;
+  faixa: FaixaCicloValidacaoSucessoraSintetica;
+  eficaciaVigente: number;
+  eficaciaSucessora: number;
+  ganhoSucessora: number;
+  alertasRisco: number;
+  dentroDosLimites: boolean;
+  explicacao: string;
+  registradoEm: string;
+};
+
+export type RegistroDecisaoValidacaoSucessoraSintetica = {
+  decisao: DecisaoOwnerValidacaoSucessoraSintetica;
+  justificativaExplicavel: string;
+  decididoEm: string;
+};
+
+export type ValidacaoSucessoraPoliticaSintetica = {
+  estado: "Em validação" | "Pronta para ativação" | "Adiada" | "Revertida";
+  ciclos: CicloValidacaoSucessoraSintetica[];
+  limitesRisco: string[];
+  historicoDecisoes: RegistroDecisaoValidacaoSucessoraSintetica[];
   atualizadoEm: string;
 };
 
@@ -2493,6 +2530,217 @@ export function calcularResumoPropostasAjustePoliticasSinteticas(
     rejeitadas: propostas.filter((proposta) => proposta.estado === "Rejeitada").length,
     retiradas: propostas.filter((proposta) => proposta.estado === "Retirada").length,
     transicoesSimuladas: propostas.filter((proposta) => proposta.transicaoSimulada).length,
+  };
+}
+
+export function sincronizarValidacaoSucessoraPoliticaSintetica(
+  rollouts: RolloutsExperimentosSinteticos,
+  rolloutId: string,
+): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  if (!rollout || !adocao || !proposta || proposta.validacaoSucessora) return rollouts;
+  if (proposta.estado !== "Aprovada" || proposta.transicaoSimulada?.estado !== "Aprovada para sucessão") {
+    return rollouts;
+  }
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: {
+          ...proposta,
+          validacaoSucessora: {
+            estado: "Em validação",
+            ciclos: [],
+            limitesRisco: [
+              "Concluir três ciclos fictícios antes de considerar ativação.",
+              "Manter eficácia sucessora igual ou superior à política vigente em todos os ciclos.",
+              "Bloquear ativação diante de qualquer risco crítico ou mais de um ciclo em atenção.",
+            ],
+            historicoDecisoes: [],
+            atualizadoEm: "Agora, nesta sessão",
+          },
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function registrarCicloValidacaoSucessoraPoliticaSintetica({
+  rollouts,
+  rolloutId,
+  faixa,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  faixa: FaixaCicloValidacaoSucessoraSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  const validacao = proposta?.validacaoSucessora;
+  if (!rollout || !adocao || !proposta || !validacao || validacao.estado !== "Em validação") {
+    return rollouts;
+  }
+  if (validacao.ciclos.length >= 3) return rollouts;
+  const ciclo = validacao.ciclos.length + 1;
+  const eficaciaVigente = Math.max(60, proposta.impactoAtual - 2 + ciclo);
+  const resultado = {
+    "Dentro dos limites": { delta: 9, alertas: 0 },
+    Atenção: { delta: 2, alertas: 1 },
+    "Risco crítico": { delta: -8, alertas: 3 },
+  }[faixa];
+  const eficaciaSucessora = Math.min(100, eficaciaVigente + resultado.delta);
+  const novoCiclo: CicloValidacaoSucessoraSintetica = {
+    ciclo,
+    faixa,
+    eficaciaVigente,
+    eficaciaSucessora,
+    ganhoSucessora: eficaciaSucessora - eficaciaVigente,
+    alertasRisco: resultado.alertas,
+    dentroDosLimites: faixa === "Dentro dos limites",
+    explicacao:
+      faixa === "Dentro dos limites"
+        ? "A sucessora superou a vigente sem alertas no ciclo fictício."
+        : faixa === "Atenção"
+          ? "A sucessora manteve ganho reduzido e exige evidência adicional antes de ativar."
+          : "A sucessora ficou abaixo da vigente e excedeu o limite de risco simulado.",
+    registradoEm: "Agora, nesta sessão",
+  };
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: {
+          ...proposta,
+          validacaoSucessora: {
+            ...validacao,
+            ciclos: [...validacao.ciclos, novoCiclo],
+            atualizadoEm: "Agora, nesta sessão",
+          },
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularProntidaoAtivacaoSucessoraPoliticaSintetica(
+  rollout: RolloutExperimentoSintetico,
+) {
+  const proposta = rollout.adocaoPolitica?.propostaAjuste;
+  const validacao = proposta?.validacaoSucessora;
+  if (!proposta || !validacao) return null;
+  const ciclosConcluidos = validacao.ciclos.length;
+  const riscosCriticos = validacao.ciclos.filter((ciclo) => ciclo.faixa === "Risco crítico").length;
+  const ciclosAtencao = validacao.ciclos.filter((ciclo) => ciclo.faixa === "Atenção").length;
+  const ganhos = validacao.ciclos.map((ciclo) => ciclo.ganhoSucessora);
+  const ganhoMedio = ganhos.length
+    ? Math.round(ganhos.reduce((total, ganho) => total + ganho, 0) / ganhos.length)
+    : 0;
+  const criterios = [
+    { descricao: "A proposta sucessora permanece aprovada.", atendido: proposta.estado === "Aprovada" },
+    { descricao: "Os três ciclos fictícios foram concluídos.", atendido: ciclosConcluidos === 3 },
+    { descricao: "Nenhum ciclo registrou risco crítico.", atendido: riscosCriticos === 0 },
+    { descricao: "No máximo um ciclo ficou em atenção.", atendido: ciclosAtencao <= 1 },
+    { descricao: "A sucessora manteve ganho médio positivo sobre a vigente.", atendido: ganhoMedio > 0 },
+  ];
+  const criteriosAtendidos = criterios.filter((criterio) => criterio.atendido).length;
+  const recomendacao: DecisaoOwnerValidacaoSucessoraSintetica =
+    riscosCriticos > 0 ? "Reverter" : criteriosAtendidos === criterios.length ? "Ativar" : "Adiar";
+  return {
+    ciclosConcluidos,
+    riscosCriticos,
+    ciclosAtencao,
+    ganhoMedio,
+    criterios,
+    criteriosAtendidos,
+    totalCriterios: criterios.length,
+    recomendacao,
+    explicacao:
+      recomendacao === "Ativar"
+        ? "Todos os critérios de prontidão foram atendidos; a ativação continua apenas simulada."
+        : recomendacao === "Reverter"
+          ? "Um risco crítico exige reversão simulada e preservação da política vigente."
+          : "A evidência ainda é insuficiente ou requer atenção; a sucessora deve ser adiada.",
+  };
+}
+
+export function decidirValidacaoSucessoraPoliticaSintetica({
+  rollouts,
+  rolloutId,
+  decisao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  decisao: DecisaoOwnerValidacaoSucessoraSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  const validacao = proposta?.validacaoSucessora;
+  if (!rollout || !adocao || !proposta || !validacao || validacao.estado !== "Em validação") {
+    return rollouts;
+  }
+  const prontidao = calcularProntidaoAtivacaoSucessoraPoliticaSintetica(rollout);
+  if (!prontidao || decisao !== prontidao.recomendacao) return rollouts;
+  const estado: ValidacaoSucessoraPoliticaSintetica["estado"] =
+    decisao === "Ativar" ? "Pronta para ativação" : decisao === "Adiar" ? "Adiada" : "Revertida";
+  const justificativaExplicavel =
+    decisao === "Ativar"
+      ? "Owner marcou a sucessora como pronta apenas na simulação; nenhuma ativação real foi executada."
+      : decisao === "Adiar"
+        ? "Owner adiou a sucessora até que novos ciclos fictícios possam reduzir a incerteza."
+        : "Owner reverteu a sucessora na simulação após violação do limite de risco.";
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: {
+          ...proposta,
+          validacaoSucessora: {
+            ...validacao,
+            estado,
+            historicoDecisoes: [
+              ...validacao.historicoDecisoes,
+              { decisao, justificativaExplicavel, decididoEm: "Agora, nesta sessão" },
+            ],
+            atualizadoEm: "Agora, nesta sessão",
+          },
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularResumoValidacoesSucessorasPoliticasSinteticas(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const validacoes = Object.values(rollouts).flatMap((rollout) => {
+    const validacao = rollout.adocaoPolitica?.propostaAjuste?.validacaoSucessora;
+    return validacao ? [validacao] : [];
+  });
+  return {
+    validacoes: validacoes.length,
+    ciclos: validacoes.reduce((total, validacao) => total + validacao.ciclos.length, 0),
+    prontas: validacoes.filter((validacao) => validacao.estado === "Pronta para ativação").length,
+    adiadas: validacoes.filter((validacao) => validacao.estado === "Adiada").length,
+    revertidas: validacoes.filter((validacao) => validacao.estado === "Revertida").length,
   };
 }
 
