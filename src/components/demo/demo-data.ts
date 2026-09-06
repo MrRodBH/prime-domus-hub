@@ -802,8 +802,43 @@ export type AdocaoPoliticaSintetica = {
   etapas: EtapaAdocaoPoliticaSintetica[];
   criteriosConformidade: string[];
   motivoEstado: string;
+  estadoCicloVida?: EstadoCicloVidaPoliticaSintetica;
+  revisoesEficacia?: RegistroRevisaoEficaciaPoliticaSintetica[];
+  historicoDecisoesCicloVida?: RegistroDecisaoCicloVidaPoliticaSintetica[];
   atualizadoEm: string;
 };
+
+export type FaixaEficaciaPoliticaSintetica =
+  | "Eficácia sustentada"
+  | "Atenção de eficácia"
+  | "Deterioração crítica";
+
+export type DecisaoOwnerCicloVidaPoliticaSintetica =
+  | "Manter"
+  | "Ajustar"
+  | "Aposentar";
+
+export type RegistroRevisaoEficaciaPoliticaSintetica = {
+  ciclo: number;
+  faixa: FaixaEficaciaPoliticaSintetica;
+  aderenciaObservada: number | null;
+  impactoProjetado: number;
+  impactoObservado: number;
+  diferencaImpacto: number;
+  variacaoCicloAnterior: number | null;
+  deterioracaoDetectada: boolean;
+  explicacao: string;
+  registradoEm: string;
+};
+
+export type RegistroDecisaoCicloVidaPoliticaSintetica = {
+  ciclo: number;
+  decisao: DecisaoOwnerCicloVidaPoliticaSintetica;
+  justificativaExplicavel: string;
+  decididoEm: string;
+};
+
+export type EstadoCicloVidaPoliticaSintetica = "Ativa" | "Em ajuste" | "Aposentada";
 
 export type EtapaRolloutExperimentoSintetico = {
   id: "piloto-interno" | "expansao-controlada" | "cobertura-ampliada";
@@ -2031,6 +2066,208 @@ export function calcularResumoAdocoesPoliticasSinteticas(
         total + calcularMonitoramentoConformidadePoliticaSintetica(rollout).desviosIdentificados,
       0,
     ),
+  };
+}
+
+export function registrarRevisaoEficaciaPoliticaSintetica({
+  rollouts,
+  rolloutId,
+  faixa,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  faixa: FaixaEficaciaPoliticaSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const politicaVigente =
+    rollout?.historicoPoliticaAprendizado?.at(-1)?.decisao === "Promover";
+  if (
+    !rollout ||
+    !adocao ||
+    !politicaVigente ||
+    adocao.estado === "Revogada" ||
+    adocao.estadoCicloVida === "Aposentada"
+  ) {
+    return rollouts;
+  }
+
+  const perfis: Record<
+    FaixaEficaciaPoliticaSintetica,
+    { impactoObservado: number; explicacao: string }
+  > = {
+    "Eficácia sustentada": {
+      impactoObservado: 92,
+      explicacao:
+        "O impacto fictício permaneceu acima da projeção e a política preservou sua eficácia no ciclo.",
+    },
+    "Atenção de eficácia": {
+      impactoObservado: 79,
+      explicacao:
+        "O impacto fictício ficou abaixo da projeção e requer ajuste antes do próximo ciclo.",
+    },
+    "Deterioração crítica": {
+      impactoObservado: 61,
+      explicacao:
+        "A eficácia fictícia deteriorou de forma crítica e exige avaliação de aposentadoria.",
+    },
+  };
+  const revisoesAtuais = adocao.revisoesEficacia ?? [];
+  const perfil = perfis[faixa];
+  const impactoProjetado = 88;
+  const anterior = revisoesAtuais.at(-1);
+  const variacaoCicloAnterior = anterior
+    ? perfil.impactoObservado - anterior.impactoObservado
+    : null;
+  const aderenciaObservada =
+    calcularMonitoramentoConformidadePoliticaSintetica(rollout).aderenciaMedia;
+  const deterioracaoDetectada =
+    faixa === "Deterioração crítica" ||
+    perfil.impactoObservado < 85 ||
+    (variacaoCicloAnterior !== null && variacaoCicloAnterior <= -8) ||
+    (aderenciaObservada !== null && aderenciaObservada < 85);
+  const revisao: RegistroRevisaoEficaciaPoliticaSintetica = {
+    ciclo: revisoesAtuais.length + 1,
+    faixa,
+    aderenciaObservada,
+    impactoProjetado,
+    impactoObservado: perfil.impactoObservado,
+    diferencaImpacto: perfil.impactoObservado - impactoProjetado,
+    variacaoCicloAnterior,
+    deterioracaoDetectada,
+    explicacao: perfil.explicacao,
+    registradoEm: "Agora, nesta sessão",
+  };
+
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        estadoCicloVida: adocao.estadoCicloVida ?? "Ativa",
+        revisoesEficacia: [...revisoesAtuais, revisao],
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularRevisaoCicloVidaPoliticaSintetica(
+  rollout: RolloutExperimentoSintetico,
+) {
+  const adocao = rollout.adocaoPolitica;
+  const revisoes = adocao?.revisoesEficacia ?? [];
+  const ultima = revisoes.at(-1);
+  const deterioracoes = revisoes.filter((revisao) => revisao.deterioracaoDetectada).length;
+  const impactoMedio =
+    revisoes.length > 0
+      ? Math.round(
+          revisoes.reduce((total, revisao) => total + revisao.impactoObservado, 0) /
+            revisoes.length,
+        )
+      : null;
+  const aderenciaMedia =
+    calcularMonitoramentoConformidadePoliticaSintetica(rollout).aderenciaMedia;
+  const recomendacao: DecisaoOwnerCicloVidaPoliticaSintetica | null =
+    !ultima
+      ? null
+      : ultima.impactoObservado <= 65 ||
+          deterioracoes >= 2 ||
+          adocao?.estado === "Revogada"
+        ? "Aposentar"
+        : ultima.deterioracaoDetectada ||
+            ultima.impactoObservado < 85 ||
+            (aderenciaMedia !== null && aderenciaMedia < 85)
+          ? "Ajustar"
+          : "Manter";
+  const explicacao =
+    recomendacao === null
+      ? "Aguardando o primeiro ciclo fictício; nenhuma decisão pode ser tomada sem evidência."
+      : recomendacao === "Aposentar"
+        ? "Deterioração crítica ou recorrente atingiu o critério explicável de aposentadoria."
+        : recomendacao === "Ajustar"
+          ? "Aderência ou impacto ficaram abaixo dos limites e exigem ajuste simulado."
+          : "Aderência e impacto preservam os limites e sustentam a manutenção simulada.";
+
+  return {
+    ciclosRevisados: revisoes.length,
+    aderenciaMedia,
+    impactoProjetado: ultima?.impactoProjetado ?? 88,
+    impactoMedio,
+    diferencaAtual: ultima?.diferencaImpacto ?? null,
+    deterioracoes,
+    recomendacao,
+    explicacao,
+  };
+}
+
+export function decidirCicloVidaPoliticaSintetica({
+  rollouts,
+  rolloutId,
+  decisao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  decisao: DecisaoOwnerCicloVidaPoliticaSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  if (!rollout || !adocao || adocao.estadoCicloVida === "Aposentada") return rollouts;
+  const revisao = calcularRevisaoCicloVidaPoliticaSintetica(rollout);
+  if (!revisao.recomendacao || revisao.recomendacao !== decisao) return rollouts;
+  const estadoCicloVida: EstadoCicloVidaPoliticaSintetica =
+    decisao === "Aposentar" ? "Aposentada" : decisao === "Ajustar" ? "Em ajuste" : "Ativa";
+  const registro: RegistroDecisaoCicloVidaPoliticaSintetica = {
+    ciclo: revisao.ciclosRevisados,
+    decisao,
+    justificativaExplicavel: revisao.explicacao,
+    decididoEm: "Agora, nesta sessão",
+  };
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        estadoCicloVida,
+        historicoDecisoesCicloVida: [
+          ...(adocao.historicoDecisoesCicloVida ?? []),
+          registro,
+        ],
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularResumoRevisoesCicloVidaPoliticasSinteticas(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const adocoes = Object.values(rollouts).flatMap((rollout) =>
+    rollout.adocaoPolitica ? [rollout] : [],
+  );
+  return {
+    politicasRevisadas: adocoes.filter(
+      (rollout) => (rollout.adocaoPolitica?.revisoesEficacia?.length ?? 0) > 0,
+    ).length,
+    ciclosRegistrados: adocoes.reduce(
+      (total, rollout) => total + (rollout.adocaoPolitica?.revisoesEficacia?.length ?? 0),
+      0,
+    ),
+    deterioracoes: adocoes.reduce(
+      (total, rollout) =>
+        total + calcularRevisaoCicloVidaPoliticaSintetica(rollout).deterioracoes,
+      0,
+    ),
+    emAjuste: adocoes.filter(
+      (rollout) => rollout.adocaoPolitica?.estadoCicloVida === "Em ajuste",
+    ).length,
+    aposentadas: adocoes.filter(
+      (rollout) => rollout.adocaoPolitica?.estadoCicloVida === "Aposentada",
+    ).length,
   };
 }
 
