@@ -76,6 +76,7 @@ import {
   aplicarDecisaoComercialSintetica,
   calcularMonitoramentoResultadosRolloutSintetico,
   calcularMonitoramentoConformidadePoliticaSintetica,
+  calcularRevisaoCicloVidaPoliticaSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -88,6 +89,7 @@ import {
   calcularResumoPortfolioExperimentosSinteticos,
   calcularResumoRolloutsSinteticos,
   calcularResumoAdocoesPoliticasSinteticas,
+  calcularResumoRevisoesCicloVidaPoliticasSinteticas,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -109,6 +111,8 @@ import {
   registrarDecisaoPoliticaAprendizadoSintetica,
   registrarAderenciaEtapaAdocaoPoliticaSintetica,
   decidirAdocaoPoliticaSintetica,
+  decidirCicloVidaPoliticaSintetica,
+  registrarRevisaoEficaciaPoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
@@ -129,12 +133,14 @@ import {
   type DecisaoOwnerPortfolioSintetica,
   type DecisaoOwnerPoliticaAprendizadoSintetica,
   type DecisaoOwnerAdocaoPoliticaSintetica,
+  type DecisaoOwnerCicloVidaPoliticaSintetica,
   type EstadoDecisaoComercial,
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
   type FaixaResultadoExperimentoSintetico,
   type FaixaResultadoEtapaRolloutSintetico,
   type FaixaAderenciaPoliticaSintetica,
+  type FaixaEficaciaPoliticaSintetica,
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
@@ -216,9 +222,14 @@ type RegistrarDecisaoPoliticaAprendizado = (
   rollout: RolloutExperimentoSintetico,
   decisao: DecisaoOwnerPoliticaAprendizadoSintetica,
 ) => void;
+type AcaoGovernancaPoliticaSintetica =
+  | DecisaoOwnerAdocaoPoliticaSintetica
+  | "Avançar etapa"
+  | { tipo: "Registrar revisão"; faixa: FaixaEficaciaPoliticaSintetica }
+  | { tipo: "Decidir ciclo de vida"; decisao: DecisaoOwnerCicloVidaPoliticaSintetica };
 type ControlarAdocaoPolitica = (
   rollout: RolloutExperimentoSintetico,
-  acao: DecisaoOwnerAdocaoPoliticaSintetica | "Avançar etapa",
+  acao: AcaoGovernancaPoliticaSintetica,
 ) => void;
 type RegistrarAderenciaPolitica = (
   rollout: RolloutExperimentoSintetico,
@@ -863,20 +874,40 @@ export function DemoWorkspace() {
 
   function controlarAdocaoPolitica(
     rollout: RolloutExperimentoSintetico,
-    acao: DecisaoOwnerAdocaoPoliticaSintetica | "Avançar etapa",
+    acao: AcaoGovernancaPoliticaSintetica,
   ) {
-    setRolloutsExperimentos((atuais) =>
-      acao === "Avançar etapa"
+    setRolloutsExperimentos((atuais) => {
+      if (typeof acao === "object" && acao.tipo === "Registrar revisão") {
+        return registrarRevisaoEficaciaPoliticaSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          faixa: acao.faixa,
+        });
+      }
+      if (typeof acao === "object" && acao.tipo === "Decidir ciclo de vida") {
+        return decidirCicloVidaPoliticaSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          decisao: acao.decisao,
+        });
+      }
+      return acao === "Avançar etapa"
         ? avancarEtapaAdocaoPoliticaSintetica({ rollouts: atuais, rolloutId: rollout.id })
         : decidirAdocaoPoliticaSintetica({
             rollouts: atuais,
             rolloutId: rollout.id,
             decisao: acao,
-          }),
-    );
+          });
+    });
+    const descricao =
+      typeof acao === "object"
+        ? acao.tipo === "Registrar revisão"
+          ? acao.faixa
+          : acao.decisao
+        : acao;
     confirmarAcaoSintetica(
-      "Adoção de política atualizada",
-      `${acao} foi registrado para ${rollout.responsavel} somente nesta sessão.`,
+      "Governança de política atualizada",
+      `${descricao} foi registrado para ${rollout.responsavel} somente nesta sessão.`,
     );
   }
 
@@ -3724,6 +3755,11 @@ function CentralGovernancaRolloutsSinteticos({
         onControlar={onControlarAdocao}
         onRegistrarAderencia={onRegistrarAderencia}
       />
+      <RevisaoEficaciaCicloVidaPoliticas
+        rollouts={rollouts}
+        modo={modo}
+        onControlar={onControlarAdocao}
+      />
 
       {rolloutsVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-emerald-300 bg-white/70 p-5 text-center">
@@ -4071,6 +4107,179 @@ function MonitoramentoAdocaoConformidadePoliticas({
 
       <p className="mt-3 text-[11px] font-semibold text-cyan-800">
         A adoção não alcança equipes, clientes, políticas ou sistemas reais.
+      </p>
+    </section>
+  );
+}
+
+function RevisaoEficaciaCicloVidaPoliticas({
+  rollouts,
+  modo,
+  onControlar,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  modo: "resumo" | "detalhado";
+  onControlar: ControlarAdocaoPolitica;
+}) {
+  const resumo = calcularResumoRevisoesCicloVidaPoliticasSinteticas(rollouts);
+  const politicas = Object.values(rollouts).filter((rollout) => rollout.adocaoPolitica);
+  const visiveis = modo === "resumo" ? politicas.slice(0, 1) : politicas;
+  const faixas: FaixaEficaciaPoliticaSintetica[] = [
+    "Eficácia sustentada",
+    "Atenção de eficácia",
+    "Deterioração crítica",
+  ];
+  const decisoes: DecisaoOwnerCicloVidaPoliticaSintetica[] = [
+    "Manter",
+    "Ajustar",
+    "Aposentar",
+  ];
+
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-rose-50 p-4"
+      aria-label="Revisão periódica de eficácia e ciclo de vida das políticas"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-800">
+            <RefreshCcw className="size-4" /> Ciclos fictícios e deterioração explicável
+          </p>
+          <h4 className="mt-1 text-sm font-semibold">
+            Revisão periódica de eficácia e ciclo de vida
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Compare aderência e impacto projetado, acompanhe a eficácia por ciclo e decida
+            manter, ajustar ou aposentar sem produzir qualquer efeito real.
+          </p>
+        </div>
+        <Badge className="w-fit bg-indigo-700 text-white hover:bg-indigo-700">
+          Decisão exclusiva do owner
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-5">
+        <IndicadorPlaybook rotulo="Políticas revisadas" valor={String(resumo.politicasRevisadas)} classe="bg-indigo-100 text-indigo-900" />
+        <IndicadorPlaybook rotulo="Ciclos fictícios" valor={String(resumo.ciclosRegistrados)} classe="bg-cyan-100 text-cyan-900" />
+        <IndicadorPlaybook rotulo="Deteriorações" valor={String(resumo.deterioracoes)} classe="bg-rose-100 text-rose-900" />
+        <IndicadorPlaybook rotulo="Em ajuste" valor={String(resumo.emAjuste)} classe="bg-amber-100 text-amber-900" />
+        <IndicadorPlaybook rotulo="Aposentadas" valor={String(resumo.aposentadas)} classe="bg-slate-200 text-slate-900" />
+      </div>
+
+      {visiveis.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-indigo-300 bg-white p-4 text-center">
+          <p className="text-sm font-semibold">Nenhuma política adotada disponível</p>
+          <p className="mt-1 text-xs text-[#587076]">
+            Promova e adote uma política fictícia antes de iniciar sua revisão periódica.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {visiveis.map((rollout) => {
+            const adocao = rollout.adocaoPolitica!;
+            const revisao = calcularRevisaoCicloVidaPoliticaSintetica(rollout);
+            const historico = adocao.revisoesEficacia ?? [];
+            const ultima = historico.at(-1);
+            const aposentada = adocao.estadoCicloVida === "Aposentada";
+            return (
+              <article key={rollout.id} className="rounded-xl border border-indigo-200 bg-white p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-800">
+                      {rollout.responsavel} · política {adocao.politicaVersao}
+                    </p>
+                    <h5 className="mt-1 text-sm font-semibold">{rollout.titulo}</h5>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className="bg-indigo-100 text-indigo-900 hover:bg-indigo-100">
+                      Ciclo de vida: {adocao.estadoCicloVida ?? "Ativa"}
+                    </Badge>
+                    <Badge className="bg-violet-100 text-violet-900 hover:bg-violet-100">
+                      Recomendação: {revisao.recomendacao ?? "Aguardando ciclo"}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-5">
+                  <IndicadorPlaybook rotulo="Ciclos revisados" valor={String(revisao.ciclosRevisados)} classe="bg-indigo-50 text-indigo-900" />
+                  <IndicadorPlaybook rotulo="Aderência média" valor={revisao.aderenciaMedia === null ? "Aguardando" : `${revisao.aderenciaMedia}%`} classe="bg-cyan-50 text-cyan-900" />
+                  <IndicadorPlaybook rotulo="Impacto projetado" valor={`${revisao.impactoProjetado}%`} classe="bg-emerald-50 text-emerald-900" />
+                  <IndicadorPlaybook rotulo="Impacto médio" valor={revisao.impactoMedio === null ? "Aguardando" : `${revisao.impactoMedio}%`} classe="bg-amber-50 text-amber-900" />
+                  <IndicadorPlaybook rotulo="Deteriorações" valor={String(revisao.deterioracoes)} classe="bg-rose-50 text-rose-900" />
+                </div>
+
+                <p className="mt-3 rounded-xl bg-indigo-50 px-3 py-2 text-xs leading-5 text-indigo-950">
+                  <strong>Leitura explicável:</strong> {revisao.explicacao}
+                </p>
+
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+                    <p className="text-xs font-semibold text-cyan-950">Registrar próximo ciclo fictício</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {faixas.map((faixa) => (
+                        <Button
+                          key={faixa}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={aposentada}
+                          className="h-auto whitespace-normal rounded-xl text-left text-xs"
+                          onClick={() => onControlar(rollout, { tipo: "Registrar revisão", faixa })}
+                        >
+                          {faixa}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-xs font-semibold text-amber-950">Decisão simulada do owner</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {decisoes.map((decisao) => (
+                        <Button
+                          key={decisao}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={aposentada || revisao.recomendacao !== decisao}
+                          className="rounded-xl text-xs"
+                          onClick={() =>
+                            onControlar(rollout, { tipo: "Decidir ciclo de vida", decisao })
+                          }
+                        >
+                          {decisao}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs font-semibold">Eficácia fictícia por ciclo</p>
+                  {historico.length === 0 ? (
+                    <p className="mt-1 text-xs text-[#587076]">Nenhum ciclo registrado.</p>
+                  ) : (
+                    <div className="mt-2 grid gap-2">
+                      {historico.map((ciclo) => (
+                        <p key={ciclo.ciclo} className="rounded-lg bg-white p-2 text-xs leading-5 text-[#587076]">
+                          <strong>Ciclo {ciclo.ciclo} · {ciclo.faixa}</strong> — aderência {ciclo.aderenciaObservada ?? "aguardando"}%; impacto {ciclo.impactoObservado}% versus {ciclo.impactoProjetado}% projetado ({ciclo.diferencaImpacto >= 0 ? "+" : ""}{ciclo.diferencaImpacto} p.p.). {ciclo.explicacao}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {ultima?.deterioracaoDetectada ? (
+                    <p className="mt-2 text-xs font-semibold text-rose-800">
+                      Deterioração detectada de forma explicável neste ciclo.
+                    </p>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="mt-3 text-[11px] font-semibold text-indigo-800">
+        Revisões, recomendações e decisões existem apenas nesta sessão; nenhuma política real é alterada.
       </p>
     </section>
   );
