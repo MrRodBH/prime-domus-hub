@@ -9,6 +9,8 @@ import {
   calcularComparativoPlaybooksSinteticos,
   calcularMonitoramentoResultadosRolloutSintetico,
   calcularHistoricoDecisoesRolloutsSinteticos,
+  calcularCatalogoAprendizadosSinteticos,
+  calcularTrilhaPoliticasAprendizadoSinteticas,
   calcularAprendizadoCruzadoRolloutsSinteticos,
   calcularPortfolioExperimentosSinteticos,
   calcularResumoExperimentosPlaybooksSinteticos,
@@ -25,6 +27,7 @@ import {
   calcularRelatorioComercialSintetico,
   criarExperimentoComparativoPlaybookSintetico,
   registrarDecisaoOwnerPortfolioSintetica,
+  registrarDecisaoPoliticaAprendizadoSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   registrarResultadoPlaybookComercialSintetico,
@@ -970,6 +973,26 @@ ok(
   "histórico, comparação e reaplicação devem usar funções sintéticas determinísticas",
 );
 
+ok(
+  workspace.includes("Catálogo de aprendizados e políticas comerciais") &&
+    workspace.includes("Elegibilidade explicável e versionamento") &&
+    workspace.includes("Projeção de impacto fictícia"),
+  "Dashboard, Análises e IA devem exibir catálogo, versionamento e impacto projetado",
+);
+ok(
+  workspace.includes("Promover") &&
+    workspace.includes("Rejeitar") &&
+    workspace.includes("Retirar") &&
+    workspace.includes("Trilha auditável das políticas"),
+  "o owner deve simular as três decisões com rastreabilidade",
+);
+ok(
+  workspace.includes("Nenhuma política é publicada, aplicada ou retirada de sistemas reais") &&
+    data.includes("historicoPoliticaAprendizado") &&
+    data.includes("registrarDecisaoPoliticaAprendizadoSintetica"),
+  "as políticas e sua trilha devem permanecer exclusivamente em memória",
+);
+
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
   responsavel: "Toda a equipe",
@@ -1561,6 +1584,78 @@ assert.equal(
     rollouts: rolloutsCruzados,
     origemRolloutId: rolloutBrunoComparado.id,
     destinoRolloutId: rolloutBruno.id,
+  }),
+  rolloutsCruzados,
+);
+assertions += 1;
+
+const catalogoBruno = calcularCatalogoAprendizadosSinteticos(rolloutsBrunoMonitorado);
+assert.deepEqual(
+  {
+    total: catalogoBruno.length,
+    versao: catalogoBruno[0]?.versao,
+    elegivel: catalogoBruno[0]?.elegivel,
+    criterios: catalogoBruno[0]?.criterios.filter((criterio) => criterio.atendido).length,
+    impacto: catalogoBruno[0]?.nivelImpacto,
+    pontuacao: catalogoBruno[0]?.pontuacaoImpacto,
+    estado: catalogoBruno[0]?.estadoPolitica,
+  },
+  {
+    total: 1,
+    versao: "v1.1",
+    elegivel: true,
+    criterios: 4,
+    impacto: "Alto",
+    pontuacao: 79,
+    estado: "Em avaliação",
+  },
+);
+assertions += 1;
+const rolloutsPoliticaPromovida = registrarDecisaoPoliticaAprendizadoSintetica({
+  rollouts: rolloutsBrunoMonitorado,
+  rolloutId: rolloutBruno.id,
+  decisao: "Promover",
+});
+assert.deepEqual(
+  {
+    estado: calcularCatalogoAprendizadosSinteticos(rolloutsPoliticaPromovida)[0]?.estadoPolitica,
+    trilha: calcularTrilhaPoliticasAprendizadoSinteticas(rolloutsPoliticaPromovida).length,
+    decisao:
+      calcularTrilhaPoliticasAprendizadoSinteticas(rolloutsPoliticaPromovida)[0]?.decisao,
+  },
+  { estado: "Promovido", trilha: 1, decisao: "Promover" },
+);
+assertions += 1;
+const rolloutsPoliticaRetirada = registrarDecisaoPoliticaAprendizadoSintetica({
+  rollouts: rolloutsPoliticaPromovida,
+  rolloutId: rolloutBruno.id,
+  decisao: "Retirar",
+});
+assert.deepEqual(
+  {
+    estado: calcularCatalogoAprendizadosSinteticos(rolloutsPoliticaRetirada)[0]?.estadoPolitica,
+    trilha: calcularTrilhaPoliticasAprendizadoSinteticas(rolloutsPoliticaRetirada).length,
+  },
+  { estado: "Retirado", trilha: 2 },
+);
+assertions += 1;
+const rolloutsPoliticaRejeitada = registrarDecisaoPoliticaAprendizadoSintetica({
+  rollouts: rolloutsCruzados,
+  rolloutId: rolloutBrunoComparado.id,
+  decisao: "Rejeitar",
+});
+assert.equal(
+  calcularCatalogoAprendizadosSinteticos(rolloutsPoliticaRejeitada).find(
+    (item) => item.rolloutId === rolloutBrunoComparado.id,
+  )?.estadoPolitica,
+  "Rejeitado",
+);
+assertions += 1;
+assert.equal(
+  registrarDecisaoPoliticaAprendizadoSintetica({
+    rollouts: rolloutsCruzados,
+    rolloutId: rolloutBrunoComparado.id,
+    decisao: "Promover",
   }),
   rolloutsCruzados,
 );
