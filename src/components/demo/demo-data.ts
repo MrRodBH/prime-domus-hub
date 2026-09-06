@@ -742,6 +742,14 @@ export type ResultadoEtapaRolloutSintetico = {
   registradoEm: string;
 };
 
+export type ReaplicacaoAprendizadoRolloutSintetica = {
+  origemRolloutId: string;
+  origemTitulo: string;
+  recomendacaoRastreada: RecomendacaoMonitoramentoRolloutSintetico;
+  criterioPreservado: string;
+  simuladoEm: string;
+};
+
 export type EtapaRolloutExperimentoSintetico = {
   id: "piloto-interno" | "expansao-controlada" | "cobertura-ampliada";
   titulo: string;
@@ -763,6 +771,7 @@ export type RolloutExperimentoSintetico = {
   criteriosPausa: string[];
   criteriosReversao: string[];
   motivoEstado?: string;
+  aprendizadoReaplicado?: ReaplicacaoAprendizadoRolloutSintetica;
   atualizadoEm: string;
 };
 
@@ -1518,6 +1527,119 @@ export function calcularResumoMonitoramentoRolloutsSinteticos(
     dentroDoLimite: resultados.filter((resultado) => resultado.faixa === "Dentro do limite").length,
     emAtencao: resultados.filter((resultado) => resultado.faixa === "Atenção").length,
     limitesViolados: resultados.filter((resultado) => resultado.faixa === "Limite violado").length,
+  };
+}
+
+
+export function calcularHistoricoDecisoesRolloutsSinteticos(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const recomendacaoPorFaixa: Record<
+    FaixaResultadoEtapaRolloutSintetico,
+    RecomendacaoMonitoramentoRolloutSintetico
+  > = {
+    "Dentro do limite": "Continuar",
+    Atenção: "Pausar",
+    "Limite violado": "Reverter",
+  };
+  return Object.values(rollouts).flatMap((rollout) =>
+    rollout.etapas.flatMap((etapa) =>
+      etapa.resultado
+        ? [{
+            id: `${rollout.id}:${etapa.id}`,
+            rolloutId: rollout.id,
+            experimentoId: rollout.experimentoId,
+            responsavel: rollout.responsavel,
+            titulo: rollout.titulo,
+            etapa: etapa.titulo,
+            faixa: etapa.resultado.faixa,
+            efetividade: etapa.resultado.efetividade,
+            recomendacao: recomendacaoPorFaixa[etapa.resultado.faixa],
+            explicacao: etapa.resultado.leituraExplicavel,
+            registradoEm: etapa.resultado.registradoEm,
+          }]
+        : [],
+    ),
+  );
+}
+
+export function calcularAprendizadoCruzadoRolloutsSinteticos(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const comparacoes = Object.values(rollouts)
+    .map((rollout) => {
+      const monitoramento = calcularMonitoramentoResultadosRolloutSintetico(rollout);
+      return {
+        rolloutId: rollout.id,
+        experimentoId: rollout.experimentoId,
+        responsavel: rollout.responsavel,
+        titulo: rollout.titulo,
+        resultados: monitoramento.resultadosRegistrados,
+        efetividadeMedia: monitoramento.efetividadeMedia,
+        alertas: monitoramento.alertasSeguranca,
+        violacoes: monitoramento.violacoes,
+        recomendacao: monitoramento.recomendacao,
+        explicacao: monitoramento.explicacaoRecomendacao,
+      };
+    })
+    .filter((item) => item.resultados > 0);
+  const historico = calcularHistoricoDecisoesRolloutsSinteticos(rollouts);
+  const sucesso = historico.filter((item) => item.faixa === "Dentro do limite").length;
+  const atencao = historico.filter((item) => item.faixa === "Atenção").length;
+  const risco = historico.filter((item) => item.faixa === "Limite violado").length;
+  const fonteRecomendada =
+    [...comparacoes]
+      .filter((item) => item.recomendacao === "Continuar" && item.efetividadeMedia !== null)
+      .sort(
+        (a, b) =>
+          (b.efetividadeMedia ?? 0) - (a.efetividadeMedia ?? 0) ||
+          a.titulo.localeCompare(b.titulo, "pt-BR"),
+      )[0] ?? null;
+  return {
+    comparacoes,
+    padroes: {
+      sucesso,
+      atencao,
+      risco,
+      explicacao:
+        historico.length === 0
+          ? "Aguardando resultados fictícios para identificar padrões entre experimentos."
+          : `${sucesso} sinal(is) de sucesso, ${atencao} ponto(s) de atenção e ${risco} risco(s) explicável(is) no histórico.`,
+    },
+    fonteRecomendada,
+  };
+}
+
+export function simularReaplicacaoAprendizadoEntreRolloutsSinteticos({
+  rollouts,
+  origemRolloutId,
+  destinoRolloutId,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  origemRolloutId: string;
+  destinoRolloutId: string;
+}): RolloutsExperimentosSinteticos {
+  const origem = rollouts[origemRolloutId];
+  const destino = rollouts[destinoRolloutId];
+  if (!origem || !destino || origemRolloutId === destinoRolloutId) return rollouts;
+  const monitoramento = calcularMonitoramentoResultadosRolloutSintetico(origem);
+  if (monitoramento.resultadosRegistrados === 0 || monitoramento.recomendacao !== "Continuar") {
+    return rollouts;
+  }
+  return {
+    ...rollouts,
+    [destinoRolloutId]: {
+      ...destino,
+      aprendizadoReaplicado: {
+        origemRolloutId,
+        origemTitulo: origem.titulo,
+        recomendacaoRastreada: monitoramento.recomendacao,
+        criterioPreservado:
+          "Preservar limite fictício de 80%, exposição gradual e confirmação humana antes de cada etapa.",
+        simuladoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
   };
 }
 
