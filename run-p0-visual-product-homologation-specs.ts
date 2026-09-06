@@ -16,6 +16,8 @@ import {
   calcularResumoPropostasAjustePoliticasSinteticas,
   calcularProntidaoAtivacaoSucessoraPoliticaSintetica,
   calcularResumoValidacoesSucessorasPoliticasSinteticas,
+  calcularGovernancaAtivacaoSucessoraSintetica,
+  calcularResumoAtivacoesControladasSucessorasSinteticas,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -46,6 +48,9 @@ import {
   sincronizarValidacaoSucessoraPoliticaSintetica,
   registrarCicloValidacaoSucessoraPoliticaSintetica,
   decidirValidacaoSucessoraPoliticaSintetica,
+  sincronizarAtivacaoControladaPoliticaSucessoraSintetica,
+  registrarCheckpointAtivacaoSucessoraSintetica,
+  decidirAtivacaoControladaPoliticaSucessoraSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   registrarResultadoPlaybookComercialSintetico,
@@ -1095,6 +1100,27 @@ ok(
   "a validação da sucessora deve permanecer exclusivamente em memória",
 );
 
+ok(
+  workspace.includes("Ativação controlada e transição da política sucessora") &&
+    workspace.includes("Checkpoints, público fictício e retorno seguro") &&
+    workspace.includes("Progresso da transição fictícia"),
+  "Dashboard, Análises e IA devem refletir a transição gradual da política sucessora",
+);
+ok(
+  workspace.includes("Política vigente preservada") &&
+    workspace.includes("Limites de segurança") &&
+    workspace.includes("Continuar") &&
+    workspace.includes("Pausar") &&
+    workspace.includes("Rollback"),
+  "a ativação deve preservar a vigente e expor decisões humanas fail-closed",
+);
+ok(
+  workspace.includes("nenhuma versão ou pessoa real é afetada") &&
+    data.includes("sincronizarAtivacaoControladaPoliticaSucessoraSintetica") &&
+    data.includes("decidirAtivacaoControladaPoliticaSucessoraSintetica"),
+  "a transição da política sucessora deve permanecer exclusivamente em memória",
+);
+
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
   responsavel: "Toda a equipe",
@@ -2102,6 +2128,136 @@ assert.deepEqual(
     trilha: 1,
     resumo: { validacoes: 1, ciclos: 3, prontas: 1, adiadas: 0, revertidas: 0 },
   },
+);
+assertions += 1;
+assert.equal(
+  sincronizarAtivacaoControladaPoliticaSucessoraSintetica(
+    rolloutsValidacaoPronta,
+    rolloutBruno.id,
+  ),
+  rolloutsValidacaoPronta,
+);
+assertions += 1;
+const rolloutsAtivacaoIniciada = sincronizarAtivacaoControladaPoliticaSucessoraSintetica(
+  rolloutsSucessoraPronta,
+  rolloutBruno.id,
+);
+assert.deepEqual(
+  {
+    estado:
+      rolloutsAtivacaoIniciada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.ativacaoControlada?.estado,
+    checkpoints:
+      rolloutsAtivacaoIniciada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.ativacaoControlada?.checkpoints.length,
+    vigentePreservada:
+      rolloutsAtivacaoIniciada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.ativacaoControlada?.politicaVigentePreservada,
+    recomendacao: calcularGovernancaAtivacaoSucessoraSintetica(
+      rolloutsAtivacaoIniciada[rolloutBruno.id],
+    )?.recomendacao,
+  },
+  { estado: "Em transição", checkpoints: 3, vigentePreservada: true, recomendacao: null },
+);
+assertions += 1;
+assert.equal(
+  decidirAtivacaoControladaPoliticaSucessoraSintetica({
+    rollouts: rolloutsAtivacaoIniciada,
+    rolloutId: rolloutBruno.id,
+    decisao: "Continuar",
+  }),
+  rolloutsAtivacaoIniciada,
+);
+assertions += 1;
+let rolloutsAtivacaoConcluida = rolloutsAtivacaoIniciada;
+for (let checkpoint = 0; checkpoint < 3; checkpoint += 1) {
+  rolloutsAtivacaoConcluida = registrarCheckpointAtivacaoSucessoraSintetica({
+    rollouts: rolloutsAtivacaoConcluida,
+    rolloutId: rolloutBruno.id,
+    faixa: "Seguro",
+  });
+  rolloutsAtivacaoConcluida = decidirAtivacaoControladaPoliticaSucessoraSintetica({
+    rollouts: rolloutsAtivacaoConcluida,
+    rolloutId: rolloutBruno.id,
+    decisao: "Continuar",
+  });
+}
+assert.deepEqual(
+  {
+    estado:
+      rolloutsAtivacaoConcluida[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.ativacaoControlada?.estado,
+    progresso: calcularGovernancaAtivacaoSucessoraSintetica(
+      rolloutsAtivacaoConcluida[rolloutBruno.id],
+    )?.progresso,
+    trilha:
+      rolloutsAtivacaoConcluida[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+        ?.validacaoSucessora?.ativacaoControlada?.historicoDecisoes.length,
+    resumo: calcularResumoAtivacoesControladasSucessorasSinteticas(
+      rolloutsAtivacaoConcluida,
+    ),
+  },
+  {
+    estado: "Concluída",
+    progresso: 100,
+    trilha: 3,
+    resumo: { ativacoes: 1, checkpointsConcluidos: 3, pausadas: 0, concluidas: 1, rollbacks: 0 },
+  },
+);
+assertions += 1;
+assert.equal(
+  registrarCheckpointAtivacaoSucessoraSintetica({
+    rollouts: rolloutsAtivacaoConcluida,
+    rolloutId: rolloutBruno.id,
+    faixa: "Seguro",
+  }),
+  rolloutsAtivacaoConcluida,
+);
+assertions += 1;
+const rolloutsAtivacaoAtencao = registrarCheckpointAtivacaoSucessoraSintetica({
+  rollouts: rolloutsAtivacaoIniciada,
+  rolloutId: rolloutBruno.id,
+  faixa: "Atenção",
+});
+assert.equal(
+  calcularGovernancaAtivacaoSucessoraSintetica(
+    rolloutsAtivacaoAtencao[rolloutBruno.id],
+  )?.recomendacao,
+  "Pausar",
+);
+assertions += 1;
+const rolloutsAtivacaoPausada = decidirAtivacaoControladaPoliticaSucessoraSintetica({
+  rollouts: rolloutsAtivacaoAtencao,
+  rolloutId: rolloutBruno.id,
+  decisao: "Pausar",
+});
+assert.equal(
+  rolloutsAtivacaoPausada[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+    ?.validacaoSucessora?.ativacaoControlada?.estado,
+  "Pausada",
+);
+assertions += 1;
+const rolloutsAtivacaoCritica = registrarCheckpointAtivacaoSucessoraSintetica({
+  rollouts: rolloutsAtivacaoIniciada,
+  rolloutId: rolloutBruno.id,
+  faixa: "Limite violado",
+});
+assert.equal(
+  calcularGovernancaAtivacaoSucessoraSintetica(
+    rolloutsAtivacaoCritica[rolloutBruno.id],
+  )?.recomendacao,
+  "Rollback",
+);
+assertions += 1;
+const rolloutsAtivacaoRevertida = decidirAtivacaoControladaPoliticaSucessoraSintetica({
+  rollouts: rolloutsAtivacaoCritica,
+  rolloutId: rolloutBruno.id,
+  decisao: "Rollback",
+});
+assert.equal(
+  rolloutsAtivacaoRevertida[rolloutBruno.id].adocaoPolitica?.propostaAjuste
+    ?.validacaoSucessora?.ativacaoControlada?.estado,
+  "Rollback concluído",
 );
 assertions += 1;
 assert.equal(
