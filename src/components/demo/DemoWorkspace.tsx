@@ -73,6 +73,7 @@ import {
   alternarEtapaPlaybookComercialSintetico,
   avancarEtapaRolloutSintetico,
   aplicarDecisaoComercialSintetica,
+  calcularMonitoramentoResultadosRolloutSintetico,
   calcularProgressoRolloutSintetico,
   calcularProgressoPlaybookSintetico,
   calcularComparativoPlaybooksSinteticos,
@@ -80,6 +81,7 @@ import {
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
   calcularResumoRolloutsSinteticos,
+  calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
@@ -97,6 +99,7 @@ import {
   registrarResultadoPlaybookComercialSintetico,
   registrarResultadoVersaoExperimentoSintetico,
   registrarDecisaoOwnerPortfolioSintetica,
+  registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
   retomarRolloutSintetico,
@@ -116,6 +119,7 @@ import {
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
   type FaixaResultadoExperimentoSintetico,
+  type FaixaResultadoEtapaRolloutSintetico,
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
@@ -184,6 +188,11 @@ type RegistrarDecisaoPortfolio = (
   decisao: DecisaoOwnerPortfolioSintetica,
 ) => void;
 type ControlarRollout = (rollout: RolloutExperimentoSintetico) => void;
+type RegistrarResultadoEtapaRollout = (
+  rollout: RolloutExperimentoSintetico,
+  etapaId: RolloutExperimentoSintetico["etapas"][number]["id"],
+  faixa: FaixaResultadoEtapaRolloutSintetico,
+) => void;
 
 type ItemNavegacao = {
   id: ModuloId;
@@ -765,6 +774,25 @@ export function DemoWorkspace() {
     );
   }
 
+  function registrarResultadoEtapaRollout(
+    rollout: RolloutExperimentoSintetico,
+    etapaId: RolloutExperimentoSintetico["etapas"][number]["id"],
+    faixa: FaixaResultadoEtapaRolloutSintetico,
+  ) {
+    setRolloutsExperimentos((atuais) =>
+      registrarResultadoEtapaRolloutSintetico({
+        rollouts: atuais,
+        rolloutId: rollout.id,
+        etapaId,
+        faixa,
+      }),
+    );
+    confirmarAcaoSintetica(
+      "Resultado fictício monitorado",
+      `${faixa} foi registrado na etapa do rollout de ${rollout.responsavel} somente nesta sessão.`,
+    );
+  }
+
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
       atuais.map((item) =>
@@ -1067,6 +1095,7 @@ export function DemoWorkspace() {
                 onPausarRollout={pausarRollout}
                 onRetomarRollout={retomarRollout}
                 onReverterRollout={reverterRollout}
+                onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -1134,6 +1163,7 @@ export function DemoWorkspace() {
                 onPausarRollout={pausarRollout}
                 onRetomarRollout={retomarRollout}
                 onReverterRollout={reverterRollout}
+                onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -1160,6 +1190,7 @@ export function DemoWorkspace() {
                 onPausarRollout={pausarRollout}
                 onRetomarRollout={retomarRollout}
                 onReverterRollout={reverterRollout}
+                onRegistrarResultadoEtapaRollout={registrarResultadoEtapaRollout}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1398,6 +1429,7 @@ function VisaoGeral({
   onPausarRollout,
   onRetomarRollout,
   onReverterRollout,
+  onRegistrarResultadoEtapaRollout,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1444,6 +1476,7 @@ function VisaoGeral({
   onPausarRollout: ControlarRollout;
   onRetomarRollout: ControlarRollout;
   onReverterRollout: ControlarRollout;
+  onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1553,6 +1586,7 @@ function VisaoGeral({
         onPausar={onPausarRollout}
         onRetomar={onRetomarRollout}
         onReverter={onReverterRollout}
+        onRegistrarResultado={onRegistrarResultadoEtapaRollout}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -3454,6 +3488,7 @@ function CentralGovernancaRolloutsSinteticos({
   onPausar,
   onRetomar,
   onReverter,
+  onRegistrarResultado,
 }: {
   modo: "resumo" | "detalhado";
   rollouts: RolloutsExperimentosSinteticos;
@@ -3461,10 +3496,12 @@ function CentralGovernancaRolloutsSinteticos({
   onPausar: ControlarRollout;
   onRetomar: ControlarRollout;
   onReverter: ControlarRollout;
+  onRegistrarResultado: RegistrarResultadoEtapaRollout;
 }) {
   const lista = Object.values(rollouts);
   const rolloutsVisiveis = modo === "resumo" ? lista.slice(0, 1) : lista;
   const resumo = calcularResumoRolloutsSinteticos(rollouts);
+  const resumoMonitoramento = calcularResumoMonitoramentoRolloutsSinteticos(rollouts);
   const corEstado = {
     "Não iniciado": "bg-slate-100 text-slate-800 hover:bg-slate-100",
     "Em andamento": "bg-cyan-100 text-cyan-900 hover:bg-cyan-100",
@@ -3517,6 +3554,20 @@ function CentralGovernancaRolloutsSinteticos({
           valor={String(resumo.concluidos)}
           classe="bg-emerald-100 text-emerald-900"
         />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Badge className="bg-cyan-100 text-cyan-900 hover:bg-cyan-100">
+          {resumoMonitoramento.resultadosMonitorados} resultado(s) monitorado(s)
+        </Badge>
+        <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+          {resumoMonitoramento.dentroDoLimite} dentro do limite
+        </Badge>
+        <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+          {resumoMonitoramento.emAtencao} em atenção
+        </Badge>
+        <Badge className="bg-rose-100 text-rose-900 hover:bg-rose-100">
+          {resumoMonitoramento.limitesViolados} limite(s) violado(s)
+        </Badge>
       </div>
 
       {rolloutsVisiveis.length === 0 ? (
@@ -3611,6 +3662,11 @@ function CentralGovernancaRolloutsSinteticos({
                     </div>
                   </div>
 
+                  <MonitoramentoResultadosRollout
+                    rollout={rollout}
+                    onRegistrarResultado={onRegistrarResultado}
+                  />
+
                   <div className="mt-4 grid gap-3 lg:grid-cols-3">
                     <CriteriosGovernancaRollout
                       titulo="Limites de segurança"
@@ -3690,6 +3746,157 @@ function CentralGovernancaRolloutsSinteticos({
           })}
         </div>
       )}
+    </section>
+  );
+}
+
+function MonitoramentoResultadosRollout({
+  rollout,
+  onRegistrarResultado,
+}: {
+  rollout: RolloutExperimentoSintetico;
+  onRegistrarResultado: RegistrarResultadoEtapaRollout;
+}) {
+  const monitoramento = calcularMonitoramentoResultadosRolloutSintetico(rollout);
+  const faixas: FaixaResultadoEtapaRolloutSintetico[] = [
+    "Dentro do limite",
+    "Atenção",
+    "Limite violado",
+  ];
+  const corRecomendacao = {
+    Continuar: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+    Pausar: "bg-amber-100 text-amber-900 hover:bg-amber-100",
+    Reverter: "bg-rose-100 text-rose-900 hover:bg-rose-100",
+  } as const;
+  const corFaixa: Record<FaixaResultadoEtapaRolloutSintetico, string> = {
+    "Dentro do limite": "border-emerald-300 bg-emerald-50 text-emerald-900",
+    Atenção: "border-amber-300 bg-amber-50 text-amber-900",
+    "Limite violado": "border-rose-300 bg-rose-50 text-rose-900",
+  };
+
+  return (
+    <section
+      className="mt-5 rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-4"
+      aria-label={`Monitoramento dos resultados do rollout de ${rollout.responsavel}`}
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-violet-800">
+            <BarChart3 className="size-4" /> Evidências fictícias por etapa
+          </p>
+          <h5 className="mt-1 text-sm font-semibold">
+            Monitoramento de resultados e aprendizado
+          </h5>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Compare cada resultado fictício com o limite de 80%, entenda os desvios e preserve a
+            decisão humana antes de continuar, pausar ou reverter.
+          </p>
+        </div>
+        <Badge className={corRecomendacao[monitoramento.recomendacao]}>
+          Recomendação: {monitoramento.recomendacao}
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        <IndicadorPlaybook
+          rotulo="Resultados registrados"
+          valor={String(monitoramento.resultadosRegistrados)}
+          classe="bg-violet-100 text-violet-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Efetividade média"
+          valor={
+            monitoramento.efetividadeMedia === null
+              ? "Aguardando"
+              : `${monitoramento.efetividadeMedia}%`
+          }
+          classe="bg-cyan-100 text-cyan-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Alertas simulados"
+          valor={String(monitoramento.alertasSeguranca)}
+          classe="bg-orange-100 text-orange-900"
+        />
+        <IndicadorPlaybook
+          rotulo="Limites violados"
+          valor={String(monitoramento.violacoes)}
+          classe="bg-rose-100 text-rose-900"
+        />
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        {rollout.etapas.map((etapa) => (
+          <article key={etapa.id} className="rounded-xl border border-violet-200 bg-white p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold">{etapa.titulo}</p>
+                <p className="mt-1 text-[11px] text-[#587076]">
+                  Limite fictício: 80% · público {etapa.percentualPublico}%
+                </p>
+              </div>
+              <Badge
+                className={
+                  etapa.resultado
+                    ? corFaixa[etapa.resultado.faixa]
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-100"
+                }
+              >
+                {etapa.resultado?.faixa ?? (etapa.concluida ? "Aguardando resultado" : "Pendente")}
+              </Badge>
+            </div>
+
+            {etapa.resultado ? (
+              <div className="mt-3 rounded-xl bg-[#f8f7f3] p-3 text-xs leading-5 text-[#587076]">
+                <strong className="text-[#123f47]">
+                  {etapa.resultado.efetividade}% · desvio{" "}
+                  {etapa.resultado.desvioDoLimite > 0 ? "+" : ""}
+                  {etapa.resultado.desvioDoLimite} p.p.
+                </strong>
+                <p>{etapa.resultado.leituraExplicavel}</p>
+              </div>
+            ) : null}
+
+            <div className="mt-3 grid gap-2">
+              {faixas.map((faixa) => (
+                <Button
+                  key={faixa}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!etapa.concluida}
+                  className={cn(
+                    "h-auto min-h-9 justify-start whitespace-normal rounded-xl text-left text-xs",
+                    etapa.resultado?.faixa === faixa ? corFaixa[faixa] : "",
+                  )}
+                  aria-label={`Registrar ${faixa.toLocaleLowerCase("pt-BR")} em ${etapa.titulo} do rollout de ${rollout.responsavel}`}
+                  onClick={() => onRegistrarResultado(rollout, etapa.id, faixa)}
+                >
+                  {faixa}
+                </Button>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs leading-5 text-violet-950">
+          <p className="flex items-center gap-2 font-semibold">
+            <Lightbulb className="size-4" /> Aprendizado consolidado
+          </p>
+          <p className="mt-1">{monitoramento.aprendizadoConsolidado}</p>
+        </div>
+        <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-xs leading-5 text-cyan-950">
+          <p className="flex items-center gap-2 font-semibold">
+            <TriangleAlert className="size-4" /> Por que esta recomendação
+          </p>
+          <p className="mt-1">{monitoramento.explicacaoRecomendacao}</p>
+        </div>
+      </div>
+
+      <p className="mt-3 text-[11px] font-semibold text-violet-800">
+        A recomendação é simulada e não avança, pausa ou reverte automaticamente o rollout.
+      </p>
     </section>
   );
 }
@@ -5370,6 +5577,7 @@ function Analises({
   onPausarRollout,
   onRetomarRollout,
   onReverterRollout,
+  onRegistrarResultadoEtapaRollout,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -5397,6 +5605,7 @@ function Analises({
   onPausarRollout: ControlarRollout;
   onRetomarRollout: ControlarRollout;
   onReverterRollout: ControlarRollout;
+  onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -5504,6 +5713,7 @@ function Analises({
         onPausar={onPausarRollout}
         onRetomar={onRetomarRollout}
         onReverter={onReverterRollout}
+        onRegistrarResultado={onRegistrarResultadoEtapaRollout}
       />
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
@@ -5750,6 +5960,7 @@ function InteligenciaArtificial({
   onPausarRollout,
   onRetomarRollout,
   onReverterRollout,
+  onRegistrarResultadoEtapaRollout,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -5776,6 +5987,7 @@ function InteligenciaArtificial({
   onPausarRollout: ControlarRollout;
   onRetomarRollout: ControlarRollout;
   onReverterRollout: ControlarRollout;
+  onRegistrarResultadoEtapaRollout: RegistrarResultadoEtapaRollout;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -5897,6 +6109,7 @@ function InteligenciaArtificial({
         onPausar={onPausarRollout}
         onRetomar={onRetomarRollout}
         onReverter={onReverterRollout}
+        onRegistrarResultado={onRegistrarResultadoEtapaRollout}
       />
     </>
   );

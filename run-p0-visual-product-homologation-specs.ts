@@ -7,10 +7,12 @@ import {
   avancarEtapaRolloutSintetico,
   aplicarDecisaoComercialSintetica,
   calcularComparativoPlaybooksSinteticos,
+  calcularMonitoramentoResultadosRolloutSintetico,
   calcularPortfolioExperimentosSinteticos,
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
   calcularResumoRolloutsSinteticos,
+  calcularResumoMonitoramentoRolloutsSinteticos,
   calcularProgressoRolloutSintetico,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
@@ -21,6 +23,7 @@ import {
   calcularRelatorioComercialSintetico,
   criarExperimentoComparativoPlaybookSintetico,
   registrarDecisaoOwnerPortfolioSintetica,
+  registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   registrarResultadoPlaybookComercialSintetico,
   registrarResultadoVersaoExperimentoSintetico,
@@ -919,6 +922,31 @@ ok(
     data.includes("sincronizarRolloutComDecisaoOwnerSintetica"),
   "os rollouts devem permanecer exclusivamente em memória e vinculados à decisão aprovada",
 );
+ok(
+  workspace.includes("Monitoramento de resultados e aprendizado") &&
+    workspace.includes("Evidências fictícias por etapa") &&
+    workspace.includes("Efetividade média"),
+  "Dashboard, Análises e IA devem acompanhar os resultados fictícios por etapa",
+);
+ok(
+  workspace.includes("Aprendizado consolidado") &&
+    workspace.includes("Por que esta recomendação") &&
+    workspace.includes("Limite fictício: 80%"),
+  "o monitoramento deve explicar desvios, consolidar aprendizados e manter o limite visível",
+);
+ok(
+  workspace.includes("Recomendação:") &&
+    workspace.includes("Continuar") &&
+    workspace.includes("Pausar") &&
+    workspace.includes("Reverter"),
+  "a recomendação simulada deve cobrir continuar, pausar e reverter",
+);
+ok(
+  workspace.includes("não avança, pausa ou reverte automaticamente") &&
+    workspace.includes("useState<RolloutsExperimentosSinteticos>(") &&
+    data.includes("registrarResultadoEtapaRolloutSintetico"),
+  "resultados e recomendações devem permanecer em memória e sob decisão humana",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -1410,6 +1438,82 @@ assert.deepEqual(
     progresso: calcularProgressoRolloutSintetico(rolloutsBrunoEtapa1[rolloutBruno.id]),
   },
   { estado: "Em andamento", progresso: 33 },
+);
+assertions += 1;
+assert.equal(
+  registrarResultadoEtapaRolloutSintetico({
+    rollouts: rolloutsBruno,
+    rolloutId: rolloutBruno.id,
+    etapaId: "piloto-interno",
+    faixa: "Dentro do limite",
+  }),
+  rolloutsBruno,
+);
+assertions += 1;
+const rolloutsBrunoMonitorado = registrarResultadoEtapaRolloutSintetico({
+  rollouts: rolloutsBrunoEtapa1,
+  rolloutId: rolloutBruno.id,
+  etapaId: "piloto-interno",
+  faixa: "Dentro do limite",
+});
+assert.deepEqual(
+  calcularMonitoramentoResultadosRolloutSintetico(
+    rolloutsBrunoMonitorado[rolloutBruno.id],
+  ),
+  {
+    resultadosRegistrados: 1,
+    efetividadeMedia: 86,
+    alertasSeguranca: 0,
+    violacoes: 0,
+    recomendacao: "Continuar",
+    explicacaoRecomendacao:
+      "Os resultados fictícios permanecem dentro dos limites e sustentam continuidade controlada.",
+    aprendizadoConsolidado:
+      "1 etapa(s) dentro do limite, 0 em atenção e 0 com violação. 0 alerta(s) simulado(s) no total.",
+  },
+);
+assertions += 1;
+assert.deepEqual(calcularResumoMonitoramentoRolloutsSinteticos(rolloutsBrunoMonitorado), {
+  resultadosMonitorados: 1,
+  dentroDoLimite: 1,
+  emAtencao: 0,
+  limitesViolados: 0,
+});
+assertions += 1;
+const rolloutsBrunoAtencao = registrarResultadoEtapaRolloutSintetico({
+  rollouts: rolloutsBrunoMonitorado,
+  rolloutId: rolloutBruno.id,
+  etapaId: "piloto-interno",
+  faixa: "Atenção",
+});
+assert.deepEqual(
+  {
+    desvio:
+      rolloutsBrunoAtencao[rolloutBruno.id].etapas[0].resultado?.desvioDoLimite,
+    recomendacao: calcularMonitoramentoResultadosRolloutSintetico(
+      rolloutsBrunoAtencao[rolloutBruno.id],
+    ).recomendacao,
+  },
+  { desvio: -4, recomendacao: "Pausar" },
+);
+assertions += 1;
+const rolloutsBrunoViolado = registrarResultadoEtapaRolloutSintetico({
+  rollouts: rolloutsBrunoAtencao,
+  rolloutId: rolloutBruno.id,
+  etapaId: "piloto-interno",
+  faixa: "Limite violado",
+});
+assert.deepEqual(
+  {
+    efetividade:
+      rolloutsBrunoViolado[rolloutBruno.id].etapas[0].resultado?.efetividade,
+    alertas:
+      rolloutsBrunoViolado[rolloutBruno.id].etapas[0].resultado?.alertasSeguranca,
+    recomendacao: calcularMonitoramentoResultadosRolloutSintetico(
+      rolloutsBrunoViolado[rolloutBruno.id],
+    ).recomendacao,
+  },
+  { efetividade: 68, alertas: 2, recomendacao: "Reverter" },
 );
 assertions += 1;
 const rolloutsBrunoPausado = pausarRolloutSintetico({
