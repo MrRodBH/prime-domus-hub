@@ -10,6 +10,8 @@ import {
   calcularComparativoPlaybooksSinteticos,
   calcularMonitoramentoResultadosRolloutSintetico,
   calcularMonitoramentoConformidadePoliticaSintetica,
+  calcularRevisaoCicloVidaPoliticaSintetica,
+  calcularResumoRevisoesCicloVidaPoliticasSinteticas,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -33,6 +35,8 @@ import {
   registrarDecisaoPoliticaAprendizadoSintetica,
   registrarAderenciaEtapaAdocaoPoliticaSintetica,
   decidirAdocaoPoliticaSintetica,
+  decidirCicloVidaPoliticaSintetica,
+  registrarRevisaoEficaciaPoliticaSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   registrarResultadoPlaybookComercialSintetico,
@@ -1020,6 +1024,26 @@ ok(
   "a adoção de políticas deve permanecer exclusivamente em memória e sem ações reais",
 );
 
+ok(
+  workspace.includes("Revisão periódica de eficácia e ciclo de vida") &&
+    workspace.includes("Ciclos fictícios e deterioração explicável") &&
+    workspace.includes("Impacto projetado"),
+  "Dashboard, Análises e IA devem comparar aderência, impacto e eficácia por ciclo",
+);
+ok(
+  workspace.includes("Deterioração detectada de forma explicável neste ciclo") &&
+    workspace.includes("Manter") &&
+    workspace.includes("Ajustar") &&
+    workspace.includes("Aposentar"),
+  "a revisão deve detectar deterioração e oferecer decisões humanas de ciclo de vida",
+);
+ok(
+  workspace.includes("Revisões, recomendações e decisões existem apenas nesta sessão") &&
+    data.includes("registrarRevisaoEficaciaPoliticaSintetica") &&
+    data.includes("decidirCicloVidaPoliticaSintetica"),
+  "o ciclo de vida das políticas deve permanecer exclusivamente em memória e sem ações reais",
+);
+
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
   responsavel: "Toda a equipe",
@@ -1768,6 +1792,115 @@ assert.deepEqual(
   { recomendacao: "Revogar", estado: "Revogada" },
 );
 assertions += 1;
+const rolloutsRevisaoSustentada = registrarRevisaoEficaciaPoliticaSintetica({
+  rollouts: rolloutsAdocaoConforme,
+  rolloutId: rolloutBruno.id,
+  faixa: "Eficácia sustentada",
+});
+assert.deepEqual(
+  calcularRevisaoCicloVidaPoliticaSintetica(
+    rolloutsRevisaoSustentada[rolloutBruno.id],
+  ),
+  {
+    ciclosRevisados: 1,
+    aderenciaMedia: 92,
+    impactoProjetado: 88,
+    impactoMedio: 92,
+    diferencaAtual: 4,
+    deterioracoes: 0,
+    recomendacao: "Manter",
+    explicacao:
+      "Aderência e impacto preservam os limites e sustentam a manutenção simulada.",
+  },
+);
+assertions += 1;
+const rolloutsPoliticaMantida = decidirCicloVidaPoliticaSintetica({
+  rollouts: rolloutsRevisaoSustentada,
+  rolloutId: rolloutBruno.id,
+  decisao: "Manter",
+});
+assert.deepEqual(
+  {
+    estado:
+      rolloutsPoliticaMantida[rolloutBruno.id].adocaoPolitica?.estadoCicloVida,
+    decisoes:
+      rolloutsPoliticaMantida[rolloutBruno.id].adocaoPolitica
+        ?.historicoDecisoesCicloVida?.length,
+  },
+  { estado: "Ativa", decisoes: 1 },
+);
+assertions += 1;
+const rolloutsRevisaoAtencao = registrarRevisaoEficaciaPoliticaSintetica({
+  rollouts: rolloutsPoliticaMantida,
+  rolloutId: rolloutBruno.id,
+  faixa: "Atenção de eficácia",
+});
+assert.deepEqual(
+  {
+    ciclos: calcularRevisaoCicloVidaPoliticaSintetica(
+      rolloutsRevisaoAtencao[rolloutBruno.id],
+    ).ciclosRevisados,
+    deterioracoes: calcularResumoRevisoesCicloVidaPoliticasSinteticas(
+      rolloutsRevisaoAtencao,
+    ).deterioracoes,
+    variacao:
+      rolloutsRevisaoAtencao[rolloutBruno.id].adocaoPolitica?.revisoesEficacia?.at(-1)
+        ?.variacaoCicloAnterior,
+    recomendacao: calcularRevisaoCicloVidaPoliticaSintetica(
+      rolloutsRevisaoAtencao[rolloutBruno.id],
+    ).recomendacao,
+  },
+  { ciclos: 2, deterioracoes: 1, variacao: -13, recomendacao: "Ajustar" },
+);
+assertions += 1;
+const rolloutsPoliticaEmAjuste = decidirCicloVidaPoliticaSintetica({
+  rollouts: rolloutsRevisaoAtencao,
+  rolloutId: rolloutBruno.id,
+  decisao: "Ajustar",
+});
+assert.equal(
+  rolloutsPoliticaEmAjuste[rolloutBruno.id].adocaoPolitica?.estadoCicloVida,
+  "Em ajuste",
+);
+assertions += 1;
+const rolloutsRevisaoCritica = registrarRevisaoEficaciaPoliticaSintetica({
+  rollouts: rolloutsPoliticaEmAjuste,
+  rolloutId: rolloutBruno.id,
+  faixa: "Deterioração crítica",
+});
+assert.equal(
+  calcularRevisaoCicloVidaPoliticaSintetica(
+    rolloutsRevisaoCritica[rolloutBruno.id],
+  ).recomendacao,
+  "Aposentar",
+);
+assertions += 1;
+const rolloutsPoliticaAposentada = decidirCicloVidaPoliticaSintetica({
+  rollouts: rolloutsRevisaoCritica,
+  rolloutId: rolloutBruno.id,
+  decisao: "Aposentar",
+});
+assert.deepEqual(
+  {
+    estado:
+      rolloutsPoliticaAposentada[rolloutBruno.id].adocaoPolitica?.estadoCicloVida,
+    aposentadas:
+      calcularResumoRevisoesCicloVidaPoliticasSinteticas(rolloutsPoliticaAposentada)
+        .aposentadas,
+  },
+  { estado: "Aposentada", aposentadas: 1 },
+);
+assertions += 1;
+assert.equal(
+  registrarRevisaoEficaciaPoliticaSintetica({
+    rollouts: rolloutsPoliticaAposentada,
+    rolloutId: rolloutBruno.id,
+    faixa: "Eficácia sustentada",
+  }),
+  rolloutsPoliticaAposentada,
+);
+assertions += 1;
+
 const rolloutsRetiradaAposAdocao = registrarDecisaoPoliticaAprendizadoSintetica({
   rollouts: rolloutsComAdocao,
   rolloutId: rolloutBruno.id,
