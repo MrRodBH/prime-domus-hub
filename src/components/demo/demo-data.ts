@@ -690,6 +690,16 @@ export type VersaoExperimentoPlaybookSintetico = {
   resultado?: ResultadoVersaoExperimentoSintetico;
 };
 
+export type DecisaoOwnerPortfolioSintetica = "Escalar" | "Repetir" | "Arquivar";
+
+export type RegistroDecisaoOwnerPortfolioSintetica = {
+  decisao: DecisaoOwnerPortfolioSintetica;
+  registradoEm: string;
+};
+
+export type NivelPortfolioSintetico = "Alto" | "Médio" | "Baixo";
+export type NivelConfiancaPortfolioSintetica = "Alta" | "Média" | "Baixa";
+
 export type ExperimentoPlaybookSintetico = {
   id: string;
   playbookMelhoriaId: string;
@@ -701,9 +711,46 @@ export type ExperimentoPlaybookSintetico = {
   valorCriterio: number;
   versoes: VersaoExperimentoPlaybookSintetico[];
   criadoEm: string;
+  decisaoOwner?: RegistroDecisaoOwnerPortfolioSintetica;
 };
 
 export type ExperimentosPlaybooksSinteticos = Record<string, ExperimentoPlaybookSintetico>;
+
+export type ItemPortfolioExperimentoSintetico = {
+  experimentoId: string;
+  responsavel: RecomendacaoResponsavelSintetica["responsavel"];
+  titulo: string;
+  comparacaoConcluida: boolean;
+  diferencaVersaoB: number | null;
+  impacto: NivelPortfolioSintetico;
+  pontuacaoImpacto: number;
+  impactoEsperado: string;
+  confianca: NivelConfiancaPortfolioSintetica;
+  pontuacaoConfianca: number;
+  prioridade: NivelPortfolioSintetico;
+  pontuacaoPrioridade: number;
+  recomendacaoAtual: DecisaoOwnerPortfolioSintetica;
+  justificativaRecomendacao: string;
+  decisaoOwner?: RegistroDecisaoOwnerPortfolioSintetica;
+};
+
+export const CRITERIOS_DECISAO_PORTFOLIO_SINTETICOS = [
+  {
+    decisao: "Escalar",
+    descricao:
+      "Versão B alcança 80% ou mais e supera a Versão A em pelo menos 8 p.p. após a comparação completa.",
+  },
+  {
+    decisao: "Repetir",
+    descricao:
+      "Há potencial, mas falta evidência ou pelo menos um dos critérios para escalar ainda não foi atendido.",
+  },
+  {
+    decisao: "Arquivar",
+    descricao:
+      "A comparação está completa, a Versão B fica abaixo de 80% e não supera a prática atual.",
+  },
+] as const;
 
 export function criarChaveDecisaoComercial(
   periodo: PeriodoRelatorioComercial,
@@ -1056,31 +1103,33 @@ export function registrarResultadoVersaoExperimentoSintetico({
     Ajustar: `A versão ficou a ${Math.abs(diferencaCriterio)} p.p. do critério; um refinamento pequeno deve ser testado antes de nova comparação.`,
     Encerrar: `A versão ficou ${Math.abs(diferencaCriterio)} p.p. abaixo do critério e não justifica ampliar este caminho na simulação.`,
   };
+  const experimentoRevalidado: ExperimentoPlaybookSintetico = {
+    ...experimento,
+    versoes: experimento.versoes.map((item) =>
+      item.id === versaoId
+        ? {
+            ...item,
+            resultado: {
+              faixa,
+              efetividade,
+              atingiuCriterio: efetividade >= experimento.valorCriterio,
+              resultadoFicticio: `${efetividade}% de efetividade em 20 oportunidades exclusivamente sintéticas.`,
+              leituraExplicavel:
+                diferencaCriterio >= 0
+                  ? `O resultado ficou ${diferencaCriterio} p.p. acima do critério de ${experimento.valorCriterio}%.`
+                  : `O resultado ficou ${Math.abs(diferencaCriterio)} p.p. abaixo do critério de ${experimento.valorCriterio}%.`,
+              recomendacao,
+              justificativaRecomendacao: justificativaPorRecomendacao[recomendacao],
+              registradoEm: "Agora, nesta sessão",
+            },
+          }
+        : item,
+    ),
+  };
+  delete experimentoRevalidado.decisaoOwner;
   return {
     ...experimentos,
-    [experimentoId]: {
-      ...experimento,
-      versoes: experimento.versoes.map((item) =>
-        item.id === versaoId
-          ? {
-              ...item,
-              resultado: {
-                faixa,
-                efetividade,
-                atingiuCriterio: efetividade >= experimento.valorCriterio,
-                resultadoFicticio: `${efetividade}% de efetividade em 20 oportunidades exclusivamente sintéticas.`,
-                leituraExplicavel:
-                  diferencaCriterio >= 0
-                    ? `O resultado ficou ${diferencaCriterio} p.p. acima do critério de ${experimento.valorCriterio}%.`
-                    : `O resultado ficou ${Math.abs(diferencaCriterio)} p.p. abaixo do critério de ${experimento.valorCriterio}%.`,
-                recomendacao,
-                justificativaRecomendacao: justificativaPorRecomendacao[recomendacao],
-                registradoEm: "Agora, nesta sessão",
-              },
-            }
-          : item,
-      ),
-    },
+    [experimentoId]: experimentoRevalidado,
   };
 }
 
@@ -1099,6 +1148,119 @@ export function calcularResumoExperimentosPlaybooksSinteticos(
     comparacoesConcluidas: lista.filter((experimento) =>
       experimento.versoes.every((versao) => Boolean(versao.resultado)),
     ).length,
+  };
+}
+
+export function calcularPortfolioExperimentosSinteticos(
+  experimentos: ExperimentosPlaybooksSinteticos,
+): ItemPortfolioExperimentoSintetico[] {
+  return Object.values(experimentos)
+    .map((experimento) => {
+      const [versaoA, versaoB] = experimento.versoes;
+      const resultadosRegistrados = experimento.versoes.filter((versao) => versao.resultado).length;
+      const comparacaoConcluida = resultadosRegistrados === experimento.versoes.length;
+      const diferencaVersaoB = comparacaoConcluida
+        ? versaoB.resultado!.efetividade - versaoA.resultado!.efetividade
+        : null;
+      const pontuacaoConfianca =
+        resultadosRegistrados === 2 ? 90 : resultadosRegistrados === 1 ? 55 : 20;
+      const confianca: NivelConfiancaPortfolioSintetica =
+        pontuacaoConfianca >= 80 ? "Alta" : pontuacaoConfianca >= 50 ? "Média" : "Baixa";
+      const pontuacaoImpacto =
+        diferencaVersaoB === null
+          ? 20
+          : diferencaVersaoB >= 8
+            ? 95
+            : diferencaVersaoB > 0
+              ? 65
+              : 30;
+      const impacto: NivelPortfolioSintetico =
+        pontuacaoImpacto >= 80 ? "Alto" : pontuacaoImpacto >= 50 ? "Médio" : "Baixo";
+      const pontuacaoPrioridade = Math.round(pontuacaoImpacto * 0.6 + pontuacaoConfianca * 0.4);
+      const prioridade: NivelPortfolioSintetico =
+        pontuacaoPrioridade >= 80 ? "Alto" : pontuacaoPrioridade >= 50 ? "Médio" : "Baixo";
+      const podeEscalar =
+        comparacaoConcluida &&
+        versaoB.resultado!.efetividade >= experimento.valorCriterio &&
+        diferencaVersaoB! >= 8;
+      const deveArquivar =
+        comparacaoConcluida &&
+        versaoB.resultado!.efetividade < experimento.valorCriterio &&
+        diferencaVersaoB! <= 0;
+      const recomendacaoAtual: DecisaoOwnerPortfolioSintetica = podeEscalar
+        ? "Escalar"
+        : deveArquivar
+          ? "Arquivar"
+          : "Repetir";
+      const justificativaRecomendacao = !comparacaoConcluida
+        ? `Ainda faltam ${2 - resultadosRegistrados} resultados fictícios para concluir a comparação com confiança.`
+        : podeEscalar
+          ? `A Versão B atingiu ${versaoB.resultado!.efetividade}% e superou a Versão A em ${diferencaVersaoB} p.p.; os dois critérios de escala foram atendidos.`
+          : deveArquivar
+            ? `A Versão B atingiu ${versaoB.resultado!.efetividade}% e ficou ${Math.abs(diferencaVersaoB!)} p.p. atrás da Versão A; o teste não sustenta continuidade.`
+            : `A Versão B atingiu ${versaoB.resultado!.efetividade}% e variou ${diferencaVersaoB! >= 0 ? "+" : ""}${diferencaVersaoB} p.p.; repita antes de ampliar porque nem todos os critérios de escala foram atendidos.`;
+      const impactoEsperado =
+        diferencaVersaoB === null
+          ? "Impacto ainda não mensurável até concluir as duas versões."
+          : diferencaVersaoB > 0
+            ? `Potencial fictício de elevar a efetividade em ${diferencaVersaoB} p.p. sobre a prática atual.`
+            : `Sem ganho demonstrado: a Versão B ficou ${Math.abs(diferencaVersaoB)} p.p. atrás da prática atual.`;
+      return {
+        experimentoId: experimento.id,
+        responsavel: experimento.responsavel,
+        titulo: experimento.titulo,
+        comparacaoConcluida,
+        diferencaVersaoB,
+        impacto,
+        pontuacaoImpacto,
+        impactoEsperado,
+        confianca,
+        pontuacaoConfianca,
+        prioridade,
+        pontuacaoPrioridade,
+        recomendacaoAtual,
+        justificativaRecomendacao,
+        decisaoOwner: experimento.decisaoOwner,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.pontuacaoPrioridade - a.pontuacaoPrioridade ||
+        a.responsavel.localeCompare(b.responsavel, "pt-BR"),
+    );
+}
+
+export function calcularResumoPortfolioExperimentosSinteticos(
+  experimentos: ExperimentosPlaybooksSinteticos,
+) {
+  const portfolio = calcularPortfolioExperimentosSinteticos(experimentos);
+  return {
+    experimentosNoPortfolio: portfolio.length,
+    prioridadesAltas: portfolio.filter((item) => item.prioridade === "Alto").length,
+    prontosParaEscalar: portfolio.filter((item) => item.recomendacaoAtual === "Escalar").length,
+    decisoesDoOwner: portfolio.filter((item) => Boolean(item.decisaoOwner)).length,
+  };
+}
+
+export function registrarDecisaoOwnerPortfolioSintetica({
+  experimentos,
+  experimentoId,
+  decisao,
+}: {
+  experimentos: ExperimentosPlaybooksSinteticos;
+  experimentoId: string;
+  decisao: DecisaoOwnerPortfolioSintetica;
+}): ExperimentosPlaybooksSinteticos {
+  const experimento = experimentos[experimentoId];
+  if (!experimento || !experimento.versoes.every((versao) => Boolean(versao.resultado))) {
+    return experimentos;
+  }
+  return {
+    ...experimentos,
+    [experimentoId]: {
+      ...experimento,
+      decisaoOwner: { decisao, registradoEm: "Agora, nesta sessão" },
+    },
   };
 }
 
