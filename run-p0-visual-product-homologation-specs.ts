@@ -5,10 +5,12 @@ import { resolveP0HomologationEntry } from "./src/lib/p0-homologation-entry";
 import {
   alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
+  aplicarAcaoGovernancaRolloutSintetica,
   calcularComparativoPlaybooksSinteticos,
   calcularPortfolioExperimentosSinteticos,
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
+  calcularResumoGovernancaRolloutsSinteticos,
   calcularProgressoPlaybookSintetico,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -888,6 +890,36 @@ ok(
     data.includes("delete experimentoRevalidado.decisaoOwner"),
   "a prioridade deve ser transparente e uma nova evidência deve invalidar decisão anterior",
 );
+ok(
+  workspace.includes("Governança de rollout sintético") &&
+    workspace.includes("Expansão progressiva com limites de segurança") &&
+    workspace.includes("Público fictício"),
+  "Dashboard, Análises e IA devem acompanhar visualmente o rollout exclusivamente sintético",
+);
+ok(
+  workspace.includes("Critério explicável de pausa") &&
+    workspace.includes("Critério explicável de reversão") &&
+    workspace.includes("Reverter ao ponto seguro"),
+  "a governança deve explicar e permitir simular pausa e reversão",
+);
+ok(
+  data.includes("Piloto interno") &&
+    data.includes("Expansão controlada") &&
+    data.includes("Validação ampliada") &&
+    data.includes("Cobertura simulada"),
+  "o rollout deve apresentar quatro etapas progressivas com responsáveis e limites",
+);
+ok(
+  data.includes("aprovadoParaRollout") &&
+    data.includes('experimento.decisaoOwner?.decisao === "Escalar"') &&
+    data.includes('itemPortfolio?.recomendacaoAtual === "Escalar"'),
+  "somente experimentos aprovados e recomendados para escala podem iniciar rollout",
+);
+ok(
+  data.includes("delete experimentoRevalidado.rollout") &&
+    workspace.includes("sem público ou ação real"),
+  "nova evidência deve invalidar o rollout e toda interação deve permanecer em memória",
+);
 
 const relatorio30Dias = calcularRelatorioComercialSintetico({
   periodo: "Últimos 30 dias",
@@ -1322,8 +1354,89 @@ assert.deepEqual(calcularResumoPortfolioExperimentosSinteticos(experimentoBrunoC
   decisoesDoOwner: 1,
 });
 assertions += 1;
-const experimentoBrunoParaRepetir = registrarResultadoVersaoExperimentoSintetico({
+const rolloutBrunoIniciado = aplicarAcaoGovernancaRolloutSintetica({
   experimentos: experimentoBrunoComDecisao,
+  experimentoId: experimentoBruno.id,
+  acao: "Iniciar",
+});
+assert.deepEqual(
+  {
+    status: rolloutBrunoIniciado[experimentoBruno.id].rollout?.status,
+    etapaAtual: rolloutBrunoIniciado[experimentoBruno.id].rollout?.etapaAtual,
+    progresso: rolloutBrunoIniciado[experimentoBruno.id].rollout?.progresso,
+  },
+  { status: "Em andamento", etapaAtual: 0, progresso: 10 },
+);
+assertions += 1;
+assert.deepEqual(calcularResumoGovernancaRolloutsSinteticos(rolloutBrunoIniciado), {
+  rolloutsPlanejados: 1,
+  emAndamento: 1,
+  pausados: 0,
+  concluidos: 0,
+});
+assertions += 1;
+const rolloutBrunoPausado = aplicarAcaoGovernancaRolloutSintetica({
+  experimentos: rolloutBrunoIniciado,
+  experimentoId: experimentoBruno.id,
+  acao: "Pausar",
+});
+assert.equal(rolloutBrunoPausado[experimentoBruno.id].rollout?.status, "Pausado");
+assertions += 1;
+assert.equal(
+  aplicarAcaoGovernancaRolloutSintetica({
+    experimentos: rolloutBrunoPausado,
+    experimentoId: experimentoBruno.id,
+    acao: "Avançar",
+  }),
+  rolloutBrunoPausado,
+);
+assertions += 1;
+const rolloutBrunoRetomado = aplicarAcaoGovernancaRolloutSintetica({
+  experimentos: rolloutBrunoPausado,
+  experimentoId: experimentoBruno.id,
+  acao: "Retomar",
+});
+let rolloutBrunoConcluido = rolloutBrunoRetomado;
+for (let etapa = 0; etapa < 3; etapa += 1) {
+  rolloutBrunoConcluido = aplicarAcaoGovernancaRolloutSintetica({
+    experimentos: rolloutBrunoConcluido,
+    experimentoId: experimentoBruno.id,
+    acao: "Avançar",
+  });
+}
+assert.deepEqual(
+  {
+    status: rolloutBrunoConcluido[experimentoBruno.id].rollout?.status,
+    etapaAtual: rolloutBrunoConcluido[experimentoBruno.id].rollout?.etapaAtual,
+    progresso: rolloutBrunoConcluido[experimentoBruno.id].rollout?.progresso,
+  },
+  { status: "Concluído", etapaAtual: 3, progresso: 100 },
+);
+assertions += 1;
+const rolloutBrunoRevertido = aplicarAcaoGovernancaRolloutSintetica({
+  experimentos: rolloutBrunoConcluido,
+  experimentoId: experimentoBruno.id,
+  acao: "Reverter",
+});
+assert.deepEqual(
+  {
+    status: rolloutBrunoRevertido[experimentoBruno.id].rollout?.status,
+    progresso: rolloutBrunoRevertido[experimentoBruno.id].rollout?.progresso,
+  },
+  { status: "Revertido", progresso: 0 },
+);
+assertions += 1;
+assert.equal(
+  aplicarAcaoGovernancaRolloutSintetica({
+    experimentos: experimentosBruno,
+    experimentoId: experimentoBruno.id,
+    acao: "Iniciar",
+  }),
+  experimentosBruno,
+);
+assertions += 1;
+const experimentoBrunoParaRepetir = registrarResultadoVersaoExperimentoSintetico({
+  experimentos: rolloutBrunoIniciado,
   experimentoId: experimentoBruno.id,
   versaoId: "versao-b",
   faixa: "Próximo do critério",
@@ -1334,8 +1447,14 @@ assert.deepEqual(
     diferencaVersaoB: portfolioParaRepetir[0].diferencaVersaoB,
     recomendacaoAtual: portfolioParaRepetir[0].recomendacaoAtual,
     decisaoOwner: portfolioParaRepetir[0].decisaoOwner,
+    rollout: experimentoBrunoParaRepetir[experimentoBruno.id].rollout,
   },
-  { diferencaVersaoB: 21, recomendacaoAtual: "Repetir", decisaoOwner: undefined },
+  {
+    diferencaVersaoB: 21,
+    recomendacaoAtual: "Repetir",
+    decisaoOwner: undefined,
+    rollout: undefined,
+  },
 );
 assertions += 1;
 const experimentoBrunoVersaoAAlta = registrarResultadoVersaoExperimentoSintetico({

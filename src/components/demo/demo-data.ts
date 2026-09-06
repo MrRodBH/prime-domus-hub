@@ -697,6 +697,80 @@ export type RegistroDecisaoOwnerPortfolioSintetica = {
   registradoEm: string;
 };
 
+export type StatusRolloutExperimentoSintetico =
+  | "Planejado"
+  | "Em andamento"
+  | "Pausado"
+  | "Revertido"
+  | "Concluído";
+
+export type AcaoGovernancaRolloutSintetica =
+  | "Iniciar"
+  | "Avançar"
+  | "Pausar"
+  | "Retomar"
+  | "Reverter";
+
+export type EtapaRolloutExperimentoSintetico = {
+  id: "piloto" | "expansao-controlada" | "validacao-ampliada" | "cobertura-simulada";
+  rotulo: string;
+  publicoFicticio: string;
+  alcanceFicticio: number;
+  responsavel: string;
+  limiteSeguranca: string;
+};
+
+export type PlanoRolloutExperimentoSintetico = {
+  status: StatusRolloutExperimentoSintetico;
+  etapaAtual: number;
+  progresso: number;
+  iniciadoEm: string;
+  atualizadoEm: string;
+  historico: string[];
+};
+
+export const ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO: EtapaRolloutExperimentoSintetico[] = [
+  {
+    id: "piloto",
+    rotulo: "1. Piloto interno",
+    publicoFicticio: "10 oportunidades fictícias da equipe de demonstração",
+    alcanceFicticio: 10,
+    responsavel: "Owner + responsável sintético",
+    limiteSeguranca: "Pausar se a efetividade simulada cair abaixo de 80% ou surgir 1 alerta crítico fictício.",
+  },
+  {
+    id: "expansao-controlada",
+    rotulo: "2. Expansão controlada",
+    publicoFicticio: "35 oportunidades fictícias do segmento residencial",
+    alcanceFicticio: 35,
+    responsavel: "Responsável sintético + supervisão do owner",
+    limiteSeguranca: "Pausar se houver queda simulada maior que 8 p.p. ou 2 alertas moderados fictícios.",
+  },
+  {
+    id: "validacao-ampliada",
+    rotulo: "3. Validação ampliada",
+    publicoFicticio: "70 oportunidades fictícias em dois perfis comerciais",
+    alcanceFicticio: 70,
+    responsavel: "Equipe comercial fictícia + owner",
+    limiteSeguranca: "Reverter se dois critérios de segurança simulados forem violados na mesma etapa.",
+  },
+  {
+    id: "cobertura-simulada",
+    rotulo: "4. Cobertura simulada",
+    publicoFicticio: "100 oportunidades exclusivamente fictícias",
+    alcanceFicticio: 100,
+    responsavel: "Owner",
+    limiteSeguranca: "Concluir apenas com todos os limites simulados íntegros; nenhuma ação externa é permitida.",
+  },
+];
+
+export const CRITERIOS_GOVERNANCA_ROLLOUT_SINTETICO = {
+  pausa:
+    "Pausar diante de queda fictícia de efetividade, alerta de segurança simulado ou evidência insuficiente.",
+  reversao:
+    "Reverter ao piloto quando houver violação simulada recorrente, recomendação diferente de Escalar ou nova evidência que invalide a aprovação.",
+} as const;
+
 export type NivelPortfolioSintetico = "Alto" | "Médio" | "Baixo";
 export type NivelConfiancaPortfolioSintetica = "Alta" | "Média" | "Baixa";
 
@@ -712,6 +786,7 @@ export type ExperimentoPlaybookSintetico = {
   versoes: VersaoExperimentoPlaybookSintetico[];
   criadoEm: string;
   decisaoOwner?: RegistroDecisaoOwnerPortfolioSintetica;
+  rollout?: PlanoRolloutExperimentoSintetico;
 };
 
 export type ExperimentosPlaybooksSinteticos = Record<string, ExperimentoPlaybookSintetico>;
@@ -1127,6 +1202,7 @@ export function registrarResultadoVersaoExperimentoSintetico({
     ),
   };
   delete experimentoRevalidado.decisaoOwner;
+  delete experimentoRevalidado.rollout;
   return {
     ...experimentos,
     [experimentoId]: experimentoRevalidado,
@@ -1255,12 +1331,122 @@ export function registrarDecisaoOwnerPortfolioSintetica({
   if (!experimento || !experimento.versoes.every((versao) => Boolean(versao.resultado))) {
     return experimentos;
   }
+  const experimentoAtualizado: ExperimentoPlaybookSintetico = {
+    ...experimento,
+    decisaoOwner: { decisao, registradoEm: "Agora, nesta sessão" },
+  };
+  if (decisao !== "Escalar") delete experimentoAtualizado.rollout;
   return {
     ...experimentos,
-    [experimentoId]: {
-      ...experimento,
-      decisaoOwner: { decisao, registradoEm: "Agora, nesta sessão" },
-    },
+    [experimentoId]: experimentoAtualizado,
+  };
+}
+
+
+export function aplicarAcaoGovernancaRolloutSintetica({
+  experimentos,
+  experimentoId,
+  acao,
+}: {
+  experimentos: ExperimentosPlaybooksSinteticos;
+  experimentoId: string;
+  acao: AcaoGovernancaRolloutSintetica;
+}): ExperimentosPlaybooksSinteticos {
+  const experimento = experimentos[experimentoId];
+  if (!experimento) return experimentos;
+  const itemPortfolio = calcularPortfolioExperimentosSinteticos(experimentos).find(
+    (item) => item.experimentoId === experimentoId,
+  );
+  const aprovadoParaRollout =
+    experimento.decisaoOwner?.decisao === "Escalar" &&
+    itemPortfolio?.recomendacaoAtual === "Escalar";
+
+  if (acao === "Iniciar") {
+    if (!aprovadoParaRollout || experimento.rollout) return experimentos;
+    const etapa = ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO[0];
+    return {
+      ...experimentos,
+      [experimentoId]: {
+        ...experimento,
+        rollout: {
+          status: "Em andamento",
+          etapaAtual: 0,
+          progresso: etapa.alcanceFicticio,
+          iniciadoEm: "Agora, nesta sessão",
+          atualizadoEm: "Agora, nesta sessão",
+          historico: [`Rollout sintético iniciado em ${etapa.rotulo}.`],
+        },
+      },
+    };
+  }
+
+  const rollout = experimento.rollout;
+  if (!rollout) return experimentos;
+  let atualizado: PlanoRolloutExperimentoSintetico | null = null;
+
+  if (acao === "Pausar" && rollout.status === "Em andamento") {
+    atualizado = {
+      ...rollout,
+      status: "Pausado",
+      atualizadoEm: "Agora, nesta sessão",
+      historico: [...rollout.historico, "Rollout sintético pausado pelo limite de segurança."],
+    };
+  }
+  if (acao === "Retomar" && rollout.status === "Pausado" && aprovadoParaRollout) {
+    atualizado = {
+      ...rollout,
+      status: "Em andamento",
+      atualizadoEm: "Agora, nesta sessão",
+      historico: [...rollout.historico, "Rollout sintético retomado após revisão fictícia."],
+    };
+  }
+  if (acao === "Avançar" && rollout.status === "Em andamento" && aprovadoParaRollout) {
+    const proximaEtapa = Math.min(
+      rollout.etapaAtual + 1,
+      ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO.length - 1,
+    );
+    if (proximaEtapa === rollout.etapaAtual) return experimentos;
+    const etapa = ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO[proximaEtapa];
+    atualizado = {
+      ...rollout,
+      etapaAtual: proximaEtapa,
+      progresso: etapa.alcanceFicticio,
+      status:
+        proximaEtapa === ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO.length - 1
+          ? "Concluído"
+          : "Em andamento",
+      atualizadoEm: "Agora, nesta sessão",
+      historico: [...rollout.historico, `Expansão fictícia autorizada para ${etapa.rotulo}.`],
+    };
+  }
+  if (acao === "Reverter" && rollout.status !== "Revertido") {
+    atualizado = {
+      ...rollout,
+      status: "Revertido",
+      etapaAtual: 0,
+      progresso: 0,
+      atualizadoEm: "Agora, nesta sessão",
+      historico: [...rollout.historico, "Rollout sintético revertido ao ponto seguro inicial."],
+    };
+  }
+  if (!atualizado) return experimentos;
+  return {
+    ...experimentos,
+    [experimentoId]: { ...experimento, rollout: atualizado },
+  };
+}
+
+export function calcularResumoGovernancaRolloutsSinteticos(
+  experimentos: ExperimentosPlaybooksSinteticos,
+) {
+  const rollouts = Object.values(experimentos).flatMap((experimento) =>
+    experimento.rollout ? [experimento.rollout] : [],
+  );
+  return {
+    rolloutsPlanejados: rollouts.length,
+    emAndamento: rollouts.filter((rollout) => rollout.status === "Em andamento").length,
+    pausados: rollouts.filter((rollout) => rollout.status === "Pausado").length,
+    concluidos: rollouts.filter((rollout) => rollout.status === "Concluído").length,
   };
 }
 

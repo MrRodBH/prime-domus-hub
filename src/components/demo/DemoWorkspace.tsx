@@ -65,6 +65,8 @@ import property2 from "@/assets/property-2.jpg";
 import property3 from "@/assets/property-3.jpg";
 import {
   CRITERIOS_DECISAO_PORTFOLIO_SINTETICOS,
+  CRITERIOS_GOVERNANCA_ROLLOUT_SINTETICO,
+  ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO,
   CONTEXTO_DEMONSTRACAO,
   CENARIOS_PREVISAO,
   PALETA_GRAFICOS,
@@ -72,11 +74,13 @@ import {
   RESPONSAVEIS_RELATORIO_COMERCIAL,
   alternarEtapaPlaybookComercialSintetico,
   aplicarDecisaoComercialSintetica,
+  aplicarAcaoGovernancaRolloutSintetica,
   calcularProgressoPlaybookSintetico,
   calcularComparativoPlaybooksSinteticos,
   calcularPortfolioExperimentosSinteticos,
   calcularResumoExperimentosPlaybooksSinteticos,
   calcularResumoPortfolioExperimentosSinteticos,
+  calcularResumoGovernancaRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
   calcularResumoDecisoesComerciaisSinteticas,
@@ -100,6 +104,7 @@ import {
   removerResultadoPlaybookComercialSintetico,
   sincronizarPlaybookComDecisaoSintetica,
   type AcaoDecisaoComercial,
+  type AcaoGovernancaRolloutSintetica,
   type CenarioPrevisao,
   type ComparacaoPlaybookSintetico,
   type DecisoesComerciaisSinteticas,
@@ -172,6 +177,10 @@ type RegistrarResultadoExperimentoPlaybook = (
 type RegistrarDecisaoPortfolio = (
   experimento: ExperimentoPlaybookSintetico,
   decisao: DecisaoOwnerPortfolioSintetica,
+) => void;
+type GerenciarRolloutExperimento = (
+  experimento: ExperimentoPlaybookSintetico,
+  acao: AcaoGovernancaRolloutSintetica,
 ) => void;
 
 type ItemNavegacao = {
@@ -679,6 +688,23 @@ export function DemoWorkspace() {
     );
   }
 
+  function gerenciarRollout(
+    experimento: ExperimentoPlaybookSintetico,
+    acao: AcaoGovernancaRolloutSintetica,
+  ) {
+    setExperimentosPlaybooks((atuais) =>
+      aplicarAcaoGovernancaRolloutSintetica({
+        experimentos: atuais,
+        experimentoId: experimento.id,
+        acao,
+      }),
+    );
+    confirmarAcaoSintetica(
+      `Rollout sintético: ${acao.toLocaleLowerCase("pt-BR")}`,
+      `A governança do experimento de ${experimento.responsavel} foi atualizada somente nesta sessão, sem público ou ação real.`,
+    );
+  }
+
   function encaminharContatoAoFunil(contato: ContatoSinteticoCriado) {
     setLeadsCriados((atuais) =>
       atuais.map((item) =>
@@ -976,6 +1002,7 @@ export function DemoWorkspace() {
                 onCriarExperimento={criarExperimentoPlaybook}
                 onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
                 onRegistrarDecisaoPortfolio={registrarDecisaoPortfolio}
+                onGerenciarRollout={gerenciarRollout}
               />
             ) : null}
             {moduloAtivo === "funil" ? (
@@ -1038,6 +1065,7 @@ export function DemoWorkspace() {
                 onCriarExperimento={criarExperimentoPlaybook}
                 onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
                 onRegistrarDecisaoPortfolio={registrarDecisaoPortfolio}
+                onGerenciarRollout={gerenciarRollout}
               />
             ) : null}
             {moduloAtivo === "ia" ? (
@@ -1059,6 +1087,7 @@ export function DemoWorkspace() {
                 onCriarExperimento={criarExperimentoPlaybook}
                 onRegistrarResultadoExperimento={registrarResultadoExperimentoPlaybook}
                 onRegistrarDecisaoPortfolio={registrarDecisaoPortfolio}
+                onGerenciarRollout={gerenciarRollout}
               />
             ) : null}
             {moduloAtivo === "sites" ? (
@@ -1292,6 +1321,7 @@ function VisaoGeral({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
 }: {
   captacoesSinteticas: number;
   qualificacoesSinteticas: number;
@@ -1333,6 +1363,7 @@ function VisaoGeral({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
 }) {
   const acompanhamentosSinteticos =
     qualificacoesSinteticas + visitasAgendadasSinteticas + avancosFunilSinteticos;
@@ -1433,6 +1464,7 @@ function VisaoGeral({
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
         onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
+        onGerenciarRollout={onGerenciarRollout}
       />
 
       {captacoesSinteticas > 0 ? (
@@ -2091,6 +2123,7 @@ function ResumoRelatorioDashboard({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -2113,6 +2146,7 @@ function ResumoRelatorioDashboard({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -2245,6 +2279,7 @@ function ResumoRelatorioDashboard({
           onCriarExperimento={onCriarExperimento}
           onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
           onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
+          onGerenciarRollout={onGerenciarRollout}
         />
       </div>
     </section>
@@ -2266,6 +2301,7 @@ function PainelInsightsExplicaveis({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2284,6 +2320,7 @@ function PainelInsightsExplicaveis({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
 }) {
   const coresPorTom = {
     Positivo: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -2387,6 +2424,7 @@ function PainelInsightsExplicaveis({
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
         onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
+        onGerenciarRollout={onGerenciarRollout}
       />
     </section>
   );
@@ -2407,6 +2445,7 @@ function CentralDecisoesComerciais({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2425,6 +2464,7 @@ function CentralDecisoesComerciais({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
 }) {
   const recomendacoesVisiveis =
     modo === "resumo" ? resumo.recomendacoes.slice(0, 2) : resumo.recomendacoes;
@@ -2492,6 +2532,7 @@ function CentralDecisoesComerciais({
               recomendacao={recomendacao}
               registro={obterRegistro(recomendacao)}
               onRegistrarDecisao={onRegistrarDecisao}
+              onGerenciarRollout={onGerenciarRollout}
             />
           ))}
         </div>
@@ -2511,6 +2552,7 @@ function CentralDecisoesComerciais({
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
         onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
+        onGerenciarRollout={onGerenciarRollout}
       />
     </section>
   );
@@ -2625,6 +2667,7 @@ function CentralPlaybooksComerciais({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2639,6 +2682,7 @@ function CentralPlaybooksComerciais({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
 }) {
   const playbooksAtivos = resumo.recomendacoes.flatMap((recomendacao) => {
     const chave = criarChaveDecisaoComercial(resumo.periodo, recomendacao.responsavel);
@@ -2753,6 +2797,7 @@ function CentralPlaybooksComerciais({
         onCriarExperimento={onCriarExperimento}
         onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
         onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
+        onGerenciarRollout={onGerenciarRollout}
       />
     </section>
   );
@@ -2768,6 +2813,7 @@ function CentralMelhoriaContinuaComercial({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
 }: {
   resumo: ResumoInsightsComerciaisSinteticos;
   modo: "resumo" | "detalhado";
@@ -2778,6 +2824,7 @@ function CentralMelhoriaContinuaComercial({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
 }) {
   const comparativo = calcularComparativoPlaybooksSinteticos({
     resultados: resultadosPlaybooks,
@@ -2956,6 +3003,7 @@ function CentralMelhoriaContinuaComercial({
         modo={modo}
         experimentos={experimentosPlaybooks}
         onRegistrarDecisao={onRegistrarDecisaoPortfolio}
+        onGerenciarRollout={onGerenciarRollout}
       />
     </section>
   );
@@ -3105,13 +3153,16 @@ function PortfolioExperimentosComerciais({
   modo,
   experimentos,
   onRegistrarDecisao,
+  onGerenciarRollout,
 }: {
   modo: "resumo" | "detalhado";
   experimentos: ExperimentosPlaybooksSinteticos;
   onRegistrarDecisao: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
 }) {
   const portfolio = calcularPortfolioExperimentosSinteticos(experimentos);
   const resumo = calcularResumoPortfolioExperimentosSinteticos(experimentos);
+  const resumoRollouts = calcularResumoGovernancaRolloutsSinteticos(experimentos);
   const itensVisiveis = modo === "resumo" ? portfolio.slice(0, 1) : portfolio;
 
   return (
@@ -3162,6 +3213,20 @@ function PortfolioExperimentosComerciais({
           classe="bg-cyan-100 text-cyan-900"
         />
       </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold">
+        <Badge className="bg-cyan-100 text-cyan-900 hover:bg-cyan-100">
+          {resumoRollouts.rolloutsPlanejados} rollout(s) governado(s)
+        </Badge>
+        <Badge className="bg-violet-100 text-violet-900 hover:bg-violet-100">
+          {resumoRollouts.emAndamento} em andamento
+        </Badge>
+        <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">
+          {resumoRollouts.pausados} pausado(s)
+        </Badge>
+        <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+          {resumoRollouts.concluidos} concluído(s)
+        </Badge>
+      </div>
 
       {itensVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-fuchsia-300 bg-white/70 p-5 text-center">
@@ -3193,11 +3258,13 @@ function CartaoPortfolioExperimento({
   posicao,
   experimento,
   onRegistrarDecisao,
+  onGerenciarRollout,
 }: {
   item: ItemPortfolioExperimentoSintetico;
   posicao: number;
   experimento: ExperimentoPlaybookSintetico;
   onRegistrarDecisao: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
 }) {
   const corPrioridade = {
     Alto: "bg-rose-100 text-rose-900 hover:bg-rose-100",
@@ -3322,8 +3389,169 @@ function CartaoPortfolioExperimento({
         >
           {estadoOwner}
         </p>
+        <GovernancaRolloutExperimento
+          experimento={experimento}
+          item={item}
+          onGerenciar={onGerenciarRollout}
+        />
       </div>
     </article>
+  );
+}
+
+
+function GovernancaRolloutExperimento({
+  experimento,
+  item,
+  onGerenciar,
+}: {
+  experimento: ExperimentoPlaybookSintetico;
+  item: ItemPortfolioExperimentoSintetico;
+  onGerenciar: GerenciarRolloutExperimento;
+}) {
+  const rollout = experimento.rollout;
+  const aprovado =
+    item.recomendacaoAtual === "Escalar" && experimento.decisaoOwner?.decisao === "Escalar";
+  const etapaAtual = rollout
+    ? ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO[rollout.etapaAtual]
+    : ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO[0];
+  const corStatus = {
+    Planejado: "bg-slate-100 text-slate-800",
+    "Em andamento": "bg-cyan-100 text-cyan-900",
+    Pausado: "bg-amber-100 text-amber-900",
+    Revertido: "bg-rose-100 text-rose-900",
+    Concluído: "bg-emerald-100 text-emerald-900",
+  } as const;
+
+  return (
+    <section className="mt-4 rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-800">
+            Governança de rollout sintético
+          </p>
+          <h6 className="mt-1 text-sm font-semibold">Expansão progressiva com limites de segurança</h6>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Público, alcance e responsáveis são fictícios. Os controles abaixo não executam ações externas.
+          </p>
+        </div>
+        <Badge className={rollout ? corStatus[rollout.status] : corStatus.Planejado}>
+          {rollout?.status ?? "Planejado"}
+        </Badge>
+      </div>
+
+      <div className="mt-4">
+        <div className="flex items-center justify-between text-xs font-semibold text-[#123f47]">
+          <span>{etapaAtual.rotulo}</span>
+          <span>{rollout?.progresso ?? 0}%</span>
+        </div>
+        <Progress className="mt-2 h-2" value={rollout?.progresso ?? 0} />
+      </div>
+
+      <div className="mt-4 grid gap-2 md:grid-cols-3">
+        <ResultadoExplicavel rotulo="Público fictício" valor={etapaAtual.publicoFicticio} classe="bg-cyan-50" />
+        <ResultadoExplicavel rotulo="Responsáveis" valor={etapaAtual.responsavel} classe="bg-violet-50" />
+        <ResultadoExplicavel rotulo="Limite da etapa" valor={etapaAtual.limiteSeguranca} classe="bg-amber-50" />
+      </div>
+
+      <div className="mt-4 grid gap-2 lg:grid-cols-2">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
+          <strong className="block">Critério explicável de pausa</strong>
+          {CRITERIOS_GOVERNANCA_ROLLOUT_SINTETICO.pausa}
+        </div>
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs leading-5 text-rose-950">
+          <strong className="block">Critério explicável de reversão</strong>
+          {CRITERIOS_GOVERNANCA_ROLLOUT_SINTETICO.reversao}
+        </div>
+      </div>
+
+      <ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO.map((etapa, indice) => {
+          const concluida = Boolean(
+            rollout &&
+              rollout.status !== "Revertido" &&
+              (indice < rollout.etapaAtual ||
+                (indice === rollout.etapaAtual && rollout.status === "Concluído")),
+          );
+          const atual = Boolean(
+            rollout && rollout.status !== "Revertido" && indice === rollout.etapaAtual,
+          );
+          return (
+            <li
+              key={etapa.id}
+              className={cn(
+                "rounded-xl border p-3 text-xs",
+                concluida
+                  ? "border-emerald-200 bg-emerald-50"
+                  : atual
+                    ? "border-cyan-300 bg-cyan-50"
+                    : "border-slate-200 bg-white",
+              )}
+            >
+              <span className="font-bold">{etapa.rotulo}</span>
+              <span className="mt-1 block text-[#587076]">{etapa.alcanceFicticio}% do público fictício</span>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {!rollout ? (
+          <Button
+            type="button"
+            size="sm"
+            disabled={!aprovado}
+            className="rounded-xl bg-cyan-700 text-white hover:bg-cyan-800"
+            onClick={() => onGerenciar(experimento, "Iniciar")}
+          >
+            <TrendingUp className="mr-2 size-4" /> Iniciar rollout sintético
+          </Button>
+        ) : null}
+        {rollout?.status === "Em andamento" &&
+        rollout.etapaAtual < ETAPAS_ROLLOUT_EXPERIMENTO_SINTETICO.length - 1 ? (
+          <Button
+            type="button"
+            size="sm"
+            className="rounded-xl bg-emerald-700 text-white hover:bg-emerald-800"
+            onClick={() => onGerenciar(experimento, "Avançar")}
+          >
+            <ArrowRight className="mr-2 size-4" /> Expandir etapa fictícia
+          </Button>
+        ) : null}
+        {rollout?.status === "Em andamento" ? (
+          <Button type="button" size="sm" variant="outline" onClick={() => onGerenciar(experimento, "Pausar")}>
+            <Clock3 className="mr-2 size-4" /> Pausar
+          </Button>
+        ) : null}
+        {rollout?.status === "Pausado" ? (
+          <Button type="button" size="sm" variant="outline" onClick={() => onGerenciar(experimento, "Retomar")}>
+            <RefreshCcw className="mr-2 size-4" /> Retomar
+          </Button>
+        ) : null}
+        {rollout && rollout.status !== "Revertido" ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border-rose-300 text-rose-800"
+            onClick={() => onGerenciar(experimento, "Reverter")}
+          >
+            <X className="mr-2 size-4" /> Reverter ao ponto seguro
+          </Button>
+        ) : null}
+      </div>
+
+      {!aprovado && !rollout ? (
+        <p className="mt-3 text-xs font-semibold text-slate-600">
+          Disponível somente após recomendação Escalar e aprovação sintética do owner.
+        </p>
+      ) : null}
+      {rollout ? (
+        <p className="mt-3 text-xs text-[#587076]" aria-live="polite">
+          Último registro: {rollout.historico[rollout.historico.length - 1]}
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -4974,6 +5202,7 @@ function Analises({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -4996,6 +5225,7 @@ function Analises({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -5092,6 +5322,7 @@ function Analises({
             onCriarExperimento={onCriarExperimento}
             onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
             onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
+            onGerenciarRollout={onGerenciarRollout}
           />
         </CardContent>
       </Card>
@@ -5335,6 +5566,7 @@ function InteligenciaArtificial({
   onCriarExperimento,
   onRegistrarResultadoExperimento,
   onRegistrarDecisaoPortfolio,
+  onGerenciarRollout,
   periodo,
   responsavel,
   onSelecionarPeriodo,
@@ -5356,6 +5588,7 @@ function InteligenciaArtificial({
   onCriarExperimento: CriarExperimentoPlaybook;
   onRegistrarResultadoExperimento: RegistrarResultadoExperimentoPlaybook;
   onRegistrarDecisaoPortfolio: RegistrarDecisaoPortfolio;
+  onGerenciarRollout: GerenciarRolloutExperimento;
   periodo: PeriodoRelatorioComercial;
   responsavel: FiltroResponsavelRelatorio;
   onSelecionarPeriodo: (periodo: PeriodoRelatorioComercial) => void;
@@ -5405,6 +5638,7 @@ function InteligenciaArtificial({
           onCriarExperimento={onCriarExperimento}
           onRegistrarResultadoExperimento={onRegistrarResultadoExperimento}
           onRegistrarDecisaoPortfolio={onRegistrarDecisaoPortfolio}
+          onGerenciarRollout={onGerenciarRollout}
         />
 
         <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border-violet-200 bg-white xl:sticky xl:top-5 xl:self-start">
