@@ -81,6 +81,7 @@ import {
   calcularRevisaoCicloVidaPoliticaSintetica,
   calcularComparacaoPropostaAjustePoliticaSintetica,
   calcularProntidaoAtivacaoSucessoraPoliticaSintetica,
+  calcularGovernancaAtivacaoSucessoraSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -96,6 +97,7 @@ import {
   calcularResumoRevisoesCicloVidaPoliticasSinteticas,
   calcularResumoPropostasAjustePoliticasSinteticas,
   calcularResumoValidacoesSucessorasPoliticasSinteticas,
+  calcularResumoAtivacoesControladasSucessorasSinteticas,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -124,6 +126,9 @@ import {
   sincronizarValidacaoSucessoraPoliticaSintetica,
   registrarCicloValidacaoSucessoraPoliticaSintetica,
   decidirValidacaoSucessoraPoliticaSintetica,
+  sincronizarAtivacaoControladaPoliticaSucessoraSintetica,
+  registrarCheckpointAtivacaoSucessoraSintetica,
+  decidirAtivacaoControladaPoliticaSucessoraSintetica,
   registrarResultadoEtapaRolloutSintetico,
   pausarRolloutSintetico,
   reaplicarAprendizadoEmNovoPlaybookSintetico,
@@ -147,6 +152,7 @@ import {
   type DecisaoOwnerCicloVidaPoliticaSintetica,
   type DecisaoOwnerPropostaAjustePoliticaSintetica,
   type DecisaoOwnerValidacaoSucessoraSintetica,
+  type DecisaoOwnerAtivacaoSucessoraSintetica,
   type EstadoDecisaoComercial,
   type ExperimentoPlaybookSintetico,
   type ExperimentosPlaybooksSinteticos,
@@ -155,6 +161,7 @@ import {
   type FaixaAderenciaPoliticaSintetica,
   type FaixaEficaciaPoliticaSintetica,
   type FaixaCicloValidacaoSucessoraSintetica,
+  type FaixaCheckpointAtivacaoSucessoraSintetica,
   type FiltroResponsavelRelatorio,
   type FaixaResultadoPlaybookSintetico,
   type PeriodoRelatorioComercial,
@@ -245,7 +252,10 @@ type AcaoGovernancaPoliticaSintetica =
   | { tipo: "Decidir proposta de ajuste"; decisao: DecisaoOwnerPropostaAjustePoliticaSintetica }
   | { tipo: "Iniciar validação sucessora" }
   | { tipo: "Registrar ciclo sucessor"; faixa: FaixaCicloValidacaoSucessoraSintetica }
-  | { tipo: "Decidir validação sucessora"; decisao: DecisaoOwnerValidacaoSucessoraSintetica };
+  | { tipo: "Decidir validação sucessora"; decisao: DecisaoOwnerValidacaoSucessoraSintetica }
+  | { tipo: "Iniciar ativação controlada" }
+  | { tipo: "Registrar checkpoint de ativação"; faixa: FaixaCheckpointAtivacaoSucessoraSintetica }
+  | { tipo: "Decidir ativação controlada"; decisao: DecisaoOwnerAtivacaoSucessoraSintetica };
 type ControlarAdocaoPolitica = (
   rollout: RolloutExperimentoSintetico,
   acao: AcaoGovernancaPoliticaSintetica,
@@ -937,6 +947,23 @@ export function DemoWorkspace() {
           decisao: acao.decisao,
         });
       }
+      if (typeof acao === "object" && acao.tipo === "Iniciar ativação controlada") {
+        return sincronizarAtivacaoControladaPoliticaSucessoraSintetica(atuais, rollout.id);
+      }
+      if (typeof acao === "object" && acao.tipo === "Registrar checkpoint de ativação") {
+        return registrarCheckpointAtivacaoSucessoraSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          faixa: acao.faixa,
+        });
+      }
+      if (typeof acao === "object" && acao.tipo === "Decidir ativação controlada") {
+        return decidirAtivacaoControladaPoliticaSucessoraSintetica({
+          rollouts: atuais,
+          rolloutId: rollout.id,
+          decisao: acao.decisao,
+        });
+      }
       return acao === "Avançar etapa"
         ? avancarEtapaAdocaoPoliticaSintetica({ rollouts: atuais, rolloutId: rollout.id })
         : decidirAdocaoPoliticaSintetica({
@@ -955,7 +982,11 @@ export function DemoWorkspace() {
               ? "Validação sucessora iniciada"
               : acao.tipo === "Registrar ciclo sucessor"
                 ? acao.faixa
-                : acao.decisao
+                : acao.tipo === "Iniciar ativação controlada"
+                  ? "Ativação controlada iniciada"
+                  : acao.tipo === "Registrar checkpoint de ativação"
+                    ? acao.faixa
+                    : acao.decisao
         : acao;
     confirmarAcaoSintetica(
       "Governança de política atualizada",
@@ -3822,6 +3853,11 @@ function CentralGovernancaRolloutsSinteticos({
         modo={modo}
         onControlar={onControlarAdocao}
       />
+      <AtivacaoControladaTransicaoSucessoras
+        rollouts={rollouts}
+        modo={modo}
+        onControlar={onControlarAdocao}
+      />
 
       {rolloutsVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-emerald-300 bg-white/70 p-5 text-center">
@@ -4751,6 +4787,230 @@ function ValidacaoProntidaoAtivacaoSucessoras({
 
       <p className="mt-3 text-[11px] font-semibold text-sky-800">
         Validações e decisões existem apenas nesta sessão; nenhuma política real é ativada ou revertida.
+      </p>
+    </section>
+  );
+}
+
+function AtivacaoControladaTransicaoSucessoras({
+  rollouts,
+  modo,
+  onControlar,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  modo: "resumo" | "detalhado";
+  onControlar: ControlarAdocaoPolitica;
+}) {
+  const resumo = calcularResumoAtivacoesControladasSucessorasSinteticas(rollouts);
+  const sucessoras = Object.values(rollouts).filter(
+    (rollout) => rollout.adocaoPolitica?.propostaAjuste?.validacaoSucessora,
+  );
+  const visiveis = modo === "resumo" ? sucessoras.slice(0, 1) : sucessoras;
+  const faixas: FaixaCheckpointAtivacaoSucessoraSintetica[] = [
+    "Seguro",
+    "Atenção",
+    "Limite violado",
+  ];
+  const decisoes: DecisaoOwnerAtivacaoSucessoraSintetica[] = [
+    "Continuar",
+    "Pausar",
+    "Rollback",
+  ];
+  const corEstado: Record<string, string> = {
+    "Em transição": "bg-cyan-100 text-cyan-900 hover:bg-cyan-100",
+    Pausada: "bg-amber-100 text-amber-900 hover:bg-amber-100",
+    Concluída: "bg-emerald-100 text-emerald-900 hover:bg-emerald-100",
+    "Rollback concluído": "bg-rose-100 text-rose-900 hover:bg-rose-100",
+  };
+
+  return (
+    <section
+      className="mt-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4"
+      aria-label="Ativação controlada e transição das políticas sucessoras"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-blue-800">
+            <Network className="size-4" /> Checkpoints, público fictício e retorno seguro
+          </p>
+          <h4 className="mt-1 text-sm font-semibold">
+            Ativação controlada e transição da política sucessora
+          </h4>
+          <p className="mt-1 text-xs leading-5 text-[#587076]">
+            Simule a expansão gradual entre versões, preserve a política vigente e decida
+            continuar, pausar ou executar rollback sem produzir efeitos reais.
+          </p>
+        </div>
+        <Badge className="w-fit whitespace-nowrap bg-blue-700 text-white hover:bg-blue-700">
+          Vigente sempre preservada
+        </Badge>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-5">
+        <IndicadorPlaybook rotulo="Ativações simuladas" valor={String(resumo.ativacoes)} classe="bg-blue-100 text-blue-900" />
+        <IndicadorPlaybook rotulo="Checkpoints concluídos" valor={String(resumo.checkpointsConcluidos)} classe="bg-cyan-100 text-cyan-900" />
+        <IndicadorPlaybook rotulo="Pausadas" valor={String(resumo.pausadas)} classe="bg-amber-100 text-amber-900" />
+        <IndicadorPlaybook rotulo="Concluídas" valor={String(resumo.concluidas)} classe="bg-emerald-100 text-emerald-900" />
+        <IndicadorPlaybook rotulo="Rollbacks" valor={String(resumo.rollbacks)} classe="bg-rose-100 text-rose-900" />
+      </div>
+
+      {visiveis.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-blue-300 bg-white p-4 text-center">
+          <p className="text-sm font-semibold">Nenhuma sucessora pronta para transição</p>
+          <p className="mt-1 text-xs text-[#587076]">
+            A ativação simulada só começa após a validação declarar a sucessora pronta.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {visiveis.map((rollout) => {
+            const proposta = rollout.adocaoPolitica!.propostaAjuste!;
+            const validacao = proposta.validacaoSucessora!;
+            const ativacao = validacao.ativacaoControlada;
+            const governanca = calcularGovernancaAtivacaoSucessoraSintetica(rollout);
+            const podeIniciar = validacao.estado === "Pronta para ativação" && !ativacao;
+            return (
+              <article key={rollout.id} className="rounded-xl border border-blue-200 bg-white p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-800">
+                      {proposta.versaoVigente} preservada · {proposta.versaoProposta} em transição
+                    </p>
+                    <h5 className="mt-1 text-sm font-semibold">{rollout.titulo}</h5>
+                  </div>
+                  {ativacao ? (
+                    <Badge className={corEstado[ativacao.estado]}>{ativacao.estado}</Badge>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!podeIniciar}
+                      className="rounded-xl border-blue-300 text-blue-900"
+                      onClick={() => onControlar(rollout, { tipo: "Iniciar ativação controlada" })}
+                    >
+                      Iniciar transição
+                    </Button>
+                  )}
+                </div>
+
+                {!ativacao || !governanca ? (
+                  <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-[#587076]">
+                    {podeIniciar
+                      ? "A sucessora está pronta para uma ativação exclusivamente simulada."
+                      : "Aguardando prontidão; nenhuma versão ou público foi alterado."}
+                  </p>
+                ) : (
+                  <>
+                    <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-3">
+                      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-blue-950">
+                        <span>Progresso da transição fictícia</span>
+                        <span>{governanca.progresso}%</span>
+                      </div>
+                      <Progress value={governanca.progresso} className="mt-2 h-2" />
+                      <p className="mt-2 text-xs text-blue-900">
+                        Política vigente preservada: {ativacao.politicaVigentePreservada ? "sim" : "não"}.
+                      </p>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 lg:grid-cols-3">
+                      {ativacao.checkpoints.map((checkpoint) => (
+                        <div key={checkpoint.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-semibold">{checkpoint.percentualPublico}% · {checkpoint.titulo}</p>
+                          <p className="mt-1 text-xs leading-5 text-[#587076]">{checkpoint.publicoInternoFicticio}</p>
+                          <Badge className={cn("mt-2", checkpoint.concluido ? "bg-emerald-100 text-emerald-900 hover:bg-emerald-100" : checkpoint.resultado ? "bg-amber-100 text-amber-900 hover:bg-amber-100" : "bg-slate-200 text-slate-800 hover:bg-slate-200")}>
+                            {checkpoint.concluido ? "Concluído" : checkpoint.resultado ? "Aguardando decisão" : "Pendente"}
+                          </Badge>
+                          {checkpoint.resultado ? (
+                            <p className="mt-2 text-xs leading-5 text-[#587076]">
+                              <strong>{checkpoint.resultado.faixa}</strong> · vigente {checkpoint.resultado.aderenciaVigente}% versus sucessora {checkpoint.resultado.aderenciaSucessora}% · {checkpoint.resultado.alertasSeguranca} alerta(s). {checkpoint.resultado.explicacao}
+                            </p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                        <p className="text-xs font-semibold text-rose-950">Limites de segurança</p>
+                        {ativacao.limitesSeguranca.map((limite) => (
+                          <p key={limite} className="mt-1 text-xs leading-5 text-rose-900">• {limite}</p>
+                        ))}
+                      </div>
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                        <p className="text-xs font-semibold text-emerald-950">
+                          Critérios do checkpoint · {governanca.criteriosAtendidos}/{governanca.totalCriterios}
+                        </p>
+                        {governanca.criterios.map((criterio) => (
+                          <p key={criterio.descricao} className="mt-1 text-xs leading-5 text-emerald-900">
+                            {criterio.atendido ? "✓" : "—"} {criterio.descricao}
+                          </p>
+                        ))}
+                        <p className="mt-2 text-xs font-semibold text-emerald-950">
+                          Recomendação: {governanca.recomendacao ?? "Aguardar checkpoint"}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-emerald-900">{governanca.explicacao}</p>
+                      </div>
+                    </div>
+
+                    {ativacao.estado === "Em transição" && governanca.checkpointAtual && !governanca.checkpointAtual.resultado ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {faixas.map((faixa) => (
+                          <Button
+                            key={faixa}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="rounded-xl text-xs"
+                            onClick={() => onControlar(rollout, { tipo: "Registrar checkpoint de ativação", faixa })}
+                          >
+                            Registrar {faixa.toLocaleLowerCase("pt-BR")}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-xs font-semibold text-amber-950">Decisão simulada do owner</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {decisoes.map((decisao) => (
+                          <Button
+                            key={decisao}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={ativacao.estado !== "Em transição" || decisao !== governanca.recomendacao}
+                            className="rounded-xl text-xs"
+                            onClick={() => onControlar(rollout, { tipo: "Decidir ativação controlada", decisao })}
+                          >
+                            {decisao}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs font-semibold">Trilha auditável da transição</p>
+                      {ativacao.historicoDecisoes.length === 0 ? (
+                        <p className="mt-1 text-xs text-[#587076]">Nenhuma decisão registrada.</p>
+                      ) : (
+                        ativacao.historicoDecisoes.map((registro, indice) => (
+                          <p key={`${registro.checkpointId}:${indice}`} className="mt-1 text-xs leading-5 text-[#587076]">
+                            <strong>{registro.decisao}</strong> · {registro.justificativaExplicavel}
+                          </p>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="mt-3 text-[11px] font-semibold text-blue-800">
+        Toda transição, pausa e rollback existe apenas nesta sessão; nenhuma versão ou pessoa real é afetada.
       </p>
     </section>
   );

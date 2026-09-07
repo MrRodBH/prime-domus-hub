@@ -919,6 +919,53 @@ export type ValidacaoSucessoraPoliticaSintetica = {
   ciclos: CicloValidacaoSucessoraSintetica[];
   limitesRisco: string[];
   historicoDecisoes: RegistroDecisaoValidacaoSucessoraSintetica[];
+  ativacaoControlada?: AtivacaoControladaPoliticaSucessoraSintetica;
+  atualizadoEm: string;
+};
+
+export type FaixaCheckpointAtivacaoSucessoraSintetica =
+  | "Seguro"
+  | "Atenção"
+  | "Limite violado";
+
+export type DecisaoOwnerAtivacaoSucessoraSintetica =
+  | "Continuar"
+  | "Pausar"
+  | "Rollback";
+
+export type ResultadoCheckpointAtivacaoSucessoraSintetica = {
+  faixa: FaixaCheckpointAtivacaoSucessoraSintetica;
+  aderenciaVigente: number;
+  aderenciaSucessora: number;
+  alertasSeguranca: number;
+  explicacao: string;
+  registradoEm: string;
+};
+
+export type CheckpointAtivacaoSucessoraSintetica = {
+  id: "piloto-controlado" | "expansao-assistida" | "cobertura-simulada";
+  titulo: string;
+  publicoInternoFicticio: string;
+  percentualPublico: number;
+  concluido: boolean;
+  resultado?: ResultadoCheckpointAtivacaoSucessoraSintetica;
+};
+
+export type RegistroDecisaoAtivacaoSucessoraSintetica = {
+  checkpointId: CheckpointAtivacaoSucessoraSintetica["id"];
+  decisao: DecisaoOwnerAtivacaoSucessoraSintetica;
+  justificativaExplicavel: string;
+  decididoEm: string;
+};
+
+export type AtivacaoControladaPoliticaSucessoraSintetica = {
+  estado: "Em transição" | "Pausada" | "Concluída" | "Rollback concluído";
+  versaoVigente: string;
+  versaoSucessora: string;
+  politicaVigentePreservada: true;
+  checkpoints: CheckpointAtivacaoSucessoraSintetica[];
+  limitesSeguranca: string[];
+  historicoDecisoes: RegistroDecisaoAtivacaoSucessoraSintetica[];
   atualizadoEm: string;
 };
 
@@ -2741,6 +2788,293 @@ export function calcularResumoValidacoesSucessorasPoliticasSinteticas(
     prontas: validacoes.filter((validacao) => validacao.estado === "Pronta para ativação").length,
     adiadas: validacoes.filter((validacao) => validacao.estado === "Adiada").length,
     revertidas: validacoes.filter((validacao) => validacao.estado === "Revertida").length,
+  };
+}
+
+export function sincronizarAtivacaoControladaPoliticaSucessoraSintetica(
+  rollouts: RolloutsExperimentosSinteticos,
+  rolloutId: string,
+): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  const validacao = proposta?.validacaoSucessora;
+  if (!rollout || !adocao || !proposta || !validacao || validacao.ativacaoControlada) {
+    return rollouts;
+  }
+  if (validacao.estado !== "Pronta para ativação" || proposta.estado !== "Aprovada") {
+    return rollouts;
+  }
+  const checkpoints: CheckpointAtivacaoSucessoraSintetica[] = [
+    {
+      id: "piloto-controlado",
+      titulo: "Piloto controlado",
+      publicoInternoFicticio: "Equipe interna fictícia de validação",
+      percentualPublico: 20,
+      concluido: false,
+    },
+    {
+      id: "expansao-assistida",
+      titulo: "Expansão assistida",
+      publicoInternoFicticio: "Times comerciais fictícios selecionados",
+      percentualPublico: 60,
+      concluido: false,
+    },
+    {
+      id: "cobertura-simulada",
+      titulo: "Cobertura simulada",
+      publicoInternoFicticio: "Público interno fictício completo",
+      percentualPublico: 100,
+      concluido: false,
+    },
+  ];
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: {
+          ...proposta,
+          validacaoSucessora: {
+            ...validacao,
+            ativacaoControlada: {
+              estado: "Em transição",
+              versaoVigente: proposta.versaoVigente,
+              versaoSucessora: proposta.versaoProposta,
+              politicaVigentePreservada: true,
+              checkpoints,
+              limitesSeguranca: [
+                "A política vigente permanece preservada durante toda a simulação.",
+                "Cada checkpoint exige resultado fictício e decisão explícita do owner.",
+                "Qualquer limite violado bloqueia a continuidade e recomenda rollback.",
+              ],
+              historicoDecisoes: [],
+              atualizadoEm: "Agora, nesta sessão",
+            },
+            atualizadoEm: "Agora, nesta sessão",
+          },
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function registrarCheckpointAtivacaoSucessoraSintetica({
+  rollouts,
+  rolloutId,
+  faixa,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  faixa: FaixaCheckpointAtivacaoSucessoraSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  const validacao = proposta?.validacaoSucessora;
+  const ativacao = validacao?.ativacaoControlada;
+  if (!rollout || !adocao || !proposta || !validacao || !ativacao) return rollouts;
+  if (ativacao.estado !== "Em transição") return rollouts;
+  const checkpointAtual = ativacao.checkpoints.find((checkpoint) => !checkpoint.concluido);
+  if (!checkpointAtual || checkpointAtual.resultado) return rollouts;
+  const resultadoPorFaixa = {
+    Seguro: { aderenciaVigente: 84, aderenciaSucessora: 91, alertasSeguranca: 0 },
+    Atenção: { aderenciaVigente: 84, aderenciaSucessora: 82, alertasSeguranca: 1 },
+    "Limite violado": { aderenciaVigente: 84, aderenciaSucessora: 69, alertasSeguranca: 3 },
+  }[faixa];
+  const resultado: ResultadoCheckpointAtivacaoSucessoraSintetica = {
+    faixa,
+    ...resultadoPorFaixa,
+    explicacao:
+      faixa === "Seguro"
+        ? "A sucessora superou a vigente sem alertas no público fictício deste checkpoint."
+        : faixa === "Atenção"
+          ? "A sucessora ficou ligeiramente abaixo da vigente e exige pausa para revisão simulada."
+          : "A sucessora perdeu aderência e excedeu o limite de alertas; a continuidade foi bloqueada.",
+    registradoEm: "Agora, nesta sessão",
+  };
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: {
+          ...proposta,
+          validacaoSucessora: {
+            ...validacao,
+            ativacaoControlada: {
+              ...ativacao,
+              checkpoints: ativacao.checkpoints.map((checkpoint) =>
+                checkpoint.id === checkpointAtual.id ? { ...checkpoint, resultado } : checkpoint,
+              ),
+              atualizadoEm: "Agora, nesta sessão",
+            },
+            atualizadoEm: "Agora, nesta sessão",
+          },
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularGovernancaAtivacaoSucessoraSintetica(
+  rollout: RolloutExperimentoSintetico,
+) {
+  const ativacao = rollout.adocaoPolitica?.propostaAjuste?.validacaoSucessora?.ativacaoControlada;
+  if (!ativacao) return null;
+  const checkpointAtual = ativacao.checkpoints.find((checkpoint) => !checkpoint.concluido);
+  const resultado = checkpointAtual?.resultado;
+  const progresso = Math.round(
+    (ativacao.checkpoints.filter((checkpoint) => checkpoint.concluido).length /
+      ativacao.checkpoints.length) *
+      100,
+  );
+  const criterios = [
+    {
+      descricao: "A política vigente continua preservada como referência e retorno seguro.",
+      atendido: ativacao.politicaVigentePreservada,
+    },
+    {
+      descricao: "O checkpoint atual possui resultado fictício registrado.",
+      atendido: Boolean(resultado),
+    },
+    {
+      descricao: "A sucessora mantém aderência igual ou superior à vigente.",
+      atendido: Boolean(resultado && resultado.aderenciaSucessora >= resultado.aderenciaVigente),
+    },
+    {
+      descricao: "Nenhum alerta de segurança foi registrado no checkpoint.",
+      atendido: Boolean(resultado && resultado.alertasSeguranca === 0),
+    },
+  ];
+  const recomendacao: DecisaoOwnerAtivacaoSucessoraSintetica | null = !resultado
+    ? null
+    : resultado.faixa === "Limite violado"
+      ? "Rollback"
+      : resultado.faixa === "Atenção"
+        ? "Pausar"
+        : "Continuar";
+  return {
+    checkpointAtual,
+    progresso,
+    criterios,
+    criteriosAtendidos: criterios.filter((criterio) => criterio.atendido).length,
+    totalCriterios: criterios.length,
+    recomendacao,
+    explicacao: !resultado
+      ? "Aguardando resultado fictício para liberar uma decisão do owner."
+      : recomendacao === "Continuar"
+        ? "Todos os limites do checkpoint foram atendidos; a transição simulada pode continuar."
+        : recomendacao === "Pausar"
+          ? "O checkpoint exige pausa simulada antes de ampliar o público fictício."
+          : "O limite foi violado; o rollback simulado preserva integralmente a política vigente.",
+  };
+}
+
+export function decidirAtivacaoControladaPoliticaSucessoraSintetica({
+  rollouts,
+  rolloutId,
+  decisao,
+}: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  decisao: DecisaoOwnerAtivacaoSucessoraSintetica;
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  const validacao = proposta?.validacaoSucessora;
+  const ativacao = validacao?.ativacaoControlada;
+  if (!rollout || !adocao || !proposta || !validacao || !ativacao) return rollouts;
+  if (ativacao.estado !== "Em transição") return rollouts;
+  const governanca = calcularGovernancaAtivacaoSucessoraSintetica(rollout);
+  const checkpointAtual = governanca?.checkpointAtual;
+  if (!governanca || !checkpointAtual || decisao !== governanca.recomendacao) return rollouts;
+  const checkpoints =
+    decisao === "Continuar"
+      ? ativacao.checkpoints.map((checkpoint) =>
+          checkpoint.id === checkpointAtual.id ? { ...checkpoint, concluido: true } : checkpoint,
+        )
+      : ativacao.checkpoints;
+  const concluida = checkpoints.every((checkpoint) => checkpoint.concluido);
+  const estado: AtivacaoControladaPoliticaSucessoraSintetica["estado"] =
+    decisao === "Pausar"
+      ? "Pausada"
+      : decisao === "Rollback"
+        ? "Rollback concluído"
+        : concluida
+          ? "Concluída"
+          : "Em transição";
+  const justificativaExplicavel =
+    decisao === "Continuar"
+      ? concluida
+        ? "Owner concluiu a ativação somente na simulação após todos os checkpoints seguros."
+        : `Owner liberou o próximo público fictício após o checkpoint ${checkpointAtual.titulo}.`
+      : decisao === "Pausar"
+        ? "Owner pausou a transição simulada; a política vigente permanece preservada."
+        : "Owner executou rollback somente na simulação; a política vigente permaneceu preservada.";
+  return {
+    ...rollouts,
+    [rolloutId]: {
+      ...rollout,
+      adocaoPolitica: {
+        ...adocao,
+        propostaAjuste: {
+          ...proposta,
+          validacaoSucessora: {
+            ...validacao,
+            ativacaoControlada: {
+              ...ativacao,
+              estado,
+              checkpoints,
+              historicoDecisoes: [
+                ...ativacao.historicoDecisoes,
+                {
+                  checkpointId: checkpointAtual.id,
+                  decisao,
+                  justificativaExplicavel,
+                  decididoEm: "Agora, nesta sessão",
+                },
+              ],
+              atualizadoEm: "Agora, nesta sessão",
+            },
+            atualizadoEm: "Agora, nesta sessão",
+          },
+          atualizadoEm: "Agora, nesta sessão",
+        },
+        atualizadoEm: "Agora, nesta sessão",
+      },
+      atualizadoEm: "Agora, nesta sessão",
+    },
+  };
+}
+
+export function calcularResumoAtivacoesControladasSucessorasSinteticas(
+  rollouts: RolloutsExperimentosSinteticos,
+) {
+  const ativacoes = Object.values(rollouts).flatMap((rollout) => {
+    const ativacao =
+      rollout.adocaoPolitica?.propostaAjuste?.validacaoSucessora?.ativacaoControlada;
+    return ativacao ? [ativacao] : [];
+  });
+  return {
+    ativacoes: ativacoes.length,
+    checkpointsConcluidos: ativacoes.reduce(
+      (total, ativacao) =>
+        total + ativacao.checkpoints.filter((checkpoint) => checkpoint.concluido).length,
+      0,
+    ),
+    pausadas: ativacoes.filter((ativacao) => ativacao.estado === "Pausada").length,
+    concluidas: ativacoes.filter((ativacao) => ativacao.estado === "Concluída").length,
+    rollbacks: ativacoes.filter((ativacao) => ativacao.estado === "Rollback concluído").length,
   };
 }
 
