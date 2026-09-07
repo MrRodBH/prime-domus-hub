@@ -98,6 +98,7 @@ import {
   calcularResumoPropostasAjustePoliticasSinteticas,
   calcularResumoValidacoesSucessorasPoliticasSinteticas,
   calcularResumoAtivacoesControladasSucessorasSinteticas,
+  calcularMonitoramentoTransicaoSucessoraSintetica,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -3858,6 +3859,7 @@ function CentralGovernancaRolloutsSinteticos({
         modo={modo}
         onControlar={onControlarAdocao}
       />
+      <MonitoramentoResultadosTransicaoSucessoras rollouts={rollouts} />
 
       {rolloutsVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-emerald-300 bg-white/70 p-5 text-center">
@@ -4788,6 +4790,44 @@ function ValidacaoProntidaoAtivacaoSucessoras({
       <p className="mt-3 text-[11px] font-semibold text-sky-800">
         Validações e decisões existem apenas nesta sessão; nenhuma política real é ativada ou revertida.
       </p>
+    </section>
+  );
+}
+
+function MonitoramentoResultadosTransicaoSucessoras({
+  rollouts,
+}: { rollouts: RolloutsExperimentosSinteticos }) {
+  const monitoramentos = Object.values(rollouts).flatMap((rollout) => {
+    const monitoramento = calcularMonitoramentoTransicaoSucessoraSintetica(rollout);
+    return monitoramento ? [{ id: rollout.id, ...monitoramento }] : [];
+  });
+  return (
+    <section aria-label="Monitoramento dos resultados da transição entre políticas" className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50/50 p-4">
+      <h4 className="text-base font-semibold">Monitoramento dos resultados da transição</h4>
+      <p className="mt-2 text-sm text-[#587076]">Compare os checkpoints fictícios. Eficácia é a aderência da sucessora; segurança considera alertas e deterioração. Nenhuma recomendação executa uma decisão.</p>
+      <p className="mt-2 text-sm">Limites: continuidade sem alertas, perda contra a vigente ou deterioração; pausa com alerta ou queda; rollback com 3 alertas, perda de 10 p.p. contra a vigente ou limite violado.</p>
+      {monitoramentos.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-cyan-300 bg-white p-4 text-sm">Nenhuma transição iniciada para monitorar. Declare a sucessora pronta e inicie a transição simulada no painel acima.</p>
+      ) : monitoramentos.map((monitoramento) => (
+        <article key={monitoramento.id} className="mt-4 rounded-xl border border-cyan-200 bg-white p-4">
+          <h5 className="text-sm font-semibold">Vigente {monitoramento.versaoVigente} → sucessora {monitoramento.versaoSucessora} · {monitoramento.estado}</h5>
+          <p className="mt-2 text-sm">{monitoramento.resultados} resultado(s) · Eficácia média: {monitoramento.eficaciaMedia === null ? "Sem evidência" : `${monitoramento.eficaciaMedia}%`} · {monitoramento.checkpointsSeguros} checkpoint(s) seguro(s) · {monitoramento.deterioracoes} deterioração(ões) · {monitoramento.alertas} alerta(s).</p>
+          <p className="mt-1 text-sm text-[#587076]">Média simples dos checkpoints medidos, sem ponderação por público; checkpoints pendentes não entram no cálculo.</p>
+          <div className="mt-3 grid gap-3 lg:grid-cols-3">
+            {monitoramento.checkpoints.map((checkpoint) => (
+              <div key={checkpoint.checkpointId} className="rounded-xl border border-slate-200 p-3">
+                <p className="text-sm font-semibold">{checkpoint.titulo} · público fictício {checkpoint.percentualPublico}%</p>
+                <p className="mt-2 text-sm">{checkpoint.explicacao}</p>
+                <p className="mt-2 text-sm font-semibold">{!checkpoint.resultado ? "Pendente" : checkpoint.deterioracao ? "Deterioração detectada" : "Sem deterioração detectada"}</p>
+                <p className="mt-2 text-sm">Decisão do owner: {checkpoint.decisaoOwner?.decisao ?? "Não registrada"}</p>
+                {checkpoint.decisaoOwner ? <p className="mt-1 text-sm text-[#587076]">{checkpoint.decisaoOwner.justificativaExplicavel}</p> : null}
+                <p className="mt-2 break-all text-xs text-[#587076]">Trilha: {monitoramento.id} / {checkpoint.checkpointId} · {checkpoint.resultado?.registradoEm ?? "Sem evidência"}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+      ))}
+      <p className="mt-3 text-sm font-semibold text-cyan-900">Política vigente preservada. Monitoramento somente nesta sessão; continuidade, pausa e rollback permanecem nos controles do owner, sem ações reais.</p>
     </section>
   );
 }

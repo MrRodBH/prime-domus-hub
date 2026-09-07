@@ -3057,6 +3057,64 @@ export function decidirAtivacaoControladaPoliticaSucessoraSintetica({
   };
 }
 
+// Read-only projection: recommendations never execute or rewrite owner decisions.
+export function calcularMonitoramentoTransicaoSucessoraSintetica(
+  rollout: RolloutExperimentoSintetico,
+) {
+  const ativacao = rollout.adocaoPolitica?.propostaAjuste?.validacaoSucessora?.ativacaoControlada;
+  if (!ativacao) return null;
+  const checkpoints = ativacao.checkpoints.map((checkpoint, indice) => {
+    const resultado = checkpoint.resultado;
+    const anterior = indice > 0 ? ativacao.checkpoints[indice - 1].resultado : undefined;
+    const deltaVigente = resultado
+      ? resultado.aderenciaSucessora - resultado.aderenciaVigente : null;
+    const variacaoAnterior = resultado && anterior
+      ? resultado.aderenciaSucessora - anterior.aderenciaSucessora : null;
+    const variacaoAlertas = resultado && anterior
+      ? resultado.alertasSeguranca - anterior.alertasSeguranca : null;
+    const deterioracao = Boolean(resultado && (
+      (deltaVigente ?? 0) < 0 || (variacaoAnterior ?? 0) < 0 || (variacaoAlertas ?? 0) > 0
+    ));
+    const recomendacao: DecisaoOwnerAtivacaoSucessoraSintetica | null = !resultado ? null
+      : resultado.faixa === "Limite violado" || resultado.alertasSeguranca >= 3 || (deltaVigente ?? 0) <= -10
+        ? "Rollback"
+        : resultado.faixa === "Atenção" || resultado.alertasSeguranca > 0 || deterioracao
+          ? "Pausar" : "Continuar";
+    const decisaoOwner = ativacao.historicoDecisoes.find((registro) => registro.checkpointId === checkpoint.id);
+    return {
+      checkpointId: checkpoint.id,
+      titulo: checkpoint.titulo,
+      percentualPublico: checkpoint.percentualPublico,
+      resultado,
+      deltaVigente,
+      variacaoAnterior,
+      variacaoAlertas,
+      deterioracao,
+      recomendacao,
+      decisaoOwner,
+      explicacao: !resultado ? "Sem resultado: não há recomendação nem eficácia calculada."
+        : `Sucessora ${resultado.aderenciaSucessora}% versus vigente ${resultado.aderenciaVigente}% (${deltaVigente} p.p.); ${resultado.alertasSeguranca} alerta(s). ` +
+          (variacaoAnterior === null ? "Primeiro checkpoint, sem comparação temporal. "
+            : `Variação desde o checkpoint anterior: ${variacaoAnterior} p.p. e ${variacaoAlertas} alerta(s). `) +
+          `Recomendação simulada: ${recomendacao}; somente o owner decide.`,
+    };
+  });
+  const medidos = checkpoints.filter((checkpoint) => checkpoint.resultado);
+  return {
+    versaoVigente: ativacao.versaoVigente,
+    versaoSucessora: ativacao.versaoSucessora,
+    estado: ativacao.estado,
+    checkpoints,
+    resultados: medidos.length,
+    eficaciaMedia: medidos.length ? Math.round(medidos.reduce(
+      (total, checkpoint) => total + checkpoint.resultado!.aderenciaSucessora, 0,
+    ) / medidos.length) : null,
+    checkpointsSeguros: medidos.filter((checkpoint) => checkpoint.recomendacao === "Continuar").length,
+    deterioracoes: medidos.filter((checkpoint) => checkpoint.deterioracao).length,
+    alertas: medidos.reduce((total, checkpoint) => total + checkpoint.resultado!.alertasSeguranca, 0),
+  };
+}
+
 export function calcularResumoAtivacoesControladasSucessorasSinteticas(
   rollouts: RolloutsExperimentosSinteticos,
 ) {

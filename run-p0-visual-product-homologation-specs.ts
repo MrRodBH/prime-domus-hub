@@ -18,6 +18,7 @@ import {
   calcularResumoValidacoesSucessorasPoliticasSinteticas,
   calcularGovernancaAtivacaoSucessoraSintetica,
   calcularResumoAtivacoesControladasSucessorasSinteticas,
+  calcularMonitoramentoTransicaoSucessoraSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -2249,6 +2250,36 @@ assert.equal(
   "Rollback",
 );
 assertions += 1;
+const antesMonitoramento = JSON.stringify(rolloutsAtivacaoConcluida);
+const transicaoAposPrimeiro = decidirAtivacaoControladaPoliticaSucessoraSintetica({
+  rollouts: registrarCheckpointAtivacaoSucessoraSintetica({ rollouts: rolloutsAtivacaoIniciada, rolloutId: rolloutBruno.id, faixa: "Seguro" }),
+  rolloutId: rolloutBruno.id, decisao: "Continuar",
+});
+const transicaoDeteriorada = registrarCheckpointAtivacaoSucessoraSintetica({ rollouts: transicaoAposPrimeiro, rolloutId: rolloutBruno.id, faixa: "Atenção" });
+const checkpointDeteriorado = calcularMonitoramentoTransicaoSucessoraSintetica(transicaoDeteriorada[rolloutBruno.id])!.checkpoints[1];
+assert.deepEqual([checkpointDeteriorado.variacaoAnterior, checkpointDeteriorado.variacaoAlertas, checkpointDeteriorado.recomendacao, checkpointDeteriorado.decisaoOwner], [-9, 1, "Pausar", undefined]);
+assert.equal(transicaoDeteriorada[rolloutBruno.id].adocaoPolitica?.propostaAjuste?.validacaoSucessora?.ativacaoControlada?.estado, "Em transição");
+assertions += 2;
+const monitoramentoSeguro = calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsAtivacaoConcluida[rolloutBruno.id])!;
+assert.deepEqual(
+  [monitoramentoSeguro.resultados, monitoramentoSeguro.eficaciaMedia, monitoramentoSeguro.checkpointsSeguros, monitoramentoSeguro.deterioracoes, monitoramentoSeguro.alertas],
+  [3, 91, 3, 0, 0],
+);
+assert.equal(monitoramentoSeguro.checkpoints[0].variacaoAnterior, null);
+assert.equal(monitoramentoSeguro.checkpoints[1].variacaoAnterior, 0);
+assert.equal(monitoramentoSeguro.checkpoints[0].deltaVigente, 7);
+assert.equal(monitoramentoSeguro.checkpoints[0].decisaoOwner?.decisao, "Continuar");
+assert.equal(JSON.stringify(rolloutsAtivacaoConcluida), antesMonitoramento);
+assert.equal(calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsAtivacaoIniciada[rolloutBruno.id])?.eficaciaMedia, null);
+assert.equal(calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsAtivacaoIniciada[rolloutBruno.id])?.checkpoints[0].recomendacao, null);
+assert.equal(calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsSucessoraPronta[rolloutBruno.id]), null);
+assert.equal(calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsAtivacaoAtencao[rolloutBruno.id])?.checkpoints[0].recomendacao, "Pausar");
+assert.equal(calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsAtivacaoCritica[rolloutBruno.id])?.checkpoints[0].recomendacao, "Rollback");
+assert.equal(calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsAtivacaoPausada[rolloutBruno.id])?.checkpoints[0].decisaoOwner?.decisao, "Pausar");
+assert.equal(calcularMonitoramentoTransicaoSucessoraSintetica(rolloutsAtivacaoCritica[rolloutBruno.id])?.deterioracoes, 1);
+assert.ok(workspace.includes("Monitoramento dos resultados da transição entre políticas"));
+assert.ok(workspace.includes("<MonitoramentoResultadosTransicaoSucessoras rollouts={rollouts} />"));
+assertions += 15;
 const rolloutsAtivacaoRevertida = decidirAtivacaoControladaPoliticaSucessoraSintetica({
   rollouts: rolloutsAtivacaoCritica,
   rolloutId: rolloutBruno.id,
