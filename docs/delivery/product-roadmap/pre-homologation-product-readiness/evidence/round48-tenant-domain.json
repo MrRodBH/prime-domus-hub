@@ -1,0 +1,38 @@
+{
+  "round": 48,
+  "base": "e1ee6f786c230c5a0148674b295510853eabf494",
+  "scope": [
+    "Full tenant details; edit/cancel with original ID, plan and formatted fields",
+    "Domain edit/cancel; validate hostname and session uniqueness",
+    "Domain remains pending; editing invalidates local review",
+    "Six explicit unavailable real checks: existence/delegation, ownership, DNS, tenant binding, SSL/HTTPS, final activation"
+  ],
+  "tests": [
+    "Round48 pure: isolation, collision, validation atomicity, stable IDs, stale review invalidation, inability to claim connected",
+    "Round46 full DOM journey evolved: consult/edit/cancel/failure, masks, unavailable individual checks and edited domain propagated to LP",
+    "Round47 masks/CEP and prior production gates preserved"
+  ],
+  "productionContractsRead": [
+    "src/lib/domains/domain-contracts.ts: DomainEvidence",
+    "src/lib/domains/domain-jobs.server.ts: managed CNAME target prerequisite",
+    "src/lib/domains/domain-reconciliation.server.ts: current generation reconciliation"
+  ],
+  "dependency": {
+    "realConnection": "The session-only demonstration has no canonical server verification transport, issued TXT challenge, authoritative DNS target or SSL observation. Real tests are explicitly unavailable; no connection completion is possible.",
+    "nextImplementation": "Integrate authenticated domain UI with canonical domain lifecycle only under an explicit scope that addresses current provider dependencies. Do not infer deployment/activation authorization from this demo fix."
+  },
+  "limits": [
+    "No DNS/SSL query, backend access, identity, provider configuration, secret or DNS write executed",
+    "No fabricated TXT/CNAME/SSL evidence or seeded data",
+    "All business changes remain in memory; page reload resets session",
+    "Round45/#236 browser/mobile/zoom remains backlog; no browser evidence claimed"
+  ],
+  "preserved": [
+    "#229 support pending",
+    "#231 no merge/deployment",
+    "#227",
+    "#230",
+    "LSR-02 Rejected — Terminal, budget 0/2"
+  ],
+  "publication": "Final PR records gates, protected merge and hosting publication response"
+}

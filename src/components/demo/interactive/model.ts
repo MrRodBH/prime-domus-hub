@@ -88,6 +88,8 @@ export const slug = (text: string) =>
     .replace(/^-|-$/g, "");
 export function domainName(value: string) {
   const result = value.trim().toLowerCase();
+  if (result.length > 253 || result.split(".").some((label) => label.length > 63))
+    throw Error("Domínio excede o tamanho permitido.");
   if (!/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(result))
     throw Error("Informe somente o domínio, sem https, caminho ou espaços.");
   return result;
@@ -136,7 +138,7 @@ export function command(
     required(data, ["name", "price", "users", "properties"]);
     numeric(data, ["price", "users", "properties"]);
     title = "Plano definido pela equipe";
-  } else if (kind === "tenants" || kind === "webhook") {
+  } else if (kind === "tenants" || kind === "webhook" || kind === "tenantEdit") {
     required(data, [
       "name",
       "cnpj",
@@ -155,7 +157,11 @@ export function command(
     if (!state.rows.plans.some((row) => row.id === data.plan))
       throw Error("Cadastre e selecione um plano válido.");
     if (
-      state.rows.tenants.some((row) => normalizeCnpj(row.fields.cnpj) === normalizeCnpj(data.cnpj))
+      state.rows.tenants.some(
+        (row) =>
+          row.id !== (kind === "tenantEdit" ? tenant : "") &&
+          normalizeCnpj(row.fields.cnpj) === normalizeCnpj(data.cnpj),
+      )
     )
       throw Error("Este CNPJ já foi cadastrado na sessão.");
     if (data.sameBilling !== "true")
@@ -175,19 +181,37 @@ export function command(
       if (state.rows.tenants.some((row) => row.fields.eventId === data.eventId))
         throw Error("Este evento já foi processado na sessão.");
     }
-    collection = "tenants";
-    title = kind === "webhook" ? "Compra demonstrativa recebida" : "Tenant cadastrado";
-  } else if (kind === "domains") {
+    if (kind === "tenantEdit") {
+      if (subject !== tenant || !tenantRow) throw Error("Tenant indisponível para edição.");
+      update("tenants", tenantRow, data);
+    }
+    collection = kind === "tenantEdit" ? "tenantEdit" : "tenants";
+    title =
+      kind === "tenantEdit"
+        ? "Cadastro do tenant atualizado"
+        : kind === "webhook"
+          ? "Compra demonstrativa recebida"
+          : "Tenant cadastrado";
+  } else if (kind === "domains" || kind === "domainEdit") {
     required(data, ["name", "provider"]);
     data.name = domainName(data.name);
     if (state.rows.domains.some((row) => row.fields.name === data.name && row.tenant !== tenant))
       throw Error("Domínio já utilizado nesta sessão.");
-    if (domain) throw Error("O tenant já possui configuração de domínio.");
-    data.status = "Configurado na sessão";
-    title = "Domínio configurado, sem consulta DNS";
+    if (kind === "domains" && domain) throw Error("O tenant já possui configuração de domínio.");
+    data.status = "Pendente de verificação real";
+    if (kind === "domainEdit")
+      update("domains", own("domains"), { ...data, lastCheck: "", checkResult: "" });
+    title = "Dados do domínio salvos; conexão não comprovada";
   } else if (kind === "domainTest") {
-    own("domains");
-    title = "Checklist de domínio revisado; DNS não consultado";
+    const row = own("domains");
+    domainName(row.fields.name);
+    update("domains", row, {
+      status: "Pendente de verificação real",
+      lastCheck: at,
+      checkResult:
+        "Formato válido. DNS, propriedade e SSL não verificados: integração canônica indisponível nesta demonstração.",
+    });
+    title = "Formato revisado; verificações reais indisponíveis";
   } else if (kind === "users") {
     required(data, ["name", "email", "role"]);
     if (

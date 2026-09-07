@@ -76,6 +76,41 @@ function Empty({ children }: { children: ReactNode }) {
     </p>
   );
 }
+const tenantFields = (plans: Row[]): Field[] => [
+  { ...f("zip", "CEP"), postal: "zip" },
+  f("address", "Logradouro"),
+  f("number", "Número"),
+  f("complement", "Complemento", "text", false),
+  f("district", "Bairro"),
+  f("city", "Cidade"),
+  f("region", "UF"),
+  f("name", "Razão Social"),
+  f("cnpj", "CNPJ"),
+  f("responsible", "Responsável"),
+  f("cpf", "CPF do responsável"),
+  f("sameBilling", "Endereço de cobrança igual ao da empresa", "checkbox", false),
+  {
+    ...f("billingZip", "Cobrança — CEP", "text", false),
+    postal: "billingZip",
+  },
+  f("billingAddress", "Cobrança — logradouro", "text", false),
+  f("billingNumber", "Cobrança — número", "text", false),
+  f("billingDistrict", "Cobrança — bairro", "text", false),
+  f("billingCity", "Cobrança — cidade", "text", false),
+  f("billingRegion", "Cobrança — UF", "text", false),
+  f("whatsapp", "WhatsApp", "tel"),
+  f("phone", "Telefone 2", "tel", false),
+  f("email", "E-mail", "email"),
+  select("plan", "Plano adquirido", choices(plans)),
+];
+const domainFields: Field[] = [
+  { ...f("name", "Domínio próprio"), placeholder: "rmprimeimoveis.com.br" },
+  select("provider", "Gestão de DNS", ["Cloudflare", "Provedor próprio"]),
+  {
+    ...f("target", "Destino DNS fornecido pela plataforma", "text", false),
+    help: "Preencha somente se já recebeu o destino oficial. Este campo não cria um apontamento nem comprova conexão.",
+  },
+];
 function Form({
   title,
   fields,
@@ -390,6 +425,8 @@ export function EmptyDemoWorkspace() {
     [lp, setLp] = useState(""),
     [dragging, setDragging] = useState(""),
     [pendingMove, setPendingMove] = useState<{ id: string; stage: string } | null>(null);
+  const [editingTenant, setEditingTenant] = useState("");
+  const [editingDomain, setEditingDomain] = useState("");
   const [resetting, setResetting] = useState(false);
   const stateRef = useRef(state),
     urls = useRef<string[]>([]);
@@ -435,6 +472,8 @@ export function EmptyDemoWorkspace() {
     }
   }
   function go(next: string) {
+    setEditingTenant("");
+    setEditingDomain("");
     setTab(next);
     setMenu(false);
     setMessage("");
@@ -849,38 +888,7 @@ export function EmptyDemoWorkspace() {
                       key="tenants"
                       title="Cadastrar tenant"
                       defaults={{ sameBilling: "true" }}
-                      fields={[
-                        { ...f("zip", "CEP"), postal: "zip" },
-                        f("address", "Logradouro"),
-                        f("number", "Número"),
-                        f("complement", "Complemento", "text", false),
-                        f("district", "Bairro"),
-                        f("city", "Cidade"),
-                        f("region", "UF"),
-                        f("name", "Razão Social"),
-                        f("cnpj", "CNPJ"),
-                        f("responsible", "Responsável"),
-                        f("cpf", "CPF do responsável"),
-                        f(
-                          "sameBilling",
-                          "Endereço de cobrança igual ao da empresa",
-                          "checkbox",
-                          false,
-                        ),
-                        {
-                          ...f("billingZip", "Cobrança — CEP", "text", false),
-                          postal: "billingZip",
-                        },
-                        f("billingAddress", "Cobrança — logradouro", "text", false),
-                        f("billingNumber", "Cobrança — número", "text", false),
-                        f("billingDistrict", "Cobrança — bairro", "text", false),
-                        f("billingCity", "Cobrança — cidade", "text", false),
-                        f("billingRegion", "Cobrança — UF", "text", false),
-                        f("whatsapp", "WhatsApp", "tel"),
-                        f("phone", "Telefone 2", "tel", false),
-                        f("email", "E-mail", "email"),
-                        select("plan", "Plano adquirido", choices(state.rows.plans)),
-                      ]}
+                      fields={tenantFields(state.rows.plans)}
                       onSave={(data) => save("tenants", data)}
                     >
                       <p className="text-xs text-slate-500">
@@ -955,6 +963,52 @@ export function EmptyDemoWorkspace() {
                               .name
                           }
                         </p>
+                        <dl className="grid gap-3 sm:grid-cols-2">
+                          {tenantFields(state.rows.plans)
+                            .filter(
+                              (field) =>
+                                field.key !== "plan" &&
+                                (!field.key.startsWith("billing") ||
+                                  row.fields.sameBilling !== "true"),
+                            )
+                            .map((field) => (
+                              <div key={field.key} className="min-w-0 break-words">
+                                <dt className="text-xs text-slate-500">{field.label}</dt>
+                                <dd>
+                                  {field.key === "sameBilling"
+                                    ? row.fields.sameBilling === "true"
+                                      ? "Sim"
+                                      : "Não"
+                                    : row.fields[field.key] || "Não informado"}
+                                </dd>
+                              </div>
+                            ))}
+                        </dl>
+                        <button className={secondary} onClick={() => setEditingTenant(row.id)}>
+                          Editar tenant
+                        </button>
+                        {editingTenant === row.id && (
+                          <Form
+                            key={row.id + "edit"}
+                            title="Editar tenant"
+                            label="Salvar alterações do tenant"
+                            defaults={{ ...row.fields }}
+                            fields={tenantFields(state.rows.plans)}
+                            onSave={(data) => {
+                              const saved = save("tenantEdit", data, row.id, row.id);
+                              if (saved) setEditingTenant("");
+                              return saved;
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className={secondary}
+                              onClick={() => setEditingTenant("")}
+                            >
+                              Cancelar edição do tenant
+                            </button>
+                          </Form>
+                        )}
                         <button
                           className={button}
                           onClick={() => {
@@ -988,7 +1042,13 @@ export function EmptyDemoWorkspace() {
                         <span className="text-xs text-teal-700">Etapa {index + 1}</span>
                         <strong className="my-2 block">{label}</strong>
                         <span className="text-xs">
-                          {count ? "Preenchido na sessão" : "A configurar"}
+                          {label === "Domínio próprio"
+                            ? currentDomain
+                              ? "Pendente de verificação real"
+                              : "A configurar"
+                            : count
+                              ? "Preenchido na sessão"
+                              : "A configurar"}
                         </span>
                       </button>
                     ))}
@@ -1001,21 +1061,109 @@ export function EmptyDemoWorkspace() {
                         <p className="my-2">
                           {currentDomain.fields.provider} · {currentDomain.fields.status}
                         </p>
+                        <p className="my-2 break-all">
+                          Destino informado:{" "}
+                          {currentDomain.fields.target || "Não fornecido pela plataforma"}
+                        </p>
+                        <button
+                          className={secondary}
+                          onClick={() => setEditingDomain(currentDomain.id)}
+                        >
+                          Editar domínio
+                        </button>
+                        {editingDomain === currentDomain.id && (
+                          <Form
+                            key={currentDomain.id + "edit"}
+                            title="Editar domínio"
+                            label="Salvar alterações do domínio"
+                            defaults={{ ...currentDomain.fields }}
+                            fields={domainFields}
+                            onSave={(data) => {
+                              const saved = save("domainEdit", data, currentDomain.id);
+                              if (saved) setEditingDomain("");
+                              return saved;
+                            }}
+                          >
+                            <p className="text-sm">
+                              Corrigir o domínio ou o apontamento exige nova verificação. Salvar não
+                              altera DNS.
+                            </p>
+                            <button
+                              type="button"
+                              className={secondary}
+                              onClick={() => setEditingDomain("")}
+                            >
+                              Cancelar edição do domínio
+                            </button>
+                          </Form>
+                        )}
                         <button
                           className={secondary}
                           onClick={() => save("domainTest", {}, currentDomain.id)}
                         >
-                          Revisar checklist local
+                          Testar configuração do domínio
                         </button>
+                        {currentDomain.fields.lastCheck && (
+                          <p role="status" className="my-3 text-sm">
+                            {currentDomain.fields.checkResult} Última revisão local:{" "}
+                            {new Date(currentDomain.fields.lastCheck).toLocaleString("pt-BR")}
+                          </p>
+                        )}
+                        <div className="mt-4 space-y-3" aria-label="Verificações de conexão">
+                          {[
+                            [
+                              "Existência e delegação DNS",
+                              "Consultar DNS autoritativo e distinguir domínio inexistente de falha de consulta.",
+                            ],
+                            [
+                              "Propriedade do domínio",
+                              "Aguardar nome e valor TXT de um desafio emitido pelo servidor; depois comparar o DNS publicado.",
+                            ],
+                            [
+                              "Apontamento DNS",
+                              "Aguardar registros oficiais de tipo, nome, destino e TTL. Comparar CNAME/A/AAAA conforme a configuração exigida.",
+                            ],
+                            [
+                              "Vínculo com o tenant",
+                              "Confirmar reserva do hostname, vínculo do provedor e domínio canônico ou alias no servidor.",
+                            ],
+                            [
+                              "Certificado SSL e HTTPS",
+                              "Confirmar certificado ativo para o hostname, validade, cadeia e resposta HTTPS.",
+                            ],
+                            [
+                              "Ativação final",
+                              "Exigir todas as evidências atuais e reconciliação do servidor antes de concluir.",
+                            ],
+                          ].map(([title, detail]) => (
+                            <section key={title} className="rounded-xl border p-3">
+                              <h3 className="font-semibold">{title}</h3>
+                              <p className="text-sm">{detail}</p>
+                              <p className="text-sm text-amber-800">
+                                Não verificado — serviço canônico indisponível na demonstração.
+                              </p>
+                              <button
+                                className={secondary}
+                                onClick={() =>
+                                  setMessage(
+                                    title +
+                                      ": teste real indisponível. É necessário conectar a interface ao serviço canônico de domínios; nenhuma consulta externa foi executada.",
+                                  )
+                                }
+                              >
+                                Verificar: {title}
+                              </button>
+                            </section>
+                          ))}
+                        </div>
+                        <p className="mt-3 font-medium">
+                          Conexão pendente. Nenhum resultado manual conclui esta etapa.
+                        </p>
                       </div>
                     ) : (
                       <Form
                         title="Configurar domínio"
-                        fields={[
-                          { ...f("name", "Domínio próprio"), placeholder: "rmprimeimoveis.com.br" },
-                          select("provider", "Gestão de DNS", ["Cloudflare", "Provedor próprio"]),
-                          f("target", "Destino DNS fornecido pela plataforma", "text", false),
-                        ]}
+                        fields={domainFields}
                         onSave={(data) => save("domains", data)}
                       />
                     )}
