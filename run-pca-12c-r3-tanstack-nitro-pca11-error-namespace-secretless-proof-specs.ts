@@ -212,12 +212,15 @@ if (head !== SOURCE_MAIN) {
     "src/routes/design-system.tsx",
   ].sort();
   // Explicit successor scope; historical assertions remain mandatory.
+  // Explicit Round 37 owner-authorized temporary audit exception; no historical checks removed.
+  const round37RecoveryPaths = [".github/workflows/round37-auth-recovery-audit.yml", "run-round-37-auth-recovery-specs.ts", "supabase/functions/round37-synthetic-auth-recovery/audit.json", "supabase/functions/round37-synthetic-auth-recovery/core.ts", "supabase/functions/round37-synthetic-auth-recovery/index.ts"];
   const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
   assert.deepEqual(
     changedPaths,
     [
       ...new Set([
         ...historicalPaths,
+        ...(changedPaths.includes("run-round-37-auth-recovery-specs.ts") ? round37RecoveryPaths : []),
         ...(changedPaths.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : []),
         ...(changedPaths.includes("run-pca-12c-r6g-public-supabase-vite-binding-specs.ts")
           ? r6gPaths
