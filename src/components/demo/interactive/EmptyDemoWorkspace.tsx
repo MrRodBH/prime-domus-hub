@@ -427,6 +427,7 @@ export function EmptyDemoWorkspace() {
     [lp, setLp] = useState(""),
     [dragging, setDragging] = useState(""),
     [pendingMove, setPendingMove] = useState<{ id: string; stage: string } | null>(null);
+  const [creatingTenant, setCreatingTenant] = useState(false);
   const [editingTenant, setEditingTenant] = useState("");
   const [editingDomain, setEditingDomain] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -466,6 +467,8 @@ export function EmptyDemoWorkspace() {
       setMessage("Alteração registrada somente nesta sessão.");
       if (kind === "tenants" || kind === "webhook") {
         setTenant(next.rows.tenants.at(-1)!.id);
+        go("Dashboard");
+        setMessage("Tenant cadastrado nesta sessão.");
       }
       return true;
     } catch (error) {
@@ -474,6 +477,7 @@ export function EmptyDemoWorkspace() {
     }
   }
   function go(next: string) {
+    setCreatingTenant(false);
     setEditingTenant("");
     setEditingDomain("");
     setTab(next);
@@ -485,6 +489,7 @@ export function EmptyDemoWorkspace() {
     setPendingMove(null);
   }
   const own = (key: string) => rowsFor(state, key, tenant);
+  const tenantToEdit = state.rows.tenants.find((row) => row.id === editingTenant);
   const currentTenant = state.rows.tenants.find((row) => row.id === tenant);
   const currentPlan = state.rows.plans.find((row) => row.id === currentTenant?.fields.plan);
   const currentDomain = own("domains")[0],
@@ -783,6 +788,7 @@ export function EmptyDemoWorkspace() {
                     ).map(([label, value, target], i) => (
                       <button
                         key={label}
+                        aria-label={`Explorar ${label}`}
                         className={
                           box +
                           " border-t-4 text-left " +
@@ -814,7 +820,13 @@ export function EmptyDemoWorkspace() {
                         <button className={button} onClick={() => go("Planos")}>
                           Definir plano
                         </button>
-                        <button className={secondary} onClick={() => go("Tenants")}>
+                        <button
+                          className={secondary}
+                          onClick={() => {
+                            go("Tenants");
+                            setCreatingTenant(true);
+                          }}
+                        >
                           Cadastrar tenant
                         </button>
                       </div>
@@ -887,147 +899,188 @@ export function EmptyDemoWorkspace() {
               )}
               {tab === "Tenants" && (
                 <>
-                  {!state.rows.plans.length ? (
-                    <Empty>Defina um plano na opção Planos antes de cadastrar o tenant.</Empty>
-                  ) : (
+                  {!creatingTenant && !tenantToEdit && (
+                    <>
+                      <button className={button} onClick={() => setCreatingTenant(true)}>
+                        Novo tenant
+                      </button>
+                      {!state.rows.tenants.length ? (
+                        <Empty>Nenhum tenant cadastrado. Use Novo tenant para começar.</Empty>
+                      ) : (
+                        <div className={box + " overflow-x-auto"}>
+                          <table
+                            className="w-full text-left text-sm"
+                            aria-label="Tenants cadastrados"
+                          >
+                            <caption className="mb-4 text-left font-semibold">
+                              Tenants cadastrados
+                            </caption>
+                            <thead>
+                              <tr className="border-b">
+                                <th scope="col" className="p-3">
+                                  Empresa
+                                </th>
+                                <th scope="col" className="p-3">
+                                  CNPJ
+                                </th>
+                                <th scope="col" className="p-3">
+                                  Plano
+                                </th>
+                                <th scope="col" className="p-3">
+                                  Contato
+                                </th>
+                                <th scope="col" className="p-3 text-right">
+                                  Ações
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {state.rows.tenants.map((row) => (
+                                <tr key={row.id} className="border-b last:border-0">
+                                  <th scope="row" className="p-3 font-medium">
+                                    {row.fields.name}
+                                  </th>
+                                  <td className="whitespace-nowrap p-3">{row.fields.cnpj}</td>
+                                  <td className="p-3">
+                                    {state.rows.plans.find((plan) => plan.id === row.fields.plan)
+                                      ?.fields.name || "Não informado"}
+                                  </td>
+                                  <td className="p-3">
+                                    <p>{row.fields.email}</p>
+                                    <p>{row.fields.whatsapp}</p>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        className={secondary}
+                                        onClick={() => {
+                                          setTenant(row.id);
+                                          setScope("tenant");
+                                          go("Implantação");
+                                        }}
+                                      >
+                                        Iniciar pelo domínio próprio
+                                      </button>
+                                      <button
+                                        className={button}
+                                        aria-label={`Editar tenant ${row.fields.name}`}
+                                        onClick={() => setEditingTenant(row.id)}
+                                      >
+                                        Editar
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {creatingTenant && (
+                    <>
+                      {!state.rows.plans.length ? (
+                        <>
+                          <Empty>
+                            Defina um plano na opção Planos antes de cadastrar o tenant.
+                          </Empty>
+                          <button className={secondary} onClick={() => setCreatingTenant(false)}>
+                            Voltar para tenants
+                          </button>
+                        </>
+                      ) : (
+                        <Form
+                          key="tenants"
+                          title="Cadastrar tenant"
+                          defaults={{ sameBilling: "true" }}
+                          fields={tenantFields(state.rows.plans)}
+                          onSave={(data) => save("tenants", data)}
+                        >
+                          <p className="text-xs text-slate-500">
+                            Use dados fictícios. O cadastro será mantido somente nesta sessão.
+                          </p>
+                          <button
+                            type="button"
+                            className={secondary}
+                            onClick={() => setCreatingTenant(false)}
+                          >
+                            Cancelar cadastro do tenant
+                          </button>
+                        </Form>
+                      )}
+                      <details className={box}>
+                        <summary className="cursor-pointer font-semibold">
+                          Entrada por compra em portal — evento demonstrativo
+                        </summary>
+                        <p className="my-3 text-sm">
+                          Hotmart, Eduzz e outros portais serão integrados pelo backend. Aqui, a
+                          equipe fornece um evento de teste normalizado; o plano é localizado pelo
+                          ID do produto, sem escolher plano no evento.
+                        </p>
+                        <Form
+                          title="Receber compra demonstrativa"
+                          fields={[f("payload", "Evento JSON demonstrativo", "textarea")]}
+                          onSave={(data) => {
+                            try {
+                              const payload = JSON.parse(data.payload);
+                              if (
+                                !payload ||
+                                typeof payload !== "object" ||
+                                Array.isArray(payload) ||
+                                !payload.tenant ||
+                                typeof payload.tenant !== "object"
+                              )
+                                throw Error(
+                                  "Informe eventId, product e tenant com os mesmos campos do cadastro.",
+                                );
+                              const plan = state.rows.plans.find(
+                                (plan) =>
+                                  plan.fields.product && plan.fields.product === payload.product,
+                              );
+                              if (!plan) throw Error("Produto sem plano correspondente.");
+                              const fields = Object.fromEntries(
+                                Object.entries(payload.tenant).filter(
+                                  ([, v]) => typeof v === "string",
+                                ),
+                              ) as Fields;
+                              return save("webhook", {
+                                ...fields,
+                                eventId: String(payload.eventId || ""),
+                                product: String(payload.product || ""),
+                                plan: plan.id,
+                              });
+                            } catch (error) {
+                              setMessage(String(error));
+                              return false;
+                            }
+                          }}
+                        />
+                      </details>
+                    </>
+                  )}
+                  {tenantToEdit && (
                     <Form
-                      key="tenants"
-                      title="Cadastrar tenant"
-                      defaults={{ sameBilling: "true" }}
+                      key={tenantToEdit.id + "edit"}
+                      title="Editar tenant"
+                      label="Salvar alterações do tenant"
+                      defaults={{ ...tenantToEdit.fields }}
                       fields={tenantFields(state.rows.plans)}
-                      onSave={(data) => save("tenants", data)}
+                      onSave={(data) => {
+                        const saved = save("tenantEdit", data, tenantToEdit.id, tenantToEdit.id);
+                        if (saved) setEditingTenant("");
+                        return saved;
+                      }}
                     >
-                      <p className="text-xs text-slate-500">
-                        Use dados fictícios. Para o roteiro solicitado, informe
-                        rmprimeimoveis.com.br na próxima etapa de domínio.
-                      </p>
+                      <button
+                        type="button"
+                        className={secondary}
+                        onClick={() => setEditingTenant("")}
+                      >
+                        Cancelar edição do tenant
+                      </button>
                     </Form>
                   )}
-                  <details className={box}>
-                    <summary className="cursor-pointer font-semibold">
-                      Entrada por compra em portal — evento demonstrativo
-                    </summary>
-                    <p className="my-3 text-sm">
-                      Hotmart, Eduzz e outros portais serão integrados pelo backend. Aqui, a equipe
-                      fornece um evento de teste normalizado; o plano é localizado pelo ID do
-                      produto, sem escolher plano no evento.
-                    </p>
-                    <Form
-                      title="Receber compra demonstrativa"
-                      fields={[f("payload", "Evento JSON demonstrativo", "textarea")]}
-                      onSave={(data) => {
-                        try {
-                          const payload = JSON.parse(data.payload);
-                          if (
-                            !payload ||
-                            typeof payload !== "object" ||
-                            Array.isArray(payload) ||
-                            !payload.tenant ||
-                            typeof payload.tenant !== "object"
-                          )
-                            throw Error(
-                              "Informe eventId, product e tenant com os mesmos campos do cadastro.",
-                            );
-                          const plan = state.rows.plans.find(
-                            (plan) =>
-                              plan.fields.product && plan.fields.product === payload.product,
-                          );
-                          if (!plan) throw Error("Produto sem plano correspondente.");
-                          const fields = Object.fromEntries(
-                            Object.entries(payload.tenant).filter(([, v]) => typeof v === "string"),
-                          ) as Fields;
-                          return save("webhook", {
-                            ...fields,
-                            eventId: String(payload.eventId || ""),
-                            product: String(payload.product || ""),
-                            plan: plan.id,
-                          });
-                        } catch (error) {
-                          setMessage(String(error));
-                          return false;
-                        }
-                      }}
-                    />
-                  </details>
-                  <Records rows={state.rows.tenants}>
-                    {(row) => (
-                      <>
-                        <p>
-                          CNPJ: {row.fields.cnpj} · Responsável: {row.fields.responsible}
-                        </p>
-                        <p>
-                          {row.fields.address}, {row.fields.number} · {row.fields.city}/
-                          {row.fields.region}
-                        </p>
-                        <p>
-                          {row.fields.email} · {row.fields.whatsapp}
-                        </p>
-                        <p>
-                          Plano:{" "}
-                          {
-                            state.rows.plans.find((plan) => plan.id === row.fields.plan)?.fields
-                              .name
-                          }
-                        </p>
-                        <dl className="grid gap-3 sm:grid-cols-2">
-                          {tenantFields(state.rows.plans)
-                            .filter(
-                              (field) =>
-                                field.key !== "plan" &&
-                                (!field.key.startsWith("billing") ||
-                                  row.fields.sameBilling !== "true"),
-                            )
-                            .map((field) => (
-                              <div key={field.key} className="min-w-0 break-words">
-                                <dt className="text-xs text-slate-500">{field.label}</dt>
-                                <dd>
-                                  {field.key === "sameBilling"
-                                    ? row.fields.sameBilling === "true"
-                                      ? "Sim"
-                                      : "Não"
-                                    : row.fields[field.key] || "Não informado"}
-                                </dd>
-                              </div>
-                            ))}
-                        </dl>
-                        <button className={secondary} onClick={() => setEditingTenant(row.id)}>
-                          Editar tenant
-                        </button>
-                        {editingTenant === row.id && (
-                          <Form
-                            key={row.id + "edit"}
-                            title="Editar tenant"
-                            label="Salvar alterações do tenant"
-                            defaults={{ ...row.fields }}
-                            fields={tenantFields(state.rows.plans)}
-                            onSave={(data) => {
-                              const saved = save("tenantEdit", data, row.id, row.id);
-                              if (saved) setEditingTenant("");
-                              return saved;
-                            }}
-                          >
-                            <button
-                              type="button"
-                              className={secondary}
-                              onClick={() => setEditingTenant("")}
-                            >
-                              Cancelar edição do tenant
-                            </button>
-                          </Form>
-                        )}
-                        <button
-                          className={button}
-                          onClick={() => {
-                            setTenant(row.id);
-                            setScope("tenant");
-                            go("Implantação");
-                          }}
-                        >
-                          Iniciar pelo domínio próprio
-                        </button>
-                      </>
-                    )}
-                  </Records>
                 </>
               )}
               {tab === "Implantação" && (

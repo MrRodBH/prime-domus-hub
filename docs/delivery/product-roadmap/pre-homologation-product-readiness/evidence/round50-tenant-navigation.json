@@ -1,0 +1,29 @@
+{
+  "round": 50,
+  "base": "99631cb053233beb3514b525302d714b18146404",
+  "changes": [
+    "Successful tenant creation returns to Dashboard, including session purchase flow",
+    "Explore Tenants and sidebar open a row-based tenant list; no empty form by default",
+    "New tenant is an explicit separate action; direct Edit at row end opens only the populated form",
+    "Save edits returns to updated list; cancel discards the form draft; model IDs and relations unchanged",
+    "Approved theme, masks, postal lookup and domain flow preserved"
+  ],
+  "controlledTests": [
+    "Two-tenant DOM journey: create/dashboard/explore/table/direct edit/select correct row/save without duplication",
+    "Creation duplicate CNPJ preserves values; cancel creation and cancel editing do not persist drafts",
+    "Round47 CEP fields reopen explicitly through New tenant after successful navigation; unmount cancellation remains tested",
+    "Cumulative Rounds46/48/49 preserved; typecheck/P0/historical gates"
+  ],
+  "limits": [
+    "Session memory only; no real backend/identity/provider action",
+    "No browser screenshot/mobile/zoom validation; Round45/#236 remains backlog",
+    "Hosting publication response recorded in final PR"
+  ],
+  "preserved": [
+    "#229 support pending",
+    "#231 no merge/deployment",
+    "#227",
+    "#230",
+    "LSR-02 Rejected — Terminal 0/2"
+  ]
+}

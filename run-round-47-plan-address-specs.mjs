@@ -276,6 +276,7 @@ try {
     "selected features saved; unchecked feature absent",
   );
   await click("Tenants");
+  await click("Novo tenant");
   const form = d.querySelector('form[aria-label="Cadastrar tenant"]');
   assert.equal(form.querySelector("input").getAttribute("aria-label"), "CEP");
   await fill({
@@ -362,6 +363,9 @@ try {
   });
   await submit("Cadastrar tenant");
   assert.equal(field("Tenant selecionado").options.length, 2);
+  assert.ok(!field("CEP"));
+  await click("Tenants");
+  await click("Novo tenant");
   assert.equal(field("CEP").value, "");
   await fill({ CEP: "67890123" });
   await blur("CEP");

@@ -180,7 +180,11 @@ try {
   };
   w.HTMLElement.prototype.scrollIntoView = function () {};
   // Recharts requires ResizeObserver; this stub enables controlled DOM, not layout evidence.
-  w.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+  w.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
   w.eval(result.outputFiles[0].text);
   const tick = () => new Promise((resolve) => setTimeout(resolve, 10));
   const text = () => d.body.textContent;
@@ -245,6 +249,8 @@ try {
   await submit("Definir plano");
   assert.ok(text().includes("Plano criado pela equipe"));
   await click("Tenants");
+  assert.ok(!d.querySelector('form[aria-label="Cadastrar tenant"]'));
+  await click("Novo tenant");
   await fill({
     "Razão Social": "Tenant criado pela equipe",
     CNPJ: "00000000000100",
@@ -262,10 +268,16 @@ try {
   });
   await submit("Cadastrar tenant");
   assert.equal(d.querySelector('[aria-label="Tenant selecionado"]').options.length, 2);
-  // Round 48: consult every field; edit preserves identity and supports cancel/failure.
+  // Round 50: create returns to Dashboard; Explore opens rows, not an empty form.
+  assert.ok(text().includes("A visão completa do seu SaaS"));
+  d.querySelector('button[aria-label="Explorar Tenants"]').click();
+  await tick();
+  assert.ok(d.querySelector('table[aria-label="Tenants cadastrados"]'));
+  assert.equal(d.querySelectorAll('table[aria-label="Tenants cadastrados"] tbody tr').length, 1);
+  assert.ok(!d.querySelector('form[aria-label="Cadastrar tenant"]'));
+  await click("Editar");
   assert.ok(text().includes("CPF do responsável"));
   assert.ok(text().includes("Telefone 2"));
-  await click("Editar tenant");
   const editForm = d.querySelector('form[aria-label="Editar tenant"]');
   const editField = async (label, value) => {
     const element = editForm.querySelector(`[aria-label="${label}"]`);
@@ -285,11 +297,52 @@ try {
   await submit("Editar tenant");
   assert.ok(!d.querySelector('form[aria-label="Editar tenant"]'));
   assert.ok(text().includes("Tenant corrigido"));
-  assert.ok(text().includes("(31) 3333-4444"));
   assert.equal(d.querySelector('[aria-label="Tenant selecionado"]').options.length, 2);
-  await click("Editar tenant");
+  await click("Editar");
+  assert.equal(d.querySelector('[aria-label="Telefone 2"]').value, "(31) 3333-4444");
+  await fill({ "Razão Social": "Rascunho descartado" });
   await click("Cancelar edição do tenant");
+  assert.ok(!text().includes("Rascunho descartado"));
   assert.ok(!d.querySelector('form[aria-label="Editar tenant"]'));
+  await click("Novo tenant");
+  assert.equal(d.querySelector('[aria-label="Razão Social"]').value, "");
+  await fill({ "Razão Social": "Cadastro cancelado" });
+  await click("Cancelar cadastro do tenant");
+  assert.equal(d.querySelectorAll("table tbody tr").length, 1);
+  await click("Novo tenant");
+  await fill({
+    "Razão Social": "Segundo tenant",
+    CNPJ: "00000000000100",
+    Responsável: "Pessoa fictícia",
+    "CPF do responsável": "00000000000",
+    Logradouro: "Rua fictícia",
+    Número: "2",
+    Bairro: "Bairro fictício",
+    Cidade: "Cidade fictícia",
+    UF: "MG",
+    CEP: "00000000",
+    WhatsApp: "31000000000",
+    "E-mail": "second@example.invalid",
+    "Plano adquirido": "session-1",
+  });
+  await submit("Cadastrar tenant");
+  assert.ok(text().includes("Este CNPJ já foi cadastrado"));
+  assert.equal(d.querySelector('[aria-label="Razão Social"]').value, "Segundo tenant");
+  await fill({ CNPJ: "00000000000200" });
+  await submit("Cadastrar tenant");
+  assert.ok(text().includes("A visão completa do seu SaaS"));
+  d.querySelector('button[aria-label="Explorar Tenants"]').click();
+  await tick();
+  assert.equal(d.querySelectorAll("table tbody tr").length, 2);
+  d.querySelector('button[aria-label="Editar tenant Segundo tenant"]').click();
+  await tick();
+  assert.equal(d.querySelector('[aria-label="Razão Social"]').value, "Segundo tenant");
+  assert.equal(d.querySelector('[aria-label="CNPJ"]').value, "00.000.000/0002-00");
+  await fill({ "Razão Social": "Segundo tenant editado" });
+  await submit("Editar tenant");
+  assert.ok(text().includes("Tenant corrigido"));
+  assert.ok(text().includes("Segundo tenant editado"));
+  assert.equal(d.querySelectorAll("table tbody tr").length, 2);
   await click("Iniciar pelo domínio próprio");
   await fill({ "Domínio próprio": "https://bad.invalid", "Gestão de DNS": "Cloudflare" });
   await submit("Configurar domínio");
@@ -426,7 +479,7 @@ try {
   assert.ok(!text().includes("Mariana Alves"));
   await click("Reiniciar demonstração");
   await click("Cancelar");
-  assert.equal(d.querySelector('[aria-label="Tenant selecionado"]').options.length, 2);
+  assert.equal(d.querySelector('[aria-label="Tenant selecionado"]').options.length, 3);
   await click("Reiniciar demonstração");
   await click("Confirmar reinício");
   assert.equal(d.querySelector('[aria-label="Tenant selecionado"]').options.length, 1);
