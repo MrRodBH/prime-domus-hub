@@ -28,6 +28,8 @@ Local wrapper tests, SQL tests (40 cases), the evolved existing access-control r
 
 **Limit:** PGlite serializes its client; these tests prove isolated transactional rollback, not multi-session lock contention or persistent concurrency. A native PostgreSQL multi-session fixture is a remaining validation dependency. The minimal fixture is not a replay of the complete production schema and proves no same-backend or persistent remote homologation. No backend migration has been applied, so the new RPC is not available there as a result of this round.
 
+The initial PR head passed the Round 42 and Round 40 CI gates. Both protected composite gates stopped on the same exact-inventory assertion: the newly added migration was not classified in the PCA-05R prerequisite manifest. The consolidated correction explicitly appends it as `POST_REHEARSAL_ROUND42_REPOSITORY_ONLY_IDENTITY_LINK / EXCLUDED_FROM_PCA05R_CELL`, with its SHA-256, and evolves the exact inventory counts from 131/9 to 132/10 (total/excluded). The 105 prerequisites, 17 rehearsal migrations, their digests, historical source references, decisions and prohibited replay operations remain unchanged. The focused diff check permits precisely this new migration for the Round 42 test change; unclassified migrations still fail. This is maintenance of the existing regression inventory, not reopening or executing PCA-05R.
+
 ## Preserved continuity and successor
 
 - Round 37 / #229 remains blocked on human Lovable support for synthetic identity `2f0a81d8-bf15-4b88-ae4a-1d893ca6a80f`, tenant pca11-hml `a212f9de-0364-427e-8473-2b0742a2d897`. Recovery did not occur.

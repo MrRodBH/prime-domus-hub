@@ -6,10 +6,10 @@
   "status": "FAIL_CLOSED_SYNTHETIC_SUBSTRATE_BUNDLE_REQUIRED",
   "authority": "PROTECTED_GITHUB_MAIN_ONLY",
   "counts": {
-    "repositoryMigrationFiles": 131,
+    "repositoryMigrationFiles": 132,
     "prerequisiteCandidates": 105,
     "approvedRehearsalMigrations": 17,
-    "excludedAfterPrelude": 9,
+    "excludedAfterPrelude": 10,
     "wholeFileReplayBlockers": 3,
     "prerequisiteFilesWithoutExplicitTransactions": 104
   },
@@ -1491,6 +1491,12 @@
       "path": "supabase/migrations/20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql",
       "sha256": "4be66ebfd62ce55da1f9923d8e131a78d849e5b8f946d00d5f37851698c50ccb",
       "reason": "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
+      "disposition": "EXCLUDED_FROM_PCA05R_CELL"
+    },
+    {
+      "path": "supabase/migrations/20260907183824_round42_broker_identity_link.sql",
+      "sha256": "08f62565f66f0c10f35c271c13f419ca1a69568320b237c368b902331261d5e0",
+      "reason": "POST_REHEARSAL_ROUND42_REPOSITORY_ONLY_IDENTITY_LINK",
       "disposition": "EXCLUDED_FROM_PCA05R_CELL"
     }
   ]

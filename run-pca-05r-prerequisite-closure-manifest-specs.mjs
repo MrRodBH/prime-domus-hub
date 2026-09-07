@@ -30,6 +30,8 @@ const excludedAfterPrelude = {
   "20260826002000_pr_m3_sec_04a_consolidated_security_corrective.sql": "POST_REHEARSAL_SECURITY_GATE",
   "20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql":
     "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
+  "20260907183824_round42_broker_identity_link.sql":
+    "POST_REHEARSAL_ROUND42_REPOSITORY_ONLY_IDENTITY_LINK",
 };
 
 function buildManifest() {
@@ -157,10 +159,10 @@ if (process.argv.includes("--write")) {
 }
 const actual = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
 assert.deepEqual(actual, expected);
-assert.equal(actual.counts.repositoryMigrationFiles, 131);
+assert.equal(actual.counts.repositoryMigrationFiles, 132);
 assert.equal(actual.counts.prerequisiteCandidates, 105);
 assert.equal(actual.counts.approvedRehearsalMigrations, 17);
-assert.equal(actual.counts.excludedAfterPrelude, 9);
+assert.equal(actual.counts.excludedAfterPrelude, 10);
 assert.equal(actual.counts.wholeFileReplayBlockers, 3);
 assert.equal(actual.counts.prerequisiteFilesWithoutExplicitTransactions, 104);
 assert.equal(actual.decision.wholePrerequisiteReplayAllowed, false);
@@ -239,6 +241,12 @@ if (base) {
       actual.excluded.find((entry) => entry.path === correctivePath)?.reason,
       "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
     );
+  } else if (changed.includes("run-round-42-broker-identity-sql-specs.mjs")) {
+    const linkPath = "supabase/migrations/20260907183824_round42_broker_identity_link.sql";
+    assert.deepEqual(changedMigrations, [linkPath]);
+    assert.equal(actual.excluded.find((entry) => entry.path === linkPath)?.reason,
+      "POST_REHEARSAL_ROUND42_REPOSITORY_ONLY_IDENTITY_LINK");
+    assert.equal(actual.rehearsal.some((entry) => entry.path === linkPath), false);
   } else {
     assert.equal(changedMigrations.length, 0);
   }
