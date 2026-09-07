@@ -63,7 +63,7 @@ function trackingSecurityHeaders(request: Request, env: unknown): HeadersInit {
     "https://www.googletagmanager.com",
   ];
   if (["/demonstracao", "/demonstracao/"].includes(new URL(request.url).pathname)) {
-    connectOrigins.push("https://viacep.com.br");
+    connectOrigins.push("https://viacep.com.br", "https://cloudflare-dns.com");
   }
   const imageOrigins = [
     "'self'",

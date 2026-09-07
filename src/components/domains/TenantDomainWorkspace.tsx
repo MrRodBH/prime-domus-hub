@@ -1,3 +1,4 @@
+import { connectionStatus, propagationGuidance } from "./presentation/domain-status";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AlertTriangle, Copy, Globe2, RefreshCw, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
@@ -140,7 +141,7 @@ export function TenantDomainWorkspace() {
       <AdminPageHeader
         eyebrow="DCA-01"
         title="Domínios personalizados"
-        description="Lifecycle server-authoritative. Solicitações do operador nunca afirmam propriedade, DNS, Cloudflare, SSL ou ativação."
+        description="Informe o domínio, publique os registros fornecidos pela plataforma e acompanhe a confirmação de DNS e SSL."
         actions={<Button variant="outline" onClick={() => void stateQuery.refetch()} disabled={stateQuery.isFetching}><RefreshCw className="mr-2 size-4" />Atualizar</Button>}
       />
 
@@ -148,6 +149,7 @@ export function TenantDomainWorkspace() {
         <div className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" /><p>Os modos <strong>manual_assisted</strong> e <strong>api_automated</strong> são explícitos. Falha da API não muda o modo silenciosamente.</p></div>
       </div>
 
+      <Card className="space-y-3 p-5"><h2 className="font-semibold">Checklist de conexão</h2><ol className="list-decimal space-y-2 pl-5"><li>Informe o domínio e confira o provedor responsável pelo DNS.</li><li>Publique o TXT de propriedade e os apontamentos oficiais no provedor; preserve os registros de e-mail.</li><li>{propagationGuidance}</li><li>Use Check Status. Verde: Conectado; amarelo: Em Propagação; vermelho: Não Conectado — verificar configurações.</li></ol></Card>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="space-y-4 p-6">
           <div><h2 className="font-semibold">Solicitar domínio</h2><p className="text-sm text-muted-foreground">Informe somente hostname, sem URL, porta ou path.</p></div>
@@ -170,7 +172,7 @@ export function TenantDomainWorkspace() {
       {stateQuery.isPending ? <Card className="p-10 text-center text-sm text-muted-foreground">Carregando autoridade de domínios…</Card> : stateQuery.isError ? <Card className="border-destructive/40 p-6 text-sm text-destructive">{stateQuery.error.message}</Card> : (
         <div className="space-y-4">
           <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Bindings e gerações</h2><span className="text-sm text-muted-foreground">{domains.length} registro(s)</span></div>
-          {domains.length === 0 ? <Card className="p-10 text-center text-sm text-muted-foreground">Nenhum domínio solicitado.</Card> : domains.map((domain) => <DomainCard key={domain.id} domain={domain} challenge={stateQuery.data?.challenges[domain.id] ?? null} busy={busy} onAction={(action) => actionMutation.mutate(action)} />)}
+          {domains.length === 0 ? <Card className="p-10 text-center text-sm text-muted-foreground">Nenhum domínio solicitado.</Card> : domains.map((domain) => <DomainCard key={domain.id} domain={domain} challenge={stateQuery.data?.challenges[domain.id] ?? null} busy={busy || stateQuery.isFetching} onCheck={() => void stateQuery.refetch()} onAction={(action) => actionMutation.mutate(action)} />)}
         </div>
       )}
     </div>
@@ -181,16 +183,18 @@ function ProofRow({ label, value }: { label: string; value: string }) {
   return <div className="grid gap-2 sm:grid-cols-[90px_1fr_auto] sm:items-center"><span className="text-sm text-muted-foreground">{label}</span><code className="overflow-x-auto rounded bg-muted px-3 py-2 text-xs">{value}</code><Button size="icon" variant="outline" aria-label={`Copiar ${label}`} onClick={() => { void navigator.clipboard.writeText(value); toast.success(`${label} copiado.`); }}><Copy className="size-4" /></Button></div>;
 }
 
-function DomainCard({ domain, challenge, busy, onAction }: {
+function DomainCard({ domain, challenge, busy, onCheck, onAction }: {
   domain: TenantDomainRecord;
   challenge: { recordName: string; status: string; expiresAt: string; challengeVersion: number } | null;
   busy: boolean;
+  onCheck: () => void;
   onAction: (action: DomainAction) => void;
 }) {
+  const connection = connectionStatus(domain.status, domain.enabled);
   const canVerify = domain.status === "pending_ownership_verification";
   const canRetry = !["draft", "replacement_pending", "revoked", "removal_pending"].includes(domain.status);
   const canRemove = !["revoked", "removal_pending"].includes(domain.status);
   const canChangeMode = ["draft", "replacement_pending", "pending_ownership_verification", "ownership_verified", "pending_dns_configuration", "failed"].includes(domain.status);
   const [modeDraft, setModeDraft] = useState<DomainExecutionMode>(domain.executionMode);
-  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2">{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">manual_assisted</SelectItem><SelectItem value="api_automated">api_automated</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Retry</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => onAction({ kind: "remove", domainId: domain.id })}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div></Card>;
+  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2"><Button className={connection.className} disabled={busy} onClick={onCheck}>Check Status — {connection.label}</Button>{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">manual_assisted</SelectItem><SelectItem value="api_automated">api_automated</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Retry</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => onAction({ kind: "remove", domainId: domain.id })}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div></Card>;
 }

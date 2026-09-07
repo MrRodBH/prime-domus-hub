@@ -1,3 +1,5 @@
+import { DomainConnectionChecklist } from "../../domains/presentation/DomainConnectionChecklist";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from "recharts";
 import { formatInput, maskFor, planFeatures } from "./formats";
 import { usePostalAddress } from "./usePostalAddress";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
@@ -62,7 +64,7 @@ const select = (
 const choices = (rows: Row[]) => rows.map((row) => ({ value: row.id, label: row.fields.name }));
 const money = (number: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(number);
-const box = "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
+const box = "rounded-2xl border border-[#123f47]/10 bg-white p-5 shadow-sm";
 const input =
   "w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700";
 const button =
@@ -547,12 +549,15 @@ export function EmptyDemoWorkspace() {
     </ol>
   );
   return (
-    <div className="min-h-screen bg-[#f4f6f8] text-slate-900" data-demo-mode="empty-session-only">
+    <div
+      className="min-h-screen bg-[#f6f4ef] text-[#123f47] font-sans"
+      data-demo-mode="empty-session-only"
+    >
       <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-950">
         Ambiente de demonstração • Começa vazio • Use somente dados fictícios • Alterações se perdem
-        ao recarregar • Sem operações comerciais reais; consulta de CEP via ViaCEP
+        ao recarregar • Sem operações comerciais reais; consultas públicas de CEP e DNS
       </div>
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#123f47]/10 bg-[#fbfaf7]/90 px-5 py-4 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-[#123f47] p-2.5 text-white">
             <Building2 />
@@ -609,14 +614,15 @@ export function EmptyDemoWorkspace() {
           </button>
         </div>
       </header>
-      <div className="mx-auto grid max-w-[1800px] lg:grid-cols-[230px_minmax(0,1fr)]">
+      <div className="mx-auto grid max-w-[1800px] lg:grid-cols-[272px_minmax(0,1fr)]">
         <aside
           className={
-            (menu ? "block" : "hidden") + " border-r border-slate-200 bg-white p-4 lg:block"
+            (menu ? "block" : "hidden") +
+            " border-r border-[#123f47]/10 bg-[#113b42] p-4 text-white lg:block"
           }
         >
-          <div className="mb-5 rounded-xl bg-teal-50 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-900">
+          <div className="mb-5 rounded-xl bg-white/10 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
               {scope === "saas" ? "Gestão da plataforma" : "Operação imobiliária"}
             </p>
             <p className="mt-1 break-words text-sm">
@@ -634,8 +640,8 @@ export function EmptyDemoWorkspace() {
                 className={
                   "min-h-11 rounded-xl px-3 py-2 text-left text-sm " +
                   (tab === item
-                    ? "bg-[#123f47] font-semibold text-white"
-                    : "text-slate-600 hover:bg-slate-100")
+                    ? "bg-white/15 font-semibold text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white")
                 }
               >
                 {item}
@@ -646,7 +652,7 @@ export function EmptyDemoWorkspace() {
             Reiniciar demonstração
           </button>
         </aside>
-        <main className="min-w-0 space-y-6 p-4 sm:p-7">
+        <main className="mx-auto w-full max-w-[1560px] min-w-0 space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[.18em] text-teal-700">
@@ -1097,65 +1103,15 @@ export function EmptyDemoWorkspace() {
                             </button>
                           </Form>
                         )}
-                        <button
-                          className={secondary}
-                          onClick={() => save("domainTest", {}, currentDomain.id)}
-                        >
-                          Testar configuração do domínio
-                        </button>
-                        {currentDomain.fields.lastCheck && (
-                          <p role="status" className="my-3 text-sm">
-                            {currentDomain.fields.checkResult} Última revisão local:{" "}
-                            {new Date(currentDomain.fields.lastCheck).toLocaleString("pt-BR")}
-                          </p>
-                        )}
-                        <div className="mt-4 space-y-3" aria-label="Verificações de conexão">
-                          {[
-                            [
-                              "Existência e delegação DNS",
-                              "Consultar DNS autoritativo e distinguir domínio inexistente de falha de consulta.",
-                            ],
-                            [
-                              "Propriedade do domínio",
-                              "Aguardar nome e valor TXT de um desafio emitido pelo servidor; depois comparar o DNS publicado.",
-                            ],
-                            [
-                              "Apontamento DNS",
-                              "Aguardar registros oficiais de tipo, nome, destino e TTL. Comparar CNAME/A/AAAA conforme a configuração exigida.",
-                            ],
-                            [
-                              "Vínculo com o tenant",
-                              "Confirmar reserva do hostname, vínculo do provedor e domínio canônico ou alias no servidor.",
-                            ],
-                            [
-                              "Certificado SSL e HTTPS",
-                              "Confirmar certificado ativo para o hostname, validade, cadeia e resposta HTTPS.",
-                            ],
-                            [
-                              "Ativação final",
-                              "Exigir todas as evidências atuais e reconciliação do servidor antes de concluir.",
-                            ],
-                          ].map(([title, detail]) => (
-                            <section key={title} className="rounded-xl border p-3">
-                              <h3 className="font-semibold">{title}</h3>
-                              <p className="text-sm">{detail}</p>
-                              <p className="text-sm text-amber-800">
-                                Não verificado — serviço canônico indisponível na demonstração.
-                              </p>
-                              <button
-                                className={secondary}
-                                onClick={() =>
-                                  setMessage(
-                                    title +
-                                      ": teste real indisponível. É necessário conectar a interface ao serviço canônico de domínios; nenhuma consulta externa foi executada.",
-                                  )
-                                }
-                              >
-                                Verificar: {title}
-                              </button>
-                            </section>
-                          ))}
-                        </div>
+                        <DomainConnectionChecklist
+                          key={
+                            currentDomain.id +
+                            currentDomain.fields.name +
+                            currentDomain.fields.provider +
+                            currentDomain.fields.target
+                          }
+                          hostname={currentDomain.fields.name}
+                        />
                         <p className="mt-3 font-medium">
                           Conexão pendente. Nenhum resultado manual conclui esta etapa.
                         </p>
@@ -1789,7 +1745,49 @@ export function EmptyDemoWorkspace() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <section className={box}>
                       <h2 className="font-semibold">Funil da sessão</h2>
-                      {stages.map((stage) => {
+                      {leads.length > 0 && (
+                        <div
+                          className="max-w-full overflow-x-auto"
+                          aria-label="Gráfico do funil da sessão"
+                        >
+                          <ResponsiveContainer
+                            width="100%"
+                            height={280}
+                            initialDimension={{ width: 640, height: 280 }}
+                          >
+                            <BarChart
+                              data={stages.map((name) => ({
+                                name,
+                                total: leads.filter((row) => row.fields.stage === name).length,
+                              }))}
+                            >
+                              <XAxis dataKey="name" hide />
+                              <YAxis allowDecimals={false} />
+                              <Tooltip />
+                              <Bar dataKey="total" name="Leads">
+                                {stages.map((name, index) => (
+                                  <Cell
+                                    key={name}
+                                    fill={
+                                      [
+                                        "#123f47",
+                                        "#7c3aed",
+                                        "#f06449",
+                                        "#d6a84b",
+                                        "#16a56b",
+                                        "#db3f8d",
+                                        "#2694d1",
+                                      ][index]
+                                    }
+                                  />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {stages.map((stage, stageIndex) => {
                         const count = leads.filter((row) => row.fields.stage === stage).length;
                         return (
                           <div key={stage} className="mt-3">
@@ -1801,6 +1799,15 @@ export function EmptyDemoWorkspace() {
                               <div
                                 className="h-2 rounded bg-teal-600"
                                 style={{
+                                  backgroundColor: [
+                                    "#123f47",
+                                    "#7c3aed",
+                                    "#f06449",
+                                    "#d6a84b",
+                                    "#16a56b",
+                                    "#db3f8d",
+                                    "#2694d1",
+                                  ][stageIndex],
                                   width: `${leads.length ? (count / leads.length) * 100 : 0}%`,
                                 }}
                               />

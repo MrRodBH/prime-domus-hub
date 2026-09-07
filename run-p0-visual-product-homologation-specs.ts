@@ -2751,4 +2751,10 @@ ok(
   "a biblioteca deve documentar gráficos responsivos",
 );
 
+
+
+const publicDns = read("src/components/domains/presentation/public-dns.ts");
+ok(publicDns.includes("https://cloudflare-dns.com/dns-query?name="), "DNS lookup has a fixed public resolver");
+ok(publicDns.includes('credentials: "omit"') && publicDns.includes('redirect: "error"'), "DNS lookup cannot send credentials or follow redirects");
+
 console.log(`P0 visual product homologation gate passed (${assertions} assertions).`);
