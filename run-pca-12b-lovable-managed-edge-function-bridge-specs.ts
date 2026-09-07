@@ -395,6 +395,8 @@ const p0VisualProductHomologationPaths = [
   "src/routes/design-system.tsx",
 ].sort();
 // Authorized downstream Round 35: exact frontend paths, no provider changes.
+// Explicit Round 37 owner-authorized temporary audit exception; no historical checks removed.
+const round37RecoveryPaths = [".github/workflows/round37-auth-recovery-audit.yml", "run-round-37-auth-recovery-specs.ts", "supabase/functions/round37-synthetic-auth-recovery/audit.json", "supabase/functions/round37-synthetic-auth-recovery/core.ts", "supabase/functions/round37-synthetic-auth-recovery/index.ts"];
 const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
@@ -411,6 +413,7 @@ const downstreamAllowedPaths = new Set([
   ...pca15rPaths,
   ...p0VisualProductHomologationPaths,
   ...round35JourneyPaths,
+  ...(changedPaths.includes("run-round-37-auth-recovery-specs.ts") ? round37RecoveryPaths : []),
 ]);
 assert.deepEqual(
   changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),
