@@ -394,6 +394,8 @@ const p0VisualProductHomologationPaths = [
   "src/routes/demonstracao.tsx",
   "src/routes/design-system.tsx",
 ].sort();
+// Authorized downstream Round 35: exact frontend paths, no provider changes.
+const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
 })
@@ -408,6 +410,7 @@ const downstreamAllowedPaths = new Set([
   ...pca12cR6gPaths,
   ...pca15rPaths,
   ...p0VisualProductHomologationPaths,
+  ...round35JourneyPaths,
 ]);
 assert.deepEqual(
   changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),
