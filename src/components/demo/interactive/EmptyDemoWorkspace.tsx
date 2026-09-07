@@ -575,6 +575,9 @@ export function EmptyDemoWorkspace() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <a href="/auth" className={button}>
+            Entrar no painel autenticado
+          </a>
           <label className="text-xs">
             Visão
             <select

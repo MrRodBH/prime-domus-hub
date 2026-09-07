@@ -3,7 +3,7 @@
 // Estrutura: Header (56) + Rail (240/64) + Content (com ContextTabs opcional).
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { meuTenantId } from "@/lib/api/tenant.functions";
 import { setCurrentTenantId } from "@/lib/tenant-cache";
@@ -26,6 +26,7 @@ import { TenantSelectionGate } from "@/components/workspace/tenant/TenantSelecti
 export function WorkspaceShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const { data: isSuper } = useQuery({
@@ -68,6 +69,12 @@ export function WorkspaceShell() {
         clearImpersonationTenantId();
         clearSelectedTenantId();
         lastUserId = null;
+        setCurrentTenantId(null);
+        void queryClient.cancelQueries();
+        queryClient.clear();
+        queueMicrotask(() => {
+          void navigate({ to: "/auth", replace: true });
+        });
         return;
       }
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
@@ -80,7 +87,7 @@ export function WorkspaceShell() {
       }
     });
     return () => data.subscription.unsubscribe();
-  }, []);
+  }, [navigate, queryClient]);
 
   const active = contextFromPath(path);
   const visibleContexts = CONTEXTS.filter((context) => !context.superOnly || isSuper);
