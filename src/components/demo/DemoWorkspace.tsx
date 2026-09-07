@@ -1462,7 +1462,7 @@ function Navegacao({
         </span>
         <div className="min-w-0">
           <p className="text-lg font-bold tracking-[0.16em] text-white">REAL ONE</p>
-          <p className="truncate text-[10px] text-white/50">Plataforma SaaS imobiliária</p>
+          <p className="truncate text-[10px] text-white/70">Plataforma SaaS imobiliária</p>
         </div>
       </div>
       <div className="px-4 pb-3 pt-4">
@@ -1475,7 +1475,7 @@ function Navegacao({
           </span>
           <span className="min-w-0">
             <strong className="block truncate text-xs text-white">RM Prime Imóveis</strong>
-            <span className="block truncate text-[10px] text-white/45">rmprimeimoveis.com.br</span>
+            <span className="block truncate text-[10px] text-white/70">rmprimeimoveis.com.br</span>
           </span>
         </div>
       </div>
@@ -1512,7 +1512,7 @@ function Navegacao({
                 <span
                   className={cn(
                     "block truncate text-[11px]",
-                    ativo ? "text-[#587076]" : "text-white/45",
+                    ativo ? "text-[#587076]" : "text-white/70",
                   )}
                 >
                   {item.descricao}
@@ -1532,7 +1532,7 @@ function Navegacao({
           </span>
           <span className="min-w-0 flex-1">
             <strong className="block truncate">Acesso da equipe</strong>
-            <span className="block truncate text-[11px] text-white/45">
+            <span className="block truncate text-[11px] text-white/70">
               Entrar com conta autorizada
             </span>
           </span>
