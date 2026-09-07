@@ -100,11 +100,9 @@ export const adminSalvarCorretor = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin as any;
 
-    let existing: { id: string; tenant_id: string; user_id: string | null } | null = null;
     if (data.id) {
-      const result = await admin.from("corretores").select("id, tenant_id, user_id").eq("tenant_id", tenantId).eq("id", data.id).maybeSingle();
+      const result = await admin.from("corretores").select("id").eq("tenant_id", tenantId).eq("id", data.id).maybeSingle();
       if (result.error || !result.data) throw new Error("Corretor não encontrado neste tenant.");
-      existing = result.data as { id: string; tenant_id: string; user_id: string | null };
     }
 
     if (data.team_id) {
@@ -128,7 +126,6 @@ export const adminSalvarCorretor = createServerFn({ method: "POST" })
       status: data.status,
       team_id: data.team_id ?? null,
       slug,
-      user_id: existing?.user_id ?? null,
     };
 
     if (data.id) {
@@ -137,9 +134,48 @@ export const adminSalvarCorretor = createServerFn({ method: "POST" })
       return { ok: true, id: data.id, accessLifecycleChanged: false };
     }
 
-    const { data: inserted, error } = await admin.from("corretores").insert(payload).select("id").single();
+    const { data: inserted, error } = await admin.from("corretores").insert({ ...payload, user_id: null }).select("id").single();
     if (error || !inserted) throw new Error("Falha ao criar o registro do corretor.");
     return { ok: true, id: inserted.id as string, accessLifecycleChanged: false };
+  });
+
+const brokerIdentityLinkSchema = z.object({
+  corretorId: z.string().uuid(),
+  userId: z.string().uuid(),
+}).strict();
+
+const brokerIdentityLinkResultSchema = z.object({
+  corretorId: z.string().uuid(),
+  userId: z.string().uuid(),
+  status: z.enum(["linked", "already_linked"]),
+}).strict();
+
+export const adminVincularCorretorIdentidade = createServerFn({ method: "POST" })
+  .middleware([requireTenant])
+  .inputValidator(brokerIdentityLinkSchema)
+  .handler(async ({ context, data }) => {
+    const { tenantId } = await authorizeTenantAccessControlOperation(trustedTenantAccessContext(context));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: raw, error } = await supabaseAdmin.rpc(
+      "link_tenant_broker_identity" as never,
+      {
+        _actor_user_id: context.userId,
+        _tenant_id: tenantId,
+        _tenant_origin: context.tenant.origin,
+        _broker_id: data.corretorId,
+        _target_user_id: data.userId,
+      } as never,
+    );
+    // Provider errors may include global unique-index details from another tenant.
+    if (error?.code === "23505" && error.message === "broker_identity_conflict") {
+      throw new Error("Conflito de vínculo: não foi possível vincular esta identidade ao corretor.");
+    }
+    if (error) throw new Error("Não foi possível vincular a identidade ao corretor.");
+    const parsed = brokerIdentityLinkResultSchema.safeParse(raw);
+    if (!parsed.success || parsed.data.corretorId !== data.corretorId || parsed.data.userId !== data.userId) {
+      throw new Error("Resposta inválida ao vincular a identidade ao corretor.");
+    }
+    return parsed.data;
   });
 
 export const adminExcluirCorretor = createServerFn({ method: "POST" })

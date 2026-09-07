@@ -1,0 +1,48 @@
+name: Round 42 broker identity contract
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/api/tenant-broker-directory.functions.ts"
+      - "src/lib/api/tenant-access-control-authority.server.ts"
+      - "src/lib/api/tenant-scoped-authority.ts"
+      - "supabase/migrations/**"
+      - "run-round-42-*.mjs"
+      - "run-pr-m2-tenant-access-control-specs.ts"
+      - ".github/workflows/round42-broker-identity-link.yml"
+permissions:
+  contents: read
+jobs:
+  broker-identity-contract:
+    name: Broker identity controlled contract and atomic rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Verify exact head and ancestry
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git merge-base --is-ancestor "$EXPECTED_BASE" HEAD
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - name: Install isolated PostgreSQL test engine outside product
+        run: npm install --prefix "$RUNNER_TEMP/round42-postgres" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.14
+      - name: Production wrapper with closed transport
+        run: node run-round-42-broker-identity-link-specs.mjs
+      - name: Versioned migration and canonical SQL authority in isolated memory
+        run: ROUND42_PGLITE_MODULE="$RUNNER_TEMP/round42-postgres/node_modules/@electric-sql/pglite/dist/index.js" node run-round-42-broker-identity-sql-specs.mjs
+      - name: Evolved access-control regressions and typecheck
+        run: |
+          node --import tsx run-pr-m2-tenant-access-control-specs.ts
+          bun run typecheck
