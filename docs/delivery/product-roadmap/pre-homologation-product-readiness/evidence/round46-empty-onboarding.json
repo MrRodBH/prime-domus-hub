@@ -1,0 +1,48 @@
+{
+  "round": 46,
+  "base": "a2b8e5ae2185345994302e5b239bf88f17e89eb4",
+  "scope": "Empty, session-only frontend macrophase replacing seeded public demonstration entry",
+  "initialState": "Zero tenants, plans, users, permissions granted, properties, leads, integrations, finance or events. Domain is a placeholder only; team enters rmprimeimoveis.com.br.",
+  "authority": "GitHub only; no Lovable source edits; no server API/integration/migration/dependency changes",
+  "implemented": [
+    "Separate SaaS Super Admin and tenant navigation; Dashboard label",
+    "Plans configured by team; full tenant legal/contact/address/billing fields; plan selection",
+    "Normalized synthetic purchase event with product-plan mapping and replay protection; not real marketplace webhook adapter",
+    "Domain configuration/checklist with explicit unverified DNS/SSL state",
+    "Users with role choices and explicit per-user demo permission selections; no default grants or Auth identities",
+    "Profile/Ads/Pixel/CAPI/GTM configuration references; no credentials or provider calls",
+    "Website theme, color, typography and local logo; CMS enabled after creation; local preview",
+    "Portal XML/TXT composition and local structure review; portal-specific conformance not claimed",
+    "Full property commercial/address/description/media fields, editable detail, local media preview, coordinate display without remote map",
+    "Local LP preview with planned tenant-domain/lp/title address; associated campaign draft using configured ads account",
+    "Minimal name + WhatsApp lead in first Kanban stage; optional email/responsible/property",
+    "Kanban drag/drop and accessible select path; detail/history; discard/lost require reasons; reactivation",
+    "Activity type/result/date-time; lead context edits; task scheduling/completion",
+    "Finance entered by team, expected/realized totals and date filters; per-tenant consumption counts and plan limits",
+    "Session event observability, team-entered DLQ/support; no operational telemetry invented",
+    "Derived funnel metrics and actionable local rules; decisions/playbooks/experiments/rollouts with team-entered progress/results; descriptive A/B rates only with supplied denominators",
+    "Reset confirmation and local object-URL cleanup"
+  ],
+  "verification": [
+    "Controlled pure state tests for empty state, tenant boundaries, replay/mapping, dependency checks, stage/discard/reactivation, dated activity, finance filters, XML escaping",
+    "Controlled DOM of actual live component from empty start through plan, tenant, domain, user/permissions, ads, website/CMS, portal, property/LP, lead, activity/history, discard/reactivation, insights and reset",
+    "Bundle guard rejects provider modules and historical seeded demo; production API/migrations/manifest paths frozen",
+    "Prior P0 algorithms retained and tested, active-entry checks evolved to empty live demo"
+  ],
+  "limits": [
+    "State is in memory and resets on reload; no business data persistence",
+    "No real purchases, memberships, DNS, OAuth, pixels, feed transmission, map provider, ads, LP/website hosting or financial execution",
+    "No provider metrics, availability/latency, marketing attribution or external AI results invented; explicit no-data states",
+    "The requested public demo update is a separate hosting publication of protected main, subject to exact source synchronization",
+    "Round 45 browser policy blocker retained; no browser workaround, mobile/zoom/screenshot validation claim"
+  ],
+  "continuity": {
+    "236": "Round 45 backlog, draft, no merge",
+    "229": "human support pending",
+    "231": "no merge/deployment",
+    "227": "not closed",
+    "230": "preserved",
+    "LSR-02": "Rejected — Terminal, budget 0/2"
+  },
+  "finalEvidence": "Final PR records exact head, CI results, merge and hosting publication status."
+}
