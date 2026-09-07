@@ -212,6 +212,17 @@ if (head !== SOURCE_MAIN) {
     "src/routes/design-system.tsx",
   ].sort();
   // Round 42 authorized repository scope; all historical runtime assertions remain active.
+  // Authorized Round 43 tests only; production and migration assertions are retained.
+  const round43ConcurrencyPaths = [
+    ".github/workflows/round43-broker-identity-concurrency.yml",
+    "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round43-broker-identity-concurrency.md",
+    "run-round-43-broker-identity-concurrency-specs.mjs",
+    "tests/round43/substrate.sql",
+    "tests/round43/cadastral-handler.mjs",
+    "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+    "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+    "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  ];
   const round42IdentityPaths = [
     ".github/workflows/round42-broker-identity-link.yml",
     "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
@@ -233,6 +244,7 @@ const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verif
     changedPaths,
     [
       ...new Set([
+        ...(changedPaths.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []),
         ...(changedPaths.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []),
         ...historicalPaths,
         ...(changedPaths.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []),
