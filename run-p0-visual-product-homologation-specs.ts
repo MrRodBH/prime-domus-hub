@@ -19,6 +19,8 @@ import {
   calcularGovernancaAtivacaoSucessoraSintetica,
   calcularResumoAtivacoesControladasSucessorasSinteticas,
   calcularMonitoramentoTransicaoSucessoraSintetica,
+  calcularEncerramentoTransicaoSintetica,
+  decidirEncerramentoTransicaoSintetica,
   calcularHistoricoDecisoesRolloutsSinteticos,
   calcularCatalogoAprendizadosSinteticos,
   calcularTrilhaPoliticasAprendizadoSinteticas,
@@ -2285,6 +2287,27 @@ const rolloutsAtivacaoRevertida = decidirAtivacaoControladaPoliticaSucessoraSint
   rolloutId: rolloutBruno.id,
   decisao: "Rollback",
 });
+assert.equal(calcularEncerramentoTransicaoSintetica(rolloutsAtivacaoIniciada[rolloutBruno.id])?.recomendacao, null);
+assert.equal(calcularEncerramentoTransicaoSintetica(rolloutsAtivacaoConcluida[rolloutBruno.id])?.recomendacao, "Concluir");
+assert.equal(calcularEncerramentoTransicaoSintetica(rolloutsAtivacaoPausada[rolloutBruno.id])?.recomendacao, "Revisar");
+assert.equal(calcularEncerramentoTransicaoSintetica(rolloutsAtivacaoRevertida[rolloutBruno.id])?.recomendacao, "Revisar");
+assert.equal(decidirEncerramentoTransicaoSintetica({rollouts: rolloutsAtivacaoIniciada, rolloutId: rolloutBruno.id, decisao: "Concluir"}), rolloutsAtivacaoIniciada);
+assert.equal(decidirEncerramentoTransicaoSintetica({rollouts: rolloutsAtivacaoPausada, rolloutId: rolloutBruno.id, decisao: "Concluir"}), rolloutsAtivacaoPausada);
+const encerrados30 = decidirEncerramentoTransicaoSintetica({rollouts: rolloutsAtivacaoConcluida, rolloutId: rolloutBruno.id, decisao: "Concluir"});
+const ativacaoEncerrada30 = encerrados30[rolloutBruno.id].adocaoPolitica!.propostaAjuste!.validacaoSucessora!.ativacaoControlada!;
+const ativacaoAnterior30 = rolloutsAtivacaoConcluida[rolloutBruno.id].adocaoPolitica!.propostaAjuste!.validacaoSucessora!.ativacaoControlada!;
+assert.equal(ativacaoEncerrada30.encerramento?.decisao, "Concluir");
+assert.equal(ativacaoEncerrada30.encerramento?.aprendizados.length, 3);
+assert.equal(ativacaoAnterior30.encerramento, undefined);
+assert.deepEqual(ativacaoEncerrada30.checkpoints, ativacaoAnterior30.checkpoints);
+assert.deepEqual(ativacaoEncerrada30.historicoDecisoes, ativacaoAnterior30.historicoDecisoes);
+assert.equal(ativacaoEncerrada30.versaoVigente, ativacaoAnterior30.versaoVigente);
+assert.equal(decidirEncerramentoTransicaoSintetica({rollouts: encerrados30, rolloutId: rolloutBruno.id, decisao: "Concluir"}), encerrados30);
+const revisados30 = decidirEncerramentoTransicaoSintetica({rollouts: rolloutsAtivacaoRevertida, rolloutId: rolloutBruno.id, decisao: "Revisar"});
+assert.equal(calcularEncerramentoTransicaoSintetica(revisados30[rolloutBruno.id])?.registro?.decisao, "Revisar");
+assert.ok(calcularEncerramentoTransicaoSintetica(revisados30[rolloutBruno.id])?.aprendizados.some(a => a.includes("sem evidência")));
+assert.ok(workspace.includes('<EncerramentoAprendizadosTransicao rollouts={rollouts} onControlar={onControlarAdocao} />'));
+assertions += 16;
 assert.equal(
   rolloutsAtivacaoRevertida[rolloutBruno.id].adocaoPolitica?.propostaAjuste
     ?.validacaoSucessora?.ativacaoControlada?.estado,
