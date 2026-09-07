@@ -211,6 +211,21 @@ if (head !== SOURCE_MAIN) {
     "src/routes/demonstracao.tsx",
     "src/routes/design-system.tsx",
   ].sort();
+  // Round 42 authorized repository scope; all historical runtime assertions remain active.
+  const round42IdentityPaths = [
+    ".github/workflows/round42-broker-identity-link.yml",
+    "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
+    "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round42-broker-identity-link.md",
+    "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+    "run-pr-m2-tenant-access-control-specs.ts",
+    "run-round-42-broker-identity-link-specs.mjs",
+    "run-round-42-broker-identity-sql-specs.mjs",
+    "src/lib/api/tenant-broker-directory.functions.ts",
+    "supabase/migrations/20260907183824_round42_broker_identity_link.sql",
+    "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+    "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+    "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  ];
   // Explicit successor scope; historical assertions remain mandatory.
   const round40JourneyPaths = [".github/workflows/round40-property-interaction.yml", "run-round-40-property-interaction-specs.mjs", "tests/round40/backend.ts", "tests/round40/router.tsx", "tests/round40/entry.tsx", "src/components/admin/ImovelForm.tsx", "src/routes/_authenticated.admin.imoveis.index.tsx"];
 const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
@@ -218,6 +233,7 @@ const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verif
     changedPaths,
     [
       ...new Set([
+        ...(changedPaths.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []),
         ...historicalPaths,
         ...(changedPaths.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []),
         ...(changedPaths.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : []),
