@@ -1,0 +1,18 @@
+{
+  "stage": "ROUND_37_TEMPORARY_SYNTHETIC_AUTH_RECOVERY",
+  "base": "893c66ed557b1c4dcd2e76bcf5e35eee6071b87f",
+  "merge_allowed": false,
+  "deployment_performed": false,
+  "password_update_performed": false,
+  "status": "prepared_not_deployable_until_external_capabilities_confirmed",
+  "impact": "One isolated Edge Function, no imports from application, no configuration or schema edits. Only auth.admin.updateUserById(fixedUUID, {password}) writes.",
+  "required_runtime_configuration": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "ROUND37_OPERATOR_UUID", "ROUND37_EXPIRES_AT", "ROUND37_TARGET_UPDATED_AT"],
+  "configuration_rules": "Use existing managed service credentials without disclosure. Operator must be the verified owner administrative identity, distinct from target. Capture target updated_at immediately before arming. Expiration at most 15 minutes. Never commit actual runtime values.",
+  "scope": "Fixed synthetic UUID and tenant, synthetic app_metadata and tenant metadata, active owner membership. Verify administrative operator via Auth getUser and server user_roles. Never accept public key or decoded client claims as authorization.",
+  "evidence": {"controlled_cases": 18, "core_and_test_typecheck": "passed", "entry_bundle_syntax": "passed", "deno_runtime": "not_executed", "remote_homologation": "not_executed"},
+  "external_blocker": "Lovable capability inquiry umsg_01m1yffg9dfdca6m0sj1t3c3fr queued, queue_paused=true, queue_pause_reason=hitl_tool. No direct edge deploy/delete tools advertised to Codex. Secure password input and independent teardown are not confirmed.",
+  "before_deployment": ["Resolve existing Lovable human interaction; do not approve GitHub/main changes", "Confirm deployment from this reviewed branch without repo mutation or preview rebuild", "Confirm secure administrative authentication and password delivery without chat/code/logs", "Confirm independent removal and verification capability", "Require applicable audit checks on exact branch head to pass"],
+  "execution": ["Verify absent function name before unique deployment", "Compare nonsecret identity, metadata, roles and membership evidence before/after", "Deploy only reviewed code with JWT verification enabled", "Owner supplies password through supported secure mechanism; no browser automation submits final password-change action", "Invoke once, no automatic retry on timeout or ambiguous outcome", "In finally, delete function and task-specific runtime configuration even on validation failure; preserve shared service credentials", "Verify function absent and endpoint unavailable", "Authenticate synthetic identity via secure form and validate explicit tenant context"],
+  "limitations": ["Busy/attempted guard is per isolate; not a distributed lock", "updated_at guard rejects changed baseline but is not atomic compare-and-swap", "No distributed exactly-once guarantee; one external invocation is a required operational control", "No persistent data or provider tests performed"],
+  "backlog": {"229": "blocked_external", "227": "non_blocking_preserved", "230": "controlled_UI_evidence_preserved", "round40": "queued_after_recovery"}
+}

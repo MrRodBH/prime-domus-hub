@@ -1,0 +1,27 @@
+name: Round 37 temporary recovery audit
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/round37-synthetic-auth-recovery/**'
+      - 'run-round-37-auth-recovery-specs.ts'
+      - '.github/workflows/round37-auth-recovery-audit.yml'
+permissions:
+  contents: read
+jobs:
+  controlled:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: bun install --frozen-lockfile
+      - run: node --import tsx/esm run-round-37-auth-recovery-specs.ts
+      - run: bunx --no-install tsc --noEmit --strict --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions supabase/functions/round37-synthetic-auth-recovery/core.ts run-round-37-auth-recovery-specs.ts
+      - run: bunx --no-install esbuild supabase/functions/round37-synthetic-auth-recovery/index.ts --bundle --format=esm --external:npm:* --outfile=/tmp/round37-reviewed.js
