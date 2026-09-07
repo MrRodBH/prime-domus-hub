@@ -211,11 +211,14 @@ if (head !== SOURCE_MAIN) {
     "src/routes/demonstracao.tsx",
     "src/routes/design-system.tsx",
   ].sort();
+  // Explicit successor scope; historical assertions remain mandatory.
+  const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
   assert.deepEqual(
     changedPaths,
     [
       ...new Set([
         ...historicalPaths,
+        ...(changedPaths.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : []),
         ...(changedPaths.includes("run-pca-12c-r6g-public-supabase-vite-binding-specs.ts")
           ? r6gPaths
           : []),

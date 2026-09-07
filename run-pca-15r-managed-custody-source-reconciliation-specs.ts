@@ -492,9 +492,11 @@ if (head !== SOURCE_MAIN) {
     "src/routes/design-system.tsx",
     "src/routes/__root.tsx",
   ].sort();
+  // Explicit successor scope; no changes to managed custody or providers.
+  const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
   assert.deepEqual(
     changed,
-    [...new Set([...PCA15R_PATHS, ...p0VisualProductHomologationPaths])].sort(),
+    [...new Set([...PCA15R_PATHS, ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
   );
   assert.ok(!changed.includes(".env"));
   assert.ok(!changed.includes("src/integrations/supabase/types.ts"));
