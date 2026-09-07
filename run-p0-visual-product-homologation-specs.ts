@@ -113,7 +113,17 @@ const priorityAdminSurfaces = [
 ]
   .map(read)
   .join("\n");
-const combinedPublicSurface = `${demonstration}\n${designSystem}\n${workspace}\n${data}\n${workflows}`;
+// Round 46 retires seeded records from the live demo entry. Prior algorithms remain regression-tested below.
+const emptyDemo = read("src/components/demo/interactive/EmptyDemoWorkspace.tsx");
+const emptyModel = read("src/components/demo/interactive/model.ts");
+ok(demonstration.includes("component: EmptyDemoWorkspace"), "live demo must use empty onboarding");
+ok(!demonstration.includes('from "@/components/demo/DemoWorkspace"'), "seeded predecessor must not be the live entry");
+ok(emptyDemo.includes("Dashboard") && !emptyDemo.includes("Visão geral"), "live navigation must say Dashboard");
+ok(emptyModel.includes("emptyState") && emptyModel.includes("events: []"), "live session must initialize without business data");
+for (const forbidden of ["localStorage", "sessionStorage", "Math.random", "fetch(", "@/lib/api", "demo-data", "supabase"]) {
+  ok(!emptyDemo.includes(forbidden) && !emptyModel.includes(forbidden), `empty demonstration must not contain ${forbidden}`);
+}
+const combinedPublicSurface = `${demonstration}\n${designSystem}\n${workspace}\n${data}\n${workflows}\n${emptyDemo}\n${emptyModel}`;
 
 for (const route of ["/demonstracao", "/design-system"]) {
   ok(routeTree.includes(route), `a árvore gerada deve registrar ${route}`);

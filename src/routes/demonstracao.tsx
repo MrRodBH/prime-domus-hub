@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DemoWorkspace } from "@/components/demo/DemoWorkspace";
+import { EmptyDemoWorkspace } from "@/components/demo/interactive/EmptyDemoWorkspace";
 
 export const Route = createFileRoute("/demonstracao")({
   ssr: false,
@@ -9,10 +9,10 @@ export const Route = createFileRoute("/demonstracao")({
       {
         name: "description",
         content:
-          "Demonstração visual da plataforma SaaS imobiliária Real One com empresa e dados fictícios.",
+          "Demonstração interativa da plataforma Real One, iniciada vazia e preenchida pela equipe com dados fictícios.",
       },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
-  component: DemoWorkspace,
+  component: EmptyDemoWorkspace,
 });
