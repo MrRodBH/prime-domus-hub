@@ -1,3 +1,4 @@
+import { normalizeCnpj } from "./formats";
 // Round 46: session-only product exploration. No transport, persistence or seeded business data.
 export type Fields = Record<string, string>;
 export type Row = { id: string; tenant: string; createdAt: string; fields: Fields };
@@ -154,9 +155,7 @@ export function command(
     if (!state.rows.plans.some((row) => row.id === data.plan))
       throw Error("Cadastre e selecione um plano válido.");
     if (
-      state.rows.tenants.some(
-        (row) => row.fields.cnpj.replace(/\D/g, "") === data.cnpj.replace(/\D/g, ""),
-      )
+      state.rows.tenants.some((row) => normalizeCnpj(row.fields.cnpj) === normalizeCnpj(data.cnpj))
     )
       throw Error("Este CNPJ já foi cadastrado na sessão.");
     if (data.sameBilling !== "true")

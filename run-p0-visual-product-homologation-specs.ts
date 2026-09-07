@@ -123,6 +123,15 @@ ok(emptyModel.includes("emptyState") && emptyModel.includes("events: []"), "live
 for (const forbidden of ["localStorage", "sessionStorage", "Math.random", "fetch(", "@/lib/api", "demo-data", "supabase"]) {
   ok(!emptyDemo.includes(forbidden) && !emptyModel.includes(forbidden), `empty demonstration must not contain ${forbidden}`);
 }
+// Round 47: the sole new remote read is a user-requested public CEP lookup, isolated from the model.
+const postalLookup = read("src/components/demo/interactive/postal-lookup.ts");
+ok(postalLookup.includes("https://viacep.com.br/ws/${cep}/json/"), "postal lookup must have a fixed provider origin");
+ok(postalLookup.includes('method: "GET"') && postalLookup.includes('credentials: "omit"'), "postal lookup is a credential-free read");
+ok(postalLookup.includes('referrerPolicy: "no-referrer"') && postalLookup.includes('redirect: "error"'), "postal lookup must not leak a referrer or follow provider redirects");
+ok((postalLookup.match(/fetch\(/g) ?? []).length === 1, "exactly one isolated postal transport is allowed");
+for (const forbidden of ["localStorage", "sessionStorage", "@/lib/api", "supabase", 'method: "POST"']) {
+  ok(!postalLookup.includes(forbidden), `postal helper must not contain ${forbidden}`);
+}
 const combinedPublicSurface = `${demonstration}\n${designSystem}\n${workspace}\n${data}\n${workflows}\n${emptyDemo}\n${emptyModel}`;
 
 for (const route of ["/demonstracao", "/design-system"]) {

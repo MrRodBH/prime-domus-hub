@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { formatInput, maskFor, planFeatures } from "./formats";
+import { usePostalAddress } from "./usePostalAddress";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   Building2,
   LayoutDashboard,
@@ -34,6 +36,8 @@ type Field = {
   required?: boolean;
   placeholder?: string;
   wide?: boolean;
+  help?: string;
+  postal?: "zip" | "billingZip";
 };
 const f = (key: string, label: string, type = "text", required = true): Field => ({
   key,
@@ -91,6 +95,8 @@ function Form({
 }) {
   const [values, setValues] = useState<Fields>(defaults),
     [error, setError] = useState("");
+  const postal = usePostalAddress(values, setValues);
+  const formId = useId();
   return (
     <form
       aria-label={title}
@@ -100,6 +106,7 @@ function Form({
         setError("");
         try {
           if (onSave(values)) {
+            postal.clear();
             setValues(defaults);
             event.currentTarget.reset();
           }
@@ -113,24 +120,55 @@ function Form({
         {fields
           .filter((field) => !field.key.startsWith("billing") || values.sameBilling !== "true")
           .map((field) => (
-            <label
+            <div
               key={field.key}
               className={
                 "min-w-0 space-y-1 text-sm font-medium " +
                 (field.type === "textarea" ? "md:col-span-2" : "")
               }
             >
-              <span>
+              <label htmlFor={`${formId}-${field.key}`}>
                 {field.label}
                 {field.required ? " *" : ""}
-              </span>
-              {field.type === "select" ? (
+              </label>
+              {field.type === "checks" ? (
+                <fieldset
+                  className="grid gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-2"
+                  id={`${formId}-${field.key}`}
+                  aria-label={field.label}
+                >
+                  <legend className="sr-only">{field.label}</legend>
+                  {field.options?.map((option) => (
+                    <label
+                      key={option.value}
+                      className="flex items-center gap-2 text-sm font-normal"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(values[field.key] || "").split("|").includes(option.value)}
+                        onChange={(event) => {
+                          const selected = (values[field.key] || "").split("|").filter(Boolean);
+                          postal.change(
+                            field.key,
+                            (event.target.checked
+                              ? [...selected, option.value]
+                              : selected.filter((value) => value !== option.value)
+                            ).join("|"),
+                          );
+                        }}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </fieldset>
+              ) : field.type === "select" ? (
                 <select
                   className={input}
+                  id={`${formId}-${field.key}`}
                   aria-label={field.label}
                   required={field.required}
                   value={values[field.key] || ""}
-                  onChange={(event) => setValues({ ...values, [field.key]: event.target.value })}
+                  onChange={(event) => postal.change(field.key, event.target.value)}
                 >
                   <option value="">Selecione</option>
                   {field.options?.map((option) => (
@@ -142,14 +180,16 @@ function Form({
               ) : field.type === "textarea" ? (
                 <textarea
                   className={input + " min-h-28"}
+                  id={`${formId}-${field.key}`}
                   aria-label={field.label}
                   required={field.required}
                   value={values[field.key] || ""}
-                  onChange={(event) => setValues({ ...values, [field.key]: event.target.value })}
+                  onChange={(event) => postal.change(field.key, event.target.value)}
                 />
               ) : field.type === "checkbox" ? (
                 <input
                   className="ml-3 size-5 accent-teal-800"
+                  id={`${formId}-${field.key}`}
                   aria-label={field.label}
                   type="checkbox"
                   checked={values[field.key] === "true"}
@@ -160,6 +200,7 @@ function Form({
               ) : field.type === "file" ? (
                 <input
                   className={input}
+                  id={`${formId}-${field.key}`}
                   aria-label={field.label}
                   type="file"
                   accept="image/png,image/jpeg,image/webp,video/mp4,video/webm"
@@ -178,16 +219,73 @@ function Form({
               ) : (
                 <input
                   className={input}
+                  id={`${formId}-${field.key}`}
                   aria-label={field.label}
                   type={field.type}
                   step={field.type === "number" ? "any" : undefined}
                   required={field.required}
                   placeholder={field.placeholder}
+                  aria-describedby={field.help ? `${formId}-help-${field.key}` : undefined}
+                  inputMode={
+                    maskFor(field.key) && maskFor(field.key) !== "cnpj" ? "numeric" : undefined
+                  }
+                  autoCapitalize={maskFor(field.key) === "cnpj" ? "characters" : undefined}
                   value={values[field.key] || ""}
-                  onChange={(event) => setValues({ ...values, [field.key]: event.target.value })}
+                  onBlur={() => {
+                    if (field.postal) void postal.lookup(field.postal);
+                  }}
+                  onChange={(event) => {
+                    const element = event.currentTarget,
+                      raw = element.value,
+                      caret = element.selectionStart;
+                    const formatted = formatInput(raw, maskFor(field.key));
+                    postal.change(field.key, formatted);
+                    if (maskFor(field.key) && caret !== null && caret < raw.length) {
+                      const count = raw
+                        .slice(0, caret)
+                        .replace(maskFor(field.key) === "cnpj" ? /[^a-z0-9]/gi : /\D/g, "").length;
+                      let position = 0,
+                        seen = 0;
+                      while (position < formatted.length && seen < count) {
+                        if (/[a-z0-9]/i.test(formatted[position])) seen++;
+                        position++;
+                      }
+                      requestAnimationFrame(() => {
+                        if (document.activeElement === element)
+                          element.setSelectionRange(position, position);
+                      });
+                    }
+                  }}
                 />
               )}
-            </label>
+              {field.help && (
+                <p
+                  id={`${formId}-help-${field.key}`}
+                  className="text-xs font-normal text-slate-500"
+                >
+                  {field.help}
+                </p>
+              )}
+              {field.postal && (
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    className={secondary}
+                    disabled={postal.status[field.postal]?.loading}
+                    onClick={() => void postal.lookup(field.postal!, true)}
+                  >
+                    Consultar {field.label} novamente
+                  </button>
+                  <p
+                    role={postal.status[field.postal]?.error ? "alert" : "status"}
+                    className="text-xs font-normal text-slate-600"
+                  >
+                    {postal.status[field.postal]?.message ||
+                      "Digite o CEP e use Tab para buscar rua, bairro, cidade e UF. Apenas o CEP é enviado ao ViaCEP."}
+                  </p>
+                </div>
+              )}
+            </div>
           ))}
       </div>
       {children}
@@ -413,7 +511,7 @@ export function EmptyDemoWorkspace() {
     <div className="min-h-screen bg-[#f4f6f8] text-slate-900" data-demo-mode="empty-session-only">
       <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-950">
         Ambiente de demonstração • Começa vazio • Use somente dados fictícios • Alterações se perdem
-        ao recarregar • Nenhuma ação externa
+        ao recarregar • Sem operações comerciais reais; consulta de CEP via ViaCEP
       </div>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
         <div className="flex items-center gap-3">
@@ -709,8 +807,15 @@ export function EmptyDemoWorkspace() {
                       f("price", "Mensalidade (R$)", "number"),
                       f("users", "Limite de usuários", "number"),
                       f("properties", "Limite de imóveis", "number"),
-                      f("product", "ID do produto no portal", "text", false),
-                      f("features", "Recursos incluídos", "textarea", false),
+                      {
+                        ...f("product", "ID do produto no portal", "text", false),
+                        help: "Opcional. É o identificador do produto/plano cadastrado no portal de vendas (por exemplo, Hotmart ou Eduzz). Ele permite associar a compra recebida ao plano. Não é CNPJ, chave de API ou senha. Se ainda não vende por um portal, deixe em branco.",
+                      },
+                      {
+                        ...select("features", "Recursos incluídos", [...planFeatures], false),
+                        type: "checks",
+                        help: "Marque os recursos incluídos neste plano. A quantidade de imóveis é definida no campo Limite de imóveis.",
+                      },
                     ]}
                     onSave={(data) => save("plans", data)}
                   />
@@ -721,7 +826,11 @@ export function EmptyDemoWorkspace() {
                           {money(+row.fields.price)} / mês · {row.fields.users} usuários ·{" "}
                           {row.fields.properties} imóveis
                         </p>
-                        <p>{row.fields.features || "Recursos não informados"}</p>
+                        <p>
+                          {row.fields.features
+                            ? row.fields.features.split("|").join(" · ")
+                            : "Nenhum recurso selecionado"}
+                        </p>
                         <p>
                           ID para mapear compra demonstrativa:{" "}
                           {row.fields.product || "Não definido"}
@@ -741,29 +850,32 @@ export function EmptyDemoWorkspace() {
                       title="Cadastrar tenant"
                       defaults={{ sameBilling: "true" }}
                       fields={[
-                        f("name", "Razão Social"),
-                        f("cnpj", "CNPJ"),
-                        f("responsible", "Responsável"),
-                        f("cpf", "CPF do responsável"),
+                        { ...f("zip", "CEP"), postal: "zip" },
                         f("address", "Logradouro"),
                         f("number", "Número"),
                         f("complement", "Complemento", "text", false),
                         f("district", "Bairro"),
                         f("city", "Cidade"),
                         f("region", "UF"),
-                        f("zip", "CEP"),
+                        f("name", "Razão Social"),
+                        f("cnpj", "CNPJ"),
+                        f("responsible", "Responsável"),
+                        f("cpf", "CPF do responsável"),
                         f(
                           "sameBilling",
                           "Endereço de cobrança igual ao da empresa",
                           "checkbox",
                           false,
                         ),
+                        {
+                          ...f("billingZip", "Cobrança — CEP", "text", false),
+                          postal: "billingZip",
+                        },
                         f("billingAddress", "Cobrança — logradouro", "text", false),
                         f("billingNumber", "Cobrança — número", "text", false),
                         f("billingDistrict", "Cobrança — bairro", "text", false),
                         f("billingCity", "Cobrança — cidade", "text", false),
                         f("billingRegion", "Cobrança — UF", "text", false),
-                        f("billingZip", "Cobrança — CEP", "text", false),
                         f("whatsapp", "WhatsApp", "tel"),
                         f("phone", "Telefone 2", "tel", false),
                         f("email", "E-mail", "email"),

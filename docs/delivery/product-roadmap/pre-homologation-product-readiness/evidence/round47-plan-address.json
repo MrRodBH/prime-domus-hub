@@ -1,0 +1,54 @@
+{
+  "round": 47,
+  "base": "6f420ae9d576587d55b05a439b385bdbaa59f3f2",
+  "request": "Owner screenshot: explain optional product ID; checkbox plan resources. Tenant: CNPJ/CPF/WhatsApp/phone/CEP masks, CEP first and address lookup.",
+  "changes": [
+    "Optional product ID remains the marketplace product mapping, with in-form explanation and no-secret guidance",
+    "Plan resources are individually selectable, initially unchecked; property quantity remains the numeric plan limit",
+    "CNPJ numeric/alphanumeric, CPF, domestic fixed/mobile phone (including pasted +55) and CEP formatting",
+    "Company CEP is first; billing CEP precedes separate billing address",
+    "On complete CEP blur, fixed-origin ViaCEP GET fills street/district/city/UF; explicit retry; manual editing always available",
+    "8-digit guard, timeout, malformed/not-found/error states, incomplete municipal address handling",
+    "Cancel stale CEP requests, suppress duplicate blur lookup, preserve edits made in flight, clear only previous untouched autofill when CEP changes, ignore hidden billing/unmounted responses",
+    "Local CNPJ uniqueness normalization preserves letters; no change to server validation or business permissions",
+    "CSP permits the fixed ViaCEP origin only for /demonstracao and /demonstracao/; server business APIs unchanged"
+  ],
+  "networkBoundary": {
+    "purpose": "User-authorized public postal lookup only",
+    "origin": "https://viacep.com.br",
+    "path": "/ws/{8 digits}/json/",
+    "method": "GET",
+    "credentials": "omit",
+    "referrerPolicy": "no-referrer",
+    "redirect": "error",
+    "timeoutMs": 8000,
+    "transmittedBusinessData": "CEP only; no tenant ID, CNPJ, CPF, names, phones or email in request",
+    "tests": "All provider responses controlled; no real CEP request executed during validation"
+  },
+  "sources": [
+    "https://viacep.com.br/",
+    "https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/perguntas-e-respostas/cnpj/cnpj-alfanumerico.pdf"
+  ],
+  "validation": [
+    "Pure formatting/normalization and masked-vs-raw CNPJ uniqueness",
+    "Transport: invalid CEP, fixed URL/GET/privacy flags, error boolean/string, malformed/mismatched response, network failure and timeout",
+    "Actual DOM: feature checks/save, optional product, field order, masks/paste, loading, manual preservation, stale responses, not found/failure/retry, generic CEP, billing cancellation, unmount and successful tenant save",
+    "Round 46 journey retained; P0 guard evolves only for isolated public CEP read; historical scope classifiers add exact round paths",
+    "Execute actual production CSP functions: allow on exact demonstration paths, deny on root/admin/lookalike paths"
+  ],
+  "limits": [
+    "Masks format input; they do not certify registration or calculate document validity",
+    "Address lookup is advisory and may return partial or stale public data; fields stay editable",
+    "Business state still starts empty and lives in memory; no business backend, Auth, DNS, ad, portal or financial action",
+    "Round 45/#236 remains backlog without browser/mobile/zoom validation; no workaround",
+    "Public hosting update requires merged exact main synchronization; final PR records publication response"
+  ],
+  "continuity": {
+    "229": "human support pending",
+    "231": "no merge/deployment",
+    "227": "preserved",
+    "230": "preserved",
+    "236": "backlog/draft/no merge",
+    "LSR-02": "Rejected — Terminal, budget 0/2"
+  }
+}
