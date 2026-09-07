@@ -119,7 +119,8 @@ const authenticated = readFileSync("src/routes/_authenticated.tsx", "utf8");
 assert.match(client, /import\.meta\.env\.VITE_SUPABASE_URL/);
 assert.match(client, /import\.meta\.env\.VITE_SUPABASE_PUBLISHABLE_KEY/);
 assert.match(auth, /supabase\.auth\.getUser\(\)/);
-assert.match(auth, /supabase\.auth\.signInWithPassword\(\{ email, password \}\)/);
+// Round 51 preserves the canonical password client and normalizes the email input.
+assert.match(auth, /supabase\.auth\.signInWithPassword\(\{\s*email: email\.trim\(\),\s*password,?\s*\}\)/);
 assert.match(authenticated, /if \(error \|\| !data\.user\) throw redirect\(\{ to: "\/auth" \}\)/);
 
 assert.deepEqual(
