@@ -62,6 +62,9 @@ function trackingSecurityHeaders(request: Request, env: unknown): HeadersInit {
     "https://region1.google-analytics.com",
     "https://www.googletagmanager.com",
   ];
+  if (["/demonstracao", "/demonstracao/"].includes(new URL(request.url).pathname)) {
+    connectOrigins.push("https://viacep.com.br");
+  }
   const imageOrigins = [
     "'self'",
     "data:",

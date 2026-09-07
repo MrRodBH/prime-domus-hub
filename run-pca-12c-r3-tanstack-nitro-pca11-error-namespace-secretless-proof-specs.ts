@@ -215,6 +215,23 @@ if (head !== SOURCE_MAIN) {
   // Authorized Round 43 tests only; production and migration assertions are retained.
   // Round 44 initial-link UI only; server, migrations and historical guards remain frozen.
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
+// Round 47 plan form/masks/CEP successor; no server authority changes.
+const round47PlanAddressPaths = [
+  "src/server.ts",
+  ".github/workflows/round47-plan-address.yml",
+  "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round47-plan-address.json",
+  "src/components/demo/interactive/EmptyDemoWorkspace.tsx",
+  "src/components/demo/interactive/model.ts",
+  "src/components/demo/interactive/formats.ts",
+  "src/components/demo/interactive/postal-lookup.ts",
+  "src/components/demo/interactive/usePostalAddress.ts",
+  "run-round-47-plan-address-specs.mjs",
+  "tests/round47/entry.tsx",
+  "run-p0-visual-product-homologation-specs.ts",
+  "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+  "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts"
+];
 const round46EmptyDemoPaths = [
   ".github/workflows/round46-empty-onboarding.yml",
   "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round46-empty-onboarding.json",
@@ -275,7 +292,7 @@ const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verif
     changedPaths,
     [
       ...new Set([
-        ...(changedPaths.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changedPaths.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changedPaths.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []),
+        ...(changedPaths.includes("run-round-47-plan-address-specs.mjs") ? round47PlanAddressPaths : []), ...(changedPaths.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changedPaths.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changedPaths.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []),
         ...(changedPaths.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []),
         ...historicalPaths,
         ...(changedPaths.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []),
