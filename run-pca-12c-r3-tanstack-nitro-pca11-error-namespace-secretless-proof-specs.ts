@@ -217,6 +217,7 @@ if (head !== SOURCE_MAIN) {
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
 const round51SuperAdminAuthPaths = [
+  "src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts",
   "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
   "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts",
   ".github/workflows/round51-superadmin-auth.yml",
