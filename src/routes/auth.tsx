@@ -151,7 +151,13 @@ function AuthPage() {
               className="mt-3 w-full"
               variant="outline"
               disabled={exit.busy || loading}
-              onClick={exit.logout}
+              onClick={async () => {
+                if (await exit.logout()) {
+                  setAuthenticated(false);
+                  setPassword("");
+                  setMessage("");
+                }
+              }}
             >
               {exit.busy ? "Saindo…" : "Sair da conta"}
             </Button>

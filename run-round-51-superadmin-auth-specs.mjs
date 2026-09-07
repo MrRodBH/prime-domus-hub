@@ -171,6 +171,11 @@ await scenario(
     assert.equal(fixture.navigation.length, 0);
     assert.ok(!text().includes("private authority"));
     assert.ok([...d.querySelectorAll("button")].some((b) => b.textContent === "Sair da conta"));
+    [...d.querySelectorAll("button")].find((b) => b.textContent === "Sair da conta").click();
+    await until(() => d.getElementById("password"));
+    assert.equal(d.getElementById("password").value, "");
+    assert.ok(!text().includes("Não foi possível verificar"));
+    assert.equal(fixture.navigation[0].to, "/auth");
   },
 );
 const late = deferred();

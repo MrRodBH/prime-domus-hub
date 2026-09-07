@@ -26,8 +26,10 @@ export function useLogout() {
       await queryClient.cancelQueries();
       queryClient.clear();
       await navigate({ to: "/auth", replace: true });
+      return true;
     } catch {
       setError("Não foi possível concluir a saída. Tente novamente.");
+      return false;
     } finally {
       pending.current = false;
       setBusy(false);
