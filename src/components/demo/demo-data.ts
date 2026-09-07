@@ -959,6 +959,13 @@ export type RegistroDecisaoAtivacaoSucessoraSintetica = {
 };
 
 export type AtivacaoControladaPoliticaSucessoraSintetica = {
+  encerramento?: {
+    decisao: "Concluir" | "Revisar";
+    owner: "Owner simulado";
+    decididoEm: string;
+    justificativa: string;
+    aprendizados: string[];
+  };
   estado: "Em transição" | "Pausada" | "Concluída" | "Rollback concluído";
   versaoVigente: string;
   versaoSucessora: string;
@@ -3113,6 +3120,49 @@ export function calcularMonitoramentoTransicaoSucessoraSintetica(
     deterioracoes: medidos.filter((checkpoint) => checkpoint.deterioracao).length,
     alertas: medidos.reduce((total, checkpoint) => total + checkpoint.resultado!.alertasSeguranca, 0),
   };
+}
+
+export function calcularEncerramentoTransicaoSintetica(rollout: RolloutExperimentoSintetico) {
+  const ativacao = rollout.adocaoPolitica?.propostaAjuste?.validacaoSucessora?.ativacaoControlada;
+  const monitoramento = calcularMonitoramentoTransicaoSucessoraSintetica(rollout);
+  if (!ativacao || !monitoramento) return null;
+  const criterios = [
+    { descricao: "Todos os checkpoints possuem resultado e foram concluídos.", atendido: ativacao.checkpoints.length > 0 && ativacao.checkpoints.every(c => c.concluido && c.resultado) },
+    { descricao: "Todos os resultados são seguros, sem deterioração.", atendido: monitoramento.resultados > 0 && monitoramento.checkpointsSeguros === ativacao.checkpoints.length && monitoramento.deterioracoes === 0 },
+    { descricao: "O owner registrou continuidade em cada checkpoint.", atendido: ativacao.checkpoints.every(c => ativacao.historicoDecisoes.some(d => d.checkpointId === c.id && d.decisao === "Continuar")) },
+    { descricao: "A política vigente permanece preservada.", atendido: ativacao.politicaVigentePreservada },
+  ];
+  const terminal = ativacao.estado !== "Em transição";
+  const recomendacao: "Concluir" | "Revisar" | null = !terminal || monitoramento.resultados === 0 ? null
+    : ativacao.estado === "Concluída" && criterios.every(c => c.atendido) ? "Concluir" : "Revisar";
+  const aprendizados = monitoramento.checkpoints.map(c => !c.resultado
+    ? `${c.titulo}: sem evidência; não permite inferir sucesso para este público.`
+    : `${c.titulo} (${c.percentualPublico}% fictício): ${c.explicacao} Aprendizado: ${c.recomendacao === "Continuar" ? "resultado seguro neste público, sem garantia para pessoas reais" : "revisar aderência e alertas antes de qualquer nova simulação"}.`);
+  return { monitoramento, criterios, recomendacao, aprendizados, registro: ativacao.encerramento,
+    explicacao: recomendacao === null ? "Aguarde o término da transição e a decisão dos checkpoints."
+      : recomendacao === "Concluir" ? "Todos os checkpoints e decisões sustentam a conclusão exclusivamente simulada."
+        : "A transição terminou com evidência insuficiente ou risco; o encerramento requer revisão dos aprendizados." };
+}
+
+export function decidirEncerramentoTransicaoSintetica({ rollouts, rolloutId, decisao }: {
+  rollouts: RolloutsExperimentosSinteticos;
+  rolloutId: string;
+  decisao: "Concluir" | "Revisar";
+}): RolloutsExperimentosSinteticos {
+  const rollout = rollouts[rolloutId];
+  const adocao = rollout?.adocaoPolitica;
+  const proposta = adocao?.propostaAjuste;
+  const validacao = proposta?.validacaoSucessora;
+  const ativacao = validacao?.ativacaoControlada;
+  if (!rollout || !adocao || !proposta || !validacao || !ativacao || ativacao.encerramento) return rollouts;
+  const avaliacao = calcularEncerramentoTransicaoSintetica(rollout);
+  if (!avaliacao || decisao !== avaliacao.recomendacao) return rollouts;
+  return { ...rollouts, [rolloutId]: { ...rollout, adocaoPolitica: { ...adocao, propostaAjuste: {
+    ...proposta, validacaoSucessora: { ...validacao, ativacaoControlada: { ...ativacao,
+      encerramento: { decisao, owner: "Owner simulado", decididoEm: "Agora, nesta sessão",
+        justificativa: avaliacao.explicacao, aprendizados: [...avaliacao.aprendizados] },
+    } },
+  } } } };
 }
 
 export function calcularResumoAtivacoesControladasSucessorasSinteticas(

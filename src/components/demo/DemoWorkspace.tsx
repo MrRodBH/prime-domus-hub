@@ -99,6 +99,8 @@ import {
   calcularResumoValidacoesSucessorasPoliticasSinteticas,
   calcularResumoAtivacoesControladasSucessorasSinteticas,
   calcularMonitoramentoTransicaoSucessoraSintetica,
+  calcularEncerramentoTransicaoSintetica,
+  decidirEncerramentoTransicaoSintetica,
   calcularResumoMonitoramentoRolloutsSinteticos,
   calcularResumoPlaybooksComerciaisSinteticos,
   calcularResumoResultadosPlaybooksSinteticos,
@@ -256,7 +258,8 @@ type AcaoGovernancaPoliticaSintetica =
   | { tipo: "Decidir validação sucessora"; decisao: DecisaoOwnerValidacaoSucessoraSintetica }
   | { tipo: "Iniciar ativação controlada" }
   | { tipo: "Registrar checkpoint de ativação"; faixa: FaixaCheckpointAtivacaoSucessoraSintetica }
-  | { tipo: "Decidir ativação controlada"; decisao: DecisaoOwnerAtivacaoSucessoraSintetica };
+  | { tipo: "Decidir ativação controlada"; decisao: DecisaoOwnerAtivacaoSucessoraSintetica }
+  | { tipo: "Encerrar transição"; decisao: "Concluir" | "Revisar" };
 type ControlarAdocaoPolitica = (
   rollout: RolloutExperimentoSintetico,
   acao: AcaoGovernancaPoliticaSintetica,
@@ -964,6 +967,9 @@ export function DemoWorkspace() {
           rolloutId: rollout.id,
           decisao: acao.decisao,
         });
+      }
+      if (typeof acao === "object" && acao.tipo === "Encerrar transição") {
+        return decidirEncerramentoTransicaoSintetica({ rollouts: atuais, rolloutId: rollout.id, decisao: acao.decisao });
       }
       return acao === "Avançar etapa"
         ? avancarEtapaAdocaoPoliticaSintetica({ rollouts: atuais, rolloutId: rollout.id })
@@ -3860,6 +3866,7 @@ function CentralGovernancaRolloutsSinteticos({
         onControlar={onControlarAdocao}
       />
       <MonitoramentoResultadosTransicaoSucessoras rollouts={rollouts} />
+      <EncerramentoAprendizadosTransicao rollouts={rollouts} onControlar={onControlarAdocao} />
 
       {rolloutsVisiveis.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-emerald-300 bg-white/70 p-5 text-center">
@@ -4792,6 +4799,38 @@ function ValidacaoProntidaoAtivacaoSucessoras({
       </p>
     </section>
   );
+}
+
+function EncerramentoAprendizadosTransicao({ rollouts, onControlar }: {
+  rollouts: RolloutsExperimentosSinteticos;
+  onControlar: ControlarAdocaoPolitica;
+}) {
+  const avaliacoes = Object.values(rollouts).flatMap(rollout => {
+    const avaliacao = calcularEncerramentoTransicaoSintetica(rollout);
+    return avaliacao ? [{ rollout, ...avaliacao }] : [];
+  });
+  return <section aria-label="Encerramento e aprendizados das transições" className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4">
+    <h4 className="text-base font-semibold">Encerramento e aprendizados das transições</h4>
+    <p className="mt-2 text-sm">Consolide as evidências antes de concluir ou encaminhar para revisão. A decisão final é simulada e não substitui a política vigente.</p>
+    {avaliacoes.length === 0 ? <p className="mt-4 rounded-xl border border-dashed border-indigo-300 bg-white p-4 text-sm">Nenhuma transição disponível para encerramento.</p> : avaliacoes.map(avaliacao => (
+      <article key={avaliacao.rollout.id} className="mt-4 rounded-xl border border-indigo-200 bg-white p-4">
+        <h5 className="text-sm font-semibold">{avaliacao.monitoramento.versaoVigente} → {avaliacao.monitoramento.versaoSucessora} · {avaliacao.monitoramento.estado}</h5>
+        <p className="mt-2 text-sm">{avaliacao.monitoramento.resultados} resultado(s), {avaliacao.monitoramento.deterioracoes} deterioração(ões), {avaliacao.monitoramento.alertas} alerta(s).</p>
+        <h6 className="mt-3 text-sm font-semibold">Critérios de conclusão</h6>
+        {avaliacao.criterios.map(c => <p key={c.descricao} className="mt-1 text-sm">{c.atendido ? "✓" : "—"} {c.descricao}</p>)}
+        <p className="mt-3 text-sm font-semibold">Recomendação: {avaliacao.recomendacao ?? "Aguardar"}</p>
+        <p className="mt-1 text-sm">{avaliacao.explicacao}</p>
+        <h6 className="mt-3 text-sm font-semibold">Aprendizados por checkpoint</h6>
+        {(avaliacao.registro?.aprendizados ?? avaliacao.aprendizados).map(a => <p key={a} className="mt-2 text-sm text-[#587076]">{a}</p>)}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(["Concluir", "Revisar"] as const).map(decisao => <Button key={decisao} type="button" variant="outline" disabled={Boolean(avaliacao.registro) || decisao !== avaliacao.recomendacao} onClick={() => onControlar(avaliacao.rollout, { tipo: "Encerrar transição", decisao })}>{decisao} encerramento</Button>)}
+        </div>
+        <p className="mt-3 text-sm font-semibold">Trilha auditável do encerramento</p>
+        <p className="mt-1 break-words text-sm">{avaliacao.rollout.id} · {avaliacao.registro ? `${avaliacao.registro.owner}: ${avaliacao.registro.decisao} · ${avaliacao.registro.decididoEm}. ${avaliacao.registro.justificativa}` : "Nenhuma decisão final registrada."}</p>
+      </article>
+    ))}
+    <p className="mt-3 text-sm font-semibold text-indigo-900">Registro único em memória; política vigente, checkpoints e históricos anteriores preservados. Nenhuma ação real.</p>
+  </section>;
 }
 
 function MonitoramentoResultadosTransicaoSucessoras({
