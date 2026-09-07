@@ -1,0 +1,41 @@
+{
+  "round": 49,
+  "base": "3266cd7941cdf5a1faf314c3ef1484f8fd95802b",
+  "theme": {
+    "authority": "src/components/demo/DemoWorkspace.tsx and demo-data.ts, preserved approved source",
+    "restored": [
+      "warm #f6f4ef surface",
+      "#113b42 dark sidebar, 272px",
+      "#fbfaf7 translucent header",
+      "#123f47 text and borders",
+      "existing font tokens/CSS unchanged",
+      "Recharts and seven approved colors"
+    ],
+    "limits": "No screenshot/browser comparison available; controlled DOM and source parity, not visual equivalence proof. Existing forms/editors and empty state preserved."
+  },
+  "domain": {
+    "public": "Four-step checklist; fixed Cloudflare DoH NS lookup only, no credentials/referrer/redirect; 8s timeout/cancel; recognized DNS provider, not registrar/ownership/SSL proof",
+    "authenticated": "Check Status refetches getTenantDomainState only; green requires active+enabled from server. Yellow uses pending DNS/provider/SSL states, other states red. Existing TXT issuance remains canonical.",
+    "propagation": "TTL-dependent estimate; no countdown or guaranteed completion",
+    "remaining": "Anonymous demo cannot issue real ownership keys, authoritative target or attest SSL. Authenticated service and preserved provider prerequisites remain necessary. No new real identity or provider activation performed."
+  },
+  "tests": [
+    "Round49 mocked public DNS and safe errors; three-state projection; source theme/Recharts parity; authenticated read-only button",
+    "Round48 pure + evolved Round46 DOM journey",
+    "Round47 postal and CSP regression",
+    "TypeScript/P0/historical release gates"
+  ],
+  "sources": [
+    "https://developers.cloudflare.com/dns/manage-dns-records/reference/ttl/",
+    "https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/"
+  ],
+  "preserved": [
+    "#229 support pending",
+    "#231 no merge/deployment",
+    "#227",
+    "#230",
+    "#236/Round45 backlog",
+    "LSR-02 Rejected — Terminal 0/2"
+  ],
+  "remoteActions": "No real DNS lookup during tests, backend, identity, credentials or provider changes. Hosting publication response recorded in final PR."
+}

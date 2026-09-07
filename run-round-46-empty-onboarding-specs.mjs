@@ -179,6 +179,8 @@ try {
     throw Error("NETWORK_FORBIDDEN");
   };
   w.HTMLElement.prototype.scrollIntoView = function () {};
+  // Recharts requires ResizeObserver; this stub enables controlled DOM, not layout evidence.
+  w.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
   w.eval(result.outputFiles[0].text);
   const tick = () => new Promise((resolve) => setTimeout(resolve, 10));
   const text = () => d.body.textContent;
@@ -296,19 +298,12 @@ try {
   await fill({ "Domínio próprio": "rmprimeimoveis.com.br" });
   await submit("Configurar domínio");
   assert.ok(text().includes("Pendente de verificação real"));
-  await click("Testar configuração do domínio");
-  assert.ok(text().includes("SSL não verificados"));
-  for (const test of [
-    "Existência e delegação DNS",
-    "Propriedade do domínio",
-    "Apontamento DNS",
-    "Vínculo com o tenant",
-    "Certificado SSL e HTTPS",
-    "Ativação final",
-  ]) {
-    await click("Verificar: " + test);
-    assert.ok(text().includes(test + ": teste real indisponível"));
-  }
+  assert.ok(text().includes("Checklist de conexão do domínio"));
+  assert.ok(text().includes("TXT de propriedade: aguardando emissão autenticada"));
+  assert.ok(text().includes("TTL anterior"));
+  await click("Check Status — Não Conectado");
+  await until(() => text().includes("Consulta DNS indisponível"));
+  assert.ok(text().includes("propriedade e SSL permanecem pendentes"));
   await click("Editar domínio");
   await fill({ "Domínio próprio": "https://invalid.test" });
   await submit("Editar domínio");
