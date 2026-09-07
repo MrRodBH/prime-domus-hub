@@ -120,6 +120,16 @@ assert(!broker.includes("auth.admin.createUser"), "broker directory must not cre
 assert(!broker.includes("auth.admin.deleteUser"), "broker directory must not delete Auth users");
 assert(!broker.includes('.from("user_roles")'), "broker directory must not mutate global roles");
 
+// Round 42 evolves the cadastral/link separation; all prior assertions remain active.
+const saveBroker = broker.slice(broker.indexOf("export const adminSalvarCorretor"), broker.indexOf("const brokerIdentityLinkSchema"));
+assert(saveBroker.includes('.insert({ ...payload, user_id: null })'), "broker creation must remain unlinked");
+assert(!saveBroker.includes("existing?.user_id"), "stale cadastral reads must not overwrite a concurrent identity link");
+const updatePayload = saveBroker.slice(saveBroker.indexOf("const payload = {"), saveBroker.indexOf("if (data.id) {", saveBroker.indexOf("const payload = {")));
+assert(!updatePayload.includes("user_id"), "cadastral update payload must omit identity linkage");
+const linkBroker = broker.slice(broker.indexOf("export const adminVincularCorretorIdentidade"), broker.indexOf("export const adminExcluirCorretor"));
+includesAll(linkBroker, ["requireTenant", "authorizeTenantAccessControlOperation", "trustedTenantAccessContext", '"link_tenant_broker_identity" as never', "_actor_user_id: context.userId", "_tenant_id: tenantId"], "dedicated broker identity boundary");
+assert(!brokersRoute.includes("adminVincularCorretorIdentidade"), "Round 42 must not introduce link UI");
+
 includesAll(profilesRoute, ["template de sistema", "tenant", "Global &gt; Equipe &gt; Próprios"], "profiles route");
 includesAll(teamsRoute, ["listTenantMemberships", "membership", "tenant-scoped"], "teams route");
 includesAll(membershipsRoute, ["setUserPerfis", "Perfis RBAC", "Membership role", "Convidar membro"], "memberships route");

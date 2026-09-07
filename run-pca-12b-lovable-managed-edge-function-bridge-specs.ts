@@ -310,6 +310,21 @@ for (const frozenPath of [
   );
 }
 
+// Round 42 authorized repository scope; all historical runtime assertions remain active.
+const round42IdentityPaths = [
+  ".github/workflows/round42-broker-identity-link.yml",
+  "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
+  "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round42-broker-identity-link.md",
+  "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+  "run-pr-m2-tenant-access-control-specs.ts",
+  "run-round-42-broker-identity-link-specs.mjs",
+  "run-round-42-broker-identity-sql-specs.mjs",
+  "src/lib/api/tenant-broker-directory.functions.ts",
+  "supabase/migrations/20260907183824_round42_broker_identity_link.sql",
+  "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+  "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+];
 const allowedPaths = [
   ".github/workflows/release-gate.yml",
   "docs/architecture/governance/PCA-12B-lovable-managed-edge-function-bridge-envelope.md",
@@ -404,6 +419,7 @@ const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "H
   .filter(Boolean)
   .sort();
 const downstreamAllowedPaths = new Set([
+  ...(changedPaths.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []),
   ...allowedPaths,
   ...pca12cR3Paths,
   ...pca12cR6aPaths,

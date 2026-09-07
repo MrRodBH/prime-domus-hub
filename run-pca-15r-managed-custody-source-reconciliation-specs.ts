@@ -461,6 +461,21 @@ if (head !== SOURCE_MAIN) {
     .split("\n")
     .filter(Boolean)
     .sort();
+  // Round 42 authorized repository scope; all historical runtime assertions remain active.
+  const round42IdentityPaths = [
+    ".github/workflows/round42-broker-identity-link.yml",
+    "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
+    "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round42-broker-identity-link.md",
+    "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+    "run-pr-m2-tenant-access-control-specs.ts",
+    "run-round-42-broker-identity-link-specs.mjs",
+    "run-round-42-broker-identity-sql-specs.mjs",
+    "src/lib/api/tenant-broker-directory.functions.ts",
+    "supabase/migrations/20260907183824_round42_broker_identity_link.sql",
+    "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+    "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+    "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  ];
   const p0VisualProductHomologationPaths = [
     ".github/workflows/p0-visual-product-homologation-gate.yml",
     "package.json",
@@ -497,12 +512,14 @@ if (head !== SOURCE_MAIN) {
 const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
   assert.deepEqual(
     changed,
-    [...new Set([...PCA15R_PATHS, ...(changed.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []), ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
+    [...new Set([...PCA15R_PATHS, ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []), ...(changed.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []), ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
   );
   assert.ok(!changed.includes(".env"));
   assert.ok(!changed.includes("src/integrations/supabase/types.ts"));
   assert.ok(!changed.includes("src/lib/tenant.server.ts"));
-  assert.ok(!changed.some((path) => path.startsWith("supabase/migrations/")));
+  assert.deepEqual(changed.filter((path) => path.startsWith("supabase/migrations/")),
+    changed.includes("run-round-42-broker-identity-sql-specs.mjs")
+      ? ["supabase/migrations/20260907183824_round42_broker_identity_link.sql"] : []);
   assert.ok(!changed.some((path) => path.includes("LSR-02") || path.includes("lsr-02")));
 }
 
