@@ -395,6 +395,7 @@ const p0VisualProductHomologationPaths = [
   "src/routes/design-system.tsx",
 ].sort();
 // Authorized downstream Round 35: exact frontend paths, no provider changes.
+const round40JourneyPaths = [".github/workflows/round40-property-interaction.yml", "run-round-40-property-interaction-specs.mjs", "tests/round40/backend.ts", "tests/round40/router.tsx", "tests/round40/entry.tsx", "src/components/admin/ImovelForm.tsx", "src/routes/_authenticated.admin.imoveis.index.tsx"];
 const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
 const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "HEAD"], {
   encoding: "utf8",
@@ -411,6 +412,7 @@ const downstreamAllowedPaths = new Set([
   ...pca15rPaths,
   ...p0VisualProductHomologationPaths,
   ...round35JourneyPaths,
+  ...(changedPaths.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []),
 ]);
 assert.deepEqual(
   changedPaths.filter((path) => !downstreamAllowedPaths.has(path)),

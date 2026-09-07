@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Crown, Loader2, Sparkles, Trash2, Upload } from "lucide-react";
@@ -23,6 +23,8 @@ import { listarBairros, listarCidades } from "@/lib/api/catalogo.functions";
 import { listarTenantLaunchAmenities } from "@/lib/api/tenant-launch-catalog.functions";
 import { createUploadTarget } from "@/lib/api/uploads.functions";
 import { supabase } from "@/integrations/supabase/client";
+
+import { classifyPropertyReadError } from "@/components/properties/property-inventory-read-model";
 
 const PROPERTY_TYPES = ["apartamento", "cobertura", "casa", "casa_condominio", "terreno", "comercial"] as const;
 const PURPOSES = ["venda", "aluguel", "lancamento"] as const;
@@ -129,6 +131,8 @@ function initialState(initial?: Props["initial"]): PropertyFormState {
 export function ImovelForm({ initial }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const saveLock = useRef(false);
+  const [saveMessage, setSaveMessage] = useState<{ error: boolean; text: string } | null>(null);
   const [form, setForm] = useState<PropertyFormState>(() => initialState(initial));
   const [images, setImages] = useState<PropertyImage[]>(initial?.imagens ?? []);
   const [orders, setOrders] = useState<Record<string, string>>(() =>
@@ -140,10 +144,10 @@ export function ImovelForm({ initial }: Props) {
   const [tone, setTone] = useState<"sofisticado" | "objetivo" | "acolhedor">("sofisticado");
   const [manualFeatures, setManualFeatures] = useState<string[]>(initial?.caracteristicas ?? []);
 
-  const neighborhoods = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros() });
-  const cities = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades() });
-  const brokers = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores() });
-  const amenities = useQuery({ queryKey: ["tenant-launch-amenities"], queryFn: () => listarTenantLaunchAmenities() });
+  const neighborhoods = useQuery({ queryKey: ["bairros"], queryFn: () => listarBairros(), retry: false });
+  const cities = useQuery({ queryKey: ["cidades"], queryFn: () => listarCidades(), retry: false });
+  const brokers = useQuery({ queryKey: ["admin", "corretores"], queryFn: () => adminListarCorretores(), retry: false });
+  const amenities = useQuery({ queryKey: ["tenant-launch-amenities"], queryFn: () => listarTenantLaunchAmenities(), retry: false });
 
   const availableFeatures = useMemo(
     () => [...new Set((amenities.data ?? []).map((item) => item.nome))].sort(),
@@ -180,6 +184,7 @@ export function ImovelForm({ initial }: Props) {
   }, [images]);
 
   const saveProperty = useMutation({
+    retry: false,
     mutationFn: () => adminSalvarImovel({
       data: {
         ...form,
@@ -199,11 +204,26 @@ export function ImovelForm({ initial }: Props) {
       },
     }),
     onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ["admin", "imoveis"] });
+      // Retain predecessor cache invalidation and refresh the current read models.
+      if (!form.id) setForm((current) => ({ ...current, id: result.id }));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin", "imoveis"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "properties", "inventory", "read-only"] }),
+        queryClient.invalidateQueries({ queryKey: ["crm-journey"] }),
+      ]);
+      setSaveMessage({ error: false, text: "Imóvel salvo. Consulte o registro no inventário." });
       toast.success("Imóvel salvo.");
       if (!form.id) navigate({ to: "/admin/imoveis/$id", params: { id: result.id } });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      const kind = formErrorKind(error);
+      const text = kind === "denied" ? "Acesso negado ao salvamento. Seus campos foram preservados."
+        : kind === "unavailable" ? "Salvamento indisponível neste workspace. Seus campos foram preservados."
+        : "Não foi possível confirmar o salvamento. Consulte o inventário antes de reenviar para evitar duplicação. Seus campos foram preservados.";
+      setSaveMessage({ error: true, text });
+      toast.error(text);
+    },
+    onSettled: () => { saveLock.current = false; },
   });
 
   const generateLocalDraft = useMutation({
@@ -334,7 +354,7 @@ export function ImovelForm({ initial }: Props) {
     setForm((current) => ({ ...current, [key]: optionalNumber(value) }));
 
   return (
-    <form className="mx-auto max-w-6xl space-y-6" onSubmit={(event) => { event.preventDefault(); saveProperty.mutate(); }}>
+    <form className="mx-auto max-w-6xl space-y-6" onSubmit={(event) => { event.preventDefault(); if (saveLock.current) return; saveLock.current = true; setSaveMessage(null); saveProperty.mutate(); }}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{form.id ? "Editar imóvel" : "Novo imóvel"}</h1>
@@ -346,6 +366,17 @@ export function ImovelForm({ initial }: Props) {
         </div>
       </header>
 
+      {saveMessage && <p role={saveMessage.error ? "alert" : "status"}>{saveMessage.text}</p>}
+      <section aria-label="Consultas auxiliares do cadastro" className="space-y-2">
+        <p className="text-sm text-muted-foreground">Os vínculos são opcionais. A indisponibilidade destas listas não concede nem altera permissões.</p>
+        {[
+          { label: "Bairros", query: neighborhoods },
+          { label: "Cidades", query: cities },
+          { label: "Corretores", query: brokers },
+          { label: "Características", query: amenities },
+        ].map(({ label, query }) => <AuxiliaryQueryState key={label} label={label} query={query} />)}
+      </section>
+      <fieldset disabled={saveProperty.isPending} className="min-w-0 space-y-6" aria-busy={saveProperty.isPending}>
       <Section title="Informações principais">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Código" required value={form.codigo} onChange={(codigo) => setForm((current) => ({ ...current, codigo }))} />
@@ -404,9 +435,9 @@ export function ImovelForm({ initial }: Props) {
 
       <Section title="Localização e responsável">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <SelectField label="Bairro" value={form.bairro_id ?? "none"} options={["none", ...(neighborhoods.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((neighborhoods.data ?? []).map((item) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, bairro_id: value === "none" ? null : value }))} />
-          <SelectField label="Corretor" value={form.corretor_id ?? "none"} options={["none", ...(brokers.data ?? []).map((item: any) => item.id)]} labels={Object.fromEntries((brokers.data ?? []).map((item: any) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, corretor_id: value === "none" ? null : value }))} />
-          <SelectField label="Cidade de referência" value={cities.data?.find((item) => item.nome === form.cidade)?.id ?? "none"} options={["none", ...(cities.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((cities.data ?? []).map((item) => [item.id, `${item.nome}/${item.estado}`]))} onChange={(value) => { const city = cities.data?.find((item) => item.id === value); setForm((current) => ({ ...current, cidade: city?.nome ?? "", estado: city?.estado ?? "" })); }} />
+          <SelectField disabled={neighborhoods.isPending || neighborhoods.isError} label="Bairro" value={form.bairro_id ?? "none"} options={["none", ...(neighborhoods.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((neighborhoods.data ?? []).map((item) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, bairro_id: value === "none" ? null : value }))} />
+          <SelectField disabled={brokers.isPending || brokers.isError} label="Corretor" value={form.corretor_id ?? "none"} options={["none", ...(brokers.data ?? []).map((item: any) => item.id)]} labels={Object.fromEntries((brokers.data ?? []).map((item: any) => [item.id, item.nome]))} onChange={(value) => setForm((current) => ({ ...current, corretor_id: value === "none" ? null : value }))} />
+          <SelectField disabled={cities.isPending || cities.isError} label="Cidade de referência" value={cities.data?.find((item) => item.nome === form.cidade)?.id ?? "none"} options={["none", ...(cities.data ?? []).map((item) => item.id)]} labels={Object.fromEntries((cities.data ?? []).map((item) => [item.id, `${item.nome}/${item.estado}`]))} onChange={(value) => { const city = cities.data?.find((item) => item.id === value); setForm((current) => ({ ...current, cidade: city?.nome ?? "", estado: city?.estado ?? "" })); }} />
           <Field label="Rua" value={form.rua} onChange={(rua) => setForm((current) => ({ ...current, rua, endereco: rua }))} />
           <Field label="Número" value={form.numero} onChange={(numero) => setForm((current) => ({ ...current, numero }))} />
           <Field label="Complemento" value={form.complemento} onChange={(complemento) => setForm((current) => ({ ...current, complemento }))} />
@@ -445,6 +476,7 @@ export function ImovelForm({ initial }: Props) {
           </div>
         )}
       </Section>
+      </fieldset>
     </form>
   );
 }
@@ -453,14 +485,31 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return <section className="rounded-lg border bg-card p-5"><h2 className="mb-4 text-lg font-medium">{title}</h2>{children}</section>;
 }
 function Field({ label, value, onChange, required = false }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
-  return <div className="space-y-2"><Label>{label}</Label><Input required={required} value={value} onChange={(event) => onChange(event.target.value)} /></div>;
+  return <div className="space-y-2"><Label>{label}</Label><Input aria-label={label} required={required} value={value} onChange={(event) => onChange(event.target.value)} /></div>;
 }
 function NumberField({ label, value, onChange }: { label: string; value: number | null; onChange: (value: string) => void }) {
   return <div className="space-y-2"><Label>{label}</Label><Input type="number" step="any" value={value ?? ""} onChange={(event) => onChange(event.target.value)} /></div>;
 }
-function SelectField({ label, value, options, labels = {}, onChange }: { label: string; value: string; options: readonly string[]; labels?: Record<string, string>; onChange: (value: string) => void }) {
-  return <div className="space-y-2"><Label>{label}</Label><Select value={value} onValueChange={onChange}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map((option) => <SelectItem key={option} value={option}>{labels[option] ?? (option === "none" ? "— Nenhum —" : option.replaceAll("_", " "))}</SelectItem>)}</SelectContent></Select></div>;
+function SelectField({ label, value, options, labels = {}, onChange, disabled = false }: { disabled?: boolean; label: string; value: string; options: readonly string[]; labels?: Record<string, string>; onChange: (value: string) => void }) {
+  return <div className="space-y-2"><Label>{label}</Label><Select disabled={disabled} value={value} onValueChange={onChange}><SelectTrigger aria-label={label}><SelectValue /></SelectTrigger><SelectContent>{options.map((option) => <SelectItem key={option} value={option}>{labels[option] ?? (option === "none" ? "— Nenhum —" : option.replaceAll("_", " "))}</SelectItem>)}</SelectContent></Select></div>;
 }
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   return <div className="flex items-center gap-2"><Switch checked={checked} onCheckedChange={onChange} /><Label>{label}</Label></div>;
+}
+
+function formErrorKind(error: unknown) {
+  const kind = classifyPropertyReadError(error);
+  return kind === "error" && /unresolved|unconfigured|unavailable/i.test(error instanceof Error ? error.message : "") ? "unavailable" : kind;
+}
+function AuxiliaryQueryState({ label, query }: {
+  label: string;
+  query: { isPending: boolean; isFetching: boolean; isError: boolean; error: unknown; data?: readonly unknown[]; refetch: () => unknown };
+}) {
+  if (query.isPending) return <p role="status">{label}: carregando opções…</p>;
+  if (query.isError) {
+    const kind = formErrorKind(query.error);
+    const text = kind === "denied" ? "acesso negado" : kind === "unavailable" ? "consulta indisponível neste workspace" : "falha ao consultar opções";
+    return <div role="alert">{label}: {text}. O vínculo continua opcional. <Button type="button" variant="outline" disabled={query.isFetching} onClick={() => { void query.refetch(); }}>Consultar {label.toLocaleLowerCase("pt-BR")} novamente</Button></div>;
+  }
+  return <p role="status">{label}: {query.data?.length ? "opções disponíveis" : "nenhuma opção disponível"}.</p>;
 }

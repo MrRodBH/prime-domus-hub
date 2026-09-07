@@ -493,10 +493,11 @@ if (head !== SOURCE_MAIN) {
     "src/routes/__root.tsx",
   ].sort();
   // Explicit successor scope; no changes to managed custody or providers.
-  const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
+  const round40JourneyPaths = [".github/workflows/round40-property-interaction.yml", "run-round-40-property-interaction-specs.mjs", "tests/round40/backend.ts", "tests/round40/router.tsx", "tests/round40/entry.tsx", "src/components/admin/ImovelForm.tsx", "src/routes/_authenticated.admin.imoveis.index.tsx"];
+const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
   assert.deepEqual(
     changed,
-    [...new Set([...PCA15R_PATHS, ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
+    [...new Set([...PCA15R_PATHS, ...(changed.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []), ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
   );
   assert.ok(!changed.includes(".env"));
   assert.ok(!changed.includes("src/integrations/supabase/types.ts"));
