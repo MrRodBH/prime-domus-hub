@@ -260,6 +260,34 @@ try {
   });
   await submit("Cadastrar tenant");
   assert.equal(d.querySelector('[aria-label="Tenant selecionado"]').options.length, 2);
+  // Round 48: consult every field; edit preserves identity and supports cancel/failure.
+  assert.ok(text().includes("CPF do responsável"));
+  assert.ok(text().includes("Telefone 2"));
+  await click("Editar tenant");
+  const editForm = d.querySelector('form[aria-label="Editar tenant"]');
+  const editField = async (label, value) => {
+    const element = editForm.querySelector(`[aria-label="${label}"]`);
+    Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, "value").set.call(element, value);
+    element.dispatchEvent(new w.Event("input", { bubbles: true }));
+    await tick();
+  };
+  assert.equal(
+    editForm.querySelector('[aria-label="Razão Social"]').value,
+    "Tenant criado pela equipe",
+  );
+  await editField("Razão Social", "");
+  await submit("Editar tenant");
+  assert.ok(d.querySelector('form[aria-label="Editar tenant"]'));
+  await editField("Razão Social", "Tenant corrigido");
+  await editField("Telefone 2", "3133334444");
+  await submit("Editar tenant");
+  assert.ok(!d.querySelector('form[aria-label="Editar tenant"]'));
+  assert.ok(text().includes("Tenant corrigido"));
+  assert.ok(text().includes("(31) 3333-4444"));
+  assert.equal(d.querySelector('[aria-label="Tenant selecionado"]').options.length, 2);
+  await click("Editar tenant");
+  await click("Cancelar edição do tenant");
+  assert.ok(!d.querySelector('form[aria-label="Editar tenant"]'));
   await click("Iniciar pelo domínio próprio");
   await fill({ "Domínio próprio": "https://bad.invalid", "Gestão de DNS": "Cloudflare" });
   await submit("Configurar domínio");
@@ -267,7 +295,39 @@ try {
   assert.equal(d.querySelector('[aria-label="Domínio próprio"]').value, "https://bad.invalid");
   await fill({ "Domínio próprio": "rmprimeimoveis.com.br" });
   await submit("Configurar domínio");
-  assert.ok(text().includes("Configurado na sessão"));
+  assert.ok(text().includes("Pendente de verificação real"));
+  await click("Testar configuração do domínio");
+  assert.ok(text().includes("SSL não verificados"));
+  for (const test of [
+    "Existência e delegação DNS",
+    "Propriedade do domínio",
+    "Apontamento DNS",
+    "Vínculo com o tenant",
+    "Certificado SSL e HTTPS",
+    "Ativação final",
+  ]) {
+    await click("Verificar: " + test);
+    assert.ok(text().includes(test + ": teste real indisponível"));
+  }
+  await click("Editar domínio");
+  await fill({ "Domínio próprio": "https://invalid.test" });
+  await submit("Editar domínio");
+  assert.ok(d.querySelector('form[aria-label="Editar domínio"]'));
+  assert.equal(d.querySelector('[aria-label="Domínio próprio"]').value, "https://invalid.test");
+  await fill({
+    "Domínio próprio": "corrigido.example.invalid",
+    "Destino DNS fornecido pela plataforma": "destino.example.invalid",
+  });
+  await submit("Editar domínio");
+  assert.ok(!d.querySelector('form[aria-label="Editar domínio"]'));
+  assert.ok(text().includes("corrigido.example.invalid"));
+  assert.ok(text().includes("destino.example.invalid"));
+  assert.ok(!text().includes("Última revisão local:"));
+  assert.ok(text().includes("Pendente de verificação real"));
+  await click("Editar domínio");
+  await fill({ "Domínio próprio": "cancelado.example.invalid" });
+  await click("Cancelar edição do domínio");
+  assert.ok(!text().includes("cancelado.example.invalid"));
   await click("Usuários");
   await fill({
     "Nome do usuário": "Corretor informado",
