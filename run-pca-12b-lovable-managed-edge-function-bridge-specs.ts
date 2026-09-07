@@ -312,6 +312,23 @@ for (const frozenPath of [
 
 // Round 42 authorized repository scope; all historical runtime assertions remain active.
 // Authorized Round 43 tests only; production and migration assertions are retained.
+// Round 44 initial-link UI only; server, migrations and historical guards remain frozen.
+const round44IdentityUiPaths = [
+  ".github/workflows/round44-broker-identity-ui.yml",
+  "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round44-broker-identity-ui.md",
+  "run-round-44-broker-identity-ui-specs.mjs",
+  "tests/round44/backend.ts",
+  "tests/round44/entry.tsx",
+  "tests/round44/router.tsx",
+  "src/components/directory/BrokerIdentityLinkPanel.tsx",
+  "src/components/directory/BrokerTeamDirectoryReadOnlyPage.tsx",
+  "src/components/directory/broker-team-directory-read-model.ts",
+  "src/routes/_authenticated.admin.corretores.tsx",
+  "run-pr-m2-tenant-access-control-specs.ts",
+  "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+  "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts"
+];
 const round43ConcurrencyPaths = [
   ".github/workflows/round43-broker-identity-concurrency.yml",
   "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round43-broker-identity-concurrency.md",
@@ -430,7 +447,7 @@ const changedPaths = execFileSync("git", ["diff", "--name-only", BASE_COMMIT, "H
   .filter(Boolean)
   .sort();
 const downstreamAllowedPaths = new Set([
-  ...(changedPaths.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []),
+  ...(changedPaths.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changedPaths.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []),
   ...(changedPaths.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []),
   ...allowedPaths,
   ...pca12cR3Paths,
