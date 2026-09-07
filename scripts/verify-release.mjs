@@ -43,6 +43,8 @@ function inspectRegisterAuthority(label) {
   return digest;
 }
 
+run("Round 35 — authenticated CRM journey controlled contracts", "bun", ["run", "test:round-35"]);
+
 run("Preflight — PTC-01 public tenant context specifications", "bun", ["run", "test:ptc-01"]);
 run("Preflight — PTR-01 public tenant read binding specifications", "bun", ["run", "test:ptr-01"]);
 run("Preflight — PSC-01 public settings and campaign recovery specifications", "bun", ["run", "test:psc-01"]);

@@ -5,6 +5,7 @@
   "type": "module",
   "packageManager": "bun@1.3.14",
   "scripts": {
+    "test:round-35": "node --import tsx/esm ./run-round-35-crm-journey-specs.ts",
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
