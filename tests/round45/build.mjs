@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {build} from 'esbuild';
+import {build as viteBuild} from 'vite';
+import tailwindcss from '@tailwindcss/vite';
+import {existsSync,mkdirSync,writeFileSync,readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+assert.equal(execFileSync('git',['diff','a2b8e5ae2185345994302e5b239bf88f17e89eb4','--','src','supabase','package.json','bun.lock','tests/round43','tests/round44'],{encoding:'utf8'}),'','Round 45 blocked validation must preserve production and previous fixtures');
+const output=resolve(process.env.ROUND45_OUTPUT || '/tmp/round45-browser');
+mkdirSync(output,{recursive:true});
+const result=await build({entryPoints:['tests/round44/entry.tsx'],bundle:true,write:false,metafile:true,jsx:'automatic',plugins:[{name:'controlled-only',setup(b){
+ b.onResolve({filter:/^@tanstack\/react-router$/},()=>({path:resolve('tests/round44/router.tsx')}));
+ b.onResolve({filter:/^@\//},a=>{if(a.path.startsWith('@/lib/api/')||a.path==='@/integrations/supabase/client')return {path:resolve('tests/round44/backend.ts')};let p=resolve('src',a.path.slice(2));if(a.path==='@/components/workspace')p=resolve('src/components/workspace/WorkspaceState');return {path:['.tsx','.ts','/index.ts'].map(s=>p+s).find(existsSync)};});
+}}]});
+assert.ok(!Object.keys(result.metafile.inputs).some(p=>p.includes('supabase-js')||p.includes('client.server')||p.includes('src/lib/api/')));
+writeFileSync(output+'/app.js',result.outputFiles[0].text);
+await viteBuild({configFile:false,envFile:false,plugins:[tailwindcss()],build:{cssCodeSplit:true,outDir:output+'/css',emptyOutDir:true,lib:{entry:resolve('src/styles.css'),formats:['es'],fileName:'styles',cssFileName:'styles'},minify:false}});
+writeFileSync(output+'/frame.html',`<!doctype html><html lang="pt-BR"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'"> <meta name="viewport" content="width=device-width, initial-scale=1"><title>Round 45 — respostas fictícias</title><link rel="stylesheet" href="css/styles.css"><body><div id="root" style="padding:16px"></div><script src="app.js"></script></body></html>`);
+writeFileSync(output+'/controls.js',"document.querySelector('#width').addEventListener('change',e=>{document.querySelector('iframe').style.width=e.target.value+'px';});");
+writeFileSync(output+'/index.html',readFileSync('tests/round45/index.html'));
+writeFileSync(output+'/manifest.json',JSON.stringify({backendModules:0,entry:'tests/round44/entry.tsx',styles:'src/styles.css',inputs:Object.keys(result.metafile.inputs),sourceHashes:Object.fromEntries(['src/components/directory/BrokerIdentityLinkPanel.tsx','src/components/directory/BrokerTeamDirectoryReadOnlyPage.tsx','src/styles.css','tests/round44/entry.tsx','tests/round44/backend.ts'].map(path=>[path,createHash('sha256').update(readFileSync(path)).digest('hex')]))},null,2));
+console.log('Round 45 fixture built with real styles and closed backend imports: '+output);

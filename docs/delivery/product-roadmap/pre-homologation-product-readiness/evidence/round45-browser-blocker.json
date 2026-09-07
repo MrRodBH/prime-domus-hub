@@ -1,0 +1,41 @@
+{
+  "round": 45,
+  "status": "BLOCKED_BROWSER_POLICY",
+  "base": "a2b8e5ae2185345994302e5b239bf88f17e89eb4",
+  "objective": "Browser validation of initial broker identity UI: keyboard, mobile, native zoom 200%, synthetic responses only",
+  "performed": [
+    "Confirmed authorized GitHub main",
+    "Read mandatory browser skill and full browser API documentation",
+    "Built actual Round 44 page/hook/panel with real src/styles.css via Tailwind/Vite",
+    "Reused Round 44 fictitious transport; build rejects production API and Supabase modules",
+    "Added CSP connect-src none to standalone fixture",
+    "Preserved production, server APIs, migrations, permissions, dependency manifests and Round 43–44 fixtures"
+  ],
+  "blockedAttempts": [
+    {
+      "target": "local fixture HTTP",
+      "result": "net::ERR_BLOCKED_BY_CLIENT"
+    },
+    {
+      "target": "documented shared local fixture file",
+      "result": "Browser URL policy rejection; explicitly prohibits workarounds, indirect execution, raw CDP, alternate browser surfaces or policy circumvention"
+    }
+  ],
+  "notVerified": [
+    "Keyboard navigation/focus",
+    "Mobile responsive layout",
+    "Native browser zoom 200%",
+    "Visual screenshots",
+    "Remote runtime or persistent behavior"
+  ],
+  "disposition": "Draft PR only. No protected merge; fixture build and prior controlled DOM gates cannot approve the requested browser validation.",
+  "resumeRequirement": "A supported, policy-permitted isolated browser fixture entry point. Do not retry blocked URLs or change browser-control surfaces to bypass policy. Resume only after this prerequisite is resolved.",
+  "preserved": {
+    "229": "awaiting human support",
+    "231": "no merge or deployment",
+    "227": "unchanged, not closed by this round",
+    "230": "preserved",
+    "demoAndPreview": "preserved",
+    "LSR-02": "Rejected — Terminal; budget 0/2"
+  }
+}
