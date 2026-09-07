@@ -15,6 +15,7 @@ export type BrokerDirectoryItem = {
   photoUrl: string | null;
   status: string;
   isActive: boolean;
+  identityLinked: boolean;
   teamKey: string | null;
   teamName: string;
 };
@@ -115,6 +116,7 @@ export function toBrokerTeamDirectoryReadModel(
       photoUrl: nullableText(row.foto_preview_url),
       status: text(row.status, "Status não informado"),
       isActive: row.ativo === true,
+      identityLinked: nullableText(row.user_id) !== null,
       teamKey,
       teamName: teamKey ? teamNameById.get(teamKey) ?? "Equipe não identificada" : "Sem equipe",
     };

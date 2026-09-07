@@ -128,7 +128,12 @@ const updatePayload = saveBroker.slice(saveBroker.indexOf("const payload = {"), 
 assert(!updatePayload.includes("user_id"), "cadastral update payload must omit identity linkage");
 const linkBroker = broker.slice(broker.indexOf("export const adminVincularCorretorIdentidade"), broker.indexOf("export const adminExcluirCorretor"));
 includesAll(linkBroker, ["requireTenant", "authorizeTenantAccessControlOperation", "trustedTenantAccessContext", '"link_tenant_broker_identity" as never', "_actor_user_id: context.userId", "_tenant_id: tenantId"], "dedicated broker identity boundary");
-assert(!brokersRoute.includes("adminVincularCorretorIdentidade"), "Round 42 must not introduce link UI");
+// Round 44 explicitly evolves Round 42's temporary no-UI boundary.
+const identityPanel = read("src/components/directory/BrokerIdentityLinkPanel.tsx");
+assert(identityPanel.includes("adminVincularCorretorIdentidade({ data: { corretorId: broker.id, userId: target } })"), "UI must use the dedicated two-field command");
+for (const forbidden of ["supabaseAdmin", "createUser", "inviteUser", "tenantId:", "_actor_user_id", "adminSalvarCorretor"]) {
+  assert(!identityPanel.includes(forbidden), `identity UI must not contain ${forbidden}`);
+}
 
 includesAll(profilesRoute, ["template de sistema", "tenant", "Global &gt; Equipe &gt; Próprios"], "profiles route");
 includesAll(teamsRoute, ["listTenantMemberships", "membership", "tenant-scoped"], "teams route");

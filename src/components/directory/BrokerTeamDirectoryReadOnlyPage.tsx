@@ -1,3 +1,4 @@
+import { BrokerIdentityLinkPanel } from "./BrokerIdentityLinkPanel";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, Search, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
@@ -86,7 +87,7 @@ export function BrokerTeamDirectoryReadOnlyPage({
   return (
     <main
       className="mx-auto w-full max-w-[var(--workspace-content-max)] space-y-5 sm:space-y-6"
-      data-directory-mode="complete-read-only"
+      data-directory-mode="directory-with-initial-identity-link"
     >
       <header className="relative min-w-0 overflow-hidden rounded-2xl border border-border bg-workspace-elevated p-5 shadow-soft sm:p-6 lg:p-7">
         <div
@@ -98,18 +99,18 @@ export function BrokerTeamDirectoryReadOnlyPage({
             <div className="mb-3 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
                 <Sparkles className="size-3" aria-hidden="true" />
-                Broker & Team Directory
+                Corretores e equipes
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/65 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                 <Eye className="size-3" aria-hidden="true" />
-                Estritamente read-only
+                Consulta e vínculo inicial
               </span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
               Pessoas certas. Contexto confiável.
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Perfis profissionais e equipes reunidos em uma experiência responsiva, com informações projetadas a partir de leituras server-owned e sem comandos de alteração.
+              Consulte perfis profissionais e equipes e vincule uma identidade existente quando autorizado.
             </p>
           </div>
 
@@ -215,6 +216,7 @@ export function BrokerTeamDirectoryReadOnlyPage({
             />
           ) : null}
           <BrokerProfileReadOnlyDetail broker={selectedBroker} />
+          {selectedBroker && <BrokerIdentityLinkPanel key={selectedBroker.id} broker={selectedBroker} />}
         </div>
       </div>
     </main>

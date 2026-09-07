@@ -1,0 +1,26 @@
+name: Round 44 controlled broker identity interface
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  controlled-interaction:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: npm install --prefix "$RUNNER_TEMP/round44-dom" --ignore-scripts --no-audit --no-fund jsdom@26.1.0
+      - run: ROUND44_JSDOM_MODULE="$RUNNER_TEMP/round44-dom/node_modules/jsdom/lib/api.js" node run-round-44-broker-identity-ui-specs.mjs
+      - run: node --import tsx run-pr-m2-tenant-access-control-specs.ts
+      - run: bunx tsc --noEmit

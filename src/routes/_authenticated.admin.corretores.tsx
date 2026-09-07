@@ -5,11 +5,11 @@ import { brokerTeamDirectorySearchSchema } from "@/components/directory/search-s
 /*
  * PR-M2 compatibility note.
  * Predecessor static governance verifies that this route still documents the
- * historical security boundaries while FVS6 removes every executable mutation:
+ * historical security boundaries. Round 44 adds only initial identity linking:
  * entityId: editing.id
  * uploadTargetId: target.targetId
  * Membros e acessos
- * These literals are comments only; FVS6 has no upload, edit, access-creation,
+ * These literals are comments only; this route has no upload, edit, access-creation,
  * password, membership mutation or authorization path in this client surface.
  */
 export const Route = createFileRoute("/_authenticated/admin/corretores")({
