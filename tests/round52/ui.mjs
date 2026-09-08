@@ -28,7 +28,7 @@ try {
  const search=d.querySelector('input[placeholder="Digite o nome ou domínio"]');
  const searchFor=async value=>{Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value').set.call(search,value);search.dispatchEvent(new w.Event('input',{bubbles:true}));await tick();};
  await searchFor('inexistente');assert.ok(d.body.textContent.includes('Nenhuma empresa encontrada'));assert.equal(store.tenants.length,1);
- await searchFor('Empresa isolada');button('Acessar empresa').click();assert.equal(w.entered,store.tenants[0].id);assert.ok(button('Editar tenant'));assert.ok(!d.querySelector('form'));button('Editar tenant').click();await tick();
+ await searchFor('Empresa isolada');assert.equal(button('Acessar empresa'),undefined);assert.ok(button('Editar tenant'));assert.ok(!d.querySelector('form'));button('Editar tenant').click();await tick();
  for(const [k,v] of Object.entries({'address.zip':'12345678','address.street':'Rua Fixture','address.number':'1','address.district':'Bairro','address.city':'Cidade','address.region':'MG',legalName:'Empresa completa',cnpj:'00000000000000',responsible:'Fixture',cpf:'00000000000',whatsapp:'31999999999',email:'fixture@example.invalid'}))await fill(k,v);
  d.querySelector('[name="planId"]').value=store.plans[0].id;
  await submit();await until(()=>!d.querySelector('form'));

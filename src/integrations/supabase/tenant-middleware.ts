@@ -1,27 +1,6 @@
-// Tenant Middleware — F3.2 (Server-Side Tenant Selection)
-//
-// Evolução da IA-001 §12.2: permite que usuário comum com múltiplas
-// memberships ativas envie x-tenant-id como TRANSPORTE, sendo a seleção
-// SEMPRE validada server-side contra membership_status = 'active'.
-// O cliente nunca é autoridade; o header é apenas um veículo.
-//
-// Algoritmo:
-//   1. Super Admin + header  → impersonação (origin = 'impersonation').
-//   2. Super Admin sem header → erro (recurso tenant-scoped exige tenant).
-//   3. Usuário comum + header:
-//        - validar UUID
-//        - validar membership ATIVA (user_id, tenant_id, status=active)
-//        - se ok → origin = 'selection'
-//        - se não → erro
-//   4. Usuário comum sem header (cardinalidade sobre memberships ATIVAS):
-//        A) 1 membership → resolve (origin = 'single-membership')
-//        B) N memberships → erro "Tenant selection required."
-//        C) 0 memberships → erro "Forbidden: no tenant membership"
-//
-// PROIBIDO: fallback implícito, tenant default, heurística, LIMIT 1 como
-// regra, ORDER BY para escolher tenant, is_default / is_owner /
-// tenant_role como critério de seleção, mistura de impersonação com
-// seleção comum, aceitar `origin` vindo do client.
+// Tenant operations: Super Admin is always denied (owner decision Round57).
+// Ordinary users still require an active membership, with explicit selection
+// for multiple memberships. A client header transports a choice, never authority.
 
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
@@ -64,24 +43,7 @@ export async function resolveTenantContext(params: {
   // explícita via x-tenant-id.
   // ============================================================
   if (isSuperAdmin) {
-    if (impersonateHeader && impersonateHeader.length > 0) {
-      if (!UUID_RE.test(impersonateHeader)) {
-        throw new Error("Invalid tenant");
-      }
-      const exists = await repo.exists(impersonateHeader);
-      if (!exists) {
-        throw new Error("Invalid tenant");
-      }
-      return {
-        tenantId: impersonateHeader,
-        userId,
-        isSuperAdmin,
-        impersonation: true,
-        origin: "impersonation",
-      };
-    }
-    // Super Admin sem impersonação não acessa recursos tenant-scoped.
-    throw new Error("Forbidden: no tenant membership");
+    throw new Error("Super Admin não pode acessar a operação de empresas.");
   }
 
   // ============================================================

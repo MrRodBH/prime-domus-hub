@@ -39,7 +39,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
   const { paletteOpen, closePalette, togglePalette, openAi, setPreviewDevice } = useUI();
   const navigate = useNavigate();
   const impersonating = useImpersonation();
-  const tenantNavigation = isSuper === false || (isSuper === true && Boolean(impersonating));
+  const tenantNavigation = isSuper === false;
   const path = useRouterState({ select: (s) => s.location.pathname });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const searchState = useRouterState({ select: (s) => s.location.search as any });

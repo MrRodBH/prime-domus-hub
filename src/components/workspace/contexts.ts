@@ -182,6 +182,6 @@ export function workspaceItemActive(item: WorkspaceContext, path: string, search
 }
 export function workspaceContexts(isSuper: boolean | undefined, impersonating: string | null) {
   if (isSuper === undefined) return [];
-  if (isSuper && !impersonating) return SUPER_NAVIGATION;
+  if (isSuper) return SUPER_NAVIGATION;
   return CONTEXTS.filter(c => !c.superOnly || isSuper);
 }

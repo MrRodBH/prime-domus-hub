@@ -51,7 +51,7 @@ export function WorkspaceShell() {
   const impersonating = useImpersonation();
 
   useEffect(() => {
-    if (isSuper === false && impersonating) {
+    if (isSuper !== undefined && impersonating) {
       clearImpersonationTenantId();
     }
   }, [isSuper, impersonating]);
@@ -105,7 +105,7 @@ export function WorkspaceShell() {
     <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>
       <DetailPanelProvider>
         <div
-          className="min-h-dvh w-full flex overflow-hidden bg-workspace-surface text-foreground"
+          className="h-dvh w-full flex overflow-hidden bg-workspace-surface text-foreground"
           data-workspace-shell="single-authenticated-shell"
         >
           <a
@@ -116,7 +116,7 @@ export function WorkspaceShell() {
           </a>
           <NavigationRail isSuper={isSuper} />
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <AppHeader
               isSuper={Boolean(isSuper)}
               impersonating={impersonating}
