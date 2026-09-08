@@ -1,0 +1,36 @@
+{
+  "round": 51,
+  "base": "87fd1725376aadfd99bfdc45f6c8247f99a30340",
+  "request": "Integrate existing Super Admin authentication screen in test process, including logout",
+  "changes": [
+    "Demo CTA opens existing /auth; no identity or role creation",
+    "Login and existing-session entry resolve canonical meuAcessoSuperAdmin: true -> /super, otherwise /admin; existing route/API guards preserved",
+    "Loading and ref guard suppress duplicate submissions; safe errors, retained failed credentials, authenticated retry and logout fallback",
+    "Shared logout handles SDK errors before clearing context and cache; visible workspace Sair button and dropdown share action",
+    "SIGNED_OUT clears query cache, selected tenant, impersonation and current tenant cache and redirects to login"
+  ],
+  "tests": [
+    "Actual auth page controlled DOM: super and ordinary login, rejected credentials, authority failure, existing session, duplicates and unmount",
+    "Actual logout hook controlled DOM: success clears query cache/context and replaces route; failure retains state and supports retry",
+    "Round50 cumulative prior DOM/model tests, P0 431 assertions, TypeScript; historical guards evolve exact scope"
+  ],
+  "sources": [
+    "https://supabase.com/docs/reference/javascript/auth-signout",
+    "https://supabase.com/docs/reference/javascript/auth-signinwithpassword"
+  ],
+  "limits": [
+    "No real login/logout executed; credentials in tests fictitious and no outbound calls",
+    "Requires existing valid account with server-granted Super Admin role; no credentials, identities or permissions created",
+    "Authenticated workspace is persistent-capable; demo memory records are not migrated by login",
+    "Logout preserves SDK default scope; no claim of instantaneous revocation of issued JWTs",
+    "No browser/mobile/zoom/persistent validation; #236 backlog preserved",
+    "Provider publication status recorded in final PR"
+  ],
+  "preserved": [
+    "#229 specific identity recovery remains independent",
+    "#231 no merge/deployment",
+    "#227",
+    "#230",
+    "LSR-02 Rejected — Terminal, 0/2"
+  ]
+}

@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
+import { useLogout } from "@/components/auth/useLogout";
 import logo from "@/assets/logo-rm-prime.png";
 
 export const Route = createFileRoute("/auth")({
@@ -22,25 +23,69 @@ function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [message, setMessage] = useState("");
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  const exit = useLogout();
+
+  async function openWorkspace(isCurrent = () => mounted.current) {
+    const isSuper = await meuAcessoSuperAdmin();
+    if (isCurrent()) await navigate({ to: isSuper === true ? "/super" : "/admin", replace: true });
+  }
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/admin" });
-    });
+    mounted.current = true;
+    let active = true;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error && error.name !== "AuthSessionMissingError") throw error;
+        if (!active) return;
+        if (data.user) {
+          setAuthenticated(true);
+          await openWorkspace(() => active && mounted.current);
+        }
+      } catch {
+        if (active) setMessage("Não foi possível verificar seu acesso. Tente novamente.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+      mounted.current = false;
+    };
   }, [navigate]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (pending.current || loading || exit.busy) return;
+    pending.current = true;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    setMessage("");
+    try {
+      if (!authenticated) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error || !data.user || !data.session) throw Error("login_failed");
+        if (!mounted.current) return;
+        setAuthenticated(true);
+        setPassword("");
+      }
+      await openWorkspace();
+    } catch {
+      if (mounted.current)
+        setMessage(
+          "Não foi possível entrar ou verificar seu acesso. Confira seus dados e tente novamente.",
+        );
+    } finally {
+      pending.current = false;
+      if (mounted.current) setLoading(false);
     }
-    toast.success("Bem-vindo de volta.");
-    navigate({ to: "/admin" });
   }
 
   return (
@@ -52,32 +97,76 @@ function AuthPage() {
         <div className="bg-card border border-foreground/5 rounded-lg p-8 shadow-soft">
           <h1 className="font-display text-3xl mb-2">Painel administrativo</h1>
           <p className="text-sm text-muted-foreground mb-8">Acesso restrito à equipe RM Prime.</p>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Senha</Label>
-              <PasswordInput
-                id="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando…" : "Entrar"}
+          <p className="mb-4 text-sm text-muted-foreground">
+            Entre com sua conta existente. O acesso ao painel Super Admin depende da permissão
+            confirmada pelo servidor. Os cadastros da demonstração não são transferidos
+            automaticamente.
+          </p>
+          <form onSubmit={handleSubmit} aria-label="Acesso administrativo" className="space-y-4">
+            {!authenticated && (
+              <>
+                <div>
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">Senha</Label>
+                  <PasswordInput
+                    id="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                </div>
+              </>
+            )}
+            {message && (
+              <p role="alert" className="text-sm text-destructive">
+                {message}
+              </p>
+            )}
+            {loading && (
+              <p role="status" className="text-sm">
+                Verificando acesso…
+              </p>
+            )}
+            <Button type="submit" className="w-full" disabled={loading || exit.busy}>
+              {loading
+                ? "Entrando…"
+                : authenticated
+                  ? "Tentar acessar o painel novamente"
+                  : "Entrar"}
             </Button>
           </form>
+          {authenticated && (
+            <Button
+              className="mt-3 w-full"
+              variant="outline"
+              disabled={exit.busy || loading}
+              onClick={async () => {
+                if (await exit.logout()) {
+                  setAuthenticated(false);
+                  setPassword("");
+                  setMessage("");
+                }
+              }}
+            >
+              {exit.busy ? "Saindo…" : "Sair da conta"}
+            </Button>
+          )}
+          {exit.error && (
+            <p role="alert" className="mt-3 text-sm text-destructive">
+              {exit.error}
+            </p>
+          )}
         </div>
         <div className="mt-6 grid gap-2 text-center text-xs text-muted-foreground">
           <Link

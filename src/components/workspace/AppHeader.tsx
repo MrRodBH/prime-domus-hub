@@ -1,12 +1,10 @@
 // AppHeader — 56 px permanente (Doc 05 §2).
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, LogOut, Menu, Search, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUI } from "./ui-store";
-import { supabase } from "@/integrations/supabase/client";
-import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
-import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
+import { useLogout } from "@/components/auth/useLogout";
 import { listMyTenantInvitations } from "@/lib/api/tenant-lifecycle.functions";
 import {
   DropdownMenu,
@@ -29,7 +27,7 @@ export function AppHeader({
   onOpenMobileNav?: () => void;
 }) {
   const { openPalette, openAi } = useUI();
-  const navigate = useNavigate();
+  const exit = useLogout();
   const path = useRouterState({ select: (state) => state.location.pathname });
   const active = contextFromPath(path);
   const invitationsQuery = useQuery({
@@ -39,13 +37,6 @@ export function AppHeader({
     staleTime: 60_000,
   });
   const pendingInvitations = invitationsQuery.data?.length ?? 0;
-
-  async function signOut() {
-    clearImpersonationTenantId();
-    clearSelectedTenantId();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  }
 
   return (
     <header
@@ -71,6 +62,20 @@ export function AppHeader({
         <span className="truncate">{active.label}</span>
       </div>
 
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={exit.logout}
+        disabled={exit.busy}
+        aria-label="Sair da conta"
+      >
+        {exit.busy ? "Saindo…" : "Sair"}
+      </Button>
+      {exit.error && (
+        <p role="alert" className="text-xs text-destructive">
+          {exit.error}
+        </p>
+      )}
       <div className="flex-1 flex justify-center">
         <button
           type="button"
@@ -139,7 +144,7 @@ export function AppHeader({
             <DropdownMenuItem asChild>
               <Link to="/">Ver site público</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={signOut}>
+            <DropdownMenuItem disabled={exit.busy} onSelect={() => void exit.logout()}>
               <LogOut className="size-4 mr-2" /> Sair
             </DropdownMenuItem>
           </DropdownMenuContent>

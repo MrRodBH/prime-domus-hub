@@ -281,7 +281,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
       );
       assert(auth.includes("supabase.auth.getUser()"), "existing Supabase session check preserved");
       assert(
-        auth.includes("supabase.auth.signInWithPassword({ email, password })"),
+        /supabase\.auth\.signInWithPassword\(\{\s*email: email\.trim\(\),\s*password,?\s*\}\)/.test(auth),
         "password login preserved",
       );
       assert(
