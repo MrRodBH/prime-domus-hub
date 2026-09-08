@@ -89,19 +89,23 @@ function SuperTenantsPage() {
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Tenants</h1>
+          <p className="text-xs uppercase tracking-[0.2em] text-teal-700">Dashboard</p>
+          <h1 className="font-display text-4xl font-semibold">A visão completa do seu SaaS</h1>
           <p className="text-sm text-muted-foreground">
-            Control Plane global. Bootstrap atômico, owner obrigatório e lifecycle auditável.
+            Gerencie os planos e as empresas da sua plataforma.
           </p>
         </div>
         <Dialog open={openNew} onOpenChange={setOpenNew}>
           <DialogTrigger asChild>
-            <Button><Plus className="size-4 mr-2" /> Novo tenant</Button>
+            <Button>
+              <Plus className="size-4 mr-2" /> Novo tenant
+            </Button>
           </DialogTrigger>
           <NovoTenantDialog
             onDone={() => {
               setOpenNew(false);
               void qc.invalidateQueries({ queryKey: ["super-tenants"] });
+              void qc.invalidateQueries({ queryKey: ["super-onboarding"] });
               void qc.invalidateQueries({ queryKey: ["super-tenants-stats"] });
               void qc.invalidateQueries({ queryKey: ["super-kpis"] });
             }}
@@ -111,96 +115,123 @@ function SuperTenantsPage() {
 
       <PersistentOnboarding />
 
-      {kpis ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <KpiCard label="Tenants" value={kpis.tenants} sub={`${kpis.tenantsAtivos} ativos`} />
-          <KpiCard label="Usuários" value={kpis.users} />
-          <KpiCard label="Imóveis" value={kpis.imoveis} />
-          <KpiCard label="Leads" value={kpis.leads} sub={`+${kpis.leads24h} em 24h`} />
-          <KpiCard
-            label="Sync portais (7d)"
-            value={`${kpis.portalOk7d} ok`}
-            sub={`${kpis.portalErr7d} erros`}
-            tone={kpis.portalErr7d > 0 ? "warn" : "ok"}
-          />
-          <KpiCard label="Auditoria 24h" value={kpis.auditoria24h} />
-          <KpiCard label="MRR / ARR" value="Pendente" sub="Ativação em BCA-01" tone="warn" />
-        </div>
-      ) : null}
+      <details className="rounded-xl border bg-card p-5">
+        <summary className="cursor-pointer font-semibold">
+          Operação dos tenants e indicadores globais
+        </summary>
+        {kpis ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <KpiCard label="Tenants" value={kpis.tenants} sub={`${kpis.tenantsAtivos} ativos`} />
+            <KpiCard label="Usuários" value={kpis.users} />
+            <KpiCard label="Imóveis" value={kpis.imoveis} />
+            <KpiCard label="Leads" value={kpis.leads} sub={`+${kpis.leads24h} em 24h`} />
+            <KpiCard
+              label="Sync portais (7d)"
+              value={`${kpis.portalOk7d} ok`}
+              sub={`${kpis.portalErr7d} erros`}
+              tone={kpis.portalErr7d > 0 ? "warn" : "ok"}
+            />
+            <KpiCard label="Auditoria 24h" value={kpis.auditoria24h} />
+            <KpiCard label="MRR / ARR" value="Pendente" sub="Ativação em BCA-01" tone="warn" />
+          </div>
+        ) : null}
 
-      {impersonating ? (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3 text-sm">
-          <span>
-            Você está impersonando o tenant <code className="font-mono">{impersonating}</code>.
-          </span>
-          <Button size="sm" variant="outline" onClick={clearImpersonation}>
-            Encerrar impersonação
-          </Button>
-        </div>
-      ) : null}
+        {impersonating ? (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3 text-sm">
+            <span>
+              Você está impersonando o tenant <code className="font-mono">{impersonating}</code>.
+            </span>
+            <Button size="sm" variant="outline" onClick={clearImpersonation}>
+              Encerrar impersonação
+            </Button>
+          </div>
+        ) : null}
 
-      <div className="rounded-lg border bg-card overflow-x-auto">
-        <table className="w-full min-w-[1040px] text-sm">
-          <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>
-              <th className="text-left px-4 py-3">Nome / slug</th>
-              <th className="text-left px-4 py-3">Status</th>
-              <th className="text-left px-4 py-3">Owner</th>
-              <th className="text-left px-4 py-3">Domínio</th>
-              <th className="text-center px-4 py-3"><User2 className="size-3 inline" /></th>
-              <th className="text-center px-4 py-3"><Building2 className="size-3 inline" /></th>
-              <th className="text-center px-4 py-3"><Inbox className="size-3 inline" /></th>
-              <th className="text-right px-4 py-3">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(tenants as TenantRow[]).map((tenant) => {
-              const tenantStats = (stats as TenantStats)[tenant.id] ?? { users: 0, imoveis: 0, leads: 0 };
-              return (
-                <tr key={tenant.id} className="border-t hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{tenant.nome}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{tenant.slug}</div>
-                  </td>
-                  <td className="px-4 py-3"><StatusBadge status={tenant.status} /></td>
-                  <td className="px-4 py-3 text-xs">
-                    {tenant.owner_user_id ? (
-                      <span className="inline-flex items-center gap-1 font-mono">
-                        <ShieldCheck className="size-3 text-emerald-600" />
-                        {tenant.owner_user_id.slice(0, 8)}…
-                      </span>
-                    ) : (
-                      <span className="text-destructive">Owner ausente</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {tenant.dominio_principal ? (
-                      <span>{tenant.dominio_principal}</span>
-                    ) : (
-                      <Badge variant="outline">pending DCA-01</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center">{tenantStats.users}</td>
-                  <td className="px-4 py-3 text-center">{tenantStats.imoveis}</td>
-                  <td className="px-4 py-3 text-center">{tenantStats.leads}</td>
-                  <td className="px-4 py-3 text-right space-x-1">
-                    <Button size="sm" variant="ghost" onClick={() => setEdit(tenant)}>Editar</Button>
-                    <Button size="sm" variant="ghost" onClick={() => impersonate(tenant.id, "/admin/memberships")}>
-                      <Users className="size-3 mr-1" /> Membros
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => impersonate(tenant.id)}>
-                      <LogIn className="size-3 mr-1" /> Entrar
-                    </Button>
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <table className="w-full min-w-[1040px] text-sm">
+            <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-3">Nome / slug</th>
+                <th className="text-left px-4 py-3">Status</th>
+                <th className="text-left px-4 py-3">Owner</th>
+                <th className="text-left px-4 py-3">Domínio</th>
+                <th className="text-center px-4 py-3">
+                  <User2 className="size-3 inline" />
+                </th>
+                <th className="text-center px-4 py-3">
+                  <Building2 className="size-3 inline" />
+                </th>
+                <th className="text-center px-4 py-3">
+                  <Inbox className="size-3 inline" />
+                </th>
+                <th className="text-right px-4 py-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(tenants as TenantRow[]).map((tenant) => {
+                const tenantStats = (stats as TenantStats)[tenant.id] ?? {
+                  users: 0,
+                  imoveis: 0,
+                  leads: 0,
+                };
+                return (
+                  <tr key={tenant.id} className="border-t hover:bg-muted/30">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{tenant.nome}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{tenant.slug}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={tenant.status} />
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {tenant.owner_user_id ? (
+                        <span className="inline-flex items-center gap-1 font-mono">
+                          <ShieldCheck className="size-3 text-emerald-600" />
+                          {tenant.owner_user_id.slice(0, 8)}…
+                        </span>
+                      ) : (
+                        <span className="text-destructive">Owner ausente</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {tenant.dominio_principal ? (
+                        <span>{tenant.dominio_principal}</span>
+                      ) : (
+                        <Badge variant="outline">pending DCA-01</Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">{tenantStats.users}</td>
+                    <td className="px-4 py-3 text-center">{tenantStats.imoveis}</td>
+                    <td className="px-4 py-3 text-center">{tenantStats.leads}</td>
+                    <td className="px-4 py-3 text-right space-x-1">
+                      <Button size="sm" variant="ghost" onClick={() => setEdit(tenant)}>
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => impersonate(tenant.id, "/admin/memberships")}
+                      >
+                        <Users className="size-3 mr-1" /> Membros
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => impersonate(tenant.id)}>
+                        <LogIn className="size-3 mr-1" /> Entrar
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {tenants.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                    Nenhum tenant.
                   </td>
                 </tr>
-              );
-            })}
-            {tenants.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">Nenhum tenant.</td></tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </details>
 
       {edit ? (
         <EditTenantDialog
@@ -216,7 +247,17 @@ function SuperTenantsPage() {
   );
 }
 
-function KpiCard({ label, value, sub, tone }: { label: string; value: ReactNode; sub?: string; tone?: "ok" | "warn" }) {
+function KpiCard({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: ReactNode;
+  sub?: string;
+  tone?: "ok" | "warn";
+}) {
   const toneCls = tone === "warn" ? "border-amber-500/30 bg-amber-500/5" : "";
   return (
     <div className={`rounded-lg border bg-card p-4 ${toneCls}`}>
@@ -234,7 +275,11 @@ function StatusBadge({ status }: { status: string }) {
     suspenso: "bg-amber-500/15 text-amber-700 border-amber-500/30",
     cancelado: "bg-red-500/15 text-red-700 border-red-500/30",
   };
-  return <Badge variant="outline" className={map[status] ?? ""}>{status}</Badge>;
+  return (
+    <Badge variant="outline" className={map[status] ?? ""}>
+      {status}
+    </Badge>
+  );
 }
 
 function NovoTenantDialog({ onDone }: { onDone: () => void }) {
@@ -256,11 +301,15 @@ function NovoTenantDialog({ onDone }: { onDone: () => void }) {
       <DialogHeader>
         <DialogTitle>Novo tenant</DialogTitle>
         <DialogDescription>
-          O tenant e o owner inicial são criados na mesma transação. O domínio será ativado na DCA-01.
+          O tenant e o owner inicial são criados na mesma transação. O domínio será ativado na
+          DCA-01.
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-3">
-        <div><Label>Nome</Label><Input value={name} onChange={(event) => setName(event.target.value)} /></div>
+        <div>
+          <Label>Nome</Label>
+          <Input value={name} onChange={(event) => setName(event.target.value)} />
+        </div>
         <div>
           <Label>Slug</Label>
           <Input
@@ -277,12 +326,19 @@ function NovoTenantDialog({ onDone }: { onDone: () => void }) {
             onChange={(event) => setOwnerEmail(event.target.value)}
             placeholder="owner@empresa.com.br"
           />
-          <p className="mt-1 text-xs text-muted-foreground">O usuário Auth deve existir antes do bootstrap.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            O usuário Auth deve existir antes do bootstrap.
+          </p>
         </div>
         <div>
           <Label>Status inicial</Label>
-          <Select value={initialStatus} onValueChange={(value: "trial" | "ativo") => setInitialStatus(value)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Select
+            value={initialStatus}
+            onValueChange={(value: "trial" | "ativo") => setInitialStatus(value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="trial">trial</SelectItem>
               <SelectItem value="ativo">ativo</SelectItem>
@@ -305,12 +361,30 @@ function NovoTenantDialog({ onDone }: { onDone: () => void }) {
   );
 }
 
-function EditTenantDialog({ tenant, onClose, onDone }: { tenant: TenantRow; onClose: () => void; onDone: () => void }) {
+function EditTenantDialog({
+  tenant,
+  onClose,
+  onDone,
+}: {
+  tenant: TenantRow;
+  onClose: () => void;
+  onDone: () => void;
+}) {
   const [name, setName] = useState(tenant.nome);
   const [status, setStatus] = useState(tenant.status);
   const mutation = useMutation({
-    mutationFn: () => atualizarTenant({ data: { id: tenant.id, nome: name, status: status as "ativo" | "suspenso" | "cancelado" | "trial" } }),
-    onSuccess: () => { toast.success("Tenant atualizado"); onDone(); },
+    mutationFn: () =>
+      atualizarTenant({
+        data: {
+          id: tenant.id,
+          nome: name,
+          status: status as "ativo" | "suspenso" | "cancelado" | "trial",
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Tenant atualizado");
+      onDone();
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
@@ -320,15 +394,21 @@ function EditTenantDialog({ tenant, onClose, onDone }: { tenant: TenantRow; onCl
         <DialogHeader>
           <DialogTitle>Editar tenant</DialogTitle>
           <DialogDescription>
-            Domínio e billing são exibidos, mas suas ativações pertencem respectivamente à DCA-01 e BCA-01.
+            Domínio e billing são exibidos, mas suas ativações pertencem respectivamente à DCA-01 e
+            BCA-01.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div><Label>Nome</Label><Input value={name} onChange={(event) => setName(event.target.value)} /></div>
+          <div>
+            <Label>Nome</Label>
+            <Input value={name} onChange={(event) => setName(event.target.value)} />
+          </div>
           <div>
             <Label>Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ativo">ativo</SelectItem>
                 <SelectItem value="trial">trial</SelectItem>
@@ -338,12 +418,18 @@ function EditTenantDialog({ tenant, onClose, onDone }: { tenant: TenantRow; onCl
             </Select>
           </div>
           <div className="rounded-md border p-3 text-sm">
-            <div><strong>Domínio:</strong> {tenant.dominio_principal ?? "pending DCA-01"}</div>
-            <div><strong>Plano:</strong> {tenant.plano_codigo ?? "pending BCA-01"}</div>
+            <div>
+              <strong>Domínio:</strong> {tenant.dominio_principal ?? "pending DCA-01"}
+            </div>
+            <div>
+              <strong>Plano:</strong> {tenant.plano_codigo ?? "pending BCA-01"}
+            </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
           <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !name.trim()}>
             Salvar
           </Button>

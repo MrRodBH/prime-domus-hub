@@ -18,16 +18,21 @@ async function fill(name,value){const field=d.querySelector(`[name="${name}"]`);
 async function submit(){d.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await tick();}
 try {
  w.eval(bundle.outputFiles[0].text);
+ await until(()=>button('Planos'));button('Planos').click();await tick();
  await until(()=>button('Criar plano'));button('Criar plano').click();await tick();
  await fill('code','basic');await fill('name','Basic');await fill('price','99.90');await fill('limit','20');
  fail=true;await submit();await until(()=>d.querySelector('[role="alert"]'));assert.equal(d.querySelector('[name="name"]').value,'Basic');assert.equal(store.plans.length,0);
- fail=false;await submit();await until(()=>!d.querySelector('form'));assert.equal(store.plans[0].monthlyPriceCents,9990);
- w.unmount();w.mount();await until(()=>button('Editar plano'));button('Editar plano').click();await tick();assert.equal(d.querySelector('[name="name"]').value,'Basic');button('Cancelar').click();await tick();
- button('Completar cadastro').click();await tick();
+ fail=false;await submit();await until(()=>!d.querySelector('form'));assert.equal(store.plans[0].monthlyPriceCents,9990);assert.ok(button('Dashboard').getAttribute('aria-current'));assert.ok(!button('Criar plano'));
+ w.unmount();w.mount();await until(()=>button('Planos'));button('Planos').click();await until(()=>button('Editar plano'));button('Editar plano').click();await tick();assert.equal(d.querySelector('[name="name"]').value,'Basic');button('Cancelar').click();await tick();
+ button('Tenants').click();await tick();
+ const search=d.querySelector('input[placeholder="Digite o nome ou domínio"]');
+ const searchFor=async value=>{Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value').set.call(search,value);search.dispatchEvent(new w.Event('input',{bubbles:true}));await tick();};
+ await searchFor('inexistente');assert.ok(d.body.textContent.includes('Nenhuma empresa encontrada'));assert.equal(store.tenants.length,1);
+ await searchFor('Empresa isolada');assert.ok(button('Editar tenant'));assert.ok(!d.querySelector('form'));button('Editar tenant').click();await tick();
  for(const [k,v] of Object.entries({'address.zip':'12345678','address.street':'Rua Fixture','address.number':'1','address.district':'Bairro','address.city':'Cidade','address.region':'MG',legalName:'Empresa completa',cnpj:'00000000000000',responsible:'Fixture',cpf:'00000000000',whatsapp:'31999999999',email:'fixture@example.invalid'}))await fill(k,v);
  d.querySelector('[name="planId"]').value=store.plans[0].id;
  await submit();await until(()=>!d.querySelector('form'));
- w.unmount();w.mount();await until(()=>button('Completar cadastro'));button('Completar cadastro').click();await tick();assert.equal(d.querySelector('[name="legalName"]').value,'Empresa completa');assert.equal(d.querySelector('[name="address.street"]').value,'Rua Fixture');
+ w.unmount();w.mount();await until(()=>button('Tenants'));button('Tenants').click();await until(()=>button('Editar tenant'));button('Editar tenant').click();await tick();assert.equal(d.querySelector('[name="legalName"]').value,'Empresa completa');assert.equal(d.querySelector('[name="address.street"]').value,'Rua Fixture');
  await fill('legalName','Ainda editando');fail=true;button('Recarregar cadastros').click();await until(()=>d.querySelector('[role="alert"]'));assert.ok(!d.body.textContent.includes('Nenhum tenant cadastrado'));assert.equal(d.querySelector('[name="legalName"]').value,'Ainda editando');
  assert.deepEqual(errors,[]);assert.equal(calls,2);
  console.log('PASS controlled DOM: plan/company save, failed-save retention, remount with fresh query cache, read failure is not empty. No remote session proof.');

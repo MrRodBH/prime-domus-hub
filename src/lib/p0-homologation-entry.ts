@@ -41,7 +41,8 @@ export function resolveP0HomologationEntry(
     url.hostname = forwardedHostname;
     url.port = "";
   }
-  url.pathname = "/demonstracao";
+  // Round 53: the SaaS entry is operational; hosting previews remain demonstrations.
+  url.pathname = P0_HOMOLOGATION_HOSTS.has(hostname) ? "/auth" : "/demonstracao";
   url.search = "";
   url.hash = "";
   return url.toString();

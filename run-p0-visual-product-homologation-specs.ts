@@ -180,12 +180,12 @@ ok(
 );
 assert.equal(
   resolveP0HomologationEntry("https://realone.com.br/"),
-  "https://realone.com.br/demonstracao",
+  "https://realone.com.br/auth",
 );
 assertions += 1;
 assert.equal(
   resolveP0HomologationEntry("https://www.realone.com.br/?origem=teste"),
-  "https://www.realone.com.br/demonstracao",
+  "https://www.realone.com.br/auth",
 );
 assertions += 1;
 assert.equal(
@@ -202,7 +202,7 @@ assert.equal(
 assertions += 1;
 assert.equal(
   resolveP0HomologationEntry("http://runtime-interno/", "realone.com.br"),
-  "https://realone.com.br/demonstracao",
+  "https://realone.com.br/auth",
 );
 assertions += 1;
 assert.equal(
