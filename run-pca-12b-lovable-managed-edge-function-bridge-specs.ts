@@ -316,6 +316,7 @@ for (const frozenPath of [
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
 const round58PlatformAdministrationPaths = [
+  "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
   ".github/workflows/round52-persistent-onboarding.yml",
   "database/round58-platform-administration.sql",
   "docs/architecture/OWNER_UI_APPROVALS.md",
