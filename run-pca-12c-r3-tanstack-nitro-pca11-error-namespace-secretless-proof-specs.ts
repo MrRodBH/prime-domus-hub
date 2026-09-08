@@ -216,6 +216,22 @@ if (head !== SOURCE_MAIN) {
   // Round 44 initial-link UI only; server, migrations and historical guards remain frozen.
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
+const round53AuthenticatedThemePaths = [
+  ".github/workflows/round52-persistent-onboarding.yml",
+  "docs/architecture/impact-analysis/ROUND53-authenticated-theme.md",
+  "run-p0-visual-product-homologation-specs.ts",
+  "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+  "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  "run-round-53-authenticated-theme-specs.mjs",
+  "src/components/onboarding/PersistentOnboarding.tsx",
+  "src/components/workspace/NavigationRail.tsx",
+  "src/components/workspace/contexts.ts",
+  "src/lib/p0-homologation-entry.ts",
+  "src/routes/_authenticated.super.index.tsx",
+  "src/styles.css",
+  "tests/round52/ui.mjs"
+];
 const round52PersistentOnboardingPaths = [
   ".github/workflows/round43-broker-identity-concurrency.yml",
   ".github/workflows/round52-persistent-onboarding.yml",
@@ -373,7 +389,7 @@ const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verif
     changedPaths,
     [
       ...new Set([
-        ...(changedPaths.includes("src/lib/api/super-onboarding.functions.ts") ? round52PersistentOnboardingPaths : []), ...(changedPaths.includes("run-round-51-superadmin-auth-specs.mjs") ? round51SuperAdminAuthPaths : []), ...(changedPaths.includes("run-round-50-tenant-navigation-specs.mjs") ? round50TenantNavigationPaths : []), ...(changedPaths.includes("run-round-49-domain-theme-specs.mjs") ? round49DomainThemePaths : []), ...(changedPaths.includes("run-round-48-tenant-domain-specs.mjs") ? round48TenantDomainPaths : []), ...(changedPaths.includes("run-round-47-plan-address-specs.mjs") ? round47PlanAddressPaths : []), ...(changedPaths.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changedPaths.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changedPaths.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []),
+        ...(changedPaths.includes("run-round-53-authenticated-theme-specs.mjs") ? round53AuthenticatedThemePaths : []), ...(changedPaths.includes("src/lib/api/super-onboarding.functions.ts") ? round52PersistentOnboardingPaths : []), ...(changedPaths.includes("run-round-51-superadmin-auth-specs.mjs") ? round51SuperAdminAuthPaths : []), ...(changedPaths.includes("run-round-50-tenant-navigation-specs.mjs") ? round50TenantNavigationPaths : []), ...(changedPaths.includes("run-round-49-domain-theme-specs.mjs") ? round49DomainThemePaths : []), ...(changedPaths.includes("run-round-48-tenant-domain-specs.mjs") ? round48TenantDomainPaths : []), ...(changedPaths.includes("run-round-47-plan-address-specs.mjs") ? round47PlanAddressPaths : []), ...(changedPaths.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changedPaths.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changedPaths.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []),
         ...(changedPaths.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []),
         ...historicalPaths,
         ...(changedPaths.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []),

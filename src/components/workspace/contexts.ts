@@ -35,7 +35,7 @@ export type WorkspaceContext = {
 export const CONTEXTS: WorkspaceContext[] = [
   {
     id: "inicio",
-    label: "Início",
+    label: "Dashboard",
     icon: Home,
     root: "/admin",
     matches: ["/admin"],
@@ -131,13 +131,13 @@ export const CONTEXTS: WorkspaceContext[] = [
   },
   {
     id: "operacao",
-    label: "Operação",
+    label: "Super Admin",
     icon: Crown,
     root: "/super",
     matches: ["/super"],
     superOnly: true,
     subs: [
-      { label: "Empresas", to: "/super" },
+      { label: "Dashboard e cadastros", to: "/super" },
       { label: "Controle da plataforma", to: "/super/control-plane" },
       { label: "Observabilidade", to: "/super/observabilidade" },
       { label: "Falhas pendentes", to: "/super/dlq" },

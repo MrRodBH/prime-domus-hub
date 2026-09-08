@@ -211,3 +211,17 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Round 53: approved demo palette applied to the existing authenticated shell.
+   Scoped tokens preserve public websites and the single authorization boundary. */
+[data-workspace-shell="single-authenticated-shell"] {
+  --workspace-surface: #f6f4ef;
+  --workspace-elevated: #fbfaf7;
+  --workspace-navigation: #113b42;
+  --workspace-content-max: 1560px;
+  --radius: 0.75rem;
+  color: #123f47;
+  font-family: var(--font-sans);
+}
+[data-workspace-navigation="desktop"] { color: white; }
+[data-workspace-navigation="desktop"] > div { border-color: rgb(255 255 255 / 0.15); }

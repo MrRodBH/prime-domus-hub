@@ -137,25 +137,31 @@ export function PersistentOnboarding() {
     staleTime: 0,
     refetchOnMount: "always",
   });
+  const [view, setView] = useState<"dashboard" | "plans" | "tenants">("dashboard");
+  const [filter, setFilter] = useState("");
   const [plan, setPlan] = useState<PlanRow | "new" | null>(null);
   const [tenant, setTenant] = useState<CompanyRow | null>(null);
   const [message, setMessage] = useState("");
   function done() {
     setPlan(null);
     setTenant(null);
+    setView("dashboard");
     setMessage("Cadastro salvo no banco. Ele estará disponível após novo login.");
     void client.invalidateQueries({ queryKey });
     void client.invalidateQueries({ queryKey: ["super-tenants"] });
     void client.invalidateQueries({ queryKey: ["super-control-plane"] });
   }
   return (
-    <section
-      className="space-y-4 rounded-lg border bg-card p-4"
-      aria-label="Cadastros persistentes"
-    >
+    <section className="space-y-5" aria-label="Cadastros persistentes">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl">Planos e cadastro empresarial</h2>
+          <h2 className="font-display text-2xl">
+            {view === "dashboard"
+              ? "Gestão da plataforma"
+              : view === "plans"
+                ? "Planos"
+                : "Empresas clientes"}
+          </h2>
           <p className="text-sm text-muted-foreground">
             Cadastros gravados no banco. Selecione o tenant existente para completar seus dados.
           </p>
@@ -164,6 +170,48 @@ export function PersistentOnboarding() {
           Recarregar cadastros
         </Button>
       </div>
+      <nav aria-label="Gestão do SaaS" className="flex flex-wrap gap-2">
+        {(
+          [
+            ["dashboard", "Dashboard"],
+            ["plans", "Planos"],
+            ["tenants", "Tenants"],
+          ] as const
+        ).map(([id, label]) => (
+          <Button
+            key={id}
+            variant={view === id ? "default" : "outline"}
+            aria-current={view === id ? "page" : undefined}
+            disabled={!!plan || !!tenant}
+            onClick={() => setView(id)}
+          >
+            {label}
+          </Button>
+        ))}
+      </nav>
+      {view === "dashboard" && (
+        <div className="grid gap-5 sm:grid-cols-2">
+          {(
+            [
+              ["tenants", "Tenants", query.data?.tenants.length],
+              ["plans", "Planos", query.data?.plans.length],
+            ] as const
+          ).map(([id, label, count]) => (
+            <button
+              type="button"
+              key={id}
+              onClick={() => setView(id)}
+              className="rounded-xl border border-t-4 border-t-teal-600 bg-card p-6 text-left shadow-sm hover:shadow-md"
+            >
+              <span className="block text-sm text-muted-foreground">{label}</span>
+              <strong className="my-3 block font-display text-4xl">
+                {query.isError ? "Indisponível" : (count ?? "…")}
+              </strong>
+              <span className="text-sm">Explorar {label} →</span>
+            </button>
+          ))}
+        </div>
+      )}
       {message && <p role="status">{message}</p>}
       {query.isPending && <p role="status">Carregando cadastros…</p>}
       {query.isError && (
@@ -174,117 +222,149 @@ export function PersistentOnboarding() {
       )}
       {query.data && (
         <>
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Planos</h3>
-            <Button
-              disabled={!!plan || !!tenant}
-              onClick={() => {
-                setMessage("");
-                setPlan("new");
-              }}
-            >
-              Criar plano
-            </Button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left p-2">Plano</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-right p-2">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {query.data.plans.map((p) => (
-                  <tr className="border-t" key={p.id}>
-                    <td className="p-2">
-                      {p.name} · {p.code}
-                    </td>
-                    <td className="p-2">
-                      {(
-                        { active: "Ativo", draft: "Rascunho", archived: "Arquivado" } as Record<
-                          string,
-                          string
-                        >
-                      )[p.status] ?? p.status}
-                    </td>
-                    <td className="p-2 text-right">
-                      <Button
-                        variant="outline"
-                        disabled={!!plan || !!tenant}
-                        onClick={() => setPlan(p)}
-                      >
-                        Editar plano
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {!query.isError && !query.data.plans.length && (
-                  <tr>
-                    <td colSpan={3} className="p-3">
-                      Nenhum plano cadastrado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {plan && (
-            <PlanForm
-              key={plan === "new" ? "new" : plan.id}
-              plan={plan}
-              onDone={done}
-              onCancel={() => setPlan(null)}
-            />
+          {view === "plans" && (
+            <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Planos</h3>
+                <Button
+                  disabled={!!plan || !!tenant}
+                  onClick={() => {
+                    setMessage("");
+                    setPlan("new");
+                  }}
+                >
+                  Criar plano
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-2">Plano</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-right p-2">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {query.data.plans.map((p) => (
+                      <tr className="border-t" key={p.id}>
+                        <td className="p-2">
+                          {p.name} · {p.code}
+                        </td>
+                        <td className="p-2">
+                          {(
+                            { active: "Ativo", draft: "Rascunho", archived: "Arquivado" } as Record<
+                              string,
+                              string
+                            >
+                          )[p.status] ?? p.status}
+                        </td>
+                        <td className="p-2 text-right">
+                          <Button
+                            variant="outline"
+                            disabled={!!plan || !!tenant}
+                            onClick={() => setPlan(p)}
+                          >
+                            Editar plano
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {!query.isError && !query.data.plans.length && (
+                      <tr>
+                        <td colSpan={3} className="p-3">
+                          Nenhum plano cadastrado.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {plan && (
+                <PlanForm
+                  key={plan === "new" ? "new" : plan.id}
+                  plan={plan}
+                  onDone={done}
+                  onCancel={() => setPlan(null)}
+                />
+              )}
+            </div>
           )}
-          <h3 className="font-semibold">Cadastro completo dos tenants</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left p-2">Empresa</th>
-                  <th className="text-left p-2">Domínio cadastrado</th>
-                  <th className="text-right p-2">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {query.data.tenants.map((t) => (
-                  <tr className="border-t" key={t.id}>
-                    <td className="p-2">{t.nome}</td>
-                    <td className="p-2">{t.dominio_principal ?? "Ainda não informado"}</td>
-                    <td className="p-2 text-right">
-                      <Button
-                        variant="outline"
-                        disabled={!!plan || !!tenant}
-                        onClick={() => {
-                          setMessage("");
-                          setTenant(t);
-                        }}
-                      >
-                        Completar cadastro
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {!query.isError && !query.data.tenants.length && (
-                  <tr>
-                    <td colSpan={3} className="p-3">
-                      Nenhum tenant cadastrado. Utilize o cadastro de novo tenant abaixo.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {tenant && (
-            <CompanyForm
-              key={tenant.id}
-              tenant={tenant}
-              plans={query.data.plans}
-              onDone={done}
-              onCancel={() => setTenant(null)}
-            />
+          {view === "tenants" && (
+            <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+              <h3 className="font-semibold">Cadastro completo dos tenants</h3>
+              <label className="grid gap-1 text-sm">
+                Buscar empresa ou domínio
+                <Input
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  placeholder="Digite o nome ou domínio"
+                />
+              </label>
+              <p className="text-sm text-muted-foreground">
+                Registros existentes no banco, incluindo ambientes de homologação. Use a busca para
+                localizar sua empresa.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-2">Empresa</th>
+                      <th className="text-left p-2">Domínio cadastrado</th>
+                      <th className="text-right p-2">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {query.data.tenants
+                      .filter((t) =>
+                        `${t.nome} ${t.dominio_principal ?? ""}`
+                          .toLocaleLowerCase("pt-BR")
+                          .includes(filter.trim().toLocaleLowerCase("pt-BR")),
+                      )
+                      .map((t) => (
+                        <tr className="border-t" key={t.id}>
+                          <td className="p-2">{t.nome}</td>
+                          <td className="p-2">{t.dominio_principal ?? "Ainda não informado"}</td>
+                          <td className="p-2 text-right">
+                            <Button
+                              variant="outline"
+                              disabled={!!plan || !!tenant}
+                              onClick={() => {
+                                setMessage("");
+                                setTenant(t);
+                              }}
+                            >
+                              Editar tenant
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    {!query.isError && !query.data.tenants.length && (
+                      <tr>
+                        <td colSpan={3} className="p-3">
+                          Nenhum tenant cadastrado. Utilize o cadastro de novo tenant abaixo.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {filter &&
+                !query.data.tenants.some((t) =>
+                  `${t.nome} ${t.dominio_principal ?? ""}`
+                    .toLocaleLowerCase("pt-BR")
+                    .includes(filter.trim().toLocaleLowerCase("pt-BR")),
+                ) && <p>Nenhuma empresa encontrada para esta busca.</p>}
+              {tenant && (
+                <CompanyForm
+                  key={tenant.id}
+                  tenant={tenant}
+                  plans={query.data.plans}
+                  onDone={done}
+                  onCancel={() => setTenant(null)}
+                />
+              )}
+            </div>
           )}
         </>
       )}

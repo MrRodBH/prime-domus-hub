@@ -466,6 +466,22 @@ if (head !== SOURCE_MAIN) {
   // Round 44 initial-link UI only; server, migrations and historical guards remain frozen.
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
+const round53AuthenticatedThemePaths = [
+  ".github/workflows/round52-persistent-onboarding.yml",
+  "docs/architecture/impact-analysis/ROUND53-authenticated-theme.md",
+  "run-p0-visual-product-homologation-specs.ts",
+  "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+  "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  "run-round-53-authenticated-theme-specs.mjs",
+  "src/components/onboarding/PersistentOnboarding.tsx",
+  "src/components/workspace/NavigationRail.tsx",
+  "src/components/workspace/contexts.ts",
+  "src/lib/p0-homologation-entry.ts",
+  "src/routes/_authenticated.super.index.tsx",
+  "src/styles.css",
+  "tests/round52/ui.mjs"
+];
 const round52PersistentOnboardingPaths = [
   ".github/workflows/round43-broker-identity-concurrency.yml",
   ".github/workflows/round52-persistent-onboarding.yml",
@@ -652,7 +668,7 @@ const round43ConcurrencyPaths = [
 const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
   assert.deepEqual(
     changed,
-    [...new Set([...PCA15R_PATHS, ...(changed.includes("src/lib/api/super-onboarding.functions.ts") ? round52PersistentOnboardingPaths : []), ...(changed.includes("run-round-51-superadmin-auth-specs.mjs") ? round51SuperAdminAuthPaths : []), ...(changed.includes("run-round-50-tenant-navigation-specs.mjs") ? round50TenantNavigationPaths : []), ...(changed.includes("run-round-49-domain-theme-specs.mjs") ? round49DomainThemePaths : []), ...(changed.includes("run-round-48-tenant-domain-specs.mjs") ? round48TenantDomainPaths : []), ...(changed.includes("run-round-47-plan-address-specs.mjs") ? round47PlanAddressPaths : []), ...(changed.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changed.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changed.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []), ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []), ...(changed.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []), ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
+    [...new Set([...PCA15R_PATHS, ...(changed.includes("run-round-53-authenticated-theme-specs.mjs") ? round53AuthenticatedThemePaths : []), ...(changed.includes("src/lib/api/super-onboarding.functions.ts") ? round52PersistentOnboardingPaths : []), ...(changed.includes("run-round-51-superadmin-auth-specs.mjs") ? round51SuperAdminAuthPaths : []), ...(changed.includes("run-round-50-tenant-navigation-specs.mjs") ? round50TenantNavigationPaths : []), ...(changed.includes("run-round-49-domain-theme-specs.mjs") ? round49DomainThemePaths : []), ...(changed.includes("run-round-48-tenant-domain-specs.mjs") ? round48TenantDomainPaths : []), ...(changed.includes("run-round-47-plan-address-specs.mjs") ? round47PlanAddressPaths : []), ...(changed.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changed.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changed.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []), ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []), ...(changed.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []), ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
   );
   assert.ok(!changed.includes(".env"));
   assert.ok(!changed.includes("src/integrations/supabase/types.ts"));
