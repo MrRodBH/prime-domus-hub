@@ -56,6 +56,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link to="/auth" className="rounded-full border px-4 py-2 text-sm font-semibold hover:bg-muted">Entrar</Link>
           <a
             href={wa}
             target="_blank"

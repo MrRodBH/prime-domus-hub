@@ -1,0 +1,20 @@
+import { build } from 'esbuild';
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+import { writeFileSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+const output=await build({entryPoints:['src/lib/api/super-onboarding.functions.ts'],bundle:true,write:false,platform:'node',format:'esm',plugins:[{name:'controlled-boundaries',setup(b){
+ b.onResolve({filter:/^(@tanstack\/react-start|@\/integrations\/supabase\/(auth-middleware|client.server))$/},a=>({path:a.path,namespace:'fixture'}));
+ b.onLoad({filter:/.*/,namespace:'fixture'},a=>({loader:'js',contents:a.path==='@tanstack/react-start'?`export const createServerFn=()=>({middleware(m){if(m.length!==1)throw Error('auth');return this;},inputValidator(v){this.v=v;return this;},handler(h){const v=this.v;return data=>h({data:v?v(data):data,context:globalThis.__ctx});}});`:a.path.endsWith('auth-middleware')?`export const requireSupabaseAuth={canonical:true};`:`export const supabaseAdmin={rpc:async(name,args)=>{globalThis.__calls.push({name,args});return {error:null};}};`}));
+}}]});
+const dir=mkdtempSync(join(tmpdir(),'round52-server-'));const file=join(dir,'bundle.mjs');writeFileSync(file,output.outputFiles[0].text);const api=await import(pathToFileURL(file).href);
+let authorized=false;globalThis.__calls=[];globalThis.__ctx={userId:'00000000-0000-4000-8000-000000000001',supabase:{from(){return{select(){return this;},eq(){return this;},async maybeSingle(){return{data:authorized?{role:'super_admin'}:null,error:null};}};}}};
+const input={id:'00000000-0000-4000-8000-000000000004',expectedUpdatedAt:null,code:'basic',name:'Basic',description:'',status:'active',monthlyPriceCents:100,propertyLimit:20,features:['CMS'],portal:'',productId:''};
+await assert.rejects(api.saveSuperPlan(input),/Super Admin/);assert.equal(globalThis.__calls.length,0);
+authorized=true;
+assert.throws(()=>api.saveSuperPlan({...input,actor:'forged'}));
+assert.throws(()=>api.saveSuperPlan({...input,monthlyPriceCents:-1}));
+assert.throws(()=>api.saveSuperCompany({tenantId:input.id,actor:'forged'}));
+await api.saveSuperPlan(input);assert.equal(globalThis.__calls[0].args.p_actor,globalThis.__ctx.userId);assert.equal(globalThis.__calls[0].name,'save_super_onboarding_plan');
+console.log('PASS server: strict payloads, no client actor, denied authority never reaches privileged RPC. Controlled auth only.');

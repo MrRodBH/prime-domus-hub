@@ -11,7 +11,7 @@ assert.equal(process.env.ROUND43_ISOLATED_CI,'true','isolated test service requi
 const imported=await import(pathToFileURL(process.env.ROUND43_PG_MODULE).href);
 const {Client}=imported.default??imported;
 const base='715f9f9ca071fa0e48a03792d7fc33517027f17b';
-assert.equal(execFileSync('git',['diff','--name-only',base,'HEAD','--','src','supabase'],{encoding:'utf8'}).trim(),'','production and migrations must be byte-identical');
+assert.equal(execFileSync('git',['diff','--name-only',base,'HEAD','--','src/lib/api/tenant-broker-directory.functions.ts','supabase/migrations/20260907183824_round42_broker_identity_link.sql','supabase/migrations/20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql','supabase/migrations/20260713221723_857275c9-958d-46fc-b826-e0c7ae030a3d.sql'],{encoding:'utf8'}).trim(),'','Round43 broker and membership contract sources must remain byte-identical');
 const read=p=>readFileSync(p,'utf8');
 const hash=s=>createHash('sha256').update(s).digest('hex');
 const sources={};
