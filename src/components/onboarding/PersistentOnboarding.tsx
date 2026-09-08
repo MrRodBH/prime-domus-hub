@@ -1,3 +1,4 @@
+import { formatPlanPrice, maskPlanPrice, parsePlanPrice, newPlanCode } from "@/lib/onboarding/plan-presentation";
 import { useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -249,7 +250,7 @@ export function PersistentOnboarding({ onEnterTenant }: { onEnterTenant?: (id: s
                     {query.data.plans.map((p) => (
                       <tr className="border-t" key={p.id}>
                         <td className="p-2">
-                          {p.name} · {p.code}
+                          {p.name}
                         </td>
                         <td className="p-2">
                           {(
@@ -417,15 +418,15 @@ function PlanForm({
       const data = savePlanSchema.parse({
         id,
         expectedUpdatedAt: existing?.updated_at ?? null,
-        code: existing?.code ?? f.get("code"),
+        code: existing?.code ?? newPlanCode(id),
         name: f.get("name"),
         description: f.get("description"),
         status: f.get("status"),
-        monthlyPriceCents: Math.round(Number(String(f.get("price")).replace(",", ".")) * 100),
+        monthlyPriceCents: parsePlanPrice(String(f.get("price") ?? "")),
         propertyLimit: Number(f.get("limit")),
         features: f.getAll("features"),
-        portal: f.get("portal"),
-        productId: f.get("productId"),
+        portal: String(values.portal ?? ""),
+        productId: String(values.productId ?? ""),
       });
       await saveSuperPlan({ data });
     }, onDone);
@@ -435,12 +436,6 @@ function PlanForm({
       <h3 className="font-semibold">{existing ? "Editar plano" : "Criar plano"}</h3>
       <fieldset disabled={save.busy} className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            name="code"
-            label="Código (letras minúsculas, números e _)"
-            value={existing?.code}
-            disabled={!!existing}
-          />
           <Field name="name" label="Nome do plano" value={existing?.name} />
           <Field
             name="description"
@@ -448,11 +443,12 @@ function PlanForm({
             value={existing?.description ?? ""}
             required={false}
           />
-          <Field
-            name="price"
-            label="Mensalidade (R$)"
-            value={Number(values.monthlyPriceCents ?? 0) / 100}
-          />
+          <label className={fieldClass}>
+            Mensalidade (R$)
+            <Input name="price" inputMode="decimal" required placeholder="0,00"
+              defaultValue={formatPlanPrice(Number(values.monthlyPriceCents ?? 0))}
+              onInput={e => { e.currentTarget.value = maskPlanPrice(e.currentTarget.value); }} />
+          </label>
           <Field
             name="limit"
             label="Limite de imóveis"
@@ -471,23 +467,7 @@ function PlanForm({
               <option value="archived">Arquivado</option>
             </select>
           </label>
-          <Field
-            name="portal"
-            label="Portal de venda (opcional)"
-            value={String(values.portal ?? "")}
-            required={false}
-          />
-          <Field
-            name="productId"
-            label="ID do produto no portal (opcional)"
-            value={String(values.productId ?? "")}
-            required={false}
-          />
         </div>
-        <p className="text-sm text-muted-foreground">
-          O ID é fornecido pelo portal onde o produto foi cadastrado. O cadastro do plano não inicia
-          cobranças ou integrações.
-        </p>
         <fieldset>
           <legend className="mb-2 font-medium">Recursos incluídos</legend>
           <div className="grid gap-2 sm:grid-cols-2">
