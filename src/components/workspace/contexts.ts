@@ -158,3 +158,12 @@ export function contextFromPath(path: string): WorkspaceContext {
   }
   return best;
 }
+
+// Presentation only: server guards still validate every tenant operation.
+export function workspaceContexts(isSuper: boolean | undefined, impersonating: string | null) {
+  if (isSuper === undefined) return [];
+  if (isSuper && !impersonating) {
+    return CONTEXTS.filter(c => c.superOnly).map(c => ({ ...c, label: "Dashboard do SaaS" }));
+  }
+  return CONTEXTS.filter(c => !c.superOnly || isSuper);
+}

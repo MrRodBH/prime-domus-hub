@@ -129,7 +129,7 @@ function object(value: unknown): Record<string, unknown> {
     ? (value as Record<string, unknown>)
     : {};
 }
-export function PersistentOnboarding() {
+export function PersistentOnboarding({ onEnterTenant }: { onEnterTenant?: (id: string) => void }) {
   const client = useQueryClient();
   const query = useQuery({
     queryKey,
@@ -336,6 +336,7 @@ export function PersistentOnboarding() {
                             >
                               Editar tenant
                             </Button>
+                            {onEnterTenant && <Button className="ml-2" variant="outline" disabled={!!plan || !!tenant} onClick={() => onEnterTenant(t.id)}>Acessar empresa</Button>}
                           </td>
                         </tr>
                       ))}
