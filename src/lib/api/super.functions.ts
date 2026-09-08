@@ -188,22 +188,37 @@ export const superResolverDlq = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Global account administration. Never enters a tenant context or accepts a role from the client.
+// Platform accounts are explicitly Super Admin and have no tenant membership/ownership.
+// Unclassified accounts are not exposed here. This is never an Auth-wide user directory.
+async function platformAccountScope(db: any, ids: string[]) {
+  if (!ids.length) return [] as string[];
+  const [roles, memberships, owners] = await Promise.all([
+    db.from("user_roles").select("user_id").eq("role", "super_admin").in("user_id", ids),
+    db.from("tenant_members").select("user_id").in("user_id", ids),
+    db.from("tenants").select("owner_user_id").in("owner_user_id", ids),
+  ]);
+  if (roles.error || memberships.error || owners.error)
+    throw Error("Não foi possível confirmar o escopo das contas da plataforma.");
+  const linked = new Set([...(memberships.data ?? []).map((r: any) => r.user_id), ...(owners.data ?? []).map((r: any) => r.owner_user_id)]);
+  return [...new Set<string>((roles.data ?? []).map((r: any) => r.user_id))].filter(id => !linked.has(id));
+}
+
 export const superListUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ page: z.number().int().min(1).default(1) }).strict().parse(input ?? {}))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const result = await supabaseAdmin.auth.admin.listUsers({ page: data.page, perPage: 50 });
-    if (result.error) throw Error("Não foi possível carregar os usuários da plataforma.");
-    const users = result.data.users;
-    const roles = users.length ? await supabaseAdmin.from("user_roles").select("user_id,role").in("user_id", users.map(u => u.id)) : { data: [], error: null };
-    if (roles.error) throw Error("Não foi possível confirmar os papéis dos usuários.");
-    return {
-      users: users.map(u => ({ id: u.id, email: u.email ?? "", roles: (roles.data ?? []).filter(r => r.user_id === u.id).map(r => r.role) })),
-      hasNext: Boolean(result.data.nextPage), currentUserId: context.userId,
-    };
+    const result = await supabaseAdmin.from("user_roles").select("user_id")
+      .eq("role", "super_admin").order("user_id").range((data.page - 1) * 50, data.page * 50 - 1);
+    if (result.error) throw Error("Não foi possível carregar as contas da plataforma.");
+    const ids = await platformAccountScope(supabaseAdmin, (result.data ?? []).map(r => r.user_id));
+    const users = await Promise.all(ids.map(async id => {
+      const result = await supabaseAdmin.auth.admin.getUserById(id);
+      if (result.error || !result.data.user) throw Error("Não foi possível carregar uma conta da plataforma.");
+      return { id, email: result.data.user.email ?? "", roles: ["Super Admin"] };
+    }));
+    return { users, hasNext: (result.data ?? []).length === 50, currentUserId: context.userId };
   });
 
 export const superDeleteUser = createServerFn({ method: "POST" })
@@ -212,15 +227,18 @@ export const superDeleteUser = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (!(await platformAccountScope(supabaseAdmin, [data.userId])).includes(data.userId))
+      throw Error("Esta conta não pertence à gestão da plataforma. Usuários de tenants não podem ser acessados ou excluídos pelo Super Admin.");
     const target = await supabaseAdmin.auth.admin.getUserById(data.userId);
     if (target.error || !target.data.user || (target.data.user.email || target.data.user.id).toLowerCase() !== data.confirmationEmail.toLowerCase())
       throw Error("Confirme o e-mail da conta selecionada antes de excluir.");
-    // All account roles are eligible, including Super Admin. Provider integrity errors
-    // must remain visible; never drop tenant data or transfer ownership to force deletion.
+    // Recheck after the Auth lookup; never authorize using a target role supplied by the client.
+    if (!(await platformAccountScope(supabaseAdmin, [data.userId])).includes(data.userId))
+      throw Error("O escopo desta conta mudou. A exclusão foi recusada.");
     const result = await supabaseAdmin.auth.admin.deleteUser(data.userId, false);
     if (result.error) {
       console.error(JSON.stringify({ event: "platform_user_delete_failed", actor: context.userId, target: data.userId, code: result.error.code }));
-      throw Error("A exclusão não foi concluída. Existem vínculos que precisam ser tratados na gestão da plataforma; nenhum dado do tenant será apagado automaticamente.");
+      throw Error("A exclusão não foi concluída. Confira a disponibilidade do serviço e os vínculos da conta; nenhum dado do tenant será apagado automaticamente.");
     }
     console.info(JSON.stringify({ event: "platform_user_deleted", actor: context.userId, target: data.userId }));
     return { deleted: true, self: data.userId === context.userId };
