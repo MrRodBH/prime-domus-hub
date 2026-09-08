@@ -153,10 +153,11 @@ export const superListarDlq = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => dlqListSchema.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
-    let q = (context.supabase as any).from("portal_sync_dlq").select("*").order("created_at", { ascending: false }).limit(data.limit);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin.from("portal_sync_dlq").select("id,tenant_id,portal_slug,acao,erro,tentativas,status,proxima_tentativa_at,created_at,updated_at,resolvido_at,ultimo_erro_at").order("created_at", { ascending: false }).limit(data.limit);
     if (data.status !== "todos") q = q.eq("status", data.status);
     if (data.portal) q = q.eq("portal_slug", data.portal);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     const operationalIds = await operationalTenantIds(supabaseAdmin);
     q = q.in("tenant_id", operationalIds);
     const { data: rows, error } = await q;
@@ -167,7 +168,7 @@ export const superListarDlq = createServerFn({ method: "GET" })
       erro: string | null; tentativas: number; status: string;
       proxima_tentativa_at: string; created_at: string; updated_at: string;
       resolvido_at: string | null; ultimo_erro_at: string | null;
-      payload: JsonV;
+
     }>;
   });
 
@@ -178,7 +179,49 @@ export const superResolverDlq = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => dlqIdSchema.parse(d))
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
-    const { error } = await (context.supabase as any).rpc("portal_dlq_mark_resolved", { _id: data.id });
-    if (error) throw new Error(error.message);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const operationalIds = await operationalTenantIds(supabaseAdmin);
+    const { data: item, error } = await supabaseAdmin.from("portal_sync_dlq")
+      .update({ status: "resolvido", resolvido_at: new Date().toISOString() })
+      .eq("id", data.id).in("tenant_id", operationalIds).select("id").maybeSingle();
+    if (error || !item) throw Error("Não foi possível resolver esta falha no escopo da plataforma.");
     return { ok: true };
+  });
+
+// Global account administration. Never enters a tenant context or accepts a role from the client.
+export const superListUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ page: z.number().int().min(1).default(1) }).strict().parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const result = await supabaseAdmin.auth.admin.listUsers({ page: data.page, perPage: 50 });
+    if (result.error) throw Error("Não foi possível carregar os usuários da plataforma.");
+    const users = result.data.users;
+    const roles = users.length ? await supabaseAdmin.from("user_roles").select("user_id,role").in("user_id", users.map(u => u.id)) : { data: [], error: null };
+    if (roles.error) throw Error("Não foi possível confirmar os papéis dos usuários.");
+    return {
+      users: users.map(u => ({ id: u.id, email: u.email ?? "", roles: (roles.data ?? []).filter(r => r.user_id === u.id).map(r => r.role) })),
+      hasNext: Boolean(result.data.nextPage), currentUserId: context.userId,
+    };
+  });
+
+export const superDeleteUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ userId: z.string().uuid(), confirmationEmail: z.string().min(1).max(320) }).strict().parse(input))
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const target = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (target.error || !target.data.user || (target.data.user.email || target.data.user.id).toLowerCase() !== data.confirmationEmail.toLowerCase())
+      throw Error("Confirme o e-mail da conta selecionada antes de excluir.");
+    // All account roles are eligible, including Super Admin. Provider integrity errors
+    // must remain visible; never drop tenant data or transfer ownership to force deletion.
+    const result = await supabaseAdmin.auth.admin.deleteUser(data.userId, false);
+    if (result.error) {
+      console.error(JSON.stringify({ event: "platform_user_delete_failed", actor: context.userId, target: data.userId, code: result.error.code }));
+      throw Error("A exclusão não foi concluída. Existem vínculos que precisam ser tratados na gestão da plataforma; nenhum dado do tenant será apagado automaticamente.");
+    }
+    console.info(JSON.stringify({ event: "platform_user_deleted", actor: context.userId, target: data.userId }));
+    return { deleted: true, self: data.userId === context.userId };
   });
