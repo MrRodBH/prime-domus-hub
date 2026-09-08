@@ -316,14 +316,17 @@ for (const frozenPath of [
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
 const round57GovernancePaths = [
-  "tests/round52/ui.mjs",
-  "tests/round52/fixture.tsx",
   ".github/workflows/round52-persistent-onboarding.yml",
   "database/round57-governance.sql",
   "docs/architecture/OWNER_UI_APPROVALS.md",
   "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
   "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
   "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  "run-pr-m2-dashboard-authority-specs.ts",
+  "run-pr-m2-property-admin-authority-specs.ts",
+  "run-round-42-broker-identity-link-specs.mjs",
+  "run-round-44-broker-identity-ui-specs.mjs",
+  "run-round-46-empty-onboarding-specs.mjs",
   "run-round-54-navigation-context-specs.mjs",
   "run-round-57-operational-governance-specs.mjs",
   "src/components/onboarding/PersistentOnboarding.tsx",
@@ -340,6 +343,8 @@ const round57GovernancePaths = [
   "src/lib/api/tenant-scoped-authority.ts",
   "src/routes/_authenticated.admin.tsx",
   "src/routes/_authenticated.super.index.tsx",
+  "tests/round52/fixture.tsx",
+  "tests/round52/ui.mjs",
   "tests/round57/database.mjs"
 ];
 

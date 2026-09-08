@@ -17,13 +17,13 @@ function check(name: string, fn: () => void) {
 const tenantId = "11111111-1111-4111-8111-111111111111";
 const source = readFileSync("src/lib/api/dashboard.functions.ts", "utf8");
 
-check("tenant authority accepts regular selection and explicit impersonation", () => {
+check("tenant authority accepts regular selection and denies impersonation", () => {
   assert.equal(requireTenantScopedAuthority({ tenantId, isSuperAdmin: false, impersonation: false, origin: "selection" }, "Dashboard"), tenantId);
-  assert.equal(requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: true, origin: "impersonation" }, "Dashboard"), tenantId);
+  assert.throws(() => requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: true, origin: "impersonation" }, "Dashboard"), /prohibited/);
 });
 
 check("Super Admin without impersonation is denied", () => {
-  assert.throws(() => requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: false, origin: "selection" }, "Dashboard"), /requires explicit impersonation/);
+  assert.throws(() => requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: false, origin: "selection" }, "Dashboard"), /prohibited/);
 });
 
 check("both dashboard functions use requireTenant and Tenant Access Control", () => {

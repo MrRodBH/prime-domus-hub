@@ -76,7 +76,7 @@ BEGIN
 
   RETURN v_tenant;
 END;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.super_observabilidade(_hours integer DEFAULT 24)
  RETURNS jsonb
@@ -178,7 +178,7 @@ BEGIN
 
   RETURN v_result;
 END;
-$function$
+$function$;
 
 -- Restrictive policies complement all existing permissive policies; service_role remains server-only.
 DO $guard$

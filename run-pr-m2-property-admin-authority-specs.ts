@@ -16,13 +16,13 @@ const contract = readFileSync("src/lib/storage/upload-contract.ts", "utf8");
 const migration = readFileSync("supabase/migrations/20260730043000_pr_m2_consolidated_final_corrective.sql", "utf8");
 const barrel = readFileSync("src/lib/api/admin.functions.ts", "utf8");
 
-check("property boundary accepts regular tenant and explicit impersonation", () => {
+check("property boundary accepts regular tenant and denies impersonation", () => {
   assert.equal(requireTenantScopedAuthority({ tenantId, isSuperAdmin: false, impersonation: false, origin: "selection" }, "Property"), tenantId);
-  assert.equal(requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: true, origin: "impersonation" }, "Property"), tenantId);
+  assert.throws(() => requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: true, origin: "impersonation" }, "Property"), /prohibited/);
 });
 
 check("Super Admin without impersonation is denied", () => {
-  assert.throws(() => requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: false, origin: "selection" }, "Property"), /requires explicit impersonation/);
+  assert.throws(() => requireTenantScopedAuthority({ tenantId, isSuperAdmin: true, impersonation: false, origin: "selection" }, "Property"), /prohibited/);
 });
 
 check("all property server functions use requireTenant", () => {
