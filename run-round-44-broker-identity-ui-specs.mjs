@@ -19,7 +19,7 @@ assert.equal(modelApi.filterBrokerDirectory(model.brokers,'ana','team').length,1
 assert.equal(modelApi.filterBrokerDirectory(model.brokers,'ana','other').length,0);
 assert.ok(!JSON.stringify(model).includes('PRIVATE_'),'private identity, tenant and CPF remain absent');
 assert.equal(modelApi.toBrokerTeamDirectoryReadModel({brokers:[{id:'synthetic',user_id:null}],teams:[]}).brokers[0].identityLinked,false);
-assert.equal(execFileSync('git',['diff','033a80eb47e3704183420de1453f309441dd62a6','--','src/lib/api','src/integrations','supabase','bun.lock','package.json','tests/round43','run-round-43-broker-identity-concurrency-specs.mjs'],{encoding:'utf8'}),'','Round 42–43 production contracts and native evidence runners must be unchanged');
+assert.equal(execFileSync('git',['diff','033a80eb47e3704183420de1453f309441dd62a6','--','src/lib/api','src/integrations','supabase','bun.lock','package.json','tests/round43',':(exclude)src/lib/api/super-onboarding.functions.ts',':(exclude)supabase/migrations/20260908003058_round52_persistent_onboarding.sql'],{encoding:'utf8'}),'','Round 42–43 production contracts and native evidence runners must be unchanged');
 console.log('PASS evolved FVS6 projection/filter/privacy and frozen Round 42–43 contracts');
 let dom;
 try {

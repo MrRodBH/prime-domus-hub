@@ -20,6 +20,7 @@ const migrationFiles = () =>
   readdirSync(MIGRATION_DIR).filter((file) => file.endsWith(".sql")).sort();
 
 const excludedAfterPrelude = {
+  "20260908003058_round52_persistent_onboarding.sql": "POST_REHEARSAL_ROUND52_PERSISTENT_ONBOARDING",
   "20260804180000_dca_01_domain_cloudflare_activation.sql": "DCA_PROVIDER_DOMAIN_OUTSIDE_SCHEMA_REHEARSAL",
   "20260810220152_1ee179b2-60f0-4ce1-b259-06762002733b.sql": "POST_PRELUDE_NON_PCA04",
   "20260810220939_b80a4010-1d42-48a9-bbcd-7d2d9e0ea84b.sql": "POST_PRELUDE_NON_PCA04",
@@ -159,10 +160,10 @@ if (process.argv.includes("--write")) {
 }
 const actual = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
 assert.deepEqual(actual, expected);
-assert.equal(actual.counts.repositoryMigrationFiles, 132);
+assert.equal(actual.counts.repositoryMigrationFiles, 133);
 assert.equal(actual.counts.prerequisiteCandidates, 105);
 assert.equal(actual.counts.approvedRehearsalMigrations, 17);
-assert.equal(actual.counts.excludedAfterPrelude, 10);
+assert.equal(actual.counts.excludedAfterPrelude, 11);
 assert.equal(actual.counts.wholeFileReplayBlockers, 3);
 assert.equal(actual.counts.prerequisiteFilesWithoutExplicitTransactions, 104);
 assert.equal(actual.decision.wholePrerequisiteReplayAllowed, false);
@@ -241,6 +242,11 @@ if (base) {
       actual.excluded.find((entry) => entry.path === correctivePath)?.reason,
       "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
     );
+  } else if (changed.includes("src/lib/api/super-onboarding.functions.ts")) {
+    const onboardingPath = "supabase/migrations/20260908003058_round52_persistent_onboarding.sql";
+    assert.deepEqual(changedMigrations, [onboardingPath]);
+    assert.equal(actual.excluded.find(entry => entry.path === onboardingPath)?.reason, "POST_REHEARSAL_ROUND52_PERSISTENT_ONBOARDING");
+    assert.equal(actual.rehearsal.some(entry => entry.path === onboardingPath), false);
   } else if (changed.includes("run-round-42-broker-identity-sql-specs.mjs")) {
     const linkPath = "supabase/migrations/20260907183824_round42_broker_identity_link.sql";
     assert.deepEqual(changedMigrations, [linkPath]);

@@ -469,11 +469,15 @@ if (head !== SOURCE_MAIN) {
 const round52PersistentOnboardingPaths = [
   ".github/workflows/round43-broker-identity-concurrency.yml",
   ".github/workflows/round52-persistent-onboarding.yml",
+  "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
   "docs/delivery/product-roadmap/pre-homologation-product-readiness/evidence/round52-persistent-onboarding.json",
+  "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
   "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
   "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
   "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
   "run-round-43-broker-identity-concurrency-specs.mjs",
+  "run-round-44-broker-identity-ui-specs.mjs",
+  "run-round-46-empty-onboarding-specs.mjs",
   "src/components/onboarding/PersistentOnboarding.tsx",
   "src/components/site/Header.tsx",
   "src/lib/api/super-onboarding.functions.ts",
@@ -654,8 +658,10 @@ const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verif
   assert.ok(!changed.includes("src/integrations/supabase/types.ts"));
   assert.ok(!changed.includes("src/lib/tenant.server.ts"));
   assert.deepEqual(changed.filter((path) => path.startsWith("supabase/migrations/")),
-    changed.includes("run-round-42-broker-identity-sql-specs.mjs")
-      ? ["supabase/migrations/20260907183824_round42_broker_identity_link.sql"] : []);
+    [
+      ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? ["supabase/migrations/20260907183824_round42_broker_identity_link.sql"] : []),
+      ...(changed.includes("src/lib/api/super-onboarding.functions.ts") ? ["supabase/migrations/20260908003058_round52_persistent_onboarding.sql"] : []),
+    ]);
   assert.ok(!changed.some((path) => path.includes("LSR-02") || path.includes("lsr-02")));
 }
 
