@@ -14,8 +14,9 @@ export function PlatformUsers() {
   const query = useQuery({ queryKey: ["platform-users", page], queryFn: () => superListUsers({ data: { page } }) });
   return <section aria-label="Usuários da plataforma" className="rounded-xl border bg-card p-5 space-y-4">
     <h2 className="font-display text-xl">Usuários da plataforma</h2>
-    <p className="text-sm text-muted-foreground">Gestão global de contas. A exclusão não concede acesso à operação das empresas.</p>
+    <p className="text-sm text-muted-foreground">Contas exclusivas da plataforma SaaS. Usuários vinculados a empresas são administrados apenas pelo Admin do respectivo tenant.</p>
     {query.isPending ? <p role="status">Carregando usuários…</p> : query.isError ? <div role="alert">Não foi possível carregar os usuários. <Button variant="outline" onClick={() => void query.refetch()}>Tentar novamente</Button></div> : <>
+      {query.data.users.length === 0 && <p>Nenhuma conta exclusiva da plataforma nesta página.</p>}
       <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th className="text-left p-2">E-mail</th><th className="text-left p-2">Papéis globais</th><th className="text-right p-2">Ações</th></tr></thead><tbody>
         {query.data.users.map(u => <tr key={u.id} className="border-t"><td className="p-2">{u.email || "Sem e-mail"}{u.id === query.data.currentUserId ? " (sua conta)" : ""}</td><td className="p-2">{u.roles.join(", ") || "Sem papel global"}</td><td className="text-right p-2"><Button variant="outline" disabled={pending} onClick={() => { setSelected({ id: u.id, email: u.email || u.id }); setConfirmation(""); setError(""); }}>Excluir usuário</Button></td></tr>)}
       </tbody></table></div>
