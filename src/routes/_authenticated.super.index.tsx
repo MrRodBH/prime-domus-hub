@@ -113,7 +113,7 @@ function SuperTenantsPage() {
         </Dialog>
       </div>
 
-      <PersistentOnboarding />
+      <PersistentOnboarding onEnterTenant={impersonate} />
 
       <details className="rounded-xl border bg-card p-5">
         <summary className="cursor-pointer font-semibold">

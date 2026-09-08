@@ -7,7 +7,8 @@ import {
   CommandItem, CommandList, CommandSeparator,
 } from "@/components/ui/command";
 import { useUI } from "./ui-store";
-import { CONTEXTS } from "./contexts";
+import { useImpersonation } from "@/integrations/supabase/use-impersonation";
+import { workspaceContexts } from "./contexts";
 import { adminListarLeads } from "@/lib/api/admin.functions";
 import { listarPaginas } from "@/lib/api/pages.functions";
 import { Plus, Compass, Sparkles, User, FileText, Rocket, EyeOff, Monitor, Tablet, Smartphone, Copy } from "lucide-react";
@@ -37,6 +38,8 @@ const CREATIONS: PaletteCreation[] = [
 export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
   const { paletteOpen, closePalette, togglePalette, openAi, setPreviewDevice } = useUI();
   const navigate = useNavigate();
+  const impersonating = useImpersonation();
+  const tenantNavigation = isSuper === false || (isSuper === true && Boolean(impersonating));
   const path = useRouterState({ select: (s) => s.location.pathname });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const searchState = useRouterState({ select: (s) => s.location.search as any });
@@ -58,18 +61,18 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
 
   const { data: leads } = useQuery({
     queryKey: ["admin", "leads"], queryFn: () => adminListarLeads(),
-    enabled: paletteOpen, staleTime: 30_000,
+    enabled: paletteOpen && tenantNavigation, staleTime: 30_000,
   });
   const { data: pages } = useQuery({
     queryKey: ["pages-admin"], queryFn: () => listarPaginas(),
-    enabled: paletteOpen, staleTime: 30_000,
+    enabled: paletteOpen && tenantNavigation, staleTime: 30_000,
   });
 
   const needle = q.trim().toLowerCase();
-  const leadMatches = !needle ? [] : (leads ?? [])
+  const leadMatches = !tenantNavigation || !needle ? [] : (leads ?? [])
     .filter((l) => `${l.nome} ${l.email ?? ""} ${l.telefone ?? ""}`.toLowerCase().includes(needle))
     .slice(0, 6);
-  const pageMatches = !needle ? [] : (pages ?? [])
+  const pageMatches = !tenantNavigation || !needle ? [] : (pages ?? [])
     .filter((p) => `${p.title} ${p.slug ?? ""}`.toLowerCase().includes(needle))
     .slice(0, 6);
 
@@ -104,7 +107,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
     { label: "Preview: Mobile", icon: Smartphone, onSelect: () => { closePalette(); setPreviewDevice("mobile"); } },
   ] : [];
 
-  const contexts = CONTEXTS.filter((c) => !c.superOnly || isSuper);
+  const contexts = workspaceContexts(isSuper, impersonating);
   void qc;
 
   return (
@@ -169,7 +172,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
         <CommandSeparator />
 
         <CommandGroup heading="Criar">
-          {CREATIONS.map((c) => (
+          {(tenantNavigation ? CREATIONS : []).map((c) => (
             <CommandItem
               key={c.to + c.label}
               value={`criar ${c.label} ${c.keywords ?? ""}`}

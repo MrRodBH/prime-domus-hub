@@ -14,7 +14,7 @@ import { CommandPalette } from "./CommandPalette";
 import { AiDrawer } from "./AiDrawer";
 import { ContextTabs } from "./ContextTabs";
 import { DetailPanelProvider } from "./DetailPanel";
-import { CONTEXTS, contextFromPath } from "./contexts";
+import { workspaceContexts, contextFromPath } from "./contexts";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
@@ -90,7 +90,7 @@ export function WorkspaceShell() {
   }, [navigate, queryClient]);
 
   const active = contextFromPath(path);
-  const visibleContexts = CONTEXTS.filter((context) => !context.superOnly || isSuper);
+  const visibleContexts = workspaceContexts(isSuper, impersonating);
   const isInvitationRoute = path === "/invitations";
   const routedContent = <Outlet />;
 
@@ -113,7 +113,7 @@ export function WorkspaceShell() {
           >
             Ir para o conteúdo principal
           </a>
-          <NavigationRail isSuper={Boolean(isSuper)} />
+          <NavigationRail isSuper={isSuper} />
 
           <div className="flex min-w-0 flex-1 flex-col">
             <AppHeader
@@ -140,7 +140,7 @@ export function WorkspaceShell() {
             </main>
           </div>
 
-          <CommandPalette isSuper={Boolean(isSuper)} />
+          <CommandPalette isSuper={isSuper} />
           <AiDrawer />
 
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>

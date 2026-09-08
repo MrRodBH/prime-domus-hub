@@ -1,7 +1,8 @@
 // Navigation Rail — 7 contextos, colapsável (Doc 06 §2.1).
 import { Link, useRouterState } from "@tanstack/react-router";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { CONTEXTS, contextFromPath } from "./contexts";
+import { workspaceContexts, contextFromPath } from "./contexts";
+import { useImpersonation } from "@/integrations/supabase/use-impersonation";
 import { useUI } from "./ui-store";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import logo from "@/assets/logo-rm-prime.png";
@@ -10,7 +11,8 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const active = contextFromPath(path);
   const { railCollapsed, toggleRail } = useUI();
-  const visible = CONTEXTS.filter((c) => !c.superOnly || isSuper);
+  const impersonating = useImpersonation();
+  const visible = workspaceContexts(isSuper, impersonating);
 
   return (
     <TooltipProvider delayDuration={200}>
