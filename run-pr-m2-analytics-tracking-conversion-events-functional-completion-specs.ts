@@ -129,7 +129,9 @@ for (const token of [
   "publishTenantTrackingConnector",
   "saveTenantTrackingEventBindings",
 ]) has(files.route, token);
-equal((files.contexts.match(/id: "(inicio|pipeline|catalogo|conteudo|distribuicao|administracao|operacao)"/g) ?? []).length, 7, "workspace count");
+// Round56: count the seven operational contexts, not global sidebar presentation entries.
+const operationalContexts = files.contexts.split("export const CONTEXTS: WorkspaceContext[] = [")[1]?.split("];", 1)[0] ?? "";
+equal((operationalContexts.match(/id: "(inicio|pipeline|catalogo|conteudo|distribuicao|administracao|operacao)"/g) ?? []).length, 7, "workspace count");
 for (const token of ["/admin/tracking", "{ label: \"Rastreamento\", to: \"/admin/tracking\" }"]) has(files.contexts, token);
 for (const token of ["ga4_measurement_id", "google_tag_manager_container_id", "meta_pixel_id"]) has(files.configuration, token);
 

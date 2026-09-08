@@ -316,6 +316,8 @@ for (const frozenPath of [
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
 const round56ApprovedNavigationPaths = [
+  "run-p0-visual-product-homologation-specs.ts",
+  "run-pr-m2-analytics-tracking-conversion-events-functional-completion-specs.ts",
   ".github/workflows/round52-persistent-onboarding.yml",
   "AGENTS.md",
   "docs/architecture/OWNER_UI_APPROVALS.md",

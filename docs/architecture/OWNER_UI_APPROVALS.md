@@ -17,3 +17,5 @@ Cause of regression: Round53 applied palette to the legacy authenticated shell w
 Verification: run-round-56-approved-navigation-specs.mjs and controlled DOM, plus prior applicable release tests. These prove navigation structure and behavior, not pixel-perfect browser acceptance. No claim of permanent cross-chat memory: this file and root AGENTS.md provide repository-backed instructions for subsequent work.
 
 #229 support pending; #231 unmerged/undeployed; Round45 backlog; LSR02 Rejected — Terminal budget 0/2 remain unchanged.
+
+Historical regression evolution: operational-context count is scoped to the unchanged CONTEXTS array (seven), not the separate global sidebar entries. Prior terminology restrictions remain on the operational surface; the owner-approved Tenants/DLQ labels in SUPER_NAVIGATION are checked by the exact eight-entry test. No permission or runtime gate is removed.
