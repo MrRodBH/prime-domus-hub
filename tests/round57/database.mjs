@@ -30,6 +30,14 @@ try {
  await db.query("INSERT INTO leads VALUES ($1,$1)",[customer]);
  await db.query("INSERT INTO storage.objects VALUES ($1,'fixture')",[customer]);
  await db.query(readFileSync('database/round57-governance.sql','utf8'));
+ await db.query("CREATE FUNCTION public.portal_dlq_mark_resolved(uuid) RETURNS void LANGUAGE plpgsql AS $$ BEGIN RETURN; END $$;");
+ await db.query(readFileSync('database/round58-platform-administration.sql','utf8'));
+ assert.equal((await db.query("SELECT has_function_privilege('authenticated','public.portal_dlq_mark_resolved(uuid)','EXECUTE') ok")).rows[0].ok,false);
+ assert.equal((await db.query("SELECT has_function_privilege('service_role','public.portal_dlq_mark_resolved(uuid)','EXECUTE') ok")).rows[0].ok,true);
+ await db.query("INSERT INTO system_events(id,tenant_id,created_at,category) VALUES ($1,null,now(),'global'),($2,$2,now(),'technical'),($3,$3,now(),'customer')",[unknown,technical,customer]);
+ await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[technical]);
+ const totals=(await db.query('SELECT super_observabilidade(24) value')).rows[0].value.totals;
+ assert.deepEqual(totals,{global:1,customer:1});
  const rows=(await db.query('SELECT id,operational_kind FROM tenants ORDER BY id')).rows;
  assert.equal(rows.find(r=>r.id===customer).operational_kind,'customer');
  assert.equal(rows.find(r=>r.id===technical).operational_kind,'technical');

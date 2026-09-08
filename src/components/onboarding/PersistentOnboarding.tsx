@@ -1,11 +1,11 @@
+import { lookupPostalCode } from "@/components/demo/interactive/postal-lookup";
 import { formatPlanPrice, maskPlanPrice, parsePlanPrice, newPlanCode } from "@/lib/onboarding/plan-presentation";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   loadSuperOnboarding,
   saveSuperCompany,
   saveSuperPlan,
-  lookupSuperPostalCode,
 } from "@/lib/api/super-onboarding.functions";
 import {
   companySchema,
@@ -61,33 +61,42 @@ function Address({ prefix, value }: { prefix: string; value?: Company["address"]
   const version = useRef(0),
     container = useRef<HTMLDivElement>(null);
   const [postalStatus, setPostalStatus] = useState("");
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => () => { pending.current?.abort(); version.current++; }, []);
   async function lookup() {
     const element = container.current;
     const zip = element?.querySelector<HTMLInputElement>(`[name="${prefix}.zip"]`);
     const cep = zip?.value.replace(/\D/g, "") ?? "";
-    if (cep.length !== 8) return;
+    if (cep.length !== 8) { setPostalStatus("Informe um CEP com 8 dígitos."); return; }
+    pending.current?.abort();
+    const controller = new AbortController();
+    pending.current = controller;
+    const before = new Map(Array.from(element?.querySelectorAll<HTMLInputElement>("input") ?? []).map(input => [input.name, input.value]));
     const current = ++version.current;
     setPostalStatus("Consultando CEP…");
     try {
-      const result = await lookupSuperPostalCode({ data: { cep } });
+      const result = await lookupPostalCode(cep, controller.signal);
       if (current !== version.current || !element?.isConnected) return;
       for (const [key, value] of Object.entries(result)) {
         const input = element.querySelector<HTMLInputElement>(`[name="${prefix}.${key}"]`);
-        if (input) input.value = value;
+        if (input && input.value === before.get(input.name)) input.value = value;
       }
       setPostalStatus("Endereço consultado. Confira e complete o número.");
-    } catch {
+    } catch (error) {
       if (current === version.current)
-        setPostalStatus("Consulta indisponível. Preencha o endereço manualmente.");
+        setPostalStatus(error instanceof Error ? error.message : "Consulta indisponível. Tente novamente ou preencha manualmente.");
     }
   }
   return (
     <div
       ref={container}
       className="grid gap-3 sm:grid-cols-2"
-      onInput={() => {
-        version.current++;
-        setPostalStatus("");
+      onInput={(e) => {
+        if (e.target instanceof HTMLInputElement && e.target.name === `${prefix}.zip`) {
+          version.current++;
+          pending.current?.abort();
+          setPostalStatus("");
+        }
       }}
       onBlur={(e) => {
         if (e.target instanceof HTMLInputElement && e.target.name === `${prefix}.zip`)
@@ -99,6 +108,7 @@ function Address({ prefix, value }: { prefix: string; value?: Company["address"]
         <p className="text-xs text-muted-foreground">
           Digite o CEP e use Tab. Apenas o CEP será enviado ao ViaCEP.
         </p>
+        <Button type="button" variant="outline" onClick={() => void lookup()}>Consultar CEP novamente</Button>
         <span role="status" className="text-sm">
           {postalStatus}
         </span>
@@ -305,7 +315,7 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
                 />
               </label>
               <p className="text-sm text-muted-foreground">
-                Registros existentes no banco, incluindo ambientes de homologação. Use a busca para
+                Empresas clientes cadastradas no banco. Use a busca para
                 localizar sua empresa.
               </p>
               <div className="overflow-x-auto">

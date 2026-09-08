@@ -1,3 +1,4 @@
+import { PlatformUsers } from "@/components/onboarding/PlatformUsers";
 import { PersistentOnboarding } from "@/components/onboarding/PersistentOnboarding";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -100,6 +101,7 @@ function SuperTenantsPage() {
 
       <PersistentOnboarding currentView={view ?? "dashboard"} onViewChange={next => { void navigate({ to: "/super", search: { view: next } }); }} />
 
+      {view === "dashboard" && <PlatformUsers />}
       <details className="rounded-xl border bg-card p-5">
         <summary className="cursor-pointer font-semibold">
           Operação dos tenants e indicadores globais

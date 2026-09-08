@@ -84,7 +84,7 @@ export const lookupSuperPostalCode = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z
-      .object({ cep: z.string().regex(/^\d{8}$/) })
+      .object({ cep: z.string().transform(value => value.replace(/\D/g, "")).pipe(z.string().regex(/^\d{8}$/)) })
       .strict()
       .parse(input),
   )
