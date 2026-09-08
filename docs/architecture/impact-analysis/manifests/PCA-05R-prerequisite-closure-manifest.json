@@ -1441,7 +1441,7 @@
   "excluded": [
     {
       "path": "supabase/migrations/20260908003058_round52_persistent_onboarding.sql",
-      "sha256": "9aa424a00ea34fb0287206dcf83f0fce860db19b4c52495573d3442ba889544d",
+      "sha256": "5cb2bc8d734ee30761763f6691f2a33a86e52f1bfff898227abb2025a04146be",
       "reason": "POST_REHEARSAL_ROUND52_PERSISTENT_ONBOARDING",
       "disposition": "EXCLUDED_FROM_PCA05R_CELL"
     },

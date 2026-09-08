@@ -13,13 +13,15 @@ const migration = readFileSync('supabase/migrations/20260908003058_round52_persi
 const cases = [];
 try {
  assert.equal((await db.query('select current_database() db, to_regclass(\'public.tenants\') existing')).rows[0].existing,null);
- await db.query(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+ await db.query(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;
+ CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid primary key);
  CREATE TABLE user_roles(user_id uuid, role text);
  CREATE TABLE commercial_plans(id uuid primary key,code text unique,name text,description text,status text,metadata jsonb default '{}',updated_at timestamptz default clock_timestamp());
  CREATE TABLE tenants(id uuid primary key,nome text,plano_codigo text,metadata jsonb default '{}',updated_at timestamptz default clock_timestamp());
- CREATE TABLE audit_log(tenant_id uuid,user_id uuid,action text,entity text,entity_id text,after jsonb);
+ CREATE TABLE audit_log(tenant_id uuid NOT NULL,user_id uuid,action text,entity text,entity_id text,after jsonb);
  GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`);
  await db.query(migration);
+ await db.query('INSERT INTO auth.users VALUES ($1)',[id(1)]);
  await db.query('INSERT INTO user_roles VALUES ($1,\'super_admin\');',[id(1)]);
  await db.query('INSERT INTO tenants(id,nome,metadata) VALUES ($1,\'Empresa A\',\'{"preserved":true}\'),($2,\'Empresa B\',\'{}\')',[id(2),id(3)]);
  const plan = {id:id(4),expectedUpdatedAt:null,code:'basic',name:'Basic',description:'Isolated fixture',status:'active',monthlyPriceCents:10000,propertyLimit:20,features:['Website','CMS'],portal:'',productId:''};
@@ -49,8 +51,14 @@ try {
   await fresh.query(`CREATE FUNCTION reject_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'audit_failed'; END $$; CREATE TRIGGER audit_failure BEFORE INSERT ON audit_log FOR EACH ROW EXECUTE FUNCTION reject_audit();`);
   await assert.rejects(fresh.query('SELECT save_super_onboarding_company($1,$2)',[id(1),profile]),/audit_failed/);
   assert.equal((await fresh.query('SELECT nome FROM tenants WHERE id=$1',[id(2)])).rows[0].nome,'Empresa A Completa');
-  assert.equal((await fresh.query('SELECT count(*)::int n FROM audit_log')).rows[0].n,2);
+  assert.equal((await fresh.query('SELECT ((SELECT count(*) FROM audit_log)+(SELECT count(*) FROM commercial_plan_audit))::int n')).rows[0].n,2);
   cases.push('business record and audit are atomic');
+  await fresh.query('CREATE TRIGGER plan_audit_failure BEFORE INSERT ON commercial_plan_audit FOR EACH ROW EXECUTE FUNCTION reject_audit()');
+  const planVersion=(await fresh.query('SELECT updated_at::text FROM commercial_plans WHERE id=$1',[id(4)])).rows[0].updated_at;
+  await assert.rejects(fresh.query('SELECT save_super_onboarding_plan($1,$2)',[id(1),{...plan,expectedUpdatedAt:planVersion,name:'Must roll back'}]),/audit_failed/);
+  assert.equal((await fresh.query('SELECT name FROM commercial_plans WHERE id=$1',[id(4)])).rows[0].name,'Basic');
+  await fresh.query('DROP TRIGGER plan_audit_failure ON commercial_plan_audit');
+  cases.push('global plan audit is atomic without attributing it to a tenant');
   await fresh.query('DROP TRIGGER audit_failure ON audit_log');
   await fresh.query("UPDATE commercial_plans SET status='archived' WHERE id=$1",[id(4)]);
   await assert.rejects(fresh.query('SELECT save_super_onboarding_company($1,$2)',[id(1),profile]),/onboarding_plan_unavailable/);

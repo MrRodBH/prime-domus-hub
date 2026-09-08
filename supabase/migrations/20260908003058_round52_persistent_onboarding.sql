@@ -1,6 +1,18 @@
 -- Round 52: persistent administrative records. No billing/provider activation.
 -- Only the canonical server can supply the authenticated actor.
 BEGIN;
+-- Global commercial records cannot be attributed to an arbitrary tenant.
+CREATE TABLE public.commercial_plan_audit (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id uuid NOT NULL REFERENCES public.commercial_plans(id),
+  actor_user_id uuid NOT NULL REFERENCES auth.users(id),
+  action text NOT NULL,
+  changes jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.commercial_plan_audit ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.commercial_plan_audit FROM PUBLIC,anon,authenticated;
+GRANT SELECT,INSERT ON TABLE public.commercial_plan_audit TO service_role;
 CREATE OR REPLACE FUNCTION public.save_super_onboarding_plan(p_actor uuid, p_data jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path = public, pg_temp AS $$
 DECLARE
@@ -33,8 +45,8 @@ BEGIN
     INSERT INTO public.commercial_plans(id,code,name,description,status,metadata)
     VALUES(plan_id,p_data->>'code',p_data->>'name',p_data->>'description',p_data->>'status',jsonb_build_object('onboarding',details));
   END IF;
-  INSERT INTO public.audit_log(user_id,action,entity,entity_id,after)
-    VALUES(p_actor,'super_onboarding_plan_saved','commercial_plans',plan_id::text,jsonb_build_object('code',p_data->>'code','status',p_data->>'status'));
+  INSERT INTO public.commercial_plan_audit(actor_user_id,action,plan_id,changes)
+    VALUES(p_actor,'super_onboarding_plan_saved',plan_id,jsonb_build_object('code',p_data->>'code','status',p_data->>'status'));
   RETURN jsonb_build_object('saved',true);
 EXCEPTION WHEN unique_violation THEN RAISE EXCEPTION 'onboarding_conflict';
 END $$;

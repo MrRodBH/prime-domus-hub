@@ -3,13 +3,47 @@
   "base": "a2c4c847ed68d664e8ce28bc6b9383e3e1377c7b",
   "issue": 243,
   "decision": "Operational data is valid and permanent; reuse the canonical tenant, never reset or duplicate it.",
-  "scope": ["Public Entrar link to existing auth", "Super Admin persistent plan registry", "Complete corporate and billing-address profile for existing tenant", "Server-side postal lookup", "Atomic audit and optimistic concurrency"],
+  "scope": [
+    "Public Entrar link to existing auth",
+    "Super Admin persistent plan registry",
+    "Complete corporate and billing-address profile for existing tenant",
+    "Server-side postal lookup",
+    "Atomic audit and optimistic concurrency"
+  ],
   "authority": "requireSupabaseAuth, server role lookup, service_role-only SECURITY INVOKER RPC with repeated actor role check; no browser actor or role input",
-  "storage": {"plans": "commercial_plans; metadata.onboarding contains commercial presentation data", "company": "tenants.metadata.company_profile; canonical nome and plano_codigo updated in same transaction", "preserve": "Other metadata, identity, domain, memberships, RLS and provider state untouched"},
-  "twelveFactor": ["Code and SQL versioned in GitHub", "Frozen existing dependencies", "Existing environment configuration and server secret custody", "PostgreSQL as backing service; no browser storage authority", "Stateless application processes; fresh reads after login", "Build/release/run separation; remote migration only after protected merge", "Production data excluded from isolated fixtures"],
+  "storage": {
+    "plans": "commercial_plans; metadata.onboarding contains commercial presentation data",
+    "company": "tenants.metadata.company_profile; canonical nome and plano_codigo updated in same transaction",
+    "preserve": "Other metadata, identity, domain, memberships, RLS and provider state untouched",
+    "audit": "Company uses existing tenant-scoped audit_log; global plans use commercial_plan_audit with RLS deny by default and server-only SELECT/INSERT. Remote audit_log.tenant_id NOT NULL reproduced in fixture."
+  },
+  "twelveFactor": [
+    "Code and SQL versioned in GitHub",
+    "Frozen existing dependencies",
+    "Existing environment configuration and server secret custody",
+    "PostgreSQL as backing service; no browser storage authority",
+    "Stateless application processes; fresh reads after login",
+    "Build/release/run separation; remote migration only after protected merge",
+    "Production data excluded from isolated fixtures"
+  ],
   "commercialBoundary": "Plan registration and selection do not activate subscriptions, provider billing, entitlements or user permissions.",
-  "validation": ["Controlled DOM save/failure/remount/fresh cache", "Strict server schemas and forged actor rejection", "Isolated PostgreSQL effective migration, independent connection recovery, audit rollback, conflicts and direct-client execution denial"],
+  "validation": [
+    "Controlled DOM save/failure/remount/fresh cache",
+    "Strict server schemas and forged actor rejection",
+    "Isolated PostgreSQL effective migration, independent connection recovery, audit rollback, conflicts and direct-client execution denial"
+  ],
   "regressionEvolution": "Round43 still freezes all SQL/TypeScript contract sources used by its concurrency suite; unrelated subsequent repository changes no longer invalidate that historical source assertion. Function-latest-definition and actual independent-session tests remain mandatory.",
-  "limits": ["Full production schema and real Supabase browser login are not simulated by the isolated database fixture", "No real tenant data inserted by tests", "Domain/SSL activation and CMS publication remain subsequent steps", "No promise of backup/restore or 30-day availability without separate operational evidence"],
-  "preserved": ["#229 independent support dependency", "#231 no merge/deployment", "Round45 backlog", "#227/#230", "LSR-02 Rejected Terminal budget 0/2"]
+  "limits": [
+    "Full production schema and real Supabase browser login are not simulated by the isolated database fixture",
+    "No real tenant data inserted by tests",
+    "Domain/SSL activation and CMS publication remain subsequent steps",
+    "No promise of backup/restore or 30-day availability without separate operational evidence"
+  ],
+  "preserved": [
+    "#229 independent support dependency",
+    "#231 no merge/deployment",
+    "Round45 backlog",
+    "#227/#230",
+    "LSR-02 Rejected Terminal budget 0/2"
+  ]
 }
