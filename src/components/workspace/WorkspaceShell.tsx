@@ -14,7 +14,7 @@ import { CommandPalette } from "./CommandPalette";
 import { AiDrawer } from "./AiDrawer";
 import { ContextTabs } from "./ContextTabs";
 import { DetailPanelProvider } from "./DetailPanel";
-import { workspaceContexts, contextFromPath } from "./contexts";
+import { workspaceContexts, workspaceItemActive, contextFromPath } from "./contexts";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { TenantContextProvider } from "@/components/workspace/tenant/TenantContext";
@@ -89,8 +89,9 @@ export function WorkspaceShell() {
     return () => data.subscription.unsubscribe();
   }, [navigate, queryClient]);
 
+  const navigationSearch = useRouterState({ select: s => s.location.search as Record<string, unknown> });
   const active = contextFromPath(path);
-  const visibleContexts = workspaceContexts(isSuper, impersonating);
+  const visibleContexts = workspaceContexts(isSuper, path.startsWith("/super") ? null : impersonating);
   const isInvitationRoute = path === "/invitations";
   const routedContent = <Outlet />;
 
@@ -154,12 +155,13 @@ export function WorkspaceShell() {
               <nav className="space-y-0.5 p-2" aria-label="Navegação principal móvel">
                 {visibleContexts.map((context) => {
                   const Icon = context.icon;
-                  const isActive = context.id === active.id;
+                  const isActive = workspaceItemActive(context, path, navigationSearch);
                   return (
                     <Link
-                      key={context.id}
+                      key={context.label}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       to={context.root as any}
+                      search={context.search as any}
                       aria-current={isActive ? "page" : undefined}
                       className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors ${
                         isActive

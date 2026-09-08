@@ -107,7 +107,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
     { label: "Preview: Mobile", icon: Smartphone, onSelect: () => { closePalette(); setPreviewDevice("mobile"); } },
   ] : [];
 
-  const contexts = workspaceContexts(isSuper, impersonating);
+  const contexts = workspaceContexts(isSuper, path.startsWith("/super") ? null : impersonating);
   void qc;
 
   return (
@@ -162,7 +162,7 @@ export function CommandPalette({ isSuper }: { isSuper?: boolean }) {
           {contexts.map((c) => {
             const Icon = c.icon;
             return (
-              <CommandItem key={c.id} value={`nav ${c.label} ${c.id}`} onSelect={() => go(c.root)}>
+              <CommandItem key={c.label} value={`nav ${c.label} ${c.id}`} onSelect={() => go(c.root, c.search)}>
                 <Icon className="size-4 mr-2" /> Ir para {c.label}
               </CommandItem>
             );

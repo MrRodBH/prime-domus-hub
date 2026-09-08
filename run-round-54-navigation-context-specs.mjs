@@ -20,7 +20,7 @@ const before=fixture.calls;fixture.fail=true;await assert.rejects(Route.loader,/
 assert.equal(typeof Route.errorComponent,'function');
 const {workspaceContexts}=await load('src/components/workspace/contexts.ts');
 assert.deepEqual(workspaceContexts(undefined,null),[]);
-assert.deepEqual(workspaceContexts(true,null).map(c=>c.root),['/super']);
+assert.ok(workspaceContexts(true,null).every(c=>c.root.startsWith('/super'))); // Round56 restores all approved global siblings, never tenant routes.
 assert.ok(workspaceContexts(true,fixture.tenant='tenant').some(c=>c.root==='/admin'));
 assert.ok(!workspaceContexts(false,null).some(c=>c.superOnly));
 for(const path of ['NavigationRail','WorkspaceShell','CommandPalette'])assert.ok(readFileSync(`src/components/workspace/${path}.tsx`,'utf8').includes('workspaceContexts('));

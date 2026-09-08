@@ -8,6 +8,7 @@ import {
   Radio,
   Users,
   Crown,
+  CircleDollarSign, Activity, LifeBuoy, CreditCard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,6 +31,7 @@ export type WorkspaceContext = {
   matches: string[];
   subs: SubTab[];
   superOnly?: boolean;
+  search?: Record<string, string>;
 };
 
 export const CONTEXTS: WorkspaceContext[] = [
@@ -159,11 +161,27 @@ export function contextFromPath(path: string): WorkspaceContext {
   return best;
 }
 
-// Presentation only: server guards still validate every tenant operation.
+// Owner-approved global navigation: direct lateral entries, never tenant shortcuts.
+export const SUPER_NAVIGATION: WorkspaceContext[] = [
+  { label: "Dashboard", root: "/super", icon: Home, search: { view: "dashboard" } },
+  { label: "Tenants", root: "/super", icon: Building2, search: { view: "tenants" } },
+  { label: "Planos", root: "/super", icon: CreditCard, search: { view: "plans" } },
+  { label: "Financeiro", root: "/super/control-plane", icon: CircleDollarSign, search: { section: "financeiro" } },
+  { label: "Consumo", root: "/super/control-plane", icon: Activity, search: { section: "consumo" } },
+  { label: "Observabilidade", root: "/super/observabilidade", icon: Radio },
+  { label: "DLQ", root: "/super/dlq", icon: Inbox },
+  { label: "Suporte", root: "/super/control-plane", icon: LifeBuoy, search: { section: "suporte" } },
+].map(item => ({ ...item, search: item.search as WorkspaceContext["search"], id: "operacao", matches: [item.root], subs: [], superOnly: true }));
+
+export function workspaceItemActive(item: WorkspaceContext, path: string, search: Record<string, unknown>) {
+  if (item.superOnly && item.subs.length === 0) {
+    if (path.replace(/\/$/, "") !== item.root) return false;
+    return Object.entries(item.search ?? {}).every(([key, value]) => (search[key] ?? (key === "view" ? "dashboard" : "")) === value);
+  }
+  return item.id === contextFromPath(path).id;
+}
 export function workspaceContexts(isSuper: boolean | undefined, impersonating: string | null) {
   if (isSuper === undefined) return [];
-  if (isSuper && !impersonating) {
-    return CONTEXTS.filter(c => c.superOnly).map(c => ({ ...c, label: "Dashboard do SaaS" }));
-  }
+  if (isSuper && !impersonating) return SUPER_NAVIGATION;
   return CONTEXTS.filter(c => !c.superOnly || isSuper);
 }

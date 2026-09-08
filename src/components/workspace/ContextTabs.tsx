@@ -6,6 +6,7 @@ import { contextFromPath } from "./contexts";
 export function ContextTabs() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const ctx = contextFromPath(path);
+  if (path === "/super" || path.startsWith("/super/")) return null;
   if (ctx.subs.length <= 1) return null;
 
   return (
