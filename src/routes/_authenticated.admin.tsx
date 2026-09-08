@@ -1,13 +1,12 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
-import { getImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 import { meuAcessoAdmin } from "@/lib/api/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   loader: async () => {
-    // This redirect is navigation only; a selected tenant is still validated by meuAcessoAdmin.
+    // Navigation guard complements the server prohibition on Super Admin tenant access.
     const isSuper = await meuAcessoSuperAdmin();
-    if (isSuper && !getImpersonationTenantId()) throw redirect({ to: "/super", replace: true });
+    if (isSuper) throw redirect({ to: "/super", replace: true });
     const ok = await meuAcessoAdmin();
     if (!ok) {
       throw redirect({ to: "/auth" });

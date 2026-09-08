@@ -1,3 +1,4 @@
+import { operationalTenantIds } from "./operational-tenants.server";
 import { z } from "zod";
 import { lookupPostalCode } from "@/components/demo/interactive/postal-lookup";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -36,6 +37,7 @@ export const loadSuperOnboarding = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<OnboardingSnapshot> => {
     const db = await authority(context);
+    const operationalIds = await operationalTenantIds(db);
     const [plans, tenants] = await Promise.all([
       db
         .from("commercial_plans")
@@ -44,7 +46,7 @@ export const loadSuperOnboarding = createServerFn({ method: "GET" })
         .order("name"),
       db
         .from("tenants")
-        .select("id,nome,dominio_principal,plano_codigo,metadata,updated_at")
+        .select("id,nome,dominio_principal,plano_codigo,metadata,updated_at").in("id", operationalIds)
         .order("nome"),
     ]);
     if (plans.error || tenants.error)
@@ -68,6 +70,8 @@ export const saveSuperCompany = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => saveCompanySchema.parse(input))
   .handler(async ({ data, context }) => {
     const db = await authority(context);
+    const operationalIds = await operationalTenantIds(db);
+    if (!operationalIds.includes(data.tenantId)) throw new Error("Empresa fora do escopo operacional.");
     const { error } = await db.rpc(
       "save_super_onboarding_company" as never,
       { p_actor: context.userId, p_data: data } as never,

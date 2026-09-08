@@ -1,3 +1,4 @@
+import { operationalTenantIds } from "./operational-tenants.server";
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
@@ -34,9 +35,10 @@ export const listarTenants = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const operationalIds = await operationalTenantIds(supabaseAdmin);
     const { data, error } = await supabaseAdmin
       .from("tenants")
-      .select("id, slug, nome, status, dominio_principal, plano_codigo, owner_user_id, metadata, created_at")
+      .select("id, slug, nome, status, dominio_principal, plano_codigo, owner_user_id, metadata, created_at").in("id", operationalIds)
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -56,8 +58,9 @@ export const atualizarTenant = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const operationalIds = await operationalTenantIds(supabaseAdmin);
     const { id, ...patch } = data;
-    const { error } = await supabaseAdmin.from("tenants").update(patch).eq("id", id);
+    const { error } = await supabaseAdmin.from("tenants").update(patch).eq("id", id).in("id", operationalIds);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -67,11 +70,13 @@ export const estatisticasTenants = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const operationalIds = await operationalTenantIds(supabaseAdmin);
     const [members, imoveis, leads] = await Promise.all([
-      supabaseAdmin.from("tenant_members").select("tenant_id", { count: "exact", head: false }),
-      supabaseAdmin.from("imoveis").select("tenant_id", { count: "exact", head: false }),
-      supabaseAdmin.from("leads").select("tenant_id", { count: "exact", head: false }),
+      supabaseAdmin.from("tenant_members").select("tenant_id", { count: "exact", head: false }).in("tenant_id", operationalIds),
+      supabaseAdmin.from("imoveis").select("tenant_id", { count: "exact", head: false }).in("tenant_id", operationalIds),
+      supabaseAdmin.from("leads").select("tenant_id", { count: "exact", head: false }).in("tenant_id", operationalIds),
     ]);
+    for (const result of [members, imoveis, leads]) if (result.error) throw new Error("Não foi possível carregar os indicadores das empresas.");
     const agg: Record<string, { users: number; imoveis: number; leads: number }> = {};
     const bump = (t: string, k: "users" | "imoveis" | "leads") => {
       if (!agg[t]) agg[t] = { users: 0, imoveis: 0, leads: 0 };
@@ -88,6 +93,7 @@ export const superKpisGlobais = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertSuperAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const operationalIds = await operationalTenantIds(supabaseAdmin);
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -95,17 +101,20 @@ export const superKpisGlobais = createServerFn({ method: "GET" })
       tenants, tenantsAtivos, users, imoveis, leads,
       leads24h, portalErr7d, portalOk7d, auditoria24h,
     ] = await Promise.all([
-      supabaseAdmin.from("tenants").select("id", { count: "exact", head: true }),
-      supabaseAdmin.from("tenants").select("id", { count: "exact", head: true }).eq("status", "ativo"),
-      supabaseAdmin.from("tenant_members").select("user_id", { count: "exact", head: true }),
-      supabaseAdmin.from("imoveis").select("id", { count: "exact", head: true }),
-      supabaseAdmin.from("leads").select("id", { count: "exact", head: true }),
-      supabaseAdmin.from("leads").select("id", { count: "exact", head: true }).gte("created_at", since24h),
-      supabaseAdmin.from("portal_sync_logs").select("id", { count: "exact", head: true }).eq("status", "erro").gte("created_at", since7d),
-      supabaseAdmin.from("portal_sync_logs").select("id", { count: "exact", head: true }).eq("status", "ok").gte("created_at", since7d),
-      supabaseAdmin.from("audit_log").select("id", { count: "exact", head: true }).gte("created_at", since24h),
+      supabaseAdmin.from("tenants").select("id", { count: "exact", head: true }).in("id", operationalIds),
+      supabaseAdmin.from("tenants").select("id", { count: "exact", head: true }).in("id", operationalIds).eq("status", "ativo"),
+      supabaseAdmin.from("tenant_members").select("user_id", { count: "exact", head: true }).in("tenant_id", operationalIds),
+      supabaseAdmin.from("imoveis").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds),
+      supabaseAdmin.from("leads").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds),
+      supabaseAdmin.from("leads").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).gte("created_at", since24h),
+      supabaseAdmin.from("portal_sync_logs").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).eq("status", "erro").gte("created_at", since7d),
+      supabaseAdmin.from("portal_sync_logs").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).eq("status", "ok").gte("created_at", since7d),
+      supabaseAdmin.from("audit_log").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).gte("created_at", since24h),
     ]);
 
+    for (const result of [tenants, tenantsAtivos, users, imoveis, leads, leads24h, portalErr7d, portalOk7d, auditoria24h]) {
+      if (result.error) throw new Error("Não foi possível carregar os indicadores operacionais.");
+    }
     return {
       tenants: tenants.count ?? 0,
       tenantsAtivos: tenantsAtivos.count ?? 0,
@@ -147,6 +156,9 @@ export const superListarDlq = createServerFn({ method: "GET" })
     let q = (context.supabase as any).from("portal_sync_dlq").select("*").order("created_at", { ascending: false }).limit(data.limit);
     if (data.status !== "todos") q = q.eq("status", data.status);
     if (data.portal) q = q.eq("portal_slug", data.portal);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const operationalIds = await operationalTenantIds(supabaseAdmin);
+    q = q.in("tenant_id", operationalIds);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     type JsonV = string | number | boolean | null | JsonV[] | { [k: string]: JsonV };

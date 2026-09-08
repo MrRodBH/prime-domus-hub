@@ -20,7 +20,7 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
   return (
     <TooltipProvider delayDuration={200}>
       <aside
-        className={`hidden shrink-0 flex-col border-r border-border bg-workspace-navigation transition-[width] duration-150 md:flex ${
+        className={`hidden min-h-0 shrink-0 flex-col border-r border-border bg-workspace-navigation transition-[width] duration-150 md:flex ${
           navigationCollapsed ? "w-[64px]" : "w-[272px]"
         }`}
         aria-label="Navegação principal"
@@ -35,7 +35,7 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
           )}
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Contextos do workspace">
+        <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Contextos do workspace">
           {visible.map((c) => {
             const Icon = c.icon;
             const isActive = workspaceItemActive(c, path, navigationSearch);

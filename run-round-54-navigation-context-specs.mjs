@@ -12,7 +12,8 @@ const plugin={name:'controlled-navigation',setup(b){b.onResolve({filter:/.*/},a=
 async function load(path, plugins=[]){const r=await build({entryPoints:[path],bundle:true,write:false,format:'esm',jsx:'automatic',plugins});return import(`data:text/javascript;base64,${Buffer.from(r.outputFiles[0].text).toString('base64')}`);}
 const {Route}=await load('src/routes/_authenticated.admin.tsx',[plugin]);
 await assert.rejects(Route.loader, e=>e.redirect&&e.to==='/super');assert.equal(fixture.calls,0);
-fixture.tenant='00000000-0000-4000-8000-000000000001';assert.deepEqual(await Route.loader(),{ok:true});assert.equal(fixture.calls,1);
+fixture.tenant='00000000-0000-4000-8000-000000000001';await assert.rejects(Route.loader, e=>e.redirect&&e.to==='/super');assert.equal(fixture.calls,0);
+fixture.super=false;
 fixture.invalid=true;await assert.rejects(Route.loader,/Invalid tenant/);fixture.invalid=false;
 fixture.super=false;fixture.tenant=null;assert.deepEqual(await Route.loader(),{ok:true});
 fixture.allowed=false;await assert.rejects(Route.loader,e=>e.redirect&&e.to==='/auth');
@@ -21,7 +22,7 @@ assert.equal(typeof Route.errorComponent,'function');
 const {workspaceContexts}=await load('src/components/workspace/contexts.ts');
 assert.deepEqual(workspaceContexts(undefined,null),[]);
 assert.ok(workspaceContexts(true,null).every(c=>c.root.startsWith('/super'))); // Round56 restores all approved global siblings, never tenant routes.
-assert.ok(workspaceContexts(true,fixture.tenant='tenant').some(c=>c.root==='/admin'));
+assert.ok(workspaceContexts(true,fixture.tenant='tenant').every(c=>c.root.startsWith('/super')));
 assert.ok(!workspaceContexts(false,null).some(c=>c.superOnly));
 for(const path of ['NavigationRail','WorkspaceShell','CommandPalette'])assert.ok(readFileSync(`src/components/workspace/${path}.tsx`,'utf8').includes('workspaceContexts('));
 const palette=readFileSync('src/components/workspace/CommandPalette.tsx','utf8');assert.equal((palette.match(/enabled: paletteOpen && tenantNavigation/g)||[]).length,2);

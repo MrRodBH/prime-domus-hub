@@ -30,12 +30,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Building2, Inbox, LogIn, Plus, ShieldCheck, User2, Users } from "lucide-react";
-import {
-  clearImpersonationTenantId,
-  setImpersonationTenantId,
-} from "@/integrations/supabase/impersonation-state";
-import { useImpersonation } from "@/integrations/supabase/use-impersonation";
+import { Building2, Inbox, Plus, ShieldCheck, User2, Users } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/super/")({
   validateSearch: (search: Record<string, unknown>): { view?: "dashboard" | "plans" | "tenants" } => ({ view: search.view === "plans" || search.view === "tenants" ? search.view : "dashboard" }),
@@ -73,19 +69,6 @@ function SuperTenantsPage() {
   });
   const [openNew, setOpenNew] = useState(false);
   const [edit, setEdit] = useState<TenantRow | null>(null);
-  const impersonating = useImpersonation();
-
-  function impersonate(id: string, destination: "/admin" | "/admin/memberships" = "/admin") {
-    setImpersonationTenantId(id);
-    toast.success("Impersonação ativada");
-    navigate({ to: destination });
-  }
-
-  function clearImpersonation() {
-    clearImpersonationTenantId();
-    toast.success("Impersonação encerrada");
-    qc.invalidateQueries();
-  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -115,7 +98,7 @@ function SuperTenantsPage() {
         </Dialog>
       </div>
 
-      <PersistentOnboarding onEnterTenant={impersonate} currentView={view ?? "dashboard"} onViewChange={next => { void navigate({ to: "/super", search: { view: next } }); }} />
+      <PersistentOnboarding currentView={view ?? "dashboard"} onViewChange={next => { void navigate({ to: "/super", search: { view: next } }); }} />
 
       <details className="rounded-xl border bg-card p-5">
         <summary className="cursor-pointer font-semibold">
@@ -135,17 +118,6 @@ function SuperTenantsPage() {
             />
             <KpiCard label="Auditoria 24h" value={kpis.auditoria24h} />
             <KpiCard label="MRR / ARR" value="Pendente" sub="Ativação em BCA-01" tone="warn" />
-          </div>
-        ) : null}
-
-        {impersonating ? (
-          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3 text-sm">
-            <span>
-              Você está impersonando o tenant <code className="font-mono">{impersonating}</code>.
-            </span>
-            <Button size="sm" variant="outline" onClick={clearImpersonation}>
-              Encerrar impersonação
-            </Button>
           </div>
         ) : null}
 
@@ -209,16 +181,7 @@ function SuperTenantsPage() {
                       <Button size="sm" variant="ghost" onClick={() => setEdit(tenant)}>
                         Editar
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => impersonate(tenant.id, "/admin/memberships")}
-                      >
-                        <Users className="size-3 mr-1" /> Membros
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => impersonate(tenant.id)}>
-                        <LogIn className="size-3 mr-1" /> Entrar
-                      </Button>
+
                     </td>
                   </tr>
                 );

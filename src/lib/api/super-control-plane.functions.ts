@@ -1,3 +1,4 @@
+import { operationalTenantIds } from "./operational-tenants.server";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
@@ -145,6 +146,10 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<SuperControlPlaneSnapshot> => {
     await assertGlobalSuperAdmin(context);
     const admin = await adminClient();
+    const operationalIds = await operationalTenantIds(admin);
+    const operationalMembers = await admin.from("tenant_members").select("user_id").in("tenant_id", operationalIds);
+    assertQuery(operationalMembers, "operational_members");
+    const operationalUserIds = operationalMembers.data?.length ? operationalMembers.data.map((r: {user_id:string}) => r.user_id) : ["00000000-0000-0000-0000-000000000000"];
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -170,26 +175,26 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
       crmAlerts,
       cmsSchedules,
     ] = await Promise.all([
-      admin.from("tenants").select("id, slug, nome, status, dominio_principal, plano_codigo, owner_user_id, created_at").order("created_at", { ascending: true }).limit(1000),
-      admin.from("tenant_members").select("tenant_id, user_id, membership_status, tenant_role, is_owner"),
-      admin.from("user_roles").select("user_id, role"),
+      admin.from("tenants").select("id, slug, nome, status, dominio_principal, plano_codigo, owner_user_id, created_at").in("id", operationalIds).order("created_at", { ascending: true }).limit(1000),
+      admin.from("tenant_members").select("tenant_id, user_id, membership_status, tenant_role, is_owner").in("tenant_id", operationalIds),
+      admin.from("user_roles").select("user_id, role").in("user_id", operationalUserIds),
       admin.from("commercial_plans").select("*").limit(200),
       admin.from("commercial_entitlement_definitions").select("*").limit(500),
       admin.from("commercial_plan_entitlements").select("id", { count: "exact", head: true }),
-      admin.from("tenant_billing_provider_mappings").select("id", { count: "exact", head: true }),
-      admin.from("billing_events").select("id", { count: "exact", head: true }).gte("created_at", since7d),
-      admin.from("portal_connectors").select("id", { count: "exact", head: true }),
-      admin.from("tenant_portal_jobs").select("id, current_state", { count: "exact", head: false }).limit(5000),
-      admin.from("tenant_marketing_connectors").select("id, channel_key, availability_state, verification_state, active").limit(5000),
-      admin.from("tenant_marketing_ingestion_events").select("id, ingestion_state", { count: "exact", head: false }).gte("received_at", since7d).limit(5000),
-      admin.from("tenant_tracking_connectors").select("id, provider_key, availability_state, active").limit(5000),
-      admin.from("tenant_tracking_diagnostics").select("id, state", { count: "exact", head: false }).gte("created_at", since7d).limit(5000),
-      admin.from("audit_log").select("id", { count: "exact", head: true }).gte("created_at", since24h),
-      admin.from("audit_log").select("id, tenant_id, user_id, action, entity, entity_id, created_at").order("created_at", { ascending: false }).limit(100),
-      admin.from("platform_incidents").select("id, incident_key, scope, tenant_id, severity, status, title, summary, source, started_at, resolved_at, updated_at").order("started_at", { ascending: false }).limit(200),
-      admin.from("platform_support_cases").select("id, case_key, tenant_id, category, priority, status, subject, summary, assigned_user_id, created_at, resolved_at, updated_at").order("created_at", { ascending: false }).limit(200),
-      admin.from("crm_alerts").select("id, alert_key, severity, state", { count: "exact", head: false }).eq("state", "open").limit(5000),
-      admin.from("cms_publication_schedules").select("id, state", { count: "exact", head: false }).limit(5000),
+      admin.from("tenant_billing_provider_mappings").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds),
+      admin.from("billing_events").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).gte("created_at", since7d),
+      admin.from("portal_connectors").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds),
+      admin.from("tenant_portal_jobs").select("id, current_state", { count: "exact", head: false }).in("tenant_id", operationalIds).limit(5000),
+      admin.from("tenant_marketing_connectors").select("id, channel_key, availability_state, verification_state, active").in("tenant_id", operationalIds).limit(5000),
+      admin.from("tenant_marketing_ingestion_events").select("id, ingestion_state", { count: "exact", head: false }).in("tenant_id", operationalIds).gte("received_at", since7d).limit(5000),
+      admin.from("tenant_tracking_connectors").select("id, provider_key, availability_state, active").in("tenant_id", operationalIds).limit(5000),
+      admin.from("tenant_tracking_diagnostics").select("id, state", { count: "exact", head: false }).in("tenant_id", operationalIds).gte("created_at", since7d).limit(5000),
+      admin.from("audit_log").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).gte("created_at", since24h),
+      admin.from("audit_log").select("id, tenant_id, user_id, action, entity, entity_id, created_at").in("tenant_id", operationalIds).order("created_at", { ascending: false }).limit(100),
+      admin.from("platform_incidents").select("id, incident_key, scope, tenant_id, severity, status, title, summary, source, started_at, resolved_at, updated_at").in("tenant_id", operationalIds).order("started_at", { ascending: false }).limit(200),
+      admin.from("platform_support_cases").select("id, case_key, tenant_id, category, priority, status, subject, summary, assigned_user_id, created_at, resolved_at, updated_at").in("tenant_id", operationalIds).order("created_at", { ascending: false }).limit(200),
+      admin.from("crm_alerts").select("id, alert_key, severity, state", { count: "exact", head: false }).in("tenant_id", operationalIds).eq("state", "open").limit(5000),
+      admin.from("cms_publication_schedules").select("id, state", { count: "exact", head: false }).in("tenant_id", operationalIds).limit(5000),
     ]);
 
     for (const [source, result] of Object.entries({

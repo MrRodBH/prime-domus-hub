@@ -9,7 +9,7 @@ export type TenantScopedAuthority = Pick<
  * Autoridade fail-closed reutilizável para qualquer boundary tenant-scoped.
  *
  * Deve receber exclusivamente o contexto produzido por `requireTenant`.
- * Super Admin somente é aceito por impersonação explícita; usuários comuns
+ * Super Admin é sempre recusado; usuários comuns
  * nunca podem apresentar origem de impersonação.
  */
 export function requireTenantScopedAuthority(
@@ -21,10 +21,7 @@ export function requireTenantScopedAuthority(
   }
 
   if (tenant.isSuperAdmin) {
-    if (!tenant.impersonation || tenant.origin !== "impersonation") {
-      throw new Error(`${boundary} Super Admin access requires explicit impersonation.`);
-    }
-    return tenant.tenantId;
+    throw new Error(`${boundary} Super Admin tenant access prohibited.`);
   }
 
   if (tenant.impersonation || tenant.origin === "impersonation") {

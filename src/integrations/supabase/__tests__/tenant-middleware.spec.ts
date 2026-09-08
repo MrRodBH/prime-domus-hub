@@ -63,17 +63,12 @@ const T_ALHEIO = "44444444-4444-4444-4444-444444444444";
 export const specs: Array<{ name: string; run: () => Promise<void> }> = [
   // ============ Super Admin ============
   {
-    name: "super-admin with valid impersonation → origin=impersonation",
+    name: "super-admin with valid impersonation → denied",
     run: async () => {
-      const ctx: TenantContext = await resolveTenantContext({
-        userId: USER,
-        isSuperAdmin: true,
-        impersonateHeader: T2,
+      await expectThrows(() => resolveTenantContext({
+        userId: USER, isSuperAdmin: true, impersonateHeader: T2,
         repo: makeRepo({ existing: [T2] }),
-      });
-      assert(ctx.tenantId === T2, "tenant");
-      assert(ctx.impersonation === true, "impersonation flag");
-      assert(ctx.origin === "impersonation", "origin");
+      }), /Super Admin/, "super-admin is denied even with a valid tenant");
     },
   },
   {
@@ -87,7 +82,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
             impersonateHeader: null,
             repo: makeRepo({ memberships: [{ tenantId: T1 }] }),
           }),
-        /Forbidden: no tenant membership/,
+        /Super Admin/,
         "super-admin no header",
       );
     },
@@ -103,7 +98,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
             impersonateHeader: "not-a-uuid",
             repo: makeRepo({}),
           }),
-        /Invalid tenant/,
+        /Super Admin/,
         "invalid uuid",
       );
     },
@@ -119,7 +114,7 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
             impersonateHeader: T2,
             repo: makeRepo({ existing: [] }),
           }),
-        /Invalid tenant/,
+        /Super Admin/,
         "unknown tenant",
       );
     },

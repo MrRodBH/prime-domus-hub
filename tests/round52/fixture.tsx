@@ -6,7 +6,7 @@ const w = window as unknown as { entered?: string; mount: () => void; unmount: (
 w.mount = () => {
  const root = createRoot(document.getElementById('root')!);
  const client = new QueryClient({defaultOptions:{queries:{retry:false}}});
- root.render(<QueryClientProvider client={client}><PersistentOnboarding onEnterTenant={id => { w.entered = id; }} /></QueryClientProvider>);
+ root.render(<QueryClientProvider client={client}><PersistentOnboarding /></QueryClientProvider>);
  w.unmount=()=>{ root.unmount();client.clear(); };
 };
 w.mount();

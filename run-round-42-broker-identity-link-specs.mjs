@@ -50,6 +50,7 @@ try {
   for(const source of ['tenant_owner','assigned_profiles','super_admin_impersonation']) {
     state.decision={allowed:true,scope:'global',source}; state.calls=[];
     const c=source==='super_admin_impersonation' ? {...context,tenant:{...context.tenant,isSuperAdmin:true,impersonation:true,origin:'impersonation'}} : context;
+    if (source==='super_admin_impersonation') { await assert.rejects(call(data,c),/prohibited/);assert.equal(state.calls.length,0);continue; }
     assert.deepEqual(await call(data,c),{...data,status:'linked'});
     assert.deepEqual(state.calls.map(c=>c.name),['resolve_tenant_permission','link_tenant_broker_identity']);
     assert.deepEqual(state.calls[0].args,{_actor_user_id:context.userId,_tenant_id:context.tenant.tenantId,_tenant_origin:c.tenant.origin,_module_code:'access_control',_action:'gerenciar'});
