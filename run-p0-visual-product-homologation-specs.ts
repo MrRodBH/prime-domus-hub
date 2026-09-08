@@ -279,6 +279,10 @@ for (const forbiddenProviderImport of [
   );
 }
 
+// Round56 owner explicitly approved Tenants/DLQ in SUPER_NAVIGATION; its exact
+// eight labels are enforced by run-round-56-approved-navigation-specs.mjs.
+// Keep the original terminology restriction on the pre-existing operational surface.
+const operationalContextLabels = contexts.split("// Owner-approved global navigation:", 1)[0];
 for (const forbiddenVisibleLabel of [
   "server-owned",
   "Data completeness",
@@ -289,7 +293,7 @@ for (const forbiddenVisibleLabel of [
   'label: "DLQ"',
 ]) {
   ok(
-    !`${workspace}\n${contexts}\n${dashboardFeed}`.includes(forbiddenVisibleLabel),
+    !`${workspace}\n${operationalContextLabels}\n${dashboardFeed}`.includes(forbiddenVisibleLabel),
     `a interface prioritária não deve exibir label técnico em inglês: ${forbiddenVisibleLabel}`,
   );
 }

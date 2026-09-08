@@ -20,10 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { getSuperControlPlaneSnapshot } from "@/lib/api/super-control-plane.functions";
 
 export const Route = createFileRoute("/_authenticated/super/control-plane")({
+  validateSearch: (search: Record<string, unknown>): { section?: string } => ({ section: ["financeiro", "consumo", "suporte"].includes(String(search.section)) ? String(search.section) : "" }),
   component: SuperControlPlanePage,
 });
 
 function SuperControlPlanePage() {
+  const { section } = Route.useSearch();
   const query = useQuery({
     queryKey: ["super-control-plane"],
     queryFn: () => getSuperControlPlaneSnapshot(),
@@ -31,7 +33,7 @@ function SuperControlPlanePage() {
   });
 
   if (query.isLoading) {
-    return <StateCard icon={<Loader2 className="size-5 animate-spin" />} title="Carregando Control Plane" description="Consolidando fontes globais e diagnósticos." />;
+    return <StateCard icon={<Loader2 className="size-5 animate-spin" />} title="Carregando gestão da plataforma" description="Consolidando fontes globais e diagnósticos." />;
   }
   if (query.isError || !query.data) {
     return (
@@ -48,6 +50,20 @@ function SuperControlPlanePage() {
   const executive = data.globalExecutiveDashboard;
   const integration = data.integrations;
   const commercial = data.commercialVisibility;
+
+  if (section === "financeiro") return <Panel title="Financeiro" icon={<CircleDollarSign className="size-4" />}>
+    <KeyValue label="Planos cadastrados" value={commercial.plans.length} />
+    <KeyValue label="Eventos de cobrança — 7 dias" value={commercial.billingEvents7d} />
+    <p>Receita prevista e realizada ainda não estão disponíveis. Cadastrar um plano não inicia cobranças.</p>
+  </Panel>;
+  if (section === "consumo") return <Panel title="Consumo" icon={<Activity className="size-4" />}>
+    <p>A medição de consumo por plano ainda não está disponível neste painel.</p>
+    <KeyValue label="Usuários com vínculo" value={executive.distinctMembershipUsers} />
+    <p className="text-sm text-muted-foreground">A contagem de usuários não representa consumo faturável.</p>
+  </Panel>;
+  if (section === "suporte") return <Panel title="Suporte" icon={<LifeBuoy className="size-4" />}>
+    <RecordList records={data.support} empty="Nenhum caso de suporte registrado." titleKey="subject" stateKey="status" secondaryKey="case_key" />
+  </Panel>;
 
   return (
     <div className="max-w-[1500px] mx-auto space-y-6 pb-12">

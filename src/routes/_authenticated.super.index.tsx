@@ -38,6 +38,7 @@ import {
 import { useImpersonation } from "@/integrations/supabase/use-impersonation";
 
 export const Route = createFileRoute("/_authenticated/super/")({
+  validateSearch: (search: Record<string, unknown>): { view?: "dashboard" | "plans" | "tenants" } => ({ view: search.view === "plans" || search.view === "tenants" ? search.view : "dashboard" }),
   component: SuperTenantsPage,
 });
 
@@ -55,6 +56,7 @@ type TenantRow = {
 type TenantStats = Record<string, { users: number; imoveis: number; leads: number }>;
 
 function SuperTenantsPage() {
+  const { view } = Route.useSearch();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { data: tenants = [] } = useQuery({
@@ -113,7 +115,7 @@ function SuperTenantsPage() {
         </Dialog>
       </div>
 
-      <PersistentOnboarding onEnterTenant={impersonate} />
+      <PersistentOnboarding onEnterTenant={impersonate} currentView={view ?? "dashboard"} onViewChange={next => { void navigate({ to: "/super", search: { view: next } }); }} />
 
       <details className="rounded-xl border bg-card p-5">
         <summary className="cursor-pointer font-semibold">

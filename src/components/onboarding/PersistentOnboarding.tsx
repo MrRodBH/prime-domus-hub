@@ -130,7 +130,7 @@ function object(value: unknown): Record<string, unknown> {
     ? (value as Record<string, unknown>)
     : {};
 }
-export function PersistentOnboarding({ onEnterTenant }: { onEnterTenant?: (id: string) => void }) {
+export function PersistentOnboarding({ onEnterTenant, currentView, onViewChange }: { onEnterTenant?: (id: string) => void; currentView?: "dashboard" | "plans" | "tenants"; onViewChange?: (view: "dashboard" | "plans" | "tenants") => void }) {
   const client = useQueryClient();
   const query = useQuery({
     queryKey,
@@ -138,7 +138,9 @@ export function PersistentOnboarding({ onEnterTenant }: { onEnterTenant?: (id: s
     staleTime: 0,
     refetchOnMount: "always",
   });
-  const [view, setView] = useState<"dashboard" | "plans" | "tenants">("dashboard");
+  const [localView, setLocalView] = useState<"dashboard" | "plans" | "tenants">("dashboard");
+  const view = currentView ?? localView;
+  const setView = onViewChange ?? setLocalView;
   const [filter, setFilter] = useState("");
   const [plan, setPlan] = useState<PlanRow | "new" | null>(null);
   const [tenant, setTenant] = useState<CompanyRow | null>(null);
@@ -171,7 +173,7 @@ export function PersistentOnboarding({ onEnterTenant }: { onEnterTenant?: (id: s
           Recarregar cadastros
         </Button>
       </div>
-      <nav aria-label="Gestão do SaaS" className="flex flex-wrap gap-2">
+      {!onViewChange && <nav aria-label="Gestão do SaaS" className="flex flex-wrap gap-2">
         {(
           [
             ["dashboard", "Dashboard"],
@@ -189,7 +191,7 @@ export function PersistentOnboarding({ onEnterTenant }: { onEnterTenant?: (id: s
             {label}
           </Button>
         ))}
-      </nav>
+      </nav>}
       {view === "dashboard" && (
         <div className="grid gap-5 sm:grid-cols-2">
           {(
