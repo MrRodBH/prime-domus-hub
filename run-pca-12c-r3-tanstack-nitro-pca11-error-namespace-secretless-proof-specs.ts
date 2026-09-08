@@ -217,6 +217,7 @@ if (head !== SOURCE_MAIN) {
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
 const round57GovernancePaths = [
+  "run-pr-m2-tenant-lifecycle-specs.ts",
   ".github/workflows/round52-persistent-onboarding.yml",
   "database/round57-governance.sql",
   "docs/architecture/OWNER_UI_APPROVALS.md",

@@ -169,11 +169,11 @@ check("Super Control Plane exposes owner, onboarding and DCA/BCA states", () => 
     "Criar tenant e owner",
     "pending DCA-01",
     "pending BCA-01",
-    '"/admin/memberships"',
   ]) {
     assert.ok(superRoute.includes(marker), marker);
   }
   assert.equal(superRoute.includes("dominio_principal: dominio"), false);
+  assert.equal(superRoute.includes('"/admin/memberships"'), false, "Super Admin cannot enter membership operations");
 });
 
 check("membership interface exposes every supported state and action", () => {
