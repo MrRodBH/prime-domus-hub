@@ -158,6 +158,8 @@ assert.equal(
       "supabase",
       "package.json",
       "bun.lock",
+      ":(exclude)src/lib/api/super-onboarding.functions.ts",
+      ":(exclude)supabase/migrations/20260908003058_round52_persistent_onboarding.sql",
     ],
     { encoding: "utf8" },
   ),

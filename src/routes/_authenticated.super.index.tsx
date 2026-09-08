@@ -1,3 +1,4 @@
+import { PersistentOnboarding } from "@/components/onboarding/PersistentOnboarding";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
@@ -107,6 +108,8 @@ function SuperTenantsPage() {
           />
         </Dialog>
       </div>
+
+      <PersistentOnboarding />
 
       {kpis ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">

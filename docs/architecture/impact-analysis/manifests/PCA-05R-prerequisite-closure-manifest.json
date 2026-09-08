@@ -6,10 +6,10 @@
   "status": "FAIL_CLOSED_SYNTHETIC_SUBSTRATE_BUNDLE_REQUIRED",
   "authority": "PROTECTED_GITHUB_MAIN_ONLY",
   "counts": {
-    "repositoryMigrationFiles": 132,
+    "repositoryMigrationFiles": 133,
     "prerequisiteCandidates": 105,
     "approvedRehearsalMigrations": 17,
-    "excludedAfterPrelude": 10,
+    "excludedAfterPrelude": 11,
     "wholeFileReplayBlockers": 3,
     "prerequisiteFilesWithoutExplicitTransactions": 104
   },
@@ -1439,6 +1439,12 @@
     }
   ],
   "excluded": [
+    {
+      "path": "supabase/migrations/20260908003058_round52_persistent_onboarding.sql",
+      "sha256": "5cb2bc8d734ee30761763f6691f2a33a86e52f1bfff898227abb2025a04146be",
+      "reason": "POST_REHEARSAL_ROUND52_PERSISTENT_ONBOARDING",
+      "disposition": "EXCLUDED_FROM_PCA05R_CELL"
+    },
     {
       "path": "supabase/migrations/20260804180000_dca_01_domain_cloudflare_activation.sql",
       "sha256": "cecfd0e4c4a50e3c603b359b8ee94300f912fbe73bc73fe61f4a1719bc5883c6",

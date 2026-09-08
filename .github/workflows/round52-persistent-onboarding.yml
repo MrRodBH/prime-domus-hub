@@ -1,0 +1,44 @@
+name: Round 52 persistent onboarding
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  persistence:
+    name: Persistent onboarding SQL and controlled UI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: round52
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["127.0.0.1:55452:5432"]
+        options: --health-cmd "pg_isready -U postgres -d round52" --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: npm install --prefix "$RUNNER_TEMP/round52" --ignore-scripts --no-audit --no-fund pg@8.16.3 jsdom@26.1.0
+      - name: Native isolated persistence
+        env:
+          ROUND52_ISOLATED_CI: "true"
+        run: ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" node tests/round52/persistence.mjs
+      - name: Controlled DOM and server contracts
+        run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/round52/ui.mjs
+      - run: node tests/round52/server.mjs
+      - run: bun run typecheck
+      - uses: actions/upload-artifact@v4
+        with:
+          name: round52-persistence-${{ github.event.pull_request.head.sha }}
+          path: round52-persistence-evidence.json

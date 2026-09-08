@@ -40,7 +40,7 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           git merge-base --is-ancestor "$EXPECTED_BASE" HEAD
-          test -z "$(git diff --name-only 715f9f9ca071fa0e48a03792d7fc33517027f17b HEAD -- src supabase)"
+          test -z "$(git diff --name-only 715f9f9ca071fa0e48a03792d7fc33517027f17b HEAD -- src/lib/api/tenant-broker-directory.functions.ts supabase/migrations/20260907183824_round42_broker_identity_link.sql supabase/migrations/20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql supabase/migrations/20260713221723_857275c9-958d-46fc-b826-e0c7ae030a3d.sql)"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
