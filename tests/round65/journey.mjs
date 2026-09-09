@@ -9,7 +9,9 @@ import {resolve,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 assert.equal(process.env.GITHUB_ACTIONS,'true');assert.equal(process.env.ROUND52_ISOLATED_CI,'true');
 const pg=await import(pathToFileURL(process.env.ROUND52_PG_MODULE));
-const {Client}=pg.default ?? pg;
+const {Client,types}=pg.default ?? pg;
+// Match PostgREST timestamp strings without losing optimistic-lock microseconds.
+types.setTypeParser(1184,value=>value.replace(' ','T').replace(/([+-]\d{2})$/,'$1:00'));
 const {JSDOM,VirtualConsole}=await import(pathToFileURL(process.env.ROUND52_JSDOM_MODULE));
 const config={host:'127.0.0.1',port:55452,user:'postgres'};
 const admin=new Client({...config,database:'postgres'});await admin.connect();await admin.query('CREATE DATABASE round65_journey');await admin.end();
@@ -51,7 +53,7 @@ const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(
 const dom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/auth?super=1',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});const w=dom.window,d=w.document;
 w.fetch=()=>{throw Error('REMOTE_FORBIDDEN');};
 const tick=()=>new Promise(r=>setTimeout(r,15));
-const until=async fn=>{for(let n=0;n<180;n++){if(fn())return;await tick();}throw Error(d.body.textContent);};
+const until=async fn=>{for(let n=0;n<180;n++){if(fn())return;await tick();}throw Error(JSON.stringify({ui:d.body.textContent,form:d.querySelector('form')?[...new w.FormData(d.querySelector('form'))]:null,snapshot:token?await api.loadSuperOnboarding():null}));};
 const button=t=>[...d.querySelectorAll('button')].find(b=>b.textContent===t);
 const fill=async(selector,value)=>{const input=d.querySelector(selector);assert.ok(input,selector);Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new w.Event('input',{bubbles:true}));await tick();};
 const submit=async()=>{d.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await tick();};
