@@ -223,6 +223,7 @@ const round65P0Paths = [
   "tests/round65/server.mjs",
   "tests/round65/members.mjs",
   "tests/round65/journey.mjs",
+  "tests/round65/members-ui.mjs",
   "src/components/onboarding/PersistentOnboarding.tsx",
   "src/lib/api/tenant-lifecycle.functions.ts",
   "src/routes/_authenticated.admin.memberships.tsx",
