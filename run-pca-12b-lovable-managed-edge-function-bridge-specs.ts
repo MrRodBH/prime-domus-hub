@@ -322,6 +322,9 @@ const round64PrivacyPaths = [
   "database/round64-rbac-profile-read.sql",
   "tests/round64/profiles.mjs",
   "tests/round64/assignees.mjs",
+  "tests/round64/contract.mjs",
+  "run-round-44-broker-identity-ui-specs.mjs",
+  "run-round-46-empty-onboarding-specs.mjs",
   "src/lib/api/tenant-crm.functions.ts",
   "docs/architecture/ROUND64_CRM_PROFILE_PRIVACY.md",
   ".github/workflows/round52-persistent-onboarding.yml"
