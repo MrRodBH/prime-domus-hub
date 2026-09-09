@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+assert.equal(process.env.GITHUB_ACTIONS,'true');
+assert.equal(process.env.ROUND52_ISOLATED_CI,'true');
+const {Client}=await import(pathToFileURL(process.env.ROUND52_PG_MODULE));
+const config={host:'127.0.0.1',port:55452,user:'postgres'};
+const admin=new Client({...config,database:'postgres'});await admin.connect();
+await admin.query('CREATE DATABASE round65_members');await admin.end();
+const db=new Client({...config,database:'round65_members'});await db.connect();
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+try{
+ await db.query(`CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid primary key);
+ CREATE TYPE public.tenant_role AS ENUM('owner','admin','gerente','secretaria','corretor','viewer');
+ CREATE TYPE public.membership_status AS ENUM('active','invited','suspended','revoked');
+ CREATE TABLE public.tenants(id uuid primary key);
+ CREATE TABLE public.user_roles(user_id uuid,role text);
+ CREATE TABLE public.tenant_members(tenant_id uuid,user_id uuid,tenant_role public.tenant_role,membership_status public.membership_status,is_owner boolean,is_default boolean default false,joined_at timestamptz,invited_at timestamptz,accepted_at timestamptz,updated_at timestamptz,suspended_at timestamptz,revoked_at timestamptz,primary key(tenant_id,user_id));
+ -- Commercial decision is an explicit controlled dependency, not a billing test.
+ CREATE FUNCTION public.resolve_commercial_seat_decision(uuid,uuid,text,int) RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('allowed',coalesce(current_setting('fixture.seats',true),'allow') <> 'deny') $$;
+ GRANT USAGE ON SCHEMA auth TO service_role;
+ GRANT ALL ON ALL TABLES IN SCHEMA public,auth TO service_role;`);
+ const original=readFileSync('supabase/migrations/20260713221723_857275c9-958d-46fc-b826-e0c7ae030a3d.sql','utf8');
+ await db.query(original.slice(0,original.indexOf('$fn$;',original.indexOf('AS $fn$'))+5));
+ const forensic=readFileSync('supabase/migrations/20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql','utf8');
+ await db.query(forensic.slice(forensic.indexOf('CREATE OR REPLACE FUNCTION public.invite_tenant_member('),forensic.indexOf('CREATE OR REPLACE FUNCTION public.accept_tenant_invitation(')));
+ await db.query(`REVOKE EXECUTE ON FUNCTION public.mutate_tenant_membership(uuid,uuid,text,text,uuid,text),public.invite_tenant_member(uuid,uuid,text,uuid,text,boolean) FROM PUBLIC,anon,authenticated; GRANT EXECUTE ON FUNCTION public.mutate_tenant_membership(uuid,uuid,text,text,uuid,text),public.invite_tenant_member(uuid,uuid,text,uuid,text,boolean) TO service_role;`);
+ const grants=async()=> (await db.query("select proname,proacl::text from pg_proc where proname in ('mutate_tenant_membership','invite_tenant_member') order by proname")).rows;
+ const before=await grants();await db.query(readFileSync('database/round65-tenant-member-authority.sql','utf8'));assert.deepEqual(await grants(),before);
+ for(let n=1;n<=9;n++)await db.query('INSERT INTO auth.users VALUES($1)',[id(n)]);
+ await db.query('INSERT INTO tenants VALUES($1),($2)',[id(20),id(21)]);
+ for(const [n,t,role,status,owner] of [[1,20,'owner','active',true],[2,20,'admin','active',false],[3,20,'viewer','active',false],[4,20,'admin','suspended',false],[5,21,'admin','active',false],[6,20,'owner','active',true]])await db.query('INSERT INTO tenant_members(tenant_id,user_id,tenant_role,membership_status,is_owner) VALUES($1,$2,$3,$4,$5)',[id(t),id(n),role,status,owner]);
+ await db.query("INSERT INTO user_roles VALUES($1,'super_admin')",[id(6)]);
+ await db.query('SET ROLE service_role');
+ const mutate=(actor,op,target=7,role=null,origin='selection',tenant=20)=>db.query('SELECT mutate_tenant_membership($1,$2,$3,$4,$5,$6) result',[id(actor),id(tenant),origin,op,id(target),role]);
+ const invite=(actor,target=8,origin='selection')=>db.query("SELECT invite_tenant_member($1,$2,$3,$4,'viewer',false) result",[id(actor),id(20),origin,id(target)]);
+ for(const actor of [3,4,5,6]){await assert.rejects(mutate(actor,'create_membership',7,'viewer'));await assert.rejects(invite(actor));}
+ await assert.rejects(mutate(2,'create_membership',7,'viewer','impersonation'));
+ await assert.rejects(invite(6,8,'impersonation'));
+ await assert.rejects(mutate(2,'create_membership',7,'viewer',null));
+ await assert.rejects(mutate(2,'create_membership',7,'viewer','selection',21));
+ await assert.rejects(mutate(2,'create_membership',7,'owner'));
+ for(const op of ['change_role','suspend','reactivate','revoke'])await assert.rejects(mutate(2,op,1,op==='change_role'?'admin':null),/owner/);
+ await assert.rejects(invite(2,1),/owner/);
+ await db.query("SET fixture.seats='deny'");await assert.rejects(mutate(2,'create_membership',7,'viewer'),/commercial_seat_limit_denied/);await assert.rejects(invite(2),/commercial_seat_limit_denied/);
+ await db.query("SET fixture.seats='allow'");
+ await mutate(2,'create_membership',7,'viewer');await mutate(2,'change_role',7,'secretaria');await mutate(2,'suspend');await mutate(2,'reactivate');await mutate(2,'revoke');
+ await invite(2);await invite(1,9);
+ assert.equal((await db.query('SELECT membership_status FROM tenant_members WHERE tenant_id=$1 AND user_id=$2',[id(20),id(7)])).rows[0].membership_status,'revoked');
+ assert.equal((await db.query('SELECT is_owner FROM tenant_members WHERE tenant_id=$1 AND user_id=$2',[id(20),id(1)])).rows[0].is_owner,true);
+ await db.query('RESET ROLE; SET ROLE authenticated');await assert.rejects(invite(2),/permission denied/);
+ await db.query('RESET ROLE; SET ROLE anon');await assert.rejects(mutate(2,'revoke'),/permission denied/);
+ console.log('PASS native PostgreSQL: Admin CRUD/invite, owner invite, deny foreign/viewer/suspended/Super/impersonation/owner targets, seats retained, ACL unchanged. No live identities.');
+}finally{await db.end();}

@@ -118,9 +118,10 @@ function TenantMembershipsPage() {
         Novos acessos são criados exclusivamente por convite. Senha, tenant role e perfis nunca são definidos pelo client como autoridade.
       </div>
 
-      {membershipsQuery.isPending || profilesQuery.isPending || assignmentsQuery.isPending ? (
+      {profilesQuery.isError || assignmentsQuery.isError ? <p role="status" className="text-sm text-muted-foreground">Os perfis de acesso não estão disponíveis para esta sessão. A gestão de membros permanece disponível.</p> : null}
+      {membershipsQuery.isPending ? (
         <div className="rounded-lg border bg-card p-10 text-center text-sm text-muted-foreground">Carregando controle de acesso…</div>
-      ) : membershipsQuery.isError || profilesQuery.isError || assignmentsQuery.isError ? (
+      ) : membershipsQuery.isError ? (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm">
           <p>Não foi possível carregar memberships e perfis.</p>
           <Button className="mt-3" size="sm" variant="outline" onClick={() => { void membershipsQuery.refetch(); void profilesQuery.refetch(); void assignmentsQuery.refetch(); }}><RefreshCw className="mr-2 size-4" /> Tentar novamente</Button>
@@ -166,7 +167,7 @@ function TenantMembershipsPage() {
                     <td className="px-4 py-3"><MembershipStatusBadge status={member.status} /></td>
                     <td className="px-4 py-3">
                       <div className="flex max-w-[260px] flex-wrap gap-1">{profileNames.length ? profileNames.map((name) => <Badge key={name} variant="secondary">{name}</Badge>) : <span className="text-xs text-muted-foreground">Sem perfil</span>}</div>
-                      {!member.isOwner && member.status !== "revoked" ? <Button className="mt-2" size="sm" variant="outline" onClick={() => setProfileUser(member)}><UserRoundCog className="mr-1 size-3" /> Gerenciar perfis</Button> : null}
+                      {!profilesQuery.isError && !assignmentsQuery.isError && !profilesQuery.isPending && !assignmentsQuery.isPending && !member.isOwner && member.status !== "revoked" ? <Button className="mt-2" size="sm" variant="outline" onClick={() => setProfileUser(member)}><UserRoundCog className="mr-1 size-3" /> Gerenciar perfis</Button> : null}
                     </td>
                     <td className="px-4 py-3 text-xs">{formatDate(member.invitedAt)}</td>
                     <td className="space-y-1 px-4 py-3 text-xs"><div><strong>Aceito:</strong> {formatDate(member.acceptedAt)}</div><div><strong>Ingresso:</strong> {formatDate(member.joinedAt)}</div></td>
@@ -177,7 +178,7 @@ function TenantMembershipsPage() {
                         {member.status === "active" && !member.isOwner ? <Button size="sm" variant="outline" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "suspend", targetUserId: member.userId })}>Suspender</Button> : null}
                         {member.status === "suspended" && !member.isOwner ? <Button size="sm" variant="outline" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "reactivate", targetUserId: member.userId })}>Reativar</Button> : null}
                         {(member.status === "active" || member.status === "invited" || member.status === "suspended") && !member.isOwner ? <Button size="sm" variant="destructive" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "revoke", targetUserId: member.userId })}><UserMinus className="mr-1 size-3" /> Revogar</Button> : null}
-                        {member.status === "active" && !member.isOwner ? <Button size="sm" variant="secondary" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "transfer_owner", targetUserId: member.userId })}><ShieldCheck className="mr-1 size-3" /> Tornar owner</Button> : null}
+                        {memberships.some(actor => actor.canTransferOwnership) && member.status === "active" && !member.isOwner ? <Button size="sm" variant="secondary" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "transfer_owner", targetUserId: member.userId })}><ShieldCheck className="mr-1 size-3" /> Tornar owner</Button> : null}
                       </div>
                     </td>
                   </tr>
