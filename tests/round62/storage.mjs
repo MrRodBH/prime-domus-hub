@@ -13,13 +13,13 @@ const other='00000000-0000-4000-8000-000000000003',superId='00000000-0000-4000-8
 try {
  await db.query(`CREATE SCHEMA auth; CREATE SCHEMA storage;
  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
- CREATE TABLE members(actor uuid,tenant uuid,active boolean,can_access boolean);
+ CREATE TABLE members(actor uuid,tenant uuid,active boolean,can_access boolean,actions text[] DEFAULT ARRAY['criar','visualizar','editar','excluir','gerenciar'],access_scope text DEFAULT 'global');
  CREATE FUNCTION public.is_super_admin() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT auth.uid()='${superId}'::uuid $$;
  CREATE FUNCTION public.get_current_tenant_id() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  SELECT tenant FROM members WHERE actor=auth.uid() AND active AND tenant::text=current_setting('request.tenant',true) AND NOT is_super_admin() LIMIT 1 $$;
  CREATE TYPE rbac_action AS ENUM ('criar','visualizar','editar','excluir','gerenciar');
  CREATE FUNCTION public.resolve_tenant_permission(u uuid,t uuid,o text,m text,a rbac_action) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- SELECT jsonb_build_object('allowed',EXISTS(SELECT 1 FROM members WHERE actor=u AND tenant=t AND active AND can_access),'scope','global') $$;
+ SELECT jsonb_build_object('allowed',EXISTS(SELECT 1 FROM members WHERE actor=u AND tenant=t AND active AND can_access AND a::text=ANY(actions)),'scope',(SELECT access_scope FROM members WHERE actor=u AND tenant=t LIMIT 1)) $$;
  CREATE FUNCTION public.crm_scope_allows_lead(t uuid,u uuid,s text,e uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT s='global' $$;
  CREATE TABLE public.imoveis(id uuid,tenant_id uuid,imagem_capa text);
  CREATE TABLE public.imovel_imagens(tenant_id uuid,imovel_id uuid,url text);
@@ -40,7 +40,7 @@ try {
  CREATE POLICY round57_no_super_storage ON storage.objects AS RESTRICTIVE FOR ALL TO authenticated USING(NOT is_super_admin()) WITH CHECK(NOT is_super_admin());
  GRANT USAGE ON SCHEMA public,auth,storage TO authenticated,anon,service_role;
  GRANT ALL ON storage.objects TO authenticated,service_role;`);
- await db.query('INSERT INTO members VALUES ($1,$1,true,true),($2,$2,true,true),($3,$1,true,true),($4,$1,true,true)',[a,b,other,superId]);
+ await db.query('INSERT INTO members(actor,tenant,active,can_access) VALUES ($1,$1,true,true),($2,$2,true,true),($3,$1,true,true),($4,$1,true,true)',[a,b,other,superId]);
  for(const table of ['imoveis','corretores','leads']) await db.query(`INSERT INTO ${table}(id,tenant_id) VALUES ($1,$1),($2,$2)`,[a,b]);
  await db.query("INSERT INTO launch_projects VALUES ($1,$1,'launch',null,null)",[a]);
  const before=(await db.query("SELECT policyname,qual,with_check FROM pg_policies WHERE schemaname='storage' ORDER BY policyname")).rows;
@@ -96,6 +96,18 @@ try {
   await db.query("INSERT INTO storage.objects VALUES ($1,$2,'replacement') ON CONFLICT(bucket_id,name) DO UPDATE SET metadata=EXCLUDED.metadata",[bucket,path]);
  }
  await assert.rejects(db.query('UPDATE storage.objects SET name=$1 WHERE name=$2',[cases[9][1],cases[4][1]]),/storage_destination_immutable/);
+ await db.query('RESET ROLE');await db.query("UPDATE members SET actions=ARRAY['visualizar'] WHERE actor=$1",[other]);
+ await as(other);assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,cases.length);
+ assert.equal((await db.query("UPDATE storage.objects SET metadata='forbidden' WHERE name=$1 RETURNING name",[cases[4][1]])).rowCount,0,'read permission does not authorize update');
+ await assert.rejects(db.query("INSERT INTO storage.objects VALUES ($1,$2,'forbidden') ON CONFLICT(bucket_id,name) DO UPDATE SET metadata=EXCLUDED.metadata",['site',cases[4][1]]),/row-level security/);
+ await db.query('RESET ROLE');await db.query("UPDATE members SET actions=ARRAY['criar'] WHERE actor=$1",[other]);
+ const createOnly=`${a}/media/create-only.jpg`;await target('site',createOnly,'media',null,other);await as(other);
+ await db.query("INSERT INTO storage.objects VALUES ('site',$1,'initial')",[createOnly]);
+ await assert.rejects(db.query("INSERT INTO storage.objects VALUES ('site',$1,'replace') ON CONFLICT(bucket_id,name) DO UPDATE SET metadata=EXCLUDED.metadata",[createOnly]),/row-level security/);
+ await db.query('RESET ROLE');await db.query("DELETE FROM storage.objects WHERE name=$1",[createOnly]);
+ await db.query("UPDATE members SET actions=ARRAY['criar','visualizar','editar','excluir','gerenciar'],access_scope='proprio' WHERE actor=$1",[other]);
+ await as(other);assert.equal((await db.query("SELECT * FROM storage.objects WHERE name=$1",[cases[4][1]])).rowCount,0,'CMS own scope cannot become global');
+ await db.query('RESET ROLE');await db.query("UPDATE members SET access_scope='global' WHERE actor=$1",[other]);
  await as(b,b);assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,0);
  await as(superId);assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,0);
  await as(null);assert.equal((await db.query('SELECT * FROM storage.objects')).rowCount,0);
