@@ -124,11 +124,11 @@ assert.match(auth, /supabase\.auth\.signInWithPassword\(\{\s*email: email\.trim\
 assert.match(authenticated, /if \(error \|\| !data\.user\) throw redirect\(\{ to: "\/auth" \}\)/);
 
 // Round58 adds only build provenance; the selected runtime and esbuild authority stay exact.
-const releaseIdentityPlugin = "    plugins: [{\n      name: \"release-identity\",\n      apply: \"build\",\n      generateBundle() {\n        let commit: string | null = null;\n        let dirty: boolean | null = null;\n        try {\n          commit = execFileSync(\"git\", [\"rev-parse\", \"HEAD\"], { encoding: \"utf8\" }).trim();\n          dirty = execFileSync(\"git\", [\"diff\", \"HEAD\", \"--name-only\"], { encoding: \"utf8\" }).trim().length > 0;\n        } catch { /* A source archive may omit Git. Never invent its identity. */ }\n        this.emitFile({ type: \"asset\", fileName: \"release.json\", source: JSON.stringify({ commit, dirty, builtAt: new Date().toISOString() }) });\n      },\n    }],\n";
+const releaseIdentityPlugin = "    plugins: [{\n      name: \"release-identity\",\n      apply: \"build\",\n      generateBundle() {\n        this.emitFile({ type: \"asset\", fileName: \"release.json\", source: JSON.stringify(releaseIdentity(process.cwd())) });\n      },\n    }],\n";
 const currentViteSource = readFileSync("vite.config.ts", "utf8");
 assert.ok(currentViteSource.includes(releaseIdentityPlugin));
 assert.equal(
-  currentViteSource.replace('import { execFileSync } from "node:child_process";\n', '').replace(releaseIdentityPlugin, ''),
+  currentViteSource.replace('import { releaseIdentity } from "./scripts/release-identity";\n', '').replace(releaseIdentityPlugin, ''),
   execFileSync("git", ["show", `${SOURCE_MAIN}:vite.config.ts`], { encoding: "utf8" }),
   "R6D runtime authority remains byte-identical outside the explicit build-only provenance plugin",
 );

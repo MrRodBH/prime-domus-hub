@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 const id='00000000-0000-4000-8000-000000000001';
@@ -30,3 +31,6 @@ assert.deepEqual(calls.at(-1),['delete',other,false]);
 assert.equal((await api.superDeleteUser({userId:id,confirmationEmail:'fixture@example.invalid'})).self,true);
 providerError=true;await assert.rejects(api.superDeleteUser({userId:other,confirmationEmail:'fixture@example.invalid'}),/não foi concluída/);
 console.log('PASS global account deletion: server role, strict input, exact account confirmation, permanent deletion, tenant/owner/unclassified accounts excluded before Auth access, provider failure preserved.');
+
+// Round60: verify Git-independent release provenance in the existing release CI.
+execFileSync(process.execPath, ["--import", "tsx/esm", "tests/round60/release-identity.ts"], { stdio: "inherit" });

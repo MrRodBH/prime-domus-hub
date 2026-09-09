@@ -217,6 +217,10 @@ if (head !== SOURCE_MAIN) {
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
 const round58PlatformAdministrationPaths = [
+  // Round60: only the build identity helper, tests and its evidence contract.
+  "scripts/release-identity.ts",
+  "tests/round60/release-identity.ts",
+  "docs/architecture/RELEASE_IDENTITY.md",
   "run-pca-12c-r6g-public-supabase-vite-binding-specs.ts",
   ".github/workflows/round52-persistent-onboarding.yml",
   "database/round58-platform-administration.sql",

@@ -7,7 +7,7 @@
 // GNR-01 restores TanStack Start's generated route-tree augmentation as the
 // only Register authority. No authored declaration file and no generated-file
 // rewriting plugin are permitted.
-import { execFileSync } from "node:child_process";
+import { releaseIdentity } from "./scripts/release-identity";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import type {} from "nitro/vite";
@@ -28,13 +28,7 @@ export default defineConfig({
       name: "release-identity",
       apply: "build",
       generateBundle() {
-        let commit: string | null = null;
-        let dirty: boolean | null = null;
-        try {
-          commit = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-          dirty = execFileSync("git", ["diff", "HEAD", "--name-only"], { encoding: "utf8" }).trim().length > 0;
-        } catch { /* A source archive may omit Git. Never invent its identity. */ }
-        this.emitFile({ type: "asset", fileName: "release.json", source: JSON.stringify({ commit, dirty, builtAt: new Date().toISOString() }) });
+        this.emitFile({ type: "asset", fileName: "release.json", source: JSON.stringify(releaseIdentity(process.cwd())) });
       },
     }],
     nitro: {
