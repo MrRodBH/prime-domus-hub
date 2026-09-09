@@ -53,5 +53,48 @@ try {
  assert.equal((await db.query('SELECT get_current_tenant_id() AS id')).rows[0].id,customer);
  await db.query('RESET ROLE');await db.query('SET ROLE service_role');
  assert.equal((await db.query('SELECT count(*)::int n FROM leads')).rows[0].n,1);
+ // Round61: native RLS exercise on an isolated fixture, no customer writes.
+ await db.query('RESET ROLE');
+ await db.query(`CREATE TYPE public.app_role AS ENUM ('secretaria');
+ CREATE FUNCTION public.has_role(u uuid,r public.app_role) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id=u AND role=r::text) $$;
+ CREATE TABLE public.corretores(id uuid,tenant_id uuid);
+ CREATE TABLE public.imoveis(id uuid,tenant_id uuid);`);
+ await db.query("INSERT INTO user_roles VALUES ($1,'secretaria'),($2,'secretaria')",[customer,technical]);
+ for(const table of ['corretores','imoveis']) {
+   await db.query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;
+    GRANT SELECT ON ${table} TO authenticated,anon;
+    CREATE POLICY "${table} secretaria read" ON ${table} FOR SELECT TO authenticated USING(has_role(auth.uid(),'secretaria'::app_role));
+    CREATE POLICY tenant_isolation ON ${table} AS RESTRICTIVE FOR ALL TO anon,authenticated USING(tenant_id=get_current_tenant_id()) WITH CHECK(tenant_id=get_current_tenant_id());
+    CREATE POLICY round57_no_super_operation ON ${table} AS RESTRICTIVE FOR ALL TO authenticated USING(NOT is_super_admin()) WITH CHECK(NOT is_super_admin());`);
+   await db.query(`INSERT INTO ${table} VALUES ($1,$1),($2,$2)`,[customer,unknown]);
+ }
+ const restrictiveBefore=(await db.query("SELECT tablename,policyname,qual,with_check FROM pg_policies WHERE tablename IN ('corretores','imoveis') AND permissive='RESTRICTIVE' ORDER BY tablename,policyname")).rows;
+ await db.query(readFileSync('database/round61-secretaria-inline-scope.sql','utf8'));
+ await db.query(readFileSync('database/round61-secretaria-inline-scope.sql','utf8')); // idempotent
+ assert.deepEqual((await db.query("SELECT tablename,policyname,qual,with_check FROM pg_policies WHERE tablename IN ('corretores','imoveis') AND permissive='RESTRICTIVE' ORDER BY tablename,policyname")).rows,restrictiveBefore);
+ async function visible(actor,header,expected) {
+   await db.query('RESET ROLE');
+   await db.query("SELECT set_config('request.jwt.claim.sub',$1,false),set_config('request.headers',$2,false)",[actor??'',JSON.stringify(header?{'x-tenant-id':header}:{})]);
+   await db.query('SET ROLE authenticated');
+   for(const table of ['corretores','imoveis']) assert.equal((await db.query(`SELECT count(*)::int n FROM ${table}`)).rows[0].n,expected);
+ }
+ await visible(customer,customer,1);
+ await visible(customer,unknown,0);
+ await visible(customer,'malformed',0);
+ await visible(unknown,unknown,0);
+ await visible(technical,customer,0);
+ await visible(null,customer,0);
+ await db.query('RESET ROLE');
+ await db.query("UPDATE tenant_members SET membership_status='revoked' WHERE user_id=$1",[customer]);
+ await visible(customer,customer,0);
+ await db.query('RESET ROLE');
+ await db.query("UPDATE tenant_members SET membership_status='active' WHERE user_id=$1",[customer]);
+ // Demonstrate added inline protection without changing production restrictions.
+ await db.query('BEGIN');
+ for(const table of ['corretores','imoveis']) await db.query(`DROP POLICY tenant_isolation ON ${table}`);
+ await visible(customer,customer,1);
+ await visible(customer,unknown,0);
+ await db.query('RESET ROLE');await db.query('ROLLBACK');
+ console.log('PASS Round61 native RLS: own tenant allowed, foreign/malformed/absent/revoked/Super denied, restrictive policies unchanged, inline guard effective independently, repeat application safe.');
  console.log('PASS Round57 isolated SQL: classification preserves all rows, technical and unknown excluded, forged Super Admin context fails, legacy permissive RLS cannot override restrictive denial, ordinary membership preserved, service authority retained.');
 } finally {await db.end();}
