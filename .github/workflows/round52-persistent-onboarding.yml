@@ -46,6 +46,12 @@ jobs:
         env:
           ROUND52_ISOLATED_CI: "true"
         run: ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" node tests/round63/submissions.mjs
+      - name: Round64 profile isolation and assignee projection
+        env:
+          ROUND52_ISOLATED_CI: "true"
+        run: |
+          ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" node tests/round64/profiles.mjs
+          node tests/round64/assignees.mjs
       - run: node run-round-57-operational-governance-specs.mjs
       - run: node run-round-58-platform-administration-specs.mjs
       - name: Controlled DOM and server contracts
