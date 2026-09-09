@@ -43,18 +43,7 @@ export type CrmAssigneeDto = {
   user_id: string;
   nome: string | null;
   sobrenome: string | null;
-  ativo: boolean;
-  team_id: string | null;
-  cargo: string | null;
   email: string | null;
-  telefone: string | null;
-  whatsapp: string | null;
-  foto_url: string | null;
-  status: string | null;
-  creci: string | null;
-  cpf: string | null;
-  slug: string | null;
-  bio: string | null;
 };
 
 export type CrmLeadDto = {
@@ -596,7 +585,7 @@ export const listTenantLeadAssignees = createServerFn({ method: "GET" })
     if (userIds.length === 0) return [];
     const { data, error } = await (supabaseAdmin as any)
       .from("corretores")
-      .select("id, user_id, nome, sobrenome, ativo, team_id, cargo, email, telefone, whatsapp, foto_url, status, creci, cpf, slug, bio")
+      .select("id, user_id, nome, sobrenome, email")
       .eq("tenant_id", decision.tenantId)
       .eq("ativo", true)
       .in("user_id", userIds)
@@ -609,18 +598,7 @@ export const listTenantLeadAssignees = createServerFn({ method: "GET" })
         user_id: stringValue(value.user_id, `assignees.${index}.user_id`),
         nome: nullableString(value.nome),
         sobrenome: nullableString(value.sobrenome),
-        ativo: value.ativo === true,
-        team_id: nullableString(value.team_id),
-        cargo: nullableString(value.cargo),
         email: nullableString(value.email),
-        telefone: nullableString(value.telefone),
-        whatsapp: nullableString(value.whatsapp),
-        foto_url: nullableString(value.foto_url),
-        status: nullableString(value.status),
-        creci: nullableString(value.creci),
-        cpf: nullableString(value.cpf),
-        slug: nullableString(value.slug),
-        bio: nullableString(value.bio),
       };
     });
   });

@@ -1,3 +1,4 @@
+import "./tests/round64/contract.mjs";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
@@ -158,7 +159,7 @@ assert.equal(
       "supabase",
       "package.json",
       "bun.lock",
-      ":(exclude)src/lib/api/super-onboarding.functions.ts", ':(exclude)src/integrations/supabase/__tests__/tenant-middleware.spec.ts', ':(exclude)src/integrations/supabase/tenant-middleware.ts', ':(exclude)src/lib/api/operational-tenants.server.ts', ':(exclude)src/lib/api/super-control-plane.functions.ts', ':(exclude)src/lib/api/super.functions.ts', ':(exclude)src/lib/api/tenant-scoped-authority.ts',
+      ":(exclude)src/lib/api/super-onboarding.functions.ts", ':(exclude)src/integrations/supabase/__tests__/tenant-middleware.spec.ts', ':(exclude)src/integrations/supabase/tenant-middleware.ts', ':(exclude)src/lib/api/operational-tenants.server.ts', ':(exclude)src/lib/api/super-control-plane.functions.ts', ':(exclude)src/lib/api/super.functions.ts', ':(exclude)src/lib/api/tenant-scoped-authority.ts', ':(exclude)src/lib/api/tenant-crm.functions.ts',
       ":(exclude)supabase/migrations/20260908003058_round52_persistent_onboarding.sql",
     ],
     { encoding: "utf8" },
