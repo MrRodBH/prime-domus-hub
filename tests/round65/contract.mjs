@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 const path='src/lib/api/tenant-lifecycle.functions.ts';
 let expected=execFileSync('git',['show','fc68e7694d49f49b32d94f1792d8ae72a23e11c6:'+path],{encoding:'utf8'});
 expected=expected.replaceAll('Somente o owner ativo pode gerenciar memberships.','Somente o owner ou administrador ativo do tenant pode gerenciar membros.')
+.replace('Super Admin precisa de impersonação explícita para operar memberships.','O Super Admin não pode operar membros de tenants.')
 .replace('  if (context.tenant.isSuperAdmin) return tenantId;\n','')
 .replace('data.membership_status !== "active" || data.tenant_role !== "owner" || data.is_owner !== true','data.membership_status !== "active" || !((data.tenant_role === "owner" && data.is_owner === true) || (data.tenant_role === "admin" && data.is_owner === false))')
 .replace('  isOwner: boolean;','  isOwner: boolean;\n  canTransferOwnership: boolean;')

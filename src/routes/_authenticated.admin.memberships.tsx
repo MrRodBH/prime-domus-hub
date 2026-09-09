@@ -166,7 +166,7 @@ function TenantMembershipsPage() {
                     </td>
                     <td className="px-4 py-3"><MembershipStatusBadge status={member.status} /></td>
                     <td className="px-4 py-3">
-                      <div className="flex max-w-[260px] flex-wrap gap-1">{profileNames.length ? profileNames.map((name) => <Badge key={name} variant="secondary">{name}</Badge>) : <span className="text-xs text-muted-foreground">Sem perfil</span>}</div>
+                      <div className="flex max-w-[260px] flex-wrap gap-1">{profileNames.length ? profileNames.map((name) => <Badge key={name} variant="secondary">{name}</Badge>) : <span className="text-xs text-muted-foreground">{profilesQuery.isError || assignmentsQuery.isError ? "Perfis indisponíveis" : profilesQuery.isPending || assignmentsQuery.isPending ? "Carregando perfis…" : "Sem perfil"}</span>}</div>
                       {!profilesQuery.isError && !assignmentsQuery.isError && !profilesQuery.isPending && !assignmentsQuery.isPending && !member.isOwner && member.status !== "revoked" ? <Button className="mt-2" size="sm" variant="outline" onClick={() => setProfileUser(member)}><UserRoundCog className="mr-1 size-3" /> Gerenciar perfis</Button> : null}
                     </td>
                     <td className="px-4 py-3 text-xs">{formatDate(member.invitedAt)}</td>

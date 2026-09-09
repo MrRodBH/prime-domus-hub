@@ -63,7 +63,7 @@ function safeLifecycleError(error: unknown): Error {
     ["target_already_owner", "O usuário já é o proprietário do tenant."],
     ["membership_manager_required", "Somente o owner ou administrador ativo do tenant pode gerenciar membros."],
     ["current_owner_required", "Somente o owner atual pode transferir a propriedade."],
-    ["super_admin_requires_impersonation", "Super Admin precisa de impersonação explícita para operar memberships."],
+    ["super_admin_requires_impersonation", "O Super Admin não pode operar membros de tenants."],
   ];
   for (const [token, safe] of known) {
     if (message.includes(token)) return new Error(safe);
