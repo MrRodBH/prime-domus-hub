@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { formatInput, planFeatures, type Mask } from "@/components/demo/interactive/formats";
 
 const queryKey = ["super-onboarding"];
-const fieldClass = "grid gap-1 text-sm";
+const fieldClass = "grid content-start gap-2 text-sm font-medium";
 function Field({
   name,
   label,
@@ -42,6 +42,8 @@ function Field({
       {label}
       <Input
         name={name}
+        className="h-11 min-w-0 text-base font-normal"
+        inputMode={mask === "cep" ? "numeric" : undefined}
         type={type}
         required={required}
         disabled={disabled}
@@ -98,7 +100,7 @@ function Address({ prefix, value }: { prefix: string; value?: Company["address"]
   return (
     <div
       ref={container}
-      className="grid gap-3 sm:grid-cols-2"
+      className="grid items-start gap-x-5 gap-y-4 sm:grid-cols-2"
       onInput={(e) => {
         if (!(e.target instanceof HTMLInputElement)) return;
         manual.current.add(e.target.name);
@@ -113,15 +115,18 @@ function Address({ prefix, value }: { prefix: string; value?: Company["address"]
           void lookup();
       }}
     >
-      <div>
-        <Field name={`${prefix}.zip`} label="CEP" value={value?.zip} mask="cep" />
-        <p className="text-xs text-muted-foreground">
-          Digite o CEP e use Tab. Apenas o CEP será enviado ao ViaCEP.
-        </p>
-        <Button type="button" variant="outline" onClick={() => void lookup()}>Consultar CEP novamente</Button>
-        <span role="status" className="text-sm">
-          {postalStatus}
-        </span>
+      <div className="space-y-3 sm:col-span-2">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end">
+          <div className="w-full sm:max-w-60">
+            <Field name={`${prefix}.zip`} label="CEP" value={value?.zip} mask="cep" />
+          </div>
+          <Button type="button" variant="outline" className="h-11 w-full sm:w-auto"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => void lookup()}>Consultar CEP novamente</Button>
+        </div>
+        <p className="text-sm text-muted-foreground">Informe o CEP para buscar o endereço. Você também pode preencher os campos manualmente.</p>
+        <p role="status" aria-live="polite" aria-atomic="true"
+          className="min-h-6 break-words text-sm leading-relaxed">{postalStatus}</p>
       </div>
       <Field name={`${prefix}.street`} label="Logradouro" value={value?.street} />
       <Field name={`${prefix}.number`} label="Número" value={value?.number} />
@@ -565,11 +570,15 @@ function CompanyForm({
     <form
       onSubmit={submit}
       aria-label="Cadastro empresarial"
-      className="rounded-lg border p-4 space-y-4"
+      className="rounded-xl border bg-card p-5 space-y-6 sm:p-6"
     >
-      <h3 className="font-semibold">Editar {tenant.nome}</h3>
+      <h3 className="text-xl font-semibold">Editar {tenant.nome}</h3>
       <fieldset disabled={save.busy} className="space-y-4">
-        <Address prefix="address" value={profile.address} />
+        <section className="space-y-4" aria-label="Endereço da empresa">
+          <h4 className="text-base font-semibold">Endereço da empresa</h4>
+          <Address prefix="address" value={profile.address} />
+        </section>
+        <h4 className="border-t pt-5 text-base font-semibold">Dados da empresa e plano</h4>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field name="legalName" label="Razão social" value={profile.legalName ?? tenant.nome} />
           <Field name="cnpj" label="CNPJ" value={profile.cnpj} mask="cnpj" />

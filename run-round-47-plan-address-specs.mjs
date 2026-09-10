@@ -394,13 +394,15 @@ const headersFor = new Function(
   "isCloudflareRuntimeRequest",
   headerJs.code + "; return trackingSecurityHeaders;",
 )(() => true);
-for (const path of ["/demonstracao", "/demonstracao/", "/", "/admin", "/demonstracao-outra"]) {
+for (const path of ["/auth", "/super", "/super?view=tenants", "/super/", "/demonstracao", "/demonstracao/", "/", "/admin", "/demonstracao-outra"]) {
   const csp = headersFor(new Request("https://example.test" + path), {})["content-security-policy"];
   const connect = csp.split(";").find((part) => part.trim().startsWith("connect-src"));
   assert.equal(
     connect.includes("https://viacep.com.br"),
-    path === "/demonstracao" || path === "/demonstracao/",
+    true,
   );
+  assert.equal(connect.includes("https://cloudflare-dns.com"), path === "/demonstracao" || path === "/demonstracao/");
+  assert.ok(!connect.includes("https://*"));
   assert.ok(csp.includes("object-src 'none'"));
 }
-console.log("PASS: production CSP permits only the demonstration postal lookup");
+console.log("PASS: production CSP permits exact ViaCEP origin on login and authenticated document entries; DNS stays demo-only");

@@ -56,6 +56,9 @@ function trackingSecurityHeaders(request: Request, env: unknown): HeadersInit {
   );
   const connectOrigins = [
     "'self'",
+    // The authenticated app can be entered through /auth and navigated client-side.
+    // Keep the exact postal provider available to that document, not just the demo.
+    "https://viacep.com.br",
     "https://www.facebook.com",
     "https://connect.facebook.net",
     "https://www.google-analytics.com",
@@ -63,7 +66,7 @@ function trackingSecurityHeaders(request: Request, env: unknown): HeadersInit {
     "https://www.googletagmanager.com",
   ];
   if (["/demonstracao", "/demonstracao/"].includes(new URL(request.url).pathname)) {
-    connectOrigins.push("https://viacep.com.br", "https://cloudflare-dns.com");
+    connectOrigins.push("https://cloudflare-dns.com");
   }
   const imageOrigins = [
     "'self'",
