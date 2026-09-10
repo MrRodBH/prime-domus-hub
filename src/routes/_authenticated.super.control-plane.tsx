@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   AlertTriangle,
@@ -17,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getSuperControlPlaneSnapshot } from "@/lib/api/super-control-plane.functions";
+import { getSuperControlPlaneSnapshot, mutatePlatformSupportCase, type SuperControlPlaneSnapshot, type PlatformSupportInput } from "@/lib/api/super-control-plane.functions";
 
 export const Route = createFileRoute("/_authenticated/super/control-plane")({
   validateSearch: (search: Record<string, unknown>): { section?: string } => ({ section: ["financeiro", "consumo", "suporte"].includes(String(search.section)) ? String(search.section) : "" }),
@@ -61,9 +62,7 @@ function SuperControlPlanePage() {
     <KeyValue label="Usuários com vínculo" value={executive.distinctMembershipUsers} />
     <p className="text-sm text-muted-foreground">A contagem de usuários não representa consumo faturável.</p>
   </Panel>;
-  if (section === "suporte") return <Panel title="Suporte" icon={<LifeBuoy className="size-4" />}>
-    <RecordList records={data.support} empty="Nenhum caso de suporte registrado." titleKey="subject" stateKey="status" secondaryKey="case_key" />
-  </Panel>;
+  if (section === "suporte") return <CustomerService data={data} />;
 
   return (
     <div className="max-w-[1500px] mx-auto space-y-6 pb-12">
@@ -74,7 +73,7 @@ function SuperControlPlanePage() {
             <h1 className="text-2xl font-semibold">SaaS Control Plane</h1>
           </div>
           <p className="mt-1 text-sm text-muted-foreground max-w-3xl">
-            Autoridade global da plataforma. Recursos internos de tenant exigem impersonação explícita e auditada.
+            Gestão global da plataforma. A operação de cada empresa permanece exclusiva de sua equipe autorizada.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -158,7 +157,7 @@ function SuperControlPlanePage() {
         <Panel title="Gates externos" icon={<CloudCog className="size-4" />}>
           <StateLine state={data.domainVisibility.activationState} label={`${data.domainVisibility.configuredTenantDomains} domínio(s) configurado(s)`} />
           <StateLine state={commercial.activationState} label="Billing provider, checkout e portal indisponíveis" />
-          <StateLine state="tenant_detail_requires_impersonation" label="Sem acesso direto a recursos tenant-scoped" />
+          <StateLine state="tenant_operation_denied_for_super_admin" label="Sem acesso direto a recursos tenant-scoped" />
           <StateLine state="same_backend_homologation_cell" label="Sem fallback para backend externo" />
         </Panel>
       </section>
@@ -167,7 +166,7 @@ function SuperControlPlanePage() {
         <Panel title="Incidentes" icon={<AlertTriangle className="size-4" />}>
           <RecordList records={data.incidents} empty="Nenhum incidente registrado." titleKey="title" stateKey="status" secondaryKey="incident_key" />
         </Panel>
-        <Panel title="Suporte" icon={<LifeBuoy className="size-4" />}>
+        <Panel title="Atendimento aos clientes" icon={<LifeBuoy className="size-4" />}>
           <RecordList records={data.support} empty="Nenhum caso de suporte registrado." titleKey="subject" stateKey="status" secondaryKey="case_key" />
         </Panel>
       </section>
@@ -208,4 +207,58 @@ function RecordList({ records, empty, titleKey, stateKey, secondaryKey }: { reco
 }
 function StateCard({ icon, title, description, action }: { icon: React.ReactNode; title: string; description: string; action?: React.ReactNode }) {
   return <div className="max-w-xl mx-auto mt-20 rounded-lg border bg-card p-8 text-center"><div className="mx-auto flex size-10 items-center justify-center rounded-full bg-muted">{icon}</div><h1 className="mt-4 text-lg font-semibold">{title}</h1><p className="mt-2 text-sm text-muted-foreground">{description}</p>{action ? <div className="mt-4">{action}</div> : null}</div>;
+}
+
+
+const SUPPORT_STATUS = { open: "Aberto", triage: "Em triagem", in_progress: "Em atendimento", waiting_customer: "Aguardando cliente", resolved: "Resolvido", closed: "Encerrado" } as const;
+const SUPPORT_PRIORITY = { low: "Baixa", normal: "Normal", high: "Alta", urgent: "Urgente" } as const;
+const SUPPORT_CATEGORY = { access: "Acesso", configuration: "Configuração", crm: "CRM", cms: "Website e CMS", portal: "Portais", marketing: "Marketing", billing_visibility: "Financeiro", domain_visibility: "Domínio", incident: "Incidente", other: "Outros" } as const;
+type SupportInput = PlatformSupportInput;
+
+export function CustomerService({ data }: { data: SuperControlPlaneSnapshot }) {
+  const qc = useQueryClient();
+  const [draft, setDraft] = useState<SupportInput | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const [filter, setFilter] = useState("");
+  const mutation = useMutation({
+    mutationFn: (input: SupportInput) => mutatePlatformSupportCase({ data: input }),
+    onSuccess: () => { setDraft(null); setFeedback("Atendimento salvo."); void qc.invalidateQueries({ queryKey: ["super-control-plane"] }); },
+    onError: () => setFeedback("Não foi possível salvar o atendimento. Os dados foram mantidos; tente novamente."),
+  });
+  function edit(record: SuperControlPlaneSnapshot["support"][number]) {
+    setFeedback("");
+    setDraft({ operation: "update", id: String(record.id), caseKey: String(record.case_key), tenantId: typeof record.tenant_id === "string" ? record.tenant_id : null,
+      requesterReference: typeof record.requester_reference === "string" ? record.requester_reference : null,
+      assignedUserId: typeof record.assigned_user_id === "string" ? record.assigned_user_id : null,
+      subject: String(record.subject), summary: String(record.summary ?? ""),
+      status: record.status as SupportInput["status"], priority: record.priority as SupportInput["priority"], category: record.category as SupportInput["category"] });
+  }
+  const fieldClass = "mt-1 block min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-sm";
+  return <Panel title="Atendimento aos clientes" icon={<LifeBuoy className="size-4" />}>
+    <p className="text-sm text-muted-foreground">Registre aqui solicitações recebidas dos clientes e acompanhe o atendimento da plataforma. Salvar não envia e-mail nem dá acesso ao ambiente da empresa.</p>
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="flex-1 text-sm">Buscar atendimento<input className={fieldClass} value={filter} onChange={event => setFilter(event.target.value)} placeholder="Assunto ou protocolo" /></label>
+      <Button disabled={!!draft} onClick={() => { setFeedback(""); setDraft({ operation: "create", caseKey: "", tenantId: null, requesterReference: null, assignedUserId: null, subject: "", summary: "", category: "other", priority: "normal", status: "open" }); }}>Registrar atendimento</Button>
+    </div>
+    {feedback && <p role="status" className="rounded-lg border p-3 text-sm">{feedback}</p>}
+    {draft && <form className="space-y-4 rounded-xl border p-5" onSubmit={event => { event.preventDefault(); if (!mutation.isPending) mutation.mutate(draft); }}>
+      <h3 className="font-semibold">{draft.operation === "create" ? "Novo atendimento" : `Editar ${draft.caseKey}`}</h3>
+      <fieldset disabled={mutation.isPending} className="grid gap-4 sm:grid-cols-2">
+        <label className="text-sm">Protocolo<input required readOnly={draft.operation === "update"} pattern="SUP-[0-9]{4}-[0-9]{4,}" placeholder="SUP-2026-0001" className={fieldClass} value={draft.caseKey} onChange={e => setDraft({ ...draft, caseKey: e.target.value })} /><span className="text-xs text-muted-foreground">Use o número do atendimento no formato SUP-ano-número. O protocolo deve ser único.</span></label>
+        <label className="text-sm">Empresa<select className={fieldClass} value={draft.tenantId ?? ""} onChange={e => setDraft({ ...draft, tenantId: e.target.value || null })}><option value="">Atendimento geral da plataforma</option>{data.tenants.map(tenant => <option key={tenant.id} value={tenant.id}>{tenant.nome}</option>)}</select></label>
+        <label className="text-sm sm:col-span-2">Referência do solicitante<input maxLength={240} className={fieldClass} value={draft.requesterReference ?? ""} onChange={e => setDraft({ ...draft, requesterReference: e.target.value || null })} placeholder="Nome ou referência fornecida no atendimento" /></label>
+        <label className="text-sm sm:col-span-2">Assunto<input required minLength={3} maxLength={240} className={fieldClass} value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} /></label>
+        <label className="text-sm sm:col-span-2">Solicitação e acompanhamento<textarea required minLength={3} maxLength={4000} rows={5} className={fieldClass} value={draft.summary} onChange={e => setDraft({ ...draft, summary: e.target.value })} /></label>
+        <label className="text-sm">Categoria<select className={fieldClass} value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value as SupportInput["category"] })}>{Object.entries(SUPPORT_CATEGORY).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="text-sm">Prioridade<select className={fieldClass} value={draft.priority} onChange={e => setDraft({ ...draft, priority: e.target.value as SupportInput["priority"] })}>{Object.entries(SUPPORT_PRIORITY).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        <label className="text-sm">Situação<select className={fieldClass} value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value as SupportInput["status"] })}>{Object.entries(SUPPORT_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      </fieldset>
+      <div className="flex gap-3"><Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? "Salvando…" : "Salvar atendimento"}</Button><Button type="button" variant="outline" disabled={mutation.isPending} onClick={() => setDraft(null)}>Cancelar</Button></div>
+    </form>}
+    <div className="space-y-3">{data.support.filter(record => `${record.subject} ${record.case_key}`.toLocaleLowerCase("pt-BR").includes(filter.toLocaleLowerCase("pt-BR"))).map(record => <article key={String(record.id)} className="rounded-lg border p-4">
+      <div className="flex items-start justify-between gap-4"><div><h3 className="font-medium">{String(record.subject)}</h3><p className="text-sm text-muted-foreground">{String(record.case_key)} · {SUPPORT_STATUS[record.status as keyof typeof SUPPORT_STATUS] ?? String(record.status)}</p></div><Button variant="outline" disabled={!!draft} onClick={() => edit(record)}>Editar atendimento</Button></div>
+      <p className="mt-3 whitespace-pre-wrap break-words text-sm">{String(record.summary ?? "")}</p>
+    </article>)}</div>
+    {!data.support.length && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum atendimento registrado.</p>}
+  </Panel>;
 }

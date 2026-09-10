@@ -79,7 +79,7 @@ export function SuperDomainOperations() {
       <AdminPageHeader
         eyebrow="DCA-01 · Global platform operations"
         title="Domínios e Cloudflare"
-        description="Operações globais não concedem autoridade tenant-scoped. Retry ou observação de um tenant exige impersonação explícita."
+        description="Configure os provedores da plataforma. A conexão de cada domínio é feita pela equipe autorizada da empresa; o Super Admin não entra no ambiente do cliente."
         actions={<Button variant="outline" onClick={refreshAll} disabled={diagnosticsQuery.isFetching || providersQuery.isFetching || failuresQuery.isFetching}><RefreshCw className="mr-2 size-4" />Atualizar</Button>}
       />
 

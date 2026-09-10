@@ -1,6 +1,6 @@
 import { PlatformUsers } from "@/components/onboarding/PlatformUsers";
 import { PersistentOnboarding } from "@/components/onboarding/PersistentOnboarding";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import {
@@ -101,7 +101,23 @@ function SuperTenantsPage() {
 
       <PersistentOnboarding currentView={view ?? "dashboard"} onViewChange={next => { void navigate({ to: "/super", search: { view: next } }); }} />
 
-      {view === "dashboard" && <PlatformUsers />}
+      {view === "dashboard" && <>
+        <section className="rounded-xl border bg-card p-6 space-y-4" aria-labelledby="platform-services">
+          <h2 id="platform-services" className="font-display text-2xl">Serviços da plataforma</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Link to="/super/domains" className="rounded-lg border p-4 hover:bg-muted focus-visible:outline focus-visible:outline-2">
+              <strong className="block">Domínios e provedores</strong>
+              <span className="text-sm text-muted-foreground">Configurar a infraestrutura e acompanhar falhas de conexão.</span>
+            </Link>
+            <Link to="/super/control-plane" search={{ section: "suporte" }} className="rounded-lg border p-4 hover:bg-muted focus-visible:outline focus-visible:outline-2">
+              <strong className="block">Atendimento aos clientes</strong>
+              <span className="text-sm text-muted-foreground">Registrar solicitações recebidas e acompanhar a resolução.</span>
+            </Link>
+          </div>
+          <p className="text-sm text-muted-foreground">Website, CMS, conexão do domínio e operação comercial ficam no ambiente da empresa, em Conteúdo. O acesso é feito por uma conta autorizada da equipe. Esta conta Super Admin permanece na gestão da plataforma.</p>
+        </section>
+        <PlatformUsers />
+      </>}
       <details className="rounded-xl border bg-card p-5">
         <summary className="cursor-pointer font-semibold">
           Operação dos tenants e indicadores globais
