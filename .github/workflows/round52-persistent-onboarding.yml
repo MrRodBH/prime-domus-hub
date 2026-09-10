@@ -52,6 +52,14 @@ jobs:
         run: |
           ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" node tests/round64/profiles.mjs
           node tests/round64/assignees.mjs
+      - name: P0 integrated journey and membership authority
+        env:
+          ROUND52_ISOLATED_CI: "true"
+        run: |
+          node tests/round65/server.mjs
+          ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/round65/members-ui.mjs
+          ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" node tests/round65/members.mjs
+          ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/round65/journey.mjs
       - run: node run-round-57-operational-governance-specs.mjs
       - run: node run-round-58-platform-administration-specs.mjs
       - name: Controlled DOM and server contracts

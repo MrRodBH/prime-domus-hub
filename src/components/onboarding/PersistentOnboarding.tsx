@@ -62,6 +62,9 @@ function Address({ prefix, value }: { prefix: string; value?: Company["address"]
     container = useRef<HTMLDivElement>(null);
   const [postalStatus, setPostalStatus] = useState("");
   const pending = useRef<AbortController | null>(null);
+  // Input events are user-owned, including edits made before a retry.
+  const manual = useRef(new Set<string>());
+  const automatic = useRef(new Map<string, string>());
   useEffect(() => () => { pending.current?.abort(); version.current++; }, []);
   async function lookup() {
     const element = container.current;
@@ -79,7 +82,12 @@ function Address({ prefix, value }: { prefix: string; value?: Company["address"]
       if (current !== version.current || !element?.isConnected) return;
       for (const [key, value] of Object.entries(result)) {
         const input = element.querySelector<HTMLInputElement>(`[name="${prefix}.${key}"]`);
-        if (input && input.value === before.get(input.name)) input.value = value;
+        if (input && !manual.current.has(input.name)
+          && input.value === before.get(input.name)
+          && (input.value === "" || input.value === automatic.current.get(input.name))) {
+          input.value = value;
+          automatic.current.set(input.name, value);
+        }
       }
       setPostalStatus("Endereço consultado. Confira e complete o número.");
     } catch (error) {
@@ -92,7 +100,9 @@ function Address({ prefix, value }: { prefix: string; value?: Company["address"]
       ref={container}
       className="grid gap-3 sm:grid-cols-2"
       onInput={(e) => {
-        if (e.target instanceof HTMLInputElement && e.target.name === `${prefix}.zip`) {
+        if (!(e.target instanceof HTMLInputElement)) return;
+        manual.current.add(e.target.name);
+        if (e.target.name === `${prefix}.zip`) {
           version.current++;
           pending.current?.abort();
           setPostalStatus("");

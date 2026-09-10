@@ -61,9 +61,9 @@ function safeLifecycleError(error: unknown): Error {
     ["tenant_owner_reference_inconsistent", "A referência do owner do tenant está inconsistente."],
     ["target_must_be_active_non_owner_member", "O novo owner deve ser um membro ativo e não proprietário."],
     ["target_already_owner", "O usuário já é o proprietário do tenant."],
-    ["membership_manager_required", "Somente o owner ativo pode gerenciar memberships."],
+    ["membership_manager_required", "Somente o owner ou administrador ativo do tenant pode gerenciar membros."],
     ["current_owner_required", "Somente o owner atual pode transferir a propriedade."],
-    ["super_admin_requires_impersonation", "Super Admin precisa de impersonação explícita para operar memberships."],
+    ["super_admin_requires_impersonation", "O Super Admin não pode operar membros de tenants."],
   ];
   for (const [token, safe] of known) {
     if (message.includes(token)) return new Error(safe);
@@ -85,7 +85,6 @@ async function assertSuperAdmin(context: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertTenantMembershipManager(context: any) {
   const tenantId = requireTenantScopedAuthority(context.tenant, "Tenant Membership");
-  if (context.tenant.isSuperAdmin) return tenantId;
   const { data, error } = await context.supabase
     .from("tenant_members")
     .select("tenant_role, membership_status, is_owner")
@@ -93,8 +92,8 @@ async function assertTenantMembershipManager(context: any) {
     .eq("user_id", context.userId)
     .maybeSingle();
   if (error || !data) throw new Error("Membership de gestão não encontrada.");
-  if (data.membership_status !== "active" || data.tenant_role !== "owner" || data.is_owner !== true) {
-    throw new Error("Somente o owner ativo pode gerenciar memberships.");
+  if (data.membership_status !== "active" || !((data.tenant_role === "owner" && data.is_owner === true) || (data.tenant_role === "admin" && data.is_owner === false))) {
+    throw new Error("Somente o owner ou administrador ativo do tenant pode gerenciar membros.");
   }
   return tenantId;
 }
@@ -173,6 +172,7 @@ export type TenantMembershipView = {
   role: string;
   status: string;
   isOwner: boolean;
+  canTransferOwnership: boolean;
   isDefault: boolean;
   invitedAt: string | null;
   acceptedAt: string | null;
@@ -203,6 +203,7 @@ export const listTenantMemberships = createServerFn({ method: "GET" })
         role: row.tenant_role,
         status: row.membership_status,
         isOwner: row.is_owner,
+        canTransferOwnership: (rows ?? []).some(member => member.user_id === context.userId && member.tenant_role === "owner" && member.is_owner && member.membership_status === "active"),
         isDefault: row.is_default,
         invitedAt: row.invited_at,
         acceptedAt: row.accepted_at,

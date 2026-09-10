@@ -42,6 +42,23 @@ try {
  assert.equal(d.querySelector('[name="address.number"]').value,'42');
  assert.equal(d.querySelector('[name="address.street"]').value,'Rua escolhida');
  assert.equal(d.querySelector('[name="address.city"]').value,'São Paulo');
+ // P0: edits BEFORE retry (including clearing a field) stay user-owned.
+ await fill('address.district','Bairro manual'); await fill('address.region','');
+ button('Consultar CEP novamente').click(); await tick();
+ completePostal({ok:true,json:async()=>({cep:'01001-000',logradouro:'Não substituir',bairro:'Não substituir',localidade:'São Paulo',uf:'SP'})});
+ await until(()=>d.body.textContent.includes('Endereço consultado'));
+ assert.equal(d.querySelector('[name="address.street"]').value,'Rua escolhida');
+ assert.equal(d.querySelector('[name="address.district"]').value,'Bairro manual');
+ assert.equal(d.querySelector('[name="address.region"]').value,'');
+ // An obsolete response cannot overwrite the newer request, even if fetch ignores abort.
+ button('Consultar CEP novamente').click(); await tick(); const stale=completePostal;
+ await fill('address.zip','30140-071'); button('Consultar CEP novamente').click(); await tick();
+ assert.equal(postalRequests.at(-2).options.signal.aborted,true);
+ completePostal({ok:true,json:async()=>({cep:'30140-071',logradouro:'Rua nova',bairro:'Novo',localidade:'Belo Horizonte',uf:'MG'})});
+ await until(()=>d.querySelector('[name="address.city"]').value==='Belo Horizonte');
+ stale({ok:true,json:async()=>({cep:'01001-000',logradouro:'Antiga',bairro:'Antigo',localidade:'São Paulo',uf:'SP'})}); await tick();
+ assert.equal(d.querySelector('[name="address.city"]').value,'Belo Horizonte');
+ assert.equal(d.querySelector('[name="address.street"]').value,'Rua escolhida');
  w.fetch=async()=>{throw Error('offline');};button('Consultar CEP novamente').click();
  await until(()=>d.body.textContent.includes('Consulta de CEP indisponível'));
  w.fetch=()=>{throw Error('REMOTE_FORBIDDEN');};
