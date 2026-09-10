@@ -161,13 +161,12 @@ check("non-atomic Super tenant insert path is removed", () => {
   assert.equal(/export const criarTenant[\s\S]{0,700}\.from\(["']tenants["']\)[\s\S]{0,200}\.insert\(/.test(superFunctions), false);
 });
 
-check("Super Control Plane exposes owner, onboarding and DCA/BCA states", () => {
+check("Super Control Plane registers company before independent Admin, retaining financial state", () => {
   for (const marker of [
-    "bootstrapTenantWithOwner",
-    "E-mail do owner inicial",
-    "Status inicial",
-    "Criar tenant e owner",
-    "pending DCA-01",
+    "registerSetupCompany",
+    "Origem do cadastro",
+    "Referência da venda",
+    "Cadastrar empresa",
     "pending BCA-01",
   ]) {
     assert.ok(superRoute.includes(marker), marker);

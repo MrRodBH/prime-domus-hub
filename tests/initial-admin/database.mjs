@@ -12,7 +12,9 @@ try {
  CREATE TABLE public.user_roles(user_id uuid,role text);
  CREATE TABLE public.tenants(id uuid PRIMARY KEY,slug text UNIQUE,nome text,status text,operational_kind text,owner_user_id uuid REFERENCES auth.users,plano_codigo text,metadata jsonb,updated_at timestamptz DEFAULT now());
  CREATE TABLE public.commercial_plans(id uuid PRIMARY KEY,code text,status text);
- CREATE TABLE public.rbac_profiles(id uuid PRIMARY KEY,codigo text,sistema boolean,tenant_id uuid);
+ CREATE TABLE public.rbac_modules(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),codigo text UNIQUE,nome text,descricao text,ordem int);
+ CREATE TABLE public.rbac_profiles(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),codigo text,sistema boolean,tenant_id uuid,nome text UNIQUE,descricao text);
+ CREATE TABLE public.rbac_permissions(profile_id uuid,module_id uuid,action text,scope text);
  CREATE TABLE public.user_profiles(tenant_id uuid,user_id uuid,profile_id uuid,UNIQUE(tenant_id,user_id,profile_id));
  CREATE TYPE public.tenant_role AS ENUM ('owner','admin','viewer');CREATE TYPE public.membership_status AS ENUM('invited','active','suspended','revoked');
  CREATE TABLE public.tenant_members(tenant_id uuid REFERENCES tenants,user_id uuid REFERENCES auth.users,tenant_role public.tenant_role,membership_status public.membership_status,is_owner boolean DEFAULT false,is_default boolean DEFAULT true,joined_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),invited_at timestamptz,accepted_at timestamptz,PRIMARY KEY(tenant_id,user_id));
@@ -20,7 +22,7 @@ try {
  await db.query(readFileSync('supabase/migrations/20260910150013_sequential_initial_admin_setup.sql','utf8'));
  for(let n=1;n<=9;n++)await db.query('INSERT INTO auth.users VALUES($1,$2,$3)',[id(n),`user${n}@fixture.invalid`,n===4?null:new Date()]);
  await db.query("INSERT INTO user_roles VALUES($1,'super_admin')",[id(1)]);
- await db.query("INSERT INTO rbac_profiles VALUES($1,'admin',true,null)",[id(41)]);
+ await db.query("INSERT INTO rbac_profiles(id,codigo,sistema,tenant_id) VALUES($1,'admin',true,null)",[id(41)]);
  await db.query("INSERT INTO commercial_plans VALUES($1,'fixture','active')",[id(40)]);
  const register=(actor,n,source='direct_sale',reference='')=>db.query('SELECT register_setup_company($1,$2,$3,$4,$5,$6) r',[id(actor),id(n),`Fixture ${n}`,`fixture-${n}`,source,reference]);
  const prepare=(actor,n,user=2,expected=null)=>db.query('SELECT prepare_initial_admin($1,$2,$3,$4,$5) r',[id(actor),id(n),'Fixture Admin',`user${user}@fixture.invalid`,expected]);
@@ -42,7 +44,9 @@ try {
  await Promise.all([activate(2,a.invitationId),second.query('SELECT activate_initial_admin($1,$2)',[id(2),a.invitationId])]);await second.end();
  assert.equal((await db.query('SELECT count(*) n FROM tenant_members WHERE tenant_id=$1',[id(20)])).rows[0].n,'1');
  const member=(await db.query('SELECT * FROM tenant_members WHERE tenant_id=$1',[id(20)])).rows[0];assert.equal(member.tenant_role,'admin');assert.equal(member.is_owner,false);
- assert.deepEqual((await db.query('SELECT tenant_id,user_id,profile_id FROM user_profiles')).rows,[{tenant_id:id(20),user_id:id(2),profile_id:id(41)}]);
+ assert.equal((await db.query('SELECT count(*) n FROM user_profiles WHERE tenant_id=$1 AND user_id=$2',[id(20),id(2)])).rows[0].n,'2');
+ assert.equal((await db.query("SELECT count(*) n FROM user_profiles u JOIN rbac_profiles p ON p.id=u.profile_id JOIN rbac_permissions r ON r.profile_id=p.id JOIN rbac_modules m ON m.id=r.module_id WHERE u.tenant_id=$1 AND p.tenant_id=$1 AND u.user_id=$2 AND m.codigo='access_control' AND r.action='gerenciar' AND r.scope='global'",[id(20),id(2)])).rows[0].n,'1');
+ assert.equal((await db.query('SELECT count(*) n FROM user_profiles WHERE tenant_id=$1',[id(21)])).rows[0].n,'0');
  await assert.rejects(prepare(1,20,3,a.invitationId),/setup_already_operational/);
  await db.query("UPDATE tenant_members SET membership_status='revoked' WHERE tenant_id=$1",[id(20)]);await assert.rejects(activate(2,a.invitationId),/setup_already_activated/);
  const b=(await prepare(1,21,4)).rows[0].r;assert.equal(b.existingConfirmedAccount,false);

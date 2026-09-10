@@ -1,6 +1,10 @@
 -- Company registration precedes the independent initial administrator milestone.
 -- No existing tenant owner, identity, permission or commercial entitlement is changed.
 BEGIN;
+-- Required by the existing tenant access manager; catalogue only, no global profile grant.
+INSERT INTO public.rbac_modules(codigo,nome,descricao,ordem)
+VALUES('access_control','Gestão de acessos','Perfis e equipes da empresa',100)
+ON CONFLICT (codigo) DO NOTHING;
 CREATE TABLE public.tenant_initial_admin_setup (
   tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id) ON DELETE RESTRICT,
   invitation_id uuid NOT NULL UNIQUE DEFAULT gen_random_uuid(),
@@ -80,7 +84,7 @@ END $$;
 
 CREATE FUNCTION public.activate_initial_admin(p_actor uuid,p_invitation uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
-DECLARE s public.tenant_initial_admin_setup%ROWTYPE; t public.tenants%ROWTYPE; u auth.users%ROWTYPE; tid uuid; admin_profile uuid;
+DECLARE s public.tenant_initial_admin_setup%ROWTYPE; t public.tenants%ROWTYPE; u auth.users%ROWTYPE; tid uuid; admin_profile uuid; access_profile uuid;
 BEGIN
   SELECT tenant_id INTO tid FROM public.tenant_initial_admin_setup WHERE invitation_id=p_invitation;
   -- Same lock order as invitation preparation and existing membership mutations.
@@ -112,7 +116,11 @@ BEGIN
   -- Foundational first administrator only. Ordinary invitations and seat enforcement are unchanged.
   INSERT INTO public.tenant_members(tenant_id,user_id,tenant_role,membership_status,is_owner,is_default,invited_at,accepted_at)
     VALUES(tid,p_actor,'admin','active',false,false,s.requested_at,now());
-  INSERT INTO public.user_profiles(tenant_id,user_id,profile_id) VALUES(tid,p_actor,admin_profile);
+  INSERT INTO public.rbac_profiles(tenant_id,nome,descricao,codigo,sistema)
+    VALUES(tid,'Gestão de acessos · '||t.slug,'Gestor inicial da empresa, sem transferência de propriedade',NULL,false) RETURNING id INTO access_profile;
+  INSERT INTO public.rbac_permissions(profile_id,module_id,action,scope)
+    SELECT access_profile,id,'gerenciar','global' FROM public.rbac_modules WHERE codigo='access_control';
+  INSERT INTO public.user_profiles(tenant_id,user_id,profile_id) VALUES(tid,p_actor,admin_profile),(tid,p_actor,access_profile);
   UPDATE public.tenant_initial_admin_setup SET activated_at=now(),activated_user_id=p_actor WHERE tenant_id=tid;
   RETURN jsonb_build_object('tenantId',tid,'activated',true);
 END $$;
