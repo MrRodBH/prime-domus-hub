@@ -27,7 +27,7 @@ export function Header() {
   const wa = `https://wa.me/${waNumber}`;
 
   const renderLink = (item: (typeof menu)[number], onClickExtra?: () => void) => {
-    const isExternal = item.tipo === "external" || /^https?:\/\//i.test(item.url);
+    const isExternal = item.tipo === "external" || item.target === "_blank" || /^(https?:\/\/|mailto:|tel:)/i.test(item.url);
     const className = "text-[11px] uppercase tracking-[0.22em] font-medium text-foreground/80 hover:text-gold transition-colors";
     if (isExternal) {
       return (
