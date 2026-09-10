@@ -170,9 +170,9 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
   const [plan, setPlan] = useState<PlanRow | "new" | null>(null);
   const [tenant, setTenant] = useState<CompanyRow | null>(null);
   const [message, setMessage] = useState("");
-  function done() {
-    setPlan(null);
-    setTenant(null);
+  function done(savedView: "plans" | "tenants") {
+    if (savedView === "plans") setPlan(null);
+    else setTenant(null);
     setView("dashboard");
     setMessage("Cadastro salvo no banco. Ele estará disponível após novo login.");
     void client.invalidateQueries({ queryKey });
@@ -210,7 +210,6 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
             key={id}
             variant={view === id ? "default" : "outline"}
             aria-current={view === id ? "page" : undefined}
-            disabled={!!plan || !!tenant}
             onClick={() => setView(id)}
           >
             {label}
@@ -240,6 +239,18 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
           ))}
         </div>
       )}
+      {tenant && view !== "tenants" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
+          <p className="text-sm">A edição de {tenant.nome} foi mantida nesta sessão. As alterações ainda não foram salvas.</p>
+          <Button variant="outline" onClick={() => setView("tenants")}>Retomar edição da empresa</Button>
+        </div>
+      )}
+      {plan && view !== "plans" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
+          <p className="text-sm">A edição do plano foi mantida nesta sessão. As alterações ainda não foram salvas.</p>
+          <Button variant="outline" onClick={() => setView("plans")}>Retomar edição do plano</Button>
+        </div>
+      )}
       {message && <p role="status">{message}</p>}
       {query.isPending && <p role="status">Carregando cadastros…</p>}
       {query.isError && (
@@ -250,12 +261,11 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
       )}
       {query.data && (
         <>
-          {view === "plans" && (
-            <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+          <div hidden={view !== "plans"} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Planos</h3>
                 <Button
-                  disabled={!!plan || !!tenant}
+                  disabled={!!plan}
                   onClick={() => {
                     setMessage("");
                     setPlan("new");
@@ -290,7 +300,7 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
                         <td className="p-2 text-right">
                           <Button
                             variant="outline"
-                            disabled={!!plan || !!tenant}
+                            disabled={!!plan}
                             onClick={() => setPlan(p)}
                           >
                             Editar plano
@@ -312,14 +322,12 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
                 <PlanForm
                   key={plan === "new" ? "new" : plan.id}
                   plan={plan}
-                  onDone={done}
+                  onDone={() => done("plans")}
                   onCancel={() => setPlan(null)}
                 />
               )}
             </div>
-          )}
-          {view === "tenants" && (
-            <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+            <div hidden={view !== "tenants"} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
               <h3 className="font-semibold">Cadastro completo dos tenants</h3>
               <label className="grid gap-1 text-sm">
                 Buscar empresa ou domínio
@@ -356,7 +364,7 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
                           <td className="p-2 text-right">
                             <Button
                               variant="outline"
-                              disabled={!!plan || !!tenant}
+                              disabled={!!tenant}
                               onClick={() => {
                                 setMessage("");
                                 setTenant(t);
@@ -388,12 +396,11 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
                   key={tenant.id}
                   tenant={tenant}
                   plans={query.data.plans}
-                  onDone={done}
+                  onDone={() => done("tenants")}
                   onCancel={() => setTenant(null)}
                 />
               )}
             </div>
-          )}
         </>
       )}
     </section>
