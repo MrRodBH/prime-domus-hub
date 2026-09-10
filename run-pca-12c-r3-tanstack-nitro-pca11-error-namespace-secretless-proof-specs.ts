@@ -359,7 +359,8 @@ const initialAdminSetupPaths = [
   "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
   "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
   "run-round-46-empty-onboarding-specs.mjs",
-  "run-round-44-broker-identity-ui-specs.mjs"
+  "run-round-44-broker-identity-ui-specs.mjs",
+  "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts"
 ];
 
 const round56ApprovedNavigationPaths = [
