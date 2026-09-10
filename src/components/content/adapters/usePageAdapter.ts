@@ -8,6 +8,7 @@ import {
   listTenantPages,
   listTenantPageVersions,
   publishTenantPage,
+  unpublishTenantPage,
   rollbackTenantPage,
   saveTenantPageDraft,
 } from "@/lib/api/tenant-cms.functions";
@@ -69,6 +70,7 @@ export function usePageAdapter(): ContentEntityAdapter {
   const getFn = useServerFn(getTenantPage);
   const saveDraftFn = useServerFn(saveTenantPageDraft);
   const publishFn = useServerFn(publishTenantPage);
+  const unpublishFn = useServerFn(unpublishTenantPage);
   const versionsFn = useServerFn(listTenantPageVersions);
   const rollbackFn = useServerFn(rollbackTenantPage);
 
@@ -108,6 +110,7 @@ export function usePageAdapter(): ContentEntityAdapter {
       seo,
       blocks: sectionBlocks(snapshot),
       data: {
+        sourceSnapshot: snapshot,
         revision: row.revision,
         pageType: row.pageType,
         layoutType: row.layoutType,
@@ -122,6 +125,8 @@ export function usePageAdapter(): ContentEntityAdapter {
   const save = useCallback(
     async (id: string | null, draft: ContentDraft, opts: { publish: boolean }) => {
       const references = collectReferences(draft.blocks);
+      const source = draft.data.sourceSnapshot as Record<string, unknown> | null;
+      const priorSections = ((source?.layout as { sections?: Array<{id: string; region: string}> } | undefined)?.sections) ?? [];
       const expectedRevision = Number(draft.data.revision ?? 0);
       const pageType = typeof draft.data.pageType === "string" ? draft.data.pageType : "standard";
       const layoutType = typeof draft.data.layoutType === "string" ? draft.data.layoutType : "single_column";
@@ -143,15 +148,15 @@ export function usePageAdapter(): ContentEntityAdapter {
               sections: draft.blocks.map((block) => ({
                 id: block.id,
                 type: block.type,
-                region: "main",
+                region: priorSections.find(section => section.id === block.id)?.region ?? "main",
                 data: block.data,
               })),
             },
-            navigation_references: [],
+            navigation_references: (source?.navigation_references ?? []) as never,
             form_references: references.forms,
-            campaign_references: [],
+            campaign_references: (source?.campaign_references ?? []) as string[],
             media_references: references.media,
-            configuration_references: [],
+            configuration_references: (source?.configuration_references ?? []) as string[],
           },
         },
       });
@@ -160,10 +165,18 @@ export function usePageAdapter(): ContentEntityAdapter {
       if (opts.publish) {
         await publishFn({ data: { pageId, expectedRevision: revision } });
       }
-      return { id: pageId };
+      return { id: pageId, data: { revision, draftVersionId: saved.versionId ?? null } };
     },
     [publishFn, saveDraftFn],
   );
+
+  const publish = useCallback(async (id: string, draft: ContentDraft) => {
+    await publishFn({ data: { pageId: id, expectedRevision: Number(draft.data.revision) } });
+  }, [publishFn]);
+
+  const unpublish = useCallback(async (id: string, draft: ContentDraft) => {
+    await unpublishFn({ data: { pageId: id, expectedRevision: Number(draft.data.revision) } });
+  }, [unpublishFn]);
 
   const remove = useCallback(async () => {
     throw new Error("Exclusão direta retirada: despublique ou arquive a página por workflow explícito.");
@@ -191,11 +204,13 @@ export function usePageAdapter(): ContentEntityAdapter {
       fetchList,
       fetchDetail,
       save,
+      publish,
+      unpublish,
       remove,
       listVersions,
       restoreVersion,
       publicUrl: (_detail, draft) => (draft.slug ? `/p/${draft.slug}` : null),
     }),
-    [fetchList, fetchDetail, save, remove, listVersions, restoreVersion],
+    [fetchList, fetchDetail, save, publish, unpublish, remove, listVersions, restoreVersion],
   );
 }

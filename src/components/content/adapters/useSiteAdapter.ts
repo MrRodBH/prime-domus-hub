@@ -56,7 +56,7 @@ export function useSiteAdapter(): ContentEntityAdapter {
 
   const fetchList = useCallback(async (): Promise<ContentEntityRecord[]> => {
     const state = await stateFn();
-    const status: StatusValue = state.draft ? "draft" : "published";
+    const status: StatusValue = state.draft || !state.published ? "draft" : "published";
     const updatedAt = state.draft?.createdAt ?? state.published?.createdAt ?? new Date(0).toISOString();
     return SITE_SECTIONS.map((section) => ({
       id: section.id,
@@ -80,7 +80,7 @@ export function useSiteAdapter(): ContentEntityAdapter {
       id,
       titulo: section.label,
       slug: id,
-      status: state.draft ? "draft" : "published",
+      status: state.draft || !state.published ? "draft" : "published",
       updated_at: state.draft?.createdAt ?? state.published?.createdAt ?? new Date(0).toISOString(),
       descricao: section.description,
       seo: {},
@@ -117,7 +117,7 @@ export function useSiteAdapter(): ContentEntityAdapter {
       throw new Error("configuration_editor_state_invalid");
     }
     const snapshot = mergeConfigurationDomain(data.snapshot, section.id, data.value);
-    await saveFn({
+    const saved = await saveFn({
       data: {
         snapshot,
         expectedRevision: data.expectedRevision as number,
@@ -127,8 +127,12 @@ export function useSiteAdapter(): ContentEntityAdapter {
     if (options.publish) {
       await publishFn({ data: { expectedRevision: data.expectedRevision as number } });
     }
-    return { id };
+    return { id, data: { snapshot, expectedRevision: saved.basedOnRevision, draftRevision: saved.revision, configurationStatus: "draft" } };
   }, [publishFn, saveFn]);
+
+  const publish = useCallback(async (_id: string, draft: ContentDraft) => {
+    await publishFn({ data: { expectedRevision: Number(draft.data.expectedRevision) } });
+  }, [publishFn]);
 
   const remove = useCallback(async () => {
     throw new Error("configuration_domains_cannot_be_deleted");
@@ -159,7 +163,7 @@ export function useSiteAdapter(): ContentEntityAdapter {
   const publicUrl = useCallback(() => "/", []);
 
   return useMemo(
-    () => ({ fetchList, fetchDetail, save, remove, listVersions, restoreVersion, publicUrl }),
-    [fetchList, fetchDetail, save, remove, listVersions, restoreVersion, publicUrl],
+    () => ({ fetchList, fetchDetail, save, publish, remove, listVersions, restoreVersion, publicUrl }),
+    [fetchList, fetchDetail, save, publish, remove, listVersions, restoreVersion, publicUrl],
   );
 }

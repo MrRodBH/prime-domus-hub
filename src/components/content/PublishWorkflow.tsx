@@ -27,7 +27,7 @@ const STATE_STYLES: Record<PublicationState, string> = {
 export function PublishWorkflow() {
   const s = useContentSession();
   const url = s.adapter.publicUrl ? s.adapter.publicUrl(s.detail, s.draft) : null;
-  const isPublished = s.detail?.status === "published" || s.detail?.status === "active";
+  const isPublished = s.detail?.status === "published" || s.detail?.status === "active" || !!s.detail?.data.publishedVersionId || Number(s.detail?.data.publishedRevision ?? 0) > 0;
   const isArchived = s.draft.status === "archived";
   const supportsUnpublish = s.descriptor.supportedActions.includes("despublicar");
   const supportsArchive = s.descriptor.supportedActions.includes("arquivar");
@@ -58,6 +58,8 @@ export function PublishWorkflow() {
           {s.workflow === "scheduled" && "Agendado para publicação futura."}
           {s.workflow === "archived" && "Arquivado. Não aparece no site."}
         </p>
+        {((supportsUnpublish && !s.adapter.unpublish) || (supportsArchive && !s.adapter.archive) || (isArchived && !s.adapter.restore)) &&
+          <p className="text-sm text-muted-foreground">As ações desabilitadas ainda não possuem um fluxo persistente disponível. Salvar rascunho não retira conteúdo do ar.</p>}
         <div className="flex flex-wrap gap-2 pt-1">
           {supportsPublish && !isArchived && (
             <Button onClick={() => void s.publish()} disabled={s.publishing || s.isNew}>
@@ -66,17 +68,17 @@ export function PublishWorkflow() {
             </Button>
           )}
           {supportsUnpublish && isPublished && !isArchived && (
-            <Button variant="outline" onClick={() => void s.unpublish()} disabled={s.publishing}>
+            <Button variant="outline" onClick={() => void s.unpublish()} disabled={s.publishing || !s.adapter.unpublish}>
               <EyeOff className="size-4 mr-1.5" /> Despublicar
             </Button>
           )}
           {supportsArchive && !isArchived && (
-            <Button variant="outline" onClick={() => void s.archive()} disabled={s.publishing}>
+            <Button variant="outline" onClick={() => void s.archive()} disabled={s.publishing || !s.adapter.archive}>
               <Archive className="size-4 mr-1.5" /> Arquivar
             </Button>
           )}
           {isArchived && (
-            <Button variant="outline" onClick={() => void s.restore()} disabled={s.publishing}>
+            <Button variant="outline" onClick={() => void s.restore()} disabled={s.publishing || !s.adapter.restore}>
               <Undo2 className="size-4 mr-1.5" /> Reabrir como rascunho
             </Button>
           )}

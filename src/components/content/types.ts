@@ -89,7 +89,11 @@ export interface ContentEntityAdapter {
   /** Contexto/label opcional exposto pelo adapter (ex.: quantidade total). */
   fetchList(params: ListParams): Promise<ContentEntityRecord[]>;
   fetchDetail(id: string): Promise<ContentEntityDetail>;
-  save(id: string | null, draft: ContentDraft, opts: { publish: boolean }): Promise<{ id: string }>;
+  save(id: string | null, draft: ContentDraft, opts: { publish: boolean }): Promise<{ id: string; data?: Record<string, unknown>; status?: StatusValue }>;
+  publish?(id: string, draft: ContentDraft): Promise<void>;
+  unpublish?(id: string, draft: ContentDraft): Promise<void>;
+  archive?(id: string, draft: ContentDraft): Promise<void>;
+  restore?(id: string, draft: ContentDraft): Promise<void>;
   remove(id: string): Promise<void>;
   /** Retorna URL pública absoluta ou relativa. */
   publicUrl?(detail: ContentEntityDetail | null, draft: ContentDraft): string | null;

@@ -67,6 +67,9 @@ export function ContentEditor({ search, onClose }: { search: ContentSearch; onCl
     navigate({ to: s.descriptor.route as any, search: { ...search, tab: t } as any, replace: true, resetScroll: false });
   }
 
+  if (s.loadError && !s.detail) {
+    return <div role="alert" className="space-y-3 p-5"><p>{s.loadError}</p><Button onClick={() => void s.retryLoad()}>Tentar carregar novamente</Button></div>;
+  }
   if (s.loading) {
     return <div className="h-full flex items-center justify-center"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>;
   }
@@ -105,7 +108,7 @@ export function ContentEditor({ search, onClose }: { search: ContentSearch; onCl
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {s.isNew && (
-            <Button size="sm" onClick={() => void s.flush()} disabled={!s.draft.titulo}>
+            <Button size="sm" onClick={() => void s.flush().catch(() => undefined)} disabled={!s.draft.titulo}>
               <Save className="size-4 mr-1.5" /> Salvar
             </Button>
           )}
@@ -186,7 +189,7 @@ function SaveIndicator() {
   const s = useContentSession();
   if (s.descriptor.editorKind === "audit") return null;
   if (s.isNew) return <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Novo</span>;
-  if (s.save === "error") return <span className="inline-flex items-center gap-1 text-[10px] text-destructive"><CloudOff className="size-3" /> {s.saveError ?? "Falha"}</span>;
+  if (s.save === "error") return <span className="inline-flex items-center gap-1 text-[10px] text-destructive"><CloudOff className="size-3" /> {s.saveError ?? "Falha"}<Button type="button" size="sm" variant="outline" onClick={() => void s.flush().catch(() => undefined)}>Tentar salvar novamente</Button></span>;
   if (s.save === "saving") return <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Loader2 className="size-3 animate-spin" /> Salvando…</span>;
   if (s.save === "editing") return <span className="text-[10px] text-amber-600">Editando…</span>;
   if (s.save === "saved" && s.lastSavedAt) return <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><Cloud className="size-3" /> Salvo às {s.lastSavedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>;

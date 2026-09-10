@@ -23,7 +23,7 @@ export function VersionsPanel() {
 
   // Fallback local (adapters que não implementam listVersions):
   const versions: VersionRecord[] = useMemo(() => {
-    if (s.versions && s.versions.length) return s.versions;
+    if (s.adapter.listVersions) return s.versions ?? [];
     const rows: VersionRecord[] = [];
     if (s.detail) {
       rows.push({
@@ -42,7 +42,7 @@ export function VersionsPanel() {
       payload: { titulo: s.draft.titulo, blocks: s.draft.blocks, seo: s.draft.seo, data: s.draft.data },
     });
     return rows;
-  }, [s.versions, s.detail, s.draft]);
+  }, [s.adapter.listVersions, s.versions, s.detail, s.draft]);
 
   const [a, setA] = useState<string>("");
   const [b, setB] = useState<string>("");
@@ -67,18 +67,20 @@ export function VersionsPanel() {
     return rows;
   }, [va, vb]);
 
-  const canRestore = !!s.adapter.restoreVersion;
+  const canRestore = !!s.adapter.restoreVersion && !s.versionsError && !s.publishing;
 
   return (
     <div className="space-y-4 max-w-full">
       <div className="text-sm text-muted-foreground">
         Comparação lado a lado. Restaurar gera um rascunho editável — publicação continua desacoplada.
       </div>
+      {s.versionsError && <div role="alert" className="space-y-2"><p className="text-sm text-destructive">Não foi possível carregar as versões. {s.versionsError}</p><Button onClick={() => void s.refreshVersions()}>Tentar novamente</Button></div>}
+      {!loading && !s.versionsError && versions.length === 0 && <p>Nenhuma versão registrada.</p>}
       {loading && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="size-3 animate-spin" /> Carregando versões…</div>}
 
       <div className="grid grid-cols-2 gap-3">
-        <VersionColumn label="Versão A" versions={versions} selected={a} onChange={setA} canRestore={canRestore} onRestore={(id) => void s.restoreVersion(id)} />
-        <VersionColumn label="Versão B" versions={versions} selected={b} onChange={setB} canRestore={canRestore} onRestore={(id) => void s.restoreVersion(id)} />
+        <VersionColumn label="Versão A" versions={versions} selected={a} onChange={setA} canRestore={canRestore} onRestore={(id) => void s.restoreVersion(id).catch(() => undefined)} />
+        <VersionColumn label="Versão B" versions={versions} selected={b} onChange={setB} canRestore={canRestore} onRestore={(id) => void s.restoreVersion(id).catch(() => undefined)} />
       </div>
 
       <div className="rounded-md border border-foreground/10 overflow-hidden">
