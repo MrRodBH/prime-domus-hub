@@ -470,6 +470,8 @@ const round56ApprovedNavigationPaths = [
   "src/components/content/adapters/useSiteAdapter.ts",
   "src/components/content/adapters/usePostAdapter.ts",
   "src/components/content/PublishWorkflow.tsx",
+  "src/components/content/ContentEditor.tsx",
+  "src/components/content/VersionsPanel.tsx",
 ];
 const round55PlanFormPaths = [
   ".github/workflows/round52-persistent-onboarding.yml",

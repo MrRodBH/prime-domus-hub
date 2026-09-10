@@ -35,6 +35,8 @@ export type ContentSessionValue = {
 
   detail: ContentEntityDetail | null;
   loading: boolean;
+  loadError: string | null;
+  retryLoad: () => Promise<void>;
 
   draft: ContentDraft;
   patch: (p: Partial<ContentDraft>) => void;
@@ -58,6 +60,7 @@ export type ContentSessionValue = {
 
   // Versionamento genérico
   versions: VersionRecord[] | null;
+  versionsError: string | null;
   refreshVersions: () => Promise<void>;
   restoreVersion: (versionId: string) => Promise<void>;
 
@@ -92,6 +95,7 @@ export function ContentSessionProvider({
   const [previewNonce, setPreviewNonce] = useState(0);
   const [publishing, setPublishing] = useState(false);
   const [versions, setVersions] = useState<VersionRecord[] | null>(null);
+  const [versionsError, setVersionsError] = useState<string | null>(null);
 
   const draftRef = useRef(draft);
   const baselineRef = useRef(initialDraft);
@@ -194,10 +198,11 @@ export function ContentSessionProvider({
 
   const refreshVersions = useCallback(async () => {
     if (!entityId || !adapter.listVersions) { setVersions([]); return; }
+    setVersionsError(null);
     try {
       const v = await adapter.listVersions(entityId);
       setVersions(v);
-    } catch { setVersions([]); }
+    } catch (e) { setVersionsError(e instanceof Error ? e.message : "Falha ao carregar versões."); }
   }, [entityId, adapter]);
 
   const restoreVersion = useCallback(async (versionId: string) => {
@@ -217,20 +222,22 @@ export function ContentSessionProvider({
       void qc.invalidateQueries({ queryKey: ["content-list", descriptor.kind] });
       await refreshVersions();
       toast.success("Versão restaurada como rascunho");
-    } finally { operationRef.current = false; setPublishing(false); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao restaurar versão."); throw e; } finally { operationRef.current = false; setPublishing(false); }
   }, [entityId, adapter, qc, descriptor.kind, refreshVersions, autosave, setCurrent]);
 
   const value: ContentSessionValue = {
     descriptor, adapter, entityId: entityId ?? null, isNew,
     detail: detailQuery.data ?? null,
     loading: detailQuery.isLoading,
+    loadError: detailQuery.isError ? "Não foi possível carregar este registro. Seus dados não foram apagados." : null,
+    retryLoad: async () => { await detailQuery.refetch(); },
     draft, patch, updateBlocks, updateSeo, updateData, reset, isDirty,
     save: autosave.state,
     lastSavedAt: autosave.lastSavedAt,
     saveError: autosave.error,
     flush: async () => { if (isNew) await createMut.mutateAsync(); else await autosave.flush(); },
     workflow, publish, unpublish, archive, restore, publishing,
-    versions, refreshVersions, restoreVersion,
+    versions, versionsError, refreshVersions, restoreVersion,
     previewNonce,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

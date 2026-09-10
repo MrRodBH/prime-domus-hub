@@ -170,8 +170,8 @@ window.refresh=()=>qc.refetchQueries({queryKey:['content-detail','pagina','page'
  b.onResolve({filter:/tenant-cms.functions$/},()=>({path:'api',namespace:'cms-fixture'}));
  b.onResolve({filter:/^sonner$/},()=>({path:'toast',namespace:'cms-fixture'}));
  b.onLoad({filter:/.*/,namespace:'cms-fixture'},a=>({contents:a.path==='start'?'export const useServerFn=fn=>fn':a.path==='toast'?`export const toast={success:m=>window.messages.push(['success',m]),error:m=>window.messages.push(['error',m])}`:`
-export const getTenantPage=async()=>structuredClone(window.record);
-export const listTenantPages=async()=>[];export const listTenantPageVersions=async()=>[];export const rollbackTenantPage=async()=>{};
+export const getTenantPage=async()=>{if(window.failLoad)throw Error("load denied");return structuredClone(window.record)};
+export const listTenantPages=async()=>[];export const listTenantPageVersions=async()=>{if(window.failVersions)throw Error("versions denied");return []};export const rollbackTenantPage=async()=>{};
 export const saveTenantPageDraft=async({data})=>{
  window.saves.push(structuredClone(data));if(window.hold)await new Promise(r=>window.release=r);
  if(window.failSave)throw Error('save denied');
@@ -187,7 +187,8 @@ const cmsDom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/adm
 try{
  const w=cmsDom.window;w.structuredClone=x=>JSON.parse(JSON.stringify(x));w.fetch=()=>{throw Error('REMOTE_FORBIDDEN')};w.saves=[];w.publishes=[];w.unpublishes=[];w.messages=[];
  w.record={id:'page',title:'Original',slug:'pagina',description:'Descrição',status:'draft',revision:0,pageType:'standard',layoutType:'sidebar_right',schemaVersion:1,draft:{id:'draft-0',schemaVersion:1},published:null,effectiveSnapshot:{seo:{},navigation_references:[{location:'footer',label:'Página'}],campaign_references:['campaign-existing'],configuration_references:['primary_color'],layout:{sections:[{id:'block-existing',type:'richtext',region:'sidebar',data:{html:'<p>Preservar</p>'}}]}}};
- w.eval(cmsSessionBundle.outputFiles[0].text);async function until(p){for(let i=0;i<150&&!p();i++)await tick();assert.ok(p())}
+ w.failLoad=true;w.eval(cmsSessionBundle.outputFiles[0].text);async function until(p){for(let i=0;i<150&&!p();i++)await tick();assert.ok(p())}
+ await until(()=>w.session?.loadError);assert.equal(w.saves.length,0);w.failLoad=false;await w.session.retryLoad();
  await until(()=>w.session?.draft.titulo==='Original');await new Promise(r=>setTimeout(r,1000));assert.equal(w.saves.length,0,'opening an existing record must not create a version');
  w.session.patch({titulo:'Primeiro'});await w.session.flush();await tick();assert.equal(w.session.draft.data.revision,1);
  assert.equal(w.saves[0].snapshot.layout.sections[0].region,'sidebar');assert.deepEqual(w.saves[0].snapshot.campaign_references,['campaign-existing']);assert.deepEqual(w.saves[0].snapshot.configuration_references,['primary_color']);assert.equal(w.saves[0].snapshot.navigation_references.length,1);
@@ -197,6 +198,7 @@ try{
  w.failSave=false;w.failPublish=true;await w.session.publish();assert.equal(w.record.revision,4);await tick();assert.equal(w.session.draft.data.revision,4,'save acknowledgment survives a denied publish');assert.equal(w.messages.filter(x=>x[0]==='success').length,0);
  w.failPublish=false;await w.session.publish();await tick();assert.equal(w.record.status,'published');assert.equal(w.record.revision,4,'retry publishes acknowledged draft without another save');assert.equal(w.session.draft.status,'published');
  await w.session.unpublish();await tick();assert.equal(w.unpublishes.length,1);assert.equal(w.record.published,null);assert.equal(w.session.draft.status,'draft');
+ w.failVersions=true;await w.session.refreshVersions();await tick();assert.equal(w.session.versions,null);assert.match(w.session.versionsError,/versions denied/);w.failVersions=false;await w.session.refreshVersions();await tick();assert.equal(w.session.versionsError,null);
  const prior=w.saves.length;await w.session.archive();assert.equal(w.saves.length,prior,'unsupported archive cannot masquerade as draft save');assert.ok(w.messages.at(-1)[0]==='error');
  console.log('PASS CMS session: no save on open; sequential acknowledged revisions; edits in flight and on refetch preserved; failed save blocks publication; denied publication retry uses saved revision; actual unpublish; unsupported archive cannot report success.');
 }finally{cmsDom.window.unmount?.();cmsDom.window.close()}
