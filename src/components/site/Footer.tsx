@@ -36,9 +36,9 @@ const DEFAULT_COL2_LINKS = [
 ];
 
 function FooterLink({ href, label }: { href: string; label: string }) {
-  const isExternal = /^https?:\/\//i.test(href);
+  const isExternal = /^(https?:\/\/|mailto:|tel:)/i.test(href);
   if (isExternal) {
-    return <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">{label}</a>;
+    return <a href={href} target={/^https?:\/\//i.test(href) ? "_blank" : "_self"} rel="noopener noreferrer" className="hover:text-gold transition-colors">{label}</a>;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return <Link to={href as any} className="hover:text-gold transition-colors">{label}</Link>;
@@ -124,6 +124,7 @@ export function Footer() {
             </p>
           )}
         </div>
+        {Boolean(site?.footer?.legal_links?.length) && <nav aria-label="Informações legais" className="mt-5 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm">{site?.footer?.legal_links?.map(link => <FooterLink key={`${link.url}-${link.label}`} href={link.url} label={link.label} />)}</nav>}
         {site?.footer?.texto_legal && (
           <p className="mt-4 text-[10px] text-muted-foreground/80 text-center">{site.footer.texto_legal}</p>
         )}

@@ -51,6 +51,7 @@ export interface SiteSettings {
     coluna2_links?: { label: string; url: string }[];
     mostrar_redes?: boolean;
     texto_legal?: string;
+    legal_links?: { label: string; url: string }[];
   };
   seo_global: {
     default_title?: string;
@@ -285,6 +286,7 @@ export async function projectConfigurationToSiteSettings(
       coluna2_links: normalizeLinkArray(secondColumn?.links),
       mostrar_redes: snapshot.show_social_links !== false,
       texto_legal: stringValue(snapshot, "legal_notice_text"),
+      legal_links: normalizeLinkArray(snapshot.legal_links),
     },
     seo_global: {
       default_title: stringValue(snapshot, "default_meta_title"),
