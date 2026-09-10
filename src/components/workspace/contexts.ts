@@ -71,7 +71,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     icon: FileText,
     root: "/admin/paginas",
     matches: [
-      "/admin/site",
+      "/admin/site", "/admin/domains",
       "/admin/paginas",
       "/admin/blog",
       "/admin/formularios",
@@ -83,6 +83,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     ],
     subs: [
       { label: "Site", to: "/admin/site" },
+      { label: "Domínios", to: "/admin/domains" },
       { label: "Páginas", to: "/admin/paginas" },
       { label: "Inventário", to: "/admin/cms-inventario" },
       { label: "Blog", to: "/admin/blog" },
@@ -111,6 +112,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     icon: Users,
     root: "/admin/corretores",
     matches: [
+      "/admin/memberships",
       "/admin/corretores",
       "/admin/equipes",
       "/admin/perfis",
@@ -122,6 +124,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     ],
     subs: [
       { label: "Pessoas", to: "/admin/corretores" },
+      { label: "Acessos da equipe", to: "/admin/memberships" },
       { label: "Equipes", to: "/admin/equipes" },
       { label: "Perfis", to: "/admin/perfis" },
       { label: "Cidades", to: "/admin/cidades" },
@@ -170,7 +173,7 @@ export const SUPER_NAVIGATION: WorkspaceContext[] = [
   { label: "Consumo", root: "/super/control-plane", icon: Activity, search: { section: "consumo" } },
   { label: "Observabilidade", root: "/super/observabilidade", icon: Radio },
   { label: "DLQ", root: "/super/dlq", icon: Inbox },
-  { label: "Suporte", root: "/super/control-plane", icon: LifeBuoy, search: { section: "suporte" } },
+  { label: "Atendimento aos clientes", root: "/super/control-plane", icon: LifeBuoy, search: { section: "suporte" } },
 ].map(item => ({ ...item, search: item.search as WorkspaceContext["search"], id: "operacao", matches: [item.root], subs: [], superOnly: true }));
 
 export function workspaceItemActive(item: WorkspaceContext, path: string, search: Record<string, unknown>) {

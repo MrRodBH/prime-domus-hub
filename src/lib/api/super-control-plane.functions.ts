@@ -192,7 +192,7 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
       admin.from("audit_log").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).gte("created_at", since24h),
       admin.from("audit_log").select("id, tenant_id, user_id, action, entity, entity_id, created_at").in("tenant_id", operationalIds).order("created_at", { ascending: false }).limit(100),
       admin.from("platform_incidents").select("id, incident_key, scope, tenant_id, severity, status, title, summary, source, started_at, resolved_at, updated_at").or(`tenant_id.is.null,tenant_id.in.(${operationalIds.join(",")})`).order("started_at", { ascending: false }).limit(200),
-      admin.from("platform_support_cases").select("id, case_key, tenant_id, category, priority, status, subject, summary, assigned_user_id, created_at, resolved_at, updated_at").or(`tenant_id.is.null,tenant_id.in.(${operationalIds.join(",")})`).order("created_at", { ascending: false }).limit(200),
+      admin.from("platform_support_cases").select("id, case_key, tenant_id, category, priority, status, subject, summary, requester_reference, assigned_user_id, created_at, resolved_at, updated_at").or(`tenant_id.is.null,tenant_id.in.(${operationalIds.join(",")})`).order("created_at", { ascending: false }).limit(200),
       admin.from("crm_alerts").select("id, alert_key, severity, state", { count: "exact", head: false }).in("tenant_id", operationalIds).eq("state", "open").limit(5000),
       admin.from("cms_publication_schedules").select("id, state", { count: "exact", head: false }).in("tenant_id", operationalIds).limit(5000),
     ]);
@@ -461,6 +461,8 @@ const supportInput = z.object({
   summary: z.string().trim().min(3).max(4000),
   assignedUserId: uuid.optional().nullable(),
 }).strict();
+
+export type PlatformSupportInput = z.infer<typeof supportInput>;
 
 export const mutatePlatformSupportCase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

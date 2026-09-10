@@ -1,6 +1,6 @@
 import { connectionStatus, propagationGuidance } from "./presentation/domain-status";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Copy, Globe2, RefreshCw, RotateCcw, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageHeader } from "@/components/admin/ui/AdminPageHeader";
@@ -134,36 +134,36 @@ export function TenantDomainWorkspace() {
     () => domains.find((domain) => domain.status === "active" && domain.enabled && domain.hostnameKind === "canonical") ?? null,
     [domains],
   );
-  const busy = createMutation.isPending || replacementMutation.isPending || actionMutation.isPending;
+  const busy = stateQuery.isPending || stateQuery.isError || createMutation.isPending || replacementMutation.isPending || actionMutation.isPending;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <AdminPageHeader
-        eyebrow="DCA-01"
+        eyebrow="Website"
         title="Domínios personalizados"
         description="Informe o domínio, publique os registros fornecidos pela plataforma e acompanhe a confirmação de DNS e SSL."
         actions={<Button variant="outline" onClick={() => void stateQuery.refetch()} disabled={stateQuery.isFetching}><RefreshCw className="mr-2 size-4" />Atualizar</Button>}
       />
 
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
-        <div className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" /><p>Os modos <strong>manual_assisted</strong> e <strong>api_automated</strong> são explícitos. Falha da API não muda o modo silenciosamente.</p></div>
+        <div className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" /><p>Escolha configuração manual ou automática. Na configuração manual, você publica os registros no provedor de DNS. A automática depende do provedor configurado pela plataforma. Uma falha não troca o modo escolhido.</p></div>
       </div>
 
       <Card className="space-y-3 p-5"><h2 className="font-semibold">Checklist de conexão</h2><ol className="list-decimal space-y-2 pl-5"><li>Informe o domínio e confira o provedor responsável pelo DNS.</li><li>Publique o TXT de propriedade e os apontamentos oficiais no provedor; preserve os registros de e-mail.</li><li>{propagationGuidance}</li><li>Use Check Status. Verde: Conectado; amarelo: Em Propagação; vermelho: Não Conectado — verificar configurações.</li></ol></Card>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="space-y-4 p-6">
-          <div><h2 className="font-semibold">Solicitar domínio</h2><p className="text-sm text-muted-foreground">Informe somente hostname, sem URL, porta ou path.</p></div>
-          <div className="space-y-2"><Label htmlFor="domain-hostname">Hostname</Label><Input id="domain-hostname" value={hostname} onChange={(event) => setHostname(event.target.value)} placeholder="www.suaimobiliaria.com.br" /></div>
+          <div><h2 className="font-semibold">Solicitar domínio</h2><p className="text-sm text-muted-foreground">Informe o endereço do domínio, sem https://, porta ou caminho.</p></div>
+          <div className="space-y-2"><Label htmlFor="domain-hostname">Domínio</Label><Input id="domain-hostname" value={hostname} onChange={(event) => setHostname(event.target.value)} placeholder="www.suaimobiliaria.com.br" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label>Modo</Label><Select value={executionMode} onValueChange={(value: DomainExecutionMode) => setExecutionMode(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">manual_assisted</SelectItem><SelectItem value="api_automated">api_automated</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><Label>Binding</Label><Select value={hostnameKind} onValueChange={(value: DomainHostnameKind) => setHostnameKind(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="canonical">canonical</SelectItem><SelectItem value="alias">alias</SelectItem></SelectContent></Select></div>
+            <div className="space-y-2"><Label>Modo</Label><Select value={executionMode} onValueChange={(value: DomainExecutionMode) => setExecutionMode(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Automático pelo provedor</SelectItem></SelectContent></Select></div>
+            <div className="space-y-2"><Label>Tipo de endereço</Label><Select value={hostnameKind} onValueChange={(value: DomainHostnameKind) => setHostnameKind(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="canonical">Principal</SelectItem><SelectItem value="alias">Alternativo</SelectItem></SelectContent></Select></div>
           </div>
           <Button onClick={() => createMutation.mutate()} disabled={busy || hostname.trim().length < 3}><Globe2 className="mr-2 size-4" />Criar solicitação</Button>
         </Card>
 
         <Card className="space-y-4 p-6">
-          <div><h2 className="font-semibold">Substituir canonical ativo</h2><p className="text-sm text-muted-foreground">O incumbent permanece ativo até o swap atômico do candidato plenamente verificado.</p></div>
-          {activeCanonical ? <><div className="rounded-md bg-muted p-3 text-sm"><span className="text-muted-foreground">Incumbent:</span> <span className="font-mono">{activeCanonical.normalizedHostname}</span></div><div className="space-y-2"><Label htmlFor="replacement-hostname">Novo hostname</Label><Input id="replacement-hostname" value={replacementHostname} onChange={(event) => setReplacementHostname(event.target.value)} placeholder="novo.suaimobiliaria.com.br" /></div><Button variant="secondary" onClick={() => replacementMutation.mutate(activeCanonical.id)} disabled={busy || replacementHostname.trim().length < 3}><RotateCcw className="mr-2 size-4" />Preparar substituição</Button></> : <p className="rounded-md border border-dashed p-5 text-sm text-muted-foreground">Nenhum canonical ativo disponível para substituição.</p>}
+          <div><h2 className="font-semibold">Substituir domínio principal</h2><p className="text-sm text-muted-foreground">O domínio atual permanece ativo até a confirmação completa do novo endereço.</p></div>
+          {activeCanonical ? <><div className="rounded-md bg-muted p-3 text-sm"><span className="text-muted-foreground">Domínio atual:</span> <span className="font-mono">{activeCanonical.normalizedHostname}</span></div><div className="space-y-2"><Label htmlFor="replacement-hostname">Novo hostname</Label><Input id="replacement-hostname" value={replacementHostname} onChange={(event) => setReplacementHostname(event.target.value)} placeholder="novo.suaimobiliaria.com.br" /></div><Button variant="secondary" onClick={() => replacementMutation.mutate(activeCanonical.id)} disabled={busy || replacementHostname.trim().length < 3}><RotateCcw className="mr-2 size-4" />Preparar substituição</Button></> : <p className="rounded-md border border-dashed p-5 text-sm text-muted-foreground">Ainda não há um domínio principal ativo para substituir.</p>}
         </Card>
       </div>
 
@@ -171,7 +171,7 @@ export function TenantDomainWorkspace() {
 
       {stateQuery.isPending ? <Card className="p-10 text-center text-sm text-muted-foreground">Carregando autoridade de domínios…</Card> : stateQuery.isError ? <Card className="border-destructive/40 p-6 text-sm text-destructive">{stateQuery.error.message}</Card> : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Bindings e gerações</h2><span className="text-sm text-muted-foreground">{domains.length} registro(s)</span></div>
+          <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Seus domínios</h2><span className="text-sm text-muted-foreground">{domains.length} registro(s)</span></div>
           {domains.length === 0 ? <Card className="p-10 text-center text-sm text-muted-foreground">Nenhum domínio solicitado.</Card> : domains.map((domain) => <DomainCard key={domain.id} domain={domain} challenge={stateQuery.data?.challenges[domain.id] ?? null} busy={busy || stateQuery.isFetching} onCheck={() => void stateQuery.refetch()} onAction={(action) => actionMutation.mutate(action)} />)}
         </div>
       )}
@@ -180,7 +180,7 @@ export function TenantDomainWorkspace() {
 }
 
 function ProofRow({ label, value }: { label: string; value: string }) {
-  return <div className="grid gap-2 sm:grid-cols-[90px_1fr_auto] sm:items-center"><span className="text-sm text-muted-foreground">{label}</span><code className="overflow-x-auto rounded bg-muted px-3 py-2 text-xs">{value}</code><Button size="icon" variant="outline" aria-label={`Copiar ${label}`} onClick={() => { void navigator.clipboard.writeText(value); toast.success(`${label} copiado.`); }}><Copy className="size-4" /></Button></div>;
+  return <div className="grid gap-2 sm:grid-cols-[90px_1fr_auto] sm:items-center"><span className="text-sm text-muted-foreground">{label}</span><code className="overflow-x-auto rounded bg-muted px-3 py-2 text-xs">{value}</code><Button size="icon" variant="outline" aria-label={`Copiar ${label}`} onClick={async () => { try { await navigator.clipboard.writeText(value); toast.success(`${label} copiado.`); } catch { toast.error("Não foi possível copiar. Selecione o valor e copie manualmente."); } }}><Copy className="size-4" /></Button></div>;
 }
 
 function DomainCard({ domain, challenge, busy, onCheck, onAction }: {
@@ -196,5 +196,7 @@ function DomainCard({ domain, challenge, busy, onCheck, onAction }: {
   const canRemove = !["revoked", "removal_pending"].includes(domain.status);
   const canChangeMode = ["draft", "replacement_pending", "pending_ownership_verification", "ownership_verified", "pending_dns_configuration", "failed"].includes(domain.status);
   const [modeDraft, setModeDraft] = useState<DomainExecutionMode>(domain.executionMode);
-  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2"><Button className={connection.className} disabled={busy} onClick={onCheck}>Check Status — {connection.label}</Button>{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">manual_assisted</SelectItem><SelectItem value="api_automated">api_automated</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Retry</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => onAction({ kind: "remove", domainId: domain.id })}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div></Card>;
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
+  useEffect(() => setModeDraft(domain.executionMode), [domain.executionMode]);
+  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2"><Button className={connection.className} disabled={busy} onClick={onCheck}>Check Status — {connection.label}</Button>{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Automático pelo provedor</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Tentar novamente</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => setConfirmRemoval(true)}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div>{confirmRemoval && <div role="alertdialog" aria-label="Confirmar remoção do domínio" className="mt-4 space-y-3 rounded-lg border border-destructive/40 p-4"><p>A remoção de <strong>{domain.normalizedHostname}</strong> encerra o acesso público por este endereço. Deseja remover este domínio?</p><div className="flex gap-3"><Button variant="outline" disabled={busy} onClick={() => setConfirmRemoval(false)}>Manter domínio</Button><Button variant="destructive" disabled={busy} onClick={() => { setConfirmRemoval(false); onAction({ kind: "remove", domainId: domain.id }); }}>Confirmar remoção</Button></div></div>}</Card>;
 }
