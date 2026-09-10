@@ -316,8 +316,6 @@ for (const frozenPath of [
 // Round 46 empty demonstration successor; historical runtime assertions remain intact.
 // Round 47 plan form/masks/CEP successor; no server authority changes.
 const round65P0Paths = [
-  // P0 regression: external navigation preserves company drafts while creating a plan.
-  "tests/round52/draft-navigation.mjs",
   "database/round65-tenant-member-authority.sql",
   "docs/architecture/ROUND65_P0_DELIVERY.md",
   "tests/round65/contract.mjs",

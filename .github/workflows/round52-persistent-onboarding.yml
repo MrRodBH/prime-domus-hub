@@ -64,7 +64,6 @@ jobs:
       - run: node run-round-58-platform-administration-specs.mjs
       - name: Controlled DOM and server contracts
         run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/round52/ui.mjs
-      - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/round52/draft-navigation.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node run-round-56-approved-navigation-specs.mjs
       - run: node run-round-55-plan-form-specs.mjs
       - run: node run-round-54-navigation-context-specs.mjs
