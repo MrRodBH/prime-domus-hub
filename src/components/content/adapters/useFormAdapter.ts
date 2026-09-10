@@ -107,10 +107,14 @@ export function useFormAdapter(): ContentEntityAdapter {
       const formId = String(saved.formId);
       const revision = Number(saved.revision);
       if (opts.publish) await publishFn({ data: { formId, expectedRevision: revision } });
-      return { id: formId };
+      return { id: formId, data: { revision, draftVersionId: saved.versionId ?? null } };
     },
     [publishFn, saveDraftFn],
   );
+
+  const publish = useCallback(async (id: string, draft: ContentDraft) => {
+    await publishFn({ data: { formId: id, expectedRevision: Number(draft.data.revision) } });
+  }, [publishFn]);
 
   const remove = useCallback(async () => {
     throw new Error("Exclusão direta retirada: arquive o formulário por workflow explícito.");
@@ -133,10 +137,11 @@ export function useFormAdapter(): ContentEntityAdapter {
       fetchList,
       fetchDetail,
       save,
+      publish,
       remove,
       listVersions,
       publicUrl: (_detail, draft) => (draft.slug ? `/f/${draft.slug}` : null),
     }),
-    [fetchList, fetchDetail, save, remove, listVersions],
+    [fetchList, fetchDetail, save, publish, remove, listVersions],
   );
 }

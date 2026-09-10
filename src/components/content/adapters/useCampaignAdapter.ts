@@ -129,10 +129,14 @@ export function useCampaignAdapter(): ContentEntityAdapter {
       const campaignId = String(saved.campaignId);
       const revision = Number(saved.revision);
       if (opts.publish) await publishFn({ data: { campaignId, expectedRevision: revision } });
-      return { id: campaignId };
+      return { id: campaignId, data: { revision, draftVersionId: saved.versionId ?? null } };
     },
     [publishFn, saveDraftFn],
   );
+
+  const publish = useCallback(async (id: string, draft: ContentDraft) => {
+    await publishFn({ data: { campaignId: id, expectedRevision: Number(draft.data.revision) } });
+  }, [publishFn]);
 
   const remove = useCallback(async () => {
     throw new Error("Exclusão direta retirada: pause ou arquive a campanha por workflow explícito.");
@@ -151,7 +155,7 @@ export function useCampaignAdapter(): ContentEntityAdapter {
   }, [versionsFn]);
 
   return useMemo(
-    () => ({ fetchList, fetchDetail, save, remove, listVersions }),
-    [fetchList, fetchDetail, save, remove, listVersions],
+    () => ({ fetchList, fetchDetail, save, publish, remove, listVersions }),
+    [fetchList, fetchDetail, save, publish, remove, listVersions],
   );
 }

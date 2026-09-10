@@ -89,13 +89,17 @@ export function usePostAdapter(): ContentEntityAdapter {
     [salvarFn],
   );
 
+  const unpublish = useCallback(async (id: string, draft: ContentDraft) => {
+    await save(id, { ...draft, status: "draft" }, { publish: false });
+  }, [save]);
+
   const remove = useCallback(async (id: string) => { await excluirFn({ data: { id } }); }, [excluirFn]);
 
   return useMemo(
     () => ({
-      fetchList, fetchDetail, save, remove,
+      fetchList, fetchDetail, save, unpublish, remove,
       publicUrl: (_d, draft) => (draft.slug ? `/blog/${draft.slug}` : null),
     }),
-    [fetchList, fetchDetail, save, remove],
+    [fetchList, fetchDetail, save, unpublish, remove],
   );
 }

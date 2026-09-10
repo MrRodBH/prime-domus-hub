@@ -153,3 +153,50 @@ const legalFooterBundle=await build({stdin:{contents:`import React from 'react';
 }}]});
 const legalFooterDom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/',runScripts:'outside-only',pretendToBeVisual:true});
 try{const w=legalFooterDom.window,d=w.document;w.fetch=()=>{throw Error('REMOTE_FORBIDDEN')};w.eval(legalFooterBundle.outputFiles[0].text);for(let i=0;i<150&&!d.querySelector('[aria-label="Informações legais"]');i++)await tick();const nav=d.querySelector('[aria-label="Informações legais"]');assert.ok(nav);assert.equal(nav.querySelectorAll('a').length,2);assert.equal(nav.querySelector('a[href="/privacidade"]').getAttribute('data-router-link'),'true');const contact=nav.querySelector('a[href^="mailto:"]');assert.equal(contact.target,'_self');assert.equal(contact.getAttribute('data-router-link'),null);console.log('PASS public legal footer DOM: published legal links visible; internal route and native email destination rendered correctly.');}finally{legalFooterDom.window.unmount?.();legalFooterDom.window.close()}
+
+// Actual CMS session + page adapter: revision handshake and publication failure recovery.
+const cmsSessionBundle=await build({stdin:{contents:`
+import React from 'react';import {createRoot} from 'react-dom/client';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {ContentSessionProvider,useContentSession} from './src/components/content/session';
+import {usePageAdapter} from './src/components/content/adapters/usePageAdapter';
+import {ENTITIES} from './src/components/content/entity-registry';
+const qc=new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWindowFocus:false}}});
+function Probe(){window.session=useContentSession();return <div>{window.session.draft.titulo}</div>}
+function App(){const adapter=usePageAdapter();return <ContentSessionProvider descriptor={ENTITIES.pagina} adapter={adapter} entityId="page"><Probe/></ContentSessionProvider>}
+const root=createRoot(document.getElementById('root'));root.render(<QueryClientProvider client={qc}><App/></QueryClientProvider>);
+window.refresh=()=>qc.refetchQueries({queryKey:['content-detail','pagina','page']});window.unmount=()=>{root.unmount();qc.clear()};
+`,loader:'tsx',resolveDir:process.cwd()},bundle:true,write:false,jsx:'automatic',plugins:[{name:'cms-session',setup(b){
+ b.onResolve({filter:/^@tanstack\/react-start$/},()=>({path:'start',namespace:'cms-fixture'}));
+ b.onResolve({filter:/tenant-cms.functions$/},()=>({path:'api',namespace:'cms-fixture'}));
+ b.onResolve({filter:/^sonner$/},()=>({path:'toast',namespace:'cms-fixture'}));
+ b.onLoad({filter:/.*/,namespace:'cms-fixture'},a=>({contents:a.path==='start'?'export const useServerFn=fn=>fn':a.path==='toast'?`export const toast={success:m=>window.messages.push(['success',m]),error:m=>window.messages.push(['error',m])}`:`
+export const getTenantPage=async()=>structuredClone(window.record);
+export const listTenantPages=async()=>[];export const listTenantPageVersions=async()=>[];export const rollbackTenantPage=async()=>{};
+export const saveTenantPageDraft=async({data})=>{
+ window.saves.push(structuredClone(data));if(window.hold)await new Promise(r=>window.release=r);
+ if(window.failSave)throw Error('save denied');
+ if(data.expectedRevision!==window.record.revision)throw Error('revision conflict');
+ window.record.revision++;window.record.title=data.snapshot.title;window.record.effectiveSnapshot=data.snapshot;window.record.draft={id:'draft-'+window.record.revision,schemaVersion:1};
+ return {pageId:'page',versionId:window.record.draft.id,revision:window.record.revision};
+};
+export const publishTenantPage=async({data})=>{window.publishes.push(data);if(data.expectedRevision!==window.record.revision)throw Error('publish conflict');if(window.failPublish)throw Error('publish denied');window.record.status='published';window.record.published=window.record.draft;window.record.draft=null;};
+export const unpublishTenantPage=async({data})=>{window.unpublishes.push(data);if(data.expectedRevision!==window.record.revision)throw Error('unpublish conflict');window.record.status='draft';window.record.published=null;};
+`,loader:'tsx',resolveDir:process.cwd()}));
+}}]});
+const cmsDom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/admin/paginas',runScripts:'outside-only',pretendToBeVisual:true});
+try{
+ const w=cmsDom.window;w.structuredClone=x=>JSON.parse(JSON.stringify(x));w.fetch=()=>{throw Error('REMOTE_FORBIDDEN')};w.saves=[];w.publishes=[];w.unpublishes=[];w.messages=[];
+ w.record={id:'page',title:'Original',slug:'pagina',description:'Descrição',status:'draft',revision:0,pageType:'standard',layoutType:'sidebar_right',schemaVersion:1,draft:{id:'draft-0',schemaVersion:1},published:null,effectiveSnapshot:{seo:{},navigation_references:[{location:'footer',label:'Página'}],campaign_references:['campaign-existing'],configuration_references:['primary_color'],layout:{sections:[{id:'block-existing',type:'richtext',region:'sidebar',data:{html:'<p>Preservar</p>'}}]}}};
+ w.eval(cmsSessionBundle.outputFiles[0].text);async function until(p){for(let i=0;i<150&&!p();i++)await tick();assert.ok(p())}
+ await until(()=>w.session?.draft.titulo==='Original');await new Promise(r=>setTimeout(r,1000));assert.equal(w.saves.length,0,'opening an existing record must not create a version');
+ w.session.patch({titulo:'Primeiro'});await w.session.flush();await tick();assert.equal(w.session.draft.data.revision,1);
+ assert.equal(w.saves[0].snapshot.layout.sections[0].region,'sidebar');assert.deepEqual(w.saves[0].snapshot.campaign_references,['campaign-existing']);assert.deepEqual(w.saves[0].snapshot.configuration_references,['primary_color']);assert.equal(w.saves[0].snapshot.navigation_references.length,1);
+ w.hold=true;w.session.patch({titulo:'Segundo'});const saving=w.session.flush();await until(()=>w.release);w.session.patch({titulo:'Terceiro durante gravação'});w.hold=false;w.release();await saving;await tick();assert.equal(w.session.draft.titulo,'Terceiro durante gravação');assert.equal(w.session.draft.data.revision,2);await w.session.flush();assert.equal(w.record.title,'Terceiro durante gravação');assert.equal(w.record.revision,3);
+ w.session.patch({titulo:'Preservar em refetch'});await w.refresh();await tick();assert.equal(w.session.draft.titulo,'Preservar em refetch');
+ w.failSave=true;await assert.rejects(w.session.flush(),/save denied/);await w.session.publish();assert.equal(w.publishes.length,0,'failed save prevents publication');assert.equal(w.messages.filter(x=>x[0]==='success').length,0);assert.equal(w.session.draft.titulo,'Preservar em refetch');
+ w.failSave=false;w.failPublish=true;await w.session.publish();assert.equal(w.record.revision,4);await tick();assert.equal(w.session.draft.data.revision,4,'save acknowledgment survives a denied publish');assert.equal(w.messages.filter(x=>x[0]==='success').length,0);
+ w.failPublish=false;await w.session.publish();await tick();assert.equal(w.record.status,'published');assert.equal(w.record.revision,4,'retry publishes acknowledged draft without another save');assert.equal(w.session.draft.status,'published');
+ await w.session.unpublish();await tick();assert.equal(w.unpublishes.length,1);assert.equal(w.record.published,null);assert.equal(w.session.draft.status,'draft');
+ const prior=w.saves.length;await w.session.archive();assert.equal(w.saves.length,prior,'unsupported archive cannot masquerade as draft save');assert.ok(w.messages.at(-1)[0]==='error');
+ console.log('PASS CMS session: no save on open; sequential acknowledged revisions; edits in flight and on refetch preserved; failed save blocks publication; denied publication retry uses saved revision; actual unpublish; unsupported archive cannot report success.');
+}finally{cmsDom.window.unmount?.();cmsDom.window.close()}

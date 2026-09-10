@@ -362,6 +362,15 @@ const round56ApprovedNavigationPaths = [
   "src/components/workspace/contexts.ts",
   "src/routes/_authenticated.super.control-plane.tsx",
   "src/routes/_authenticated.super.index.tsx"
+  "src/components/content/types.ts",
+  "src/components/content/session.tsx",
+  "src/components/content/hooks/useAutosave.ts",
+  "src/components/content/adapters/usePageAdapter.ts",
+  "src/components/content/adapters/useFormAdapter.ts",
+  "src/components/content/adapters/useCampaignAdapter.ts",
+  "src/components/content/adapters/useSiteAdapter.ts",
+  "src/components/content/adapters/usePostAdapter.ts",
+  "src/components/content/PublishWorkflow.tsx",
 ];
 const round55PlanFormPaths = [
   ".github/workflows/round52-persistent-onboarding.yml",

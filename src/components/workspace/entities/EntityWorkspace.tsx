@@ -158,6 +158,7 @@ export function EntityWorkspace({
         <div className="min-h-0 flex flex-col">
           {editingId ? (
             <ContentSessionProvider
+              key={`${descriptor.kind}:${editingId}`}
               descriptor={descriptor}
               adapter={adapter}
               entityId={editingId === "novo" ? null : editingId}

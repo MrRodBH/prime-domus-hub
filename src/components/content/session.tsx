@@ -1,7 +1,7 @@
 // ContentSession — fonte única para editor (Bloco 3.1 §2).
 // REGRA: Session NÃO conhece entidades. Nunca importa server function.
 // Toda comunicação server-side ocorre exclusivamente através do Adapter injetado.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { CmsBlock } from "@/adapters/cms-legacy";
@@ -93,40 +93,41 @@ export function ContentSessionProvider({
   const [publishing, setPublishing] = useState(false);
   const [versions, setVersions] = useState<VersionRecord[] | null>(null);
 
+  const draftRef = useRef(draft);
+  const baselineRef = useRef(initialDraft);
+  const loadedRef = useRef(false);
+  const operationRef = useRef(false);
   useEffect(() => {
-    if (detailQuery.data) {
+    if (detailQuery.data && !loadedRef.current) {
+      loadedRef.current = true;
       const d = draftFromDetail(detailQuery.data);
+      draftRef.current = d; baselineRef.current = d;
       setDraft(d);
       setInitialDraft(d);
     }
   }, [detailQuery.data]);
 
-  const patch = useCallback((p: Partial<ContentDraft>) => setDraft((prev) => ({ ...prev, ...p })), []);
-  const updateBlocks = useCallback((b: CmsBlock[]) => setDraft((p) => ({ ...p, blocks: b })), []);
-  const updateSeo = useCallback((s: Record<string, unknown>) => setDraft((p) => ({ ...p, seo: s })), []);
-  const updateData = useCallback((d: Record<string, unknown>) => setDraft((p) => ({ ...p, data: { ...p.data, ...d } })), []);
-  const reset = useCallback(() => setDraft(initialDraft), [initialDraft]);
-
-  const isDirty = useMemo(
-    () => JSON.stringify(draft) !== JSON.stringify(initialDraft),
-    [draft, initialDraft],
-  );
-
-  const canAutosave = !isNew && !!entityId && (!!draft.titulo || descriptor.editorKind === "settings" || descriptor.editorKind === "media");
-  const autosaveFn = useCallback(
-    async (value: ContentDraft) => {
-      await adapter.save(entityId!, value, { publish: false });
-      setInitialDraft(value);
-      setPreviewNonce((n) => n + 1);
-      qc.invalidateQueries({ queryKey: ["content-list", descriptor.kind] });
-    },
-    [adapter, entityId, qc, descriptor.kind],
-  );
-
+  const setCurrent = useCallback((next: ContentDraft) => { draftRef.current = next; setDraft(next); }, []);
+  const patch = useCallback((p: Partial<ContentDraft>) => setCurrent({ ...draftRef.current, ...p }), [setCurrent]);
+  const updateBlocks = useCallback((blocks: CmsBlock[]) => patch({ blocks }), [patch]);
+  const updateSeo = useCallback((seo: Record<string, unknown>) => patch({ seo }), [patch]);
+  const updateData = useCallback((data: Record<string, unknown>) => patch({ data: { ...draftRef.current.data, ...data } }), [patch]);
+  const reset = useCallback(() => setCurrent(baselineRef.current), [setCurrent]);
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(initialDraft);
+  const canAutosave = !isNew && loadedRef.current && !publishing && !!entityId && (!!draft.titulo || descriptor.editorKind === "settings" || descriptor.editorKind === "media");
+  const autosaveFn = useCallback(async (submitted: ContentDraft) => {
+    const result = await adapter.save(entityId!, submitted, { publish: false });
+    const saved = { ...submitted, status: result.status ?? submitted.status, data: { ...submitted.data, ...result.data } };
+    baselineRef.current = saved; setInitialDraft(saved);
+    // Acknowledged revision metadata must advance without replacing edits made in flight.
+    const current = draftRef.current;
+    setCurrent(current === submitted ? saved : { ...current, data: { ...current.data, ...result.data } });
+    setPreviewNonce(n => n + 1);
+    void qc.invalidateQueries({ queryKey: ["content-list", descriptor.kind] });
+  }, [adapter, entityId, qc, descriptor.kind, setCurrent]);
   const autosave = useAutosave({
-    value: draft,
-    enabled: canAutosave,
-    onSave: autosaveFn,
+    value: draft, enabled: canAutosave, onSave: autosaveFn,
+    getValue: () => draftRef.current, getBaseline: () => baselineRef.current,
     isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
   });
 
@@ -145,64 +146,51 @@ export function ContentSessionProvider({
     if (draft.status === "archived" && descriptor.workflowStates.includes("archived")) return "archived";
     if (autosave.state === "saving" || autosave.state === "editing") return "editing";
     const original = detailQuery.data;
-    const wasPublished = original?.status === "published" || original?.status === "active";
+    const wasPublished = original?.status === "published" || original?.status === "active"
+      || !!original?.data.publishedVersionId || Number(original?.data.publishedRevision ?? 0) > 0;
+    const pendingDraft = !!draft.data.draftVersionId || draft.data.configurationStatus === "draft";
+    if (pendingDraft && !isDirty) return wasPublished && descriptor.workflowStates.includes("updated") ? "updated" : "saved";
     if (isDirty) {
       if (wasPublished && descriptor.workflowStates.includes("updated")) return "updated";
       return descriptor.workflowStates.includes("ready_to_publish") ? "ready_to_publish" : "saved";
     }
     if (wasPublished && descriptor.workflowStates.includes("published")) return "published";
     return descriptor.workflowStates.includes("saved") ? "saved" : "published";
-  }, [draft.status, autosave.state, detailQuery.data, isDirty, descriptor.workflowStates]);
+  }, [draft, autosave.state, detailQuery.data, isDirty, descriptor.workflowStates]);
 
-  const publish = useCallback(async () => {
-    if (isNew || !entityId) { toast.error(`Salve a ${descriptor.singular.toLowerCase()} antes de publicar.`); return; }
-    setPublishing(true);
+  const runWorkflow = useCallback(async (action: "publish" | "unpublish" | "archive" | "restore") => {
+    if (isNew || !entityId || !loadedRef.current || operationRef.current) return;
+    const handler = adapter[action];
+    if (action !== "publish" && !handler) {
+      toast.error("Esta operação ainda não possui um fluxo persistente disponível."); return;
+    }
+    operationRef.current = true; setPublishing(true);
     try {
       await autosave.flush();
-      await adapter.save(entityId, draft, { publish: true });
-      toast.success(`${descriptor.singular} publicada`);
-      qc.invalidateQueries({ queryKey: ["content-detail", descriptor.kind, entityId] });
-      qc.invalidateQueries({ queryKey: ["content-list", descriptor.kind] });
-      setPreviewNonce((n) => n + 1);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao publicar");
-    } finally { setPublishing(false); }
-  }, [isNew, entityId, autosave, adapter, draft, qc, descriptor]);
-
-  const unpublish = useCallback(async () => {
-    if (!entityId) return;
-    setPublishing(true);
-    try {
-      const next = { ...draft, status: "draft" as StatusValue };
-      setDraft(next);
-      await adapter.save(entityId, next, { publish: false });
-      toast.success("Despublicado");
-      qc.invalidateQueries({ queryKey: ["content-detail", descriptor.kind, entityId] });
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
-    finally { setPublishing(false); }
-  }, [entityId, adapter, draft, qc, descriptor.kind]);
-
-  const archive = useCallback(async () => {
-    if (!entityId) return;
-    setPublishing(true);
-    try {
-      const next = { ...draft, status: "archived" as StatusValue };
-      setDraft(next);
-      await adapter.save(entityId, next, { publish: false });
-      toast.success("Arquivado");
-      qc.invalidateQueries({ queryKey: ["content-detail", descriptor.kind, entityId] });
-      qc.invalidateQueries({ queryKey: ["content-list", descriptor.kind] });
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
-    finally { setPublishing(false); }
-  }, [entityId, adapter, draft, qc, descriptor.kind]);
-
-  const restore = useCallback(async () => {
-    if (!entityId) return;
-    const next = { ...draft, status: "draft" as StatusValue };
-    setDraft(next);
-    await adapter.save(entityId, next, { publish: false });
-    qc.invalidateQueries({ queryKey: ["content-detail", descriptor.kind, entityId] });
-  }, [entityId, adapter, draft, qc, descriptor.kind]);
+      const submitted = draftRef.current;
+      if (handler) await handler(entityId, submitted);
+      else await adapter.save(entityId, submitted, { publish: true });
+      const detail = await adapter.fetchDetail(entityId);
+      const acknowledged = draftFromDetail(detail);
+      // Edits typed while publishing remain a new draft, not silently discarded.
+      const current = draftRef.current;
+      baselineRef.current = acknowledged; setInitialDraft(acknowledged);
+      setCurrent(current === submitted ? acknowledged : {
+        ...current, status: acknowledged.status,
+        data: { ...current.data, ...Object.fromEntries(Object.entries(acknowledged.data).filter(([key]) =>
+          JSON.stringify(current.data[key]) === JSON.stringify(submitted.data[key]))) },
+      });
+      qc.setQueryData(["content-detail", descriptor.kind, entityId], detail);
+      void qc.invalidateQueries({ queryKey: ["content-list", descriptor.kind] });
+      setPreviewNonce(n => n + 1);
+      toast.success({ publish: "Publicado", unpublish: "Despublicado", archive: "Arquivado", restore: "Reaberto como rascunho" }[action]);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha na operação. Seus campos foram preservados."); }
+    finally { operationRef.current = false; setPublishing(false); }
+  }, [isNew, entityId, adapter, autosave, qc, descriptor.kind, setCurrent]);
+  const publish = useCallback(() => runWorkflow("publish"), [runWorkflow]);
+  const unpublish = useCallback(() => runWorkflow("unpublish"), [runWorkflow]);
+  const archive = useCallback(() => runWorkflow("archive"), [runWorkflow]);
+  const restore = useCallback(() => runWorkflow("restore"), [runWorkflow]);
 
   const refreshVersions = useCallback(async () => {
     if (!entityId || !adapter.listVersions) { setVersions([]); return; }
@@ -213,12 +201,24 @@ export function ContentSessionProvider({
   }, [entityId, adapter]);
 
   const restoreVersion = useCallback(async (versionId: string) => {
-    if (!entityId || !adapter.restoreVersion) throw new Error("Restauração não suportada");
-    await adapter.restoreVersion(entityId, versionId);
-    qc.invalidateQueries({ queryKey: ["content-detail", descriptor.kind, entityId] });
-    await refreshVersions();
-    toast.success("Versão restaurada como rascunho");
-  }, [entityId, adapter, qc, descriptor.kind, refreshVersions]);
+    if (!entityId || !adapter.restoreVersion || operationRef.current) throw new Error("Restauração indisponível");
+    operationRef.current = true; setPublishing(true);
+    try {
+      await autosave.flush();
+      const submitted = draftRef.current;
+      await adapter.restoreVersion(entityId, versionId);
+      const restored = await adapter.fetchDetail(entityId);
+      const next = draftFromDetail(restored);
+      baselineRef.current = next; setInitialDraft(next);
+      const current = draftRef.current;
+      setCurrent(current === submitted ? next : { ...current, data: { ...current.data,
+        ...Object.fromEntries(Object.entries(next.data).filter(([key]) => JSON.stringify(current.data[key]) === JSON.stringify(submitted.data[key]))) } });
+      qc.setQueryData(["content-detail", descriptor.kind, entityId], restored);
+      void qc.invalidateQueries({ queryKey: ["content-list", descriptor.kind] });
+      await refreshVersions();
+      toast.success("Versão restaurada como rascunho");
+    } finally { operationRef.current = false; setPublishing(false); }
+  }, [entityId, adapter, qc, descriptor.kind, refreshVersions, autosave, setCurrent]);
 
   const value: ContentSessionValue = {
     descriptor, adapter, entityId: entityId ?? null, isNew,
