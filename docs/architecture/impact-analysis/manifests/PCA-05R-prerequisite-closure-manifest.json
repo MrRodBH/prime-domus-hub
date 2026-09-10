@@ -1441,7 +1441,7 @@
   "excluded": [
     {
       "path": "supabase/migrations/20260910150013_sequential_initial_admin_setup.sql",
-      "sha256": "cc161f4f5a2161bffc05d63e62d6255ffe70a577865866cb322c7bcc76bf829d",
+      "sha256": "004960c4124ae45b7b7c5ada8148f5b2e2aa8759ee7066313693892487645385",
       "reason": "POST_REHEARSAL_INITIAL_ADMIN_SETUP",
       "disposition": "EXCLUDED_FROM_PCA05R_CELL"
     },

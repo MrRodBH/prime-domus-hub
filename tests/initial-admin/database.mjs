@@ -12,6 +12,7 @@ try {
  CREATE TABLE public.user_roles(user_id uuid,role text);
  CREATE TABLE public.tenants(id uuid PRIMARY KEY,slug text UNIQUE,nome text,status text,operational_kind text,owner_user_id uuid REFERENCES auth.users,plano_codigo text,metadata jsonb,updated_at timestamptz DEFAULT now());
  CREATE TABLE public.commercial_plans(id uuid PRIMARY KEY,code text,status text);
+ CREATE TYPE public.rbac_action AS ENUM('visualizar','criar','editar','gerenciar');
  CREATE TABLE public.rbac_modules(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),codigo text UNIQUE,nome text,descricao text,ordem int);
  CREATE TABLE public.rbac_profiles(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),codigo text,sistema boolean,tenant_id uuid,nome text UNIQUE,descricao text);
  CREATE TABLE public.rbac_permissions(profile_id uuid,module_id uuid,action text,scope text);
@@ -19,6 +20,7 @@ try {
  CREATE TYPE public.tenant_role AS ENUM ('owner','admin','viewer');CREATE TYPE public.membership_status AS ENUM('invited','active','suspended','revoked');
  CREATE TABLE public.tenant_members(tenant_id uuid REFERENCES tenants,user_id uuid REFERENCES auth.users,tenant_role public.tenant_role,membership_status public.membership_status,is_owner boolean DEFAULT false,is_default boolean DEFAULT true,joined_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),invited_at timestamptz,accepted_at timestamptz,PRIMARY KEY(tenant_id,user_id));
  GRANT USAGE ON SCHEMA auth TO service_role;GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`);
+ await db.query("INSERT INTO rbac_modules(codigo,nome) VALUES('crm','CRM')");
  await db.query(readFileSync('supabase/migrations/20260910150013_sequential_initial_admin_setup.sql','utf8'));
  for(let n=1;n<=9;n++)await db.query('INSERT INTO auth.users VALUES($1,$2,$3)',[id(n),`user${n}@fixture.invalid`,n===4?null:new Date()]);
  await db.query("INSERT INTO user_roles VALUES($1,'super_admin')",[id(1)]);
@@ -56,6 +58,7 @@ try {
  await db.query("UPDATE tenant_initial_admin_setup SET requested_at=now()-interval '2 minutes' WHERE tenant_id=$1",[id(21)]);
  const c=(await prepare(1,21,3,b.invitationId)).rows[0].r;
  await assert.rejects(activate(4,b.invitationId),/setup_invitation_invalid/);
+ assert.equal((await db.query("SELECT count(*) n FROM user_profiles u JOIN rbac_permissions p ON p.profile_id=u.profile_id JOIN rbac_modules m ON m.id=p.module_id WHERE u.tenant_id=$1 AND u.user_id=$2 AND m.codigo='crm'",[id(20),id(2)])).rows[0].n,'4');
  // Existing mixed owner is retained byte-for-byte; initial admin is separate.
  await db.query('UPDATE tenants SET owner_user_id=$1 WHERE id=$2',[id(1),id(21)]);
  await db.query("INSERT INTO tenant_members(tenant_id,user_id,tenant_role,membership_status,is_owner) VALUES($1,$2,'owner','active',true)",[id(21),id(1)]);

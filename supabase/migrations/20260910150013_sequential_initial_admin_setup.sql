@@ -117,9 +117,12 @@ BEGIN
   INSERT INTO public.tenant_members(tenant_id,user_id,tenant_role,membership_status,is_owner,is_default,invited_at,accepted_at)
     VALUES(tid,p_actor,'admin','active',false,false,s.requested_at,now());
   INSERT INTO public.rbac_profiles(tenant_id,nome,descricao,codigo,sistema)
-    VALUES(tid,'Gestão de acessos · '||t.slug,'Gestor inicial da empresa, sem transferência de propriedade',NULL,false) RETURNING id INTO access_profile;
+    VALUES(tid,'Admin operacional · '||t.slug,'Gestor inicial da empresa, sem transferência de propriedade',NULL,false) RETURNING id INTO access_profile;
   INSERT INTO public.rbac_permissions(profile_id,module_id,action,scope)
     SELECT access_profile,id,'gerenciar','global' FROM public.rbac_modules WHERE codigo='access_control';
+  INSERT INTO public.rbac_permissions(profile_id,module_id,action,scope)
+    SELECT access_profile,m.id,a,'global' FROM public.rbac_modules m
+      CROSS JOIN unnest(ARRAY['visualizar','criar','editar','gerenciar']::public.rbac_action[]) a WHERE m.codigo='crm';
   INSERT INTO public.user_profiles(tenant_id,user_id,profile_id) VALUES(tid,p_actor,admin_profile),(tid,p_actor,access_profile);
   UPDATE public.tenant_initial_admin_setup SET activated_at=now(),activated_user_id=p_actor WHERE tenant_id=tid;
   RETURN jsonb_build_object('tenantId',tid,'activated',true);
