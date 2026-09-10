@@ -432,6 +432,10 @@ const round57GovernancePaths = [
 ];
 
 const round56ApprovedNavigationPaths = [
+  "run-pr-m2-configuration-center-specs.ts",
+  // Owner-authorized CMS editing and recoverable list errors; no authority changes.
+  "src/components/content/editors/SettingsContentEditor.tsx",
+  "src/components/workspace/entities/EntityWorkspace.tsx",
   // PR260: owner-authorized website entry and correction of obsolete impersonation copy.
   // Exact additions only; all historical scope and runtime assertions remain enforced.
   "src/components/domains/SuperDomainOperations.tsx",

@@ -1,3 +1,4 @@
+import { normalizePublicNavigationUrl } from "@/lib/public-content-security";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -86,13 +87,13 @@ export function SettingsContentEditor() {
       <div className="rounded-lg border bg-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configuration Center</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configurações do website</div>
             <h2 className="mt-1 text-xl font-semibold">{session.draft.titulo}</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{DOMAIN_HELP[domain]}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant={data.configurationStatus === "draft" ? "secondary" : "outline"}>
-              {data.configurationStatus === "draft" ? "draft" : data.configurationStatus === "published" ? "published" : "empty"}
+              {data.configurationStatus === "draft" ? "Rascunho" : data.configurationStatus === "published" ? "Publicado" : "Não publicado"}
             </Badge>
             <Badge variant="outline">publicada r{data.publishedRevision ?? 0}</Badge>
             {data.draftRevision ? <Badge variant="outline">rascunho r{data.draftRevision}</Badge> : null}
@@ -118,7 +119,7 @@ export function SettingsContentEditor() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="font-medium">Preview validado</h3>
-              <p className="text-xs text-muted-foreground">Salva o draft antes de gerar a projeção pública. Não publica.</p>
+              <p className="text-xs text-muted-foreground">Salva o rascunho antes de preparar a prévia. Não publica.</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => void handlePreview()} disabled={preview.isFetching || session.save === "saving"}>
               {preview.isFetching ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Eye className="mr-2 size-4" />}
@@ -148,7 +149,7 @@ export function SettingsContentEditor() {
               <p className="text-xs text-muted-foreground">Autoridade, registry, mídia e gates futuros.</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => void diagnostics.refetch()} disabled={diagnostics.isFetching}>
-              <RefreshCw className={`mr-2 size-4 ${diagnostics.isFetching ? "animate-spin" : ""}`} /> Retry
+              <RefreshCw className={`mr-2 size-4 ${diagnostics.isFetching ? "animate-spin" : ""}`} /> Tentar novamente
             </Button>
           </div>
           {diagnostics.isPending ? (
@@ -261,6 +262,9 @@ function FieldControl({
       />
     );
   }
+  if (definition.key === "menu_items") {
+    return <WebsiteMenuField id={id} value={value} readonly={readonly} onChange={onChange} />;
+  }
   if (definition.uiControl === "json") {
     return <JsonConfigurationField id={id} value={value} readonly={readonly} onChange={onChange} />;
   }
@@ -362,7 +366,66 @@ function ConfigurationError({ message, onRetry, compact = false }: { message: st
   return (
     <div className={`${compact ? "mt-3" : "p-6"} rounded-md border border-destructive/30 bg-destructive/5 text-sm`}>
       <div className="flex items-center gap-2 text-destructive"><AlertCircle className="size-4" />{message || "permission_denied"}</div>
-      <Button className="mt-3" size="sm" variant="outline" onClick={onRetry}><RefreshCw className="mr-2 size-4" />retry_available</Button>
+      <Button className="mt-3" size="sm" variant="outline" onClick={onRetry}><RefreshCw className="mr-2 size-4" />Tentar novamente</Button>
     </div>
   );
+}
+
+
+type WebsiteMenuRow = Record<string, unknown>;
+
+/** Edits the canonical configuration draft; never calls the retired menu mutation API. */
+export function WebsiteMenuField({ id, value, readonly, onChange }: { id: string; value: unknown; readonly: boolean; onChange: (value: unknown) => void }) {
+  const compatible = Array.isArray(value) && value.every(row => row !== null && typeof row === "object" && !Array.isArray(row));
+  const rows: WebsiteMenuRow[] = compatible ? value as WebsiteMenuRow[] : [];
+  const [editing, setEditing] = useState<{ index: number | null; baseline: string; row: WebsiteMenuRow } | null>(null);
+  const [error, setError] = useState("");
+  const [removing, setRemoving] = useState<number | null>(null);
+  const snapshot = JSON.stringify(value);
+  useEffect(() => setRemoving(null), [snapshot]);
+  function begin(index: number | null) {
+    setError(""); setRemoving(null);
+    setEditing({ index, baseline: snapshot, row: index === null ? { id: crypto.randomUUID(), location: "header", label: "", url: "", order: rows.length * 10, visible: true, target: "_self", type: "internal" } : { ...rows[index] } });
+  }
+  function apply() {
+    if (!editing || readonly) return;
+    if (editing.baseline !== snapshot) { setError("O menu mudou enquanto você editava. Cancele esta edição e abra o item atualizado. Seu texto permanece disponível para copiar."); return; }
+    const label = String(editing.row.label ?? "").trim();
+    const url = normalizePublicNavigationUrl(String(editing.row.url ?? ""), "contact");
+    if (!label || label.length > 120) { setError("Informe um título de até 120 caracteres."); return; }
+    if (!url) { setError("Informe um caminho iniciado por /, um endereço HTTPS, telefone (tel:) ou e-mail (mailto:)."); return; }
+    if (!["header", "footer"].includes(String(editing.row.location))) { setError("Selecione Cabeçalho ou Rodapé."); return; }
+    const row = { ...editing.row, label, url };
+    onChange(editing.index === null ? [...rows, row] : rows.map((existing, index) => index === editing.index ? row : existing));
+    setEditing(null); setError("");
+  }
+  function move(index: number, direction: number) {
+    if (readonly || editing) return;
+    const next = [...rows]; const destination = index + direction;
+    if (destination < 0 || destination >= next.length) return;
+    [next[index], next[destination]] = [next[destination], next[index]];
+    // Public projection gives `order` precedence over legacy `ordem`; keep both coherent.
+    onChange(next.map((row, order) => ({ ...row, order: order * 10, ...(Object.hasOwn(row, "ordem") ? { ordem: order * 10 } : {}) })));
+  }
+  if (!compatible) return <div><p className="mb-2 text-sm">Este menu usa um formato anterior. Os dados foram preservados para edição detalhada.</p><JsonConfigurationField id={id} value={value} readonly={readonly} onChange={onChange} /></div>;
+  return <div id={id} className="space-y-4">
+    <p className="text-sm text-muted-foreground">Monte a navegação do website com títulos e destinos. As mudanças entram no rascunho; use Publicar no editor para disponibilizá-las no site.</p>
+    {rows.length === 0 && <p className="rounded-lg border border-dashed p-4 text-sm">Nenhum link configurado. Adicione o primeiro item do menu.</p>}
+    <ol className="space-y-3">{rows.map((row, index) => <li key={String(row.id ?? index)} className="rounded-lg border p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><strong className="block break-words">{String(row.label ?? "Item sem título")}</strong><span className="block break-all text-sm text-muted-foreground">{String(row.url ?? "")}</span><span className="text-xs text-muted-foreground">{row.location === "footer" ? "Rodapé" : "Cabeçalho"} · {(row.visible ?? row.visivel ?? true) ? "Visível" : "Oculto"}</span></div>
+      <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={readonly || !!editing || removing !== null} onClick={() => begin(index)}>Editar link</Button><Button type="button" variant="outline" aria-label={`Mover ${String(row.label)} para cima`} disabled={readonly || !!editing || removing !== null || index === 0} onClick={() => move(index, -1)}>↑</Button><Button type="button" variant="outline" aria-label={`Mover ${String(row.label)} para baixo`} disabled={readonly || !!editing || removing !== null || index === rows.length - 1} onClick={() => move(index, 1)}>↓</Button><Button type="button" variant="outline" disabled={readonly || !!editing || removing !== null} onClick={() => setRemoving(index)}>Remover link</Button></div></div>
+      {removing === index && <div className="mt-3 space-y-2" role="alert"><p className="text-sm">Remover este link do rascunho? A página de destino será preservada.</p><Button type="button" variant="outline" onClick={() => setRemoving(null)}>Manter link</Button><Button type="button" variant="destructive" disabled={readonly} onClick={() => { onChange(rows.filter((_, i) => i !== index)); setRemoving(null); }}>Confirmar remoção do link</Button></div>}
+    </li>)}</ol>
+    {!editing && <Button type="button" variant="outline" disabled={readonly || removing !== null} onClick={() => begin(null)}>Adicionar link</Button>}
+    {editing && <fieldset disabled={readonly} className="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
+      <legend className="px-2 font-medium">{editing.index === null ? "Novo link" : "Editar link do website"}</legend>
+      <label className="space-y-1 text-sm">Título do link<Input value={String(editing.row.label ?? "")} maxLength={120} onChange={e => setEditing({ ...editing, row: { ...editing.row, label: e.target.value } })} /></label>
+      <label className="space-y-1 text-sm">Destino<Input value={String(editing.row.url ?? "")} placeholder="/imoveis ou https://..." onChange={e => setEditing({ ...editing, row: { ...editing.row, url: e.target.value } })} /></label>
+      <label className="space-y-1 text-sm">Exibir em<select className="block min-h-10 w-full rounded-md border bg-background px-3" value={String(editing.row.location ?? "header")} onChange={e => setEditing({ ...editing, row: { ...editing.row, location: e.target.value } })}><option value="header">Cabeçalho</option><option value="footer">Rodapé</option></select></label>
+      <label className="space-y-1 text-sm">Abrir destino<select className="block min-h-10 w-full rounded-md border bg-background px-3" value={String(editing.row.target ?? "_self")} onChange={e => setEditing({ ...editing, row: { ...editing.row, target: e.target.value } })}><option value="_self">Na mesma aba</option><option value="_blank">Em nova aba</option></select></label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(editing.row.visible ?? editing.row.visivel ?? true)} onChange={e => setEditing({ ...editing, row: { ...editing.row, visible: e.target.checked, ...(Object.hasOwn(editing.row, "visivel") ? { visivel: e.target.checked } : {}) } })} />Mostrar no website</label>
+      {error && <p role="alert" className="text-sm text-destructive sm:col-span-2">{error}</p>}
+      <div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="button" onClick={apply}>Aplicar ao rascunho</Button><Button type="button" variant="outline" onClick={() => { setEditing(null); setError(""); }}>Cancelar edição do link</Button></div>
+    </fieldset>}
+  </div>;
 }

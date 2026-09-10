@@ -43,7 +43,7 @@ export function EntityWorkspace({
   const density = search.density ?? "compact";
   const adapter = getRegistration(descriptor.kind).useAdapter();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["content-list", descriptor.kind, search.status ?? "", search.q ?? ""],
     queryFn: () => adapter.fetchList({ q: search.q, status: search.status }),
   });
@@ -57,7 +57,7 @@ export function EntityWorkspace({
   const viewId = search.view ?? descriptor.views?.default ?? "list";
 
   useEffect(() => {
-    if (!selectedId || isCreating) return;
+    if (!selectedId || isCreating || isError || isFetching) return;
     if (items.length && !items.find((p) => p.id === selectedId)) {
       navigate({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,7 +68,7 @@ export function EntityWorkspace({
         resetScroll: false,
       });
     }
-  }, [selectedId, items, navigate, search, descriptor.route, isCreating]);
+  }, [selectedId, items, navigate, search, descriptor.route, isCreating, isError, isFetching]);
 
   useEffect(() => {
     if (selectedId) {
@@ -108,7 +108,7 @@ export function EntityWorkspace({
         <AdminPageHeader eyebrow="Workspace" title={descriptor.plural} />
         <div className="flex items-center gap-2 flex-wrap">
           {canCreate && (
-            <Button size="sm" onClick={() => patchSearch({ new: "1", item: undefined })}>
+            <Button size="sm" disabled={isError || isLoading} onClick={() => patchSearch({ new: "1", item: undefined })}>
               <Plus className="size-4 mr-1" />
               Nova {descriptor.singular.toLowerCase()}
             </Button>
@@ -138,7 +138,9 @@ export function EntityWorkspace({
 
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(280px,32%)_minmax(0,1fr)] rounded-lg border border-foreground/10 bg-card overflow-hidden">
         <div className="border-b lg:border-b-0 lg:border-r border-foreground/5 min-h-0 flex flex-col">
-          {isLoading ? (
+          {isError ? (
+            <div role="alert" className="space-y-3 p-5"><p className="font-medium">Não foi possível carregar os registros.</p><p className="text-sm text-muted-foreground">A falha não significa que seus dados foram apagados. O editor aberto foi preservado.</p><Button type="button" variant="outline" disabled={isFetching} onClick={() => void refetch()}>{isFetching ? "Carregando…" : "Tentar carregar novamente"}</Button></div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="size-4 animate-spin text-muted-foreground" />
             </div>

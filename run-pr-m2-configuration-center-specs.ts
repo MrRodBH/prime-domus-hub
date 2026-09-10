@@ -228,7 +228,7 @@ includesAll(editor, [
   "Cloudflare mode = HYBRID / pending DCA-01",
   "Billing activation = pending BCA-01",
   "Final visual refinement = pending PR-M3",
-  "retry_available",
+  "Tentar novamente",
   "permission_denied",
 ], "Configuration Center UI");
 assert(!editor.includes("CmsFase1Tabs"), "Configuration Center must not retain the legacy settings editor");
