@@ -20,6 +20,7 @@ const migrationFiles = () =>
   readdirSync(MIGRATION_DIR).filter((file) => file.endsWith(".sql")).sort();
 
 const excludedAfterPrelude = {
+  "20260910150013_sequential_initial_admin_setup.sql": "POST_REHEARSAL_INITIAL_ADMIN_SETUP",
   "20260908003058_round52_persistent_onboarding.sql": "POST_REHEARSAL_ROUND52_PERSISTENT_ONBOARDING",
   "20260804180000_dca_01_domain_cloudflare_activation.sql": "DCA_PROVIDER_DOMAIN_OUTSIDE_SCHEMA_REHEARSAL",
   "20260810220152_1ee179b2-60f0-4ce1-b259-06762002733b.sql": "POST_PRELUDE_NON_PCA04",
@@ -160,10 +161,10 @@ if (process.argv.includes("--write")) {
 }
 const actual = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
 assert.deepEqual(actual, expected);
-assert.equal(actual.counts.repositoryMigrationFiles, 133);
+assert.equal(actual.counts.repositoryMigrationFiles, 134);
 assert.equal(actual.counts.prerequisiteCandidates, 105);
 assert.equal(actual.counts.approvedRehearsalMigrations, 17);
-assert.equal(actual.counts.excludedAfterPrelude, 11);
+assert.equal(actual.counts.excludedAfterPrelude, 12);
 assert.equal(actual.counts.wholeFileReplayBlockers, 3);
 assert.equal(actual.counts.prerequisiteFilesWithoutExplicitTransactions, 104);
 assert.equal(actual.decision.wholePrerequisiteReplayAllowed, false);
@@ -242,6 +243,11 @@ if (base) {
       actual.excluded.find((entry) => entry.path === correctivePath)?.reason,
       "POST_REHEARSAL_FORWARD_LEDGER_RECONCILIATION",
     );
+  } else if (changed.includes("src/lib/api/initial-admin-setup.functions.ts")) {
+    const path="supabase/migrations/20260910150013_sequential_initial_admin_setup.sql";
+    assert.deepEqual(changedMigrations,[path]);
+    assert.equal(actual.excluded.find(entry=>entry.path===path)?.reason,"POST_REHEARSAL_INITIAL_ADMIN_SETUP");
+    assert.equal(actual.rehearsal.some(entry=>entry.path===path),false);
   } else if (changed.includes("src/lib/api/super-onboarding.functions.ts")) {
     const onboardingPath = "supabase/migrations/20260908003058_round52_persistent_onboarding.sql";
     assert.deepEqual(changedMigrations, [onboardingPath]);

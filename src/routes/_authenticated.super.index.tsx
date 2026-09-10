@@ -90,6 +90,7 @@ function SuperTenantsPage() {
           <NovoTenantDialog
             onDone={() => {
               setOpenNew(false);
+              void navigate({ to: "/super", search: { view: "tenants" } });
               void qc.invalidateQueries({ queryKey: ["super-tenants"] });
               void qc.invalidateQueries({ queryKey: ["super-onboarding"] });
               void qc.invalidateQueries({ queryKey: ["super-tenants-stats"] });
@@ -268,7 +269,7 @@ function StatusBadge({ status }: { status: string }) {
 function NovoTenantDialog({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [registrationId] = useState(() => crypto.randomUUID());
+  const [registrationId, setRegistrationId] = useState(() => crypto.randomUUID());
   const [source, setSource] = useState<"direct_sale" | "sales_platform">("direct_sale");
   const [reference, setReference] = useState("");
 
@@ -276,6 +277,7 @@ function NovoTenantDialog({ onDone }: { onDone: () => void }) {
     mutationFn: () => registerSetupCompany({ data: { id: registrationId, name, slug, source, reference } }),
     onSuccess: (result) => {
       toast.success(`Empresa ${result.name} cadastrada. Complete seus dados e cadastre o Admin na próxima etapa.`);
+      setRegistrationId(crypto.randomUUID()); setName(""); setSlug(""); setReference(""); setSource("direct_sale");
       onDone();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -292,18 +294,19 @@ function NovoTenantDialog({ onDone }: { onDone: () => void }) {
       <div className="space-y-3">
         <div>
           <Label>Nome</Label>
-          <Input value={name} onChange={(event) => setName(event.target.value)} />
+          <Input disabled={mutation.isPending} value={name} onChange={(event) => setName(event.target.value)} />
         </div>
         <div>
           <Label>Slug</Label>
           <Input
+            disabled={mutation.isPending}
             value={slug}
             onChange={(event) => setSlug(event.target.value.toLowerCase())}
             placeholder="minha-empresa"
           />
         </div>
-        <div><Label>Origem do cadastro</Label><Select value={source} onValueChange={(value: "direct_sale" | "sales_platform")=>setSource(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="direct_sale">Compra direta</SelectItem><SelectItem value="sales_platform">Plataforma de vendas</SelectItem></SelectContent></Select></div>
-        <div><Label>Referência da venda{source === "sales_platform" ? " (obrigatória)" : " (opcional)"}</Label><Input value={reference} onChange={e=>setReference(e.target.value)} maxLength={200}/></div>
+        <div><Label>Origem do cadastro</Label><Select disabled={mutation.isPending} value={source} onValueChange={(value: "direct_sale" | "sales_platform")=>setSource(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="direct_sale">Compra direta</SelectItem><SelectItem value="sales_platform">Plataforma de vendas</SelectItem></SelectContent></Select></div>
+        <div><Label>Referência da venda{source === "sales_platform" ? " (obrigatória)" : " (opcional)"}</Label><Input disabled={mutation.isPending} value={reference} onChange={e=>setReference(e.target.value)} maxLength={200}/></div>
         <p className="text-sm text-muted-foreground">O cadastro registra a origem da empresa. A confirmação financeira segue o fluxo da venda; nenhum usuário é criado nesta etapa.</p>
       </div>
       <DialogFooter>

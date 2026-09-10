@@ -44,7 +44,7 @@ BEGIN
 END $$;
 
 CREATE FUNCTION public.prepare_initial_admin(p_actor uuid,p_tenant uuid,p_name text,p_email text,p_expected uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path = public, pg_temp AS $$
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE t public.tenants%ROWTYPE; s public.tenant_initial_admin_setup%ROWTYPE; u auth.users%ROWTYPE;
 BEGIN
   PERFORM 1 FROM public.user_roles WHERE user_id=p_actor AND role='super_admin' FOR SHARE;
@@ -58,7 +58,7 @@ BEGIN
     OR length(p_email) NOT BETWEEN 3 AND 254 OR p_email <> lower(btrim(p_email)) OR p_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
   THEN RAISE EXCEPTION 'setup_invalid'; END IF;
   IF EXISTS (SELECT 1 FROM public.tenant_members m WHERE m.tenant_id=p_tenant
-    AND m.tenant_role IN ('owner','admin') AND m.membership_status IN ('active','invited')
+    AND m.tenant_role IN ('owner','admin')
     AND NOT EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id=m.user_id AND r.role='super_admin'))
   THEN RAISE EXCEPTION 'setup_already_operational'; END IF;
   SELECT * INTO s FROM public.tenant_initial_admin_setup WHERE tenant_id=p_tenant FOR UPDATE;
@@ -79,7 +79,7 @@ BEGIN
 END $$;
 
 CREATE FUNCTION public.activate_initial_admin(p_actor uuid,p_invitation uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY INVOKER SET search_path = public, pg_temp AS $$
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE s public.tenant_initial_admin_setup%ROWTYPE; t public.tenants%ROWTYPE; u auth.users%ROWTYPE; tid uuid; admin_profile uuid;
 BEGIN
   SELECT tenant_id INTO tid FROM public.tenant_initial_admin_setup WHERE invitation_id=p_invitation;
@@ -104,7 +104,7 @@ BEGIN
   THEN RAISE EXCEPTION 'setup_company_incomplete'; END IF;
   IF t.owner_user_id=p_actor OR EXISTS(SELECT 1 FROM public.tenant_members WHERE tenant_id=tid AND user_id=p_actor)
     OR EXISTS (SELECT 1 FROM public.tenant_members m WHERE m.tenant_id=tid
-      AND m.tenant_role IN ('owner','admin') AND m.membership_status IN ('active','invited')
+      AND m.tenant_role IN ('owner','admin')
       AND NOT EXISTS(SELECT 1 FROM public.user_roles r WHERE r.user_id=m.user_id AND r.role='super_admin'))
   THEN RAISE EXCEPTION 'setup_already_operational'; END IF;
   SELECT id INTO admin_profile FROM public.rbac_profiles WHERE sistema=true AND tenant_id IS NULL AND codigo='admin';
@@ -120,4 +120,5 @@ REVOKE ALL ON FUNCTION public.register_setup_company(uuid,uuid,text,text,text,te
   public.prepare_initial_admin(uuid,uuid,text,text,uuid),public.activate_initial_admin(uuid,uuid) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.register_setup_company(uuid,uuid,text,text,text,text),
   public.prepare_initial_admin(uuid,uuid,text,text,uuid),public.activate_initial_admin(uuid,uuid) TO service_role;
+NOTIFY pgrst, 'reload schema';
 COMMIT;

@@ -16,7 +16,7 @@ try {
  CREATE TABLE public.user_profiles(tenant_id uuid,user_id uuid,profile_id uuid,UNIQUE(tenant_id,user_id,profile_id));
  CREATE TYPE public.tenant_role AS ENUM ('owner','admin','viewer');CREATE TYPE public.membership_status AS ENUM('invited','active','suspended','revoked');
  CREATE TABLE public.tenant_members(tenant_id uuid REFERENCES tenants,user_id uuid REFERENCES auth.users,tenant_role public.tenant_role,membership_status public.membership_status,is_owner boolean DEFAULT false,is_default boolean DEFAULT true,joined_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),invited_at timestamptz,accepted_at timestamptz,PRIMARY KEY(tenant_id,user_id));
- GRANT USAGE ON SCHEMA auth TO service_role;GRANT ALL ON ALL TABLES IN SCHEMA auth,public TO service_role;`);
+ GRANT USAGE ON SCHEMA auth TO service_role;GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`);
  await db.query(readFileSync('supabase/migrations/20260910150013_sequential_initial_admin_setup.sql','utf8'));
  for(let n=1;n<=9;n++)await db.query('INSERT INTO auth.users VALUES($1,$2,$3)',[id(n),`user${n}@fixture.invalid`,n===4?null:new Date()]);
  await db.query("INSERT INTO user_roles VALUES($1,'super_admin')",[id(1)]);
@@ -27,6 +27,7 @@ try {
  const activate=(actor,invitation)=>db.query('SELECT activate_initial_admin($1,$2) r',[id(actor),invitation]);
  const complete=async n=>db.query("UPDATE tenants SET plano_codigo='fixture',metadata=metadata||'{\"company_profile\":{\"legalName\":\"Controlled\"}}' WHERE id=$1",[id(n)]);
  await db.query('SET ROLE service_role');
+ await assert.rejects(db.query('SELECT * FROM auth.users'),/permission denied/);
  await assert.rejects(register(2,20),/setup_forbidden/);await assert.rejects(register(1,20,'sales_platform'),/setup_invalid/);
  await register(1,20);await register(1,20);await register(1,21,'sales_platform','synthetic-sale-21');
  assert.equal((await db.query('SELECT count(*) n FROM tenant_members')).rows[0].n,'0');
@@ -46,7 +47,7 @@ try {
  await db.query("UPDATE tenant_members SET membership_status='revoked' WHERE tenant_id=$1",[id(20)]);await assert.rejects(activate(2,a.invitationId),/setup_already_activated/);
  const b=(await prepare(1,21,4)).rows[0].r;assert.equal(b.existingConfirmedAccount,false);
  await assert.rejects(activate(4,b.invitationId),/setup_invitation_invalid/);
- await db.query('UPDATE auth.users SET email_confirmed_at=now() WHERE id=$1',[id(4)]);
+ await db.query('RESET ROLE');await db.query('UPDATE auth.users SET email_confirmed_at=now() WHERE id=$1',[id(4)]);await db.query('SET ROLE service_role');
  await db.query("UPDATE tenant_initial_admin_setup SET expires_at=now()-interval '1 second' WHERE tenant_id=$1",[id(21)]);await assert.rejects(activate(4,b.invitationId),/setup_invitation_expired/);
  await db.query("UPDATE tenant_initial_admin_setup SET requested_at=now()-interval '2 minutes' WHERE tenant_id=$1",[id(21)]);
  const c=(await prepare(1,21,3,b.invitationId)).rows[0].r;
@@ -56,6 +57,9 @@ try {
  await db.query("INSERT INTO tenant_members(tenant_id,user_id,tenant_role,membership_status,is_owner) VALUES($1,$2,'owner','active',true)",[id(21),id(1)]);
  await activate(3,c.invitationId);assert.equal((await db.query('SELECT owner_user_id FROM tenants WHERE id=$1',[id(21)])).rows[0].owner_user_id,id(1));
  assert.equal((await db.query('SELECT is_owner FROM tenant_members WHERE tenant_id=$1 AND user_id=$2',[id(21),id(1)])).rows[0].is_owner,true);
+ await register(1,22);await complete(22);
+ await db.query("INSERT INTO tenant_members(tenant_id,user_id,tenant_role,membership_status,is_owner) VALUES($1,$2,'admin','revoked',false)",[id(22),id(7)]);
+ await assert.rejects(prepare(1,22,8),/setup_already_operational/);
  for(const role of ['authenticated','anon']){await db.query('RESET ROLE; SET ROLE '+role);await assert.rejects(activate(3,c.invitationId),/permission denied/);await assert.rejects(register(1,22),/permission denied/);await assert.rejects(db.query('SELECT * FROM tenant_initial_admin_setup'),/permission denied/);}
  console.log('PASS native PostgreSQL: independent company registration, two sale origins, no assumed owner/Auth creation; verified-email acceptance, concurrent/idempotent activation, foreign/Super/unconfirmed/expired/replaced/revoked denial, owner retained, service-only ACL.');
 } finally {await db.end();}

@@ -454,7 +454,11 @@ const initialAdminSetupPaths = [
   "run-round-51-superadmin-auth-specs.mjs",
   "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
   "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
-  "run-pca-15r-managed-custody-source-reconciliation-specs.ts"
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+  "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
+  "run-round-46-empty-onboarding-specs.mjs",
+  "run-round-44-broker-identity-ui-specs.mjs"
 ];
 
 const round56ApprovedNavigationPaths = [

@@ -42,7 +42,7 @@ export const loadInitialAdminSetup=createServerFn({method:'GET'}).middleware([re
     if(tenant.error||!tenant.data)throw Error('Empresa fora do escopo de setup.');
     const [setup,members,plan]=await Promise.all([
       db.from('tenant_initial_admin_setup').select('invitation_id,administrator_name,email,delivery_status,expires_at,activated_at').eq('tenant_id',data.tenantId).maybeSingle(),
-      db.from('tenant_members').select('user_id').eq('tenant_id',data.tenantId).in('tenant_role',['owner','admin']).in('membership_status',['active','invited']),
+      db.from('tenant_members').select('user_id').eq('tenant_id',data.tenantId).in('tenant_role',['owner','admin']),
       db.from('commercial_plans').select('id').eq('code',tenant.data.plano_codigo??'').eq('status','active').maybeSingle(),
     ]);
     if(setup.error||members.error||plan.error)throw Error('Não foi possível carregar o setup. Tente novamente.');

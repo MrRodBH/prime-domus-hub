@@ -605,7 +605,11 @@ const initialAdminSetupPaths = [
   "run-round-51-superadmin-auth-specs.mjs",
   "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
   "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
-  "run-pca-15r-managed-custody-source-reconciliation-specs.ts"
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+  "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
+  "run-round-46-empty-onboarding-specs.mjs",
+  "run-round-44-broker-identity-ui-specs.mjs"
 ];
 
 const round56ApprovedNavigationPaths = [
@@ -887,9 +891,10 @@ const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verif
   assert.ok(!changed.includes("src/lib/tenant.server.ts"));
   assert.deepEqual(changed.filter((path) => path.startsWith("supabase/migrations/")),
     [
+      ...(changed.includes("supabase/migrations/20260910150013_sequential_initial_admin_setup.sql") ? ["supabase/migrations/20260910150013_sequential_initial_admin_setup.sql"] : []),
       ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? ["supabase/migrations/20260907183824_round42_broker_identity_link.sql"] : []),
       ...(changed.includes("src/lib/api/super-onboarding.functions.ts") ? ["supabase/migrations/20260908003058_round52_persistent_onboarding.sql"] : []),
-    ]);
+    ].sort());
   assert.ok(!changed.some((path) => path.includes("LSR-02") || path.includes("lsr-02")));
 }
 
