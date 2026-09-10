@@ -13,7 +13,7 @@ w.__fixture={load:async()=>{if(fail)throw Error('offline');return structuredClon
 w.fetch=()=>{throw Error('REMOTE_FORBIDDEN');};
 const tick=()=>new Promise(r=>setTimeout(r,15));
 const until=async fn=>{for(let i=0;i<150;i++){if(fn())return;await tick();}throw Error(d.body.textContent);};
-const button=t=>[...d.querySelectorAll('button')].find(b=>b.textContent===t);
+const button=t=>[...d.querySelectorAll('button')].find(b=>b.textContent===t&&!b.closest('[hidden]'));
 async function fill(name,value){const field=d.querySelector(`[name="${name}"]`);assert.ok(field,name);Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value').set.call(field,value);field.dispatchEvent(new w.Event('input',{bubbles:true}));await tick();}
 async function submit(){d.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await tick();}
 try {
