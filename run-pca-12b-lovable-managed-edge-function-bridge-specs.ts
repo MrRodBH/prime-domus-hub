@@ -432,6 +432,9 @@ const round57GovernancePaths = [
 ];
 
 const round56ApprovedNavigationPaths = [
+  // Canonical published legal links projected to the existing public footer.
+  "src/lib/api/site.functions.ts",
+  "src/components/site/Footer.tsx",
   "run-pr-m2-configuration-center-specs.ts",
   // Owner-authorized CMS editing and recoverable list errors; no authority changes.
   "src/components/content/editors/SettingsContentEditor.tsx",

@@ -1,5 +1,5 @@
 import { normalizePublicNavigationUrl } from "@/lib/public-content-security";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertCircle, CheckCircle2, Eye, Loader2, RefreshCw } from "lucide-react";
@@ -262,6 +262,12 @@ function FieldControl({
       />
     );
   }
+  if (definition.key === "footer_columns") {
+    return <WebsiteFooterField id={id} value={value} readonly={readonly} onChange={onChange} />;
+  }
+  if (definition.key === "legal_links") {
+    return <WebsiteMenuField plainLinks id={id} value={value} readonly={readonly} onChange={onChange} />;
+  }
   if (definition.key === "menu_items") {
     return <WebsiteMenuField id={id} value={value} readonly={readonly} onChange={onChange} />;
   }
@@ -375,7 +381,7 @@ function ConfigurationError({ message, onRetry, compact = false }: { message: st
 type WebsiteMenuRow = Record<string, unknown>;
 
 /** Edits the canonical configuration draft; never calls the retired menu mutation API. */
-export function WebsiteMenuField({ id, value, readonly, onChange }: { id: string; value: unknown; readonly: boolean; onChange: (value: unknown) => void }) {
+export function WebsiteMenuField({ id, value, readonly, onChange, plainLinks = false }: { id: string; value: unknown; readonly: boolean; onChange: (value: unknown) => void; plainLinks?: boolean }) {
   const compatible = Array.isArray(value) && value.every(row => row !== null && typeof row === "object" && !Array.isArray(row));
   const rows: WebsiteMenuRow[] = compatible ? value as WebsiteMenuRow[] : [];
   const [editing, setEditing] = useState<{ index: number | null; baseline: string; row: WebsiteMenuRow } | null>(null);
@@ -385,7 +391,7 @@ export function WebsiteMenuField({ id, value, readonly, onChange }: { id: string
   useEffect(() => setRemoving(null), [snapshot]);
   function begin(index: number | null) {
     setError(""); setRemoving(null);
-    setEditing({ index, baseline: snapshot, row: index === null ? { id: crypto.randomUUID(), location: "header", label: "", url: "", order: rows.length * 10, visible: true, target: "_self", type: "internal" } : { ...rows[index] } });
+    setEditing({ index, baseline: snapshot, row: index === null ? (plainLinks ? { label: "", url: "" } : { id: crypto.randomUUID(), location: "header", label: "", url: "", order: rows.length * 10, visible: true, target: "_self", type: "internal" }) : { ...rows[index] } });
   }
   function apply() {
     if (!editing || readonly) return;
@@ -394,7 +400,7 @@ export function WebsiteMenuField({ id, value, readonly, onChange }: { id: string
     const url = normalizePublicNavigationUrl(String(editing.row.url ?? ""), "contact");
     if (!label || label.length > 120) { setError("Informe um título de até 120 caracteres."); return; }
     if (!url) { setError("Informe um caminho iniciado por /, um endereço HTTPS, telefone (tel:) ou e-mail (mailto:)."); return; }
-    if (!["header", "footer"].includes(String(editing.row.location))) { setError("Selecione Cabeçalho ou Rodapé."); return; }
+    if (!plainLinks && !["header", "footer"].includes(String(editing.row.location))) { setError("Selecione Cabeçalho ou Rodapé."); return; }
     const row = { ...editing.row, label, url };
     onChange(editing.index === null ? [...rows, row] : rows.map((existing, index) => index === editing.index ? row : existing));
     setEditing(null); setError("");
@@ -404,6 +410,7 @@ export function WebsiteMenuField({ id, value, readonly, onChange }: { id: string
     const next = [...rows]; const destination = index + direction;
     if (destination < 0 || destination >= next.length) return;
     [next[index], next[destination]] = [next[destination], next[index]];
+    if (plainLinks) { onChange(next); return; }
     // Public projection gives `order` precedence over legacy `ordem`; keep both coherent.
     onChange(next.map((row, order) => ({ ...row, order: order * 10, ...(Object.hasOwn(row, "ordem") ? { ordem: order * 10 } : {}) })));
   }
@@ -412,7 +419,7 @@ export function WebsiteMenuField({ id, value, readonly, onChange }: { id: string
     <p className="text-sm text-muted-foreground">Monte a navegação do website com títulos e destinos. As mudanças entram no rascunho; use Publicar no editor para disponibilizá-las no site.</p>
     {rows.length === 0 && <p className="rounded-lg border border-dashed p-4 text-sm">Nenhum link configurado. Adicione o primeiro item do menu.</p>}
     <ol className="space-y-3">{rows.map((row, index) => <li key={String(row.id ?? index)} className="rounded-lg border p-3">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><strong className="block break-words">{String(row.label ?? "Item sem título")}</strong><span className="block break-all text-sm text-muted-foreground">{String(row.url ?? "")}</span><span className="text-xs text-muted-foreground">{row.location === "footer" ? "Rodapé" : "Cabeçalho"} · {(row.visible ?? row.visivel ?? true) ? "Visível" : "Oculto"}</span></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><strong className="block break-words">{String(row.label ?? "Item sem título")}</strong><span className="block break-all text-sm text-muted-foreground">{String(row.url ?? "")}</span>{!plainLinks && <span className="text-xs text-muted-foreground">{row.location === "footer" ? "Rodapé" : "Cabeçalho"} · {(row.visible ?? row.visivel ?? true) ? "Visível" : "Oculto"}</span>}</div>
       <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={readonly || !!editing || removing !== null} onClick={() => begin(index)}>Editar link</Button><Button type="button" variant="outline" aria-label={`Mover ${String(row.label)} para cima`} disabled={readonly || !!editing || removing !== null || index === 0} onClick={() => move(index, -1)}>↑</Button><Button type="button" variant="outline" aria-label={`Mover ${String(row.label)} para baixo`} disabled={readonly || !!editing || removing !== null || index === rows.length - 1} onClick={() => move(index, 1)}>↓</Button><Button type="button" variant="outline" disabled={readonly || !!editing || removing !== null} onClick={() => setRemoving(index)}>Remover link</Button></div></div>
       {removing === index && <div className="mt-3 space-y-2" role="alert"><p className="text-sm">Remover este link do rascunho? A página de destino será preservada.</p><Button type="button" variant="outline" onClick={() => setRemoving(null)}>Manter link</Button><Button type="button" variant="destructive" disabled={readonly} onClick={() => { onChange(rows.filter((_, i) => i !== index)); setRemoving(null); }}>Confirmar remoção do link</Button></div>}
     </li>)}</ol>
@@ -421,11 +428,33 @@ export function WebsiteMenuField({ id, value, readonly, onChange }: { id: string
       <legend className="px-2 font-medium">{editing.index === null ? "Novo link" : "Editar link do website"}</legend>
       <label className="space-y-1 text-sm">Título do link<Input value={String(editing.row.label ?? "")} maxLength={120} onChange={e => setEditing({ ...editing, row: { ...editing.row, label: e.target.value } })} /></label>
       <label className="space-y-1 text-sm">Destino<Input value={String(editing.row.url ?? "")} placeholder="/imoveis ou https://..." onChange={e => setEditing({ ...editing, row: { ...editing.row, url: e.target.value } })} /></label>
-      <label className="space-y-1 text-sm">Exibir em<select className="block min-h-10 w-full rounded-md border bg-background px-3" value={String(editing.row.location ?? "header")} onChange={e => setEditing({ ...editing, row: { ...editing.row, location: e.target.value } })}><option value="header">Cabeçalho</option><option value="footer">Rodapé</option></select></label>
+      {!plainLinks && <><label className="space-y-1 text-sm">Exibir em<select className="block min-h-10 w-full rounded-md border bg-background px-3" value={String(editing.row.location ?? "header")} onChange={e => setEditing({ ...editing, row: { ...editing.row, location: e.target.value } })}><option value="header">Cabeçalho</option><option value="footer">Rodapé</option></select></label>
       <label className="space-y-1 text-sm">Abrir destino<select className="block min-h-10 w-full rounded-md border bg-background px-3" value={String(editing.row.target ?? "_self")} onChange={e => setEditing({ ...editing, row: { ...editing.row, target: e.target.value } })}><option value="_self">Na mesma aba</option><option value="_blank">Em nova aba</option></select></label>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(editing.row.visible ?? editing.row.visivel ?? true)} onChange={e => setEditing({ ...editing, row: { ...editing.row, visible: e.target.checked, ...(Object.hasOwn(editing.row, "visivel") ? { visivel: e.target.checked } : {}) } })} />Mostrar no website</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(editing.row.visible ?? editing.row.visivel ?? true)} onChange={e => setEditing({ ...editing, row: { ...editing.row, visible: e.target.checked, ...(Object.hasOwn(editing.row, "visivel") ? { visivel: e.target.checked } : {}) } })} />Mostrar no website</label></>}
       {error && <p role="alert" className="text-sm text-destructive sm:col-span-2">{error}</p>}
       <div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="button" onClick={apply}>Aplicar ao rascunho</Button><Button type="button" variant="outline" onClick={() => { setEditing(null); setError(""); }}>Cancelar edição do link</Button></div>
     </fieldset>}
+  </div>;
+}
+
+
+export function WebsiteFooterField({ id, value, readonly, onChange }: { id: string; value: unknown; readonly: boolean; onChange: (value: unknown) => void }) {
+  const columnKeys = useRef<string[]>([]);
+  const [removing, setRemoving] = useState<{ index: number; snapshot: string } | null>(null);
+  const snapshot = JSON.stringify(value);
+  const compatible = Array.isArray(value) && value.every(column => column !== null && typeof column === "object" && !Array.isArray(column));
+  if (!compatible) return <JsonConfigurationField id={id} value={value} readonly={readonly} onChange={onChange} />;
+  const columns = value as Array<Record<string, unknown>>;
+  while (columnKeys.current.length < columns.length) columnKeys.current.push(crypto.randomUUID());
+  const update = (index: number, patch: Record<string, unknown>) => { if (!readonly) onChange(columns.map((column, i) => i === index ? { ...column, ...patch } : column)); };
+  return <div id={id} className="space-y-5">
+    <p className="text-sm text-muted-foreground">Edite os títulos e links das colunas do rodapé. O layout atual exibe as duas primeiras colunas. As demais configurações existentes são preservadas.</p>
+    {columns.map((column, index) => <section key={columnKeys.current[index]} className="space-y-4 rounded-lg border p-4">
+      <label className="block space-y-2 text-sm">Título da coluna {index + 1}<Input readOnly={readonly} value={String(column.title ?? "")} onChange={e => update(index, { title: e.target.value })} /></label>
+      <WebsiteMenuField plainLinks id={`${id}-links-${index}`} value={column.links ?? []} readonly={readonly} onChange={links => update(index, { links })} />
+      <Button type="button" variant="outline" disabled={readonly} onClick={() => setRemoving({ index, snapshot })}>Remover coluna {index + 1}</Button>
+      {removing?.index === index && <div role="alert" className="space-y-2"><p>Remover a coluna e seus links do rascunho? As páginas de destino serão preservadas.</p><Button type="button" variant="outline" onClick={() => setRemoving(null)}>Manter coluna</Button><Button type="button" variant="destructive" disabled={readonly || removing.snapshot !== snapshot} onClick={() => { if (!readonly && removing.snapshot === snapshot) { columnKeys.current = columnKeys.current.filter((_, i) => i !== index); onChange(columns.filter((_, i) => i !== index)); } setRemoving(null); }}>Confirmar remoção da coluna</Button></div>}
+    </section>)}
+    <Button type="button" variant="outline" disabled={readonly || columns.length >= 2} onClick={() => onChange([...columns, { title: "", links: [] }])}>Adicionar coluna</Button>
   </div>;
 }
