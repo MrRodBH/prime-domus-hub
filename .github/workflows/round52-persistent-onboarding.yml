@@ -62,6 +62,13 @@ jobs:
           ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/round65/journey.mjs
       - run: node run-round-57-operational-governance-specs.mjs
       - run: node run-round-58-platform-administration-specs.mjs
+      - name: Independent first administrator setup
+        env:
+          ROUND52_ISOLATED_CI: "true"
+        run: |
+          ROUND52_PG_MODULE="$RUNNER_TEMP/round52/node_modules/pg/lib/index.js" node tests/initial-admin/database.mjs
+          node tests/initial-admin/server.mjs
+          ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/initial-admin/ui.mjs
       - name: Controlled DOM and server contracts
         run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node tests/round52/ui.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/round52/node_modules/jsdom/lib/api.js" node run-round-56-approved-navigation-specs.mjs

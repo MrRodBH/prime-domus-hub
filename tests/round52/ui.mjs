@@ -3,7 +3,7 @@ import { build } from 'esbuild';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const {JSDOM,VirtualConsole}=await import(pathToFileURL(process.env.ROUND52_JSDOM_MODULE).href);
-const bundle=await build({entryPoints:['tests/round52/fixture.tsx'],bundle:true,write:false,jsx:'automatic',plugins:[{name:'controlled',setup(b){b.onResolve({filter:/^@\/lib\/api\/super-onboarding.functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
+const bundle=await build({entryPoints:['tests/round52/fixture.tsx'],bundle:true,write:false,jsx:'automatic',plugins:[{name:'controlled',setup(b){b.onResolve({filter:/^@\/lib\/api\/(super-onboarding|initial-admin-setup).functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
 const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
 const dom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/super',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});
 const w=dom.window,d=w.document;
@@ -85,7 +85,7 @@ import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {PersistentOnboarding} from './src/components/onboarding/PersistentOnboarding';
 function App(){const [view,setView]=useState('tenants');return <><nav><button onClick={()=>setView('plans')}>Abrir planos</button><button onClick={()=>setView('tenants')}>Abrir empresas</button></nav><PersistentOnboarding currentView={view} onViewChange={setView}/></>}
 const root=createRoot(document.getElementById('root'));root.render(<QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><App/></QueryClientProvider>);window.cleanup=()=>root.unmount();
-`},bundle:true,write:false,jsx:'automatic',plugins:[{name:'controlled-backend',setup(b){b.onResolve({filter:/^@\/lib\/api\/super-onboarding.functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
+`},bundle:true,write:false,jsx:'automatic',plugins:[{name:'controlled-backend',setup(b){b.onResolve({filter:/^@\/lib\/api\/(super-onboarding|initial-admin-setup).functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
 const dom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/super',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window,d=w.document;
 let store={plans:[],tenants:[{id:'00000000-0000-4000-8000-000000000002',nome:'Empresa isolada',dominio_principal:null,plano_codigo:null,metadata:{},updated_at:'2026-01-01T00:00:00Z'}]};

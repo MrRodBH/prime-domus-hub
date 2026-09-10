@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+assert.equal(process.env.GITHUB_ACTIONS,'true');assert.equal(process.env.ROUND52_ISOLATED_CI,'true');
+const pg=await import(pathToFileURL(process.env.ROUND52_PG_MODULE));const {Client}=pg.default??pg;
+const config={host:'127.0.0.1',port:55452,user:'postgres'};
+const root=new Client({...config,database:'postgres'});await root.connect();await root.query('CREATE DATABASE initial_admin_setup');await root.end();
+const db=new Client({...config,database:'initial_admin_setup'});await db.connect();
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+try {
+ await db.query(`CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY,email text,email_confirmed_at timestamptz);
+ CREATE TABLE public.user_roles(user_id uuid,role text);
+ CREATE TABLE public.tenants(id uuid PRIMARY KEY,slug text UNIQUE,nome text,status text,operational_kind text,owner_user_id uuid REFERENCES auth.users,plano_codigo text,metadata jsonb,updated_at timestamptz DEFAULT now());
+ CREATE TABLE public.commercial_plans(id uuid PRIMARY KEY,code text,status text);
+ CREATE TABLE public.rbac_profiles(id uuid PRIMARY KEY,codigo text,sistema boolean,tenant_id uuid);
+ CREATE TABLE public.user_profiles(tenant_id uuid,user_id uuid,profile_id uuid,UNIQUE(tenant_id,user_id,profile_id));
+ CREATE TYPE public.tenant_role AS ENUM ('owner','admin','viewer');CREATE TYPE public.membership_status AS ENUM('invited','active','suspended','revoked');
+ CREATE TABLE public.tenant_members(tenant_id uuid REFERENCES tenants,user_id uuid REFERENCES auth.users,tenant_role public.tenant_role,membership_status public.membership_status,is_owner boolean DEFAULT false,is_default boolean DEFAULT true,joined_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now(),invited_at timestamptz,accepted_at timestamptz,PRIMARY KEY(tenant_id,user_id));
+ GRANT USAGE ON SCHEMA auth TO service_role;GRANT ALL ON ALL TABLES IN SCHEMA auth,public TO service_role;`);
+ await db.query(readFileSync('supabase/migrations/20260910150013_sequential_initial_admin_setup.sql','utf8'));
+ for(let n=1;n<=9;n++)await db.query('INSERT INTO auth.users VALUES($1,$2,$3)',[id(n),`user${n}@fixture.invalid`,n===4?null:new Date()]);
+ await db.query("INSERT INTO user_roles VALUES($1,'super_admin')",[id(1)]);
+ await db.query("INSERT INTO rbac_profiles VALUES($1,'admin',true,null)",[id(41)]);
+ await db.query("INSERT INTO commercial_plans VALUES($1,'fixture','active')",[id(40)]);
+ const register=(actor,n,source='direct_sale',reference='')=>db.query('SELECT register_setup_company($1,$2,$3,$4,$5,$6) r',[id(actor),id(n),`Fixture ${n}`,`fixture-${n}`,source,reference]);
+ const prepare=(actor,n,user=2,expected=null)=>db.query('SELECT prepare_initial_admin($1,$2,$3,$4,$5) r',[id(actor),id(n),'Fixture Admin',`user${user}@fixture.invalid`,expected]);
+ const activate=(actor,invitation)=>db.query('SELECT activate_initial_admin($1,$2) r',[id(actor),invitation]);
+ const complete=async n=>db.query("UPDATE tenants SET plano_codigo='fixture',metadata=metadata||'{\"company_profile\":{\"legalName\":\"Controlled\"}}' WHERE id=$1",[id(n)]);
+ await db.query('SET ROLE service_role');
+ await assert.rejects(register(2,20),/setup_forbidden/);await assert.rejects(register(1,20,'sales_platform'),/setup_invalid/);
+ await register(1,20);await register(1,20);await register(1,21,'sales_platform','synthetic-sale-21');
+ assert.equal((await db.query('SELECT count(*) n FROM tenant_members')).rows[0].n,'0');
+ assert.ok((await db.query('SELECT owner_user_id FROM tenants')).rows.every(r=>r.owner_user_id===null));
+ await assert.rejects(prepare(1,20),/setup_company_incomplete/);await complete(20);await complete(21);
+ await assert.rejects(prepare(2,20),/setup_forbidden/);await assert.rejects(prepare(1,20,1),/setup_identity_ineligible/);
+ const a=(await prepare(1,20)).rows[0].r;assert.equal(a.existingConfirmedAccount,true);
+ await assert.rejects(prepare(1,20),/setup_conflict/);await assert.rejects(prepare(1,20,2,a.invitationId),/setup_retry_later/);
+ await assert.rejects(activate(3,a.invitationId),/setup_invitation_invalid/);await assert.rejects(activate(1,a.invitationId),/setup_invitation_invalid/);
+ // Concurrent acceptance must produce one non-owner membership, including idempotent response retry.
+ const second=new Client({...config,database:'initial_admin_setup'});await second.connect();await second.query('SET ROLE service_role');
+ await Promise.all([activate(2,a.invitationId),second.query('SELECT activate_initial_admin($1,$2)',[id(2),a.invitationId])]);await second.end();
+ assert.equal((await db.query('SELECT count(*) n FROM tenant_members WHERE tenant_id=$1',[id(20)])).rows[0].n,'1');
+ const member=(await db.query('SELECT * FROM tenant_members WHERE tenant_id=$1',[id(20)])).rows[0];assert.equal(member.tenant_role,'admin');assert.equal(member.is_owner,false);
+ assert.deepEqual((await db.query('SELECT tenant_id,user_id,profile_id FROM user_profiles')).rows,[{tenant_id:id(20),user_id:id(2),profile_id:id(41)}]);
+ await assert.rejects(prepare(1,20,3,a.invitationId),/setup_already_operational/);
+ await db.query("UPDATE tenant_members SET membership_status='revoked' WHERE tenant_id=$1",[id(20)]);await assert.rejects(activate(2,a.invitationId),/setup_already_activated/);
+ const b=(await prepare(1,21,4)).rows[0].r;assert.equal(b.existingConfirmedAccount,false);
+ await assert.rejects(activate(4,b.invitationId),/setup_invitation_invalid/);
+ await db.query('UPDATE auth.users SET email_confirmed_at=now() WHERE id=$1',[id(4)]);
+ await db.query("UPDATE tenant_initial_admin_setup SET expires_at=now()-interval '1 second' WHERE tenant_id=$1",[id(21)]);await assert.rejects(activate(4,b.invitationId),/setup_invitation_expired/);
+ await db.query("UPDATE tenant_initial_admin_setup SET requested_at=now()-interval '2 minutes' WHERE tenant_id=$1",[id(21)]);
+ const c=(await prepare(1,21,3,b.invitationId)).rows[0].r;
+ await assert.rejects(activate(4,b.invitationId),/setup_invitation_invalid/);
+ // Existing mixed owner is retained byte-for-byte; initial admin is separate.
+ await db.query('UPDATE tenants SET owner_user_id=$1 WHERE id=$2',[id(1),id(21)]);
+ await db.query("INSERT INTO tenant_members(tenant_id,user_id,tenant_role,membership_status,is_owner) VALUES($1,$2,'owner','active',true)",[id(21),id(1)]);
+ await activate(3,c.invitationId);assert.equal((await db.query('SELECT owner_user_id FROM tenants WHERE id=$1',[id(21)])).rows[0].owner_user_id,id(1));
+ assert.equal((await db.query('SELECT is_owner FROM tenant_members WHERE tenant_id=$1 AND user_id=$2',[id(21),id(1)])).rows[0].is_owner,true);
+ for(const role of ['authenticated','anon']){await db.query('RESET ROLE; SET ROLE '+role);await assert.rejects(activate(3,c.invitationId),/permission denied/);await assert.rejects(register(1,22),/permission denied/);await assert.rejects(db.query('SELECT * FROM tenant_initial_admin_setup'),/permission denied/);}
+ console.log('PASS native PostgreSQL: independent company registration, two sale origins, no assumed owner/Auth creation; verified-email acceptance, concurrent/idempotent activation, foreign/Super/unconfirmed/expired/replaced/revoked denial, owner retained, service-only ACL.');
+} finally {await db.end();}

@@ -46,9 +46,9 @@ const server=await build({entryPoints:['src/lib/api/super-onboarding.functions.t
 const dir=mkdtempSync(join(tmpdir(),'p0-journey-'));const file=join(dir,'server.mjs');writeFileSync(file,server.outputFiles[0].text);const api=await import(pathToFileURL(file));
 const authBundle=await build({entryPoints:['tests/round51/entry.tsx'],bundle:true,write:false,jsx:'automatic',loader:{'.png':'dataurl'},plugins:[{name:'auth-transport',setup(b){
  b.onResolve({filter:/^@tanstack\/react-router$/},()=>({path:resolve('tests/round51/router.tsx')}));
- b.onResolve({filter:/^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/super.functions|tenant-cache))$/},()=>({path:resolve('tests/round51/backend.ts')}));
+ b.onResolve({filter:/^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup).functions|tenant-cache))$/},()=>({path:resolve('tests/round51/backend.ts')}));
 }}]});
-const ui=await build({entryPoints:['tests/round52/fixture.tsx'],bundle:true,write:false,jsx:'automatic',plugins:[{name:'server-bridge',setup(b){b.onResolve({filter:/^@\/lib\/api\/super-onboarding.functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
+const ui=await build({entryPoints:['tests/round52/fixture.tsx'],bundle:true,write:false,jsx:'automatic',plugins:[{name:'server-bridge',setup(b){b.onResolve({filter:/^@\/lib\/api\/(super-onboarding|initial-admin-setup).functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
 const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
 const dom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/auth?super=1',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});const w=dom.window,d=w.document;
 w.fetch=()=>{throw Error('REMOTE_FORBIDDEN');};

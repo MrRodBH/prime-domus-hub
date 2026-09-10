@@ -23,7 +23,7 @@ const output = await build({
         build.onResolve(
           {
             filter:
-              /^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/super.functions|tenant-cache))$/,
+              /^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup).functions|tenant-cache))$/,
           },
           () => ({ path: backend }),
         );
@@ -225,6 +225,11 @@ await scenario(
     await until(() => fixture.navigation.length === 1);
   },
 );
+await scenario({access:async()=>false,initialAdminInvitations:[{id:"controlled"}]},async({fixture,until,fill,submit})=>{
+  await until(()=>!fixture.navigation.length);await tick();
+  await fill("email","admin@fixture.invalid");await fill("password","controlled-password");await submit();
+  await until(()=>fixture.navigation.length===1);assert.equal(fixture.navigation[0].to,"/invitations");
+});
 const demo = readFileSync("src/components/demo/interactive/EmptyDemoWorkspace.tsx", "utf8");
 assert.ok(demo.includes('href="/auth"'));
 assert.ok(!demo.includes("signInWithPassword"));

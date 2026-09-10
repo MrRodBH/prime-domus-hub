@@ -1,3 +1,4 @@
+import { InitialAdminSetup } from "./InitialAdminSetup";
 import { lookupPostalCode } from "@/components/demo/interactive/postal-lookup";
 import { formatPlanPrice, maskPlanPrice, parsePlanPrice, newPlanCode } from "@/lib/onboarding/plan-presentation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -169,6 +170,7 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
   const [filter, setFilter] = useState("");
   const [plan, setPlan] = useState<PlanRow | "new" | null>(null);
   const [tenant, setTenant] = useState<CompanyRow | null>(null);
+  const [setupTenant, setSetupTenant] = useState<CompanyRow | null>(null);
   const [message, setMessage] = useState("");
   function done(savedView: "plans" | "tenants") {
     if (savedView === "plans") setPlan(null);
@@ -372,6 +374,7 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
                             >
                               Editar tenant
                             </Button>
+                            <Button variant="outline" className="ml-2" disabled={!!tenant} onClick={()=>setSetupTenant(t)}>Configurar Admin</Button>
                           </td>
                         </tr>
                       ))}
@@ -396,10 +399,11 @@ export function PersistentOnboarding({ currentView, onViewChange }: { currentVie
                   key={tenant.id}
                   tenant={tenant}
                   plans={query.data.plans}
-                  onDone={() => done("tenants")}
+                  onDone={() => { setSetupTenant(tenant); void client.invalidateQueries({queryKey:["initial-admin-setup",tenant.id]}); done("tenants"); setView("tenants"); }}
                   onCancel={() => setTenant(null)}
                 />
               )}
+              {!tenant && setupTenant && <InitialAdminSetup key={setupTenant.id} tenantId={setupTenant.id} name={setupTenant.nome} />}
             </div>
         </>
       )}

@@ -9,7 +9,7 @@ import {
   estatisticasTenants,
   superKpisGlobais,
 } from "@/lib/api/super.functions";
-import { bootstrapTenantWithOwner } from "@/lib/api/tenant-lifecycle.functions";
+import { registerSetupCompany } from "@/lib/api/initial-admin-setup.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -268,12 +268,14 @@ function StatusBadge({ status }: { status: string }) {
 function NovoTenantDialog({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [ownerEmail, setOwnerEmail] = useState("");
-  const [initialStatus, setInitialStatus] = useState<"trial" | "ativo">("trial");
+  const [registrationId] = useState(() => crypto.randomUUID());
+  const [source, setSource] = useState<"direct_sale" | "sales_platform">("direct_sale");
+  const [reference, setReference] = useState("");
+
   const mutation = useMutation({
-    mutationFn: () => bootstrapTenantWithOwner({ data: { name, slug, ownerEmail, initialStatus } }),
+    mutationFn: () => registerSetupCompany({ data: { id: registrationId, name, slug, source, reference } }),
     onSuccess: (result) => {
-      toast.success(`Tenant ${result.name} criado com owner ${result.ownerEmail}.`);
+      toast.success(`Empresa ${result.name} cadastrada. Complete seus dados e cadastre o Admin na próxima etapa.`);
       onDone();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -284,8 +286,7 @@ function NovoTenantDialog({ onDone }: { onDone: () => void }) {
       <DialogHeader>
         <DialogTitle>Novo tenant</DialogTitle>
         <DialogDescription>
-          O tenant e o owner inicial são criados na mesma transação. O domínio será ativado na
-          DCA-01.
+          Primeiro cadastre a empresa. Depois salve seus dados e plano, e cadastre o Admin em uma etapa independente.
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-3">
@@ -301,43 +302,16 @@ function NovoTenantDialog({ onDone }: { onDone: () => void }) {
             placeholder="minha-empresa"
           />
         </div>
-        <div>
-          <Label>E-mail do owner inicial</Label>
-          <Input
-            type="email"
-            value={ownerEmail}
-            onChange={(event) => setOwnerEmail(event.target.value)}
-            placeholder="owner@empresa.com.br"
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            O usuário Auth deve existir antes do bootstrap.
-          </p>
-        </div>
-        <div>
-          <Label>Status inicial</Label>
-          <Select
-            value={initialStatus}
-            onValueChange={(value: "trial" | "ativo") => setInitialStatus(value)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="trial">trial</SelectItem>
-              <SelectItem value="ativo">ativo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-          Domain activation = <strong>pending DCA-01</strong>
-        </div>
+        <div><Label>Origem do cadastro</Label><Select value={source} onValueChange={(value: "direct_sale" | "sales_platform")=>setSource(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="direct_sale">Compra direta</SelectItem><SelectItem value="sales_platform">Plataforma de vendas</SelectItem></SelectContent></Select></div>
+        <div><Label>Referência da venda{source === "sales_platform" ? " (obrigatória)" : " (opcional)"}</Label><Input value={reference} onChange={e=>setReference(e.target.value)} maxLength={200}/></div>
+        <p className="text-sm text-muted-foreground">O cadastro registra a origem da empresa. A confirmação financeira segue o fluxo da venda; nenhum usuário é criado nesta etapa.</p>
       </div>
       <DialogFooter>
         <Button
           onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !name.trim() || !slug.trim() || !ownerEmail.trim()}
+          disabled={mutation.isPending || !name.trim() || !slug.trim() || (source === "sales_platform" && !reference.trim())}
         >
-          {mutation.isPending ? "Criando…" : "Criar tenant e owner"}
+          {mutation.isPending ? "Criando…" : "Cadastrar empresa"}
         </Button>
       </DialogFooter>
     </DialogContent>
