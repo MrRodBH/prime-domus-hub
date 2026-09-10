@@ -103,7 +103,7 @@ const historical = readFileSync("src/components/demo/DemoWorkspace.tsx", "utf8")
 for (const color of ["#f6f4ef", "#113b42", "#fbfaf7"]) assert.ok(historical.includes(color));
 const server = readFileSync("src/server.ts", "utf8");
 assert.ok(
-  server.includes('connectOrigins.push("https://viacep.com.br", "https://cloudflare-dns.com")'),
+  server.includes('connectOrigins.push("https://cloudflare-dns.com")'),
 );
 const admin = readFileSync("src/components/domains/TenantDomainWorkspace.tsx", "utf8");
 assert.ok(admin.includes("onCheck={() => void stateQuery.refetch()}"));
