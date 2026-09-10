@@ -432,6 +432,10 @@ const round57GovernancePaths = [
 ];
 
 const round56ApprovedNavigationPaths = [
+  // PR260: owner-authorized website entry and correction of obsolete impersonation copy.
+  // Exact additions only; all historical scope and runtime assertions remain enforced.
+  "src/components/domains/SuperDomainOperations.tsx",
+  "src/routes/_authenticated.admin.site.tsx",
   "run-p0-visual-product-homologation-specs.ts",
   "run-pr-m2-analytics-tracking-conversion-events-functional-completion-specs.ts",
   ".github/workflows/round52-persistent-onboarding.yml",
