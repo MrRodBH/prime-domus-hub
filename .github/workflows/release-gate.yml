@@ -559,7 +559,10 @@ jobs:
 
       - name: Verify website builder scoped release gate
         if: steps.scope.outputs.website_builder_only == 'true'
-        run: bun run test:p0-website-builder && bun run typecheck && bun run build
+        shell: bash
+        run: |
+          set -o pipefail
+          (bun run test:p0-website-builder && bun run typecheck && bun run build) 2>&1 | tee release-gate.log
 
       - name: Upload release gate evidence
         if: always()
