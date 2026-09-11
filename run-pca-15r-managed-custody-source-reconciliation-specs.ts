@@ -582,6 +582,39 @@ const round57GovernancePaths = [
   "tests/round57/database.mjs"
 ];
 
+// Exact owner-authorized independent first-Admin setup evolution; no runtime gate removed.
+const initialAdminSetupPaths = [
+  ".github/workflows/round52-persistent-onboarding.yml",
+  "docs/architecture/OWNER_UI_APPROVALS.md",
+  "docs/INITIAL_ADMIN_SETUP_EVIDENCE.md",
+  "src/lib/api/initial-admin-setup.functions.ts",
+  "src/components/onboarding/InitialAdminSetup.tsx",
+  "src/components/onboarding/PersistentOnboarding.tsx",
+  "src/routes/_authenticated.super.index.tsx",
+  "src/routes/_authenticated.invitations.tsx",
+  "src/routes/auth.tsx",
+  "src/routes/reset-password.tsx",
+  "supabase/migrations/20260910150013_sequential_initial_admin_setup.sql",
+  "tests/initial-admin/database.mjs",
+  "tests/initial-admin/server.mjs",
+  "tests/initial-admin/ui.mjs",
+  "tests/round51/backend.ts",
+  "tests/round52/backend.ts",
+  "tests/round52/ui.mjs",
+  "tests/round65/journey.mjs",
+  "run-round-51-superadmin-auth-specs.mjs",
+  "run-pca-12b-lovable-managed-edge-function-bridge-specs.ts",
+  "run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts",
+  "run-pca-15r-managed-custody-source-reconciliation-specs.ts",
+  "run-pca-05r-prerequisite-closure-manifest-specs.mjs",
+  "docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json",
+  "run-round-46-empty-onboarding-specs.mjs",
+  "run-round-44-broker-identity-ui-specs.mjs",
+  "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts",
+  "run-pr-m2-tenant-lifecycle-specs.ts",
+  "run-round-43-broker-identity-concurrency-specs.mjs"
+];
+
 const round56ApprovedNavigationPaths = [
   // Canonical published legal links projected to the existing public footer.
   "src/lib/api/site.functions.ts",
@@ -854,16 +887,17 @@ const round43ConcurrencyPaths = [
 const round35JourneyPaths = ["run-round-35-crm-journey-specs.ts", "scripts/verify-release.mjs", "src/components/pipeline/CrmJourneyPanel.tsx", "src/components/pipeline/crm-journey-command.ts", "src/routes/_authenticated.admin.pipeline.tsx"];
   assert.deepEqual(
     changed,
-    [...new Set([...PCA15R_PATHS, ...(changed.includes("database/round65-tenant-member-authority.sql") ? round65P0Paths : []), ...(changed.includes("database/round64-rbac-profile-read.sql") ? round64PrivacyPaths : []), ...(changed.includes("database/round63-submission-read.sql") ? round63SubmissionPaths : []), ...(changed.includes("database/round62-storage-authority.sql") ? round62StoragePaths : []), ...(changed.includes("database/round61-secretaria-inline-scope.sql") ? round61SecurityPaths : []), ...(changed.includes("run-round-58-platform-administration-specs.mjs") ? round58PlatformAdministrationPaths : []), ...(changed.includes("run-round-57-operational-governance-specs.mjs") ? round57GovernancePaths : []), ...(changed.includes("run-round-56-approved-navigation-specs.mjs") ? round56ApprovedNavigationPaths : []), ...(changed.includes("run-round-55-plan-form-specs.mjs") ? round55PlanFormPaths : []), ...(changed.includes("run-round-54-navigation-context-specs.mjs") ? round54NavigationContextPaths : []), ...(changed.includes("run-round-53-authenticated-theme-specs.mjs") ? round53AuthenticatedThemePaths : []), ...(changed.includes("src/lib/api/super-onboarding.functions.ts") ? round52PersistentOnboardingPaths : []), ...(changed.includes("run-round-51-superadmin-auth-specs.mjs") ? round51SuperAdminAuthPaths : []), ...(changed.includes("run-round-50-tenant-navigation-specs.mjs") ? round50TenantNavigationPaths : []), ...(changed.includes("run-round-49-domain-theme-specs.mjs") ? round49DomainThemePaths : []), ...(changed.includes("run-round-48-tenant-domain-specs.mjs") ? round48TenantDomainPaths : []), ...(changed.includes("run-round-47-plan-address-specs.mjs") ? round47PlanAddressPaths : []), ...(changed.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changed.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changed.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []), ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []), ...(changed.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []), ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
+    [...new Set([...PCA15R_PATHS, ...(changed.includes("supabase/migrations/20260910150013_sequential_initial_admin_setup.sql") ? initialAdminSetupPaths : []), ...(changed.includes("database/round65-tenant-member-authority.sql") ? round65P0Paths : []), ...(changed.includes("database/round64-rbac-profile-read.sql") ? round64PrivacyPaths : []), ...(changed.includes("database/round63-submission-read.sql") ? round63SubmissionPaths : []), ...(changed.includes("database/round62-storage-authority.sql") ? round62StoragePaths : []), ...(changed.includes("database/round61-secretaria-inline-scope.sql") ? round61SecurityPaths : []), ...(changed.includes("run-round-58-platform-administration-specs.mjs") ? round58PlatformAdministrationPaths : []), ...(changed.includes("run-round-57-operational-governance-specs.mjs") ? round57GovernancePaths : []), ...(changed.includes("run-round-56-approved-navigation-specs.mjs") ? round56ApprovedNavigationPaths : []), ...(changed.includes("run-round-55-plan-form-specs.mjs") ? round55PlanFormPaths : []), ...(changed.includes("run-round-54-navigation-context-specs.mjs") ? round54NavigationContextPaths : []), ...(changed.includes("run-round-53-authenticated-theme-specs.mjs") ? round53AuthenticatedThemePaths : []), ...(changed.includes("src/lib/api/super-onboarding.functions.ts") ? round52PersistentOnboardingPaths : []), ...(changed.includes("run-round-51-superadmin-auth-specs.mjs") ? round51SuperAdminAuthPaths : []), ...(changed.includes("run-round-50-tenant-navigation-specs.mjs") ? round50TenantNavigationPaths : []), ...(changed.includes("run-round-49-domain-theme-specs.mjs") ? round49DomainThemePaths : []), ...(changed.includes("run-round-48-tenant-domain-specs.mjs") ? round48TenantDomainPaths : []), ...(changed.includes("run-round-47-plan-address-specs.mjs") ? round47PlanAddressPaths : []), ...(changed.includes("run-round-46-empty-onboarding-specs.mjs") ? round46EmptyDemoPaths : []), ...(changed.includes("run-round-44-broker-identity-ui-specs.mjs") ? round44IdentityUiPaths : []), ...(changed.includes("run-round-43-broker-identity-concurrency-specs.mjs") ? round43ConcurrencyPaths : []), ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? round42IdentityPaths : []), ...(changed.includes("run-round-40-property-interaction-specs.mjs") ? round40JourneyPaths : []), ...p0VisualProductHomologationPaths, ...(changed.includes("run-round-35-crm-journey-specs.ts") ? round35JourneyPaths : [])])].sort(),
   );
   assert.ok(!changed.includes(".env"));
   assert.ok(!changed.includes("src/integrations/supabase/types.ts"));
   assert.ok(!changed.includes("src/lib/tenant.server.ts"));
   assert.deepEqual(changed.filter((path) => path.startsWith("supabase/migrations/")),
     [
+      ...(changed.includes("supabase/migrations/20260910150013_sequential_initial_admin_setup.sql") ? ["supabase/migrations/20260910150013_sequential_initial_admin_setup.sql"] : []),
       ...(changed.includes("run-round-42-broker-identity-sql-specs.mjs") ? ["supabase/migrations/20260907183824_round42_broker_identity_link.sql"] : []),
       ...(changed.includes("src/lib/api/super-onboarding.functions.ts") ? ["supabase/migrations/20260908003058_round52_persistent_onboarding.sql"] : []),
-    ]);
+    ].sort());
   assert.ok(!changed.some((path) => path.includes("LSR-02") || path.includes("lsr-02")));
 }
 

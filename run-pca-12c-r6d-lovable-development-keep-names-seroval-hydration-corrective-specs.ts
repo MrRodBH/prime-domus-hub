@@ -170,7 +170,7 @@ assert.match(auth, /supabase\.auth\.getUser\(\)/);
 // Round 51 retains password authentication and verifies workspace authority server-side.
 assert.match(auth, /supabase\.auth\.signInWithPassword\(\{\s*email: email\.trim\(\),\s*password,?\s*\}\)/);
 assert.match(auth, /await meuAcessoSuperAdmin\(\)/);
-assert.match(auth, /isSuper === true \? "\/super" : "\/admin"/);
+assert.match(auth, /isSuper === true \? "\/super" : pendingSetup.length \? "\/invitations" : "\/admin"/);
 assert.match(authenticated, /const \{ data, error \} = await supabase\.auth\.getUser\(\)/);
 assert.match(authenticated, /if \(error \|\| !data\.user\) throw redirect\(\{ to: "\/auth" \}\)/);
 assert.match(provisioningRoute, /request\.headers\.has\("x-tenant-id"\)/);

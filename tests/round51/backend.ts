@@ -10,3 +10,5 @@ export const meuAcessoSuperAdmin = () => fixture().access();
 export const clearImpersonationTenantId = () => fixture().cleared.push("impersonation");
 export const clearSelectedTenantId = () => fixture().cleared.push("selection");
 export const setCurrentTenantId = (value: unknown) => fixture().cleared.push(["tenant", value]);
+
+export async function listMyInitialAdminInvitations(){return fixture().initialAdminInvitations ?? [];}

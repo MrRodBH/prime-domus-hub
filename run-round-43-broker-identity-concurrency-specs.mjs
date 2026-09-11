@@ -38,7 +38,8 @@ async function blocked(waiter,holder,p,label){
   const end=Date.now()+7000;
   while(Date.now()<end){
     const r=(await observer.query('SELECT pg_blocking_pids($1) AS blockers,wait_event_type,wait_event FROM pg_stat_activity WHERE pid=$1',[waiter.pid])).rows[0];
-    if(r?.blockers.includes(holder.pid)){assert.equal(p.settled,false);assert.equal(r.wait_event_type,'Lock');evidence.blocks.push({label,waiter:waiter.pid,holder:holder.pid,event:r.wait_event});return;}
+    // pg_blocking_pids and wait_event can change between observations; require both in the same sample.
+    if(r?.blockers.includes(holder.pid) && r.wait_event_type==='Lock'){assert.equal(p.settled,false);assert.equal(r.wait_event_type,'Lock');evidence.blocks.push({label,waiter:waiter.pid,holder:holder.pid,event:r.wait_event});return;}
     assert.equal(p.settled,false,`${label}: expected actual overlapping lock wait`);
     await new Promise(r=>setTimeout(r,25));
   }

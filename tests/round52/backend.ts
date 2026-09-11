@@ -5,3 +5,6 @@ export async function saveSuperPlan({data}: {data: unknown}) { return fixture().
 export async function saveSuperCompany({data}: {data: unknown}) { return fixture().saveCompany(saveCompanySchema.parse(data)); }
 
 export async function lookupSuperPostalCode() { throw Error("Postal lookup unavailable in fixture"); }
+
+export async function loadInitialAdminSetup(){return {eligible:true,companyComplete:false,setup:null};}
+export async function inviteInitialAdmin(){throw new Error("Use the dedicated isolated setup test");}

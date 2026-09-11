@@ -1,3 +1,4 @@
+import { listMyInitialAdminInvitations, acceptInitialAdminInvitation } from "@/lib/api/initial-admin-setup.functions";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,14 @@ function InvitationsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const initialQuery = useQuery({queryKey:["initial-admin-invitations","mine"],queryFn:()=>listMyInitialAdminInvitations()});
+  const initialAccept = useMutation({mutationFn:(invitationId:string)=>acceptInitialAdminInvitation({data:{invitationId}}),onSuccess:async result=>{
+    setSelectedTenantId(result.tenantId);
+    await queryClient.invalidateQueries({queryKey:["tenant-selection","selectable"]});
+    await queryClient.invalidateQueries({queryKey:["initial-admin-invitations","mine"]});
+    toast.success("Admin ativado. A empresa está disponível para sua conta.");
+    await navigate({to:"/admin"});
+  },onError:(e:Error)=>toast.error(e.message)});
   const invitations = invitationsQuery.data ?? [];
 
   return (
@@ -42,6 +51,9 @@ function InvitationsPage() {
         </p>
       </div>
 
+      <section aria-label="Ativação do primeiro Admin" className="space-y-3">
+        {initialQuery.isPending ? <p role="status">Verificando ativações de empresas…</p> : initialQuery.isError ? <div role="alert"><p>Não foi possível carregar as ativações.</p><Button variant="outline" onClick={()=>void initialQuery.refetch()}>Tentar novamente</Button></div> : initialQuery.data?.map(invitation=><div key={invitation.id} className="rounded-xl border bg-card p-5 space-y-3"><h2 className="font-display text-xl">Administrar {invitation.name}</h2><p className="text-sm text-muted-foreground">Ao aceitar, sua conta será o Admin operacional desta empresa. A propriedade permanece inalterada.</p><Button disabled={initialAccept.isPending} onClick={()=>initialAccept.mutate(invitation.id)}>{initialAccept.isPending?'Ativando…':'Aceitar e acessar a empresa'}</Button></div>)}
+      </section>
       {invitationsQuery.isPending ? (
         <div className="rounded-lg border bg-card p-10 text-center text-sm text-muted-foreground">
           Carregando convites…

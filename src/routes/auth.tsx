@@ -1,3 +1,4 @@
+import { listMyInitialAdminInvitations } from "@/lib/api/initial-admin-setup.functions";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +33,8 @@ function AuthPage() {
 
   async function openWorkspace(isCurrent = () => mounted.current) {
     const isSuper = await meuAcessoSuperAdmin();
-    if (isCurrent()) await navigate({ to: isSuper === true ? "/super" : "/admin", replace: true });
+    const pendingSetup = isSuper === true ? [] : await listMyInitialAdminInvitations();
+    if (isCurrent()) await navigate({ to: isSuper === true ? "/super" : pendingSetup.length ? "/invitations" : "/admin", replace: true });
   }
 
   useEffect(() => {

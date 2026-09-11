@@ -161,7 +161,7 @@ assert.equal(
       "package.json",
       "bun.lock",
       ":(exclude)src/lib/api/super-onboarding.functions.ts", ':(exclude)src/integrations/supabase/__tests__/tenant-middleware.spec.ts', ':(exclude)src/integrations/supabase/tenant-middleware.ts', ':(exclude)src/lib/api/operational-tenants.server.ts', ':(exclude)src/lib/api/super-control-plane.functions.ts', ':(exclude)src/lib/api/site.functions.ts', ':(exclude)src/lib/api/super.functions.ts', ':(exclude)src/lib/api/tenant-scoped-authority.ts', ':(exclude)src/lib/api/tenant-crm.functions.ts', ':(exclude)src/lib/api/tenant-lifecycle.functions.ts',
-      ":(exclude)supabase/migrations/20260908003058_round52_persistent_onboarding.sql",
+      ":(exclude)src/lib/api/initial-admin-setup.functions.ts", ":(exclude)supabase/migrations/20260910150013_sequential_initial_admin_setup.sql", ":(exclude)supabase/migrations/20260908003058_round52_persistent_onboarding.sql",
     ],
     { encoding: "utf8" },
   ),

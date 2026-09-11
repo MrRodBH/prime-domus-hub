@@ -1,3 +1,4 @@
+import { listMyInitialAdminInvitations } from "@/lib/api/initial-admin-setup.functions";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
@@ -107,10 +108,9 @@ function ResetPasswordPage() {
 
 
   async function redirectToDashboard() {
-    await navigate({ to: "/admin", replace: true });
-    window.setTimeout(() => {
-      if (window.location.pathname !== "/admin") window.location.assign("/admin");
-    }, 300);
+    const pending = await listMyInitialAdminInvitations();
+    const destination = pending.length ? "/invitations" : "/admin";
+    await navigate({ to: destination, replace: true });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -155,7 +155,7 @@ function ResetPasswordPage() {
     }
     toast.success("Senha definida com sucesso. Redirecionando…");
     setDone(true);
-    await redirectToDashboard();
+    try { await redirectToDashboard(); } catch { setDone(false); setLoading(false); setFormError("Senha definida. Entre com sua conta para retomar a ativação da empresa."); }
   }
 
   return (

@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';import {build} from 'esbuild';import {pathToFileURL} from 'node:url';
+const {JSDOM}=await import(pathToFileURL(process.env.ROUND52_JSDOM_MODULE));
+const bundle=await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`import React from 'react';import {createRoot} from 'react-dom/client';import {QueryClient,QueryClientProvider} from '@tanstack/react-query';import {InitialAdminSetup} from './src/components/onboarding/InitialAdminSetup';const qc=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});window.reload=()=>qc.invalidateQueries();createRoot(document.getElementById('root')).render(<QueryClientProvider client={qc}><InitialAdminSetup tenantId="00000000-0000-4000-8000-000000000002" name="Fixture Company"/></QueryClientProvider>);`},bundle:true,write:false,jsx:'automatic',plugins:[{name:'isolated',setup(b){b.onResolve({filter:/^@\/lib\/api\/initial-admin-setup.functions$/},a=>({path:a.path,namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({loader:'js',contents:`export const loadInitialAdminSetup=async()=>{if(window.loadError)throw Error('controlled');return window.state};export const inviteInitialAdmin=async({data})=>{window.sent.push(data);return {delivery:window.delivery};};`}));}}]});
+const dom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid',runScripts:'outside-only',pretendToBeVisual:true});const w=dom.window,d=w.document;const tick=()=>new Promise(r=>setTimeout(r,15));const until=async f=>{for(let i=0;i<150;i++){if(f())return;await tick();}throw Error('DOM wait: '+d.body.textContent);};
+w.state={eligible:true,companyComplete:false,setup:null};w.sent=[];w.delivery='failed';w.eval(bundle.outputFiles[0].text);
+try{
+ await until(()=>d.body.textContent.includes('plano ativo'));assert.equal(d.querySelector('form'),null);
+ w.state={...w.state,companyComplete:true};await w.reload();await until(()=>d.querySelector('form'));
+ const inputs=d.querySelectorAll('input');const fill=(input,value)=>{Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new w.Event('input',{bubbles:true}));};
+ fill(inputs[0],'Fixture Admin');fill(inputs[1],'admin@fixture.invalid');await tick();d.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+ await until(()=>d.body.textContent.includes('Não foi possível enviar'));assert.equal(w.sent.length,1);assert.equal(inputs[0].value,'Fixture Admin');assert.equal(inputs[1].value,'admin@fixture.invalid');
+ w.delivery='existing_account';d.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await until(()=>d.body.textContent.includes('Nenhum e-mail foi enviado'));
+ w.state={...w.state,eligible:false};await w.reload();await until(()=>!d.querySelector('form'));assert.ok(d.body.textContent.includes('gestão da equipe'));
+ console.log('PASS controlled DOM: company-first gating, editable independent admin, failure retains fields, existing-account truthful delivery, completed setup cannot change members.');
+}finally{w.close();}
