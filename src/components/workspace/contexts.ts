@@ -69,7 +69,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     id: "conteudo",
     label: "Conteúdo",
     icon: FileText,
-    root: "/admin/paginas",
+    root: "/admin/site",
     matches: [
       "/admin/site", "/admin/domains",
       "/admin/paginas",
@@ -82,7 +82,7 @@ export const CONTEXTS: WorkspaceContext[] = [
       "/admin/cms-inventario",
     ],
     subs: [
-      { label: "Site", to: "/admin/site" },
+      { label: "Website", to: "/admin/site" },
       { label: "Domínios", to: "/admin/domains" },
       { label: "Páginas", to: "/admin/paginas" },
       { label: "Inventário", to: "/admin/cms-inventario" },
@@ -151,6 +151,7 @@ export const CONTEXTS: WorkspaceContext[] = [
 ];
 
 export function contextFromPath(path: string): WorkspaceContext {
+  path = tenantRelativeAdminPath(path);
   let best: WorkspaceContext = CONTEXTS[0];
   let bestLen = -1;
   for (const context of CONTEXTS) {
@@ -162,6 +163,11 @@ export function contextFromPath(path: string): WorkspaceContext {
     }
   }
   return best;
+}
+
+export function tenantRelativeAdminPath(path: string): string {
+  const match = path.match(/^\/[^/]+(\/admin(?:\/.*)?$)/);
+  return match?.[1] ?? path;
 }
 
 // Owner-approved global navigation: direct lateral entries, never tenant shortcuts.
@@ -177,6 +183,7 @@ export const SUPER_NAVIGATION: WorkspaceContext[] = [
 ].map(item => ({ ...item, search: item.search as WorkspaceContext["search"], id: "operacao", matches: [item.root], subs: [], superOnly: true }));
 
 export function workspaceItemActive(item: WorkspaceContext, path: string, search: Record<string, unknown>) {
+  path = tenantRelativeAdminPath(path);
   if (item.superOnly && item.subs.length === 0) {
     if (path.replace(/\/$/, "") !== item.root) return false;
     return Object.entries(item.search ?? {}).every(([key, value]) => (search[key] ?? (key === "view" ? "dashboard" : "")) === value);
