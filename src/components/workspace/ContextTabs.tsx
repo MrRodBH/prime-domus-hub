@@ -1,7 +1,7 @@
 // ContextTabs — sub-navegação horizontal quando um contexto tem > 1 sub-área.
 // Aparece logo abaixo do AppHeader, dentro do conteúdo.
 import { Link, useRouterState } from "@tanstack/react-router";
-import { contextFromPath } from "./contexts";
+import { contextFromPath, tenantRelativeAdminPath } from "./contexts";
 
 export function ContextTabs() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -13,7 +13,8 @@ export function ContextTabs() {
     <div className="border-b border-border bg-card">
       <div className="flex items-center gap-1 px-3 sm:px-4 overflow-x-auto scrollbar-none">
         {ctx.subs.map((s) => {
-          const isActive = path === s.to || path.startsWith(s.to + "/");
+          const comparablePath = tenantRelativeAdminPath(path);
+          const isActive = comparablePath === s.to || comparablePath.startsWith(s.to + "/");
           return (
             <Link
               key={s.to}
