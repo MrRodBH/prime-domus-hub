@@ -27,6 +27,7 @@ assert.doesNotMatch(wizard, /publishTenant/);
 assert.match(route, /<WebsiteSetupWizard \/>/);
 assert.match(tenantRoute, /params\.tenantSlug !== tenant\.slug/);
 assert.match(tenantRoute, /meuTenantWorkspace/);
+assert.doesNotMatch(tenantRoute, /meuAcessoAdmin|meuAcessoSuperAdmin/);
 assert.match(tenantApi, /middleware\(\[requireTenant\]\)/);
 assert.match(tenantApi, /\.eq\("id", context\.tenant\.tenantId\)/);
 assert.match(contexts, /root: "\/admin\/site"/);
