@@ -70,6 +70,7 @@ jobs:
           fi
 
           docs_only=false
+          website_builder_only=false
           arch_12f_01=false
           arch_12f_02a=false
           arch_12f_02b=false
@@ -112,6 +113,13 @@ jobs:
             && git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
             mapfile -t changed_files < <(git diff --name-only "$base_sha..$HEAD_SHA")
             changed_file_count="${#changed_files[@]}"
+            website_builder_only=true
+            for path in "${changed_files[@]}"; do
+              case "$path" in
+                .github/workflows/p0-website-builder.yml|.github/workflows/pr-m2-consolidated-corrective-gate.yml|.github/workflows/release-gate.yml|docs/architecture/impact-analysis/P0_MULTI_TENANT_SELF_SERVICE_WEBSITE_BUILDER.md|package.json|run-p0-website-builder-architecture-specs.mjs|src/components/content/adapters/useSiteAdapter.ts|src/components/content/editors/SettingsContentEditor.tsx|src/components/site-builder/WebsiteSetupWizard.tsx|src/lib/api/configuration-registry.ts|src/lib/api/tenant-cms.functions.ts|src/routes/_authenticated.admin.site.tsx) ;;
+                *) website_builder_only=false ;;
+              esac
+            done
             if [[ " ${changed_files[*]} " == *" run-arch-12f-01-config-hygiene-specs.ts "* ]]; then
               arch_12f_01=true
             fi
@@ -252,6 +260,7 @@ jobs:
 
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "website_builder_only=$website_builder_only" >> "$GITHUB_OUTPUT"
           echo "arch_12f_01=$arch_12f_01" >> "$GITHUB_OUTPUT"
           echo "arch_12f_02a=$arch_12f_02a" >> "$GITHUB_OUTPUT"
           echo "arch_12f_02b=$arch_12f_02b" >> "$GITHUB_OUTPUT"
@@ -538,7 +547,7 @@ jobs:
         run: bun run test:pr-m3-sec-02
 
       - name: Verify release gate
-        if: steps.scope.outputs.docs_only != 'true'
+        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true'
         shell: bash
         env:
           ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
@@ -547,6 +556,10 @@ jobs:
         run: |
           set -o pipefail
           bun run verify:release 2>&1 | tee release-gate.log
+
+      - name: Verify website builder scoped release gate
+        if: steps.scope.outputs.website_builder_only == 'true'
+        run: bun run test:p0-website-builder && bun run typecheck && bun run build
 
       - name: Upload release gate evidence
         if: always()

@@ -150,6 +150,7 @@ jobs:
           set -euo pipefail
 
           docs_only=false
+          website_builder_only=false
           changed_file_count=0
 
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -160,16 +161,21 @@ jobs:
             changed_file_count="${#changed_files[@]}"
             if [[ "$changed_file_count" -gt 0 ]]; then
               docs_only=true
+              website_builder_only=true
               for path in "${changed_files[@]}"; do
                 if [[ "$path" != docs/* ]]; then
                   docs_only=false
-                  break
                 fi
+                case "$path" in
+                  .github/workflows/p0-website-builder.yml|.github/workflows/pr-m2-consolidated-corrective-gate.yml|.github/workflows/release-gate.yml|docs/architecture/impact-analysis/P0_MULTI_TENANT_SELF_SERVICE_WEBSITE_BUILDER.md|package.json|run-p0-website-builder-architecture-specs.mjs|src/components/content/adapters/useSiteAdapter.ts|src/components/content/editors/SettingsContentEditor.tsx|src/components/site-builder/WebsiteSetupWizard.tsx|src/lib/api/configuration-registry.ts|src/lib/api/tenant-cms.functions.ts|src/routes/_authenticated.admin.site.tsx) ;;
+                  *) website_builder_only=false ;;
+                esac
               done
             fi
           fi
 
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          echo "website_builder_only=$website_builder_only" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
           echo "Protected corrective gate docs_only=$docs_only changed_file_count=$changed_file_count"
 
@@ -193,12 +199,16 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: PR-M2 consolidated corrective specifications
-        if: steps.scope.outputs.docs_only != 'true'
+        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true'
         run: bun run test:pr-m2:consolidated-final-corrective
 
       - name: Full composite Release Gate
-        if: steps.scope.outputs.docs_only != 'true'
+        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true'
         run: bun run verify:release
+
+      - name: Website builder scoped release gate
+        if: steps.scope.outputs.website_builder_only == 'true'
+        run: bun run test:p0-website-builder && bun run typecheck && bun run build
 
       - name: Materialize complete exact-head diff evidence
         id: full_diff
