@@ -1,7 +1,12 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { meuTenantWorkspace } from "@/lib/api/tenant.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/$tenantSlug/admin")({
+  beforeLoad: async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw redirect({ to: "/auth" });
+  },
   loader: async ({ params }) => {
     const tenant = await meuTenantWorkspace();
     if (params.tenantSlug !== tenant.slug) {
