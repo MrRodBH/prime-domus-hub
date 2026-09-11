@@ -445,6 +445,73 @@ export const saveTenantPageDraft = createServerFn({ method: "POST" })
   .inputValidator(pageDraftSchema)
   .handler(async ({ context, data }) => savePageDraftHandler(context, data));
 
+const websiteStarterPageSchema = z.enum(["inicio", "imoveis", "lancamentos", "sobre", "contato"]);
+const WEBSITE_STARTER_PAGES: Record<z.infer<typeof websiteStarterPageSchema>, string> = {
+  inicio: "Início",
+  imoveis: "Imóveis",
+  lancamentos: "Lançamentos",
+  sobre: "Sobre",
+  contato: "Contato",
+};
+
+/**
+ * Idempotent tenant-scoped draft provisioning for the self-service wizard.
+ * Existing slugs are never overwritten. Publication remains a separate,
+ * explicit operation for each immutable version.
+ */
+export const provisionTenantWebsiteDrafts = createServerFn({ method: "POST" })
+  .middleware([requireTenant])
+  .inputValidator(z.object({ pages: z.array(websiteStarterPageSchema).min(1).max(5) }).strict())
+  .handler(async ({ context, data }) => {
+    const auth = await authorizeTenantPageOperation(trusted(context), "create_draft");
+    const requested = [...new Set(data.pages)];
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing, error } = await (supabaseAdmin as any)
+      .from("cms_pages")
+      .select("id, slug, revision, status")
+      .eq("tenant_id", auth.tenantId)
+      .in("slug", requested);
+    if (error) throw safeTenantCmsError(error);
+    const bySlug = new Map((existing ?? []).map((row: any) => [String(row.slug), row]));
+    const created: Array<{ pageId: string; slug: string; revision: number }> = [];
+    const alreadyPresent: string[] = requested.filter((slug) => bySlug.has(slug));
+    for (const slug of requested) {
+      if (bySlug.has(slug)) continue;
+      const snapshot = normalizePageSnapshot({
+        page_type: "standard",
+        schema_version: 1,
+        slug,
+        title: WEBSITE_STARTER_PAGES[slug],
+        description: null,
+        status: "draft",
+        seo: { noindex: true },
+        layout: { type: "single_column", sections: [] },
+        navigation_references: [],
+        form_references: [],
+        campaign_references: [],
+        media_references: [],
+        configuration_references: ["configuration"],
+      });
+      try {
+        const result = await executeCmsRpc("save_tenant_page_draft", {
+          _tenant_id: auth.tenantId,
+          _actor_user_id: auth.actorUserId,
+          _page_id: null,
+          _expected_revision: 0,
+          _snapshot: toJson(snapshot),
+        });
+        created.push({ pageId: stringValue(result.pageId), slug, revision: numberValue(result.revision) });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("cms_page_slug_conflict")) {
+          alreadyPresent.push(slug);
+          continue;
+        }
+        throw error;
+      }
+    }
+    return { created, existing: alreadyPresent, publication: "explicit_only" as const };
+  });
+
 export const validateTenantPageDraft = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator(

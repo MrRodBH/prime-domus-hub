@@ -9,6 +9,7 @@ export const CONFIGURATION_DOMAINS = [
   "catalog",
   "lead_capture",
   "header_footer",
+  "website_setup",
   "analytics",
   "future_activation",
   "legacy_content",
@@ -253,6 +254,13 @@ export const CONFIGURATION_REGISTRY = [
   json("legal_links", "header_footer", "Links legais", []),
   text("footer_copyright", "header_footer", "Copyright do rodapé", { maxLength: 500 }),
 
+  enumDefinition("website_setup_status", "website_setup", "Estado do construtor", ["not_started", "deferred", "in_progress", "draft_ready"], "not_started", { visibility: "admin", publicExposure: false }),
+  text("website_setup_step", "website_setup", "Etapa atual", { valueKind: "integer", defaultValue: 0, visibility: "admin", publicExposure: false, uiControl: "number", maxLength: undefined }),
+  enumDefinition("website_theme", "website_setup", "Tema", ["prime_classic", "prime_minimal", "prime_editorial"], "prime_classic"),
+  enumDefinition("logo_alignment", "website_setup", "Posição da logomarca", ["left", "center", "right"], "left"),
+  json("website_selected_pages", "website_setup", "Páginas selecionadas", ["inicio", "imoveis", "sobre", "contato"], { visibility: "admin", publicExposure: false }),
+  enumDefinition("website_preview_viewport", "website_setup", "Viewport do preview", ["desktop", "tablet", "mobile"], "desktop", { visibility: "admin", publicExposure: false }),
+
   text("ga4_measurement_id", "analytics", "GA4 Measurement ID", { valueKind: "analytics_id", secretClassification: "public_identifier", maxLength: 40 }),
   text("google_tag_manager_container_id", "analytics", "Google Tag Manager", { valueKind: "analytics_id", secretClassification: "public_identifier", maxLength: 40 }),
   text("meta_pixel_id", "analytics", "Meta Pixel ID", { valueKind: "analytics_id", secretClassification: "public_identifier", maxLength: 40 }),
@@ -363,6 +371,7 @@ function validateDefinitionValue(definition: ConfigurationDefinition, value: unk
       if (typeof value !== "number" || !Number.isInteger(value)) throw new Error(`configuration_integer_required:${definition.key}`);
       if (definition.key === "founded_year" && (value < 1800 || value > 2200)) throw new Error("configuration_invalid_founded_year");
       if (definition.key === "items_per_page" && (value < 1 || value > 100)) throw new Error("configuration_invalid_items_per_page");
+      if (definition.key === "website_setup_step" && (value < 0 || value > 6)) throw new Error("configuration_invalid_website_setup_step");
       return value;
     case "number":
       if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`configuration_number_required:${definition.key}`);
@@ -374,6 +383,13 @@ function validateDefinitionValue(definition: ConfigurationDefinition, value: unk
       return [...new Set(value)];
     case "json":
       validateJsonValue(definition.key, value);
+      if (definition.key === "website_selected_pages") {
+        const allowed = new Set(["inicio", "imoveis", "lancamentos", "sobre", "contato"]);
+        if (!Array.isArray(value) || value.length > allowed.size || value.some((item) => typeof item !== "string" || !allowed.has(item))) {
+          throw new Error("configuration_invalid_website_selected_pages");
+        }
+        return [...new Set(value)];
+      }
       return structuredClone(value);
     case "media_id":
       if (value === "") return null;
