@@ -40,8 +40,10 @@ export function isTenantIndependentRootPath(pathname: string): boolean {
   const normalizedPathname = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   const tenantIndependentPaths = ["/auth", "/demonstracao", "/design-system"];
   const authenticatedControlPlanePrefixes = ["/admin", "/super", "/invitations"];
+  const tenantScopedAdminPath = /^\/[^/]+\/admin(?:\/|$)/;
   return (
     tenantIndependentPaths.includes(normalizedPathname) ||
+    tenantScopedAdminPath.test(normalizedPathname) ||
     authenticatedControlPlanePrefixes.some(
       (prefix) => normalizedPathname === prefix || normalizedPathname.startsWith(`${prefix}/`),
     )
