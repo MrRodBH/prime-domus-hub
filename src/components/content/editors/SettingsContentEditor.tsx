@@ -32,6 +32,7 @@ const DOMAIN_HELP: Record<ConfigurationDomain, string> = {
   catalog: "Comportamento de exibição do catálogo sem alterar authorization boundaries.",
   lead_capture: "Contrato de captação e consentimento.",
   header_footer: "Única autoridade para cabeçalho, rodapé e menus.",
+  website_setup: "Estado retomável do construtor, tema e preferências de montagem do website.",
   analytics: "Somente identificadores públicos. Tokens e secrets são proibidos.",
   future_activation: "Estados vinculantes de ativações futuras; somente leitura.",
   legacy_content: "Conteúdo estruturado das páginas existentes e arquivo de migração auditável.",

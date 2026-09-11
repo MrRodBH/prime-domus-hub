@@ -1,0 +1,31 @@
+name: P0 website builder
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/components/site-builder/**"
+      - "src/routes/_authenticated.admin.site.tsx"
+      - "src/lib/api/configuration-registry.ts"
+      - "src/lib/api/tenant-cms.functions.ts"
+      - "src/components/content/adapters/useSiteAdapter.ts"
+      - "src/components/content/editors/SettingsContentEditor.tsx"
+      - "run-p0-website-builder-architecture-specs.mjs"
+      - ".github/workflows/p0-website-builder.yml"
+permissions:
+  contents: read
+jobs:
+  contract-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bun run test:p0-website-builder
+      - run: bun run typecheck
+      - run: bun run build

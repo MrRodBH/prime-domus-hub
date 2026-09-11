@@ -38,6 +38,7 @@ export const SITE_SECTIONS: Array<{
   { id: "catalog", label: "Comportamento do catálogo", group: "Produto", description: "Exibição, ordenação e CTAs do catálogo." },
   { id: "lead_capture", label: "Captação de leads", group: "Produto", description: "Campos obrigatórios, consentimento e visibilidade." },
   { id: "header_footer", label: "Cabeçalho, rodapé e menus", group: "Navegação", description: "Variações, menus, colunas e links legais." },
+  { id: "website_setup", label: "Construtor do website", group: "Navegação", description: "Tema, progresso retomável e preferências do wizard." },
   { id: "analytics", label: "Analytics e marketing", group: "Integrações", description: "Identificadores públicos; secrets são proibidos." },
   { id: "future_activation", label: "Ativações futuras", group: "Integrações", description: "DCA-01, BCA-01 e PR-M3, em modo somente leitura." },
   { id: "legacy_content", label: "Conteúdo institucional existente", group: "Conteúdo", description: "Snapshots estruturados das páginas fixas existentes." },
