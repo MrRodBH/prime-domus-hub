@@ -30,9 +30,14 @@ function ResetPasswordPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    let recoveryEvent = false;
+    const listener = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') recoveryEvent = true;
+    });
 
     async function bootstrap() {
       // 1) Recovery via hash fragment (#access_token=...&refresh_token=...&type=recovery)
@@ -43,16 +48,21 @@ function ResetPasswordPage() {
         const type = hash.get("type");
         const error_description = hash.get("error_description");
         if (error_description) {
-          toast.error(decodeURIComponent(error_description));
+          window.history.replaceState(null, '', window.location.pathname);
+          if (!cancelled) { setSessionOk(false); setReady(true); }
+          return;
         }
-        if (access_token && refresh_token && (type === "recovery" || type === "invite" || !type)) {
+        if (access_token && refresh_token && (type === "recovery" || type === "invite")) {
           const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          window.history.replaceState(null, "", window.location.pathname);
+          const verified = error ? null : await supabase.auth.getUser();
           if (!cancelled) {
-            if (error) {
+            if (error || verified?.error || !verified?.data.user) {
               toast.error("Link inválido ou expirado.");
               setSessionOk(false);
             } else {
               setSessionOk(true);
+              setRecovery(type === 'recovery');
               // limpa o hash para não vazar tokens
               window.history.replaceState(null, "", window.location.pathname);
             }
@@ -62,17 +72,22 @@ function ResetPasswordPage() {
         }
       }
 
-      // 2) Já existe sessão (caso o usuário tenha navegado de volta)
-      const { data } = await supabase.auth.getSession();
+      // A stale unrelated login must never turn an expired recovery link into
+      // a password form for the wrong account. Only a recovery event or a
+      // server-confirmed pending first-Admin invitation permits this entry.
+      const { data, error } = await supabase.auth.getUser();
+      const pending = !error && data.user && !recoveryEvent ? await listMyInitialAdminInvitations() : [];
       if (!cancelled) {
-        setSessionOk(!!data.session);
+        setSessionOk(!error && !!data.user && (recoveryEvent || pending.length > 0));
+        setRecovery(recoveryEvent);
         setReady(true);
       }
     }
 
-    bootstrap();
+    void bootstrap().catch(() => { if (!cancelled) { setSessionOk(false); setReady(true); } });
     return () => {
       cancelled = true;
+      listener.data.subscription.unsubscribe();
     };
   }, []);
 
@@ -108,6 +123,7 @@ function ResetPasswordPage() {
 
 
   async function redirectToDashboard() {
+    if (recovery) { await navigate({ to: '/auth', replace: true }); return; }
     const pending = await listMyInitialAdminInvitations();
     const destination = pending.length ? "/invitations" : "/admin";
     await navigate({ to: destination, replace: true });
@@ -115,6 +131,7 @@ function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading || !sessionOk) return;
     setFormError(null);
     if (!passwordValid) {
       setFormError("Sua senha deve ter no mínimo 6 caracteres.");
@@ -129,6 +146,17 @@ function ResetPasswordPage() {
     if (error) {
       setLoading(false);
       setFormError(translatePasswordError(error));
+      return;
+    }
+    if (recovery) {
+      setPassword(''); setConfirm('');
+      const signedOut = await supabase.auth.signOut({ scope: 'global' });
+      setLoading(false);
+      if (signedOut.error) {
+        setFormError('Senha alterada, mas não foi possível encerrar as sessões. Saia da conta antes de entrar novamente.');
+        return;
+      }
+      setDone(true);
       return;
     }
     const { data: userData } = await supabase.auth.getUser();
@@ -172,11 +200,11 @@ function ResetPasswordPage() {
               <div>
                 <h1 className="font-display text-3xl mb-2">Senha definida</h1>
                 <p className="text-sm text-muted-foreground">
-                  Você já está autenticado. Redirecionando para o painel…
+                  {recovery ? 'Sua senha foi alterada. Entre novamente com a nova senha.' : 'Você já está autenticado. Redirecionando para o painel…'}
                 </p>
               </div>
               <Button className="w-full" onClick={() => redirectToDashboard()}>
-                Ir para o painel
+                {recovery ? 'Entrar com a nova senha' : 'Ir para o painel'}
               </Button>
             </div>
           ) : !sessionOk ? (
@@ -282,4 +310,3 @@ function ResetPasswordPage() {
     </div>
   );
 }
-

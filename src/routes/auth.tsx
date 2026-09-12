@@ -9,6 +9,10 @@ import { Label } from "@/components/ui/label";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { useLogout } from "@/components/auth/useLogout";
 import logo from "@/assets/logo-rm-prime.png";
+import { useQueryClient } from '@tanstack/react-query';
+import { clearSelectedTenantId } from '@/integrations/supabase/tenant-selection-state';
+import { clearImpersonationTenantId } from '@/integrations/supabase/impersonation-state';
+import { setCurrentTenantId } from '@/lib/tenant-cache';
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -30,6 +34,7 @@ function AuthPage() {
   const pending = useRef(false);
   const mounted = useRef(true);
   const exit = useLogout();
+  const queryClient = useQueryClient();
 
   async function openWorkspace(isCurrent = () => mounted.current) {
     const isSuper = await meuAcessoSuperAdmin();
@@ -67,6 +72,7 @@ function AuthPage() {
     pending.current = true;
     setLoading(true);
     setMessage("");
+    let signedIn = authenticated;
     try {
       if (!authenticated) {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -74,6 +80,12 @@ function AuthPage() {
           password,
         });
         if (error || !data.user || !data.session) throw Error("login_failed");
+        signedIn = true;
+        clearSelectedTenantId();
+        clearImpersonationTenantId();
+        setCurrentTenantId(null);
+        await queryClient.cancelQueries();
+        queryClient.clear();
         if (!mounted.current) return;
         setAuthenticated(true);
         setPassword("");
@@ -82,7 +94,9 @@ function AuthPage() {
     } catch {
       if (mounted.current)
         setMessage(
-          "Não foi possível entrar ou verificar seu acesso. Confira seus dados e tente novamente.",
+          signedIn
+            ? "Sua conta entrou, mas não foi possível abrir o painel. Tente acessar novamente ou saia para trocar de conta."
+            : "Não foi possível entrar. Confira seu e-mail e senha. Se perdeu a senha, solicite a recuperação ao suporte.",
         );
     } finally {
       pending.current = false;

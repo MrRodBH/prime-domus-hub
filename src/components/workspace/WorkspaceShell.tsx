@@ -1,10 +1,9 @@
 // WorkspaceShell — o AppShell permanente da Fase 6 (Doc 00 §1, Doc 05 §2).
 // Monta uma única vez para toda a sessão autenticada.
 // Estrutura: Header (56) + Rail (240/64) + Content (com ContextTabs opcional).
-import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState, useRouteContext } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { meuTenantId } from "@/lib/api/tenant.functions";
 import { setCurrentTenantId } from "@/lib/tenant-cache";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,15 +28,12 @@ export function WorkspaceShell() {
   const queryClient = useQueryClient();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const { data: isSuper } = useQuery({
-    queryKey: ["is-super-admin"],
-    queryFn: () => meuAcessoSuperAdmin(),
-    staleTime: 60_000,
-  });
+  const { isSuperAdmin: isSuper, user } = useRouteContext({ from: '/_authenticated' });
   const { data: tenantId } = useQuery({
-    queryKey: ["meu-tenant-id"],
+    queryKey: ["meu-tenant-id", user.id],
     queryFn: () => meuTenantId(),
     staleTime: 5 * 60_000,
+    enabled: !isSuper,
   });
 
   useEffect(() => {
@@ -82,6 +78,10 @@ export function WorkspaceShell() {
         if (lastUserId && uid && uid !== lastUserId) {
           clearImpersonationTenantId();
           clearSelectedTenantId();
+          setCurrentTenantId(null);
+          void queryClient.cancelQueries();
+          queryClient.clear();
+          queueMicrotask(() => { void navigate({ to: '/auth', replace: true }); });
         }
         lastUserId = uid;
       }

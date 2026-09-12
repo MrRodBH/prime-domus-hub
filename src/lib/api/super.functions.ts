@@ -21,12 +21,13 @@ export { bootstrapTenantWithOwner as criarTenant } from "@/lib/api/tenant-lifecy
 export const meuAcessoSuperAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data } = await context.supabase
+    const { data, error } = await context.supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId)
       .eq("role", "super_admin")
       .maybeSingle();
+    if (error) throw new Error('Não foi possível confirmar o tipo de acesso.');
     return !!data;
   });
 

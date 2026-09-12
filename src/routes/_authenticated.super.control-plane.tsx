@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AdminRecoveryRequest } from '@/components/support/AdminRecoveryRequest';
 import { getSuperControlPlaneSnapshot, mutatePlatformSupportCase, type SuperControlPlaneSnapshot, type PlatformSupportInput } from "@/lib/api/super-control-plane.functions";
 
 export const Route = createFileRoute("/_authenticated/super/control-plane")({
@@ -258,6 +259,7 @@ export function CustomerService({ data }: { data: SuperControlPlaneSnapshot }) {
     <div className="space-y-3">{data.support.filter(record => `${record.subject} ${record.case_key}`.toLocaleLowerCase("pt-BR").includes(filter.toLocaleLowerCase("pt-BR"))).map(record => <article key={String(record.id)} className="rounded-lg border p-4">
       <div className="flex items-start justify-between gap-4"><div><h3 className="font-medium">{String(record.subject)}</h3><p className="text-sm text-muted-foreground">{String(record.case_key)} · {SUPPORT_STATUS[record.status as keyof typeof SUPPORT_STATUS] ?? String(record.status)}</p></div><Button variant="outline" disabled={!!draft} onClick={() => edit(record)}>Editar atendimento</Button></div>
       <p className="mt-3 whitespace-pre-wrap break-words text-sm">{String(record.summary ?? "")}</p>
+      {record.tenant_id && record.category === 'access' && record.status !== 'resolved' && record.status !== 'closed' && <AdminRecoveryRequest caseId={String(record.id)} />}
     </article>)}</div>
     {!data.support.length && <p className="py-6 text-center text-sm text-muted-foreground">Nenhum atendimento registrado.</p>}
   </Panel>;
