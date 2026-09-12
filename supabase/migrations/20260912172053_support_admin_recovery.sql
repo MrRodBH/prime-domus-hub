@@ -35,7 +35,8 @@ BEGIN
   IF NOT FOUND OR c.tenant_id IS NULL OR c.category<>'access'
      OR c.status IN ('closed','resolved') OR NULLIF(btrim(c.requester_reference),'') IS NULL THEN
     RAISE EXCEPTION 'recovery_case_ineligible' USING ERRCODE='22023'; END IF;
-  SELECT u.id,u.email INTO v_target,target_email
+  BEGIN
+  SELECT u.id,u.email INTO STRICT v_target,target_email
     FROM public.tenant_members m JOIN auth.users u ON u.id=m.user_id
     JOIN public.tenants t ON t.id=m.tenant_id
     WHERE m.tenant_id=c.tenant_id AND m.tenant_role='admin' AND m.membership_status='active'
@@ -44,7 +45,9 @@ BEGIN
       AND (u.banned_until IS NULL OR u.banned_until<=now())
       AND t.operational_kind='customer' AND t.status IN ('ativo','trial')
       AND NOT EXISTS(SELECT 1 FROM public.user_roles r WHERE r.user_id=u.id AND r.role='super_admin');
-  IF v_target IS NULL THEN RAISE EXCEPTION 'recovery_target_ineligible' USING ERRCODE='42501'; END IF;
+  EXCEPTION WHEN no_data_found OR too_many_rows THEN
+    RAISE EXCEPTION 'recovery_target_ineligible' USING ERRCODE='42501';
+  END;
   PERFORM pg_advisory_xact_lock(hashtextextended('support-recovery-target:'||v_target::text,0));
   SELECT * INTO prior FROM support_recovery_private.requests WHERE id=p_request;
   IF FOUND THEN
@@ -59,7 +62,7 @@ BEGIN
     VALUES(p_request,p_actor,p_session,p_case,c.tenant_id,v_target);
   INSERT INTO public.audit_log(id,user_id,tenant_id,action,entity,entity_id,after)
     VALUES(p_request,p_actor,c.tenant_id,'platform.support.recovery.requested','platform_support_cases',p_case::text,
-      jsonb_build_object('targetUserId',v_target,'sessionId',p_session));
+      jsonb_build_object('targetUserId',v_target));
   -- Internal service-only response. Never forward email or IDs to the browser.
   RETURN jsonb_build_object('send',true,'email',target_email);
 END; $fn$;
