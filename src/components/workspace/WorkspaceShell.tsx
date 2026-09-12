@@ -21,6 +21,7 @@ import { useImpersonation } from "@/integrations/supabase/use-impersonation";
 import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
 import { TenantSelectionGate } from "@/components/workspace/tenant/TenantSelectionRequired";
+import { loginNavigation } from '@/lib/auth/tenant-login-navigation';
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
@@ -62,6 +63,7 @@ export function WorkspaceShell() {
       .catch(() => {});
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
+        const destination = loginNavigation(window.location.pathname, window.location.search);
         clearImpersonationTenantId();
         clearSelectedTenantId();
         lastUserId = null;
@@ -69,7 +71,7 @@ export function WorkspaceShell() {
         void queryClient.cancelQueries();
         queryClient.clear();
         queueMicrotask(() => {
-          void navigate({ to: "/auth", replace: true });
+          void navigate({ ...destination, replace: true });
         });
         return;
       }
@@ -81,7 +83,8 @@ export function WorkspaceShell() {
           setCurrentTenantId(null);
           void queryClient.cancelQueries();
           queryClient.clear();
-          queueMicrotask(() => { void navigate({ to: '/auth', replace: true }); });
+          const destination = loginNavigation(window.location.pathname, window.location.search);
+          queueMicrotask(() => { void navigate({ ...destination, replace: true }); });
         }
         lastUserId = uid;
       }

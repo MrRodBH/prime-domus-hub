@@ -23,7 +23,7 @@ const output = await build({
         build.onResolve(
           {
             filter:
-              /^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup).functions|tenant-cache))$/,
+              /^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup|tenant|tenant-selection).functions|tenant-cache))$/,
           },
           () => ({ path: backend }),
         );
@@ -45,7 +45,7 @@ async function scenario(overrides, run) {
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => errors.push(e.message));
   const dom = new JSDOM('<div id="root"></div>', {
-    url: "https://fixture.invalid/auth",
+    url: overrides.url ?? "https://fixture.invalid/auth",
     runScripts: "outside-only",
     pretendToBeVisual: true,
     virtualConsole: vc,
@@ -240,3 +240,48 @@ assert.ok(header.includes('aria-label="Sair da conta"'));
 console.log(
   "PASS Round51 controlled DOM: super/ordinary login, denied credentials, server failure, existing session, duplicates, unmount, logout/cache/context cleanup and retry. No real authentication executed.",
 );
+
+// Tenant login is the same authentication implementation with a scoped return path.
+const tenantEntry = {
+  url:'https://fixture.invalid/rmprime/auth?next=%2Frmprime%2Fadmin%2Fsite%3Fitem%3Ddraft',
+  tenantSlug:'rmprime', next:'/rmprime/admin/site?item=draft', access:async()=>false,
+  tenants:[{tenantId:'other',slug:'another'},{tenantId:'target',slug:'rmprime'}],
+  workspace:{id:'target',slug:'rmprime'},
+};
+await scenario(tenantEntry,async({fixture,text,until,fill,submit})=>{
+ await until(()=>text().includes('Acesso da empresa'));await tick();
+ assert.ok(!text().includes('Super Admin'));assert.ok(!text().includes('Explorar demonstração'));
+ await fill('email','admin@fixture.invalid');await fill('password','controlled-password');await submit();
+ await until(()=>fixture.navigation.length===1);
+ assert.equal(fixture.navigation[0].to,'/rmprime/admin/site?item=draft');
+ assert.equal(fixture.selected,'target');
+});
+await scenario({...tenantEntry,tenants:[]},async({fixture,until,fill,submit,text})=>{
+ await tick();await fill('email','other@fixture.invalid');await fill('password','controlled-password');await submit();
+ await until(()=>text().includes('não tem acesso ativo'));assert.equal(fixture.navigation.length,0);assert.equal(fixture.selected,undefined);
+});
+await scenario({...tenantEntry,workspaceError:true},async({fixture,until,fill,submit,text})=>{
+ await tick();await fill('email','admin@fixture.invalid');await fill('password','controlled-password');await submit();
+ await until(()=>text().includes('não foi possível abrir'));assert.equal(fixture.navigation.length,0);assert.ok(fixture.cleared.includes('selection'));
+});
+await scenario({...tenantEntry,access:async()=>true,getUser:async()=>({data:{user:{id:'platform'}}})},async({fixture,text,until,d})=>{
+ await until(()=>text().includes('Esta sessão é de gestão da plataforma'));assert.equal(fixture.navigation.length,0);assert.equal(fixture.selected,undefined);
+ [...d.querySelectorAll('button')].find(b=>b.textContent==='Sair e entrar com outra conta').click();
+ await until(()=>fixture.navigation.length===1);
+ assert.equal(fixture.navigation[0].to,'/$tenantSlug/auth');assert.equal(fixture.navigation[0].params.tenantSlug,'rmprime');assert.equal(fixture.navigation[0].search.next,'/rmprime/admin/site?item=draft');
+});
+await scenario({...tenantEntry,mode:'logout',url:'https://fixture.invalid/rmprime/admin/site?item=draft'},async({fixture,d,until})=>{
+ d.querySelector('button').click();await until(()=>fixture.navigation.length===1);
+ assert.equal(fixture.navigation[0].to,'/$tenantSlug/auth');assert.equal(fixture.navigation[0].params.tenantSlug,'rmprime');assert.equal(fixture.navigation[0].search.next,'/rmprime/admin/site?item=draft');
+});
+const pure=await build({entryPoints:['src/lib/auth/tenant-login-navigation.ts'],bundle:true,write:false,platform:'node',format:'esm'});
+const {loginNavigation,tenantReturnPath}=await import('data:text/javascript;base64,'+Buffer.from(pure.outputFiles[0].text).toString('base64'));
+for(const path of ['/rmprime/admin','/rmprime/admin/site'])assert.equal(loginNavigation(path).params.tenantSlug,'rmprime');
+for(const path of ['/super','/admin','/auth'])assert.equal(loginNavigation(path).to,'/auth');
+for(const unsafe of ['https://evil.invalid','//evil.invalid','/other/admin','/super','/rmprime/auth','/rmprime/admin/../../super','/rmprime/admin/%2f%2fevil.invalid','/rmprime/admin\\evil','/rmprime/admin\n'])
+ assert.equal(tenantReturnPath('rmprime',unsafe),'/rmprime/admin',unsafe);
+assert.equal(tenantReturnPath('rmprime','/rmprime/admin/site?item=a#preview'),'/rmprime/admin/site?item=a#preview');
+const guards=await build({entryPoints:['src/lib/public-tenant-read-guards.ts'],bundle:true,write:false,platform:'node',format:'esm'});
+const {loadRequiredPublicRootDataForPath}=await import('data:text/javascript;base64,'+Buffer.from(guards.outputFiles[0].text).toString('base64'));
+assert.equal(await loadRequiredPublicRootDataForPath('/rmprime/auth',()=>{throw Error('PUBLIC_CMS_FORBIDDEN')},()=>{throw Error('PUBLIC_TRACKING_FORBIDDEN')}),null);
+console.log('PASS tenant login DOM: contextual copy, same Auth implementation, canonical active membership selection, original deep link restored, platform/wrong/revoked account denied, logout preserves tenant, unsafe return destinations rejected, public CMS bypassed.');

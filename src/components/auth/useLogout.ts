@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { clearImpersonationTenantId } from "@/integrations/supabase/impersonation-state";
 import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
 import { setCurrentTenantId } from "@/lib/tenant-cache";
+import { loginNavigation } from '@/lib/auth/tenant-login-navigation';
 
 export function useLogout() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export function useLogout() {
     pending.current = true;
     setBusy(true);
     setError("");
+    const destination = typeof window === 'undefined' ? { to: '/auth' as const }
+      : loginNavigation(window.location.pathname, window.location.search);
     try {
       const result = await supabase.auth.signOut();
       if (result.error) throw result.error;
@@ -25,7 +28,7 @@ export function useLogout() {
       setCurrentTenantId(null);
       await queryClient.cancelQueries();
       queryClient.clear();
-      await navigate({ to: "/auth", replace: true });
+      await navigate({ ...destination, replace: true });
       return true;
     } catch {
       setError("Não foi possível concluir a saída. Tente novamente.");

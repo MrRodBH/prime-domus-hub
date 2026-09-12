@@ -12,3 +12,7 @@ export const clearSelectedTenantId = () => fixture().cleared.push("selection");
 export const setCurrentTenantId = (value: unknown) => fixture().cleared.push(["tenant", value]);
 
 export async function listMyInitialAdminInvitations(){return fixture().initialAdminInvitations ?? [];}
+
+export const listSelectableTenants = async () => fixture().tenants ?? [];
+export const meuTenantWorkspace = async () => { if (fixture().workspaceError) throw Error('tenant access denied'); return fixture().workspace; };
+export const setSelectedTenantId = (id: string) => { fixture().selected = id; };

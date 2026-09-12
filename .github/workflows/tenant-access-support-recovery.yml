@@ -35,6 +35,7 @@ jobs:
           psql -h 127.0.0.1 -p 55452 -U postgres -d recovery -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role BYPASSRLS;'
           ROUND52_PG_MODULE="$RUNNER_TEMP/recovery/node_modules/pg/lib/index.js" node tests/support-recovery/database.mjs
       - run: node tests/support-recovery/runtime.mjs
+      - run: ROUND51_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-51-superadmin-auth-specs.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node tests/support-recovery/reset-ui.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-56-approved-navigation-specs.mjs
       - run: bun run test:p0-website-builder

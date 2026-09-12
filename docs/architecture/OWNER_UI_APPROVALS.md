@@ -41,3 +41,7 @@ Real names/emails are entered by the owner through the interface. Auth email del
 
 ## Owner request — tenant login and support password recovery (2026-09-12)
 The owner reports platform navigation rendered in a tenant URL and requests secure recovery of a tenant Admin password through platform support. This authorizes a narrow, audited recovery-email initiation for a confirmed active tenant Admin linked to an access support case. It does not authorize tenant-user listing/CRUD, setting a password on the Admin's behalf, impersonation, changes to ownership or memberships. Preserve all eight global navigation entries and the tenant menu. Wrong-account routes must stop before mounting either operational shell and offer explicit sign-out/account switching. The recipient chooses the new password through Supabase recovery.
+
+
+## Owner request — contextual tenant authentication (2026-09-12)
+The owner reports /rmprime/admin redirecting to a platform-oriented /auth. Preserve tenant context through /rmprime/auth (generic /$tenantSlug/auth for all tenants), using the existing authentication implementation and server membership authority. Restore the requested tenant workspace after login. Keep the theme and platform/tenant separation; do not create another authentication provider, fallback tenant or new privileges. This corrective requires no Supabase schema/configuration or infrastructure mutation.
