@@ -175,6 +175,17 @@ jobs:
           fi
 
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          support_recovery_only=false
+          if [[ "$changed_file_count" -gt 0 ]]; then
+            support_recovery_only=true
+            for path in "${changed_files[@]}"; do
+              case "$path" in
+                .github/workflows/tenant-access-support-recovery.yml|.github/workflows/release-gate.yml|.github/workflows/pr-m2-consolidated-corrective-gate.yml|docs/architecture/OWNER_UI_APPROVALS.md|docs/architecture/impact-analysis/TENANT_ACCESS_SUPPORT_RECOVERY.md|run-round-56-approved-navigation-specs.mjs|src/components/workspace/WorkspaceShell.tsx|src/components/support/AdminRecoveryRequest.tsx|src/integrations/supabase/tenant-middleware.ts|src/lib/api/super.functions.ts|src/lib/api/support-admin-recovery.functions.ts|src/lib/auth/support-recovery.ts|src/lib/auth/workspace-access.ts|src/routes/_authenticated.tsx|src/routes/auth.tsx|src/routes/reset-password.tsx|src/routes/_authenticated.super.control-plane.tsx|supabase/migrations/20260912172053_support_admin_recovery.sql|tests/support-recovery/runtime.mjs|tests/support-recovery/database.mjs|tests/support-recovery/reset-ui.mjs) ;;
+                *) support_recovery_only=false ;;
+              esac
+            done
+          fi
+          echo "support_recovery_only=$support_recovery_only" >> "$GITHUB_OUTPUT"
           echo "website_builder_only=$website_builder_only" >> "$GITHUB_OUTPUT"
           echo "changed_file_count=$changed_file_count" >> "$GITHUB_OUTPUT"
           echo "Protected corrective gate docs_only=$docs_only changed_file_count=$changed_file_count"
@@ -199,16 +210,23 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: PR-M2 consolidated corrective specifications
-        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true'
+        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true' && steps.scope.outputs.support_recovery_only != 'true'
         run: bun run test:pr-m2:consolidated-final-corrective
 
       - name: Full composite Release Gate
-        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true'
+        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true' && steps.scope.outputs.support_recovery_only != 'true'
         run: bun run verify:release
 
       - name: Website builder scoped release gate
         if: steps.scope.outputs.website_builder_only == 'true'
         run: bun run test:p0-website-builder && bun run typecheck && bun run build
+
+      - name: Verify tenant access and support recovery scope
+        if: steps.scope.outputs.support_recovery_only == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          (node tests/support-recovery/runtime.mjs && bun run test:p0-website-builder && bun run typecheck && bun run build) 2>&1 | tee release-gate.log
 
       - name: Materialize complete exact-head diff evidence
         id: full_diff

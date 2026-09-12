@@ -38,9 +38,7 @@ export async function resolveTenantContext(params: {
 
   // ============================================================
   // ETAPA 1 — Super Admin
-  // Super Admin nunca resolve tenant via tenant_members: seu único
-  // caminho para acessar recursos tenant-scoped é impersonação
-  // explícita via x-tenant-id.
+  // Super Admin nunca resolve tenant, nem por membership nem por header.
   // ============================================================
   if (isSuperAdmin) {
     throw new Error("Super Admin não pode acessar a operação de empresas.");
@@ -101,7 +99,8 @@ export const requireTenant = createMiddleware({ type: "function" })
     const impersonateHeader =
       request?.headers?.get("x-tenant-id")?.trim() || null;
 
-    const { data: isAdminData } = await context.supabase.rpc("is_super_admin");
+    const { data: isAdminData, error: roleError } = await context.supabase.rpc("is_super_admin");
+    if (roleError) throw new Error('Não foi possível confirmar o tipo de acesso.');
     const isSuperAdmin = isAdminData === true;
 
     const repo = createSupabaseTenantRepository(context.supabase);

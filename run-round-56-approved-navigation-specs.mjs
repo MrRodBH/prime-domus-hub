@@ -45,6 +45,9 @@ window.unmount=()=>{root.unmount();qc.clear()};
 `, resolveDir: process.cwd(), loader:'tsx' }, bundle:true,write:false,jsx:'automatic', plugins:[{name:'support-fixture',setup(b){
  b.onResolve({filter:/^@tanstack\/react-router$/},()=>({path:'router',namespace:'fixture'}));
  b.onResolve({filter:/super-control-plane.functions$/},()=>({path:'api',namespace:'fixture'}));
+ b.onResolve({filter:/support-admin-recovery.functions$/},()=>({path:'recovery',namespace:'support-mocks'}));
+ b.onResolve({filter:/integrations\/supabase\/client$/},()=>({path:'auth',namespace:'support-mocks'}));
+ b.onLoad({filter:/.*/,namespace:'support-mocks'},a=>({contents:a.path==='auth'?'export const supabase={};':"export const requestSupportAdminRecovery=()=>{throw Error('UNEXPECTED_RECOVERY_CALL')};",loader:'js'}));
  b.onLoad({filter:/.*/,namespace:'fixture'},a=>({contents:a.path==='router'?`export const createFileRoute=()=>x=>x;export const Link=()=>null;`:`export const getSuperControlPlaneSnapshot=async()=>window.fixture;export const mutatePlatformSupportCase=async({data})=>{window.calls.push(data);if(window.fail)throw Error('fixture failure');return {id:'saved'}};`,loader:'tsx',resolveDir:process.cwd()}));
 }}]});
 const serviceDom = new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/super/control-plane',runScripts:'outside-only',pretendToBeVisual:true});
@@ -89,7 +92,8 @@ try{
 const tenantNavigation=workspaceContexts(false,null);
 for(const path of ['/admin/domains','/admin/memberships']) assert.equal(tenantNavigation.filter(c=>c.matches.includes(path)).length,1);
 assert.ok(!workspaceContexts(true,null).some(c=>c.root.startsWith('/admin')));
-assert.ok(read('src/routes/_authenticated.admin.site.tsx').includes('search={{ new: "1" }}'));
+assert.ok(read('src/routes/_authenticated.admin.site.tsx').includes('<WebsiteSetupWizard />'));
+assert.ok(read('src/routes/_authenticated.admin.site.tsx').includes('descriptor={ENTITIES.site}')); // canonical CMS remains behind the wizard
 assert.ok(read('src/routes/_authenticated.super.index.tsx').includes('to="/super/domains"'));
 
 const menuBundle=await build({stdin:{contents:`import React from 'react';import {createRoot} from 'react-dom/client';import {WebsiteMenuField,WebsiteFooterField} from './src/components/content/editors/SettingsContentEditor';function App(){const [value,setValue]=React.useState(window.menuSeed);const [readonly,setReadonly]=React.useState(false);window.replaceMenu=setValue;window.lockMenu=setReadonly;const Field=window.testFooter?WebsiteFooterField:WebsiteMenuField;return <Field id="menu" value={value} readonly={readonly} onChange={next=>{window.menuChanges.push(next);setValue(next)}}/>}const root=createRoot(document.getElementById('root'));root.render(<App/>);window.unmount=()=>root.unmount();`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,jsx:'automatic',plugins:[{name:'menu-fixture',setup(b){

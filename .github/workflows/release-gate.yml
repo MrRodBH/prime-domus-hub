@@ -260,6 +260,17 @@ jobs:
 
           echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          support_recovery_only=false
+          if [[ "$changed_file_count" -gt 0 ]]; then
+            support_recovery_only=true
+            for path in "${changed_files[@]}"; do
+              case "$path" in
+                .github/workflows/tenant-access-support-recovery.yml|.github/workflows/release-gate.yml|.github/workflows/pr-m2-consolidated-corrective-gate.yml|docs/architecture/OWNER_UI_APPROVALS.md|docs/architecture/impact-analysis/TENANT_ACCESS_SUPPORT_RECOVERY.md|run-round-56-approved-navigation-specs.mjs|src/components/workspace/WorkspaceShell.tsx|src/components/support/AdminRecoveryRequest.tsx|src/integrations/supabase/tenant-middleware.ts|src/lib/api/super.functions.ts|src/lib/api/support-admin-recovery.functions.ts|src/lib/auth/support-recovery.ts|src/lib/auth/workspace-access.ts|src/routes/_authenticated.tsx|src/routes/auth.tsx|src/routes/reset-password.tsx|src/routes/_authenticated.super.control-plane.tsx|supabase/migrations/20260912172053_support_admin_recovery.sql|tests/support-recovery/runtime.mjs|tests/support-recovery/database.mjs|tests/support-recovery/reset-ui.mjs) ;;
+                *) support_recovery_only=false ;;
+              esac
+            done
+          fi
+          echo "support_recovery_only=$support_recovery_only" >> "$GITHUB_OUTPUT"
           echo "website_builder_only=$website_builder_only" >> "$GITHUB_OUTPUT"
           echo "arch_12f_01=$arch_12f_01" >> "$GITHUB_OUTPUT"
           echo "arch_12f_02a=$arch_12f_02a" >> "$GITHUB_OUTPUT"
@@ -547,7 +558,7 @@ jobs:
         run: bun run test:pr-m3-sec-02
 
       - name: Verify release gate
-        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true'
+        if: steps.scope.outputs.docs_only != 'true' && steps.scope.outputs.website_builder_only != 'true' && steps.scope.outputs.support_recovery_only != 'true'
         shell: bash
         env:
           ARCH_INTEGRATION_MODE: ${{ steps.scope.outputs.arch_integration }}
@@ -563,6 +574,13 @@ jobs:
         run: |
           set -o pipefail
           (bun run test:p0-website-builder && bun run typecheck && bun run build) 2>&1 | tee release-gate.log
+
+      - name: Verify tenant access and support recovery scope
+        if: steps.scope.outputs.support_recovery_only == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          (node tests/support-recovery/runtime.mjs && bun run test:p0-website-builder && bun run typecheck && bun run build) 2>&1 | tee release-gate.log
 
       - name: Upload release gate evidence
         if: always()
