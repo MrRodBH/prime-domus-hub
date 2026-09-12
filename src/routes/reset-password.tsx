@@ -70,6 +70,9 @@ function ResetPasswordPage() {
             return;
           }
         }
+        window.history.replaceState(null, '', window.location.pathname);
+        if (!cancelled) { setSessionOk(false); setReady(true); }
+        return;
       }
 
       // A stale unrelated login must never turn an expired recovery link into
