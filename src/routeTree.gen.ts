@@ -32,6 +32,7 @@ import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as AuthenticatedSuperRouteImport } from './routes/_authenticated.super'
 import { Route as AuthenticatedInvitationsRouteImport } from './routes/_authenticated.invitations'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as TenantSlugAuthRouteImport } from './routes/$tenantSlug.auth'
 import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authenticated.super.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -245,6 +246,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const TenantSlugAuthRoute = TenantSlugAuthRouteImport.update({
+  id: '/$tenantSlug/auth',
+  path: '/$tenantSlug/auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSuperIndexRoute = AuthenticatedSuperIndexRouteImport.update({
   id: '/',
@@ -838,6 +844,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/$tenantSlug/auth': typeof TenantSlugAuthRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/invitations': typeof AuthenticatedInvitationsRoute
   '/super': typeof AuthenticatedSuperRouteWithChildren
@@ -960,6 +967,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/$tenantSlug/auth': typeof TenantSlugAuthRoute
   '/invitations': typeof AuthenticatedInvitationsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -1079,6 +1087,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre': typeof SobreRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/$tenantSlug/auth': typeof TenantSlugAuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/invitations': typeof AuthenticatedInvitationsRoute
   '/_authenticated/super': typeof AuthenticatedSuperRouteWithChildren
@@ -1203,6 +1212,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre'
     | '/unsubscribe'
+    | '/$tenantSlug/auth'
     | '/admin'
     | '/invitations'
     | '/super'
@@ -1325,6 +1335,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre'
     | '/unsubscribe'
+    | '/$tenantSlug/auth'
     | '/invitations'
     | '/blog/$slug'
     | '/email/unsubscribe'
@@ -1443,6 +1454,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre'
     | '/unsubscribe'
+    | '/$tenantSlug/auth'
     | '/_authenticated/admin'
     | '/_authenticated/invitations'
     | '/_authenticated/super'
@@ -1567,6 +1579,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreRoute: typeof SobreRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
+  TenantSlugAuthRoute: typeof TenantSlugAuthRoute
   BlogSlugRoute: typeof BlogSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
@@ -1749,6 +1762,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/$tenantSlug/auth': {
+      id: '/$tenantSlug/auth'
+      path: '/$tenantSlug/auth'
+      fullPath: '/$tenantSlug/auth'
+      preLoaderRoute: typeof TenantSlugAuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/super/': {
       id: '/_authenticated/super/'
@@ -2751,6 +2771,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreRoute: SobreRoute,
   UnsubscribeRoute: UnsubscribeRoute,
+  TenantSlugAuthRoute: TenantSlugAuthRoute,
   BlogSlugRoute: BlogSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ImovelSlugRoute: ImovelSlugRoute,

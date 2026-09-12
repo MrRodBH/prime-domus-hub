@@ -62,5 +62,12 @@ await assert.rejects(boundary.Route.beforeLoad({location:{pathname:'/rmprime/adm
 superRole=false;assert.equal((await boundary.Route.beforeLoad({location:{pathname:'/rmprime/admin'}})).isSuperAdmin,false);
 await assert.rejects(boundary.Route.beforeLoad({location:{pathname:'/super'}}),/tenant_account_on_platform/);
 roleFailure=true;await assert.rejects(boundary.Route.beforeLoad({location:{pathname:'/rmprime/admin'}}),/role unavailable/);
-currentUser=null;await assert.rejects(boundary.Route.beforeLoad({location:{pathname:'/rmprime/admin'}}),/redirect/);
+currentUser=null;
+for (const pathname of ['/rmprime/admin', '/rmprime/admin/site']) {
+ await assert.rejects(boundary.Route.beforeLoad({location:{pathname,searchStr:'?view=draft'}}),error=>{
+  assert.equal(error.to,'/$tenantSlug/auth');assert.deepEqual(error.params,{tenantSlug:'rmprime'});
+  assert.equal(error.search.next,pathname+'?view=draft');assert.equal(error.replace,true);return true;
+ });
+}
+await assert.rejects(boundary.Route.beforeLoad({location:{pathname:'/admin',searchStr:''}}),error=>{assert.equal(error.to,'/auth');return true;});
 console.log('PASS real authenticated parent: wrong-account/anonymous/role-error requests stop before workspace mounting.');

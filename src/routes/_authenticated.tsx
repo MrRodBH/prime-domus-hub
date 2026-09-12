@@ -5,12 +5,13 @@ import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { workspaceAccess } from "@/lib/auth/workspace-access";
 import { useLogout } from "@/components/auth/useLogout";
 import { Link } from "@tanstack/react-router";
+import { loginNavigation } from '@/lib/auth/tenant-login-navigation';
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    if (error || !data.user) throw redirect({ ...loginNavigation(location.pathname, location.searchStr), replace: true });
     const isSuperAdmin = await meuAcessoSuperAdmin();
     const access = workspaceAccess(location.pathname, isSuperAdmin);
     if (access !== 'allowed') throw new Error(access);

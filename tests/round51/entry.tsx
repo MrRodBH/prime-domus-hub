@@ -22,6 +22,6 @@ const root = createRoot(document.getElementById("root")!);
 (window as any).__authFixture.unmount = () => root.unmount();
 root.render(
   <QueryClientProvider client={client}>
-    <Page />
+    <Page tenantSlug={(window as any).__authFixture.tenantSlug} next={(window as any).__authFixture.next} />
   </QueryClientProvider>,
 );
