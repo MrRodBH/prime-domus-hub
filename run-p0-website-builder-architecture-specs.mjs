@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import "./run-website-configuration-catalog-specs.mjs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const registry = read("./src/lib/api/configuration-registry.ts");

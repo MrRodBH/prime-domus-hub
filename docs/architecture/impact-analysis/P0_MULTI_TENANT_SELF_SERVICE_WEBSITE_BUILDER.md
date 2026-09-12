@@ -32,7 +32,13 @@ O construtor é uma camada guiada sobre os dois modelos canônicos existentes. C
 
 ## Delta de dados
 
-Nenhuma migration é necessária. As estruturas e RPCs canônicas já suportam o fluxo. O registry fechado ganha seis chaves versionadas, normalizadas e validadas pelo servidor.
+Correção auditada em 2026-09-12: uma migration é necessária. As tabelas e os RPCs de gravação canônicos suportam o fluxo, mas o validador SQL também possui catálogo fechado. Acrescentar seis campos somente no registry TypeScript deixava a gravação bloqueada por `configuration_key_not_cataloged`.
+
+A migration `20260911221612_dcb4669a-310b-44e8-87d0-090d7386a3a2.sql`, aplicada pelo operador Supabase, substitui exclusivamente `validate_tenant_configuration_snapshot(uuid,jsonb)`. Seu SQL foi recuperado do histórico aplicado e versionado sem nova execução no banco. Preserva todas as validações anteriores e reconhece status, etapa, tema, alinhamento da marca, páginas e viewport conforme o contrato. O teste de catálogo verifica paridade de todos os campos SQL/servidor e preservação do corpo anterior.
+
+Auditoria direta: snapshot completo dos defaults do registry aceito; etapa fracionária/null, chave desconhecida e página fora do catálogo rejeitadas. EXECUTE efetivo: anon=false, authenticated=false, service_role=true. As chamadas foram de validação/leitura, sem gravação comercial. Isso não comprova a jornada autenticada de salvar, sair e retomar; essa homologação permanece pendente. Os avisos 0008/0028/0029 informados pelo Lovable não foram reavaliados nem suprimidos neste corretivo.
+
+SQL aplicado recuperado do ledger `supabase_migrations.schema_migrations`, versão `20260911221612`, nome `dcb4669a-310b-44e8-87d0-090d7386a3a2`. SHA-256 do arquivo com newline final: `3d6cf98ef31fc4f6901d2330e767e95a237faa899d085a33ca349ecea3fbac72`. O snapshot do tenant RM Prime observado nesta auditoria continua na revisão publicada 1, sem campos do wizard nem rascunho: não há evidência de gravação do wizard após a correção. Não será criada uma revisão comercial por acesso administrativo ao banco para substituir o teste pela sessão do Admin.
 
 ## Critérios terminais
 
