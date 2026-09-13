@@ -23,9 +23,14 @@ import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-
 import { TenantSelectionGate } from "@/components/workspace/tenant/TenantSelectionRequired";
 import { loginNavigation } from '@/lib/auth/tenant-login-navigation';
 import { PlatformBrand } from '@/components/brand/PlatformBrand';
+import { TenantBrand, type WorkspaceTenantIdentity } from '@/components/brand/TenantBrand';
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
+  const loadedTenant = useRouterState({ select: state => {
+    const match = state.matches.find(item => item.routeId === '/_authenticated/$tenantSlug/admin');
+    return (match?.loaderData as {tenant?: WorkspaceTenantIdentity} | undefined)?.tenant ?? null;
+  }});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -119,7 +124,7 @@ export function WorkspaceShell() {
           >
             Ir para o conteúdo principal
           </a>
-          <NavigationRail isSuper={isSuper} />
+          <NavigationRail isSuper={isSuper} tenant={isSuper ? null : loadedTenant} />
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <AppHeader
@@ -154,9 +159,8 @@ export function WorkspaceShell() {
               <VisuallyHidden>
                 <SheetTitle>Navegação do workspace</SheetTitle>
               </VisuallyHidden>
-              <div className="h-14 px-4 flex items-center border-b text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                {isSuper ? <PlatformBrand inverse /> : 'Workspace'}
-              </div>
+              {isSuper ? <div className="h-14 px-4 flex items-center border-b"><PlatformBrand inverse /></div>
+                : <TenantBrand tenant={loadedTenant} />}
               <nav className="space-y-0.5 p-2" aria-label="Navegação principal móvel">
                 {visibleContexts.map((context) => {
                   const Icon = context.icon;

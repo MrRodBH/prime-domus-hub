@@ -37,6 +37,17 @@ try{dom.window.fetch=()=>{throw Error('REMOTE_FORBIDDEN')};dom.window.eval(bundl
  console.log('PASS Round56 DOM: eight visible sidebar links, real Link clicks and unique active state, forced-expanded global menu, horizontal tabs absent.');
 }finally{dom.window.unmount?.();dom.window.close()}
 
+// Tenant identity is supplied by the authorized route loader, never by a slug alone.
+const brandBundle=await build({stdin:{contents:`import React from 'react';import {createRoot} from 'react-dom/client';import {flushSync} from 'react-dom';function renderToStaticMarkup(element){const el=document.createElement('div');document.body.append(el);const root=createRoot(el);flushSync(()=>root.render(element));const html=el.innerHTML;flushSync(()=>root.unmount());el.remove();return html;}import {TenantBrand,workspaceTenantMark} from './src/components/brand/TenantBrand';const rm={id:'9664d189-4a12-4caa-8243-dc73383447e6',name:'RM Prime Imóveis',slug:'rmprime'};window.brand={expanded:renderToStaticMarkup(<TenantBrand tenant={rm}/>),collapsed:renderToStaticMarkup(<TenantBrand tenant={rm} collapsed/>),other:renderToStaticMarkup(<TenantBrand tenant={{...rm,id:'other',name:'Outra empresa'}}/>),unknown:renderToStaticMarkup(<TenantBrand/>),wrongIdIcon:workspaceTenantMark({...rm,id:'other'}),unknownIcon:workspaceTenantMark(null)};`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,jsx:'automatic',platform:'browser'});
+const brandDom=new JSDOM('<div></div>',{runScripts:'outside-only'});
+try{const w=brandDom.window;w.fetch=()=>{throw Error('REMOTE_FORBIDDEN')};w.eval(brandBundle.outputFiles[0].text);const b=w.brand;
+ w.document.body.innerHTML=b.expanded;assert.equal(w.document.querySelector('img').getAttribute('src'),'/brand/rmprime-favicon.png');assert.ok(w.document.querySelector('img').className.includes('size-14'));assert.ok(w.document.body.textContent.includes('RM Prime Imóveis'));assert.ok(w.document.querySelector('.bg-white'));
+ w.document.body.innerHTML=b.collapsed;assert.equal(w.document.querySelector('img').alt,'RM Prime Imóveis');assert.ok(w.document.querySelector('.sr-only').textContent.includes('RM Prime Imóveis'));
+ for(const html of [b.other,b.unknown]){w.document.body.innerHTML=html;assert.equal(w.document.querySelector('img'),null);assert.ok(!w.document.body.textContent.includes('RM Prime'));}
+ assert.equal(b.wrongIdIcon,null);assert.equal(b.unknownIcon,null);
+ console.log('PASS tenant branding: readable mark/name, collapsed accessible identity, no RM mark or favicon for another tenant or unresolved identity.');
+}finally{brandDom.window.close()}
+
 // Customer service: actual component and mutation lifecycle, isolated from production.
 const serviceBundle = await build({ stdin: { contents: `
 import React from 'react'; import {createRoot} from 'react-dom/client';

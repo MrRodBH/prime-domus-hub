@@ -5,10 +5,10 @@ import { workspaceContexts, workspaceItemActive, contextFromPath } from "./conte
 import { useImpersonation } from "@/integrations/supabase/use-impersonation";
 import { useUI } from "./ui-store";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import logo from "@/assets/logo-rm-prime.png";
+import { TenantBrand, type WorkspaceTenantIdentity } from "@/components/brand/TenantBrand";
 import { PlatformBrand } from '@/components/brand/PlatformBrand';
 
-export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
+export function NavigationRail({ isSuper, tenant }: { isSuper?: boolean; tenant?: WorkspaceTenantIdentity | null }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigationSearch = useRouterState({ select: s => s.location.search as Record<string, unknown> });
   const active = contextFromPath(path);
@@ -27,14 +27,8 @@ export function NavigationRail({ isSuper }: { isSuper?: boolean }) {
         aria-label="Navegação principal"
         data-workspace-navigation="desktop"
       >
-        <div className="h-14 flex items-center gap-2 px-3 border-b border-border">
-          {globalNavigation ? <PlatformBrand inverse /> : <><img src={logo} alt="RM Prime" className="h-6 w-auto shrink-0" />
-          {!navigationCollapsed && (
-            <span className="text-[10px] uppercase tracking-[0.22em] text-white/70 truncate">
-              RM Prime
-            </span>
-          )}</>}
-        </div>
+        {globalNavigation ? <div className="h-14 flex items-center gap-2 px-3 border-b border-border"><PlatformBrand inverse /></div>
+          : <TenantBrand tenant={tenant} collapsed={navigationCollapsed} />}
 
         <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Contextos do workspace">
           {visible.map((c) => {
