@@ -1,3 +1,4 @@
+import { TenantPermissionMatrix } from "@/components/admin/TenantPermissionMatrix";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -71,7 +72,7 @@ function PerfisPage() {
         <div>
           <AdminPageHeader eyebrow="Controle de acesso" title="Perfis & Permissões" />
           <p className="mt-1 text-sm text-muted-foreground">
-            Templates de sistema são globais e imutáveis. Perfis customizados pertencem exclusivamente ao tenant atual.
+            Escolha um modelo e use “Personalizar para a empresa” para ajustar as permissões. Atribua o perfil personalizado aos usuários.
           </p>
         </div>
         <Dialog open={openForm} onOpenChange={setOpenForm}>
@@ -128,79 +129,7 @@ function PerfisPage() {
         </div>
       )}
 
-      {matrizId ? <MatrizDialog profileId={matrizId} onClose={() => setMatrizId(null)} /> : null}
+      {matrizId ? <TenantPermissionMatrix profileId={matrizId} onClose={() => setMatrizId(null)} /> : null}
     </div>
-  );
-}
-
-function MatrizDialog({ profileId, onClose }: { profileId: string; onClose: () => void }) {
-  const qc = useQueryClient();
-  const modulos = useQuery({ queryKey: ["rbac", "modulos"], queryFn: () => listarModulos() });
-  const perfil = useQuery({ queryKey: ["rbac", "perfil", profileId], queryFn: () => obterPerfilComPermissoes({ data: { id: profileId } }) });
-  const immutable = perfil.data?.perfil.sistema === true;
-
-  const permission = useMutation({
-    mutationFn: (value: { module_id: string; action: RbacAction; scope: RbacScope; enabled: boolean }) =>
-      togglePermissao({ data: { profile_id: profileId, ...value } }),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["rbac", "perfil", profileId] });
-      void qc.invalidateQueries({ queryKey: ["rbac", "perfis"] });
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
-  const permissions = perfil.data?.permissoes ?? [];
-  const get = (moduleId: string, action: RbacAction) => permissions.find((item) => item.module_id === moduleId && item.action === action);
-
-  return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-h-[85vh] max-w-6xl overflow-auto">
-        <DialogHeader>
-          <DialogTitle>Permissões — {perfil.data?.perfil.nome ?? "carregando"}</DialogTitle>
-        </DialogHeader>
-        {immutable ? <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">Template de sistema: consulta permitida, edição bloqueada.</div> : null}
-        {perfil.isError || modulos.isError ? <div className="rounded-md border border-destructive/40 p-4 text-sm">Falha ao carregar a matriz. Feche e tente novamente.</div> : null}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className="border-b"><th className="sticky left-0 bg-card p-2 text-left">Módulo</th>{ACTIONS.map((action) => <th key={action} className="min-w-[96px] p-2 text-center">{ACTION_LABEL[action]}</th>)}</tr></thead>
-            <tbody>
-              {modulos.data?.map((module) => (
-                <tr key={module.id} className="border-b hover:bg-muted/20">
-                  <td className="sticky left-0 bg-card p-2 font-medium">{module.name}</td>
-                  {ACTIONS.map((action) => {
-                    const current = get(module.id, action);
-                    const enabled = Boolean(current);
-                    return (
-                      <td key={action} className="p-2 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <input
-                            type="checkbox"
-                            checked={enabled}
-                            disabled={immutable || permission.isPending}
-                            className="size-4 cursor-pointer accent-petroleum disabled:cursor-not-allowed"
-                            onChange={(event) => permission.mutate({ module_id: module.id, action, scope: current?.scope ?? "proprio", enabled: event.target.checked })}
-                          />
-                          {enabled ? (
-                            <Select
-                              value={current?.scope ?? "proprio"}
-                              disabled={immutable || permission.isPending}
-                              onValueChange={(scope: RbacScope) => permission.mutate({ module_id: module.id, action, scope, enabled: true })}
-                            >
-                              <SelectTrigger className="h-7 w-[86px] px-1 text-[10px]"><SelectValue /></SelectTrigger>
-                              <SelectContent>{(["proprio", "equipe", "global"] as RbacScope[]).map((scope) => <SelectItem key={scope} value={scope}>{SCOPE_LABEL[scope]}</SelectItem>)}</SelectContent>
-                            </Select>
-                          ) : null}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-muted-foreground">Precedência efetiva: <strong>Global &gt; Equipe &gt; Próprios</strong>. A resolução ocorre no servidor sobre todas as associações do usuário.</p>
-      </DialogContent>
-    </Dialog>
   );
 }

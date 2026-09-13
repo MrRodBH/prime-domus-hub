@@ -3,13 +3,13 @@ import {build} from 'esbuild';
 import {pathToFileURL} from 'node:url';
 const {JSDOM}=await import(pathToFileURL(process.env.ROUND52_JSDOM_MODULE));
 const b=await build({stdin:{contents:`import React from 'react';import {createRoot} from 'react-dom/client';import {Route} from './src/routes/reset-password';const root=createRoot(document.getElementById('root'));root.render(React.createElement(Route.component));window.unmount=()=>root.unmount();`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,write:false,jsx:'automatic',loader:{'.png':'dataurl'},plugins:[{name:'reset-ui',setup(b){
- b.onResolve({filter:/^@tanstack\/react-router$|integrations\/supabase\/client$|initial-admin-setup.functions$|super.functions$|tenant-selection.functions$|tenant-selection-state$|impersonation-state$|tenant-cache$|^@tanstack\/react-query$|^sonner$/},a=>({path:a.path,namespace:'fake'}));
- b.onLoad({filter:/.*/,namespace:'fake'},a=>({contents:a.path==='@tanstack/react-router'?`export const createFileRoute=()=>x=>x;export const Link=({children})=>children;export const useNavigate=()=>async x=>window.navigation.push(x);`:a.path==='@tanstack/react-query'?`export const useQueryClient=()=>({cancelQueries:async()=>{},clear:()=>window.cleared++});`:a.path.endsWith('super.functions')?`export const meuAcessoSuperAdmin=async()=>window.superRole;`:a.path.endsWith('tenant-selection.functions')?`export const listSelectableTenants=async()=>window.choices;`:a.path.endsWith('tenant-selection-state')?`export const clearSelectedTenantId=()=>window.cleared++;`:a.path.endsWith('impersonation-state')?`export const clearImpersonationTenantId=()=>window.cleared++;`:a.path.endsWith('tenant-cache')?`export const setCurrentTenantId=()=>window.cleared++;`:a.path==='sonner'?`export const toast={error(){},success(){}};`:a.path.endsWith('initial-admin-setup.functions')?`export const listMyInitialAdminInvitations=async()=>window.pendingInvites;`:`export const supabase={auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getUser:async()=>({data:{user:{id:'fixture'}}}),setSession:async()=>({error:window.invalidToken?{}:null}),updateUser:async input=>{window.passwordWrites++;if(window.writeError)throw Error('transport');return {error:null}},signOut:async input=>{window.signouts.push(input);return {error:window.signouts.length <= window.failSignout ? {} : null}}}};`,loader:'tsx',resolveDir:process.cwd()}));
+ b.onResolve({filter:/^@tanstack\/react-router$|integrations\/supabase\/client$|initial-admin-setup.functions$|tenant-lifecycle.functions$|super.functions$|tenant-selection.functions$|tenant-selection-state$|impersonation-state$|tenant-cache$|^@tanstack\/react-query$|^sonner$/},a=>({path:a.path,namespace:'fake'}));
+ b.onLoad({filter:/.*/,namespace:'fake'},a=>({contents:a.path==='@tanstack/react-router'?`export const createFileRoute=()=>x=>x;export const Link=({children})=>children;export const useNavigate=()=>async x=>window.navigation.push(x);`:a.path==='@tanstack/react-query'?`export const useQueryClient=()=>({cancelQueries:async()=>{},clear:()=>window.cleared++});`:a.path.endsWith('super.functions')?`export const meuAcessoSuperAdmin=async()=>window.superRole;`:a.path.endsWith('tenant-selection.functions')?`export const listSelectableTenants=async()=>window.choices;`:a.path.endsWith('tenant-selection-state')?`export const clearSelectedTenantId=()=>window.cleared++;`:a.path.endsWith('impersonation-state')?`export const clearImpersonationTenantId=()=>window.cleared++;`:a.path.endsWith('tenant-cache')?`export const setCurrentTenantId=()=>window.cleared++;`:a.path==='sonner'?`export const toast={error(){},success(){}};`:a.path.endsWith('tenant-lifecycle.functions')?`export const listMyTenantInvitations=async()=>window.memberInvites;`:a.path.endsWith('initial-admin-setup.functions')?`export const listMyInitialAdminInvitations=async()=>window.pendingInvites;`:`export const supabase={auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getUser:async()=>({data:{user:{id:'fixture'}}}),setSession:async()=>({error:window.invalidToken?{}:null}),refreshSession:async()=>({data:{session:{}}}),updateUser:async input=>{window.passwordWrites++;if(window.writeError)throw Error('transport');return {error:null}},signOut:async input=>{window.signouts.push(input);return {error:window.signouts.length <= window.failSignout ? {} : null}}}};`,loader:'tsx',resolveDir:process.cwd()}));
 }}]});
 const tick=()=>new Promise(r=>setTimeout(r,15));
 async function scenario(hash,invites,valid,options={}){
  const d=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/reset-password'+hash,runScripts:'outside-only',pretendToBeVisual:true});
- try {const w=d.window;w.choices=options.choices??[{slug:'rmprime',name:'Fixture company'}];w.superRole=options.superRole??false;w.failSignout=options.failSignout??0;w.invalidToken=options.invalidToken??false;w.writeError=options.writeError??false;w.cleared=0;w.pendingInvites=invites;w.passwordWrites=0;w.navigation=[];w.signouts=[];w.fetch=()=>{throw Error('NETWORK_FORBIDDEN')};w.eval(b.outputFiles[0].text);
+ try {const w=d.window;w.choices=options.choices??[{slug:'rmprime',name:'Fixture company'}];w.superRole=options.superRole??false;w.failSignout=options.failSignout??0;w.invalidToken=options.invalidToken??false;w.writeError=options.writeError??false;w.cleared=0;w.pendingInvites=invites;w.memberInvites=options.memberInvites??[];w.passwordWrites=0;w.navigation=[];w.signouts=[];w.fetch=()=>{throw Error('NETWORK_FORBIDDEN')};w.eval(b.outputFiles[0].text);
  for(let i=0;i<100&&!w.document.body.textContent.match(/Link inválido|Defina sua senha/);i++)await tick();
  assert.equal(!!w.document.querySelector('form'),valid,hash||'plain session');
  assert.equal(w.passwordWrites,0);
@@ -18,6 +18,12 @@ async function scenario(hash,invites,valid,options={}){
   Array.from(w.document.querySelectorAll('button')).find(b=>b.textContent==='Solicitar novo link').click();
   for(let i=0;i<100&&!w.document.getElementById('recovery-email');i++)await tick();
   assert.ok(w.document.getElementById('recovery-email'));assert.equal(w.passwordWrites,0);
+ }
+ if(valid&&hash.includes('type=invite')){
+  for(const input of w.document.querySelectorAll('input')){Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value').set.call(input,'SyntheticPass123!');input.dispatchEvent(new w.Event('input',{bubbles:true}));await tick();}
+  w.document.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+  for(let i=0;i<100&&!w.navigation.length;i++)await tick();
+  assert.equal(w.navigation[0]?.to,'/invitations');assert.equal(w.signouts.length,0);assert.equal(w.passwordWrites,1);
  }
  if(valid&&hash.includes('type=recovery')){
   for(const input of w.document.querySelectorAll('input')){Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype,'value').set.call(input,'SyntheticPass123!');input.dispatchEvent(new w.Event('input',{bubbles:true}));await tick();}
@@ -41,6 +47,8 @@ async function scenario(hash,invites,valid,options={}){
  }finally{d.window.unmount?.();d.window.close()}
 }
 await scenario('',[],false);
+await scenario('',[],true,{memberInvites:[{tenantId:'pending-company'}]});
+await scenario('#access_token=fixture&refresh_token=fixture&type=invite',[],true,{memberInvites:[{tenantId:'pending-company'}]});
 await scenario('#error_description=expired',[],false);
 await scenario('#access_token=fixture&refresh_token=fixture',[],false);
 await scenario('#access_token=fixture&refresh_token=fixture&type=recovery',[],true);

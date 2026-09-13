@@ -1,3 +1,4 @@
+import { listMyTenantInvitations } from "@/lib/api/tenant-lifecycle.functions";
 import { listMyInitialAdminInvitations } from "@/lib/api/initial-admin-setup.functions";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
@@ -90,9 +91,9 @@ function ResetPasswordPage() {
 
       // A stale unrelated login must never turn an expired recovery link into
       // a password form for the wrong account. Only a recovery event or a
-      // server-confirmed pending first-Admin invitation permits this entry.
+      // server-confirmed pending company invitation permits this entry.
       const { data, error } = await supabase.auth.getUser();
-      const pending = !error && data.user && !recoveryEvent ? await listMyInitialAdminInvitations() : [];
+      const pending = !error && data.user && !recoveryEvent ? [...await listMyInitialAdminInvitations(), ...await listMyTenantInvitations()] : [];
       if (!cancelled) {
         setSessionOk(!error && !!data.user && (recoveryEvent || pending.length > 0));
         setRecovery(recoveryEvent);
@@ -145,7 +146,7 @@ function ResetPasswordPage() {
       else await navigate({ to: '/auth', replace: true });
       return;
     }
-    const pending = await listMyInitialAdminInvitations();
+    const pending = [...await listMyInitialAdminInvitations(), ...await listMyTenantInvitations()];
     const destination = pending.length ? "/invitations" : "/admin";
     await navigate({ to: destination, replace: true });
   }

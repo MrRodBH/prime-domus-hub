@@ -93,25 +93,21 @@ export async function resolveEffectiveTenantPermission(
 
 export async function authorizeTenantAccessControlOperation(
   context: TrustedTenantAccessContext,
-): Promise<{ tenantId: string; actorKind: "owner" | "super_admin" | "delegated" }> {
+): Promise<{ tenantId: string; actorKind: "owner" | "admin" | "delegated" }> {
   const tenantId = requireTenantScopedAuthority(context.tenant, "Tenant Access Control");
-  const decision = await resolveEffectiveTenantPermission(context, "access_control", "gerenciar");
-  if (!decision.allowed || decision.scope !== "global") {
-    throw new Error("Acesso negado à gestão de perfis, permissões e equipes.");
-  }
-  const actorKind =
-    decision.source === "super_admin_impersonation"
-      ? "super_admin"
-      : decision.source === "tenant_owner"
-        ? "owner"
-        : "delegated";
-  return { tenantId, actorKind };
+  const {supabaseAdmin} = await import('@/integrations/supabase/client.server');
+  const {data,error} = await (supabaseAdmin as any).rpc('assert_tenant_access_manager', {
+    _actor_user_id:context.userId,_tenant_id:tenantId,_tenant_origin:context.tenant.origin,
+  });
+  if(error || !['owner','admin','delegated'].includes(data))
+    throw Error('Acesso negado à gestão de usuários, perfis e permissões.');
+  return {tenantId,actorKind:data};
 }
 
 export function safeTenantAccessError(error: unknown): Error {
-  const message = error instanceof Error ? error.message : "tenant_access_failed";
+  const message = error && typeof error === "object" && "message" in error && typeof error.message === "string" ? error.message : "tenant_access_failed";
   const known: Array<[string, string]> = [
-    ["super_admin_requires_impersonation", "Super Admin precisa de impersonação explícita para operar recursos do tenant."],
+    ["super_admin_requires_impersonation", "A conta da plataforma não pode operar recursos da empresa."],
     ["tenant_access_manager_required", "O usuário não possui permissão global para gerenciar acessos."],
     ["tenant_profile_not_found", "O perfil não existe neste tenant."],
     ["tenant_profile_in_use", "O perfil está associado a membros e não pode ser excluído."],
