@@ -1,0 +1,317 @@
+{
+  "acceptance": {
+    "authenticated_testing": false,
+    "domain_active": false,
+    "website_created": false
+  },
+  "captured_at": "2026-09-13T18:35:41.722Z",
+  "changes": [
+    {
+      "operation": "reduce_customer_web_ttl",
+      "results": [
+        {
+          "after_ttl": 300,
+          "before_ttl": 3600,
+          "id": "b3cb2e1f3e10e7d4cd070e194c2a379b",
+          "modified_on": "2026-09-13T18:37:09.879518Z",
+          "name": "rmprimeimoveis.com.br",
+          "success": true
+        },
+        {
+          "after_ttl": 300,
+          "before_ttl": 3600,
+          "id": "58714e15f2ffc8001ca51ab6ef9d7942",
+          "modified_on": "2026-09-13T18:37:12.168717Z",
+          "name": "www.rmprimeimoveis.com.br",
+          "success": true
+        }
+      ]
+    },
+    {
+      "operation": "create_delivery_origin",
+      "result": {
+        "record": {
+          "comment": "RM Prime SaaS real-domain preparation 2026-09-13; existing hosting origin, no tenant cutover",
+          "comment_modified_on": "2026-09-13T18:37:25.737456Z",
+          "content": "185.158.133.1",
+          "created_on": "2026-09-13T18:37:25.737456Z",
+          "id": "599a533bde49f04eb30adaf47c8970af",
+          "meta": {},
+          "modified_on": "2026-09-13T18:37:25.737456Z",
+          "name": "origin.realone.com.br",
+          "proxiable": true,
+          "proxied": true,
+          "settings": {},
+          "tags": [],
+          "ttl": 1,
+          "type": "A"
+        },
+        "success": true
+      }
+    },
+    {
+      "operation": "set_cloudflare_saas_origin",
+      "result": {
+        "errors": [],
+        "messages": [],
+        "result": {
+          "created_at": "2026-09-13T18:37:33.381823Z",
+          "origin": "origin.realone.com.br",
+          "status": "initializing",
+          "updated_at": "2026-09-13T18:37:33.381823Z"
+        },
+        "status": 202,
+        "success": true
+      }
+    },
+    {
+      "operation": "create_managed_cname_target",
+      "result": {
+        "record": {
+          "comment": "RM Prime SaaS managed hostname target; staged, no customer cutover",
+          "comment_modified_on": "2026-09-13T18:37:49.294231Z",
+          "content": "origin.realone.com.br",
+          "created_on": "2026-09-13T18:37:49.294231Z",
+          "id": "1984b80ac3e8a7ee543af37d34654e9a",
+          "meta": {},
+          "modified_on": "2026-09-13T18:37:49.294231Z",
+          "name": "sites.realone.com.br",
+          "proxiable": true,
+          "proxied": true,
+          "settings": {
+            "flatten_cname": false
+          },
+          "tags": [],
+          "ttl": 1,
+          "type": "CNAME"
+        },
+        "success": true
+      }
+    },
+    {
+      "operation": "require_strict_origin_tls",
+      "result": {
+        "after": "strict",
+        "before": "full",
+        "modified_on": "2026-09-13T18:39:48.495069Z",
+        "success": true
+      }
+    }
+  ],
+  "platform_dns_before": [
+    {
+      "content": "185.158.133.1",
+      "id": "98f9ed749c42b81eef661170d61ebd2f",
+      "name": "realone.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "A"
+    },
+    {
+      "content": "185.158.133.1",
+      "id": "38cf08c61624b3bf4ac316095871cb7b",
+      "name": "www.realone.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "A"
+    },
+    {
+      "content": ".",
+      "id": "240b0d60d64f2b3ef01252ee40a0c320",
+      "name": "realone.com.br",
+      "priority": 0,
+      "proxied": false,
+      "ttl": 1,
+      "type": "MX"
+    },
+    {
+      "content": "\"v=DMARC1; p=reject;\"",
+      "id": "7edfdd46595b6f76621512342133c7dd",
+      "name": "_dmarc.realone.com.br",
+      "proxied": false,
+      "ttl": 1,
+      "type": "TXT"
+    },
+    {
+      "content": "\"lovable_verify=d6e94a81f33441f05c908b6209fcc81054a8e33254e60ce28d27d5dc5d08d8ec\"",
+      "id": "eb08fc6a65251ca5915f8145cbd2b2b4",
+      "name": "_lovable.realone.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    },
+    {
+      "content": "\"lovable_verify=6aa45f046a963d790f9f3c64b4253a7c81634561f772f32a75fb57e0db152382\"",
+      "id": "932ec98a93f2939f57f18ca23f866387",
+      "name": "_lovable.www.realone.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    },
+    {
+      "content": "\"v=spf1 -all\"",
+      "id": "879457c58a6cf113f124064e7f125f61",
+      "name": "realone.com.br",
+      "proxied": false,
+      "ttl": 1,
+      "type": "TXT"
+    }
+  ],
+  "remaining": [
+    "published_runtime_binding_and_job_executor_verification",
+    "production_provider_account_mapping_and_server_credential",
+    "canonical_apex_flattened_dns_evidence_support",
+    "tenant_authorized_ownership_challenge",
+    "post_ownership_custom_hostname_identity_and_certificate",
+    "reviewed_customer_dns_cutover_and_authenticated_real_smoke"
+  ],
+  "state": "infrastructure_prepared_runtime_prerequisites_pending",
+  "tenant_dns_before": [
+    {
+      "content": "185.158.133.1",
+      "id": "b3cb2e1f3e10e7d4cd070e194c2a379b",
+      "name": "rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "A"
+    },
+    {
+      "content": "185.158.133.1",
+      "id": "58714e15f2ffc8001ca51ab6ef9d7942",
+      "name": "www.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "A"
+    },
+    {
+      "content": "links1.resend-dns.com",
+      "id": "aad31a0b9a5de68f9b615d046c183ca5",
+      "name": "contato.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "CNAME"
+    },
+    {
+      "content": "feedback-smtp.sa-east-1.amazonses.com",
+      "id": "6a564c9d5c59f6b28968bbc4e6ffb777",
+      "name": "send.rmprimeimoveis.com.br",
+      "priority": 10,
+      "proxied": false,
+      "ttl": 3600,
+      "type": "MX"
+    },
+    {
+      "content": "\"v=DMARC1; p=none; pct=100; rua=mailto:dmarcreports@lovable.dev\"",
+      "id": "7335ccf7aa48af654d322cf2d4830250",
+      "name": "_dmarc.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    },
+    {
+      "content": "\"lovable_email_verify=346815a2965cf11c4fac85a64d97a6b7f1ab9be185151b2a1f793a498eb26097\"",
+      "id": "54f5507d2b19d3e8d1c4c0ce76c7977b",
+      "name": "_lovable-email.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    },
+    {
+      "content": "\"lovable_verify=a32f3c66b699a372e046e38ce37a0d9abded64ca2b1a1fb54ab0f2f6b7c2bfae\"",
+      "id": "9734a456a4d0fc3a21d7a34ab1c5abbf",
+      "name": "_lovable.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    },
+    {
+      "content": "\"lovable_verify=beb4a26ea591eb8c02b75e19788f3874882d369b7ff68124bee22c3122b245b5\"",
+      "id": "e0823a0196379196b2f81db41d68852a",
+      "name": "_lovable.www.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    },
+    {
+      "content": "\"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDNXihcgcFeWWHEsSI3l0dlJifqOnuluyl7wmTvew0F+NusExgkYenRmen+d2CkKGb3VoPc3gfvUHxn4gUhirv5cJIfO0crEED4LjFsjVMexc2LcmBPIlXQohqcR5cKYIicj0MCo97iYB1EFsANgxRj5bDwsLa+hxT38ctt6cS6mQIDAQAB\"",
+      "id": "1f364de35b61182ca000e40b1402353c",
+      "name": "resend._domainkey.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    },
+    {
+      "content": "\"openai-domain-verification=dv-F0ltldP9T1jHshfd6dhmMO26\"",
+      "id": "49aaf33692a1a6fd9fd5918b38abf9dc",
+      "name": "rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 1,
+      "type": "TXT"
+    },
+    {
+      "content": "\"v=spf1 include:amazonses.com ~all\"",
+      "id": "f0dd36f31899cbb2ee4ef7868350787b",
+      "name": "send.rmprimeimoveis.com.br",
+      "proxied": false,
+      "ttl": 3600,
+      "type": "TXT"
+    }
+  ],
+  "verification": {
+    "all_11_customer_records_retained": true,
+    "all_7_existing_platform_dns_records_unchanged": true,
+    "canonical_domain": {
+      "binding_count": 0,
+      "challenge_count": 0,
+      "generation": 1,
+      "id": "6eda5a4e-be96-4756-b39b-746d886bc387",
+      "job_count": 0,
+      "status": "pending_ownership_verification"
+    },
+    "checked_at": "2026-09-13T18:40:27.415Z",
+    "customer_changes_only_two_ttls": true,
+    "dns_delta_verified": true,
+    "fallback": {
+      "created_at": "2026-09-13T18:37:33.381823Z",
+      "origin": "origin.realone.com.br",
+      "status": "active",
+      "updated_at": "2026-09-13T18:37:33.72078Z"
+    },
+    "https_before_mutation": {
+      "application_error": "Public tenant authority could not be resolved",
+      "hostname": "rmprimeimoveis.com.br",
+      "status": 500
+    },
+    "platform_records_added": 2,
+    "public_dns": {
+      "answers": [
+        "104.21.87.173",
+        "172.67.145.4"
+      ],
+      "name": "sites.realone.com.br",
+      "resolver": "cloudflare-dns-json",
+      "status": 0
+    },
+    "tls_before": {
+      "certificatePacks": [
+        {
+          "hosts": [
+            "realone.com.br",
+            "*.realone.com.br"
+          ],
+          "id": "67c67f15-8082-45f0-b2f7-462683af5206",
+          "status": "active",
+          "type": "universal"
+        }
+      ],
+      "ssl": {
+        "certificate_status": "active",
+        "editable": true,
+        "id": "ssl",
+        "modified_on": null,
+        "validation_errors": [],
+        "value": "full"
+      }
+    }
+  }
+}
