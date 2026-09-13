@@ -38,6 +38,7 @@ jobs:
       - run: ROUND51_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-51-superadmin-auth-specs.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node tests/support-recovery/reset-ui.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-56-approved-navigation-specs.mjs
+      - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node tests/round65/members-ui.mjs
       - run: bun run test:p0-website-builder
       - run: bun run typecheck
       - run: bun run build
