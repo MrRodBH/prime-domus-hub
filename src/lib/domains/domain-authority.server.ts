@@ -33,12 +33,12 @@ export async function authorizeTenantDomainOperation(
     };
   }
 
-  const { data, error } = await (supabaseAdmin as any)
+  const { data, error } = await supabaseAdmin
     .from("tenant_members")
-    .select("tenant_role, status")
+    .select("tenant_role, membership_status")
     .eq("tenant_id", tenant.tenantId)
     .eq("user_id", context.userId)
-    .eq("status", "active");
+    .eq("membership_status", "active");
   if (error) throw toSafeDomainError(error);
   if (!data || data.length !== 1) {
     throw new DomainError("domain_authority_denied", "Active tenant membership cardinality must be exactly one");
