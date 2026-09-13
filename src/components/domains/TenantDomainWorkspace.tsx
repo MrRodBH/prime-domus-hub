@@ -117,6 +117,12 @@ export function TenantDomainWorkspace() {
     },
     onSuccess: (result, action) => {
       if (action.kind === "rotate" && "challenge" in result) setProofs([result.challenge]);
+      if (action.kind === "verify" && "verification" in result) {
+        if (result.verification.verified) toast.success("Propriedade do domínio confirmada. A conexão ainda depende dos apontamentos e do SSL.");
+        else toast.warning("O TXT correto ainda não foi confirmado. Confira o registro e a validade da prova antes de tentar novamente.");
+        void invalidate();
+        return;
+      }
       toast.success(
         action.kind === "remove"
           ? "Autoridade pública encerrada; cleanup enfileirado."
