@@ -22,7 +22,7 @@ export function nativeCadastralTransport(client,trace) {
   const columns=new Set(['id','tenant_id','user_id','nome','sobrenome','cpf','creci','email','telefone','whatsapp','cargo','bio','ativo','status','team_id','slug']);
   const ident=key=>{assert.ok(columns.has(key),`unexpected column ${key}`);return `"${key}"`;};
   return {
-    async rpc(name,a){assert.equal(name,'resolve_tenant_permission');return {data:(await client.query('SELECT public.resolve_tenant_permission($1,$2,$3,$4,$5) AS result',[a._actor_user_id,a._tenant_id,a._tenant_origin,a._module_code,a._action])).rows[0].result,error:null};},
+    async rpc(name,a){assert.equal(name,'assert_tenant_access_manager');return {data:(await client.query('SELECT public.assert_tenant_access_manager($1,$2,$3) AS result',[a._actor_user_id,a._tenant_id,a._tenant_origin])).rows[0].result,error:null};},
     from(table){assert.equal(table,'corretores');let fields='id',payload,where=[];
       async function execute(){const values=[];let sql;
         if(payload){const sets=Object.entries(payload).map(([k,v])=>{values.push(v);return `${ident(k)}=$${values.length}`;});sql=`UPDATE public.corretores SET ${sets.join(',')}`;trace.push({updateKeys:Object.keys(payload).sort()});}

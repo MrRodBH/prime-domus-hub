@@ -19,7 +19,7 @@ try {
       ` : a.path.endsWith('tenant-middleware') ? `export const requireTenant = 'requireTenant';` : `
         export const supabaseAdmin = {
           async rpc(name, args) { const s=globalThis.__round42; s.calls.push({name,args});
-            if(name==='resolve_tenant_permission') return {data:s.decision,error:s.authError};
+            if(name==='assert_tenant_access_manager') return {data:s.decision.allowed && s.decision.scope==='global' ? (s.decision.source==='tenant_owner'?'owner':'delegated') : null,error:s.authError};
             if(name!=='link_tenant_broker_identity') throw Error('UNEXPECTED_RPC');
             return {data:s.result ?? {corretorId:args._broker_id,userId:args._target_user_id,status:'linked'},error:s.linkError}; },
           from(table) { if(table!=='corretores') throw Error('UNEXPECTED_TABLE');
@@ -52,8 +52,8 @@ try {
     const c=source==='super_admin_impersonation' ? {...context,tenant:{...context.tenant,isSuperAdmin:true,impersonation:true,origin:'impersonation'}} : context;
     if (source==='super_admin_impersonation') { await assert.rejects(call(data,c),/prohibited/);assert.equal(state.calls.length,0);continue; }
     assert.deepEqual(await call(data,c),{...data,status:'linked'});
-    assert.deepEqual(state.calls.map(c=>c.name),['resolve_tenant_permission','link_tenant_broker_identity']);
-    assert.deepEqual(state.calls[0].args,{_actor_user_id:context.userId,_tenant_id:context.tenant.tenantId,_tenant_origin:c.tenant.origin,_module_code:'access_control',_action:'gerenciar'});
+    assert.deepEqual(state.calls.map(c=>c.name),['assert_tenant_access_manager','link_tenant_broker_identity']);
+    assert.deepEqual(state.calls[0].args,{_actor_user_id:context.userId,_tenant_id:context.tenant.tenantId,_tenant_origin:c.tenant.origin});
     assert.deepEqual(state.calls[1].args,{_actor_user_id:context.userId,_tenant_id:context.tenant.tenantId,_tenant_origin:c.tenant.origin,_broker_id:data.corretorId,_target_user_id:data.userId});
   }
   state.result={...data,status:'already_linked'};

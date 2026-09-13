@@ -131,6 +131,12 @@ await scenario(
     assert.equal(fixture.navigation.length, 0);
   },
 );
+for (const tenantSlug of [undefined, 'rmprime']) {
+ await scenario({ access: async () => false, tenantSlug, memberInvitations: [{tenantId:'pending-company'}] }, async ({fixture,fill,submit,until}) => {
+   await fill('email','member@example.invalid'); await fill('password','fictional-password'); await submit();
+   await until(()=>fixture.navigation.length===1); assert.equal(fixture.navigation[0].to,'/invitations');
+ });
+}
 const sign = deferred();
 let signCalls = 0;
 await scenario(

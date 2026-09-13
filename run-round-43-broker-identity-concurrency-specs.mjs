@@ -19,8 +19,8 @@ function actualFunction(name,expectedPath){
   const pattern=new RegExp(`CREATE(?: OR REPLACE)? FUNCTION public\\.${name}\\(`);
   const found=readdirSync('supabase/migrations').filter(p=>p.endsWith('.sql')).sort().filter(p=>pattern.test(read('supabase/migrations/'+p)));
   assert.equal('supabase/migrations/'+found.at(-1),expectedPath,'latest production definition must be explicit');
-  const source=read(expectedPath),start=source.search(pattern),end=source.indexOf('$fn$;',start);
-  assert.ok(start>=0&&end>start);const sql=source.slice(start,end+5);sources[name]={path:expectedPath,sha256:hash(sql)};return sql;
+  const source=read(expectedPath),start=source.search(pattern),tag=source.slice(start).match(/AS (\$[a-zA-Z_]*\$)/)[1],body=source.indexOf(tag,start),end=source.indexOf(tag+';',body+tag.length);
+  assert.ok(start>=0&&end>start);const sql=source.slice(start,end+tag.length+1);sources[name]={path:expectedPath,sha256:hash(sql)};return sql;
 }
 const clients=[];const evidence={status:'RUNNING',base,head:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sources,cases:[],blocks:[],cadastral:[],remoteBackendAccess:false};
 const oldFetch=globalThis.fetch;globalThis.fetch=()=>{throw Error('REMOTE_FETCH_FORBIDDEN');};
@@ -68,8 +68,8 @@ try {
   await observer.query(read('tests/round43/substrate.sql'));
   const authority='supabase/migrations/20260828160617_pca_07r2_w1_forensic_forward_only_ledger_reconciliation.sql';
   await observer.query(actualFunction('resolve_tenant_permission',authority));
-  await observer.query(actualFunction('assert_tenant_access_manager',authority));
-  await observer.query(actualFunction('mutate_tenant_membership','supabase/migrations/20260713221723_857275c9-958d-46fc-b826-e0c7ae030a3d.sql'));
+  await observer.query(actualFunction('assert_tenant_access_manager','supabase/migrations/20260913170940_tenant_user_administration.sql'));
+  await observer.query(actualFunction('mutate_tenant_membership','supabase/migrations/20260913170940_tenant_user_administration.sql'));
   // No fake commercial resolver: suspend/revoke do not traverse positive-seat paths.
   await observer.query(`REVOKE ALL ON FUNCTION public.resolve_tenant_permission(uuid,uuid,text,text,public.rbac_action) FROM PUBLIC,anon,authenticated;
     REVOKE ALL ON FUNCTION public.assert_tenant_access_manager(uuid,uuid,text) FROM PUBLIC,anon,authenticated;
