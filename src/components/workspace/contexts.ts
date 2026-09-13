@@ -110,7 +110,7 @@ export const CONTEXTS: WorkspaceContext[] = [
     id: "administracao",
     label: "Administração",
     icon: Users,
-    root: "/admin/corretores",
+    root: "/admin/memberships",
     matches: [
       "/admin/memberships",
       "/admin/corretores",
@@ -123,10 +123,10 @@ export const CONTEXTS: WorkspaceContext[] = [
       "/admin/auditoria",
     ],
     subs: [
-      { label: "Pessoas", to: "/admin/corretores" },
-      { label: "Acessos da equipe", to: "/admin/memberships" },
+      { label: "Usuários e acessos", to: "/admin/memberships" },
+      { label: "Perfis e permissões", to: "/admin/perfis" },
+      { label: "Corretores", to: "/admin/corretores" },
       { label: "Equipes", to: "/admin/equipes" },
-      { label: "Perfis", to: "/admin/perfis" },
       { label: "Cidades", to: "/admin/cidades" },
       { label: "Bairros", to: "/admin/bairros" },
       { label: "Origens", to: "/admin/origens" },

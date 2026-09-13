@@ -88,7 +88,7 @@ function TenantMembershipsPage() {
       }
     },
     onSuccess: () => {
-      toast.success("Lifecycle da membership atualizado.");
+      toast.success("Acesso atualizado.");
       void queryClient.invalidateQueries({ queryKey: ["tenant-memberships"] });
       void queryClient.invalidateQueries({ queryKey: ["tenant-selection", "selectable"] });
     },
@@ -102,20 +102,20 @@ function TenantMembershipsPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Membros do tenant</h1>
+          <h1 className="text-2xl font-semibold">Usuários e acessos</h1>
           <p className="text-sm text-muted-foreground">
-            Membership role, status, ownership, perfis RBAC e equipes são contratos separados e server-authoritative.
+            Convide pessoas para sua empresa e gerencie suas funções e perfis de acesso.
           </p>
-          {owner ? <p className="mt-1 text-xs text-muted-foreground">Owner atual: <span className="font-mono">{owner.email ?? owner.userId}</span></p> : null}
+          {owner ? <p className="mt-1 text-xs text-muted-foreground">Proprietário atual: <span className="font-mono">{owner.email ?? owner.userId}</span></p> : null}
         </div>
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-          <DialogTrigger asChild><Button><MailPlus className="mr-2 size-4" /> Convidar membro</Button></DialogTrigger>
+          <DialogTrigger asChild><Button><MailPlus className="mr-2 size-4" /> Convidar usuário</Button></DialogTrigger>
           <InviteMemberDialog onDone={() => { setInviteOpen(false); void queryClient.invalidateQueries({ queryKey: ["tenant-memberships"] }); }} />
         </Dialog>
       </div>
 
       <div className="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
-        Novos acessos são criados exclusivamente por convite. Senha, tenant role e perfis nunca são definidos pelo client como autoridade.
+        Para adicionar um usuário, envie um convite. A pessoa confirma o acesso com sua própria conta. Em Perfis e permissões, configure o que cada perfil pode fazer.
       </div>
 
       {profilesQuery.isError || assignmentsQuery.isError ? <p role="status" className="text-sm text-muted-foreground">Os perfis de acesso não estão disponíveis para esta sessão. A gestão de membros permanece disponível.</p> : null}
@@ -123,7 +123,7 @@ function TenantMembershipsPage() {
         <div className="rounded-lg border bg-card p-10 text-center text-sm text-muted-foreground">Carregando controle de acesso…</div>
       ) : membershipsQuery.isError ? (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm">
-          <p>Não foi possível carregar memberships e perfis.</p>
+          <p>Não foi possível carregar usuários e perfis.</p>
           <Button className="mt-3" size="sm" variant="outline" onClick={() => { void membershipsQuery.refetch(); void profilesQuery.refetch(); void assignmentsQuery.refetch(); }}><RefreshCw className="mr-2 size-4" /> Tentar novamente</Button>
         </div>
       ) : (
@@ -132,9 +132,9 @@ function TenantMembershipsPage() {
             <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 text-left">Usuário</th>
-                <th className="px-4 py-3 text-left">Membership role</th>
+                <th className="px-4 py-3 text-left">Função</th>
                 <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Perfis RBAC</th>
+                <th className="px-4 py-3 text-left">Perfis de acesso</th>
                 <th className="px-4 py-3 text-left">Convidado</th>
                 <th className="px-4 py-3 text-left">Aceito / ingresso</th>
                 <th className="px-4 py-3 text-left">Suspenso / revogado</th>
@@ -151,10 +151,10 @@ function TenantMembershipsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 font-medium">{member.isOwner ? <Crown className="size-4 text-amber-600" /> : null}<span>{member.email ?? "E-mail indisponível"}</span></div>
                       <div className="mt-1 font-mono text-[11px] text-muted-foreground">{member.userId}</div>
-                      {member.isOwner ? <Badge className="mt-2" variant="outline">owner protegido</Badge> : null}
+                      {member.isOwner ? <Badge className="mt-2" variant="outline">Proprietário protegido</Badge> : null}
                     </td>
                     <td className="px-4 py-3">
-                      {member.isOwner ? <Badge variant="outline">owner</Badge> : (
+                      {member.isOwner ? <Badge variant="outline">Proprietário</Badge> : (
                         <div className="flex items-center gap-2">
                           <Select value={draftRole} onValueChange={(value: NonOwnerTenantRole) => setRoleDrafts((current) => ({ ...current, [member.userId]: value }))} disabled={!canChangeRole || actionMutation.isPending}>
                             <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
@@ -178,13 +178,13 @@ function TenantMembershipsPage() {
                         {member.status === "active" && !member.isOwner ? <Button size="sm" variant="outline" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "suspend", targetUserId: member.userId })}>Suspender</Button> : null}
                         {member.status === "suspended" && !member.isOwner ? <Button size="sm" variant="outline" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "reactivate", targetUserId: member.userId })}>Reativar</Button> : null}
                         {(member.status === "active" || member.status === "invited" || member.status === "suspended") && !member.isOwner ? <Button size="sm" variant="destructive" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "revoke", targetUserId: member.userId })}><UserMinus className="mr-1 size-3" /> Revogar</Button> : null}
-                        {memberships.some(actor => actor.canTransferOwnership) && member.status === "active" && !member.isOwner ? <Button size="sm" variant="secondary" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "transfer_owner", targetUserId: member.userId })}><ShieldCheck className="mr-1 size-3" /> Tornar owner</Button> : null}
+                        {memberships.some(actor => actor.canTransferOwnership) && member.status === "active" && !member.isOwner ? <Button size="sm" variant="secondary" disabled={actionMutation.isPending} onClick={() => actionMutation.mutate({ kind: "transfer_owner", targetUserId: member.userId })}><ShieldCheck className="mr-1 size-3" /> Transferir propriedade</Button> : null}
                       </div>
                     </td>
                   </tr>
                 );
               })}
-              {memberships.length === 0 ? <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">Nenhuma membership encontrada.</td></tr> : null}
+              {memberships.length === 0 ? <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">Nenhum usuário encontrado.</td></tr> : null}
             </tbody>
           </table>
         </div>
@@ -213,7 +213,7 @@ function ProfilesDialog({ member, profiles, assignedIds, onClose, onDone }: { me
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Perfis RBAC</DialogTitle><DialogDescription>{member.email ?? member.userId}. Membership role e perfis são contratos independentes.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Perfis de acesso</DialogTitle><DialogDescription>{member.email ?? member.userId}. Selecione os perfis de acesso desta pessoa.</DialogDescription></DialogHeader>
         <div className="max-h-72 space-y-2 overflow-y-auto rounded-md border p-3">
           {profiles.map((profile) => {
             const checked = selected.includes(profile.id);
@@ -236,10 +236,10 @@ function InviteMemberDialog({ onDone }: { onDone: () => void }) {
   });
   return (
     <DialogContent>
-      <DialogHeader><DialogTitle>Convidar membro</DialogTitle><DialogDescription>O servidor resolve ou cria o usuário Auth, reserva o assento e persiste a membership como invited.</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle>Convidar usuário</DialogTitle><DialogDescription>Informe o e-mail e a função da pessoa. O acesso depende da aceitação do convite e da disponibilidade no plano.</DialogDescription></DialogHeader>
       <div className="space-y-3">
         <div><Label>E-mail</Label><Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="usuario@empresa.com.br" /></div>
-        <div><Label>Role</Label><Select value={role} onValueChange={(value: NonOwnerTenantRole) => setRole(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{NON_OWNER_TENANT_ROLES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Função</Label><Select value={role} onValueChange={(value: NonOwnerTenantRole) => setRole(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{NON_OWNER_TENANT_ROLES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
       </div>
       <DialogFooter><Button disabled={!email || mutation.isPending} onClick={() => mutation.mutate()}>Enviar convite</Button></DialogFooter>
     </DialogContent>

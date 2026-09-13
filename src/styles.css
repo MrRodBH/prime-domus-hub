@@ -225,3 +225,31 @@
 }
 [data-workspace-navigation="desktop"] { color: white; }
 [data-workspace-navigation="desktop"] > div { border-color: rgb(255 255 255 / 0.15); }
+
+/* Explicit owner clarification 2026-09-13: REAL ONE is the platform, not RM Prime.
+   Scoped to the server-authorized platform shell and its own auth/recovery views. */
+[data-platform-brand="real-one"] {
+  --background: #f4f6f8;
+  --foreground: #123f47;
+  --card: #ffffff;
+  --card-foreground: #123f47;
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --secondary: #fce7ef;
+  --secondary-foreground: #881337;
+  --accent: #fce7ef;
+  --accent-foreground: #881337;
+  --muted: #e9eef1;
+  --muted-foreground: #48616b;
+  --border: #dce3e7;
+  --ring: #c2410c;
+  --workspace-surface: #f4f6f8;
+  --workspace-elevated: #ffffff;
+  --workspace-navigation: #123f47;
+  --font-display: var(--font-sans);
+  color: var(--foreground);
+}
+[data-platform-brand="real-one"][data-workspace-shell] h1,
+[data-platform-brand="real-one"][data-workspace-shell] h2 {
+  font-family: var(--font-sans);
+}

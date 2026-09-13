@@ -22,6 +22,7 @@ import { clearImpersonationTenantId } from "@/integrations/supabase/impersonatio
 import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-state";
 import { TenantSelectionGate } from "@/components/workspace/tenant/TenantSelectionRequired";
 import { loginNavigation } from '@/lib/auth/tenant-login-navigation';
+import { PlatformBrand } from '@/components/brand/PlatformBrand';
 
 export function WorkspaceShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
@@ -110,6 +111,7 @@ export function WorkspaceShell() {
         <div
           className="h-dvh w-full flex overflow-hidden bg-workspace-surface text-foreground"
           data-workspace-shell="single-authenticated-shell"
+          data-platform-brand={isSuper ? 'real-one' : undefined}
         >
           <a
             href="#workspace-main"
@@ -148,12 +150,12 @@ export function WorkspaceShell() {
           <AiDrawer />
 
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-            <SheetContent side="left" className="w-[min(86vw,280px)] bg-workspace-navigation p-0">
+            <SheetContent side="left" data-platform-brand={isSuper ? 'real-one' : undefined} className="w-[min(86vw,280px)] bg-workspace-navigation p-0">
               <VisuallyHidden>
                 <SheetTitle>Navegação do workspace</SheetTitle>
               </VisuallyHidden>
               <div className="h-14 px-4 flex items-center border-b text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                Workspace
+                {isSuper ? <PlatformBrand inverse /> : 'Workspace'}
               </div>
               <nav className="space-y-0.5 p-2" aria-label="Navegação principal móvel">
                 {visibleContexts.map((context) => {
@@ -169,7 +171,7 @@ export function WorkspaceShell() {
                       className={`flex h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors ${
                         isActive
                           ? "bg-primary text-primary-foreground"
-                          : "text-foreground/75 hover:bg-foreground/5"
+                          : "text-white/80 hover:bg-white/10"
                       }`}
                       onClick={() => setMobileNavOpen(false)}
                     >

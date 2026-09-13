@@ -18,6 +18,7 @@ import { meuTenantWorkspace } from '@/lib/api/tenant.functions';
 import { tenantReturnPath } from '@/lib/auth/tenant-login-navigation';
 
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { PlatformBrand } from '@/components/brand/PlatformBrand';
 
 export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: string } = {}) {
   const navigate = useNavigate();
@@ -130,15 +131,15 @@ export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: str
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+    <div data-platform-brand={tenantSlug ? undefined : 'real-one'} className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link to="/" className="flex justify-center mb-10">
-          <img src={logo} alt="RM Prime Imóveis" className="h-40 w-auto" />
+          {tenantSlug ? <img src={logo} alt="RM Prime Imóveis" className="h-40 w-auto" /> : <PlatformBrand />}
         </Link>
         <div className="bg-card border border-foreground/5 rounded-lg p-8 shadow-soft">
           {forgotPassword && !authenticated ? <ForgotPasswordForm initialEmail={email} onBack={() => setForgotPassword(false)} /> : <>
           <h1 className="font-display text-3xl mb-2">{tenantSlug ? 'Acesso da empresa' : 'Acesso à plataforma'}</h1>
-          <p className="text-sm text-muted-foreground mb-8">{tenantSlug ? 'Entre com sua conta para acessar o painel da empresa.' : 'Gestão do RM Prime SaaS.'}</p>
+          <p className="text-sm text-muted-foreground mb-8">{tenantSlug ? 'Entre com sua conta para acessar o painel da empresa.' : 'Gestão da plataforma REAL ONE.'}</p>
           <p className="mb-4 text-sm text-muted-foreground">
             {tenantSlug ? 'Use o e-mail e a senha cadastrados para você nesta empresa.' : 'Entre com sua conta existente. As permissões de gestão são verificadas após o login.'}
           </p>

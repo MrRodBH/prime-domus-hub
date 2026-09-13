@@ -15,12 +15,12 @@ import { clearSelectedTenantId } from '@/integrations/supabase/tenant-selection-
 import { clearImpersonationTenantId } from '@/integrations/supabase/impersonation-state';
 import { setCurrentTenantId } from '@/lib/tenant-cache';
 import { useQueryClient } from '@tanstack/react-query';
-import logo from "@/assets/logo-rm-prime.png";
+import { PlatformBrand } from '@/components/brand/PlatformBrand';
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Definir senha — RM Prime Imóveis" },
+      { title: "Definir senha — REAL ONE" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -234,10 +234,10 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+    <div data-platform-brand="real-one" className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link to="/" className="flex justify-center mb-10">
-          <img src={logo} alt="RM Prime Imóveis" className="h-40 w-auto" />
+          <PlatformBrand />
         </Link>
         <div className="bg-card border border-foreground/5 rounded-lg p-8 shadow-soft">
           {!ready ? (
