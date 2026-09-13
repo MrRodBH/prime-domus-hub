@@ -17,6 +17,7 @@ import {
 } from "@/lib/domains/domain-repository.server";
 import type { DomainOperationType, TenantDomainRecord } from "@/lib/domains/domain-contracts";
 import { DomainError, toSafeDomainError } from "@/lib/domains/domain-errors";
+import { verifyDomainOwnership } from "@/lib/domains/domain-ownership-verification.server";
 
 const trusted = (context: any) => ({ userId: context.userId as string, tenant: context.tenant });
 const domainIdSchema = z.object({ domainId: z.string().uuid() }).strict();
@@ -133,13 +134,8 @@ export const requestDomainVerificationCheck = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const authority = await authorizeTenantDomainOperation(trusted(context), "operate");
     const domain = await getTenantDomain(authority.tenantId, data.domainId);
-    const job = await enqueueDomainJob({
-      authority,
-      domain,
-      operationType: "observe_ownership_dns",
-      payload: { requestedAt: new Date().toISOString() },
-    });
-    return { job, clientVerificationAssertionAccepted: false };
+    const verification = await verifyDomainOwnership({ authority, domain });
+    return { verification, clientVerificationAssertionAccepted: false };
   });
 
 export const requestDomainOperationRetry = createServerFn({ method: "POST" })

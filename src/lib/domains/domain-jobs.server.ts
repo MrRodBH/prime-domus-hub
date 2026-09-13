@@ -20,9 +20,9 @@ import {
   releaseDomainProviderClaim,
   transitionTenantDomain,
   updateDomainProviderObservation,
-  verifyOwnershipObservation,
 } from "./domain-repository.server";
-import { observeDnsCname, observeDnsTxt } from "./dns-observation.server";
+import { observeDnsCname } from "./dns-observation.server";
+import { verifyDomainOwnership } from "./domain-ownership-verification.server";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
 import { reconcileDomain } from "./domain-reconciliation.server";
 import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
@@ -38,30 +38,7 @@ function jobAuthority(job: DomainJobRecord): DomainCommandAuthority {
 }
 
 async function observeOwnership(job: DomainJobRecord, domain: TenantDomainRecord): Promise<DomainJsonObject> {
-  const challenge = await getCurrentOwnershipChallenge(domain);
-  if (!challenge || challenge.status !== "active") {
-    throw new DomainError("domain_challenge_expired", "No active ownership challenge exists");
-  }
-  const observation = await observeDnsTxt(challenge.recordName);
-  const result = await verifyOwnershipObservation({
-    authority: jobAuthority(job),
-    domain,
-    observedValues: observation.values,
-  });
-  if (result.verified) {
-    await enqueueDomainJob({
-      authority: jobAuthority(job),
-      domain: result.domain,
-      operationType: "prepare_dns_configuration",
-      payload: { sourceJobId: job.id },
-    });
-  }
-  return {
-    verified: result.verified,
-    recordName: observation.recordName,
-    observedAt: observation.observedAt,
-    observedValueCount: observation.values.length,
-  };
+  return sanitizeDomainObject(await verifyDomainOwnership({ authority: jobAuthority(job), domain }));
 }
 
 async function prepareDns(
