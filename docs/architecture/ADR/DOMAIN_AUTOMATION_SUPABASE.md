@@ -72,3 +72,23 @@ Controlled tests must cover three tenants, immutable jobs, obsolete generations,
 ## Controlled validation
 
 PASS: domain ownership, membership, connection execution, three-tenant Supabase automation, all 174 DCA assertions, approved navigation and related DOM regressions, TypeScript and production build. Exact-head CI and Deno import/runtime checks are reported in PR #281. No real database, queue, DNS, provider, cron, publication or tenant content action is claimed.
+
+## PR #281 CI completion — owner extension, 2026-09-13
+
+Continued from `2bf2b4b3894fddb21b1e0e1928a8728d1cbaaec5`; PR/base reconciled once and unchanged. The owner expressly expanded scope to the six inherited CI failures. Consulted AGENTS.md, this ADR, DOMAIN_AUTOMATION_ROLLOUT.md, the prior PR report and the failing workflow log. Production code, database definitions, dependencies and approved interfaces are unchanged in this follow-up.
+
+The five Round 44/46/48/49/50 failures came from two blanket `git diff` assertions against old UI delivery commits. Those assertions conflated accepted backend evolution with browser isolation. They are replaced by checks of actual browser build inputs AND external imports; server functions, Supabase clients, SQL/functions and server runtime dependencies must be absent. Existing DOM, tenant separation, false-activation, privacy, authorization and denial assertions remain. Round 44 additionally executes the current Round 42 production wrapper/authority regression. Mutation probes demonstrate that including or externalizing privileged dependencies fails the new boundary. No test job is disabled, and no known failed assertion is marked passed without a replacement contract.
+
+The `node:async_hooks` failure was specifically in `tests/round65/journey.mjs`, executed by the Round 52 workflow, not in the standalone Round 52 UI runner. Its login bundle missed the existing tenant, tenant-selection and tenant-lifecycle fixture mappings used by the current Round 51 test. Update only those explicit test transports, retain real Node server validators/auth middleware and isolated PostgreSQL RPCs, and assert both browser bundles contain no backend. Do not polyfill server APIs into the browser or change production dependencies.
+
+| Follow-up path | Reason |
+| --- | --- |
+| `run-round-44-broker-identity-ui-specs.mjs` | Replace historical freeze with current production authority tests and browser boundary; preserve every interaction case. |
+| `run-round-46-empty-onboarding-specs.mjs` | Replace historical freeze with actual backend-free browser boundary; preserve all shared Round 46/48/49/50 cases. |
+| `tests/ci/controlled-browser-boundary.mjs` | Require build metadata and reject actual or external privileged/server dependencies. |
+| `tests/ci/controlled-browser-boundary.spec.mjs` | Build negative fixtures demonstrating that the boundary rejects injected and externalized backend modules. |
+| `tests/round65/journey.mjs` | Restore exact auth fixture mappings and enforce browser/server packaging separation; retain real server/SQL journey. |
+| `.github/workflows/pr-m2-consolidated-corrective-gate.yml`, `.github/workflows/release-gate.yml` | Include only these explicit follow-up test paths in the existing corrective scope; all controlled checks still run. |
+| `docs/architecture/ADR/DOMAIN_AUTOMATION_SUPABASE.md` | Record owner scope extension, impact, replacement assertions and evidence locations. |
+
+Local controlled validation: Round 44, 46, 48, 49 and 50 runners passed; standalone Round 52 UI passed; login browser packaging passed without `node:async_hooks`. The complete PostgreSQL/login/logout journey and final-head CI results are recorded in PR #281. Live application remains a later operation under DOMAIN_AUTOMATION_ROLLOUT.md; no merge or infrastructure action in this execution.
