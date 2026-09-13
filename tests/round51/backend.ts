@@ -17,3 +17,5 @@ export async function listMyInitialAdminInvitations(){return fixture().initialAd
 export const listSelectableTenants = async () => fixture().tenants ?? [];
 export const meuTenantWorkspace = async () => { if (fixture().workspaceError) throw Error('tenant access denied'); return fixture().workspace; };
 export const setSelectedTenantId = (id: string) => { fixture().selected = id; };
+
+export async function listMyTenantInvitations(){return fixture().memberInvitations ?? [];}

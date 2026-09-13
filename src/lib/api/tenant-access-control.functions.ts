@@ -1,3 +1,4 @@
+import { operationalRows } from './tenant-operational-directory.server';
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
@@ -205,7 +206,7 @@ export const listTenantAccessProfiles = createServerFn({ method: "GET" })
     const [systemResult, customResult, assignmentResult] = await Promise.all([
       admin.from("rbac_profiles").select("id, tenant_id, nome, descricao, codigo, sistema").eq("sistema", true).order("nome"),
       admin.from("rbac_profiles").select("id, tenant_id, nome, descricao, codigo, sistema").eq("sistema", false).eq("tenant_id", tenantId).order("nome"),
-      admin.from("user_profiles").select("profile_id").eq("tenant_id", tenantId),
+      admin.from("user_profiles").select("profile_id,user_id").eq("tenant_id", tenantId),
     ]);
     if (systemResult.error || customResult.error || assignmentResult.error) {
       throw new Error("Falha ao listar perfis de acesso.");
@@ -213,7 +214,7 @@ export const listTenantAccessProfiles = createServerFn({ method: "GET" })
     type ProfileRow = { id: string; tenant_id: string | null; nome: string; descricao: string | null; codigo: string | null; sistema: boolean };
     const profiles = [...(systemResult.data ?? []), ...(customResult.data ?? [])] as ProfileRow[];
     const counts = new Map<string, number>();
-    for (const row of (assignmentResult.data ?? []) as Array<{ profile_id: string }>) {
+    for (const row of await operationalRows<{user_id:string;profile_id:string}>(admin, assignmentResult.data ?? [])) {
       counts.set(row.profile_id, (counts.get(row.profile_id) ?? 0) + 1);
     }
     return profiles.map((profile) => ({
@@ -380,7 +381,7 @@ export const listTenantMemberProfiles = createServerFn({ method: "GET" })
       .select("tenant_id, user_id, profile_id")
       .eq("tenant_id", tenantId);
     if (error) throw new Error("Falha ao listar associações de perfis.");
-    const assignments = (assignmentRows ?? []) as Array<{ tenant_id: string; user_id: string; profile_id: string }>;
+    const assignments = await operationalRows<{ tenant_id: string; user_id: string; profile_id: string }>(admin, assignmentRows ?? []);
     const profileIds = [...new Set(assignments.map((row) => row.profile_id))];
     const profileResult = profileIds.length
       ? await admin.from("rbac_profiles").select("id, tenant_id, nome, sistema, codigo").in("id", profileIds)
@@ -406,13 +407,15 @@ export const listTenantTeams = createServerFn({ method: "GET" })
     if (teamResult.error || memberResult.error) throw new Error("Falha ao listar equipes.");
     type TeamRow = { id: string; tenant_id: string; nome: string; descricao: string | null; lider_user_id: string | null; ativo: boolean };
     const membersByTeam = new Map<string, Array<{ user_id: string }>>();
-    for (const member of (memberResult.data ?? []) as Array<{ team_id: string; user_id: string }>) {
+    for (const member of await operationalRows<{team_id:string;user_id:string}>(admin, memberResult.data ?? [])) {
       const list = membersByTeam.get(member.team_id) ?? [];
       list.push({ user_id: member.user_id });
       membersByTeam.set(member.team_id, list);
     }
+    const operationalLeaders = new Set((await operationalRows<{user_id:string}>(admin, (teamResult.data ?? []).filter((team:TeamRow) => team.lider_user_id).map((team:TeamRow) => ({user_id:team.lider_user_id!})))).map(row => row.user_id));
     return ((teamResult.data ?? []) as TeamRow[]).map((team) => ({
       ...team,
+      lider_user_id: team.lider_user_id && operationalLeaders.has(team.lider_user_id) ? team.lider_user_id : null,
       total_membros: membersByTeam.get(team.id)?.length ?? 0,
       team_members: membersByTeam.get(team.id) ?? [],
     }));
@@ -438,13 +441,14 @@ export const getTenantTeam = createServerFn({ method: "GET" })
       .eq("tenant_id", tenantId)
       .eq("team_id", data.id);
     if (memberError) throw new Error("Falha ao carregar membros da equipe.");
-    const teamMembers = (members ?? []) as Array<{ user_id: string }>;
+    const teamMembers = await operationalRows<{user_id:string}>(admin, members ?? []);
+    const leader = team.lider_user_id ? await operationalRows<{user_id:string}>(admin, [{user_id:team.lider_user_id}]) : [];
     return {
       id: team.id,
       tenant_id: team.tenant_id,
       nome: team.nome,
       descricao: team.descricao ?? null,
-      lider_user_id: team.lider_user_id ?? null,
+      lider_user_id: leader[0]?.user_id ?? null,
       ativo: Boolean(team.ativo),
       total_membros: teamMembers.length,
       team_members: teamMembers,
@@ -606,3 +610,15 @@ export const salvarEquipe = saveTenantTeam;
 export const excluirEquipe = deleteTenantTeam;
 export const listarAuditoria = listTenantAccessAudit;
 export const adminListarPapeisPorUsuario = listTenantMemberProfiles;
+
+export const customizeTenantAccessProfile = createServerFn({method:'POST'})
+  .middleware([requireTenant]).inputValidator(z.object({sourceId:uuid}).strict())
+  .handler(async({context,data}):Promise<{id:string}>=>{
+    const tenantId=tenantIdFrom(context);
+    const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+    const result=await (supabaseAdmin as any).rpc('customize_tenant_access_profile',{
+      _actor:context.userId,_tenant:tenantId,_origin:context.tenant.origin,_source:data.sourceId,
+    });
+    if(result.error)throw safeTenantAccessError(result.error);
+    return {id:requireString(asRecord(result.data),'profileId')};
+  });

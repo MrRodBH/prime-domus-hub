@@ -1,3 +1,4 @@
+import { listMyTenantInvitations } from '@/lib/api/tenant-lifecycle.functions';
 import { listMyInitialAdminInvitations } from "@/lib/api/initial-admin-setup.functions";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
@@ -40,7 +41,7 @@ export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: str
       setMessage('Esta sessão é de gestão da plataforma. Saia desta conta e entre com a conta cadastrada na empresa.');
       return;
     }
-    const pendingSetup = isSuper === true ? [] : await listMyInitialAdminInvitations();
+    const pendingSetup = isSuper === true ? [] : [...await listMyInitialAdminInvitations(), ...await listMyTenantInvitations()];
     if (!isCurrent()) return;
     if (tenantSlug && !pendingSetup.length) {
       const choices = await listSelectableTenants();

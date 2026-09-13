@@ -1,3 +1,4 @@
+import { operationalRows, requireOperationalIdentity } from './tenant-operational-directory.server';
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -48,8 +49,12 @@ function roleSchema() {
 }
 
 function safeLifecycleError(error: unknown): Error {
-  const message = error instanceof Error ? error.message : "tenant_lifecycle_failed";
+  const message = error && typeof error === "object" && "message" in error && typeof error.message === "string" ? error.message : "tenant_lifecycle_failed";
   const known: Array<[string, string]> = [
+    ["registration_retry_later", "Aguarde um minuto antes de reenviar a ativação."],
+    ["cross_tenant_or_unknown_profile", "Selecione um perfil válido desta empresa."],
+    ["platform_identity_not_operational", "Esta identidade não está disponível para a equipe da empresa."],
+    ["registration_expired", "A ativação expirou. Solicite o reenvio ao Admin."],
     ["tenant_slug_already_exists", "Já existe um tenant com este slug."],
     ["owner_auth_user_not_found", "O proprietário inicial não possui usuário Auth."],
     ["initial_owner_required", "O proprietário inicial é obrigatório."],
@@ -173,6 +178,8 @@ export type TenantMembershipView = {
   status: string;
   isOwner: boolean;
   canTransferOwnership: boolean;
+  name: string | null;
+  activationDeliveryStatus: string | null;
   isDefault: boolean;
   invitedAt: string | null;
   acceptedAt: string | null;
@@ -186,24 +193,27 @@ export const listTenantMemberships = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<TenantMembershipView[]> => {
     const tenantId = await assertTenantMembershipManager(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    const { data: rows, error } = await (supabaseAdmin as any)
       .from("tenant_members")
-      .select("tenant_id, user_id, tenant_role, membership_status, is_owner, is_default, invited_at, accepted_at, joined_at, suspended_at, revoked_at")
+      .select("tenant_id, user_id, tenant_role, membership_status, is_owner, is_default, invited_at, accepted_at, joined_at, suspended_at, revoked_at, display_name, activation_delivery_status")
       .eq("tenant_id", tenantId)
       .order("is_owner", { ascending: false })
       .order("joined_at", { ascending: true });
     if (error) throw new Error("Falha ao listar memberships.");
 
-    return Promise.all((rows ?? []).map(async (row) => {
+    const visible = await operationalRows(supabaseAdmin, rows ?? []);
+    return Promise.all(visible.map(async (row: any) => {
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(row.user_id);
       return {
         tenantId: row.tenant_id,
         userId: row.user_id,
         email: authError ? null : authData.user?.email ?? null,
+        name: row.display_name ?? null,
+        activationDeliveryStatus: row.activation_delivery_status ?? null,
         role: row.tenant_role,
         status: row.membership_status,
         isOwner: row.is_owner,
-        canTransferOwnership: (rows ?? []).some(member => member.user_id === context.userId && member.tenant_role === "owner" && member.is_owner && member.membership_status === "active"),
+        canTransferOwnership: visible.some((member: any) => member.user_id === context.userId && member.tenant_role === "owner" && member.is_owner && member.membership_status === "active"),
         isDefault: row.is_default,
         invitedAt: row.invited_at,
         acceptedAt: row.accepted_at,
@@ -216,10 +226,11 @@ export const listTenantMemberships = createServerFn({ method: "GET" })
 
 const inviteSchema = z.object({
   email: z.string().trim().email().max(320),
+  name: z.string().trim().min(2).max(160).optional(),
+  profileIds: z.array(z.string().uuid()).min(1).max(20).optional(),
   targetRole: roleSchema(),
   resend: z.boolean().optional().default(false),
-  redirectTo: z.string().url().max(1000).optional(),
-}).strict();
+}).strict().refine(v => v.resend || (!!v.name && !!v.profileIds?.length), 'Informe o nome e pelo menos um perfil de acesso.');
 
 export const inviteTenantMember = createServerFn({ method: "POST" })
   .middleware([requireTenant])
@@ -227,62 +238,50 @@ export const inviteTenantMember = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const tenantId = await assertTenantMembershipManager(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as any;
     const email = normalizeEmail(data.email);
-    let user = await findAuthUserByEmail(supabaseAdmin, email);
-    let createdByAutomatedInvite = false;
-
+    // Revalidate authority, seats and profiles before any external Auth operation.
+    const preflight = await admin.rpc('preflight_tenant_member_registration', {
+      _actor: context.userId, _tenant: tenantId, _origin: context.tenant.origin,
+      _profiles: data.profileIds ?? [], _resend: data.resend,
+    });
+    if (preflight.error) throw safeLifecycleError(preflight.error);
+    let user = await findAuthUserByEmail(admin, email);
+    if (user) await requireOperationalIdentity(admin, user.id);
     if (!user) {
-      const { data: invited, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-        email,
-        data.redirectTo ? { redirectTo: data.redirectTo } : undefined,
-      );
-      if (inviteError || !invited.user) throw new Error("Não foi possível criar o convite Auth.");
-      user = { id: invited.user.id, email, confirmed: false };
-      createdByAutomatedInvite = true;
+      if (data.resend) throw Error('Cadastro pendente não encontrado.');
+      // createUser sends NO email. No password is chosen by the operator.
+      const created = await admin.auth.admin.createUser({email, email_confirm:false});
+      if (created.error || !created.data?.user) throw Error('Não foi possível preparar a conta. Nenhum e-mail foi enviado.');
+      user = {id:created.data.user.id,email,confirmed:false};
     }
-
-    const { data: raw, error } = await supabaseAdmin.rpc(
-      "invite_tenant_member" as never,
-      {
-        _actor_user_id: context.userId,
-        _tenant_id: tenantId,
-        _tenant_origin: context.tenant.origin,
-        _target_user_id: user.id,
-        _target_role: data.targetRole,
-        _resend: data.resend,
-      } as never,
-    );
-
-    if (error) {
-      if (createdByAutomatedInvite) {
-        await supabaseAdmin.auth.admin.deleteUser(user.id).catch(() => undefined);
-      }
-      const denied = parseCommercialSeatLimitDeniedError(error, tenantId);
-      if (denied) {
-        const { limit, used, remaining } = denied.decision;
-        throw new Error(`Limite de usuários atingido. Limite: ${limit ?? "—"}; uso: ${used ?? "—"}; restante: ${remaining ?? "—"}.`);
-      }
-      throw safeLifecycleError(error);
+    const prepared = await admin.rpc('configure_tenant_member_registration', {
+      _actor:context.userId, _tenant:tenantId, _origin:context.tenant.origin,
+      _target:user.id, _role:data.targetRole, _name:data.name ?? null,
+      _profiles:data.profileIds ?? [], _resend:data.resend,
+    });
+    if (prepared.error) {
+      const denied = parseCommercialSeatLimitDeniedError(prepared.error, tenantId);
+      if (denied) throw Error('O plano não possui vagas disponíveis para novos usuários.');
+      throw safeLifecycleError(prepared.error);
     }
-    if (!isPlainObject(raw)) throw new Error("tenant_lifecycle_invalid_response:invite");
-
-    if (data.resend && !user.confirmed && !createdByAutomatedInvite) {
-      await supabaseAdmin.auth.admin
-        .inviteUserByEmail(email, data.redirectTo ? { redirectTo: data.redirectTo } : undefined)
-        .catch(() => undefined);
-    }
-
-    return {
-      tenantId: requireUuid(raw, "tenantId"),
-      targetUserId: requireUuid(raw, "targetUserId"),
-      email,
-      operation: requireString(raw, "operation"),
-      changed: requireBoolean(raw, "changed"),
-      status: requireString(raw, "status"),
-      role: requireString(raw, "role"),
-      invitedAt: requireString(raw, "invitedAt"),
-      deliveryMode: createdByAutomatedInvite ? "automated_email" : "in_app",
-    };
+    const raw = prepared.data;
+    if (!isPlainObject(raw)) throw Error('tenant_lifecycle_invalid_response:registration');
+    const invitedAt = requireString(raw,'invitedAt');
+    let delivery: 'sent' | 'failed' = 'sent';
+    try {
+      // Existing identities keep their password; new identities define their own.
+      const sent = user.confirmed
+        ? await admin.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:'https://realone.com.br/auth'}})
+        : await admin.auth.admin.inviteUserByEmail(email,{redirectTo:'https://realone.com.br/reset-password'});
+      if (sent.error) delivery = 'failed';
+    } catch { delivery = 'failed'; }
+    const saved = await admin.from('tenant_members').update({activation_delivery_status:delivery})
+      .eq('tenant_id',tenantId).eq('user_id',user.id).eq('invited_at',invitedAt).select('user_id');
+    if (saved.error || saved.data?.length !== 1) throw Error('Cadastro salvo, mas não foi possível confirmar o envio. Recarregue antes de reenviar.');
+    return {tenantId:requireUuid(raw,'tenantId'),targetUserId:requireUuid(raw,'targetUserId'),email,
+      operation:requireString(raw,'operation'),changed:requireBoolean(raw,'changed'),status:requireString(raw,'status'),
+      role:requireString(raw,'role'),invitedAt,deliveryMode:delivery === 'sent' ? 'automated_email' : 'failed'};
   });
 
 export const listMyTenantInvitations = createServerFn({ method: "GET" })

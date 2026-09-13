@@ -23,7 +23,7 @@ const output = await build({
         build.onResolve(
           {
             filter:
-              /^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup|tenant|tenant-selection).functions|tenant-cache))$/,
+              /^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup|tenant|tenant-selection|tenant-lifecycle).functions|tenant-cache))$/,
           },
           () => ({ path: backend }),
         );
