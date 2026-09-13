@@ -3,7 +3,7 @@ import "./tests/round64/contract.mjs";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { pathToFileURL } from "node:url";
-import { execFileSync } from "node:child_process";
+import { assertControlledBrowserBundle } from "./tests/ci/controlled-browser-boundary.mjs";
 const { JSDOM, VirtualConsole } = await import(
   pathToFileURL(process.env.ROUND46_JSDOM_MODULE).href
 );
@@ -148,25 +148,9 @@ assert.ok(
   ),
   "bundle must have no backend or historical seeded demo",
 );
-assert.equal(
-  execFileSync(
-    "git",
-    [
-      "diff",
-      "a2b8e5ae2185345994302e5b239bf88f17e89eb4",
-      "--",
-      "src/lib/api",
-      "src/integrations",
-      "supabase",
-      "package.json",
-      "bun.lock",
-      ":(exclude)src/lib/api/super-onboarding.functions.ts", ':(exclude)src/integrations/supabase/__tests__/tenant-middleware.spec.ts', ':(exclude)src/integrations/supabase/tenant-middleware.ts', ':(exclude)src/lib/api/operational-tenants.server.ts', ':(exclude)src/lib/api/super-control-plane.functions.ts', ':(exclude)src/lib/api/site.functions.ts', ':(exclude)src/lib/api/super.functions.ts', ':(exclude)src/lib/api/tenant-scoped-authority.ts', ':(exclude)src/lib/api/tenant-crm.functions.ts', ':(exclude)src/lib/api/tenant-lifecycle.functions.ts',
-      ":(exclude)src/lib/api/initial-admin-setup.functions.ts", ":(exclude)supabase/migrations/20260910150013_sequential_initial_admin_setup.sql", ":(exclude)supabase/migrations/20260908003058_round52_persistent_onboarding.sql",
-    ],
-    { encoding: "utf8" },
-  ),
-  "",
-);
+// Runtime graph is the current isolation boundary; accepted backend evolution
+// must not be compared byte-for-byte with a historical demo commit.
+assertControlledBrowserBundle(result, "Round46 empty onboarding");
 const errors = [];
 const vc = new VirtualConsole();
 vc.on("jsdomError", (error) => errors.push(error.message));

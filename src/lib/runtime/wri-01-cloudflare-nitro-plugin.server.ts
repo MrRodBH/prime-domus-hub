@@ -1,23 +1,14 @@
 import { definePlugin } from "nitro";
 
-import { scheduled } from "../../server";
 import {
   clearCloudflareRuntimeContext,
   installCloudflareRuntimeContext,
   isCloudflareRuntimeRequest,
   readAuthoritativeCloudflareRuntimeContext,
-  type CloudflareRuntimeEnv,
-  type CloudflareExecutionContext,
-  type CloudflareScheduledController,
 } from "./cloudflare-runtime-context.server";
 
 type NitroRequestEvent = { req: Request };
 type NitroErrorContext = { event?: NitroRequestEvent };
-type CloudflareScheduledPayload = {
-  controller: CloudflareScheduledController;
-  env: CloudflareRuntimeEnv;
-  context: CloudflareExecutionContext;
-};
 
 interface Wri01HookRegistrar {
   hook(name: "request", handler: (event: NitroRequestEvent) => void | Promise<void>): void;
@@ -29,10 +20,7 @@ interface Wri01HookRegistrar {
     name: "error",
     handler: (error: Error, context: NitroErrorContext) => void | Promise<void>,
   ): void;
-  hook(
-    name: "cloudflare:scheduled",
-    handler: (payload: CloudflareScheduledPayload) => void | Promise<void>,
-  ): void;
+
 }
 
 export default definePlugin((nitroApp) => {
@@ -58,7 +46,4 @@ export default definePlugin((nitroApp) => {
     }
   });
 
-  hooks.hook("cloudflare:scheduled", ({ controller, env, context }) =>
-    scheduled(controller, env, context),
-  );
 });

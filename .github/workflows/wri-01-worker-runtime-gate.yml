@@ -180,7 +180,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Local workerd fetch-context and scheduled-event proof
+      - name: Local workerd fetch-context and domain non-dispatch proof
         id: workerd-proof
         shell: bash
         run: |
@@ -308,17 +308,13 @@ jobs:
             OUTCOME_EXCEPTION=false
           fi
 
-          POSITIVE_SCHEDULED_PATH_PROVED=false
-          FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=false
-          if [ "${SCHEDULED_HTTP_CODE}" -ge 200 ] && [ "${SCHEDULED_HTTP_CODE}" -lt 300 ] \
-            && [ "${SCHEDULED_COMPLETED_LOG}" = "true" ] \
-            && [ "${OUTCOME_OK}" = "true" ]; then
-            POSITIVE_SCHEDULED_PATH_PROVED=true
-          fi
-          if [ "${SCHEDULED_HTTP_CODE}" -eq 500 ] \
-            && [ "${SCHEDULED_FAILED_CLOSED_LOG}" = "true" ] \
-            && [ "${OUTCOME_EXCEPTION}" = "true" ]; then
-            FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=true
+          # Nitro may retain its generic scheduled handler; domain queue leasing is
+          # forbidden in the compiled application and proved by the bundle audit.
+          DOMAIN_SCHEDULED_NON_DISPATCH_PROVED=false
+          if [ "${SCHEDULED_CURL_EXIT_CODE}" -eq 0 ] \
+            && [ "${SCHEDULED_COMPLETED_LOG}" = "false" ] \
+            && [ "${SCHEDULED_FAILED_CLOSED_LOG}" = "false" ]; then
+            DOMAIN_SCHEDULED_NON_DISPATCH_PROVED=true
           fi
 
           TERMINATION_SIGNAL_SENT=false
@@ -384,8 +380,7 @@ jobs:
             printf 'SCHEDULED_FAILED_CLOSED_LOG=%s\n' "${SCHEDULED_FAILED_CLOSED_LOG}"
             printf 'OUTCOME_OK=%s\n' "${OUTCOME_OK}"
             printf 'OUTCOME_EXCEPTION=%s\n' "${OUTCOME_EXCEPTION}"
-            printf 'POSITIVE_SCHEDULED_PATH_PROVED=%s\n' "${POSITIVE_SCHEDULED_PATH_PROVED}"
-            printf 'FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED=%s\n' "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}"
+            printf 'DOMAIN_SCHEDULED_NON_DISPATCH_PROVED=%s\n' "${DOMAIN_SCHEDULED_NON_DISPATCH_PROVED}"
             printf 'NEGATIVE_PATH_DEPENDENCY=SUPABASE_URL_http_127.0.0.1_port_9\n'
             printf 'WRANGLER_PROCESS_GROUP_ID=%s\n' "${WRANGLER_PGID}"
             printf 'PROCESS_GROUP_CAPTURED=%s\n' "${PROCESS_GROUP_CAPTURED}"
@@ -407,10 +402,7 @@ jobs:
           if [ "${SCHEDULED_CURL_EXIT_CODE}" -ne 0 ]; then exit 1; fi
           if [ "${PROCESS_GROUP_CAPTURED}" != "true" ]; then exit 1; fi
           if [ "${ZERO_ORPHAN_PROCESSES_PROVED}" != "true" ]; then exit 1; fi
-          if [ "${POSITIVE_SCHEDULED_PATH_PROVED}" != "true" ] \
-            && [ "${FAIL_CLOSED_SCHEDULED_NEGATIVE_PATH_PROVED}" != "true" ]; then
-            exit 1
-          fi
+          if [ "${DOMAIN_SCHEDULED_NON_DISPATCH_PROVED}" != "true" ]; then exit 1; fi
           exit 0
 
       - name: Preserve local workerd proof diagnostics

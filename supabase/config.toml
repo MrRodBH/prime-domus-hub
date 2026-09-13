@@ -4,3 +4,8 @@ project_id = "rm-prime-local"
 
 [functions.pca-11-managed-binding-provision]
 verify_jwt = true
+
+# Service-to-service endpoint: dedicated secret checked before any I/O.
+# This is not a browser endpoint and a publishable key is not its authorization.
+[functions.domain-processor]
+verify_jwt = false

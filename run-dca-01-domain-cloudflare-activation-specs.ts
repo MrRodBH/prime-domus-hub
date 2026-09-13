@@ -240,8 +240,8 @@ ok(!tenantServer.includes('.eq("dominio_principal"'), "production host resolutio
 ok(!tenantServer.includes('authority_mode === "legacy"'), "public DTO selection must expose no legacy authority branch");
 ok(tenantServer.includes("PUBLIC_TENANT_DEV_HOST_MAP"), "development host map must remain explicit and separate");
 ok(server.indexOf("canonicalRedirect(request)") < server.indexOf("handler.fetch(request"), "canonical redirect must execute before SSR");
-ok(server.includes("async scheduled("), "server entry must expose scheduled handler");
-ok(server.includes("ctx.waitUntil(execution)"), "scheduled work must be attached to platform execution context");
+ok(!server.includes("async scheduled("), "domain automation must not expose a Worker scheduled handler");
+ok(readFileSync("supabase/functions/domain-processor/index.ts", "utf8").includes("Deno.serve(createDomainEdgeHandler"), "domain processing must use the authenticated Supabase entry");
 ok(jobs.includes("enqueueScheduledDomainReconciliationJobs"), "scheduled executor must enqueue periodic reconciliation");
 ok(jobs.includes("retryDelaySeconds"), "retry policy must be bounded and explicit");
 ok(legacyImport.includes("normalizeDomainHostname(source)"), "legacy manifest must use the canonical server normalizer");

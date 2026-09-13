@@ -1,3 +1,4 @@
+import { domainProcessingSummary } from "./presentation/domain-processing";
 import { connectionStatus, propagationGuidance } from "./presentation/domain-status";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +25,7 @@ import type {
   DomainActivationStatus,
   DomainExecutionMode,
   DomainHostnameKind,
+  DomainJobRecord,
   TenantDomainRecord,
 } from "@/lib/domains/domain-contracts";
 
@@ -68,7 +70,7 @@ function statusVariant(status: DomainActivationStatus): "default" | "secondary" 
 export function TenantDomainWorkspace() {
   const queryClient = useQueryClient();
   const [hostname, setHostname] = useState("");
-  const [executionMode, setExecutionMode] = useState<DomainExecutionMode>("manual_assisted");
+  const [executionMode, setExecutionMode] = useState<DomainExecutionMode>("api_automated");
   const [hostnameKind, setHostnameKind] = useState<DomainHostnameKind>("canonical");
   const [replacementHostname, setReplacementHostname] = useState("");
   const [proofs, setProofs] = useState<ProofView[]>([]);
@@ -76,6 +78,8 @@ export function TenantDomainWorkspace() {
   const stateQuery = useQuery({
     queryKey: ["tenant-domains"],
     queryFn: () => getTenantDomainState(),
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["tenant-domains"] });
@@ -123,6 +127,11 @@ export function TenantDomainWorkspace() {
         void invalidate();
         return;
       }
+      if (action.kind === "retry" && "status" in result && ["failed", "cancelled"].includes(String(result.status))) {
+        toast.warning("A tarefa existente está encerrada. A plataforma precisa revisar a falha antes de uma nova execução.");
+        void invalidate();
+        return;
+      }
       toast.success(
         action.kind === "remove"
           ? "Autoridade pública encerrada; cleanup enfileirado."
@@ -152,16 +161,16 @@ export function TenantDomainWorkspace() {
       />
 
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
-        <div className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" /><p>Escolha configuração manual ou automática. Na configuração manual, você publica os registros no provedor de DNS. A automática depende do provedor configurado pela plataforma. Uma falha não troca o modo escolhido.</p></div>
+        <div className="flex gap-2"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" /><p>Publique os registros DNS no provedor do seu domínio. A plataforma verifica os registros e, no modo automático, prepara a conexão e o certificado. Preserve os registros de e-mail. Se precisar de ajuda, encaminhe os registros exibidos ao responsável pelo domínio.</p></div>
       </div>
 
-      <Card className="space-y-3 p-5"><h2 className="font-semibold">Checklist de conexão</h2><ol className="list-decimal space-y-2 pl-5"><li>Informe o domínio e confira o provedor responsável pelo DNS.</li><li>Publique o TXT de propriedade e os apontamentos oficiais no provedor; preserve os registros de e-mail.</li><li>{propagationGuidance}</li><li>Use Check Status. Verde: Conectado; amarelo: Em Propagação; vermelho: Não Conectado — verificar configurações.</li></ol></Card>
+      <Card className="space-y-3 p-5"><h2 className="font-semibold">Checklist de conexão</h2><ol className="list-decimal space-y-2 pl-5"><li>Informe o domínio e confira o provedor responsável pelo DNS. Para conectar também www, cadastre esse endereço como Alternativo e verifique o TXT dele.</li><li>Publique o TXT de propriedade e os apontamentos oficiais no provedor; preserve os registros de e-mail.</li><li>{propagationGuidance}</li><li>O progresso é atualizado automaticamente enquanto esta tela estiver aberta. Check Status permite atualizar agora. A verificação no servidor continua após sair da página.</li></ol></Card>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="space-y-4 p-6">
           <div><h2 className="font-semibold">Solicitar domínio</h2><p className="text-sm text-muted-foreground">Informe o endereço do domínio, sem https://, porta ou caminho.</p></div>
           <div className="space-y-2"><Label htmlFor="domain-hostname">Domínio</Label><Input id="domain-hostname" value={hostname} onChange={(event) => setHostname(event.target.value)} placeholder="www.suaimobiliaria.com.br" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label>Modo</Label><Select value={executionMode} onValueChange={(value: DomainExecutionMode) => setExecutionMode(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Automático pelo provedor</SelectItem></SelectContent></Select></div>
+            <div className="space-y-2"><Label>Modo</Label><Select value={executionMode} onValueChange={(value: DomainExecutionMode) => setExecutionMode(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Conexão automática</SelectItem></SelectContent></Select></div>
             <div className="space-y-2"><Label>Tipo de endereço</Label><Select value={hostnameKind} onValueChange={(value: DomainHostnameKind) => setHostnameKind(value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="canonical">Principal</SelectItem><SelectItem value="alias">Alternativo</SelectItem></SelectContent></Select></div>
           </div>
           <Button onClick={() => createMutation.mutate()} disabled={busy || hostname.trim().length < 3}><Globe2 className="mr-2 size-4" />Criar solicitação</Button>
@@ -178,7 +187,7 @@ export function TenantDomainWorkspace() {
       {stateQuery.isPending ? <Card className="p-10 text-center text-sm text-muted-foreground">Carregando autoridade de domínios…</Card> : stateQuery.isError ? <Card className="border-destructive/40 p-6 text-sm text-destructive">{stateQuery.error.message}</Card> : (
         <div className="space-y-4">
           <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Seus domínios</h2><span className="text-sm text-muted-foreground">{domains.length} registro(s)</span></div>
-          {domains.length === 0 ? <Card className="p-10 text-center text-sm text-muted-foreground">Nenhum domínio solicitado.</Card> : domains.map((domain) => <DomainCard key={domain.id} domain={domain} challenge={stateQuery.data?.challenges[domain.id] ?? null} busy={busy || stateQuery.isFetching} onCheck={() => void stateQuery.refetch()} onAction={(action) => actionMutation.mutate(action)} />)}
+          {domains.length === 0 ? <Card className="p-10 text-center text-sm text-muted-foreground">Nenhum domínio solicitado.</Card> : domains.map((domain) => <DomainCard key={domain.id} domain={domain} jobs={stateQuery.data?.jobs ?? []} challenge={stateQuery.data?.challenges[domain.id] ?? null} busy={busy || stateQuery.isFetching} onCheck={() => void stateQuery.refetch()} onAction={(action) => actionMutation.mutate(action)} />)}
         </div>
       )}
     </div>
@@ -189,20 +198,24 @@ function ProofRow({ label, value }: { label: string; value: string }) {
   return <div className="grid gap-2 sm:grid-cols-[90px_1fr_auto] sm:items-center"><span className="text-sm text-muted-foreground">{label}</span><code className="overflow-x-auto rounded bg-muted px-3 py-2 text-xs">{value}</code><Button size="icon" variant="outline" aria-label={`Copiar ${label}`} onClick={async () => { try { await navigator.clipboard.writeText(value); toast.success(`${label} copiado.`); } catch { toast.error("Não foi possível copiar. Selecione o valor e copie manualmente."); } }}><Copy className="size-4" /></Button></div>;
 }
 
-function DomainCard({ domain, challenge, busy, onCheck, onAction }: {
+function DomainCard({ domain, jobs, challenge, busy, onCheck, onAction }: {
   domain: TenantDomainRecord;
+  jobs: readonly DomainJobRecord[];
   challenge: { recordName: string; status: string; expiresAt: string; challengeVersion: number } | null;
   busy: boolean;
   onCheck: () => void;
   onAction: (action: DomainAction) => void;
 }) {
   const connection = connectionStatus(domain.status, domain.enabled);
+  const plan = domain.metadata?.required_dns_plan;
+  const dnsPlan = plan && typeof plan === "object" && !Array.isArray(plan) && plan.generation === domain.generation && plan.hostname === domain.normalizedHostname && typeof plan.targetHostname === "string" ? plan : null;
+  const processing = domainProcessingSummary(domain, jobs);
   const canVerify = domain.status === "pending_ownership_verification";
-  const canRetry = !["draft", "replacement_pending", "revoked", "removal_pending"].includes(domain.status);
+  const canRetry = !processing.pending && !["draft", "replacement_pending", "revoked", "removal_pending"].includes(domain.status);
   const canRemove = !["revoked", "removal_pending"].includes(domain.status);
   const canChangeMode = ["draft", "replacement_pending", "pending_ownership_verification", "ownership_verified", "pending_dns_configuration", "failed"].includes(domain.status);
   const [modeDraft, setModeDraft] = useState<DomainExecutionMode>(domain.executionMode);
   const [confirmRemoval, setConfirmRemoval] = useState(false);
   useEffect(() => setModeDraft(domain.executionMode), [domain.executionMode]);
-  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2"><Button className={connection.className} disabled={busy} onClick={onCheck}>Check Status — {connection.label}</Button>{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Automático pelo provedor</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Tentar novamente</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => setConfirmRemoval(true)}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div>{confirmRemoval && <div role="alertdialog" aria-label="Confirmar remoção do domínio" className="mt-4 space-y-3 rounded-lg border border-destructive/40 p-4"><p>A remoção de <strong>{domain.normalizedHostname}</strong> encerra o acesso público por este endereço. Deseja remover este domínio?</p><div className="flex gap-3"><Button variant="outline" disabled={busy} onClick={() => setConfirmRemoval(false)}>Manter domínio</Button><Button variant="destructive" disabled={busy} onClick={() => { setConfirmRemoval(false); onAction({ kind: "remove", domainId: domain.id }); }}>Confirmar remoção</Button></div></div>}</Card>;
+  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2"><Button className={connection.className} disabled={busy} onClick={onCheck}>Check Status — {connection.label}</Button>{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Conexão automática</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Tentar novamente</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => setConfirmRemoval(true)}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div><p role="status" className="mt-4 text-sm text-muted-foreground">{processing.message}</p>{dnsPlan ? <section aria-label="Registros para conectar o domínio" className="mt-4 space-y-3 rounded-lg border p-4"><h3 className="font-semibold">Configure este registro no seu provedor DNS</h3><ProofRow label="Tipo" value="CNAME" /><ProofRow label="Nome DNS" value={domain.normalizedHostname} /><ProofRow label="Destino" value={String(dnsPlan.targetHostname)} /><p className="text-sm text-muted-foreground">Use DNS only (nuvem cinza) e TTL automático. No domínio raiz, o provedor precisa aceitar CNAME flattening. Substitua somente o A/AAAA ou CNAME deste endereço após conferir o destino; preserve MX, SPF, DKIM e DMARC. O certificado será acompanhado automaticamente.</p></section> : null}{domain.status === "failed" || domain.status === "degraded" ? <p role="alert" className="mt-3 text-sm text-destructive">{domain.failureCode === "domain_secret_reference_missing" || domain.failureCode === "domain_external_prerequisite_missing" || domain.failureCode === "domain_provider_configuration_invalid" ? "A configuração da plataforma precisa ser corrigida. Encaminhe o código exibido ao administrador; não rotacione o TXT." : "Confira os registros exibidos. Se estiverem corretos, informe o código da falha ao administrador para revisar DNS, certificado e entrega do site."}</p> : null}{confirmRemoval && <div role="alertdialog" aria-label="Confirmar remoção do domínio" className="mt-4 space-y-3 rounded-lg border border-destructive/40 p-4"><p>A remoção de <strong>{domain.normalizedHostname}</strong> encerra o acesso público por este endereço. Deseja remover este domínio?</p><div className="flex gap-3"><Button variant="outline" disabled={busy} onClick={() => setConfirmRemoval(false)}>Manter domínio</Button><Button variant="destructive" disabled={busy} onClick={() => { setConfirmRemoval(false); onAction({ kind: "remove", domainId: domain.id }); }}>Confirmar remoção</Button></div></div>}</Card>;
 }

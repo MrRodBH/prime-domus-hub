@@ -66,6 +66,32 @@ export interface DnsCnameObservation {
   resolver: string;
 }
 
+export function isPublicIpv4(ip: string): boolean {
+  if (!/^(?:\d{1,3}\.){3}\d{1,3}$/.test(ip)) return false;
+  const [a, b, c, d] = ip.split(".").map(Number);
+  if ([a, b, c, d].some((n) => n > 255)) return false;
+  return !(a === 0 || a === 10 || a === 127 || a >= 224
+    || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31) || (a === 192 && (b === 168 || b === 0))
+    || (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100)))
+    || (a === 203 && b === 0 && c === 113));
+}
+
+export async function observeDnsIpv4(hostname: string, fetcher: typeof fetch = fetch) {
+  if (!/^[a-z0-9.-]{3,253}$/.test(hostname)) throw new DomainError("domain_invalid_hostname", "Invalid DNS hostname");
+  const endpoint = new URL("https://cloudflare-dns.com/dns-query");
+  endpoint.searchParams.set("name", hostname);
+  endpoint.searchParams.set("type", "A");
+  const response = await fetcher(endpoint, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(10_000) });
+  if (!response.ok) throw new DomainError("domain_provider_unavailable", "Public DNS unavailable", { retryable: true });
+  const payload = await response.json() as { Status?: number; Answer?: { type: number; data: string }[] };
+  const addresses = [...new Set((payload.Answer ?? []).filter((r) => r.type === 1).map((r) => r.data))];
+  if (payload.Status !== 0 || !addresses.length || addresses.some((ip) => !isPublicIpv4(ip))) {
+    throw new DomainError("domain_provider_unavailable", "DNS did not resolve exclusively to public IPv4 addresses", { retryable: true });
+  }
+  return { addresses, observedAt: new Date().toISOString() };
+}
+
 export async function observeDnsCname(
   recordName: string,
   fetcher: typeof fetch = fetch,

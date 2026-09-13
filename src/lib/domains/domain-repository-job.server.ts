@@ -18,13 +18,20 @@ export async function enqueueDomainJob(input: {
   payload?: DomainJsonObject;
   maxAttempts?: number;
 }): Promise<DomainJobRecord> {
+  if (input.authority.tenantId !== input.domain.tenantId) {
+    throw new DomainError("domain_authority_denied", "Job tenant does not match domain authority");
+  }
   const idempotencyKey = await sha256([
-    "dca01",
+    input.operationType === "prepare_dns_configuration" ? "dca01-preparation-v2" : "dca01",
     input.authority.tenantId,
     input.domain.id,
     String(input.domain.generation),
     input.operationType,
-    JSON.stringify(input.payload ?? {}),
+    // A retry timestamp is provenance, not a new preparation. Mode/version
+    // changes are explicit server commands and create a new operation epoch.
+    input.operationType === "prepare_dns_configuration"
+      ? JSON.stringify([input.domain.executionMode, input.domain.lockVersion])
+      : JSON.stringify(input.payload ?? {}),
   ].join(":"));
   const { data, error } = await db.from("domain_operation_jobs").upsert({
     tenant_id: input.authority.tenantId,
@@ -37,10 +44,16 @@ export async function enqueueDomainJob(input: {
     authority_origin: input.authority.origin,
     max_attempts: Math.max(1, Math.min(10, input.maxAttempts ?? 5)),
     payload: sanitizeDomainObject(input.payload ?? {}),
-  }, { onConflict: "idempotency_key", ignoreDuplicates: false }).select("*");
+  }, { onConflict: "idempotency_key", ignoreDuplicates: true }).select("*");
   if (error) throw toSafeDomainError(error);
-  if (!data || data.length !== 1) throw new DomainError("domain_ambiguous", "Job was not resolved exactly once");
-  return mapJob(data[0]);
+  if (data?.length === 1) return mapJob(data[0]);
+  if (data?.length > 1) throw new DomainError("domain_ambiguous", "Job was not resolved exactly once");
+  const existing = await db.from("domain_operation_jobs").select("*")
+    .eq("idempotency_key", idempotencyKey).eq("tenant_id", input.authority.tenantId)
+    .eq("domain_id", input.domain.id).eq("generation", input.domain.generation);
+  if (existing.error) throw toSafeDomainError(existing.error);
+  if (!existing.data || existing.data.length !== 1) throw new DomainError("domain_ambiguous", "Existing job was not resolved exactly once");
+  return mapJob(existing.data[0]);
 }
 
 export async function leaseDomainJobs(leaseOwner: string, limit = 10): Promise<DomainJobRecord[]> {

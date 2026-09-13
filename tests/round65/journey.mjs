@@ -3,6 +3,7 @@
 // HTTP transport are simulated; this is NOT production/session homologation.
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
+import {assertControlledBrowserBundle} from '../ci/controlled-browser-boundary.mjs';
 import {readFileSync,writeFileSync,mkdtempSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
@@ -44,11 +45,13 @@ const server=await build({entryPoints:['src/lib/api/super-onboarding.functions.t
  b.onLoad({filter:/.*/,namespace:'controlled'},a=>({loader:'js',contents:a.path==='@tanstack/react-start'?`export const createMiddleware=()=>({server:f=>f});export const createServerFn=()=>({middleware(m){this.m=m;return this},inputValidator(v){this.v=v;return this},handler(h){const m=this.m,v=this.v;return async data=>{const parsed=v?v(data):data;return m[0]({next:({context})=>h({data:parsed,context})});}}});`:a.path.endsWith('/server')?`export const getRequest=()=>({headers:new Headers(globalThis.__p0.token?{authorization:'Bearer '+globalThis.__p0.token}:{})});`:a.path==='@supabase/supabase-js'?`export const createClient=()=>globalThis.__p0.client;`:`export const supabaseAdmin=globalThis.__p0.admin;`}));
 }}]});
 const dir=mkdtempSync(join(tmpdir(),'p0-journey-'));const file=join(dir,'server.mjs');writeFileSync(file,server.outputFiles[0].text);const api=await import(pathToFileURL(file));
-const authBundle=await build({entryPoints:['tests/round51/entry.tsx'],bundle:true,write:false,jsx:'automatic',loader:{'.png':'dataurl'},plugins:[{name:'auth-transport',setup(b){
+const authBundle=await build({metafile:true,entryPoints:['tests/round51/entry.tsx'],bundle:true,write:false,jsx:'automatic',loader:{'.png':'dataurl'},plugins:[{name:'auth-transport',setup(b){
  b.onResolve({filter:/^@tanstack\/react-router$/},()=>({path:resolve('tests/round51/router.tsx')}));
- b.onResolve({filter:/^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup).functions|tenant-cache))$/},()=>({path:resolve('tests/round51/backend.ts')}));
+ b.onResolve({filter:/^@\/(integrations\/supabase\/(client|impersonation-state|tenant-selection-state)|lib\/(api\/(super|initial-admin-setup|tenant|tenant-selection|tenant-lifecycle).functions|tenant-cache))$/},()=>({path:resolve('tests/round51/backend.ts')}));
 }}]});
-const ui=await build({entryPoints:['tests/round52/fixture.tsx'],bundle:true,write:false,jsx:'automatic',plugins:[{name:'server-bridge',setup(b){b.onResolve({filter:/^@\/lib\/api\/(super-onboarding|initial-admin-setup).functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
+assertControlledBrowserBundle(authBundle, 'Round65 login transport');
+const ui=await build({metafile:true,entryPoints:['tests/round52/fixture.tsx'],bundle:true,write:false,jsx:'automatic',plugins:[{name:'server-bridge',setup(b){b.onResolve({filter:/^@\/lib\/api\/(super-onboarding|initial-admin-setup).functions$/},()=>({path:resolve('tests/round52/backend.ts')}));}}]});
+assertControlledBrowserBundle(ui, 'Round65 onboarding transport');
 const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));
 const dom=new JSDOM('<div id="root"></div>',{url:'https://fixture.invalid/auth?super=1',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});const w=dom.window,d=w.document;
 w.fetch=()=>{throw Error('REMOTE_FORBIDDEN');};

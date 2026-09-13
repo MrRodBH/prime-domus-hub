@@ -1,7 +1,8 @@
 import './tests/round65/contract.mjs';
 import "./tests/round64/contract.mjs";
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import { assertControlledBrowserBundle } from './tests/ci/controlled-browser-boundary.mjs';
+import './tests/ci/controlled-browser-boundary.spec.mjs';
 import {build} from 'esbuild';
 import {existsSync,mkdtempSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -21,11 +22,13 @@ assert.equal(modelApi.filterBrokerDirectory(model.brokers,'ana','team').length,1
 assert.equal(modelApi.filterBrokerDirectory(model.brokers,'ana','other').length,0);
 assert.ok(!JSON.stringify(model).includes('PRIVATE_'),'private identity, tenant and CPF remain absent');
 assert.equal(modelApi.toBrokerTeamDirectoryReadModel({brokers:[{id:'synthetic',user_id:null}],teams:[]}).brokers[0].identityLinked,false);
-assert.equal(execFileSync('git',['diff','033a80eb47e3704183420de1453f309441dd62a6','--','src/lib/api','src/integrations','supabase','bun.lock','package.json','tests/round43',':(exclude)src/lib/api/super-onboarding.functions.ts', ':(exclude)src/integrations/supabase/__tests__/tenant-middleware.spec.ts', ':(exclude)src/integrations/supabase/tenant-middleware.ts', ':(exclude)src/lib/api/operational-tenants.server.ts', ':(exclude)src/lib/api/super-control-plane.functions.ts', ':(exclude)src/lib/api/site.functions.ts', ':(exclude)src/lib/api/super.functions.ts', ':(exclude)src/lib/api/tenant-scoped-authority.ts', ':(exclude)src/lib/api/tenant-crm.functions.ts', ':(exclude)src/lib/api/tenant-lifecycle.functions.ts',':(exclude)src/lib/api/initial-admin-setup.functions.ts', ':(exclude)supabase/migrations/20260910150013_sequential_initial_admin_setup.sql', ':(exclude)supabase/migrations/20260908003058_round52_persistent_onboarding.sql'],{encoding:'utf8'}),'','Round 42–43 production contracts and native evidence runners must be unchanged');
-console.log('PASS evolved FVS6 projection/filter/privacy and frozen Round 42–43 contracts');
+// Evolved server contracts are executed, not frozen to a historical UI delivery.
+await import('./run-round-42-broker-identity-link-specs.mjs');
+console.log('PASS evolved FVS6 projection/filter/privacy and current broker authority contracts');
 let dom;
 try {
 const result=await build({entryPoints:['tests/round44/entry.tsx'],bundle:true,write:false,metafile:true,jsx:'automatic',plugins:[{name:'controlled-only',setup(b){b.onResolve({filter:/^@tanstack\/react-router$/},()=>({path:resolve('tests/round44/router.tsx')}));b.onResolve({filter:/^@\//},a=>{if(a.path.startsWith('@/lib/api/')||a.path==='@/integrations/supabase/client')return {path:resolve('tests/round44/backend.ts')};let p=resolve('src',a.path.slice(2));if(a.path==='@/components/workspace')p=resolve('src/components/workspace/WorkspaceState');return {path:['.tsx','.ts','/index.ts'].map(s=>p+s).find(existsSync)};});}}]});
+assertControlledBrowserBundle(result, 'Round44 broker UI');
 assert.ok(!Object.keys(result.metafile.inputs).some(p=>p.includes('supabase-js')||p.includes('client.server')||p.includes('src/lib/api/')),'production backend must be absent from bundle');
 const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e.message));vc.on('error',(...args)=>errors.push(args.map(String).join(' ')));
 dom=new JSDOM('<div id="root"></div>',{url:'http://localhost/',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:vc});

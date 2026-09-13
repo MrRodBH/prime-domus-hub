@@ -42,6 +42,23 @@ jobs:
       - run: node tests/support-recovery/runtime.mjs
       - run: node tests/domains/membership-authority.mjs
       - run: node tests/domains/ownership-verification.mjs
+      - run: node tests/domains/connection-execution.mjs
+      - run: node tests/domains/supabase-automation.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.2.7
+      - name: Build and check the canonical Supabase domain processor
+        run: |
+          node scripts/domains/build-edge.mjs
+          deno check --no-config supabase/functions/domain-processor/index.ts
+          deno test --no-config tests/domains/edge-runtime.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: domain-processor-${{ github.event.pull_request.head.sha }}
+          path: |
+            supabase/functions/domain-processor/index.ts
+            supabase/functions/domain-processor/processor.generated.mjs
+          if-no-files-found: error
       - run: ROUND51_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-51-superadmin-auth-specs.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node tests/support-recovery/reset-ui.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-56-approved-navigation-specs.mjs

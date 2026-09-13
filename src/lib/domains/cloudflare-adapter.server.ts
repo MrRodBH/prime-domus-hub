@@ -110,7 +110,7 @@ async function cloudflareRequest<T>(input: {
   assertProviderContext(input.provider);
   const token = resolveCredential(input.provider.credentialReference, input.runtimeEnv);
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
+  const timeout = setTimeout(() => controller.abort(), 8_000);
   try {
     const response = await fetch(`${CLOUDFLARE_API_BASE}${input.path}`, {
       method: input.method,
@@ -234,7 +234,7 @@ export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}
         ambiguousOnTransportFailure: true,
         body: {
           hostname: input.domain.normalizedHostname,
-          ssl: { method: "txt", type: "dv" },
+          ssl: { method: "http", type: "dv" },
         },
       });
       if (!result || typeof result.id !== "string" || result.id.length < 8 || typeof result.hostname !== "string") {
@@ -293,4 +293,30 @@ export function createCloudflareAdapter(runtimeEnv: Record<string, unknown> = {}
       return { removed: true as const, alreadyAbsent: false };
     },
   };
+}
+
+export async function observeCustomerCname(
+  domain: TenantDomainRecord,
+  target: string,
+  provider: { accountIdentifier: string; customerDnsZoneId?: string; customerDnsCredentialReference?: string },
+  runtimeEnv: Record<string, unknown>,
+) {
+  const context: CloudflareProviderContext = {
+    accountIdentifier: provider.accountIdentifier,
+    zoneId: provider.customerDnsZoneId ?? "",
+    credentialReference: provider.customerDnsCredentialReference ?? "",
+  };
+  const zone = await cloudflareRequest<{ id: string; name: string }>({ method: "GET", path: `/zones/${encodeURIComponent(context.zoneId)}`, provider: context, runtimeEnv });
+  if (zone?.id !== context.zoneId || zone.name !== domain.registrableDomain) {
+    throw new DomainError("domain_provider_configuration_invalid", "Customer DNS zone does not match the reserved registrable domain");
+  }
+  const records = await cloudflareRequest<Array<{ name: string; type: string; content: string; proxied: boolean }>>({
+    method: "GET", provider: context, runtimeEnv,
+    path: `/zones/${encodeURIComponent(context.zoneId)}/dns_records?name.exact=${encodeURIComponent(domain.normalizedHostname)}&type=CNAME&per_page=5`,
+  });
+  // DNS-only provides public target consistency; customer proxying is not silently accepted.
+  if (records?.length !== 1 || records[0].name !== domain.normalizedHostname
+    || records[0].type !== "CNAME" || normalizedProviderHostname(records[0].content) !== target || records[0].proxied !== false) {
+    throw new DomainError("domain_provider_unavailable", "Customer CNAME must match the DNS-only plan exactly", { retryable: true });
+  }
 }

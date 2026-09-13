@@ -95,6 +95,8 @@ export async function getProviderAccountForDomain(domain: TenantDomainRecord): P
   credentialReference: string;
   enabled: boolean;
   zoneId: string;
+  customerDnsZoneId?: string;
+  customerDnsCredentialReference?: string;
 }> {
   const { data, error } = await db.from("domain_provider_accounts")
     .select("id, account_identifier, credential_reference, enabled, capabilities")
@@ -105,7 +107,9 @@ export async function getProviderAccountForDomain(domain: TenantDomainRecord): P
   const matches = (data ?? []).flatMap((row: any) => {
     const capabilities = objectValue(row.capabilities);
     const zones = objectValue(capabilities.zones);
+    // DCA-02 SQL uses this map for DELIVERY zones. Customer DNS is distinct.
     const zoneId = zones[domain.registrableDomain];
+    const customer = objectValue(objectValue(capabilities.customer_dns_zones)[domain.registrableDomain]);
     return typeof zoneId === "string" && zoneId.length > 0
       ? [{
           id: row.id as string,
@@ -113,6 +117,8 @@ export async function getProviderAccountForDomain(domain: TenantDomainRecord): P
           credentialReference: row.credential_reference as string,
           enabled: row.enabled === true,
           zoneId,
+          customerDnsZoneId: typeof customer.zone_id === "string" ? customer.zone_id : undefined,
+          customerDnsCredentialReference: typeof customer.credential_reference === "string" ? customer.credential_reference : undefined,
         }]
       : [];
   });
