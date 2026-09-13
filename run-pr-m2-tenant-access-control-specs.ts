@@ -68,8 +68,8 @@ includesAll(authority, [
   "authorizeTenantAccessControlOperation",
   "resolveEffectiveTenantPermission",
   "requireTenantScopedAuthority",
-  '"access_control", "gerenciar"',
-  'decision.scope !== "global"',
+  "rpc('assert_tenant_access_manager'",
+  "['owner','admin','delegated'].includes(data)",
 ], "authority");
 assert(!/\.rpc\(\s*["']has_role["']/.test(authority), "authority must not call has_role");
 
@@ -135,9 +135,11 @@ for (const forbidden of ["supabaseAdmin", "createUser", "inviteUser", "tenantId:
   assert(!identityPanel.includes(forbidden), `identity UI must not contain ${forbidden}`);
 }
 
-includesAll(profilesRoute, ["template de sistema", "tenant", "Global &gt; Equipe &gt; Próprios"], "profiles route");
+includesAll(profilesRoute, ["TenantPermissionMatrix"], "profiles route");
+includesAll(read("src/components/admin/TenantPermissionMatrix.tsx"), ["customizeTenantAccessProfile", "Personalizar para a empresa", "Toda a empresa &gt; Equipe &gt; Próprios"], "canonical permission matrix");
 includesAll(teamsRoute, ["listTenantMemberships", "membership", "tenant-scoped"], "teams route");
-includesAll(membershipsRoute, ["setUserPerfis", "Perfis RBAC", "Membership role", "Convidar membro"], "memberships route");
+includesAll(membershipsRoute, ["TenantUsersPage"], "memberships route");
+includesAll(read("src/components/admin/TenantUsersPage.tsx"), ["setUserPerfis", "Novo usuário", "Cadastrar e enviar ativação", "profileIds", "TenantPermissionMatrix"], "canonical user registration");
 includesAll(auditRoute, ["listTenantAccessAudit", "Auditoria de acessos"], "audit route");
 
 assert(!brokersRoute.includes("PasswordInput"), "broker UI must not expose password input");
