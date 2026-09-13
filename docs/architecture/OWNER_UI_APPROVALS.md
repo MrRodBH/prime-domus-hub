@@ -49,3 +49,6 @@ The owner reports /rmprime/admin redirecting to a platform-oriented /auth. Prese
 
 ## Owner request — standard forgot password (2026-09-13)
 Add Esqueci a senha to tenant/platform login with email recovery, new password confirmation and return to login. Reuse Supabase recovery and the existing theme. This is self-service credential recovery, not tenant-user CRUD or an operator-chosen password. The user initiates delivery and enters the new password; automated tests must not send to a real recipient or reset a real credential.
+
+## Superseding platform identity clarification — 2026-09-13
+The owner explicitly states that REAL ONE SaaS must not use the first tenant RM Prime's logo/theme. Apply distinct platform identity using orange, burgundy and petroleum blue; preserve tenant appearance and the eight direct platform entries. Exact historical logo/burgundy values were not recovered; do not describe a new wordmark/token choice as exact historical restoration or owner pixel approval. Tenant Administration must make user invitations and profiles/permissions easy to find, using existing server-authorized routes. The support response for 0028 authorizes read-only inspection, not bulk grant revocation or warning dismissal.

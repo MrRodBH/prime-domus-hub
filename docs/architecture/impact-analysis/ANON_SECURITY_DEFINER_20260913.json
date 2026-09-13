@@ -1,0 +1,80 @@
+{
+  "inspectedAt": "2026-09-13",
+  "baseline": "7d51e2369bd92a6236575cb7783de5c6b255e261",
+  "method": "Read-only pg_proc effective privileges and pg_get_functiondef; no business writes",
+  "publicDefinerCount": 157,
+  "authenticatedCallableCount": 13,
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "owner": "postgres",
+      "security_definer": true,
+      "service_role_execute": true,
+      "settings": [
+        "search_path=pg_catalog, public"
+      ],
+      "signature": "get_canonical_redirect_for_active_alias(text)",
+      "volatility": "s",
+      "definition": "CREATE OR REPLACE FUNCTION public.get_canonical_redirect_for_active_alias(_hostname text)\n RETURNS TABLE(tenant_id uuid, alias_hostname text, canonical_hostname text, generation bigint)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\n  with resolved as (\n    select a.tenant_id, a.normalized_hostname as alias_hostname,\n      c.normalized_hostname as canonical_hostname, a.generation\n    from public.tenant_domains a\n    join public.tenant_domains c\n      on c.tenant_id = a.tenant_id\n     and c.generation = a.generation\n     and c.hostname_kind = 'canonical'\n     and c.status = 'active'\n     and c.enabled\n    where a.normalized_hostname = _hostname\n      and a.hostname_kind = 'alias'\n      and a.status = 'active'\n      and a.enabled\n      and a.normalized_hostname <> c.normalized_hostname\n  )\n  select * from resolved where (select count(*) from resolved) = 1;\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,anon=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "owner": "postgres",
+      "security_definer": true,
+      "service_role_execute": true,
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "get_current_tenant_id()",
+      "volatility": "s",
+      "definition": "CREATE OR REPLACE FUNCTION public.get_current_tenant_id()\n RETURNS uuid\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nDECLARE\n  v_uid uuid := auth.uid();\n  v_header text;\n  v_header_present boolean := false;\n  v_header_uuid uuid;\n  v_count int;\n  v_tenant uuid;\nBEGIN\n  -- F3.3.3 Null-Auth Guard: anonymous requests NEVER resolve a tenant,\n  -- even with a valid x-tenant-id header. The header is transport, not\n  -- authority; only an authenticated session can resolve a tenant.\n  IF v_uid IS NULL THEN\n    RETURN NULL;\n  END IF;\n\n  -- Read x-tenant-id header. A present-but-malformed header is a distinct\n  -- state from \"no header at all\" and MUST NOT silently fall through to the\n  -- no-header cardinality branch.\n  BEGIN\n    v_header := current_setting('request.headers', true)::jsonb ->> 'x-tenant-id';\n    IF v_header IS NOT NULL AND v_header <> '' THEN\n      v_header_present := true;\n      BEGIN\n        v_header_uuid := v_header::uuid;\n      EXCEPTION WHEN OTHERS THEN\n        v_header_uuid := NULL;\n      END;\n    END IF;\n  EXCEPTION WHEN OTHERS THEN\n    v_header_present := false;\n    v_header_uuid := NULL;\n  END;\n\n  -- Owner decision: a platform administrator never resolves a tenant.\n  IF public.is_super_admin() THEN RETURN NULL; END IF;\n\n  -- Regular user WITH header: validate active membership server-side.\n  IF v_header_present THEN\n    IF v_header_uuid IS NULL THEN\n      RETURN NULL;\n    END IF;\n    IF public.user_has_active_membership(v_uid, v_header_uuid) THEN\n      RETURN v_header_uuid;\n    END IF;\n    RETURN NULL;\n  END IF;\n\n  -- Regular user WITHOUT header: strict cardinality on active memberships.\n  SELECT COUNT(*) INTO v_count\n    FROM public.tenant_members\n   WHERE user_id = v_uid\n     AND membership_status = 'active';\n\n  IF v_count <> 1 THEN\n    RETURN NULL;\n  END IF;\n\n  SELECT tenant_id INTO v_tenant\n    FROM public.tenant_members\n   WHERE user_id = v_uid\n     AND membership_status = 'active';\n\n  RETURN v_tenant;\nEND;\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,anon=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "owner": "postgres",
+      "security_definer": true,
+      "service_role_execute": true,
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "is_super_admin()",
+      "volatility": "s",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_super_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1 FROM public.user_roles\n    WHERE user_id = auth.uid() AND role = 'super_admin'\n  )\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "owner": "postgres",
+      "security_definer": true,
+      "service_role_execute": true,
+      "settings": [
+        "search_path=pg_catalog, public"
+      ],
+      "signature": "resolve_public_tenant_by_host(text)",
+      "volatility": "s",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_public_tenant_by_host(_hostname text)\n RETURNS TABLE(tenant_id uuid, tenant_slug text, tenant_name text, domain_id uuid, hostname text, hostname_kind text, canonical_hostname text, generation bigint, authority_mode text)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\n  with matched as (\n    select d.*\n    from public.tenant_domains d\n    where d.normalized_hostname = _hostname\n      and d.status = 'active'\n      and d.enabled\n  ), resolved as (\n    select\n      t.id as tenant_id,\n      t.slug as tenant_slug,\n      t.nome as tenant_name,\n      m.id as domain_id,\n      m.normalized_hostname as hostname,\n      m.hostname_kind::text as hostname_kind,\n      case when m.hostname_kind = 'canonical' then m.normalized_hostname else c.normalized_hostname end as canonical_hostname,\n      m.generation,\n      'tenant_domains'::text as authority_mode\n    from matched m\n    join public.tenants t on t.id = m.tenant_id\n    left join public.tenant_domains c\n      on m.hostname_kind = 'alias'\n     and c.tenant_id = m.tenant_id\n     and c.generation = m.generation\n     and c.hostname_kind = 'canonical'\n     and c.status = 'active'\n     and c.enabled\n    where m.hostname_kind = 'canonical' or c.id is not null\n  )\n  select * from resolved\n  where (select count(*) from resolved) = 1;\n$function$\n"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,anon=X/postgres,authenticated=X/postgres}",
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "owner": "postgres",
+      "security_definer": true,
+      "service_role_execute": true,
+      "settings": [
+        "search_path=public"
+      ],
+      "signature": "resolve_public_tenant_by_slug(text)",
+      "volatility": "s",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_public_tenant_by_slug(_slug text)\n RETURNS TABLE(id uuid, slug text, nome text)\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT t.id, t.slug, t.nome\n  FROM public.tenants t\n  WHERE t.slug = _slug\n  LIMIT 2;\n$function$\n"
+    }
+  ],
+  "policyReferenceCount": 197
+}

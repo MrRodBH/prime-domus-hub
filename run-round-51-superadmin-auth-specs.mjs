@@ -291,6 +291,9 @@ for (const tenantSlug of [undefined, 'rmprime']) {
  const requests=[];
  await scenario({tenantSlug,resetPassword:async(email,options)=>{requests.push({email,options});return {data:{},error:null}}}, async ({w,d,until,fill,submit,text,calls,fixture})=>{
   await until(()=>Array.from(d.querySelectorAll('button')).some(b=>b.textContent==='Esqueci a senha'&&!b.disabled));
+  assert.equal(!!d.querySelector('[aria-label="REAL ONE"]'),!tenantSlug);
+  assert.equal(!!d.querySelector('[data-platform-brand="real-one"]'),!tenantSlug);
+  assert.equal(!!d.querySelector('img[alt="RM Prime Imóveis"]'),!!tenantSlug);
   await fill('email','owner@fixture.invalid');
   Array.from(d.querySelectorAll('button')).find(b=>b.textContent==='Esqueci a senha').click();
   await until(()=>!!d.getElementById('recovery-email'));
@@ -332,3 +335,24 @@ await scenario({resetPassword:()=>{recoveryCalls++;return recoveryPending.promis
 console.log('PASS self-service forgot password: tenant/platform entry, prefilled email, fixed redirect, generic unknown-email result, provider/rate/network errors, duplicate suppression, paced resend and return to unchanged login. No real emails.');
 
 assert.equal(await loadRequiredPublicRootDataForPath('/reset-password',()=>{throw Error('RESET_MUST_NOT_LOAD_CMS')},()=>{throw Error('RESET_MUST_NOT_LOAD_TRACKING')}),null);
+
+// Invoke the actual legacy loader: server tenant authority plus safe deep-link preservation.
+const legacyBundle=await build({entryPoints:['src/routes/_authenticated.admin.tsx'],bundle:true,write:false,platform:'node',format:'esm',plugins:[{name:'legacy-redirect-fixture',setup(b){
+ b.onResolve({filter:/^@tanstack\/react-router$/},()=>({path:'router',namespace:'legacy'}));
+ b.onResolve({filter:/tenant.functions$/},()=>({path:'tenant',namespace:'legacy'}));
+ b.onLoad({filter:/.*/,namespace:'legacy'},a=>({contents:a.path==='router'?'export const createFileRoute=()=>x=>x;export const redirect=x=>x;':'export const meuTenantWorkspace=async()=>{if(globalThis.__legacyDenied)throw Error("tenant_access_denied");return {slug:globalThis.__legacySlug}};',loader:'js'}));
+}}]});
+const {Route:legacyRoute}=await import(`data:text/javascript;base64,${Buffer.from(legacyBundle.outputFiles[0].text).toString('base64')}`);
+for(const slug of ['rmprime','second-fixture']) {
+ globalThis.__legacySlug=slug;
+ for(const pathname of ['/admin','/admin/memberships','/admin/perfis','/admin/site']) {
+  let result;try{await legacyRoute.loader({location:{pathname,searchStr:'?item=draft'}})}catch(e){result=e}
+  assert.equal(result.to,`/${slug}${pathname}?item=draft`);assert.equal(result.replace,true);
+ }
+ let result;try{await legacyRoute.loader({location:{pathname:'/admin/../../super',searchStr:''}})}catch(e){result=e}
+ assert.equal(result.to,`/${slug}/admin`);
+}
+globalThis.__legacyDenied=true;
+await assert.rejects(()=>legacyRoute.loader({location:{pathname:'/admin/memberships',searchStr:''}}),/tenant_access_denied/);
+delete globalThis.__legacyDenied;delete globalThis.__legacySlug;
+console.log('PASS actual legacy loader: two server-selected tenants, users/profiles/site deep links and query preserved, unsafe path denied, failed authority never redirects.');
