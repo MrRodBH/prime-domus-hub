@@ -40,6 +40,7 @@ jobs:
         run: ROUND52_PG_MODULE="$RUNNER_TEMP/recovery/node_modules/pg/lib/index.js" node tests/tenant-user-administration/database.mjs
       - run: node tests/round65/server.mjs
       - run: node tests/support-recovery/runtime.mjs
+      - run: node tests/domains/membership-authority.mjs
       - run: ROUND51_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-51-superadmin-auth-specs.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node tests/support-recovery/reset-ui.mjs
       - run: ROUND52_JSDOM_MODULE="$RUNNER_TEMP/recovery/node_modules/jsdom/lib/api.js" node run-round-56-approved-navigation-specs.mjs
