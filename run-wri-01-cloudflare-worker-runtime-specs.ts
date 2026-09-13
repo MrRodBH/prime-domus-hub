@@ -76,20 +76,20 @@ equal(vite.includes("@cloudflare/vite-plugin"), false, "Second build authority i
 equal(count(vite, "wri-01-cloudflare-nitro-plugin.server.ts"), 1, "Bridge registration cardinality must be one");
 
 match(server, /export async function fetch\(/, "Named fetch boundary must be exported");
-match(server, /export async function scheduled\(/, "Named scheduled boundary must be exported");
-match(server, /export default \{[\s\S]*fetch,[\s\S]*async scheduled\(/, "Default Worker contract must expose fetch and scheduled");
+equal(server.includes("export async function scheduled("), false, "Domain scheduling must not use a Worker boundary");
+match(server, /export default \{\s*fetch\s*[,}]/, "Application Worker contract must preserve fetch");
 match(server, /readAuthoritativeCloudflareRuntimeContext\(request\)/, "Cloudflare fetch must read Nitro's exact platform context directly");
 equal(server.includes("requireCloudflareRuntimeContext(request)"), false, "Fetch boundary must not depend on a later Nitro request hook");
 match(server, /status:\s*503/, "Missing runtime context must fail closed");
-match(server, /processScheduledDomainJobs\(\{ runtimeEnv: env, limit: 20 \}\)/, "Scheduled boundary must delegate to DCA-01");
-match(server, /ctx\.waitUntil\(execution\)/, "Scheduled work must use waitUntil");
+equal(server.includes("processScheduledDomainJobs"), false, "Application Worker must not consume domain jobs");
+match(read("supabase/functions/domain-processor/index.ts"), /Deno\.serve\(createDomainEdgeHandler/, "Authenticated Supabase entry is the sole domain scheduler boundary");
 equal(server.includes("/__scheduled"), false, "Application HTTP scheduler route is prohibited");
 
 match(plugin, /readAuthoritativeCloudflareRuntimeContext\(event\.req\)/, "Plugin must read exact Nitro runtime data");
 match(plugin, /installCloudflareRuntimeContext\(event\.req, context\)/, "Plugin must install request-scoped context");
 match(plugin, /clearCloudflareRuntimeContext\(event\.req\)/, "Plugin must clear request-scoped context");
-equal(count(plugin, 'hooks.hook("cloudflare:scheduled"'), 1, "Exactly one scheduled-hook consumer is allowed");
-match(plugin, /scheduled\(controller, env, context\)/, "Hook must delegate original platform values");
+equal(count(plugin, 'hooks.hook("cloudflare:scheduled"'), 0, "No second domain scheduler hook is allowed");
+equal(plugin.includes("processScheduledDomainJobs"), false, "Request context plugin must not consume domain jobs");
 equal(plugin.includes("fetch("), false, "Plugin must not create a second Worker entry");
 match(runtime, /new WeakMap<Request, CloudflareRuntimeContext>/, "Runtime storage must be request-keyed");
 equal(runtime.includes("let current"), false, "Global mutable current-context authority is prohibited");

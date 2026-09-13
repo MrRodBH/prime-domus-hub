@@ -33,12 +33,15 @@ Controlled tests must cover three tenants, immutable jobs, obsolete generations,
 | `.github/workflows/pr-m2-consolidated-corrective-gate.yml` | Wire exact domain-change scope and mandatory controlled checks; managed runtime/package check in access workflow. |
 | `.github/workflows/release-gate.yml` | Wire exact domain-change scope and mandatory controlled checks; managed runtime/package check in access workflow. |
 | `.github/workflows/tenant-access-support-recovery.yml` | Wire exact domain-change scope and mandatory controlled checks; managed runtime/package check in access workflow. |
+| `.github/workflows/wri-01-worker-runtime-gate.yml` | Assert local scheduled events do not dispatch domain work; retain fetch-context, process cleanup and dry-run proofs. |
+| `scripts/verify-wri-01-worker-bundle.mjs` | Prove the deployed application bundle contains no domain queue lease; retain all unrelated bundle checks. |
 | `AGENTS.md` | Mandatory documentation/evolution consultation and concrete owner action rule. |
 | `docs/architecture/ADR/DOMAIN_AUTOMATION_SUPABASE.md` | Record decision, impact, supersession, plan evidence or concrete rollout responsibilities and configuration. |
 | `docs/architecture/impact-analysis/DOMAIN_CONNECTION_EXECUTION_SAFETY.md` | Record decision, impact, supersession, plan evidence or concrete rollout responsibilities and configuration. |
 | `docs/operations/DCA-01-domain-activation-operator-runbook.md` | Record decision, impact, supersession, plan evidence or concrete rollout responsibilities and configuration. |
 | `docs/operations/DOMAIN_AUTOMATION_ROLLOUT.md` | Record decision, impact, supersession, plan evidence or concrete rollout responsibilities and configuration. |
 | `run-dca-01-domain-cloudflare-activation-specs.ts` | Replace obsolete Worker assertions with the sole Supabase executor requirement. |
+| `run-wri-01-cloudflare-worker-runtime-specs.ts` | Replace obsolete domain scheduler assertions; preserve application Worker request-context and deployment checks. |
 | `run-round-56-approved-navigation-specs.mjs` | Preserve all prior navigation checks; assert exact DNS display and new automatic default. |
 | `scripts/domains/build-edge.mjs` | Deterministic canonical Edge packaging or explicit later-authorized scheduler installation; no live execution. |
 | `scripts/domains/schedule-managed-processor.sql` | Deterministic canonical Edge packaging or explicit later-authorized scheduler installation; no live execution. |

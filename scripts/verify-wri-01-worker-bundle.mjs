@@ -128,29 +128,13 @@ try {
   const clientFiles = walk(clientDir);
   const clientBytes = clientFiles.reduce((total, path) => total + statSync(path).size, 0);
 
-  const rootBootstrapScheduledIngressDisabled = rootWrangler.workers_dev === false
-    && rootWrangler.preview_urls === false
-    && Array.isArray(rootWrangler.routes)
-    && rootWrangler.routes.length === 0
-    && Array.isArray(rootWrangler.triggers?.crons)
-    && rootWrangler.triggers.crons.length === 0;
-  const generatedBootstrapScheduledIngressDisabled = generatedWrangler.workers_dev === false
-    && generatedWrangler.preview_urls === false
-    && Array.isArray(generatedWrangler.routes)
-    && generatedWrangler.routes.length === 0
-    && Array.isArray(generatedWrangler.triggers?.crons)
-    && generatedWrangler.triggers.crons.length === 0;
-  const deferDcaScheduledStaticAssertionToWorkerd = rootBootstrapScheduledIngressDisabled
-    && generatedBootstrapScheduledIngressDisabled;
-
   const checks = {
     DEFAULT_EXPORT_COUNT: defaultExportCount(entry),
     FETCH_REACHABLE: hasWorkerHandler(reachableText, "fetch"),
-    SCHEDULED_REACHABLE: hasWorkerHandler(reachableText, "scheduled"),
-    CLOUDFLARE_SCHEDULED_HOOK_REACHABLE: reachableText.includes("cloudflare:scheduled"),
     FAIL_CLOSED_CONTEXT_REACHABLE: reachableText.includes("cloudflare_runtime_context_missing"),
     SANITIZED_503_REACHABLE: reachableText.includes("Runtime context temporarily unavailable"),
-    DCA_SCHEDULED_DELEGATE_REACHABLE: reachableText.includes("[DCA-01] scheduled reconciliation completed"),
+    DOMAIN_QUEUE_LEASE_ABSENT: !serverText.includes("lease_domain_operation_jobs"),
+    DOMAIN_WORKER_SCHEDULED_DELEGATE_ABSENT: !serverText.includes("[DCA-01] scheduled reconciliation"),
     CANONICAL_REDIRECT_REACHABLE: reachableText.includes("[DCA-01] canonical redirect resolution failed closed"),
     CLOUDFLARE_VITE_PLUGIN_ABSENT: !serverText.includes("@cloudflare/vite-plugin"),
     ROOT_WRANGLER_MAIN_MATCH: rootWrangler.main === "dist/server/index.mjs",
@@ -196,16 +180,13 @@ try {
     CLIENT_BYTES: clientBytes,
     RESOLVED_DEPLOYMENT_ENVIRONMENT: process.env.RM_PRIME_DEPLOYMENT_ENVIRONMENT,
     GENERATED_WRANGLER: generatedWrangler,
-    DCA_SCHEDULED_DELEGATE_STATIC_ASSERTION_MODE: deferDcaScheduledStaticAssertionToWorkerd
-      ? "deferred_to_mandatory_workerd_behavioral_proof"
-      : "required",
+    DOMAIN_EXECUTOR: "supabase_edge_function_only",
     CHECKS: checks,
   });
 
   assert.equal(checks.DEFAULT_EXPORT_COUNT, 1, "Final Worker entry must have exactly one default export authority");
   for (const [name, passed] of Object.entries(checks)) {
     if (name === "DEFAULT_EXPORT_COUNT") continue;
-    if (name === "DCA_SCHEDULED_DELEGATE_REACHABLE" && deferDcaScheduledStaticAssertionToWorkerd) continue;
     assert.ok(passed, `WRI-01 compiled bundle check failed: ${name}`);
   }
 
