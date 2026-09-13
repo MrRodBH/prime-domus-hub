@@ -1,3 +1,4 @@
+import { workspaceTenantMark } from '@/components/brand/TenantBrand';
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { meuTenantWorkspace } from "@/lib/api/tenant.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,10 @@ export const Route = createFileRoute("/_authenticated/$tenantSlug/admin")({
       throw new Error('tenant_address_mismatch');
     }
     return { tenant };
+  },
+  head: ({loaderData}) => {
+    const icon = workspaceTenantMark(loaderData?.tenant);
+    return { links: icon ? [{rel:'icon',type:'image/png',href:icon}] : [] };
   },
   component: () => <Outlet />,
   errorComponent: AdminNavigationError,
