@@ -74,25 +74,32 @@ globalThis.connectionWorker = {
   },
   async transitionTenantDomain({domain:d,to}) {assert.equal(d.lockVersion,current.lockVersion);transitions.push(to);current={...current,status:to,lockVersion:current.lockVersion+1};return structuredClone(current);},
   async observeDnsCname(){return {targets:[],observedAt:'fixture-time',resolver:'fixture'};},
-  async getCurrentOwnershipChallenge(){return {status:'verified',generation:1};},
+  async getCurrentOwnershipChallenge(){return current.status==='pending_ownership_verification'?{id:'proof-current',challengeVersion:3,status:'active',generation:1,expiresAt:'2099-01-01T00:00:00Z',recordName:'_rm-prime.fixture.invalid'}:{status:'verified',generation:1};},
+  async observeDnsTxt(){return {values:[],observedAt:'fixture-time',recordName:'_rm-prime.fixture.invalid'};},
+  async verifyOwnershipObservation(){return {verified:false,domain:current};},
   async getProviderAccountForDomain(){throw Error('Provider not configured');},
   createCloudflareAdapter(){throw Error('No provider calls permitted');},
 };
-const workerNames=['bindDomainProviderObjectIdentity','claimDomainProviderBinding','completeDomainJob','enqueueDomainJob','enqueueScheduledDomainReconciliationJobs','getCurrentOwnershipChallenge','getDomainProviderIdentityBinding','getProviderAccountForDomain','getTenantDomain','leaseDomainJobs','markDomainProviderClaimAmbiguous','patchDomainMetadata','releaseDomainProviderClaim','transitionTenantDomain','updateDomainProviderObservation','verifyOwnershipObservation','observeDnsTxt','observeDnsCname','createCloudflareAdapter','reconcileDomain'];
+const workerNames=['bindDomainProviderObjectIdentity','claimDomainProviderBinding','completeDomainJob','enqueueDomainJob','enqueueScheduledDomainReconciliationJobs','getCurrentOwnershipChallenge','getDomainProviderIdentityBinding','getProviderAccountForDomain','getTenantDomain','leaseDomainJobs','markDomainProviderClaimAmbiguous','patchDomainMetadata','releaseDomainProviderClaim','transitionTenantDomain','updateDomainProviderObservation','verifyOwnershipObservation','observeDnsTxt','observeDnsCname','observeDnsIpv4','isPublicIpv4','observeCustomerCname','createCloudflareAdapter','reconcileDomain'];
 const worker=await bundle('src/lib/domains/domain-jobs.server.ts',{name:'worker-fixture',setup(b){
   b.onResolve({filter:/(domain-repository|dns-observation|cloudflare-adapter|domain-reconciliation)\.server$/},a=>({path:a.path,namespace:'fixture'}));
   b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:`export const {${workerNames.join(',')}}=globalThis.connectionWorker;`,loader:'js'}));
 }});
-const run=()=>worker.processScheduledDomainJobs({runtimeEnv:{DCA01_MANAGED_CNAME_TARGET:'sites.fixture.invalid'},leaseOwner:'fixture-executor'});
+const run=()=>worker.processScheduledDomainJobs({runtimeEnv:{DCA01_MANAGED_CNAME_TARGET:'sites.fixture.com'},leaseOwner:'fixture-executor'});
 reset([job,{...job,id:'old-retry'}]);let result=await run();
 assert.equal(result.succeeded,1);assert.equal(result.cancelled,1);assert.equal(patches,1);assert.deepEqual(transitions,['pending_dns_configuration']);assert.equal(continuations.length,1);assert.equal(current.status,'pending_dns_configuration');assert.equal(completions[1].outcome,'cancelled');
 for(const d of [{...domain,generation:2},{...domain,status:'revoked'},{...domain,executionMode:'api_automated'}]){reset([job],d);assert.equal((await run()).cancelled,1);assert.deepEqual(transitions,[]);assert.equal(patches,0);}
 reset();fault='race';await run();assert.equal(current.status,'pending_ssl');assert.deepEqual(transitions,[]);assert.equal(completions[0].outcome,'retry_wait');
 reset([job],{...domain,tenantId:'other-tenant'});await run();assert.deepEqual(transitions,[]);assert.equal(completions[0].outcome,'failed');
 // Direct A/AAAA/shared-IP assertions cannot satisfy the canonical CNAME contract.
-reset([{...job,operationType:'observe_required_dns'}],{...domain,status:'pending_dns_configuration',metadata:{required_dns_plan:{targetHostname:'sites.fixture.invalid'}}});
+reset([{...job,operationType:'observe_required_dns'}],{...domain,status:'pending_dns_configuration',metadata:{required_dns_plan:{hostname:domain.normalizedHostname,generation:1,recordType:'CNAME',targetHostname:'sites.fixture.com'}}});
 await run();assert.equal(current.status,'pending_dns_configuration');assert.deepEqual(transitions,[]);assert.equal(completions[0].outcome,'retry_wait');
 reset([{...job,operationType:'provision_provider_binding'}],{...domain,status:'pending_cloudflare_provisioning'});await run();assert.notEqual(current.status,'active');assert.equal(continuations.length,0);
+
+reset([{...job,operationType:'observe_ownership_dns',payload:{ownershipChallengeId:'proof-current',challengeVersion:3}}],{...domain,status:'pending_ownership_verification'});
+assert.equal((await run()).retried,1);assert.equal(current.status,'pending_ownership_verification');assert.equal(continuations.length,0);
+reset([{...job,operationType:'observe_ownership_dns',payload:{ownershipChallengeId:'proof-old',challengeVersion:2}}],{...domain,status:'pending_ownership_verification'});
+assert.equal((await run()).cancelled,1);assert.equal(completions[0].result.reason,'superseded_ownership_challenge');assert.equal(patches,0);
 
 const {domainProcessingSummary:summary}=await bundle('src/components/domains/presentation/domain-processing.ts');
 assert.match(summary(domain,[{...job,status:'pending',attemptCount:0}]).message,/nenhuma tentativa/);
@@ -108,7 +115,9 @@ assert.doesNotMatch(summary({...domain,status:'active',enabled:false},[]).messag
 const candidate={...domain,status:'pending_ssl',normalizedHostname:'tenant-a.example.com',registrableDomain:'example.com',metadata:{required_dns_generation:1,required_dns_observed:true,last_reconciliation_generation:1,last_reconciliation_success:true,lovableStatus:'Live',sharedIpMatches:true,httpsOk:true}};
 let binding=null;
 globalThis.connectionEvidence={
-  async getCurrentOwnershipChallenge(){return {status:'verified',generation:1};},
+  async getCurrentOwnershipChallenge(){return current.status==='pending_ownership_verification'?{id:'proof-current',challengeVersion:3,status:'active',generation:1,expiresAt:'2099-01-01T00:00:00Z',recordName:'_rm-prime.fixture.invalid'}:{status:'verified',generation:1};},
+  async observeDnsTxt(){return {values:[],observedAt:'fixture-time',recordName:'_rm-prime.fixture.invalid'};},
+  async verifyOwnershipObservation(){return {verified:false,domain:current};},
   async getDomainProviderIdentityBinding(){return binding;},
   async listTenantDomains(){return [];},
   async isDomainHostnameReservationValid(){return true;},

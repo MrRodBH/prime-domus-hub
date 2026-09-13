@@ -3,7 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { resolveCanonicalRedirectByHost } from "./lib/tenant.server";
-import { processScheduledDomainJobs } from "./lib/domains/domain-jobs.server";
+import { domainRoutingProofResponse } from "./lib/domains/domain-routing-proof.server";
 import { structuredLog } from "./lib/structured-log";
 import { resolveP0HomologationEntry } from "./lib/p0-homologation-entry";
 import {
@@ -11,7 +11,6 @@ import {
   readAuthoritativeCloudflareRuntimeContext,
   type CloudflareExecutionContext,
   type CloudflareRuntimeEnv,
-  type CloudflareScheduledController,
 } from "./lib/runtime/cloudflare-runtime-context.server";
 
 type ServerEntry = {
@@ -235,6 +234,8 @@ export async function fetch(request: Request, env: unknown, ctx: unknown): Promi
   }
 
   try {
+    const proof = await domainRoutingProofResponse(request, runtime.env as Record<string, unknown>);
+    if (proof) return proof;
     const redirect = await canonicalRedirect(request);
     if (redirect) return redirect;
   } catch (error) {
@@ -274,47 +275,5 @@ export async function fetch(request: Request, env: unknown, ctx: unknown): Promi
   }
 }
 
-export async function scheduled(
-  _controller: CloudflareScheduledController,
-  env: CloudflareRuntimeEnv,
-  ctx: CloudflareExecutionContext,
-): Promise<void> {
-  const execution = processScheduledDomainJobs({ runtimeEnv: env, limit: 20 }).then((result) => {
-    structuredLog({
-      level: "info",
-      event: "dca.scheduled_reconciliation_completed",
-      code: "scheduled_reconciliation_completed",
-      route: "cloudflare_scheduled",
-      context: {
-        source: "[DCA-01] scheduled reconciliation completed",
-        leased: result.leased,
-        succeeded: result.succeeded,
-        retried: result.retried,
-        failed: result.failed,
-      },
-    });
-    return result;
-  }).catch((error) => {
-    structuredLog({
-      level: "error",
-      event: "dca.scheduled_reconciliation_failed_closed",
-      code: "scheduled_reconciliation_failed_closed",
-      route: "cloudflare_scheduled",
-      context: { source: "[DCA-01] scheduled reconciliation failed closed" },
-      error,
-    });
-    throw error;
-  });
-  ctx.waitUntil(execution);
-}
-
-export default {
-  fetch,
-  async scheduled(
-    controller: CloudflareScheduledController,
-    env: CloudflareRuntimeEnv,
-    ctx: CloudflareExecutionContext,
-  ): Promise<void> {
-    return scheduled(controller, env, ctx);
-  },
-};
+// Domain automation runs exclusively in the authenticated Supabase Edge Function.
+export default { fetch };

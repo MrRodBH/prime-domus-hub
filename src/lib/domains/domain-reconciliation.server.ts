@@ -1,3 +1,5 @@
+import { observeDomainRouting } from "./domain-https-observation.server";
+import { observeDomainDnsPlan } from "./domain-dns-plan.server";
 import { normalizeDomainHostname } from "./domain-normalization";
 import type {
   DomainCommandAuthority,
@@ -68,7 +70,8 @@ export async function buildCurrentGenerationEvidence(domain: TenantDomainRecord)
     enabled: domain.enabled,
     reconciliationCurrentGenerationSuccess:
       metadata.last_reconciliation_generation === domain.generation
-      && metadata.last_reconciliation_success === true,
+      && metadata.last_reconciliation_success === true
+      && metadata.routing_verified_generation === domain.generation,
   };
 }
 
@@ -118,14 +121,31 @@ export async function reconcileDomain(input: {
     });
   }
 
+  // Refresh public DNS and origin evidence every reconciliation. Provider status alone is insufficient.
+  let routingVerified = false;
+  if (binding?.bindingState === "bound" && binding.customHostnameId) {
+    const observedBinding = await getDomainProviderIdentityBinding(current);
+    if (observedBinding?.providerStatus === "active" && observedBinding.sslStatus === "active") {
+      try {
+        await observeDomainDnsPlan(current, input.runtimeEnv ?? {});
+        await observeDomainRouting(current, await listTenantDomains(current.tenantId), input.runtimeEnv ?? {});
+        routingVerified = true;
+      } catch (error) {
+        current = await patchDomainMetadata({ domain: current, patch: { routing_verified_generation: null, last_reconciliation_success: false } });
+        if (current.status === "active") await transitionTenantDomain({ authority: input.authority, domain: current, to: "degraded" });
+        throw error;
+      }
+    }
+  }
   const preliminary = await buildCurrentGenerationEvidence(current);
-  const reconciliationSucceeded = Object.entries(preliminary)
+  const reconciliationSucceeded = routingVerified && Object.entries(preliminary)
     .filter(([key]) => key !== "reconciliationCurrentGenerationSuccess")
     .every(([, value]) => value === true);
 
   current = await patchDomainMetadata({
     domain: current,
     patch: {
+      routing_verified_generation: routingVerified ? current.generation : null,
       last_reconciliation_generation: current.generation,
       last_reconciliation_success: reconciliationSucceeded,
       last_reconciliation_at: new Date().toISOString(),

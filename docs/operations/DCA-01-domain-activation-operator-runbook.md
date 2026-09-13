@@ -1,5 +1,7 @@
 # DCA-01 — Domain Activation Operator Runbook
 
+> Superseding owner decision 2026-09-13: use [DOMAIN_AUTOMATION_ROLLOUT.md](DOMAIN_AUTOMATION_ROLLOUT.md) and the Supabase automation ADR. Domain scheduling is exclusively a secret-authenticated Supabase Edge Function via pg_cron/pg_net. Older Worker scheduling guidance below is superseded. Super Admin impersonation is prohibited.
+
 ## Scope
 
 This runbook governs custom-domain activation, reconciliation, replacement and removal. It does not authorize production deployment or provider operations by itself.
@@ -8,7 +10,7 @@ This runbook governs custom-domain activation, reconciliation, replacement and r
 
 - Tenant identity, lifecycle state, provider account, canonical host and cutover are server-owned.
 - `x-tenant-id` is transport and is revalidated by `requireTenant`.
-- Super Admin tenant-scoped mutations require explicit impersonation.
+- Super Admin cannot impersonate or operate a tenant. Tenant mutations require the authenticated tenant administrator.
 - Client or operator observations request a recheck; they never assert ownership, DNS, provider or SSL success.
 - `manual_assisted` and `api_automated` are explicit modes. Provider failure never silently switches mode.
 
@@ -18,7 +20,7 @@ This runbook governs custom-domain activation, reconciliation, replacement and r
 2. Build the legacy import manifest with the canonical server normalizer.
 3. Verify the manifest has exact legacy-row cardinality and no duplicate normalized hostname.
 4. Confirm the provider account uses an opaque `env:VARIABLE` reference and has an explicit registrable-domain-to-zone map.
-5. Confirm the scheduled executor is configured as a platform-native scheduled event; do not expose an HTTP cron endpoint.
+5. Confirm the sole executor is the dedicated-secret-authenticated Supabase Edge Function; no browser authorization or Worker cron. Follow DOMAIN_AUTOMATION_ROLLOUT.md.
 6. Confirm the target is non-production unless a separate production authorization exists.
 
 ## Tenant lifecycle

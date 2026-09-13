@@ -1,5 +1,7 @@
 # Domain connection execution safety — 2026-09-13
 
+> Superseded integration boundary (owner instruction 2026-09-13): see `../ADR/DOMAIN_AUTOMATION_SUPABASE.md` and `../../operations/DOMAIN_AUTOMATION_ROLLOUT.md`. The earlier broad Lovable API/support blocker and Worker executor direction below are historical. Queue safety work remains valid.
+
 ## Baseline and authorization
 
 Owner authorizes impact analysis, repository implementation, controlled tests and a PR. Baseline `7f01dd2a23c4d55e961cc974483b149f583c0644`, tree `10af54073707702e525860574fe99e65d6f2b3ca`. No live database, queue, provider, DNS, cron, publication or merge is authorized. The local source snapshot has the exact audited tree; remote commits will use the audited main parent.

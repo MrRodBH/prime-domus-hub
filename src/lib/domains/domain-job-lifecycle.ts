@@ -23,7 +23,7 @@ export function obsoleteDomainJobReason(job: DomainJobRecord, domain: TenantDoma
 
 /** A stale failure may finish its own attempt, never regress a newer domain. */
 export function mayRecordDomainFailure(job: DomainJobRecord, started: TenantDomainRecord, current: TenantDomainRecord, code: string): boolean {
-  if (["domain_authority_denied", "domain_generation_mismatch", "domain_version_conflict", "domain_lease_conflict", "domain_transition_forbidden"].includes(code)) return false;
+  if (["domain_challenge_expired", "domain_authority_denied", "domain_generation_mismatch", "domain_version_conflict", "domain_lease_conflict", "domain_transition_forbidden"].includes(code)) return false;
   return job.tenantId === current.tenantId && job.domainId === current.id
     && job.generation === current.generation
     && started.tenantId === current.tenantId && started.id === current.id

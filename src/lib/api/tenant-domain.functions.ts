@@ -95,6 +95,7 @@ export const requestTenantDomain = createServerFn({ method: "POST" })
     });
     domain = await transitionTenantDomain({ authority, domain, to: "pending_ownership_verification" });
     const { challenge, proofValue } = await issueOwnershipChallenge({ authority, domain });
+    await enqueueDomainJob({ authority, domain, operationType: "observe_ownership_dns", payload: { ownershipChallengeId: challenge.id, challengeVersion: challenge.challengeVersion }, maxAttempts: 10 });
     return {
       domain,
       challenge: {
@@ -115,6 +116,7 @@ export const rotateDomainOwnershipChallenge = createServerFn({ method: "POST" })
     const authority = await authorizeTenantDomainOperation(trusted(context), "operate");
     const domain = await getTenantDomain(authority.tenantId, data.domainId);
     const { challenge, proofValue } = await issueOwnershipChallenge({ authority, domain });
+    await enqueueDomainJob({ authority, domain, operationType: "observe_ownership_dns", payload: { ownershipChallengeId: challenge.id, challengeVersion: challenge.challengeVersion }, maxAttempts: 10 });
     return {
       challenge: {
         id: challenge.id,
@@ -178,6 +180,7 @@ export const requestDomainReplacement = createServerFn({ method: "POST" })
     });
     domain = await transitionTenantDomain({ authority, domain, to: "pending_ownership_verification" });
     const { challenge, proofValue } = await issueOwnershipChallenge({ authority, domain });
+    await enqueueDomainJob({ authority, domain, operationType: "observe_ownership_dns", payload: { ownershipChallengeId: challenge.id, challengeVersion: challenge.challengeVersion }, maxAttempts: 10 });
     const aliasCandidates = (await listTenantDomains(authority.tenantId)).filter((candidateAlias) =>
       candidateAlias.hostnameKind === "alias"
       && candidateAlias.generation === domain.generation

@@ -21,13 +21,14 @@ import {
   transitionTenantDomain,
   updateDomainProviderObservation,
 } from "./domain-repository.server";
-import { observeDnsCname } from "./dns-observation.server";
+import { observeDomainDnsPlan } from "./domain-dns-plan.server";
 import { verifyDomainOwnership } from "./domain-ownership-verification.server";
 import { obsoleteDomainJobReason, mayRecordDomainFailure } from "./domain-job-lifecycle";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
 import { reconcileDomain } from "./domain-reconciliation.server";
 import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
 import type { CloudflareCustomHostnameObservation, CloudflareProviderContext } from "./cloudflare-port.server";
+import { normalizeDomainHostname } from "./domain-normalization";
 
 function jobAuthority(job: DomainJobRecord): DomainCommandAuthority {
   return {
@@ -39,7 +40,9 @@ function jobAuthority(job: DomainJobRecord): DomainCommandAuthority {
 }
 
 async function observeOwnership(job: DomainJobRecord, domain: TenantDomainRecord): Promise<DomainJsonObject> {
-  return sanitizeDomainObject(await verifyDomainOwnership({ authority: jobAuthority(job), domain }));
+  const result = await verifyDomainOwnership({ authority: jobAuthority(job), domain });
+  if (!result.verified) throw new DomainError("domain_provider_unavailable", "Ownership TXT is not yet visible", { retryable: true });
+  return sanitizeDomainObject(result);
 }
 
 async function prepareDns(
@@ -55,10 +58,12 @@ async function prepareDns(
   if (typeof target !== "string" || !target.includes(".")) {
     throw new DomainError("domain_external_prerequisite_missing", "Managed CNAME target is unavailable", { retryable: false });
   }
+  const normalizedTarget = normalizeDomainHostname(target).hostname;
+  if (normalizedTarget === domain.normalizedHostname) throw new DomainError("domain_provider_configuration_invalid", "DNS plan cannot point to itself");
   const plan: DomainJsonObject = {
     hostname: domain.normalizedHostname,
     recordType: "CNAME",
-    targetHostname: target.toLowerCase().replace(/\.$/, ""),
+    targetHostname: normalizedTarget,
     generation: domain.generation,
   };
   let current = await patchDomainMetadata({
@@ -78,12 +83,13 @@ async function prepareDns(
     authority: jobAuthority(job),
     domain: current,
     operationType: "observe_required_dns",
+    maxAttempts: 10,
     payload: { sourceJobId: job.id },
   });
   return { prepared: true, status: current.status, plan };
 }
 
-async function observeRequiredDns(job: DomainJobRecord, domain: TenantDomainRecord): Promise<DomainJsonObject> {
+async function observeRequiredDns(job: DomainJobRecord, domain: TenantDomainRecord, runtimeEnv: Record<string, unknown>): Promise<DomainJsonObject> {
   if (domain.status !== "pending_dns_configuration") {
     throw new DomainError("domain_transition_forbidden", "Required DNS observation requires pending_dns_configuration");
   }
@@ -95,13 +101,7 @@ async function observeRequiredDns(job: DomainJobRecord, domain: TenantDomainReco
   if (typeof target !== "string") {
     throw new DomainError("domain_provider_configuration_invalid", "Required CNAME target is unavailable");
   }
-  const observation = await observeDnsCname(domain.normalizedHostname);
-  if (!observation.targets.includes(target)) {
-    throw new DomainError("domain_provider_unavailable", "Required CNAME is not yet observed", {
-      retryable: true,
-      safeDetail: { observedTargetCount: observation.targets.length },
-    });
-  }
+  const observation = await observeDomainDnsPlan(domain, runtimeEnv);
   let current = await patchDomainMetadata({
     domain,
     patch: {
@@ -497,7 +497,7 @@ async function executeLeasedDomainJob(
     case "prepare_dns_configuration":
       return prepareDns(job, domain, runtimeEnv);
     case "observe_required_dns":
-      return observeRequiredDns(job, domain);
+      return observeRequiredDns(job, domain, runtimeEnv);
     case "provision_provider_binding":
       return provisionProvider(job, domain, runtimeEnv);
     case "observe_ssl_lifecycle":
@@ -564,6 +564,15 @@ export async function processScheduledDomainJobs(input: {
         await completeDomainJob({ jobId: job.id, leaseOwner, outcome: "cancelled", result: { reason: obsolete, domainAuthorityChanged: false } });
         cancelled += 1;
         continue;
+      }
+      if (job.operationType === "observe_ownership_dns") {
+        const challenge = await getCurrentOwnershipChallenge(started);
+        if ((typeof job.payload.ownershipChallengeId === "string" && job.payload.ownershipChallengeId !== challenge?.id)
+          || (typeof job.payload.challengeVersion === "number" && job.payload.challengeVersion !== challenge?.challengeVersion)) {
+          await completeDomainJob({ jobId: job.id, leaseOwner, outcome: "cancelled", result: { reason: "superseded_ownership_challenge" } });
+          cancelled += 1;
+          continue;
+        }
       }
       const result = await executeLeasedDomainJob(job, runtimeEnv, started);
       await completeDomainJob({ jobId: job.id, leaseOwner, outcome: "succeeded", result });
