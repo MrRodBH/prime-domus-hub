@@ -23,6 +23,7 @@ import {
 } from "./domain-repository.server";
 import { observeDnsCname } from "./dns-observation.server";
 import { verifyDomainOwnership } from "./domain-ownership-verification.server";
+import { obsoleteDomainJobReason, mayRecordDomainFailure } from "./domain-job-lifecycle";
 import { createCloudflareAdapter } from "./cloudflare-adapter.server";
 import { reconcileDomain } from "./domain-reconciliation.server";
 import { DomainError, sanitizeDomainObject, toSafeDomainError } from "./domain-errors";
@@ -485,8 +486,8 @@ async function cleanupDomain(
 async function executeLeasedDomainJob(
   job: DomainJobRecord,
   runtimeEnv: Record<string, unknown>,
+  domain: TenantDomainRecord,
 ): Promise<DomainJsonObject> {
-  const domain = await getTenantDomain(job.tenantId, job.domainId);
   if (domain.generation !== job.generation) {
     throw new DomainError("domain_generation_mismatch", "Job generation is stale");
   }
@@ -542,6 +543,7 @@ export async function processScheduledDomainJobs(input: {
   succeeded: number;
   retried: number;
   failed: number;
+  cancelled: number;
 }> {
   const runtimeEnv = input.runtimeEnv ?? {};
   await enqueueScheduledDomainReconciliationJobs();
@@ -550,10 +552,20 @@ export async function processScheduledDomainJobs(input: {
   let succeeded = 0;
   let retried = 0;
   let failed = 0;
+  let cancelled = 0;
 
   for (const job of jobs) {
+    let started: TenantDomainRecord | undefined;
     try {
-      const result = await executeLeasedDomainJob(job, runtimeEnv);
+      started = await getTenantDomain(job.tenantId, job.domainId);
+      const obsolete = obsoleteDomainJobReason(job, started);
+      if (obsolete === "identity_mismatch") throw new DomainError("domain_authority_denied", "Job identity does not match domain authority");
+      if (obsolete) {
+        await completeDomainJob({ jobId: job.id, leaseOwner, outcome: "cancelled", result: { reason: obsolete, domainAuthorityChanged: false } });
+        cancelled += 1;
+        continue;
+      }
+      const result = await executeLeasedDomainJob(job, runtimeEnv, started);
       await completeDomainJob({ jobId: job.id, leaseOwner, outcome: "succeeded", result });
       succeeded += 1;
     } catch (error) {
@@ -561,7 +573,7 @@ export async function processScheduledDomainJobs(input: {
       const exhausted = job.attemptCount >= job.maxAttempts;
       try {
         const domain = await getTenantDomain(job.tenantId, job.domainId);
-        if (domain.status === "active") {
+        if (started && mayRecordDomainFailure(job, started, domain, safe.code) && domain.status === "active") {
           await transitionTenantDomain({
             authority: jobAuthority(job),
             domain,
@@ -585,7 +597,8 @@ export async function processScheduledDomainJobs(input: {
         let failureDetail: DomainJsonObject = safe.safeDetail;
         try {
           const domain = await getTenantDomain(job.tenantId, job.domainId);
-          if (domain.status !== "failed" && domain.status !== "revoked" && domain.status !== "active") {
+          if (started && mayRecordDomainFailure(job, started, domain, safe.code)
+            && domain.status !== "failed" && domain.status !== "revoked" && domain.status !== "active") {
             await transitionTenantDomain({
               authority: jobAuthority(job),
               domain,
@@ -613,5 +626,5 @@ export async function processScheduledDomainJobs(input: {
       }
     }
   }
-  return { leaseOwner, leased: jobs.length, succeeded, retried, failed };
+  return { leaseOwner, leased: jobs.length, succeeded, retried, failed, cancelled };
 }

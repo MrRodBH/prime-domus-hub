@@ -1,3 +1,4 @@
+import { domainProcessingSummary } from "./presentation/domain-processing";
 import { connectionStatus, propagationGuidance } from "./presentation/domain-status";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -24,6 +25,7 @@ import type {
   DomainActivationStatus,
   DomainExecutionMode,
   DomainHostnameKind,
+  DomainJobRecord,
   TenantDomainRecord,
 } from "@/lib/domains/domain-contracts";
 
@@ -123,6 +125,11 @@ export function TenantDomainWorkspace() {
         void invalidate();
         return;
       }
+      if (action.kind === "retry" && "status" in result && ["failed", "cancelled"].includes(String(result.status))) {
+        toast.warning("A tarefa existente está encerrada. A plataforma precisa revisar a falha antes de uma nova execução.");
+        void invalidate();
+        return;
+      }
       toast.success(
         action.kind === "remove"
           ? "Autoridade pública encerrada; cleanup enfileirado."
@@ -178,7 +185,7 @@ export function TenantDomainWorkspace() {
       {stateQuery.isPending ? <Card className="p-10 text-center text-sm text-muted-foreground">Carregando autoridade de domínios…</Card> : stateQuery.isError ? <Card className="border-destructive/40 p-6 text-sm text-destructive">{stateQuery.error.message}</Card> : (
         <div className="space-y-4">
           <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Seus domínios</h2><span className="text-sm text-muted-foreground">{domains.length} registro(s)</span></div>
-          {domains.length === 0 ? <Card className="p-10 text-center text-sm text-muted-foreground">Nenhum domínio solicitado.</Card> : domains.map((domain) => <DomainCard key={domain.id} domain={domain} challenge={stateQuery.data?.challenges[domain.id] ?? null} busy={busy || stateQuery.isFetching} onCheck={() => void stateQuery.refetch()} onAction={(action) => actionMutation.mutate(action)} />)}
+          {domains.length === 0 ? <Card className="p-10 text-center text-sm text-muted-foreground">Nenhum domínio solicitado.</Card> : domains.map((domain) => <DomainCard key={domain.id} domain={domain} jobs={stateQuery.data?.jobs ?? []} challenge={stateQuery.data?.challenges[domain.id] ?? null} busy={busy || stateQuery.isFetching} onCheck={() => void stateQuery.refetch()} onAction={(action) => actionMutation.mutate(action)} />)}
         </div>
       )}
     </div>
@@ -189,20 +196,22 @@ function ProofRow({ label, value }: { label: string; value: string }) {
   return <div className="grid gap-2 sm:grid-cols-[90px_1fr_auto] sm:items-center"><span className="text-sm text-muted-foreground">{label}</span><code className="overflow-x-auto rounded bg-muted px-3 py-2 text-xs">{value}</code><Button size="icon" variant="outline" aria-label={`Copiar ${label}`} onClick={async () => { try { await navigator.clipboard.writeText(value); toast.success(`${label} copiado.`); } catch { toast.error("Não foi possível copiar. Selecione o valor e copie manualmente."); } }}><Copy className="size-4" /></Button></div>;
 }
 
-function DomainCard({ domain, challenge, busy, onCheck, onAction }: {
+function DomainCard({ domain, jobs, challenge, busy, onCheck, onAction }: {
   domain: TenantDomainRecord;
+  jobs: readonly DomainJobRecord[];
   challenge: { recordName: string; status: string; expiresAt: string; challengeVersion: number } | null;
   busy: boolean;
   onCheck: () => void;
   onAction: (action: DomainAction) => void;
 }) {
   const connection = connectionStatus(domain.status, domain.enabled);
+  const processing = domainProcessingSummary(domain, jobs);
   const canVerify = domain.status === "pending_ownership_verification";
-  const canRetry = !["draft", "replacement_pending", "revoked", "removal_pending"].includes(domain.status);
+  const canRetry = !processing.pending && !["draft", "replacement_pending", "revoked", "removal_pending"].includes(domain.status);
   const canRemove = !["revoked", "removal_pending"].includes(domain.status);
   const canChangeMode = ["draft", "replacement_pending", "pending_ownership_verification", "ownership_verified", "pending_dns_configuration", "failed"].includes(domain.status);
   const [modeDraft, setModeDraft] = useState<DomainExecutionMode>(domain.executionMode);
   const [confirmRemoval, setConfirmRemoval] = useState(false);
   useEffect(() => setModeDraft(domain.executionMode), [domain.executionMode]);
-  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2"><Button className={connection.className} disabled={busy} onClick={onCheck}>Check Status — {connection.label}</Button>{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Automático pelo provedor</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Tentar novamente</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => setConfirmRemoval(true)}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div>{confirmRemoval && <div role="alertdialog" aria-label="Confirmar remoção do domínio" className="mt-4 space-y-3 rounded-lg border border-destructive/40 p-4"><p>A remoção de <strong>{domain.normalizedHostname}</strong> encerra o acesso público por este endereço. Deseja remover este domínio?</p><div className="flex gap-3"><Button variant="outline" disabled={busy} onClick={() => setConfirmRemoval(false)}>Manter domínio</Button><Button variant="destructive" disabled={busy} onClick={() => { setConfirmRemoval(false); onAction({ kind: "remove", domainId: domain.id }); }}>Confirmar remoção</Button></div></div>}</Card>;
+  return <Card className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 space-y-2"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-mono font-medium">{domain.normalizedHostname}</span><Badge variant={statusVariant(domain.status)}>{STATUS_LABELS[domain.status]}</Badge><Badge variant="outline">{domain.hostnameKind}</Badge><Badge variant="outline">gen {domain.generation}</Badge></div><div className="grid gap-x-8 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Modo: <strong>{domain.executionMode}</strong></span><span>Lock version: {domain.lockVersion}</span><span>Registrável: {domain.registrableDomain}</span><span>Autoridade pública: {domain.status === "active" && domain.enabled ? "sim" : "não"}</span>{domain.failureCode ? <span className="text-destructive">Falha: {domain.failureCode}</span> : null}{challenge ? <span>Challenge v{challenge.challengeVersion}: {challenge.status}</span> : null}</div></div><div className="flex shrink-0 flex-wrap gap-2"><Button className={connection.className} disabled={busy} onClick={onCheck}>Check Status — {connection.label}</Button>{canVerify ? <><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "verify", domainId: domain.id })}>Verificar DNS</Button><Button size="sm" variant="outline" disabled={busy} onClick={() => onAction({ kind: "rotate", domainId: domain.id })}>Rotacionar TXT</Button></> : null}{canChangeMode ? <><Select value={modeDraft} onValueChange={(value: DomainExecutionMode) => setModeDraft(value)} disabled={busy}><SelectTrigger className="h-8 w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="manual_assisted">Manual assistido</SelectItem><SelectItem value="api_automated">Automático pelo provedor</SelectItem></SelectContent></Select><Button size="sm" variant="outline" disabled={busy || modeDraft === domain.executionMode} onClick={() => onAction({ kind: "changeMode", domainId: domain.id, executionMode: modeDraft })}>Alterar modo</Button></> : null}{canRetry ? <Button size="sm" variant="secondary" disabled={busy} onClick={() => onAction({ kind: "retry", domainId: domain.id })}><RefreshCw className="mr-1 size-3" />Tentar novamente</Button> : null}{canRemove ? <Button size="sm" variant="destructive" disabled={busy} onClick={() => setConfirmRemoval(true)}><Trash2 className="mr-1 size-3" />Remover</Button> : null}</div></div><p role="status" className="mt-4 text-sm text-muted-foreground">{processing.message}</p>{confirmRemoval && <div role="alertdialog" aria-label="Confirmar remoção do domínio" className="mt-4 space-y-3 rounded-lg border border-destructive/40 p-4"><p>A remoção de <strong>{domain.normalizedHostname}</strong> encerra o acesso público por este endereço. Deseja remover este domínio?</p><div className="flex gap-3"><Button variant="outline" disabled={busy} onClick={() => setConfirmRemoval(false)}>Manter domínio</Button><Button variant="destructive" disabled={busy} onClick={() => { setConfirmRemoval(false); onAction({ kind: "remove", domainId: domain.id }); }}>Confirmar remoção</Button></div></div>}</Card>;
 }
