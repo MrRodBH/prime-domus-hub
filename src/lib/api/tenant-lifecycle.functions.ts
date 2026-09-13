@@ -76,6 +76,14 @@ function safeLifecycleError(error: unknown): Error {
   return new Error("Falha segura no lifecycle do tenant.");
 }
 
+function registrationError(error: unknown, tenantId: string): Error {
+  const denied = parseCommercialSeatLimitDeniedError(error, tenantId);
+  if (!denied) return safeLifecycleError(error);
+  if (denied.decision.reason === 'billing_unknown') return Error('O vínculo comercial desta empresa ainda não está configurado para liberar novos usuários. Solicite a regularização à administração da plataforma.');
+  if (denied.decision.reason === 'limit_reached') return Error('O plano não possui vagas disponíveis para novos usuários.');
+  return Error('O plano ainda não autoriza este cadastro. Confira a liberação com a administração da plataforma.');
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertSuperAdmin(context: any) {
   const { data, error } = await context.supabase
@@ -245,7 +253,7 @@ export const inviteTenantMember = createServerFn({ method: "POST" })
       _actor: context.userId, _tenant: tenantId, _origin: context.tenant.origin,
       _profiles: data.profileIds ?? [], _resend: data.resend,
     });
-    if (preflight.error) throw safeLifecycleError(preflight.error);
+    if (preflight.error) throw registrationError(preflight.error, tenantId);
     let user = await findAuthUserByEmail(admin, email);
     if (user) await requireOperationalIdentity(admin, user.id);
     if (!user) {
@@ -260,11 +268,7 @@ export const inviteTenantMember = createServerFn({ method: "POST" })
       _target:user.id, _role:data.targetRole, _name:data.name ?? null,
       _profiles:data.profileIds ?? [], _resend:data.resend,
     });
-    if (prepared.error) {
-      const denied = parseCommercialSeatLimitDeniedError(prepared.error, tenantId);
-      if (denied) throw Error('O plano não possui vagas disponíveis para novos usuários.');
-      throw safeLifecycleError(prepared.error);
-    }
+    if (prepared.error) throw registrationError(prepared.error, tenantId);
     const raw = prepared.data;
     if (!isPlainObject(raw)) throw Error('tenant_lifecycle_invalid_response:registration');
     const invitedAt = requireString(raw,'invitedAt');
