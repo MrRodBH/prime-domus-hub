@@ -17,8 +17,11 @@ import { listSelectableTenants } from '@/lib/api/tenant-selection.functions';
 import { meuTenantWorkspace } from '@/lib/api/tenant.functions';
 import { tenantReturnPath } from '@/lib/auth/tenant-login-navigation';
 
+import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+
 export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: string } = {}) {
   const navigate = useNavigate();
+  const [forgotPassword, setForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
@@ -118,7 +121,7 @@ export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: str
         setMessage(
           signedIn
             ? "Sua conta entrou, mas não foi possível abrir o painel. Tente acessar novamente ou saia para trocar de conta."
-            : "Não foi possível entrar. Confira seu e-mail e senha. Se perdeu a senha, solicite a recuperação ao suporte.",
+            : "Não foi possível entrar. Confira seu e-mail e senha. Se perdeu a senha, use “Esqueci a senha”.",
         );
     } finally {
       pending.current = false;
@@ -133,6 +136,7 @@ export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: str
           <img src={logo} alt="RM Prime Imóveis" className="h-40 w-auto" />
         </Link>
         <div className="bg-card border border-foreground/5 rounded-lg p-8 shadow-soft">
+          {forgotPassword && !authenticated ? <ForgotPasswordForm initialEmail={email} onBack={() => setForgotPassword(false)} /> : <>
           <h1 className="font-display text-3xl mb-2">{tenantSlug ? 'Acesso da empresa' : 'Acesso à plataforma'}</h1>
           <p className="text-sm text-muted-foreground mb-8">{tenantSlug ? 'Entre com sua conta para acessar o painel da empresa.' : 'Gestão do RM Prime SaaS.'}</p>
           <p className="mb-4 text-sm text-muted-foreground">
@@ -182,6 +186,8 @@ export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: str
                   : "Entrar"}
             </Button>
           </form>
+          {!authenticated && <Button type="button" variant="link" className="mt-3 w-full" disabled={loading}
+            onClick={() => { setPassword(''); setMessage(''); setForgotPassword(true); }}>Esqueci a senha</Button>}
           {authenticated && (
             <Button
               className="mt-3 w-full"
@@ -203,6 +209,7 @@ export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: str
               {exit.error}
             </p>
           )}
+          </>}
         </div>
         <div className="mt-6 grid gap-2 text-center text-xs text-muted-foreground">
           {!tenantSlug && <Link

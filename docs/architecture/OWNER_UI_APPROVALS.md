@@ -45,3 +45,7 @@ The owner reports platform navigation rendered in a tenant URL and requests secu
 
 ## Owner request — contextual tenant authentication (2026-09-12)
 The owner reports /rmprime/admin redirecting to a platform-oriented /auth. Preserve tenant context through /rmprime/auth (generic /$tenantSlug/auth for all tenants), using the existing authentication implementation and server membership authority. Restore the requested tenant workspace after login. Keep the theme and platform/tenant separation; do not create another authentication provider, fallback tenant or new privileges. This corrective requires no Supabase schema/configuration or infrastructure mutation.
+
+
+## Owner request — standard forgot password (2026-09-13)
+Add Esqueci a senha to tenant/platform login with email recovery, new password confirmation and return to login. Reuse Supabase recovery and the existing theme. This is self-service credential recovery, not tenant-user CRUD or an operator-chosen password. The user initiates delivery and enters the new password; automated tests must not send to a real recipient or reset a real credential.

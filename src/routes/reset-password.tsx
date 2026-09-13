@@ -1,12 +1,20 @@
 import { listMyInitialAdminInvitations } from "@/lib/api/initial-admin-setup.functions";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { meuAcessoSuperAdmin } from '@/lib/api/super.functions';
+import { listSelectableTenants } from '@/lib/api/tenant-selection.functions';
+import { validTenantLoginSlug } from '@/lib/auth/tenant-login-navigation';
+import { clearSelectedTenantId } from '@/integrations/supabase/tenant-selection-state';
+import { clearImpersonationTenantId } from '@/integrations/supabase/impersonation-state';
+import { setCurrentTenantId } from '@/lib/tenant-cache';
+import { useQueryClient } from '@tanstack/react-query';
 import logo from "@/assets/logo-rm-prime.png";
 
 export const Route = createFileRoute("/reset-password")({
@@ -21,6 +29,11 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const saving = useRef(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [requestNewLink, setRequestNewLink] = useState(false);
+  const [loginChoices, setLoginChoices] = useState<Array<{slug: string; name: string}>>([]);
   const [ready, setReady] = useState(false);
   const [sessionOk, setSessionOk] = useState(false);
   const [password, setPassword] = useState("");
@@ -126,15 +139,36 @@ function ResetPasswordPage() {
 
 
   async function redirectToDashboard() {
-    if (recovery) { await navigate({ to: '/auth', replace: true }); return; }
+    if (recovery) {
+      const choice = loginChoices.length === 1 ? loginChoices[0] : null;
+      if (choice) await navigate({ to: '/$tenantSlug/auth', params: { tenantSlug: choice.slug }, search: { next: `/${choice.slug}/admin` }, replace: true });
+      else await navigate({ to: '/auth', replace: true });
+      return;
+    }
     const pending = await listMyInitialAdminInvitations();
     const destination = pending.length ? "/invitations" : "/admin";
     await navigate({ to: destination, replace: true });
   }
 
+  async function finishRecovery() {
+    const signedOut = await supabase.auth.signOut({ scope: 'global' });
+    if (signedOut.error) throw Error('recovery_signout_failed');
+    clearSelectedTenantId(); clearImpersonationTenantId(); setCurrentTenantId(null);
+    await queryClient.cancelQueries(); queryClient.clear();
+    setDone(true); setFormError(null);
+  }
+
+  async function retrySignout() {
+    if (saving.current) return;
+    saving.current = true; setLoading(true);
+    try { await finishRecovery(); }
+    catch { setFormError('Senha alterada, mas não foi possível encerrar as sessões. Tente encerrar novamente.'); }
+    finally { saving.current = false; setLoading(false); }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (loading || !sessionOk) return;
+    if (saving.current || loading || !sessionOk || passwordSaved) return;
     setFormError(null);
     if (!passwordValid) {
       setFormError("Sua senha deve ter no mínimo 6 caracteres.");
@@ -144,7 +178,9 @@ function ResetPasswordPage() {
       setFormError("As senhas não coincidem.");
       return;
     }
+    saving.current = true;
     setLoading(true);
+    try {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setLoading(false);
@@ -152,14 +188,19 @@ function ResetPasswordPage() {
       return;
     }
     if (recovery) {
-      setPassword(''); setConfirm('');
-      const signedOut = await supabase.auth.signOut({ scope: 'global' });
-      setLoading(false);
-      if (signedOut.error) {
-        setFormError('Senha alterada, mas não foi possível encerrar as sessões. Saia da conta antes de entrar novamente.');
-        return;
-      }
-      setDone(true);
+      setPasswordSaved(true); setPassword(''); setConfirm('');
+      // Only authenticated server-returned memberships become login choices.
+      // These links convey navigation intent, never workspace authority.
+      try {
+        if (await meuAcessoSuperAdmin() !== true) {
+          const choices = await listSelectableTenants();
+          setLoginChoices(choices.filter((choice): choice is typeof choice & {slug: string} =>
+            typeof choice.slug === 'string' && validTenantLoginSlug(choice.slug))
+            .map(choice => ({ slug: choice.slug, name: choice.name })));
+        }
+      } catch { setLoginChoices([]); }
+      try { await finishRecovery(); }
+      catch { setFormError('Senha alterada, mas não foi possível encerrar as sessões. Tente encerrar novamente.'); }
       return;
     }
     const { data: userData } = await supabase.auth.getUser();
@@ -186,7 +227,10 @@ function ResetPasswordPage() {
     }
     toast.success("Senha definida com sucesso. Redirecionando…");
     setDone(true);
-    try { await redirectToDashboard(); } catch { setDone(false); setLoading(false); setFormError("Senha definida. Entre com sua conta para retomar a ativação da empresa."); }
+    try { await redirectToDashboard(); } catch { setDone(false); setFormError("Senha definida. Entre com sua conta para retomar a ativação da empresa."); }
+    } catch {
+      setFormError('Não foi possível confirmar a alteração. Tente entrar com sua nova senha ou solicite outro link.');
+    } finally { saving.current = false; setLoading(false); }
   }
 
   return (
@@ -206,17 +250,28 @@ function ResetPasswordPage() {
                   {recovery ? 'Sua senha foi alterada. Entre novamente com a nova senha.' : 'Você já está autenticado. Redirecionando para o painel…'}
                 </p>
               </div>
-              <Button className="w-full" onClick={() => redirectToDashboard()}>
+              {recovery && loginChoices.length > 1 ? <div className="space-y-3">
+                <p className="text-sm">Escolha a empresa para entrar com a nova senha.</p>
+                {loginChoices.map(choice => <Link key={choice.slug} to="/$tenantSlug/auth" params={{tenantSlug: choice.slug}} search={{next: `/${choice.slug}/admin`}} className="block rounded-md border px-4 py-3">Entrar em {choice.name}</Link>)}
+              </div> : <Button className="w-full" onClick={() => redirectToDashboard()}>
                 {recovery ? 'Entrar com a nova senha' : 'Ir para o painel'}
-              </Button>
+              </Button>}
             </div>
+          ) : passwordSaved ? (
+            <div className="space-y-4">
+              <h1 className="font-display text-3xl">Senha alterada</h1>
+              <p role="alert" className="text-sm text-destructive">{formError}</p>
+              <Button className="w-full" disabled={loading} onClick={retrySignout}>{loading ? 'Encerrando…' : 'Encerrar sessões e voltar ao login'}</Button>
+            </div>
+          ) : !sessionOk && requestNewLink ? (
+            <ForgotPasswordForm onBack={() => setRequestNewLink(false)} />
           ) : !sessionOk ? (
             <div className="space-y-4">
               <h1 className="font-display text-3xl mb-2">Link inválido</h1>
               <p className="text-sm text-muted-foreground">
-                Este link de redefinição é inválido ou já expirou. Solicite um novo
-                acesso ao administrador.
+                Este link de redefinição é inválido ou já expirou. Solicite um novo link e use o e-mail mais recente.
               </p>
+              <Button className="w-full" onClick={() => setRequestNewLink(true)}>Solicitar novo link</Button>
               <Button variant="outline" className="w-full" onClick={() => navigate({ to: "/auth" })}>
                 Ir para Login
               </Button>
@@ -226,7 +281,7 @@ function ResetPasswordPage() {
               <div>
                 <h1 className="font-display text-3xl mb-2">Defina sua senha</h1>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Crie uma senha definitiva para acessar o painel da RM Prime.
+                  Crie uma nova senha e confirme-a para acessar sua conta.
                 </p>
               </div>
               <div>
@@ -299,7 +354,7 @@ function ResetPasswordPage() {
                 </div>
               )}
               <Button type="submit" className="w-full" disabled={loading || !passwordValid || password !== confirm}>
-                {loading ? "Salvando…" : "Salvar senha e entrar"}
+                {loading ? "Salvando…" : recovery ? "Salvar nova senha" : "Salvar senha e entrar"}
               </Button>
             </form>
           )}

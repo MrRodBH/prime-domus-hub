@@ -285,3 +285,50 @@ const guards=await build({entryPoints:['src/lib/public-tenant-read-guards.ts'],b
 const {loadRequiredPublicRootDataForPath}=await import('data:text/javascript;base64,'+Buffer.from(guards.outputFiles[0].text).toString('base64'));
 assert.equal(await loadRequiredPublicRootDataForPath('/rmprime/auth',()=>{throw Error('PUBLIC_CMS_FORBIDDEN')},()=>{throw Error('PUBLIC_TRACKING_FORBIDDEN')}),null);
 console.log('PASS tenant login DOM: contextual copy, same Auth implementation, canonical active membership selection, original deep link restored, platform/wrong/revoked account denied, logout preserves tenant, unsafe return destinations rejected, public CMS bypassed.');
+
+// Standard self-service recovery: actual shared UI, no provider delivery.
+for (const tenantSlug of [undefined, 'rmprime']) {
+ const requests=[];
+ await scenario({tenantSlug,resetPassword:async(email,options)=>{requests.push({email,options});return {data:{},error:null}}}, async ({w,d,until,fill,submit,text,calls,fixture})=>{
+  await until(()=>Array.from(d.querySelectorAll('button')).some(b=>b.textContent==='Esqueci a senha'&&!b.disabled));
+  await fill('email','owner@fixture.invalid');
+  Array.from(d.querySelectorAll('button')).find(b=>b.textContent==='Esqueci a senha').click();
+  await until(()=>!!d.getElementById('recovery-email'));
+  assert.equal(d.getElementById('recovery-email').value,'owner@fixture.invalid');
+  assert.equal(d.querySelector('input[type=password]'),null);
+  await fill('recovery-email','  missing@fixture.invalid  ');
+  await submit(); await until(()=>text().includes('Se houver uma conta'));
+  assert.equal(requests.length,1);assert.equal(requests[0].email,'missing@fixture.invalid');
+  assert.equal(requests[0].options.redirectTo,'https://realone.com.br/reset-password');
+  assert.equal(calls.length,0);assert.equal(fixture.navigation.length,0);
+  await submit();assert.equal(requests.length,1);
+  w.Date.now=()=>Date.now()+61_000;
+  await until(()=>!d.querySelector('button[type=submit]').disabled);
+  await submit();assert.equal(requests.length,2);
+  Array.from(d.querySelectorAll('button')).find(b=>b.textContent==='Voltar ao login').click();
+  await until(()=>!!d.getElementById('password'));
+  assert.equal(d.getElementById('password').value,'');assert.equal(fixture.navigation.length,0);
+ });
+}
+for(const failure of ['rate','network','provider']){
+ let requests=0;
+ await scenario({resetPassword:async()=>{requests++;if(failure==='network')throw Error('private provider detail');return {error:{status:failure==='rate'?429:500,message:'private account details'}}}},async({d,until,fill,submit,text})=>{
+  await until(()=>Array.from(d.querySelectorAll('button')).some(b=>b.textContent==='Esqueci a senha'&&!b.disabled));
+  Array.from(d.querySelectorAll('button')).find(b=>b.textContent==='Esqueci a senha').click();
+  await until(()=>!!d.getElementById('recovery-email'));await fill('recovery-email','valid@fixture.invalid');await submit();
+  await until(()=>!!d.querySelector('[role=alert]'));
+  assert.ok(!text().includes('private'));assert.ok(!text().includes('Se houver uma conta'));
+  await submit();assert.equal(requests,1);
+ });
+}
+const recoveryPending=deferred();let recoveryCalls=0;
+await scenario({resetPassword:()=>{recoveryCalls++;return recoveryPending.promise}},async({w,d,until,fill,submit})=>{
+ await until(()=>Array.from(d.querySelectorAll('button')).some(b=>b.textContent==='Esqueci a senha'&&!b.disabled));
+ Array.from(d.querySelectorAll('button')).find(b=>b.textContent==='Esqueci a senha').click();
+ await until(()=>!!d.getElementById('recovery-email'));await fill('recovery-email','valid@fixture.invalid');
+ await submit();await submit();assert.equal(recoveryCalls,1);assert.ok(d.querySelector('button[type=submit]').disabled);
+ recoveryPending.resolve({error:null});await until(()=>!!d.querySelector('[role=status]'));
+});
+console.log('PASS self-service forgot password: tenant/platform entry, prefilled email, fixed redirect, generic unknown-email result, provider/rate/network errors, duplicate suppression, paced resend and return to unchanged login. No real emails.');
+
+assert.equal(await loadRequiredPublicRootDataForPath('/reset-password',()=>{throw Error('RESET_MUST_NOT_LOAD_CMS')},()=>{throw Error('RESET_MUST_NOT_LOAD_TRACKING')}),null);
