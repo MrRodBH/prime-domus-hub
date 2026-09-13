@@ -2,6 +2,7 @@ const fixture = () => (window as any).__authFixture;
 export const supabase = {
   auth: {
     getUser: () => fixture().getUser(),
+    resetPasswordForEmail: (email: string, options: unknown) => fixture().resetPassword(email, options),
     signInWithPassword: (data: unknown) => fixture().signIn(data),
     signOut: () => fixture().signOut(),
   },
