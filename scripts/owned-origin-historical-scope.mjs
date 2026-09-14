@@ -14,6 +14,8 @@ export const REVIEW_PATHS = Object.freeze([
   'run-pca-05r-prerequisite-closure-manifest-specs.mjs',
   'run-pca-12b-lovable-managed-edge-function-bridge-specs.ts',
   'run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts',
+  'run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts',
+  'run-pca-12c-r6g-public-supabase-vite-binding-specs.ts',
   'run-pca-15r-managed-custody-source-reconciliation-specs.ts',
   'scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs',
   'scripts/owned-origin-historical-scope.mjs',
