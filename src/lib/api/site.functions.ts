@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
-import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { requirePublicTenantFromRequest, resolvePublicTenantFromRequest } from "@/lib/tenant.server";
 import {
   normalizePublicEmbedUrl,
   normalizePublicNavigationUrl,
@@ -13,7 +13,23 @@ import {
 } from "@/lib/storage/signed-url";
 import { loadPublishedConfigurationForTenant } from "@/lib/api/tenant-configuration-authority.server";
 import { normalizeConfigurationSnapshot } from "@/lib/api/configuration-registry";
-import { publicTenantFavicon } from "@/lib/brand-assets";
+import { publicTenantFavicon, tenantLoginBranding } from "@/lib/brand-assets";
+
+// Presentation only: URL slug cannot select a company or grant access.
+export const obterIdentidadeAcessoEmpresa = createServerFn({ method: "GET" })
+  .inputValidator(z.object({ slug: z.string().min(1).max(63).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) }))
+  .handler(async ({ data }) => {
+    const neutral = tenantLoginBranding(null, data.slug);
+    try {
+      const tenant = await resolvePublicTenantFromRequest();
+      if (!tenant || tenant.slug !== data.slug) return neutral;
+      const settings = await obterSiteSettings();
+      return tenantLoginBranding(tenant, data.slug, settings.branding);
+    } catch {
+      // Branding unavailability must not block the existing login flow.
+      return neutral;
+    }
+  });
 
 export interface SiteSettings {
   branding: {

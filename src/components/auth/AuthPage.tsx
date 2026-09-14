@@ -9,7 +9,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { meuAcessoSuperAdmin } from "@/lib/api/super.functions";
 import { useLogout } from "@/components/auth/useLogout";
-import logo from "@/assets/logo-rm-prime.png";
+import type { TenantLoginBranding } from '@/lib/brand-assets';
 import { useQueryClient } from '@tanstack/react-query';
 import { clearSelectedTenantId, setSelectedTenantId } from '@/integrations/supabase/tenant-selection-state';
 import { clearImpersonationTenantId } from '@/integrations/supabase/impersonation-state';
@@ -21,7 +21,7 @@ import { tenantReturnPath } from '@/lib/auth/tenant-login-navigation';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 import { PlatformBrand } from '@/components/brand/PlatformBrand';
 
-export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: string } = {}) {
+export function AuthPage({ tenantSlug, next, branding }: { tenantSlug?: string; next?: string; branding?: TenantLoginBranding } = {}) {
   const navigate = useNavigate();
   const [forgotPassword, setForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -135,7 +135,9 @@ export function AuthPage({ tenantSlug, next }: { tenantSlug?: string; next?: str
     <div data-platform-brand={tenantSlug ? undefined : 'real-one'} className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link to="/" className="flex justify-center mb-10">
-          {tenantSlug ? <img src={logo} alt="RM Prime Imóveis" className="h-40 w-auto" /> : <PlatformBrand />}
+          {tenantSlug ? (branding?.logoUrl
+            ? <img src={branding.logoUrl} alt={branding.name} className="h-40 w-auto" />
+            : <span className="font-display text-3xl">{branding?.name || 'Acesso da empresa'}</span>) : <PlatformBrand />}
         </Link>
         <div className="bg-card border border-foreground/5 rounded-lg p-8 shadow-soft">
           {forgotPassword && !authenticated ? <ForgotPasswordForm initialEmail={email} onBack={() => setForgotPassword(false)} /> : <>
