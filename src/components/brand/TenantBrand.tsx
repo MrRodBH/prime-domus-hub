@@ -1,10 +1,11 @@
+import { tenantPresentationFavicon } from '@/lib/brand-assets';
+
 export type WorkspaceTenantIdentity = { id: string; name: string; slug: string };
 
 // Owner-supplied presentation asset for this verified identity only.
 // This does not resolve a tenant or replace the versioned website CMS favicon.
 export function workspaceTenantMark(tenant?: WorkspaceTenantIdentity | null): string | null {
-  return tenant?.id === '9664d189-4a12-4caa-8243-dc73383447e6'
-    ? '/brand/rmprime-favicon.png' : null;
+  return tenantPresentationFavicon(tenant?.id);
 }
 
 export function TenantBrand({ tenant, collapsed = false }: { tenant?: WorkspaceTenantIdentity | null; collapsed?: boolean }) {

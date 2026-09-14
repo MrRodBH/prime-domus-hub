@@ -13,6 +13,7 @@ import {
 } from "@/lib/storage/signed-url";
 import { loadPublishedConfigurationForTenant } from "@/lib/api/tenant-configuration-authority.server";
 import { normalizeConfigurationSnapshot } from "@/lib/api/configuration-registry";
+import { publicTenantFavicon } from "@/lib/brand-assets";
 
 export interface SiteSettings {
   branding: {
@@ -254,7 +255,7 @@ export async function projectConfigurationToSiteSettings(
       logo_path: primaryLogo?.path ?? null,
       logo_url: primaryLogo?.url ?? null,
       favicon_path: favicon?.path ?? null,
-      favicon_url: favicon?.url ?? null,
+      favicon_url: publicTenantFavicon(tenantId, favicon?.url),
       site_name: stringValue(snapshot, "trade_name") ?? stringValue(snapshot, "short_name"),
     },
     branding_v2: {
