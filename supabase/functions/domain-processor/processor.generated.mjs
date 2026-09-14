@@ -11674,7 +11674,19 @@ async function observeDomainRouting(domain, siblings, env, probe = pinnedHttpsPr
   const expectedLocation = `https://${canonical.normalizedHostname}${path}`;
   const correctStatus = domain.hostnameKind === "alias" ? result.status === 308 && result.location === expectedLocation : result.status === 204 && !result.location;
   if (!correctStatus || result.signature !== expected) {
-    throw new DomainError("domain_provider_unavailable", "HTTPS origin routing proof or canonical redirect is not confirmed", { retryable: true });
+    throw new DomainError("domain_provider_unavailable", "HTTPS origin routing proof or canonical redirect is not confirmed", {
+      retryable: true,
+      // Classification only: never persist the nonce, proof, key or redirect URL.
+      safeDetail: {
+        phase: "https_origin_routing",
+        httpStatus: result.status,
+        expectedStatus: domain.hostnameKind === "alias" ? 308 : 204,
+        responseShapeMatches: correctStatus,
+        proofPresent: typeof result.signature === "string" && result.signature.length > 0,
+        proofMatches: result.signature === expected,
+        redirectPresent: typeof result.location === "string" && result.location.length > 0
+      }
+    });
   }
   return { generation: domain.generation, observedAt: (/* @__PURE__ */ new Date()).toISOString(), canonicalHostname: canonical.normalizedHostname };
 }

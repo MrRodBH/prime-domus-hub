@@ -67,9 +67,19 @@ for(let i=1;i<=3;i++) {
   assert.equal((await observeDomainRouting(d,[canonical],env,goodProbe,addresses)).canonicalHostname,d.normalizedHostname);
   assert.equal((await observeDomainRouting(alias,[canonical],env,goodProbe,addresses)).canonicalHostname,d.normalizedHostname);
   await assert.rejects(()=>observeDomainRouting(alias,[{...domain(i+10),status:'active'}],env,goodProbe,addresses));
-  await assert.rejects(()=>observeDomainRouting(d,[canonical],env,async()=>({status:204,signature:'Live/shared-IP'}),addresses));
+  await assert.rejects(()=>observeDomainRouting(d,[canonical],env,async()=>({status:204,signature:'Live/shared-IP'}),addresses),e=>{
+    assert.equal(e.code,'domain_provider_unavailable');assert.equal(e.retryable,true);
+    assert.deepEqual(e.safeDetail,{phase:'https_origin_routing',httpStatus:204,expectedStatus:204,responseShapeMatches:true,proofPresent:true,proofMatches:false,redirectPresent:false});
+    assert.doesNotMatch(JSON.stringify(e.safeDetail),/Live\/shared-IP|fixture-|domain-[123]|tenant-[123]/);return true;
+  });
+  await assert.rejects(()=>observeDomainRouting(d,[canonical],env,async()=>({status:403}),addresses),e=>{
+    assert.deepEqual(e.safeDetail,{phase:'https_origin_routing',httpStatus:403,expectedStatus:204,responseShapeMatches:false,proofPresent:false,proofMatches:false,redirectPresent:false});return true;
+  });
   await assert.rejects(()=>observeDomainRouting(d,[canonical],env,async()=>{throw Error('CERT_HAS_EXPIRED');},addresses));
-  await assert.rejects(()=>observeDomainRouting(alias,[canonical],env,async(host,path,ip)=>({...await goodProbe(host,path,ip),location:'https://realone.com.br'+path}),addresses));
+  await assert.rejects(()=>observeDomainRouting(alias,[canonical],env,async(host,path,ip)=>({...await goodProbe(host,path,ip),location:'https://realone.com.br'+path}),addresses),e=>{
+    assert.equal(e.safeDetail.proofMatches,true);assert.equal(e.safeDetail.responseShapeMatches,false);assert.equal(e.safeDetail.redirectPresent,true);
+    assert.doesNotMatch(JSON.stringify(e.safeDetail),/nonce|realone|https:/);return true;
+  });
   await assert.rejects(()=>observeDomainRouting(d,[canonical],env,async(host,path,ip)=>({...await goodProbe(host,path,ip),status:302,location:'http://'+host+path}),addresses));
   const stale={...d,generation:2};
   await assert.rejects(()=>observeDomainRouting(stale,[canonical],env,goodProbe,addresses));
