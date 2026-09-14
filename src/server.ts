@@ -1,4 +1,5 @@
 import "./lib/error-capture";
+import { websiteFramePolicy } from "./lib/website-preview-policy";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
@@ -86,14 +87,14 @@ function trackingSecurityHeaders(request: Request, env: unknown): HeadersInit {
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    "frame-ancestors 'none'",
+    websiteFramePolicy(request.url).ancestors,
     "form-action 'self'",
     "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com",
     `connect-src ${[...new Set(connectOrigins)].join(" ")}`,
     `img-src ${[...new Set(imageOrigins)].join(" ")}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "frame-src 'none'",
+    websiteFramePolicy(request.url).source,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "upgrade-insecure-requests",
@@ -101,6 +102,7 @@ function trackingSecurityHeaders(request: Request, env: unknown): HeadersInit {
 
   return {
     "content-security-policy": csp,
+    ...(new URL(request.url).searchParams.get("__preview") === "1" ? { "cache-control": "private, no-store" } : {}),
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-content-type-options": "nosniff",
     "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",

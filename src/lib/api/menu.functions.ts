@@ -20,7 +20,7 @@ export interface MenuItem {
   tipo: "internal" | "external";
 }
 
-function normalizeMenuItems(value: unknown, publicOnly: boolean): MenuItem[] {
+export function normalizeMenuItems(value: unknown, publicOnly: boolean): MenuItem[] {
   if (!Array.isArray(value)) throw new Error("configuration_menu_items_invalid");
   const seen = new Set<string>();
   const rows = value.map((entry, index): MenuItem => {

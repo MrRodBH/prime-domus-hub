@@ -1,105 +1,56 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { obterSiteSettingsPreview, publicarTodosRascunhos } from "@/lib/api/site-versions.functions";
-import { Eye, X, Rocket, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { useRouterState } from "@tanstack/react-router";
+import { getSavedWebsitePreview } from "@/lib/api/site-versions.functions";
+import { buildBrandingCss } from "@/lib/website-branding-css";
 
-/**
- * Fase 2C — Preview ao vivo.
- * Ativado por ?__preview=1 na URL. Sobrepõe rascunhos pendentes no cache
- * de ["site-settings"] em qualquer rota pública, e mostra banner com ações.
- */
+/** The public page renders a private saved snapshot only after server authorization. */
 export function CmsPreviewOverlay() {
   const qc = useQueryClient();
-  const [active, setActive] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-
-  // Detecta o flag na URL após hidratação (browser-only).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const on = new URLSearchParams(window.location.search).get("__preview") === "1";
-    setActive(on);
-  }, []);
-
-  // Carrega drafts overlay e injeta no cache do TanStack Query.
+  const search = useRouterState({ select: state => state.location.searchStr });
+  const active = new URLSearchParams(search).get("__preview") === "1";
+  const [status, setStatus] = useState<"loading" | "draft" | "published" | "error">("loading");
+  const [css, setCss] = useState("");
+  const [fonts, setFonts] = useState<string[]>([]);
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
-    setLoading(true);
-    obterSiteSettingsPreview()
-      .then((data) => {
-        if (cancelled) return;
-        qc.setQueryData(["site-settings"], data);
-        qc.invalidateQueries({ queryKey: ["site-settings"], refetchType: "none" });
-      })
-      .catch((e: Error) => {
-        toast.error("Preview: " + e.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    setStatus("loading");
+    for (const queryKey of [["site-settings"], ["menu-header"]]) {
+      qc.setQueryDefaults(queryKey, { refetchOnWindowFocus: false, refetchOnReconnect: false });
+    }
+    getSavedWebsitePreview().then(async data => {
+      await Promise.all([qc.cancelQueries({ queryKey: ["site-settings"] }), qc.cancelQueries({ queryKey: ["menu-header"] })]);
+      if (cancelled) return;
+      qc.setQueryData(["site-settings"], data.settings);
+      qc.setQueryData(["menu-header"], data.menu);
+      setCss(buildBrandingCss(data.settings.branding_v2));
+      setFonts([data.settings.branding_v2.font_primary, data.settings.branding_v2.font_secondary].filter((font): font is string => !!font));
+      setStatus(data.source);
+    }).catch(() => { if (!cancelled) setStatus("error"); });
     return () => {
       cancelled = true;
+      for (const queryKey of [["site-settings"], ["menu-header"]]) {
+        qc.setQueryDefaults(queryKey, { refetchOnWindowFocus: true, refetchOnReconnect: true });
+        void qc.resetQueries({ queryKey });
+      }
     };
   }, [active, qc]);
-
   if (!active) return null;
-
-  const exit = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("__preview");
-    window.location.href = url.toString();
-  };
-
-  const publishAll = async () => {
-    setPublishing(true);
-    try {
-      const res = await publicarTodosRascunhos();
-      toast.success(`${res.count} rascunho(s) publicado(s).`);
-      // Recarrega em modo normal para refletir estado final.
-      const url = new URL(window.location.href);
-      url.searchParams.delete("__preview");
-      window.location.href = url.toString();
-    } catch (e) {
-      toast.error((e as Error).message);
-      setPublishing(false);
-    }
-  };
-
-  return (
-    <>
-      {/* espaçador para o banner fixo não cobrir header */}
-      <div aria-hidden className="h-11" />
-      <div
-        role="status"
-        className="fixed top-0 inset-x-0 z-[100] bg-amber-500 text-amber-950 shadow-md"
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 h-11 text-sm">
-          <div className="flex items-center gap-2 font-medium">
-            <Eye className="size-4" />
-            <span>Modo Rascunho — visualizando alterações não publicadas</span>
-            {loading && <Loader2 className="size-3.5 animate-spin" />}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={publishAll}
-              disabled={publishing || loading}
-              className="inline-flex items-center gap-1.5 rounded bg-amber-950 text-amber-50 px-3 py-1 text-xs font-medium hover:bg-amber-900 disabled:opacity-60"
-            >
-              {publishing ? <Loader2 className="size-3.5 animate-spin" /> : <Rocket className="size-3.5" />}
-              Publicar tudo
-            </button>
-            <button
-              onClick={exit}
-              className="inline-flex items-center gap-1 rounded border border-amber-950/30 px-2.5 py-1 text-xs font-medium hover:bg-amber-400"
-            >
-              <X className="size-3.5" />
-              Sair
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+  if (status === "loading" || status === "error") return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background p-6" role={status === "error" ? "alert" : "status"}>
+    <div className="max-w-lg space-y-4 text-center">
+      <p>{status === "loading" ? "Carregando a prévia privada do website…" : "Não foi possível carregar o rascunho. Entre com uma conta autorizada desta empresa e tente novamente."}</p>
+      {status === "error" && <><a className="mr-4 underline" href="/auth?next=%2F%3F__preview%3D1" target="_top">Entrar na empresa</a><button className="underline" onClick={() => window.location.reload()}>Tentar novamente</button></>}
+      <p><a href="/" className="underline" target="_top">Ver site publicado</a></p>
+    </div>
+  </div>;
+  return <>
+    {css && <style>{css}</style>}
+    {fonts.length > 0 && <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?${[...new Set(fonts)].map(font => `family=${encodeURIComponent(font)}:wght@400;500;600;700`).join('&')}&display=swap`} />}
+    <div aria-hidden className="h-14" />
+    <div role="status" className="fixed inset-x-0 top-0 z-[100] flex min-h-14 flex-wrap items-center justify-between gap-2 bg-amber-500 px-4 py-2 text-sm text-amber-950">
+      <span>{status === "draft" ? "Prévia do rascunho salvo — alterações ainda não publicadas" : "Versão publicada — nenhum rascunho salvo"}</span>
+      <a href="/" target="_top" className="underline">Sair da prévia</a>
+    </div>
+  </>;
 }

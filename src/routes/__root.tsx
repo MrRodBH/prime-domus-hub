@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { buildBrandingCss } from "../lib/website-branding-css";
 import appCss from "../styles.css?url";
 import { PLATFORM_NAME, PLATFORM_FAVICON } from "../lib/brand-assets";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -196,29 +197,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-function buildBrandingCss(
-  bv2: Record<string, string | undefined | null> | undefined | null,
-): string {
-  if (!bv2) return "";
-  const map: Record<string, string> = {
-    color_primary: "--primary",
-    color_secondary: "--secondary",
-    color_accent: "--accent",
-    color_button: "--ring",
-    color_link: "--gold",
-  };
-  const decls: string[] = [];
-  for (const [k, v] of Object.entries(map)) {
-    const val = bv2[k];
-    if (val && typeof val === "string" && val.trim()) decls.push(`${v}: ${val.trim()};`);
-  }
-  if (bv2.font_primary)
-    decls.push(`--font-sans: "${bv2.font_primary}", ui-sans-serif, system-ui, sans-serif;`);
-  if (bv2.font_secondary)
-    decls.push(`--font-display: "${bv2.font_secondary}", ui-serif, Georgia, serif;`);
-  if (!decls.length) return "";
-  return `:root{${decls.join("")}}`;
-}
 
 function RootShell({ children }: { children: ReactNode }) {
   const loaderData = Route.useLoaderData();
@@ -243,22 +221,23 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const loaderData = Route.useLoaderData();
   const router = useRouter();
+  const preview = new URLSearchParams(router.state.location.searchStr).get("__preview") === "1";
 
   useEffect(() => {
-    if (loaderData.tenantIndependent) return;
+    if (loaderData.tenantIndependent || preview) return;
     import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
     return router.subscribe("onResolved", () => {
       import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
     });
-  }, [loaderData.tenantIndependent, router]);
+  }, [loaderData.tenantIndependent, preview, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
       {loaderData.tenantIndependent ? null : <CmsPreviewOverlay />}
       <Outlet />
       {loaderData.tenantIndependent ? null : <WhatsAppFab />}
-      {loaderData.tenantIndependent ? null : <CampaignRenderer />}
-      {loaderData.tenantIndependent ? null : (
+      {loaderData.tenantIndependent || preview ? null : <CampaignRenderer />}
+      {loaderData.tenantIndependent || preview ? null : (
         <PublicTrackingRuntime snapshot={loaderData.tracking} />
       )}
       <Toaster />

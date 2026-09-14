@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { normalizeMenuItems } from "./menu.functions";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import {
   authorizeTenantConfigurationOperation,
@@ -91,3 +93,17 @@ export const obterSiteSettingsPreview = createServerFn({ method: "GET" })
 export const publicarTodosRascunhos = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .handler(async (): Promise<{ count: number }> => retiredMutation());
+
+/** Private saved configuration preview, tied to both session and authoritative host. */
+export const getSavedWebsitePreview = createServerFn({ method: "GET" })
+  .middleware([requireTenant])
+  .handler(async ({ context }) => {
+    const state = await loadTenantConfigurationState(trusted(context), "visualizar");
+    const hostTenant = await requirePublicTenantFromRequest();
+    if (hostTenant.id !== state.tenantId) throw new Error("website_preview_tenant_mismatch");
+    return {
+      settings: await projectConfigurationToSiteSettings(state.tenantId, state.effectiveSnapshot),
+      menu: normalizeMenuItems(state.effectiveSnapshot.menu_items, true),
+      source: state.draft ? "draft" as const : "published" as const,
+    };
+  });
