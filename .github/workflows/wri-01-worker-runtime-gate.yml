@@ -14,6 +14,7 @@ on:
       - "src/lib/runtime/**"
       - "src/types/cloudflare-runtime.d.ts"
       - "scripts/verify-wri-01-worker-bundle.mjs"
+      - "scripts/verify-owned-origin-workerd.mjs"
       - "scripts/materialize-wrangler-config.mjs"
       - "scripts/verify-release.mjs"
       - "run-wri-01-cloudflare-worker-runtime-specs.ts"
@@ -131,6 +132,9 @@ jobs:
 
       - name: Compiled Worker bundle audit
         run: bun run wri01:bundle-audit
+
+      - name: Owned-origin compiled application isolation proof
+        run: node scripts/verify-owned-origin-workerd.mjs
 
       - name: Preserve bundle-audit diagnostics
         if: always()
