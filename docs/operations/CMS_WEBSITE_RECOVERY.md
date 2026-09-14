@@ -53,9 +53,18 @@ Owner acceptance: reload the tenant admin; confirm `Imóveis`/`Marketing`; open 
 | `src/server.ts` | Same-origin preview framing and private/no-store HTML; other security headers preserved. |
 | `supabase/migrations/20260914210012_7fdd3240-0b97-4fdd-8c5e-9cc92af6d9ba.sql` | Exact applied six-writer correction, no tenant data or ACL mutation. |
 | `run-cms-website-recovery-specs.mjs` | Actual wizard DOM and private-preview handler under controlled authority/failure fixtures. |
+| `run-round-47-plan-address-specs.mjs` | Supply the actual extracted framing-policy dependency to the existing CSP runtime test; preserve every postal/security assertion. |
 | `run-round-56-approved-navigation-specs.mjs` | Explicit owner-approved tenant label assertions; existing suite retained. |
 | `run-pr-m2-analytics-tracking-conversion-events-functional-completion-specs.ts` | Test default frame denial and narrowly bounded preview exception. |
 | `.github/workflows/cms-website-recovery.yml` | Execute focused tests, typecheck and build at PR head. |
 | `run-pca-05r-prerequisite-closure-manifest-specs.mjs` | Explicit migration classification, exact counts and changed-migration guard. |
 | `docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json` | Generated exact hash inventory; preserves historical rehearsal. |
 | `docs/operations/CMS_WEBSITE_RECOVERY.md` | Impact, evidence, file reasons and concrete acceptance path. |
+
+## Transfer hold and remaining evidence
+
+Automatic approval review rejected the attempted upload of `cms-correction-overlay.json.xz` (17 files) to the protected Lovable project's file storage. Reason: prior explicit transfer authorization covers the eight PR #287 files and four build files, not the thirteen new CMS source files. No alternate transfer or native-code reconstruction was used to bypass the rejection. No new UI publication or Worker version was created in this cycle. Database correction above is applied; UI correction remains in GitHub pending this specific transfer authorization.
+
+Archive SHA-256: `25dd41185a4c7079a3171c0cdb3ff66f1d337e31d27cb11117805026daa6a222`. Canonical application source fingerprint: `5115717eb4d2207ea831db50fe60070b234d4bd77abd7fb488e54d6509c34b02` (684 files). The thirteen source files are the thirteen `src/` entries in the file-justification table; the four build-only files are `package.json`, `bun.lock`, `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, unchanged from the canonical build contract. They must only overlay the isolated Worker build, not replace the protected project's managed integration files.
+
+Initial CI surfaced a test-harness missing dependency in round47 after extracting the frame policy; it is corrected by loading the real policy, without changing any assertion. The two broad release jobs also reached a previously hidden historical PCA-12B locked-source mismatch: `supabase/config.toml` expected SHA-256 `7d405383925631b3bd8b4f5be82b85370316407c631f5a2374d1cec29cbab020`, current `deaf7d50c74a24a1af7fe8f7d490cdde1607ae64c8954b92cc2b37473ee0a48e`. That file and the PCA-12B source locks are unchanged by this PR. Do not revise historical hashes or revert approved domain configuration merely to mark this gate green. This PR must not be represented as all-CI-green or ready to merge while those jobs fail.
