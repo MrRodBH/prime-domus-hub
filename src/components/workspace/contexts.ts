@@ -56,7 +56,7 @@ export const CONTEXTS: WorkspaceContext[] = [
   },
   {
     id: "catalogo",
-    label: "Catálogo",
+    label: "Imóveis",
     icon: Building2,
     root: "/admin/imoveis",
     matches: ["/admin/imoveis", "/admin/lancamentos"],
@@ -95,7 +95,7 @@ export const CONTEXTS: WorkspaceContext[] = [
   },
   {
     id: "distribuicao",
-    label: "Distribuição",
+    label: "Marketing",
     icon: Radio,
     root: "/admin/portais",
     // Predecessor evidence retained verbatim: matches: ["/admin/portais", "/admin/marketing"]

@@ -8,6 +8,8 @@ assert.ok(SUPER_NAVIGATION.every(c=>c.root.startsWith('/super')&&c.subs.length==
 for(const item of SUPER_NAVIGATION){const active=SUPER_NAVIGATION.filter(c=>workspaceItemActive(c,item.root,item.search??{}));assert.deepEqual(active.map(c=>c.label),[item.label]);}
 assert.deepEqual(SUPER_NAVIGATION.filter(c=>workspaceItemActive(c,'/super',{})).map(c=>c.label),['Dashboard']);
 assert.ok(!workspaceContexts(false,null).some(c=>c.superOnly));
+assert.equal(CONTEXTS.find(c=>c.id==='catalogo').label,'Imóveis');
+assert.equal(CONTEXTS.find(c=>c.id==='distribuicao').label,'Marketing');
 const adminContext=CONTEXTS.find(c=>c.id==='administracao');
 assert.equal(adminContext.root,'/admin/memberships');
 assert.deepEqual(adminContext.subs.slice(0,2),[{label:'Usuários e acessos',to:'/admin/memberships'},{label:'Perfis e permissões',to:'/admin/perfis'}]);

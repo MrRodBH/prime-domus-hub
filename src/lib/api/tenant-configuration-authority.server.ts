@@ -186,11 +186,15 @@ export function safeTenantConfigurationError(error: unknown): Error {
     : typeof error === "object" && error !== null && "message" in error
       ? String((error as { message?: unknown }).message ?? "")
       : String(error ?? "");
+  if (typeof error === "object" && error !== null && "code" in error && error.code === "42883") {
+    return new Error("O serviço de gravação precisa de uma correção no servidor (CMS-42883). Suas alterações não foram salvas; mantenha esta tela aberta e informe este código ao administrador.");
+  }
   const known: Array<[string, string]> = [
+    ["tenant_configuration_authority_denied", "Sua conta não tem autorização para esta operação no website da empresa."],
     ["tenant_configuration_visualizar_denied", "Acesso negado à configuração do tenant."],
     ["tenant_configuration_editar_denied", "O usuário não possui permissão global para editar a configuração."],
     ["tenant_configuration_publicar_denied", "O usuário não possui permissão global para publicar a configuração."],
-    ["super_admin_requires_impersonation", "Super Admin precisa de impersonação explícita para operar a configuração do tenant."],
+    ["super_admin_requires_impersonation", "Entre com uma conta autorizada da empresa para editar seu website. A conta da plataforma não opera o conteúdo do tenant."],
     ["configuration_revision_conflict", "A configuração foi alterada por outra operação. Recarregue antes de continuar."],
     ["configuration_draft_not_found", "Nenhum rascunho válido foi encontrado."],
     ["configuration_version_not_found", "A versão selecionada não pertence ao tenant."],

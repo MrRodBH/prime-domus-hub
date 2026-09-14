@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Json } from "@/integrations/supabase/types";
 import { requireTenant } from "@/integrations/supabase/tenant-middleware";
 import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
+import { websitePreviewTarget } from "@/lib/website-preview-policy";
 import {
   CONFIGURATION_DOMAINS,
   CONFIGURATION_REGISTRY,
@@ -112,6 +113,14 @@ export const getPublishedPublicConfiguration = createServerFn({ method: "GET" })
 export const getTenantConfigurationDraft = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }) => stateDto(await loadTenantConfigurationState(trusted(context), "visualizar")));
+
+export const getTenantWebsitePreviewTarget = createServerFn({ method: "GET" })
+  .middleware([requireTenant])
+  .handler(async ({ context }) => {
+    const { tenantId } = await authorizeTenantConfigurationOperation(trusted(context), "visualizar");
+    const { listTenantDomains } = await import("@/lib/domains/domain-repository.server");
+    return { url: websitePreviewTarget(tenantId, await listTenantDomains(tenantId)) };
+  });
 
 export const saveTenantConfigurationDraft = createServerFn({ method: "POST" })
   .middleware([requireTenant])

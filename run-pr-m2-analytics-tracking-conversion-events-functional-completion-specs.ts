@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { websiteFramePolicy } from "./src/lib/website-preview-policy";
 import { readFileSync } from "node:fs";
 import {
   TRACKING_AVAILABILITY_STATES, TRACKING_CONSENT_CATEGORIES, TRACKING_EVENT_KEYS,
@@ -111,7 +112,7 @@ for (const token of ["requireTenantScopedAuthority", "resolveEffectiveTenantPerm
 for (const token of [".rpc(\"has_role\"", ".from(\"user_roles\")", "ORDER BY", "LIMIT 1"]) lacks(files.authority, token);
 for (const token of ["middleware([requireTenant])", "authorizeTenantTrackingOperation", "listTenantTrackingProviders", "saveTenantTrackingConnectorDraft", "publishTenantTrackingConnector", "assertTrackingProviderPublishable", "disableTenantTrackingConnector", "saveTenantTrackingEventBindings", "previewTenantTrackingRuntime", "saveTenantTrackingConsentConfiguration", "listTenantTrackingDiagnostics", "getTenantTrackingHealth", "getPublicTrackingSnapshot", "requirePublicTenantFromRequest", ".eq(\"tenant_id\", tenant.id)", "public_tracking_provider_configuration_ambiguous", "definition.availabilityState === \"csp_blocked\"", "fakeProviderDelivery: false"]) has(files.functions, token);
 for (const token of ["tenantId: z.string", "tenant_id: z.string", "actorUserId: z.string", "actor_user_id: z.string", "fetch(", "event_delivered", "conversion_received", "provider_verified"]) lacks(files.functions, token);
-for (const token of ["content-security-policy", "script-src 'self' 'unsafe-inline'", "https://connect.facebook.net", "https://www.googletagmanager.com", "https://www.google-analytics.com", "strict-origin-when-cross-origin", "x-content-type-options", "frame-ancestors 'none'"]) has(files.server, token);
+for (const token of ["content-security-policy", "script-src 'self' 'unsafe-inline'", "https://connect.facebook.net", "https://www.googletagmanager.com", "https://www.google-analytics.com", "strict-origin-when-cross-origin", "x-content-type-options", "websiteFramePolicy(request.url).ancestors"]) has(files.server, token);
 for (const token of ["unsafe-eval", "https://*", "http://*", "script-src *", "connect-src *", "img-src *"]) lacks(files.server, token);
 
 // Legacy path and functional UI.
@@ -150,3 +151,10 @@ for (const token of ["PR-M2 — Analytics, tracking and conversion events functi
 ok(assertions >= 240, `expected broad deterministic coverage, got ${assertions}`);
 console.log(`PR_M2_ANALYTICS_TRACKING_CONVERSION_EVENTS_SPEC_ASSERTIONS=${assertions}`);
 console.log("PR_M2_ANALYTICS_TRACKING_CONVERSION_EVENTS_SPECS=PASS");
+
+for (const path of ["/", "/admin", "/rmprime/admin/site", "/?__preview=0", "/imoveis?__preview=1"]) {
+  equal(websiteFramePolicy(`https://tenant.invalid${path}`).ancestors, "frame-ancestors 'none'", "ordinary pages deny framing");
+}
+equal(websiteFramePolicy("https://tenant.invalid/?__preview=1").ancestors, "frame-ancestors 'self'", "private preview allows same origin only");
+equal(websiteFramePolicy("https://tenant.invalid/rmprime/admin/site").source, "frame-src 'self'", "admin cannot frame another tenant");
+equal(websiteFramePolicy("https://tenant.invalid/").source, "frame-src 'none'", "public page cannot frame arbitrary content");

@@ -390,10 +390,13 @@ const headerSource = serverSource.slice(
   serverSource.indexOf("function applyTrackingSecurityHeaders"),
 );
 const headerJs = await transform(headerSource, { loader: "ts" });
+const frameBundle = await build({entryPoints:["src/lib/website-preview-policy.ts"],bundle:true,write:false,format:"esm",platform:"node"});
+const {websiteFramePolicy} = await import(`data:text/javascript;base64,${Buffer.from(frameBundle.outputFiles[0].text).toString("base64")}`);
 const headersFor = new Function(
   "isCloudflareRuntimeRequest",
+  "websiteFramePolicy",
   headerJs.code + "; return trackingSecurityHeaders;",
-)(() => true);
+)(() => true, websiteFramePolicy);
 for (const path of ["/auth", "/super", "/super?view=tenants", "/super/", "/demonstracao", "/demonstracao/", "/", "/admin", "/demonstracao-outra"]) {
   const csp = headersFor(new Request("https://example.test" + path), {})["content-security-policy"];
   const connect = csp.split(";").find((part) => part.trim().startsWith("connect-src"));

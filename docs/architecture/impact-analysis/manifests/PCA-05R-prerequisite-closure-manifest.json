@@ -6,10 +6,10 @@
   "status": "FAIL_CLOSED_SYNTHETIC_SUBSTRATE_BUNDLE_REQUIRED",
   "authority": "PROTECTED_GITHUB_MAIN_ONLY",
   "counts": {
-    "repositoryMigrationFiles": 134,
+    "repositoryMigrationFiles": 138,
     "prerequisiteCandidates": 105,
     "approvedRehearsalMigrations": 17,
-    "excludedAfterPrelude": 12,
+    "excludedAfterPrelude": 16,
     "wholeFileReplayBlockers": 3,
     "prerequisiteFilesWithoutExplicitTransactions": 104
   },
@@ -1439,6 +1439,30 @@
     }
   ],
   "excluded": [
+    {
+      "path": "supabase/migrations/20260914210012_7fdd3240-0b97-4fdd-8c5e-9cc92af6d9ba.sql",
+      "sha256": "a1ff70ab57dd2032686852613c0fbb06d7a24964a1ae21e422b2d97e00fde5a9",
+      "reason": "POST_REHEARSAL_CMS_DIGEST_SCHEMA_CORRECTION",
+      "disposition": "EXCLUDED_FROM_PCA05R_CELL"
+    },
+    {
+      "path": "supabase/migrations/20260911221612_dcb4669a-310b-44e8-87d0-090d7386a3a2.sql",
+      "sha256": "3d6cf98ef31fc4f6901d2330e767e95a237faa899d085a33ca349ecea3fbac72",
+      "reason": "POST_REHEARSAL_WEBSITE_CONFIGURATION_VALIDATION",
+      "disposition": "EXCLUDED_FROM_PCA05R_CELL"
+    },
+    {
+      "path": "supabase/migrations/20260912172053_support_admin_recovery.sql",
+      "sha256": "076f46f6c921b00364b97b749ddc7c8f631b06fe045e119b3f60cfb0dc81bda2",
+      "reason": "POST_REHEARSAL_SUPPORT_ADMIN_RECOVERY",
+      "disposition": "EXCLUDED_FROM_PCA05R_CELL"
+    },
+    {
+      "path": "supabase/migrations/20260913170940_tenant_user_administration.sql",
+      "sha256": "ce5866acc2f108bc29d7d5c6e67bd0f6cdc054b5b1bb51e86a80f96b484b8640",
+      "reason": "POST_REHEARSAL_TENANT_USER_ADMINISTRATION",
+      "disposition": "EXCLUDED_FROM_PCA05R_CELL"
+    },
     {
       "path": "supabase/migrations/20260910150013_sequential_initial_admin_setup.sql",
       "sha256": "004960c4124ae45b7b7c5ada8148f5b2e2aa8759ee7066313693892487645385",
