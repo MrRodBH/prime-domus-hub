@@ -10,7 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import faviconAsset from "../assets/favicon.png.asset.json";
+import { PLATFORM_NAME, PLATFORM_FAVICON } from "../lib/brand-assets";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { structuredLog } from "../lib/structured-log";
 import { loadRequiredPublicRootDataForPath } from "../lib/public-tenant-read-guards";
@@ -104,11 +104,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     if (!publicRootData) {
       return {
         tenantIndependent: true as const,
-        faviconUrl: null,
+        faviconUrl: PLATFORM_FAVICON,
         tracking: null,
         brandingV2: {},
         seoGlobal: {},
-        siteName: "RM Prime Imóveis",
+        siteName: PLATFORM_NAME,
       };
     }
 
@@ -120,20 +120,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       tracking,
       brandingV2: settings.branding_v2 ?? {},
       seoGlobal: settings.seo_global ?? {},
-      siteName: settings.branding.site_name || "RM Prime Imóveis",
+      siteName: settings.branding.site_name || "Imóveis",
     };
   },
   head: ({ loaderData }) => {
     const seo = (loaderData?.seoGlobal ?? {}) as Record<string, string | undefined>;
     const bv2 = (loaderData?.brandingV2 ?? {}) as Record<string, string | undefined>;
-    const title = seo.default_title || "RM Prime Imóveis — Alto padrão em Belo Horizonte";
+    const platform = loaderData?.tenantIndependent !== false;
+    const siteName = loaderData?.siteName || (platform ? PLATFORM_NAME : "Imóveis");
+    const title = platform ? PLATFORM_NAME : seo.default_title || siteName;
     const description =
-      seo.default_description ||
-      "Boutique imobiliária especializada em imóveis de alto padrão em Belo Horizonte: Lourdes, Belvedere, Vila da Serra e Funcionários.";
+      platform ? "Real One — gestão da plataforma imobiliária." : seo.default_description || "";
+    const favicon = loaderData?.faviconUrl || (platform ? PLATFORM_FAVICON : null);
     const links: Array<Record<string, unknown>> = [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: loaderData?.faviconUrl ?? faviconAsset.url },
-      { rel: "apple-touch-icon", href: loaderData?.faviconUrl ?? faviconAsset.url },
+      ...(favicon ? [{ rel: "icon", href: favicon }] : []),
+      ...(!platform && favicon ? [{ rel: "apple-touch-icon", href: favicon }] : []),
     ];
     const fontFamilies: string[] = [];
     if (bv2.font_primary) fontFamilies.push(`${bv2.font_primary}:wght@400;500;600;700`);
@@ -163,7 +165,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           ? [{ name: "keywords", content: seo.keywords } as Record<string, string>]
           : []),
         { property: "og:type", content: "website" },
-        { property: "og:site_name", content: loaderData?.siteName || "RM Prime Imóveis" },
+        { property: "og:site_name", content: siteName },
         { property: "og:locale", content: "pt_BR" },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
@@ -174,13 +176,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { name: "theme-color", content: bv2.color_primary || "#0b3a3a" },
       ],
       links,
-      scripts: [
+      scripts: platform ? [] : [
         {
           type: "application/ld+json",
           children: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "RealEstateAgent",
-            name: loaderData?.siteName || "RM Prime Imóveis",
+            name: siteName,
             description,
             areaServed: ["Belo Horizonte", "Nova Lima", "Minas Gerais"],
           }),
