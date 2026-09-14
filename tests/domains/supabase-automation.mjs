@@ -86,6 +86,32 @@ assert.equal((await transport.pinnedHttpsProbe('fixture.com',DOMAIN_PROBE_PATH+'
 assert.equal(observedOptions.rejectUnauthorized,true);assert.equal(observedOptions.servername,'fixture.com');assert.equal(observedOptions.agent,false);
 observedOptions.lookup('fixture.com',{},(_,ip,family)=>{assert.equal(ip,'104.16.1.1');assert.equal(family,4);});
 
+// Exercise the actual managed-runtime transport, where node custom lookup throws.
+const probePath=DOMAIN_PROBE_PATH+'?nonce='+'a'.repeat(64);
+let tcpOptions,tlsOptions,written='',closes=0,handshakes=0,readOffset=0;
+let wire='HTTP/1.1 204 No Content\r\nX-Rm-Prime-Routing-Proof: signed\r\n\r\n';
+const socket={close(){closes++;},async handshake(){handshakes++;},async write(bytes){const count=Math.min(7,bytes.length);written+=new TextDecoder().decode(bytes.subarray(0,count));return count;},async read(bytes){const data=new TextEncoder().encode(wire);if(readOffset===data.length)return null;const count=Math.min(11,bytes.length,data.length-readOffset);bytes.set(data.subarray(readOffset,readOffset+count));readOffset+=count;return count;}};
+globalThis.Deno={async connect(options){tcpOptions=options;return socket;},async startTls(connection,options){assert.equal(connection,socket);tlsOptions=options;return socket;}};
+try {
+  assert.deepEqual(await transport.pinnedHttpsProbe('fixture.com',probePath,'104.16.1.1'),{status:204,signature:'signed',location:undefined});
+  assert.deepEqual(tcpOptions,{hostname:'104.16.1.1',port:443,transport:'tcp'});
+  assert.deepEqual(tlsOptions,{hostname:'fixture.com',alpnProtocols:['http/1.1']});
+  assert.equal(handshakes,1);assert.ok(closes>0);
+  assert.equal(written,`GET ${probePath} HTTP/1.1\r\nHost: fixture.com\r\nConnection: close\r\n\r\n`);
+  for(const response of [
+    'HTTP/1.1 204 OK\r\nX-Rm-Prime-Routing-Proof: first\r\nx-rm-prime-routing-proof: second\r\n\r\n',
+    'HTTP/1.1 204 OK\r\n folded: rejected\r\n\r\n',
+    'HTTP/1.1 204 OK\r\nX-Large: '+'x'.repeat(8192),
+    'HTTP/1.1 204 OK\r\nIncomplete: yes',
+  ]) {wire=response;readOffset=0;await assert.rejects(()=>transport.pinnedHttpsProbe('fixture.com',probePath,'104.16.1.1'));}
+  wire='HTTP/1.1 308 Permanent Redirect\r\nLocation: https://other-company.com/\r\n\r\n';readOffset=0;
+  assert.equal((await transport.pinnedHttpsProbe('fixture.com',probePath,'104.16.1.1')).location,'https://other-company.com/'); // Observation never follows it; tenant contract rejects it above.
+  await assert.rejects(()=>transport.pinnedHttpsProbe('fixture.com',probePath+'\r\nInjected: yes','104.16.1.1'));
+  written='';globalThis.Deno.startTls=async()=>{throw new Error('invalid peer certificate: NotValidForName');};
+  await assert.rejects(()=>transport.pinnedHttpsProbe('fixture.com',probePath,'104.16.1.1'),/NotValidForName/);assert.equal(written,'');
+  globalThis.Deno={};await assert.rejects(()=>transport.pinnedHttpsProbe('fixture.com',probePath,'104.16.1.1'),/lacks verified TLS/);
+} finally {delete globalThis.Deno;}
+
 // Actual proof responder resolves exact hostname from server DB, never incoming tenant/forwarded headers.
 let proofDomain=domain(1),rows=[],proofVerified=true;
 globalThis.proofRepo={

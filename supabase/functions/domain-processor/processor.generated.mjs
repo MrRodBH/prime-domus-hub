@@ -11558,9 +11558,85 @@ async function routingSignature(domain, canonicalHostname, nonce, secret) {
 }
 
 // src/lib/domains/domain-https-observation.server.ts
+async function denoPinnedProbe(deno, hostname, path, ip) {
+  let connection;
+  let expired = false;
+  const close = () => {
+    try {
+      connection?.close();
+    } catch {
+    }
+  };
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      expired = true;
+      close();
+      reject(new Error("routing_probe_timeout"));
+    }, 1e4);
+  });
+  const operation = (async () => {
+    try {
+      connection = await deno.connect({ hostname: ip, port: 443, transport: "tcp" });
+      if (expired) throw new Error("routing_probe_timeout");
+      connection = await deno.startTls(connection, { hostname, alpnProtocols: ["http/1.1"] });
+      if (expired) throw new Error("routing_probe_timeout");
+      await connection.handshake?.();
+      const request = new TextEncoder().encode(`GET ${path} HTTP/1.1\r
+Host: ${hostname}\r
+Connection: close\r
+\r
+`);
+      for (let offset = 0; offset < request.length; ) {
+        const written = await connection.write(request.subarray(offset));
+        if (written <= 0) throw new Error("routing_probe_write_failed");
+        offset += written;
+      }
+      const bytes = new Uint8Array(8192);
+      let length = 0;
+      while (length < bytes.length) {
+        const count = await connection.read(bytes.subarray(length));
+        if (count === null || count === 0) throw new Error("routing_probe_incomplete_headers");
+        length += count;
+        const header = new TextDecoder("ascii").decode(bytes.subarray(0, length));
+        const end = header.indexOf("\r\n\r\n");
+        if (end < 0) continue;
+        const lines = header.slice(0, end).split("\r\n");
+        const status = /^HTTP\/1\.[01] ([2-5][0-9]{2})(?: |$)/.exec(lines.shift() ?? "");
+        if (!status) throw new Error("routing_probe_invalid_status");
+        const fields = /* @__PURE__ */ new Map();
+        for (const line of lines) {
+          const field = /^([!#$%&'*+.^_`|~0-9A-Za-z-]+):[ \t]*([^\r\n]*)$/.exec(line);
+          if (!field) throw new Error("routing_probe_invalid_header");
+          const name = field[1].toLowerCase();
+          if (name !== "location" && name !== "x-rm-prime-routing-proof") continue;
+          if (fields.has(name)) throw new Error("routing_probe_ambiguous_header");
+          fields.set(name, field[2].trim());
+        }
+        return { status: Number(status[1]), signature: fields.get("x-rm-prime-routing-proof"), location: fields.get("location") };
+      }
+      throw new Error("routing_probe_headers_too_large");
+    } finally {
+      close();
+    }
+  })();
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    clearTimeout(timer);
+    close();
+  }
+}
 async function pinnedHttpsProbe(hostname, path, ip) {
-  if (!isPublicIpv4(ip) || !/^[a-z0-9.-]+$/.test(hostname) || !path.startsWith(DOMAIN_PROBE_PATH + "?nonce=")) {
+  if (!isPublicIpv4(ip) || !/^[a-z0-9.-]+$/.test(hostname) || !path.startsWith(DOMAIN_PROBE_PATH + "?nonce=") || !/^[0-9a-f]{64}$/.test(path.slice((DOMAIN_PROBE_PATH + "?nonce=").length))) {
     throw new DomainError("domain_provider_configuration_invalid", "Unsafe HTTPS probe target");
+  }
+  const deno = globalThis.Deno;
+  if (deno) {
+    if (typeof deno.connect !== "function" || typeof deno.startTls !== "function") {
+      throw new DomainError("domain_external_prerequisite_missing", "Managed runtime lacks verified TLS socket transport");
+    }
+    return denoPinnedProbe(deno, hostname, path, ip);
   }
   return new Promise((resolve, reject) => {
     const req = httpsRequest({
