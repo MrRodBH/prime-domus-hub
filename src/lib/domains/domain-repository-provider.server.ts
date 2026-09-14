@@ -110,6 +110,12 @@ export async function getProviderAccountForDomain(domain: TenantDomainRecord): P
     // DCA-02 SQL uses this map for DELIVERY zones. Customer DNS is distinct.
     const zoneId = zones[domain.registrableDomain];
     const customer = objectValue(objectValue(capabilities.customer_dns_zones)[domain.registrableDomain]);
+    // objectValue is a diagnostic sanitizer and redacts credential_reference.
+    // Read only a validated env pointer from the private configuration; never
+    // relax the sanitizer or accept an inline credential as runtime authority.
+    const rawReference = row.capabilities?.customer_dns_zones?.[domain.registrableDomain]?.credential_reference;
+    const customerReference = typeof rawReference === "string" && /^env:[A-Z][A-Z0-9_]{2,127}$/.test(rawReference)
+      ? rawReference : undefined;
     return typeof zoneId === "string" && zoneId.length > 0
       ? [{
           id: row.id as string,
@@ -118,7 +124,7 @@ export async function getProviderAccountForDomain(domain: TenantDomainRecord): P
           enabled: row.enabled === true,
           zoneId,
           customerDnsZoneId: typeof customer.zone_id === "string" ? customer.zone_id : undefined,
-          customerDnsCredentialReference: typeof customer.credential_reference === "string" ? customer.credential_reference : undefined,
+          customerDnsCredentialReference: customerReference,
         }]
       : [];
   });
