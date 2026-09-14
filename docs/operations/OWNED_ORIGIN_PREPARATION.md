@@ -14,6 +14,8 @@
 
 ## Verified connector/custody boundary
 
+CI follow-up: on preparation commit `28d84abbe572ec0b3b6789b5bbc76b0ede1f4b45`, WRI-01 (including the new compiled-origin test) passed. Both composite Release gates failed at the same pre-existing PCA-05R manifest cardinality assertion: migrations dated September 11, 12 and 13 were present but unclassified. The follow-up adds only three explicit post-rehearsal exclusions and their hashes, changing repository/excluded counts from 134/12 to 137/15. All prerequisite/rehearsal entries, replay prohibitions, hard stops, prior exclusions and every migration file are unchanged. The closure specification passes locally after the correction. This does not reopen or execute a historical PCA environment.
+
 Managed capability audit: Lovable message `umsg_01m2gdm3vffypab9xfjq08z3qn`, completed read-only. Native tools support tracked Edge Function deployment and runtime secret reads inside handlers. The earlier historical statement that no new Edge Function can ever be deployed is not a current capability finding.
 
 `SUPABASE_SERVICE_ROLE_KEY` is an automatic managed binding: neither the owner nor a tool can retrieve its value. `DOMAIN_ROUTING_PROOF_SECRET` also must stay private. Both can be read by authorized server code inside the managed runtime. Do not ask the owner to paste either into chat or manually reconstruct them.

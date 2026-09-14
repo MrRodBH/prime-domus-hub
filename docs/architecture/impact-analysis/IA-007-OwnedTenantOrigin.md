@@ -9,6 +9,7 @@ Remove the unsupported SaaS-to-SaaS origin chain by hosting the existing tenant 
 ## 2. Scope
 
 In: PR286 decision correction, production-origin preparation, compiled Workerd isolation test and additive CI check. Later deployment requires secure credential custody and acceptance before ingress.
+Follow-up within release validation: classify three already-present September migrations as explicitly excluded from the historical PCA-05R rehearsal; update its inventory counts and hashes without changing SQL, rehearsal content, prerequisites or replay prohibitions.
 Out: platform-host migration, UI changes, database migration, second domain scheduler, legacy HML redeployment, direct status activation, purchase of a paid plan.
 
 ## 3. Components

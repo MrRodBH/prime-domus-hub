@@ -20,6 +20,9 @@ const migrationFiles = () =>
   readdirSync(MIGRATION_DIR).filter((file) => file.endsWith(".sql")).sort();
 
 const excludedAfterPrelude = {
+  "20260911221612_dcb4669a-310b-44e8-87d0-090d7386a3a2.sql": "POST_REHEARSAL_WEBSITE_CONFIGURATION_VALIDATION",
+  "20260912172053_support_admin_recovery.sql": "POST_REHEARSAL_SUPPORT_ADMIN_RECOVERY",
+  "20260913170940_tenant_user_administration.sql": "POST_REHEARSAL_TENANT_USER_ADMINISTRATION",
   "20260910150013_sequential_initial_admin_setup.sql": "POST_REHEARSAL_INITIAL_ADMIN_SETUP",
   "20260908003058_round52_persistent_onboarding.sql": "POST_REHEARSAL_ROUND52_PERSISTENT_ONBOARDING",
   "20260804180000_dca_01_domain_cloudflare_activation.sql": "DCA_PROVIDER_DOMAIN_OUTSIDE_SCHEMA_REHEARSAL",
@@ -161,10 +164,10 @@ if (process.argv.includes("--write")) {
 }
 const actual = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
 assert.deepEqual(actual, expected);
-assert.equal(actual.counts.repositoryMigrationFiles, 134);
+assert.equal(actual.counts.repositoryMigrationFiles, 137);
 assert.equal(actual.counts.prerequisiteCandidates, 105);
 assert.equal(actual.counts.approvedRehearsalMigrations, 17);
-assert.equal(actual.counts.excludedAfterPrelude, 12);
+assert.equal(actual.counts.excludedAfterPrelude, 15);
 assert.equal(actual.counts.wholeFileReplayBlockers, 3);
 assert.equal(actual.counts.prerequisiteFilesWithoutExplicitTransactions, 104);
 assert.equal(actual.decision.wholePrerequisiteReplayAllowed, false);
