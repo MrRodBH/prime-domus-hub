@@ -1,13 +1,19 @@
 # Domain automation — concrete managed-backend rollout
 
-Status: implementation/review package; these instructions were NOT applied to live infrastructure. PR #281 is not a published website. No automatic merge or production cutover is included. The owner authorized code/tests only. Do not send a generic hosting-support questionnaire or ask again whether independent tenant domains are required.
+> Applied, 2026-09-14: RM Prime root and www are connected on the owned Cloudflare origin. Supabase cron106, real login/logout, signed origin proof, TLS and same-tenant redirect are verified. See [OWNED_ORIGIN_PREPARATION.md](./OWNED_ORIGIN_PREPARATION.md) for exact versions, applied delta and owner entry. The historical checklist below must not be rerun as presumed pending work.
+
+## Historical decision and preparation evidence
+
+> Current delta, 2026-09-14: PR281–285 are merged and the processor/configuration steps have live evidence in PR285. Do not repeat the historical checklist as presumed pending work. Read [DOMAIN_ORIGIN_CHAIN_CORRECTION.md](../architecture/ADR/DOMAIN_ORIGIN_CHAIN_CORRECTION.md): the remaining origin chain crosses two SaaS custom-hostname zones, contrary to documented O2O compatibility. The prior origin-to-lovable.app assumption is superseded; a replacement application origin is not yet deployed. Reuse the queue, TXT, server-owned provider binding and secrets; no forced activation.
+
+Historical scope below describes the original PR281 package. Later live evidence and owner authorization supersede its original code/tests-only restriction. For the current owned-origin preparation and the exact external configuration required, use [OWNED_ORIGIN_PREPARATION.md](./OWNED_ORIGIN_PREPARATION.md). Do not interpret this historical checklist as unperformed work or completed deployment. Do not send a generic hosting-support questionnaire or ask again whether independent tenant domains are required.
 
 ## Responsibility and order
 
 | Order | Responsible/access | Action and acceptance |
 | --- | --- | --- |
 | 1 | Codex/GitHub reviewer | Review PR #281, its exact-head tests and all failing CI logs. Merge only under the appropriate release instruction. Keep theme, menus and memberships unchanged. |
-| 2 | Cloudflare account operator | Use SSL for SaaS Basic already subscribed. Verify delivery zone/origin below; prepare zone-scoped API tokens through the secure runtime secret channel. A Workers upgrade is unnecessary. |
+| 2 | Cloudflare account operator | Use SSL for SaaS Basic already subscribed. Verify delivery zone/origin below; prepare zone-scoped API tokens through the secure runtime secret channel. The Supabase domain processor does not require Workers Paid. The newly selected application Worker has separate limits; measure those before cutover and disclose any proposed upgrade cost. |
 | 3 | Managed backend operator (Lovable Cloud for canonical project) | Configure the existing Supabase backend and protected function secrets below; never create a substitute Supabase project. Prepare provider mappings after inventorying all existing provider assignments; do not overwrite the HML mapping or bind customer DNS as delivery. |
 | 4 | Deployment operator | Run `node scripts/domains/build-edge.mjs` in the reviewed checkout. Deploy `supabase/functions/domain-processor/index.ts` WITH its generated sibling using the managed project's supported Edge Function deployment capability. Function config has `verify_jwt=false`: its dedicated secret is mandatory and tested before any I/O. Initially keep `DOMAIN_PROCESSOR_ENABLED=false`. No domain Worker cron. |
 | 5 | Application publication operator | Publish the reviewed application including the signed `/.well-known/rm-prime-domain-routing` responder, with the same `DOMAIN_ROUTING_PROOF_SECRET` in server-only runtime storage. This endpoint reveals no tenant content and cannot activate a domain. |

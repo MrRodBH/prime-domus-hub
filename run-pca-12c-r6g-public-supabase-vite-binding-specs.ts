@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { transform } from "esbuild";
@@ -114,14 +115,21 @@ assert.equal(loadedEnvironment.VITE_SUPABASE_URL, publicUrl);
 assert.equal(loadedEnvironment.VITE_SUPABASE_PUBLISHABLE_KEY, publishableKey);
 
 const client = readFileSync("src/integrations/supabase/client.ts", "utf8");
-const auth = readFileSync("src/routes/auth.tsx", "utf8");
+const authRoute = readFileSync("src/routes/auth.tsx", "utf8");
+assert.match(authRoute, /import \{ AuthPage \} from '@\/components\/auth\/AuthPage'/);
+assert.match(authRoute, /component: AuthPage/);
+const auth = readFileSync("src/components/auth/AuthPage.tsx", "utf8");
 const authenticated = readFileSync("src/routes/_authenticated.tsx", "utf8");
 assert.match(client, /import\.meta\.env\.VITE_SUPABASE_URL/);
 assert.match(client, /import\.meta\.env\.VITE_SUPABASE_PUBLISHABLE_KEY/);
 assert.match(auth, /supabase\.auth\.getUser\(\)/);
 // Round 51 preserves the canonical password client and normalizes the email input.
 assert.match(auth, /supabase\.auth\.signInWithPassword\(\{\s*email: email\.trim\(\),\s*password,?\s*\}\)/);
-assert.match(authenticated, /if \(error \|\| !data\.user\) throw redirect\(\{ to: "\/auth" \}\)/);
+assert.match(authenticated, /const \{ data, error \} = await supabase\.auth\.getUser\(\)/);
+assert.match(authenticated, /if \(error \|\| !data\.user\) throw redirect\(\{ \.\.\.loginNavigation\(location\.pathname, location\.searchStr\), replace: true \}\)/);
+assert.match(authenticated, /const isSuperAdmin = await meuAcessoSuperAdmin\(\)/);
+assert.match(authenticated, /workspaceAccess\(location\.pathname, isSuperAdmin\)/);
+assert.match(authenticated, /if \(access !== 'allowed'\) throw new Error\(access\)/);
 
 // Round58 adds only build provenance; the selected runtime and esbuild authority stay exact.
 const releaseIdentityPlugin = "    plugins: [{\n      name: \"release-identity\",\n      apply: \"build\",\n      generateBundle() {\n        this.emitFile({ type: \"asset\", fileName: \"release.json\", source: JSON.stringify(releaseIdentity(process.cwd())) });\n      },\n    }],\n";
@@ -149,13 +157,12 @@ const transformed = await transform("export const factory = (value) => value;", 
 });
 assert.doesNotMatch(transformed.code, /\b__name\b/);
 
-assert.deepEqual(
-  readFileSync("scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs"),
-  execFileSync("git", [
-    "show",
-    `${SOURCE_MAIN}:scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs`,
-  ]),
-  "PCA-12B build authority must remain byte-identical",
+// PR286 retains the locked historical bridge and adds an exact config-suffix guard.
+// Pin the reviewed successor bytes; its positive and negative config tests run in WRI-01.
+assert.equal(
+  createHash("sha256").update(readFileSync("scripts/build-pca-12b-lovable-managed-edge-function-bridge.mjs")).digest("hex"),
+  "32f9f7412f1fb417b60e64bd8c234eddfa86a13bf46a0fa3eddbb764452b5d56",
+  "PCA-12B reviewed build authority must remain byte-identical",
 );
 const r6dRunner = readFileSync(
   "run-pca-12c-r6d-lovable-development-keep-names-seroval-hydration-corrective-specs.ts",

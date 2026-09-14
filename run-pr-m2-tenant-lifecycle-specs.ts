@@ -28,6 +28,7 @@ const canonicalBoundary = source("src/lib/api/commercial/membership-mutation-bou
 const superFunctions = source("src/lib/api/super.functions.ts");
 const superRoute = source("src/routes/_authenticated.super.index.tsx");
 const membershipsRoute = source("src/routes/_authenticated.admin.memberships.tsx");
+const membershipsPage = source("src/components/admin/TenantUsersPage.tsx");
 const invitationsRoute = source("src/routes/_authenticated.invitations.tsx");
 const workspace = source("src/components/workspace/WorkspaceShell.tsx");
 const header = source("src/components/workspace/AppHeader.tsx");
@@ -134,14 +135,33 @@ check("server functions expose every required lifecycle operation", () => {
   }
 });
 
-check("TypeScript never mutates tenant_members directly and follows canonical boundary", () => {
-  assert.equal(/\.from\(["']tenant_members["']\)[\s\S]{0,250}\.(?:insert|update|upsert|delete)\(/.test(lifecycleFunctions), false);
+check("membership authority follows canonical RPCs; only scoped delivery metadata is written", () => {
+  const deliveryWrite = "admin.from('tenant_members').update({activation_delivery_status:delivery})\n      .eq('tenant_id',tenantId).eq('user_id',user.id).eq('invited_at',invitedAt).select('user_id')";
+  const assertNoMembershipWrite = (content: string) => {
+    const remainder = content.replace(deliveryWrite, 'SCOPED_DELIVERY_METADATA');
+    assert.equal(/\.from\(["']tenant_members["']\)[\s\S]{0,250}\.(?:insert|update|upsert|delete)\(/.test(remainder), false);
+  };
+  assert.equal(lifecycleFunctions.split(deliveryWrite).length - 1, 1);
+  assertNoMembershipWrite(lifecycleFunctions);
+  for (const changed of [
+    deliveryWrite.replace('activation_delivery_status:delivery', "membership_status:'active'"),
+    deliveryWrite.replace(".eq('tenant_id',tenantId)", ''),
+    deliveryWrite.replace(".eq('user_id',user.id)", ''),
+    deliveryWrite.replace(".eq('invited_at',invitedAt)", ''),
+  ]) assert.throws(() => assertNoMembershipWrite(changed));
+  const invitation = block(lifecycleFunctions, 'export const inviteTenantMember', 'export const listMyTenantInvitations');
+  assert.ok(invitation.includes('.middleware([requireTenant])'));
+  assert.ok(invitation.includes('await assertTenantMembershipManager(context)'));
+  assert.ok(invitation.includes('_actor: context.userId, _tenant: tenantId, _origin: context.tenant.origin'));
+  assert.ok(invitation.includes('if (prepared.error) throw registrationError'));
+  assert.ok(invitation.includes('saved.data?.length !== 1'));
   assert.equal(/\.from\(["']tenant_members["']\)[\s\S]{0,250}\.(?:insert|update|upsert|delete)\(/.test(canonicalBoundary), false);
   assert.ok(lifecycleFunctions.includes("membership-mutation-boundary.server"));
   assert.ok(lifecycleFunctions.includes("executeMembershipMutation"));
   assert.ok(canonicalBoundary.includes('"mutate_tenant_membership"'));
   assert.ok(lifecycleFunctions.includes('"bootstrap_tenant_with_owner"'));
-  assert.ok(lifecycleFunctions.includes('"invite_tenant_member"'));
+  assert.ok(lifecycleFunctions.includes("'preflight_tenant_member_registration'"));
+  assert.ok(lifecycleFunctions.includes("'configure_tenant_member_registration'"));
   assert.ok(lifecycleFunctions.includes('"accept_tenant_invitation"'));
   assert.ok(lifecycleFunctions.includes('"transfer_tenant_ownership"'));
 });
@@ -176,13 +196,17 @@ check("Super Control Plane registers company before independent Admin, retaining
 });
 
 check("membership interface exposes every supported state and action", () => {
+  assert.ok(membershipsRoute.includes('import { TenantUsersPage } from "@/components/admin/TenantUsersPage"'));
+  assert.ok(membershipsRoute.includes('component:TenantUsersPage'));
+  assert.ok(membershipsPage.includes('memberships.some(actor => actor.canTransferOwnership)'));
+  assert.ok(membershipsPage.includes('member.status === "active" && !member.isOwner'));
   for (const marker of [
-    "Convidar membro",
+    "Novo usuário",
     "Reenviar",
     "Suspender",
     "Reativar",
     "Revogar",
-    "Tornar owner",
+    "Transferir propriedade",
     "changeTenantMemberRole",
     "transferTenantOwnership",
     "invitedAt",
@@ -190,7 +214,7 @@ check("membership interface exposes every supported state and action", () => {
     "suspendedAt",
     "revokedAt",
   ]) {
-    assert.ok(membershipsRoute.includes(marker), marker);
+    assert.ok(membershipsPage.includes(marker), marker);
   }
 });
 
@@ -205,7 +229,7 @@ check("invitation acceptance surface is outside tenant selection authority", () 
 });
 
 check("client surfaces do not import the service-role client", () => {
-  for (const clientSource of [superRoute, membershipsRoute, invitationsRoute, workspace, header, selectionGate]) {
+  for (const clientSource of [superRoute, membershipsRoute, membershipsPage, invitationsRoute, workspace, header, selectionGate]) {
     assert.equal(clientSource.includes("client.server"), false);
     assert.equal(clientSource.includes("supabaseAdmin"), false);
   }

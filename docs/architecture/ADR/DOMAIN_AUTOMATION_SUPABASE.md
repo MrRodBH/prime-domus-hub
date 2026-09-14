@@ -1,5 +1,11 @@
 # Domain automation — Supabase executor / Cloudflare for SaaS
 
+> Live completion, 2026-09-14: owned Worker origin now serves the RM Prime root and www; both are active through the canonical Edge processor. The sole Supabase cron is installed and verified. Platform hosting is unchanged. Read the current [live acceptance record](../../operations/OWNED_ORIGIN_PREPARATION.md); earlier preparation restrictions and pending-origin statements below are historical, not current blockers.
+
+## Historical decision and preparation evidence
+
+> Origin correction, 2026-09-14: read [DOMAIN_ORIGIN_CHAIN_CORRECTION.md](DOMAIN_ORIGIN_CHAIN_CORRECTION.md) before any further live origin action. The chain through our SaaS delivery and Lovable's SaaS hosting is not a supported O2O contract. Prior direct-origin probes and active certificates do not establish that compatibility. The single Supabase processor, server authority and tenant isolation remain valid. A replacement application origin is proposed there and has NOT been deployed.
+
 Owner decision recovered from 2026-08-12 and explicitly reaffirmed 2026-09-13. This supersedes the scheduled-Worker requirement in the DCA-01 runbook and the broad Lovable API external blocker in DOMAIN_CONNECTION_EXECUTION_SAFETY.md. It does not supersede tenant isolation, provider identity claims, the state machine, or the prohibition on live writes in this execution.
 
 ## Impact before implementation

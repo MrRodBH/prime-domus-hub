@@ -158,7 +158,10 @@ assert.match(
 );
 
 const router = readFileSync("src/router.tsx", "utf8");
-const auth = readFileSync("src/routes/auth.tsx", "utf8");
+const authRoute = readFileSync("src/routes/auth.tsx", "utf8");
+assert.match(authRoute, /import \{ AuthPage \} from '@\/components\/auth\/AuthPage'/);
+assert.match(authRoute, /component: AuthPage/);
+const auth = readFileSync("src/components/auth/AuthPage.tsx", "utf8");
 const authenticated = readFileSync("src/routes/_authenticated.tsx", "utf8");
 const provisioning = readFileSync("src/lib/spr-03/managed-secret-provisioning.server.ts", "utf8");
 const provisioningRoute = readFileSync(
@@ -172,7 +175,10 @@ assert.match(auth, /supabase\.auth\.signInWithPassword\(\{\s*email: email\.trim\
 assert.match(auth, /await meuAcessoSuperAdmin\(\)/);
 assert.match(auth, /isSuper === true \? "\/super" : pendingSetup.length \? "\/invitations" : "\/admin"/);
 assert.match(authenticated, /const \{ data, error \} = await supabase\.auth\.getUser\(\)/);
-assert.match(authenticated, /if \(error \|\| !data\.user\) throw redirect\(\{ to: "\/auth" \}\)/);
+assert.match(authenticated, /if \(error \|\| !data\.user\) throw redirect\(\{ \.\.\.loginNavigation\(location\.pathname, location\.searchStr\), replace: true \}\)/);
+assert.match(authenticated, /const isSuperAdmin = await meuAcessoSuperAdmin\(\)/);
+assert.match(authenticated, /workspaceAccess\(location\.pathname, isSuperAdmin\)/);
+assert.match(authenticated, /if \(access !== 'allowed'\) throw new Error\(access\)/);
 assert.match(provisioningRoute, /request\.headers\.has\("x-tenant-id"\)/);
 assert.match(provisioning, /\.eq\("role", "super_admin"\)/);
 assert.doesNotMatch(provisioning, /user_metadata/);
