@@ -1,1 +1,2 @@
-processor.generated.mjs
+# The managed deployer packages tracked files only.
+# processor.generated.mjs is committed and verified against the canonical build.
