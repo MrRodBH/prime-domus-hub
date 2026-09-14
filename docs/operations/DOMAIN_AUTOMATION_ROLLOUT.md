@@ -1,5 +1,7 @@
 # Domain automation — concrete managed-backend rollout
 
+> Current delta, 2026-09-14: PR281–285 are merged and the processor/configuration steps have live evidence in PR285. Do not repeat the historical checklist as presumed pending work. Read [DOMAIN_ORIGIN_CHAIN_CORRECTION.md](../architecture/ADR/DOMAIN_ORIGIN_CHAIN_CORRECTION.md): the remaining origin chain crosses two SaaS custom-hostname zones, contrary to documented O2O compatibility. The prior origin-to-lovable.app assumption is superseded; a replacement application origin is not yet deployed. Reuse the queue, TXT, server-owned provider binding and secrets; no forced activation.
+
 Status: implementation/review package; these instructions were NOT applied to live infrastructure. PR #281 is not a published website. No automatic merge or production cutover is included. The owner authorized code/tests only. Do not send a generic hosting-support questionnaire or ask again whether independent tenant domains are required.
 
 ## Responsibility and order
