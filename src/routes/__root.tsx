@@ -105,6 +105,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     if (!publicRootData) {
       return {
         tenantIndependent: true as const,
+        tenantLogin: /^\/[^/]+\/auth\/?$/.test(location.pathname),
         faviconUrl: PLATFORM_FAVICON,
         tracking: null,
         brandingV2: {},
@@ -117,6 +118,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
     return {
       tenantIndependent: false as const,
+      tenantLogin: false,
       faviconUrl: settings.branding.favicon_url ?? null,
       tracking,
       brandingV2: settings.branding_v2 ?? {},
@@ -132,7 +134,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const title = platform ? PLATFORM_NAME : seo.default_title || siteName;
     const description =
       platform ? "Real One — gestão da plataforma imobiliária." : seo.default_description || "";
-    const favicon = loaderData?.faviconUrl || (platform ? PLATFORM_FAVICON : null);
+    const favicon = loaderData?.tenantLogin ? null : loaderData?.faviconUrl || (platform ? PLATFORM_FAVICON : null);
     const links: Array<Record<string, unknown>> = [
       { rel: "stylesheet", href: appCss },
       ...(favicon ? [{ rel: "icon", href: favicon }] : []),
