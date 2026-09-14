@@ -31,6 +31,29 @@ const failure=await createDomainEdgeHandler(env,async()=>{throw Error('secret sh
 assert.equal(failure.status,503);assert.doesNotMatch(await failure.text(),/secret should/);
 
 const domain=(i,alias=false)=>({id:`domain-${i}${alias?'-alias':''}`,tenantId:`tenant-${i}`,normalizedHostname:`${alias?'www.':''}fixture-${i}-realty.com`,registrableDomain:`fixture-${i}-realty.com`,hostnameKind:alias?'alias':'canonical',status:'pending_ssl',generation:1,lockVersion:3,enabled:true,executionMode:'api_automated',replacementOf:null,incumbentDomainId:null,metadata:{},requestedBy:'fixture-admin'});
+// Exercise the real repository boundary: display sanitization must not destroy
+// the server-owned env reference used by the flattened-DNS adapter.
+globalThis.providerRows=[];
+const providerRepo=await moduleAt('src/lib/domains/domain-repository-provider.server.ts',{
+ '@/integrations/supabase/client.server':`export const supabaseAdmin={from(){return {select(){return {eq(){return {eq:async()=>({data:globalThis.providerRows,error:null})}}}}}}};`,
+});
+const {objectValue}=await moduleAt('src/lib/domains/domain-repository-mappers.server.ts');
+for(let i=1;i<=3;i++) {
+ const hostname=domain(i).registrableDomain;
+ const capabilities={zones:{[hostname]:`delivery-zone-${i}`},customer_dns_zones:{[hostname]:{zone_id:`customer-zone-${i}`,credential_reference:`env:CF_DNS_${i}`}}};
+ globalThis.providerRows=[{id:`account-${i}`,account_identifier:`account-fixture-${i}`,enabled:true,credential_reference:'env:CF_DELIVERY',capabilities}];
+ const provider=await providerRepo.getProviderAccountForDomain(domain(i));
+ assert.equal(provider.zoneId,`delivery-zone-${i}`);
+ assert.equal(provider.customerDnsZoneId,`customer-zone-${i}`);
+ assert.equal(provider.customerDnsCredentialReference,`env:CF_DNS_${i}`);
+ assert.equal(objectValue(capabilities).customer_dns_zones[hostname].credential_reference,'[redacted]');
+ await assert.rejects(()=>providerRepo.getProviderAccountForDomain(domain(i+10)),e=>e.code==='domain_provider_configuration_invalid');
+ for(const invalid of ['[redacted]','literal-api-token','env:lowercase']) {
+  capabilities.customer_dns_zones[hostname].credential_reference=invalid;
+  assert.equal((await providerRepo.getProviderAccountForDomain(domain(i))).customerDnsCredentialReference,undefined);
+ }
+}
+delete globalThis.providerRows;
 const {routingSignature,canonicalForDomain,DOMAIN_PROBE_PATH}=await moduleAt('src/lib/domains/domain-routing-contract.ts');
 const {observeDomainRouting}=await moduleAt('src/lib/domains/domain-https-observation.server.ts');
 const addresses=async()=>({addresses:['104.16.1.1'],observedAt:new Date().toISOString()});
