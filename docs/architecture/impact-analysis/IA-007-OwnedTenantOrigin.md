@@ -1,5 +1,9 @@
 # IA-007 — Owned tenant application origin
 
+> Live continuation, 2026-09-14: the owner subsequently authorized protected transfer and production completion. The new application Worker, scoped ingress and sole Supabase scheduler are applied; root and www are active with real acceptance evidence. See [OWNED_ORIGIN_PREPARATION.md](../../operations/OWNED_ORIGIN_PREPARATION.md). The impact analysis below records the earlier preparation phase and does not imply that deployment is still pending.
+
+## Historical decision and preparation evidence
+
 Date: 2026-09-14. Scope of this revision: impact record, local compiled-runtime experiment, CI and operational documentation. Production implementation and credential transfer remain unexecuted. Owner selected preparation subject to demonstrated validation; that is not evidence of future 100% success. This record consolidates the read-only analysis and local experiment; it does not backdate a production approval.
 
 ## 1. Objective

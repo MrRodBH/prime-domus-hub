@@ -1,4 +1,52 @@
-# Owned tenant origin — verified delta and next action
+# Owned tenant origin — live application and acceptance
+
+## Current state — 2026-09-14
+
+The owner authorized the protected source transfer and live completion. The root and www are now active through the canonical server state machine. The preparation sections below are historical evidence, not outstanding configuration instructions. Do not recreate these resources or repeat the original rollout as presumed pending work.
+
+| Item | Confirmed live evidence |
+| --- | --- |
+| Root | `rmprimeimoveis.com.br`, domain `6eda5a4e-be96-4756-b39b-746d886bc387`, generation 1, active since 18:19:55 UTC (15:19:55 Brasilia), routing generation 1, latest acceptance lock 25. |
+| Alias | `www.rmprimeimoveis.com.br`, domain `ae266b76-ffbe-4140-900b-6ec4f0d1599b`, generation 1, active since 18:51:02 UTC (15:51:02 Brasilia), acceptance lock 11. Same tenant `9664d189-4a12-4caa-8243-dc73383447e6`. |
+| Application | New Worker `rm-prime-sites-prod`, ID `867db8a4a2af49b6bfaac5a44c250080`; version `3ddbb08b-0f3a-4bc8-9e9f-3615274ab18c`; deployment `2ce8f232-bfb3-4dc9-9070-38a2074fa6ee`. Historical HML Workers were not used. |
+| Source | Canonical main application `18f6a8e7eece84e542df926295b7049f721094ae`; 677-file source fingerprint `0a55613c273ee20b461107ee87f3088d5985c4149e2fd71ca262eec854559624`. Actual isolated release has no fabricated Git SHA. Documentation/test-only PR changes do not require republishing this application. |
+| Backend | Existing managed Supabase `stmcnvzuzlyqammyycxj`; no database migration, project replacement, role or membership change. |
+| Scheduler | Sole `rmprime-domain-processor`, cron job 106, every minute, Vault-authenticated POST to the existing Edge Function. Automatic successful runs measured; `portal-dlq-retry` preserved. No Worker cron. |
+| Provider | Root object `d726c58a-2e56-4ffa-b54d-6e2f958056c6` retained; alias object `b1e1ac4a-cca8-4111-9fb0-2f19144ab7a9` created by the processor. Both hostname and SSL active. |
+
+### Applied delta and custody
+
+The four approved files (`package.json`, `bun.lock`, canonical Supabase `client.ts` and `types.ts`) were transferred to an isolated copy in the owner's protected managed project. Archive SHA-256: `272aee3f74fb1304ad0361b5a415e4a05c836bc2bd5aca5105f8faf8d9ac47e2`. The previous automatic approval rejection was resolved by the owner's explicit authorization, not by an alternate transfer channel. Build with real canonical public bindings passed; seven private values were absent from client/server bundles. The original Lovable application and platform publication were preserved; Lovable performed no GitHub operations.
+
+The Worker has ASSETS plus exactly eight protected runtime bindings: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DOMAIN_ROUTING_PROOF_SECRET`, `RM_PRIME_AUTH_SITE_ORIGIN`, `RM_PRIME_EMAIL_SITE_NAME`, `RM_PRIME_EMAIL_SENDER_DOMAIN`, `RM_PRIME_EMAIL_FROM_DOMAIN`. No Cloudflare token or `DOMAIN_PROCESSOR_*` binding was copied into the application Worker. Temporary secret files used mode 0600 and were removed. Workers.dev and previews remain disabled.
+
+The existing fallback record `origin.realone.com.br` (`599a533bde49f04eb30adaf47c8970af`) changed from the Lovable CNAME to proxied `AAAA 100::`, following Cloudflare's Worker-as-origin contract. Existing `sites.realone.com.br` points to that origin. Customer root and www now use DNS-only CNAMEs to `sites.realone.com.br`; the existing www record `58714e15f2ffc8001ca51ab6ef9d7942` was updated only after the server issued its plan. The authenticated administrator created www as Alternativo. Its newly issued `_rm-prime.www.rmprimeimoveis.com.br` TXT was added as record `3538f403bc4b01996ea1fb1d61766049`; root TXT, email records and all platform DNS records were preserved.
+
+Routing in the realone delivery zone uses `*/*` -> new Worker (`367af9415c3c4b69937d3731f21ffa0a`). Before enabling it, explicit Worker=None exclusions were installed and verified: `realone.com.br/*` (`323a6f7f18cf4cb79ccc5ed7a8fc3ba2`) and `*.realone.com.br/*` (`a51e3f91b42945798ec2b31ab6a07006`). The narrower origin route remains on the new Worker; the initial exact tenant and diagnostic routes also remain. This covers future SaaS custom hostnames while preserving platform hosting. Customer DNS zones and delivery-zone assignment remain separate provider configuration prerequisites for each new registrable domain.
+
+A real negative test found that client-supplied `X-Forwarded-Host` could trigger the historical platform-entry redirect. Request-header transform rule `e8c867a245eb490ab0356d2c442df548` in ruleset `96371479f0ab43b8b0d626c924e42dbf`, version 2, removes that header for the owned SaaS ingress before Worker execution. Its expression is `(http.host eq "origin.realone.com.br") or (http.host ne "realone.com.br" and not ends_with(http.host, ".realone.com.br"))`. It preserves Host and excludes the platform apex/subdomains. Verified forged-host requests no longer redirect tenants to the platform. This ingress protection is required while the historical application entry consumes forwarded host; preserve it when editing routes.
+
+### Acceptance measured
+
+- TLS verified by normal HTTPS clients. Root proof returned 204; alias proof returned 308. Independent HMAC calculations matched the expected nonce, tenant, domain, generation and canonical hostname. No secret, nonce or HMAC value was logged. Worker event logs identify the exact deployed version, not merely a generic cf-ray header.
+- Root activation followed one authenticated, server-selected Edge invocation (HTTP200, leased1/succeeded1). The scheduler then completed obsolete work and the www lifecycle through existing RPCs. No arbitrary newest-job selection, direct status update or history deletion occurred.
+- Three observations confirmed `https://www.rmprimeimoveis.com.br/imoveis?homologacao=owned-origin` redirects with HTTP308 to the same path/query on `https://rmprimeimoveis.com.br`, including a forged platform forwarding header. Browser navigation reached the canonical catalogue.
+- Browser verified root home, menu, catalogue navigation, real administrator login at `/rmprime/auth`, and the Domains screen showing both addresses Conectado / Autoridade publica: sim. The same session was denied `/xyz/admin`. Logout returned to the company login; reopening the protected Domains page required login again. No impersonation or synthetic account was used.
+- `realone.com.br` and www retained A185.158.133.1 DNS-only records and their original hosting. Browser reloaded the platform login after the SaaS route change. Existing three-tenant controlled tests and all 14 checks passed at `e233eeef72f37882b46c2ea6b5a3229b238126b8`; later documentation-only CI is reported in PR286 rather than assumed.
+- Existing catalogue count is zero in the canonical database; this deployment did not insert or delete properties. Remaining SSL observation jobs are lifecycle work, not evidence that either active domain is unconnected. An isolated earlier HTTP401 lacks sender correlation and is not attributed to the scheduler.
+
+### Cost, rollback and next owner action
+
+No upgrade was purchased. Upload startup was 22ms; live requests completed with outcome=ok, with sampled auth CPU19–115ms. `default_usage_model=standard` is not proof of a paid subscription; the subscriptions endpoint returned403/code10000 with the available token. Successful requests do not establish a contractual capacity guarantee. The every-minute scheduler makes 1,440 invocations/day as specified by the reviewed rollout. Before scaling, compare measured load with the actual Workers subscription; Paid pricing starts at US$5/month plus applicable usage. The temporary provisioning token expires 2026-09-14T23:59:59Z; it is not a runtime dependency of the published Worker.
+
+The owner can use `https://rmprimeimoveis.com.br/rmprime/auth` with the existing company account. Both domains are connected; no Lovable support ticket or repeated DNS setup is required. Content setup remains a separate product operation.
+
+For an incident, stop the Supabase processor using its existing enable flag before diagnosis, preserve the platform exclusions and immutable domain history, and inspect the exact failing generation/provider/proof. Do not blindly restore the unsupported Lovable SaaS chain or an HML Worker. The former DNS and route states are recorded above and in PR286 for controlled recovery decisions; rollback must not mark domains active or rewrite tenant data.
+
+Sources: [Worker as SaaS origin](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/start/advanced-settings/worker-as-origin/), [request-header transforms](https://developers.cloudflare.com/rules/transform/request-header-modification/), [Worker limits](https://developers.cloudflare.com/workers/platform/limits/), [pricing](https://developers.cloudflare.com/workers/platform/pricing/).
+
+## Historical preparation record — superseded by the live state above
+
 
 2026-09-14. PR286 starts at e32b2fbdca06d5b56071714b2219d88d078d51c4, based on main 18f6a8e7eece84e542df926295b7049f721094ae. This revision contains preparation/tests, not a live deployment. No DNS, queue, provider, cron, production secret or publication was changed during this verification.
 

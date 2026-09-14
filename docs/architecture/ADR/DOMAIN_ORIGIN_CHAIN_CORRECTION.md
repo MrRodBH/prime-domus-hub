@@ -1,5 +1,9 @@
 # Domain origin chain correction — 2026-09-14
 
+> Current state: the owned origin is deployed and both RM Prime root and www are active. The historical investigation and preparation below explain the decision; their unexecuted status is superseded by the live acceptance record in [OWNED_ORIGIN_PREPARATION.md](../../operations/OWNED_ORIGIN_PREPARATION.md). Do not recreate completed resources or restore the unsupported SaaS chain.
+
+## Historical decision and preparation evidence
+
 Status: owner selected preparation of an owned tenant origin on 2026-09-14, conditional on validation before traffic. Compiled application/runtime checks passed locally; replacement origin is NOT deployed or homologated. No claim of 100% advance certainty.
 
 ## Evidence and supersession

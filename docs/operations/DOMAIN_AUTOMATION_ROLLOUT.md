@@ -1,5 +1,9 @@
 # Domain automation — concrete managed-backend rollout
 
+> Applied, 2026-09-14: RM Prime root and www are connected on the owned Cloudflare origin. Supabase cron106, real login/logout, signed origin proof, TLS and same-tenant redirect are verified. See [OWNED_ORIGIN_PREPARATION.md](./OWNED_ORIGIN_PREPARATION.md) for exact versions, applied delta and owner entry. The historical checklist below must not be rerun as presumed pending work.
+
+## Historical decision and preparation evidence
+
 > Current delta, 2026-09-14: PR281–285 are merged and the processor/configuration steps have live evidence in PR285. Do not repeat the historical checklist as presumed pending work. Read [DOMAIN_ORIGIN_CHAIN_CORRECTION.md](../architecture/ADR/DOMAIN_ORIGIN_CHAIN_CORRECTION.md): the remaining origin chain crosses two SaaS custom-hostname zones, contrary to documented O2O compatibility. The prior origin-to-lovable.app assumption is superseded; a replacement application origin is not yet deployed. Reuse the queue, TXT, server-owned provider binding and secrets; no forced activation.
 
 Historical scope below describes the original PR281 package. Later live evidence and owner authorization supersede its original code/tests-only restriction. For the current owned-origin preparation and the exact external configuration required, use [OWNED_ORIGIN_PREPARATION.md](./OWNED_ORIGIN_PREPARATION.md). Do not interpret this historical checklist as unperformed work or completed deployment. Do not send a generic hosting-support questionnaire or ask again whether independent tenant domains are required.
