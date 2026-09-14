@@ -10,6 +10,7 @@ Remove the unsupported SaaS-to-SaaS origin chain by hosting the existing tenant 
 
 In: PR286 decision correction, production-origin preparation, compiled Workerd isolation test and additive CI check. Later deployment requires secure credential custody and acceptance before ingress.
 Follow-up within release validation: classify three already-present September migrations as explicitly excluded from the historical PCA-05R rehearsal; update its inventory counts and hashes without changing SQL, rehearsal content, prerequisites or replay prohibitions.
+Continuation after owner secret configuration: historical PCA tests must distinguish their archived baseline from the already accepted main `18f6a8e7eece84e542df926295b7049f721094ae`. A test-only helper will verify ancestry and reject every new path outside the exact PR286 review scope; it cannot authorize application, SQL or credential changes. Existing behavioral/security tests remain active. The PCA-12B config check may recognize only the exact PR281 domain-processor suffix while retaining the historical prefix hash and authenticated HML section. No historical provisioner is executed or enabled by this compatibility correction.
 Out: platform-host migration, UI changes, database migration, second domain scheduler, legacy HML redeployment, direct status activation, purchase of a paid plan.
 
 ## 3. Components

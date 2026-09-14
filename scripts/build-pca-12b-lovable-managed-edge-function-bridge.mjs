@@ -54,9 +54,19 @@ const lockedSources = {
   },
 };
 
+export function assertPca12bSupabaseCompatibility(current) {
+  const suffix = '\n# Service-to-service endpoint: dedicated secret checked before any I/O.\n# This is not a browser endpoint and a publishable key is not its authorization.\n[functions.domain-processor]\nverify_jwt = false\n';
+  const historical = current.endsWith(suffix) ? current.slice(0, -suffix.length) : current;
+  assert.equal(sha256(historical), lockedSources.supabaseConfig.sha256, 'supabaseConfig authority drift');
+}
+
 function assertLockedSources() {
   for (const [label, source] of Object.entries(lockedSources)) {
     const current = read(source.path);
+    if (label === 'supabaseConfig') {
+      assertPca12bSupabaseCompatibility(current);
+      continue;
+    }
     if (
       sha256(current) !== source.sha256 &&
       ["repositorySpecs", "releaseGate", "packageScripts"].includes(label)

@@ -134,7 +134,9 @@ jobs:
         run: bun run wri01:bundle-audit
 
       - name: Owned-origin compiled application isolation proof
-        run: node scripts/verify-owned-origin-workerd.mjs
+        run: |
+          node scripts/verify-owned-origin-historical-scope.mjs
+          node scripts/verify-owned-origin-workerd.mjs
 
       - name: Preserve bundle-audit diagnostics
         if: always()
