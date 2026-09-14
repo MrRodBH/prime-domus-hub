@@ -252,7 +252,10 @@ export const specs: Array<{ name: string; run: () => Promise<void> }> = [
     name: "auth UI isolation preserves Supabase login and PCA-11 global super-admin authority",
     run: async () => {
       const root = readFileSync(resolve(process.cwd(), "src/routes/__root.tsx"), "utf8");
-      const auth = readFileSync(resolve(process.cwd(), "src/routes/auth.tsx"), "utf8");
+      const authRoute = readFileSync(resolve(process.cwd(), "src/routes/auth.tsx"), "utf8");
+      assert(authRoute.includes("import { AuthPage } from '@/components/auth/AuthPage'"), "auth route imports canonical form");
+      assert(authRoute.includes("component: AuthPage"), "auth route delegates to canonical form");
+      const auth = readFileSync(resolve(process.cwd(), "src/components/auth/AuthPage.tsx"), "utf8");
       const route = readFileSync(
         resolve(process.cwd(), "src/routes/api/internal/pca-11-managed-binding-provision.ts"),
         "utf8",

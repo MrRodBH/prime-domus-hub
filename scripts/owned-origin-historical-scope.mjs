@@ -11,6 +11,7 @@ export const REVIEW_PATHS = Object.freeze([
   'docs/architecture/impact-analysis/manifests/PCA-05R-prerequisite-closure-manifest.json',
   'docs/operations/DOMAIN_AUTOMATION_ROLLOUT.md',
   'docs/operations/OWNED_ORIGIN_PREPARATION.md',
+  'run-pr-m2-tenant-lifecycle-specs.ts',
   'run-pca-05r-prerequisite-closure-manifest-specs.mjs',
   'run-pca-12b-lovable-managed-edge-function-bridge-specs.ts',
   'run-pca-12c-r3-tanstack-nitro-pca11-error-namespace-secretless-proof-specs.ts',
@@ -21,6 +22,7 @@ export const REVIEW_PATHS = Object.freeze([
   'scripts/owned-origin-historical-scope.mjs',
   'scripts/verify-owned-origin-historical-scope.mjs',
   'scripts/verify-owned-origin-workerd.mjs',
+  'src/lib/__tests__/public-settings-campaign-read-recovery.spec.ts',
 ]);
 export function assertReviewPaths(paths) {
   assert.deepEqual(paths.filter(path => !REVIEW_PATHS.includes(path)), [],
