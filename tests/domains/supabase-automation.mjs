@@ -162,6 +162,7 @@ for(let i=1;i<=3;i++){
 }
 const outputs=await Promise.all([buildDomainEdge(),buildDomainEdge()]);
 assert.equal(outputs[0].outputFiles[0].text,outputs[1].outputFiles[0].text);
+assert.equal(await readFile('supabase/functions/domain-processor/processor.generated.mjs','utf8'),outputs[0].outputFiles[0].text,'Deployable artifact must match the canonical processor; run node scripts/domains/build-edge.mjs');
 assert.match(outputs[0].outputFiles[0].text,/npm:@supabase\/supabase-js@2\.108\.2/);
 assert.doesNotMatch(outputs[0].outputFiles[0].text,/tanstack|\.\/src\/lib/);
 assert.doesNotMatch(await readFile('src/server.ts','utf8'),/processScheduledDomainJobs|async scheduled/);
