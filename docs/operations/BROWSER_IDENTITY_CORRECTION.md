@@ -1,0 +1,11 @@
+# Browser identity correction — 2026-09-14
+
+Owner confirmed both domains operational, requested `Real One` and the existing R1 platform mark in the platform tab, and restoration of the supplied RM Prime favicon. Read AGENTS.md, OWNER_UI_APPROVALS.md and the current acceptance in OWNED_ORIGIN_PREPARATION.md. Base main: `18f6a8e7eece84e542df926295b7049f721094ae`; PR #286 remains separate.
+
+The root route still emitted tenant-specific defaults for tenant-independent administration. Its fallback favicon referenced `/__l5e/assets-v1/007fc1e8-f124-4957-b128-1151b297e6d8/favicon.png`, a Lovable asset route unavailable in the owned origin. Both were confirmed in the live browser DOM.
+
+The correction uses the existing R1 wordmark colors for a portable platform SVG. The supplied `public/brand/rmprime-favicon.png` is unchanged (SHA-256 `c761c8e1293eee22eebda3990d4fa0b62b84ef9abb0eaedcb08a3ad20225aa60`). Its fallback is selected only for the existing server-verified tenant UUID, shared with the approved workspace mark. Published CMS favicon selection retains precedence; no CMS draft, publication or database row is changed. Other companies do not inherit RM Prime branding. Tenant-independent routes still skip tenant settings/tracking; an authenticated tenant panel uses its server-authorized name.
+
+Files: `brand-assets.ts` centralizes presentation assets; `TenantBrand.tsx` reuses the same identity-bound mark; `site.functions.ts` resolves the public fallback after server tenant resolution; `__root.tsx` separates platform metadata and removes the hosting-specific fallback; the tenant admin route retains its own title; `realone-favicon.svg` supplies the existing R1 mark; the brand spec verifies isolation and CMS precedence. This document records impact and application evidence.
+
+Apply the same source delta to the existing Lovable platform publication and an isolated build of `rm-prime-sites-prod`. Preserve the canonical four-file build overlay, eight runtime bindings and existing routing exclusions. No DNS, certificates, automation scheduler, domain status, tenant data, theme or menu changes are required. Verify titles and favicon responses on both hosts after publication. Browser caches may require a tab reload. Never claim source changes alone are live publication evidence.

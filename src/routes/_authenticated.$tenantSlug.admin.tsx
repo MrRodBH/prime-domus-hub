@@ -18,7 +18,10 @@ export const Route = createFileRoute("/_authenticated/$tenantSlug/admin")({
   },
   head: ({loaderData}) => {
     const icon = workspaceTenantMark(loaderData?.tenant);
-    return { links: icon ? [{rel:'icon',type:'image/png',href:icon}] : [] };
+    return {
+      meta: [{ title: loaderData?.tenant?.name || 'Painel da empresa' }],
+      links: icon ? [{rel:'icon',type:'image/png',href:icon}] : [],
+    };
   },
   component: () => <Outlet />,
   errorComponent: AdminNavigationError,
