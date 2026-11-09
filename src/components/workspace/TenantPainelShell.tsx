@@ -13,18 +13,18 @@ import { cn } from "@/lib/utils";
 const PAPEL: Record<string, string> = { owner: "Administrador", admin: "Administrador", manager: "Gerente", broker: "Corretor", captador: "Captador", secretaria: "Secretária", viewer: "Visualizador" };
 
 // `sub` null = módulo ainda não importado (próximas partes).
-const MENU: { rotulo: string; sub: string | null; icone: typeof Home }[] = [
-  { rotulo: "Dashboard", sub: "", icone: Home },
-  { rotulo: "CRM", sub: "/leads", icone: Users },
-  { rotulo: "Imóveis", sub: "/imoveis", icone: Building2 },
-  { rotulo: "Blog", sub: "/blog", icone: Newspaper },
-  { rotulo: "Campanhas", sub: "/campanhas", icone: Target },
+const MENU: { rotulo: string; sub: string | null; to?: "/$tenantSlug/admin" | "/$tenantSlug/admin/leads" | "/$tenantSlug/admin/imoveis/" | "/$tenantSlug/admin/blog" | "/$tenantSlug/admin/campanhas/" | "/$tenantSlug/admin/site" | "/$tenantSlug/admin/marketing" | "/$tenantSlug/admin/memberships"; icone: typeof Home }[] = [
+  { rotulo: "Dashboard", sub: "", to: "/$tenantSlug/admin" as const, icone: Home },
+  { rotulo: "CRM", sub: "/leads", to: "/$tenantSlug/admin/leads" as const, icone: Users },
+  { rotulo: "Imóveis", sub: "/imoveis", to: "/$tenantSlug/admin/imoveis/" as const, icone: Building2 },
+  { rotulo: "Blog", sub: "/blog", to: "/$tenantSlug/admin/blog" as const, icone: Newspaper },
+  { rotulo: "Campanhas", sub: "/campanhas", to: "/$tenantSlug/admin/campanhas/" as const, icone: Target },
   { rotulo: "Landing pages", sub: null, icone: Rocket },
-  { rotulo: "Conteúdo do site", sub: "/site", icone: FileText },
+  { rotulo: "Conteúdo do site", sub: "/site", to: "/$tenantSlug/admin/site" as const, icone: FileText },
   { rotulo: "Simulação SFH", sub: null, icone: Percent },
-  { rotulo: "Marketing", sub: "/marketing", icone: Megaphone },
+  { rotulo: "Marketing", sub: "/marketing", to: "/$tenantSlug/admin/marketing" as const, icone: Megaphone },
   { rotulo: "Follow CRs", sub: null, icone: BarChart3 },
-  { rotulo: "Usuários", sub: "/memberships", icone: ShieldCheck },
+  { rotulo: "Usuários", sub: "/memberships", to: "/$tenantSlug/admin/memberships" as const, icone: ShieldCheck },
 ];
 
 export function TenantPainelShell({ tenant, children }: { tenant: WorkspaceTenantIdentity; children: ReactNode }) {
@@ -51,10 +51,11 @@ export function TenantPainelShell({ tenant, children }: { tenant: WorkspaceTenan
             <item.icone className="h-4 w-4" /> {item.rotulo}
           </span>
         ) : (
-          <a
+          <Link
             key={item.rotulo}
-            href={base + item.sub}
-            onClick={(e) => { e.preventDefault(); setAberto(false); window.history.pushState({}, "", base + item.sub); window.dispatchEvent(new PopStateEvent("popstate")); }}
+            to={item.to!}
+            params={{ tenantSlug: tenant.slug }}
+            onClick={() => setAberto(false)}
             aria-current={atual === item ? "page" : undefined}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
@@ -62,7 +63,7 @@ export function TenantPainelShell({ tenant, children }: { tenant: WorkspaceTenan
             )}
           >
             <item.icone className="h-4 w-4" /> {item.rotulo}
-          </a>
+          </Link>
         ),
       )}
     </nav>
