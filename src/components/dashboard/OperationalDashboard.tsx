@@ -30,7 +30,7 @@ export function OperationalDashboard() {
   if (leadsQ.isPending || leadsQ.isError) return null;
   const s = summarizeOperational(leadsQ.data ?? []);
   const imoveisAtivos = ((imoveisQ.data as unknown as { status: string }[] | undefined) ?? []).filter((i) => i.status === "ativo").length;
-  const etapas = s.etapas.map((e) => ({ ...e, etapa: ROTULO[e.etapa] }));
+  const etapas = s.etapas.map((e) => ({ ...e, chave: e.etapa, etapa: ROTULO[e.etapa] }));
   const origemPrincipal = s.origens[0];
 
   return (
@@ -72,7 +72,7 @@ export function OperationalDashboard() {
                 <YAxis type="category" dataKey="etapa" width={100} axisLine={false} tickLine={false} tick={EIXO} />
                 <Tooltip contentStyle={TOOLTIP} />
                 <Bar dataKey="total" name="Leads" radius={[0, 4, 4, 0]}>
-                  {etapas.map((e) => <Cell key={e.etapa} fill={CORES_ETAPA[e.etapa] ?? "var(--primary)"} />)}
+                  {etapas.map((e) => <Cell key={e.chave} fill={CORES_ETAPA[e.chave] ?? "var(--primary)"} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
