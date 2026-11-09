@@ -256,9 +256,29 @@
 
 /* RM Prime approved company panel palette (owner-approved model for tenant panels). */
 .rm-painel {
+  --radius: 0.5rem;
   --background: oklch(0.985 0.006 190);
+  --foreground: oklch(0.29 0.06 199);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.29 0.06 199);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.29 0.06 199);
   --primary: oklch(0.31 0.065 199);
   --primary-foreground: oklch(0.99 0.003 190);
+  --secondary: oklch(0.68 0.07 82);
+  --secondary-foreground: oklch(0.25 0.05 199);
+  --muted: oklch(0.955 0.012 188);
+  --muted-foreground: oklch(0.48 0.025 196);
+  --accent: oklch(0.91 0.045 83);
+  --accent-foreground: oklch(0.27 0.06 199);
+  --border: oklch(0.88 0.02 190);
+  --input: oklch(0.81 0.025 190);
+  --ring: oklch(0.68 0.07 82);
+  --chart-1: oklch(0.31 0.065 199);
+  --chart-2: oklch(0.596 0.145 163);
+  --chart-3: oklch(0.546 0.145 252);
+  --chart-4: oklch(0.769 0.155 70);
+  --chart-5: oklch(0.553 0.013 58);
   --sidebar: oklch(0.27 0.055 199);
   --sidebar-foreground: oklch(0.91 0.015 190);
   --sidebar-primary: oklch(0.76 0.075 82);
@@ -267,4 +287,13 @@
   --sidebar-accent-foreground: oklch(0.98 0.005 190);
   --sidebar-border: oklch(0.42 0.045 195);
   --sidebar-ring: oklch(0.76 0.075 82);
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+}
+.rm-painel h1, .rm-painel h2, .rm-painel h3, .rm-painel h4, .rm-painel .font-heading, .rm-painel .font-display {
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: normal;
 }
