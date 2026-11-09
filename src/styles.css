@@ -38,6 +38,37 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* RM Prime approved company panel tokens (values live in .rm-painel). */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-crm-novo: var(--crm-novo);
+  --color-crm-conversando: var(--crm-conversando);
+  --color-crm-visita: var(--crm-visita);
+  --color-crm-proposta: var(--crm-proposta);
+  --color-crm-fechado: var(--crm-fechado);
+  --color-crm-perdido: var(--crm-perdido);
+  --color-crm-descartado: var(--crm-descartado);
+  --font-heading: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --shadow-elevado: 0 20px 45px -25px oklch(0.29 0.06 199 / 0.35);
+  --shadow-cartao: 0 1px 2px oklch(0.29 0.06 199 / 0.08), 0 12px 24px -18px oklch(0.29 0.06 199 / 0.28);
+
   /* Authenticated workspace semantic tokens */
   --color-workspace-surface: var(--workspace-surface);
   --color-workspace-elevated: var(--workspace-elevated);
@@ -287,6 +318,22 @@
   --sidebar-accent-foreground: oklch(0.98 0.005 190);
   --sidebar-border: oklch(0.42 0.045 195);
   --sidebar-ring: oklch(0.76 0.075 82);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0.001 106);
+  --success: oklch(0.596 0.145 163);
+  --success-foreground: oklch(0.985 0.001 106);
+  --warning: oklch(0.769 0.155 70);
+  --warning-foreground: oklch(0.216 0.006 56);
+  --info: oklch(0.546 0.145 252);
+  --info-foreground: oklch(0.985 0.001 106);
+  --crm-novo: oklch(0.63 0.24 25);
+  --crm-conversando: oklch(0.79 0.17 92);
+  --crm-visita: oklch(0.60 0.18 145);
+  --crm-proposta: oklch(0.61 0.24 322);
+  --crm-fechado: oklch(0.58 0.20 250);
+  --crm-perdido: oklch(0.66 0.18 50);
+  --crm-descartado: oklch(0.55 0.02 245);
+  -webkit-font-smoothing: antialiased;
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
   font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
@@ -297,3 +344,39 @@
   font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
   letter-spacing: normal;
 }
+.rm-painel .font-sans { font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; }
+.rm-painel * { border-color: var(--border); }
+
+@utility superficie-cartao {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  box-shadow: 0 1px 2px oklch(0.29 0.06 199 / 0.08), 0 12px 24px -18px oklch(0.29 0.06 199 / 0.28);
+}
+
+@utility rotulo-secao {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--muted-foreground);
+}
+
+/* RM Prime CRM kanban: each lead carries its stage colour. */
+.crm-kanban {
+  scrollbar-color: var(--primary) var(--muted);
+  scrollbar-width: thin;
+}
+.crm-card {
+  --crm-stage: var(--border);
+  border-color: color-mix(in oklch, var(--crm-stage) 38%, var(--border));
+  border-left: 4px solid var(--crm-stage);
+  background-color: color-mix(in oklch, var(--crm-stage) 9%, var(--card));
+}
+.crm-card[data-etapa="Novo"] { --crm-stage: var(--crm-novo); }
+.crm-card[data-etapa="Conversando"] { --crm-stage: var(--crm-conversando); }
+.crm-card[data-etapa="Visita"] { --crm-stage: var(--crm-visita); }
+.crm-card[data-etapa="Proposta"] { --crm-stage: var(--crm-proposta); }
+.crm-card[data-etapa="Negócio Fechado"] { --crm-stage: var(--crm-fechado); }
+.crm-card[data-etapa="Perdido"] { --crm-stage: var(--crm-perdido); }
+.crm-card[data-etapa="Descartado"] { --crm-stage: var(--crm-descartado); }
