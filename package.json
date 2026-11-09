@@ -107,6 +107,7 @@
     "wri01:dry-run": "node ./scripts/materialize-wrangler-config.mjs && bunx wrangler@4.114.0 deploy --config .wrangler.generated.jsonc --dry-run --outdir .wri01-dry-run"
   },
   "dependencies": {
+    "@ai-sdk/openai": "3.0.139",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -146,6 +147,7 @@
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-start": "1.168.60",
     "@tanstack/router-plugin": "1.168.42",
+    "ai": "6.0.325",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
