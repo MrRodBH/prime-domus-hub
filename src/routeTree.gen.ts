@@ -25,6 +25,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as LpSlugRouteImport } from './routes/lp.$slug'
 import { Route as LancamentosSlugRouteImport } from './routes/lancamentos.$slug'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -210,6 +211,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LpSlugRoute = LpSlugRouteImport.update({
+  id: '/lp/$slug',
+  path: '/lp/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LancamentosSlugRoute = LancamentosSlugRouteImport.update({
@@ -859,6 +865,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/lp/$slug': typeof LpSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/$tenantSlug/admin': typeof AuthenticatedTenantSlugAdminRouteWithChildren
@@ -981,6 +988,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/lp/$slug': typeof LpSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog': typeof BlogIndexRoute
   '/admin/$': typeof AuthenticatedAdminSplatRoute
@@ -1104,6 +1112,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/lp/$slug': typeof LpSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/$tenantSlug/admin': typeof AuthenticatedTenantSlugAdminRouteWithChildren
@@ -1230,6 +1239,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/lp/$slug'
     | '/p/$slug'
     | '/blog/'
     | '/$tenantSlug/admin'
@@ -1352,6 +1362,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/lp/$slug'
     | '/p/$slug'
     | '/blog'
     | '/admin/$'
@@ -1474,6 +1485,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/lp/$slug'
     | '/p/$slug'
     | '/blog/'
     | '/_authenticated/$tenantSlug/admin'
@@ -1596,6 +1608,7 @@ export interface RootRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
+  LpSlugRoute: typeof LpSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiInternalDca02ProviderOrphanRecoveryRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRoute
@@ -1725,6 +1738,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$slug'
       fullPath: '/p/$slug'
       preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lp/$slug': {
+      id: '/lp/$slug'
+      path: '/lp/$slug'
+      fullPath: '/lp/$slug'
+      preLoaderRoute: typeof LpSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lancamentos/$slug': {
@@ -2798,6 +2818,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ImovelSlugRoute: ImovelSlugRoute,
+  LpSlugRoute: LpSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiInternalDca02ProviderOrphanRecoveryRoute:
