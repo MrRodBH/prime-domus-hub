@@ -4,7 +4,7 @@
 - [x] Etapa 2: CRM (funil Kanban, ficha, histórico, próxima ação) — aguarda aprovação no preview
 - [x] Etapa 3: Imóveis (aguarda aprovação no preview)
 - [ ] Ajustar tela do Blog do painel ao original RM Prime
-- [x] Etapa 4b: Campanhas — lista/formulário, 2 cadastros, 5 artes, revisão, copy/roteiro com IA e gravação verificados no preview
+- [x] Etapa 4b: Campanhas — lista/formulário, 2 cadastros, 5 artes, copy com IA e gravação verificados no preview; roteiro com IA implementado, teste pendente
 - [ ] Complemento de Campanhas: geração de imagens, vídeo e publicação Meta — não implementados nesta entrega
 - [ ] Etapa 4: Módulos de apoio
 - [x] Importar campanhas e landing page
