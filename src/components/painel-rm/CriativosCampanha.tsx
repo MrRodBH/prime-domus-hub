@@ -11,6 +11,7 @@ import { editarConteudoCampanhaSocial, listarCriativosSociais, type Campanha } f
 import { buscarFormato, ROTULOS_DESTINO, type DestinoCampanha } from "@/lib/rm-marketing/campanhas";
 import type { CardRoteiro } from "@/lib/rm-marketing/social-campaign-contract";
 import { CopyDownloadsCampanha } from "./CopyDownloadsCampanha";
+import { gerarTextoCampanhaSocial } from "@/lib/api/rm-campaign-ai.functions";
 
 export function CriativosCampanha({ campanha, editavel, urlLp, titulo }: { campanha: Campanha; editavel: boolean; urlLp: string | null; titulo: string; preco: string; cidade?: string }) {
   const qc = useQueryClient();
@@ -29,6 +30,14 @@ export function CriativosCampanha({ campanha, editavel, urlLp, titulo }: { campa
   const imagem = artes.find((a)=>a.ordem===atual)?.url;
   const exigeRoteiro = current.formato === "carrossel" && total > 1;
   const vertical = (formato?.altura ?? 1)/(formato?.largura ?? 1)>1.5;
+  async function gerarRoteiro() {
+    setPending(true);
+    try {
+      const result=await gerarTextoCampanhaSocial({data:{id:current.id,tipo:"roteiro"}});
+      if(result.tipo==="roteiro") {setRoteiro(result.roteiro);setReviewChanged(true);toast.success("Roteiro criado. Revise os textos.");}
+    } catch(e) {toast.error(e instanceof Error ? e.message : "Não foi possível gerar o roteiro.");}
+    finally {setPending(false);}
+  }
   async function salvar(payload: { prompt?: string; roteiro?: CardRoteiro[]; roteiro_aprovado?: boolean; aprovar?: boolean }) {
     setPending(true);
     try {

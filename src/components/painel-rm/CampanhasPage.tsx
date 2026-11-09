@@ -236,7 +236,7 @@ function FormularioCampanha({
         </p>
         <p className="break-all">
           <strong>URL da LP:</strong>{" "}
-          {imovel.lp_slug ? `${origem}/lp/${imovel.lp_slug}` : <span className="text-muted-foreground">sem landing page publicada (página do imóvel: {origem}/{imovel.slug})</span>}
+          {imovel.lp_slug ? `${origem}/lp/${imovel.lp_slug}` : <span className="text-muted-foreground">sem landing page publicada (página do imóvel: {origem}/imovel/{imovel.slug})</span>}
         </p>
       </div>
 
@@ -287,7 +287,7 @@ function FormularioCampanha({
                 key={url}
                 type="button"
                 onClick={() => alternarFoto(url)}
-                className={cn("relative h-auto aspect-square overflow-hidden rounded-md border-2 p-0", marcada ? "border-primary" : "border-transparent opacity-70")}
+                className={cn("relative h-auto min-h-0 w-full aspect-square overflow-hidden rounded-md border-2 p-0", marcada ? "border-primary" : "border-transparent opacity-70")}
               >
                 <img src={url} alt="" className="h-full w-full object-cover" />
                 {marcada ? <Check className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" /> : null}

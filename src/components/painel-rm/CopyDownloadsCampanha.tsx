@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { editarConteudoCampanhaSocial, type Campanha } from "@/lib/api/rm-campanhas.functions";
+import { gerarTextoCampanhaSocial } from "@/lib/api/rm-campaign-ai.functions";
 
 import { buscarFormato, LIMITES_COPY, textoCopyTxt, type DestinoCampanha } from "@/lib/rm-marketing/campanhas";
 
@@ -77,6 +78,15 @@ export function CopyDownloadsCampanha({
   const [salvando, setSalvando] = useState(false);
   const [baixando, setBaixando] = useState(false);
 
+  async function gerar() {
+    setGerando(true);
+    try {
+      const result=await gerarTextoCampanhaSocial({data:{id:campanha.id,tipo:"copy"}});
+      if(result.tipo==="copy") {setCopy(result.copy);toast.success("Copy gerada. Revise e salve.");}
+    } catch(e) {toast.error(e instanceof Error ? e.message : "Não foi possível gerar a copy.");}
+    finally {setGerando(false);}
+  }
+
   async function salvar() {
     setSalvando(true);
     try {
@@ -129,7 +139,7 @@ export function CopyDownloadsCampanha({
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-heading font-semibold">Copy, legenda e hashtags</h3>
-          <Button size="sm" variant="outline" disabled title="Geração de copy por IA ainda não integrada">
+          <Button size="sm" variant="outline" disabled={!editavel || gerando} onClick={()=>void gerar()}>
             {gerando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />} Gerar com IA
           </Button>
         </div>
