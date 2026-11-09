@@ -8,5 +8,6 @@ assert.equal(summarizeOperational([lead("conversando", "2026-11-01T10:00:00"), l
 const s = summarizeOperational([lead("ganho", "2026-11-08"), lead("perdido", "2026-11-08"), lead("descartado", "2026-11-08"), lead("proposta", "2026-11-08")], now);
 assert.equal(s.ativos, 1, "won/lost/discarded are not active");
 assert.equal(s.taxaConversao, 25);
-assert.equal(summarizeOperational([lead("novo", "2026-11-08", "uuid-a")], now).corretores[0].nome, "Corretor 1", "broker ids never shown");
-console.log("operational dashboard specs: 4 passed");
+assert.equal(summarizeOperational([{ ...lead("novo", "2026-11-08", "uuid-a"), corretor_nome: "Edmilson da Cruz Pereira" }], now).corretores[0].nome, "Edmilson da Cruz Pereira", "real broker name shown");
+assert.equal(summarizeOperational([lead("novo", "2026-11-08", "uuid-b")], now).corretores[0].nome, "Corretor sem nome", "broker id never shown");
+console.log("operational dashboard specs: 5 passed");

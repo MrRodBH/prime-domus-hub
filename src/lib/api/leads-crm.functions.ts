@@ -237,5 +237,10 @@ export const funilComercial = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }) => {
     const leads = await listTenantLeadsForContext(context, { limit: 500 });
-    return leads.map((l) => ({ id: l.id, nome: l.nome, status: l.status, assigned_to: l.assigned_to, created_at: l.created_at, updated_at: l.updated_at, origem: l.origem }));
+    const { data: membros } = await context.supabase
+      .from("tenant_members")
+      .select("user_id, display_name")
+      .eq("tenant_id", context.tenant.tenantId);
+    const nomes = new Map((membros ?? []).map((m) => [m.user_id, m.display_name]));
+    return leads.map((l) => ({ id: l.id, nome: l.nome, status: l.status, assigned_to: l.assigned_to, created_at: l.created_at, updated_at: l.updated_at, origem: l.origem, corretor_nome: l.assigned_to ? nomes.get(l.assigned_to) ?? null : null }));
   });

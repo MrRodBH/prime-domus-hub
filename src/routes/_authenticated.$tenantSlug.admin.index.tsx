@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { DashboardInsightsReadOnlyPage } from "@/components/dashboard/DashboardInsightsReadOnlyPage";
-import { dashboardInsightsSearchSchema } from "@/components/dashboard/search-schema";
-import type { DashboardInsightsSearch } from "@/components/dashboard/search-schema";
+import { OperationalDashboard } from "@/components/dashboard/OperationalDashboard";
 
 export const Route = createFileRoute("/_authenticated/$tenantSlug/admin/")({
-  validateSearch: (search) => dashboardInsightsSearchSchema.parse(search),
-  component: DashboardInsightsRoute,
+  component: OperationalDashboard,
 });
-
-function DashboardInsightsRoute() {
-  const search = Route.useSearch();
-  return <DashboardInsightsReadOnlyPage search={search as DashboardInsightsSearch} />;
-}
