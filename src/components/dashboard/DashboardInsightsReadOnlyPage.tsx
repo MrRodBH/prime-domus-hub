@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { WorkspaceState } from "@/components/workspace";
 import { cn } from "@/lib/utils";
 import { CommercialCockpit } from "./CommercialCockpit";
+import { OperationalDashboard } from "@/components/dashboard/OperationalDashboard";
 import { SalesFunnelCockpit } from "./SalesFunnelCockpit";
 import { DashboardInsightFeed } from "./DashboardInsightFeed";
 import { DashboardMetricGrid } from "./DashboardMetricGrid";
@@ -167,6 +168,7 @@ export function DashboardInsightsReadOnlyPage({ search }: { search: DashboardIns
         </div>
       </header>
 
+      <OperationalDashboard />
       <CommercialCockpit />
       <SalesFunnelCockpit />
 
