@@ -21,3 +21,18 @@ export const meuTenantWorkspace = createServerFn({ method: "GET" })
     if (error || !data) throw new Error("Tenant workspace unavailable.");
     return { id: data.id, name: data.nome, slug: data.slug };
   });
+
+/** Current user's name and role inside the verified tenant (for the company panel footer). */
+export const meuPerfilNoTenant = createServerFn({ method: "GET" })
+  .middleware([requireTenant])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase.auth.getUser();
+    const uid = data.user?.id;
+    const { data: m } = await context.supabase
+      .from("tenant_members")
+      .select("display_name, tenant_role")
+      .eq("tenant_id", context.tenant.tenantId)
+      .eq("user_id", uid ?? "")
+      .maybeSingle();
+    return { nome: m?.display_name || data.user?.email || "", papel: (m?.tenant_role as string | undefined) ?? null };
+  });

@@ -23,6 +23,7 @@ import { clearSelectedTenantId } from "@/integrations/supabase/tenant-selection-
 import { TenantSelectionGate } from "@/components/workspace/tenant/TenantSelectionRequired";
 import { loginNavigation } from '@/lib/auth/tenant-login-navigation';
 import { PlatformBrand } from '@/components/brand/PlatformBrand';
+import { TenantPainelShell } from "./TenantPainelShell";
 import { TenantBrand, type WorkspaceTenantIdentity } from '@/components/brand/TenantBrand';
 
 export function WorkspaceShell() {
@@ -109,6 +110,18 @@ export function WorkspaceShell() {
       navigate({ to: "/admin", replace: true });
     }
   }, [active.superOnly, isSuper, navigate]);
+
+  if (!isSuper && loadedTenant) {
+    return (
+      <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>
+        <DetailPanelProvider>
+          <TenantPainelShell tenant={loadedTenant}>
+            <TenantSelectionGate isSuper={false}>{routedContent}</TenantSelectionGate>
+          </TenantPainelShell>
+        </DetailPanelProvider>
+      </TenantContextProvider>
+    );
+  }
 
   return (
     <TenantContextProvider tenantId={(tenantId as string | null) ?? null}>

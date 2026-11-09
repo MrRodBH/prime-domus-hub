@@ -23,8 +23,7 @@ export function summarizeOperational(leads: FunnelLead[], now = new Date()) {
     return [...m.entries()].map(([nome, total]) => ({ nome, total })).sort((a, b) => b.total - a.total);
   };
   const origens = agrupar((l) => l.origem?.trim() || "Não informada");
-  const ids = [...new Set(leads.map((l) => l.assigned_to).filter(Boolean))] as string[];
-  const corretores = agrupar((l) => (l.assigned_to ? `Corretor ${ids.indexOf(l.assigned_to) + 1}` : "Sem atribuição")).slice(0, 6);
+  const corretores = agrupar((l) => (l.assigned_to ? l.corretor_nome?.trim() || "Corretor sem nome" : "Sem atribuição")).slice(0, 6);
   const taxaConversao = leads.length ? Math.round((fechados / leads.length) * 100) : 0;
   return { ativos: ativos.length, propostas, fechados, parados, semAtendimento, etapas, meses, origens, corretores, taxaConversao, total: leads.length };
 }
