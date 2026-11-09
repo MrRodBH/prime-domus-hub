@@ -3460,6 +3460,7 @@ export type Database = {
           badge: string | null
           bairro_id: string | null
           banheiros: number | null
+          campanha: boolean
           caracteristicas: string[] | null
           cep: string | null
           cidade: string | null
@@ -3506,6 +3507,7 @@ export type Database = {
           badge?: string | null
           bairro_id?: string | null
           banheiros?: number | null
+          campanha?: boolean
           caracteristicas?: string[] | null
           cep?: string | null
           cidade?: string | null
@@ -3552,6 +3554,7 @@ export type Database = {
           badge?: string | null
           bairro_id?: string | null
           banheiros?: number | null
+          campanha?: boolean
           caracteristicas?: string[] | null
           cep?: string | null
           cidade?: string | null
@@ -7043,6 +7046,153 @@ export type Database = {
           },
           {
             foreignKeyName: "tenant_portal_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_social_campaign_creatives: {
+        Row: {
+          altura: number
+          caminho: string
+          campanha_id: string
+          criado_em: string
+          foto_origem: string
+          id: string
+          largura: number
+          ordem: number
+          tenant_id: string
+        }
+        Insert: {
+          altura: number
+          caminho: string
+          campanha_id: string
+          criado_em?: string
+          foto_origem: string
+          id?: string
+          largura: number
+          ordem: number
+          tenant_id: string
+        }
+        Update: {
+          altura?: number
+          caminho?: string
+          campanha_id?: string
+          criado_em?: string
+          foto_origem?: string
+          id?: string
+          largura?: number
+          ordem?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_social_campaign_creatives_tenant_id_campanha_id_fkey"
+            columns: ["tenant_id", "campanha_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_social_campaigns"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "tenant_social_campaign_creatives_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_social_campaigns: {
+        Row: {
+          aprovada_em: string | null
+          atualizado_em: string
+          codigo: string
+          copy_principal: string | null
+          criado_em: string
+          cta: string | null
+          destino: string
+          finalidade: string
+          formato: string
+          fotos: string[]
+          hashtags: string | null
+          id: string
+          imovel_id: string
+          legenda: string | null
+          prompt: string | null
+          revision: number
+          roteiro: Json
+          roteiro_aprovado: boolean
+          status: string
+          tenant_id: string
+          video_ia_job: string | null
+          video_mime: string | null
+          video_origem: string | null
+          video_url: string | null
+        }
+        Insert: {
+          aprovada_em?: string | null
+          atualizado_em?: string
+          codigo?: string
+          copy_principal?: string | null
+          criado_em?: string
+          cta?: string | null
+          destino: string
+          finalidade?: string
+          formato: string
+          fotos?: string[]
+          hashtags?: string | null
+          id?: string
+          imovel_id: string
+          legenda?: string | null
+          prompt?: string | null
+          revision?: number
+          roteiro?: Json
+          roteiro_aprovado?: boolean
+          status?: string
+          tenant_id: string
+          video_ia_job?: string | null
+          video_mime?: string | null
+          video_origem?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          aprovada_em?: string | null
+          atualizado_em?: string
+          codigo?: string
+          copy_principal?: string | null
+          criado_em?: string
+          cta?: string | null
+          destino?: string
+          finalidade?: string
+          formato?: string
+          fotos?: string[]
+          hashtags?: string | null
+          id?: string
+          imovel_id?: string
+          legenda?: string | null
+          prompt?: string | null
+          revision?: number
+          roteiro?: Json
+          roteiro_aprovado?: boolean
+          status?: string
+          tenant_id?: string
+          video_ia_job?: string | null
+          video_mime?: string | null
+          video_origem?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_social_campaigns_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_social_campaigns_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
