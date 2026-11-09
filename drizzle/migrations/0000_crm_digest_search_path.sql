@@ -1,0 +1,12 @@
+ALTER FUNCTION public.add_tenant_crm_note(uuid,uuid,text,uuid,text,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.assign_tenant_crm_lead(uuid,uuid,text,uuid,bigint,text,uuid,uuid,text,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.create_tenant_crm_lead(uuid,uuid,text,text,text,text,uuid,text,uuid,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.create_tenant_crm_tag(uuid,uuid,text,text,text,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.create_tenant_crm_task(uuid,uuid,text,uuid,text,text,text,timestamp with time zone,uuid,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.provision_authorized_tenant_product_baselines(uuid[],text,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.provision_tenant_product_baseline(uuid) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.set_tenant_crm_pipeline_state(uuid,uuid,text,uuid,bigint,boolean,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.set_tenant_crm_tags(uuid,uuid,text,uuid,uuid[],bigint,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.transition_tenant_crm_lead(uuid,uuid,text,uuid,text,bigint,uuid,text,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.transition_tenant_crm_task(uuid,uuid,text,uuid,text,bigint,text,text) SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.update_tenant_crm_lead(uuid,uuid,text,uuid,bigint,jsonb,text) SET search_path = public, extensions, pg_temp;
