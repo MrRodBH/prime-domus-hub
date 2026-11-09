@@ -71,7 +71,7 @@ export const editarConteudoCampanhaSocial = createServerFn({ method: "POST" }).m
   const payload: Database["public"]["Tables"]["tenant_social_campaigns"]["Update"] = {};
   if (data.prompt !== undefined) payload.prompt = data.prompt || null;
   if (data.roteiro) {
-    payload.roteiro = montarRoteiroValidado(old.fotos, data.roteiro.map((c) => c.texto));
+    payload.roteiro = montarRoteiroValidado(old.fotos, data.roteiro.map((c) => c.texto)).map((card) => ({ ordem:card.ordem, foto:card.foto, texto:card.texto }));
     payload.roteiro_aprovado = data.roteiro_aprovado ?? false;
     payload.status="rascunho"; payload.aprovada_em=null;
   }

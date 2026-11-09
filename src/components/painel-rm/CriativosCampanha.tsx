@@ -18,7 +18,10 @@ export function CriativosCampanha({ campanha, editavel, urlLp, titulo }: { campa
   const [prompt, setPrompt] = useState(campanha.prompt ?? "");
   const [atual, setAtual] = useState(0);
   const [pending, setPending] = useState(false);
-  const [roteiro, setRoteiro] = useState<CardRoteiro[]>(Array.isArray(campanha.roteiro) ? campanha.roteiro.filter((c): c is unknown & CardRoteiro => typeof c === "object" && c !== null && "texto" in c && typeof c.texto === "string") as CardRoteiro[] : []);
+  const [roteiro, setRoteiro] = useState<CardRoteiro[]>(() => Array.isArray(campanha.roteiro) ? campanha.roteiro.flatMap((c) => {
+    if (typeof c !== "object" || c === null || Array.isArray(c) || typeof c.texto !== "string" || typeof c.foto !== "string" || typeof c.ordem !== "number") return [];
+    return [{texto:c.texto,foto:c.foto,ordem:c.ordem}];
+  }) : []);
   const [reviewChanged, setReviewChanged] = useState(false);
   const { data: artes = [], isLoading, error } = useQuery({ queryKey: ["campanhas", "criativos", campanha.id], queryFn: () => listarCriativosSociais({ data: { id: campanha.id } }) });
   const formato = buscarFormato(current.destino,current.formato);
