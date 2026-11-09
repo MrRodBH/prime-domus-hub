@@ -9,182 +9,136 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
-import { Route as SobreRouteImport } from './routes/sobre'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as LancamentosRouteImport } from './routes/lancamentos'
-import { Route as ImoveisRouteImport } from './routes/imoveis'
-import { Route as DesignSystemRouteImport } from './routes/design-system'
-import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
-import { Route as ContatoRouteImport } from './routes/contato'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AnuncieRouteImport } from './routes/anuncie'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as BlogIndexRouteImport } from './routes/blog.index'
-import { Route as PSlugRouteImport } from './routes/p.$slug'
-import { Route as LancamentosSlugRouteImport } from './routes/lancamentos.$slug'
-import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
-import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
-import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
-import { Route as AuthenticatedSuperRouteImport } from './routes/_authenticated.super'
-import { Route as AuthenticatedInvitationsRouteImport } from './routes/_authenticated.invitations'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AnuncieRouteImport } from './routes/anuncie'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as DemonstracaoRouteImport } from './routes/demonstracao'
+import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as ImoveisRouteImport } from './routes/imoveis'
+import { Route as LancamentosRouteImport } from './routes/lancamentos'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TenantSlugAuthRouteImport } from './routes/$tenantSlug.auth'
-import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authenticated.super.index'
-import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
-import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
-import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
-import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
-import { Route as ApiInternalPca15rManagedCustodyProvisionRouteImport } from './routes/api/internal/pca-15r-managed-custody-provision'
-import { Route as ApiInternalPca11ManagedBindingProvisionRouteImport } from './routes/api/internal/pca-11-managed-binding-provision'
-import { Route as ApiInternalDca02ProviderOrphanRecoveryRouteImport } from './routes/api/internal/dca-02-provider-orphan-recovery'
-import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
-import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
-import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
-import { Route as AuthenticatedSuperControlPlaneRouteImport } from './routes/_authenticated.super.control-plane'
-import { Route as AuthenticatedAdminTrackingRouteImport } from './routes/_authenticated.admin.tracking'
-import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
-import { Route as AuthenticatedAdminPortaisRouteImport } from './routes/_authenticated.admin.portais'
-import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated.admin.pipeline'
-import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated.admin.perfis'
-import { Route as AuthenticatedAdminOrigensRouteImport } from './routes/_authenticated.admin.origens'
-import { Route as AuthenticatedAdminMotivosRouteImport } from './routes/_authenticated.admin.motivos'
-import { Route as AuthenticatedAdminMidiasRouteImport } from './routes/_authenticated.admin.midias'
-import { Route as AuthenticatedAdminMembershipsRouteImport } from './routes/_authenticated.admin.memberships'
-import { Route as AuthenticatedAdminMarketingRouteImport } from './routes/_authenticated.admin.marketing'
-import { Route as AuthenticatedAdminLeadsWorkspaceRouteImport } from './routes/_authenticated.admin.leads-workspace'
-import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
-import { Route as AuthenticatedAdminEquipesRouteImport } from './routes/_authenticated.admin.equipes'
-import { Route as AuthenticatedAdminDomainsRouteImport } from './routes/_authenticated.admin.domains'
-import { Route as AuthenticatedAdminCrmOperacoesRouteImport } from './routes/_authenticated.admin.crm-operacoes'
-import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
-import { Route as AuthenticatedAdminCmsTransferenciaRouteImport } from './routes/_authenticated.admin.cms-transferencia'
-import { Route as AuthenticatedAdminCmsInventarioRouteImport } from './routes/_authenticated.admin.cms-inventario'
-import { Route as AuthenticatedAdminCmsAuditoriaRouteImport } from './routes/_authenticated.admin.cms-auditoria'
-import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authenticated.admin.cidades'
-import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
-import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
-import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated.admin.auditoria'
-import { Route as AuthenticatedAdminSplatRouteImport } from './routes/_authenticated.admin.$'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated.admin'
+import { Route as AuthenticatedInvitationsRouteImport } from './routes/_authenticated.invitations'
+import { Route as AuthenticatedSuperRouteImport } from './routes/_authenticated.super'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
+import { Route as LancamentosSlugRouteImport } from './routes/lancamentos.$slug'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedTenantSlugAdminRouteImport } from './routes/_authenticated.$tenantSlug.admin'
-import { Route as AuthenticatedAdminPaginasIndexRouteImport } from './routes/_authenticated.admin.paginas.index'
-import { Route as AuthenticatedAdminLancamentosIndexRouteImport } from './routes/_authenticated.admin.lancamentos.index'
-import { Route as AuthenticatedAdminImoveisIndexRouteImport } from './routes/_authenticated.admin.imoveis.index'
-import { Route as AuthenticatedAdminFormulariosIndexRouteImport } from './routes/_authenticated.admin.formularios.index'
-import { Route as AuthenticatedAdminCampanhasIndexRouteImport } from './routes/_authenticated.admin.campanhas.index'
-import { Route as AuthenticatedAdminBlogIndexRouteImport } from './routes/_authenticated.admin.blog.index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated.admin.index'
+import { Route as AuthenticatedAdminSplatRouteImport } from './routes/_authenticated.admin.$'
+import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated.admin.auditoria'
+import { Route as AuthenticatedAdminBairrosRouteImport } from './routes/_authenticated.admin.bairros'
+import { Route as AuthenticatedAdminBlogRouteImport } from './routes/_authenticated.admin.blog'
+import { Route as AuthenticatedAdminCidadesRouteImport } from './routes/_authenticated.admin.cidades'
+import { Route as AuthenticatedAdminCmsAuditoriaRouteImport } from './routes/_authenticated.admin.cms-auditoria'
+import { Route as AuthenticatedAdminCmsInventarioRouteImport } from './routes/_authenticated.admin.cms-inventario'
+import { Route as AuthenticatedAdminCmsTransferenciaRouteImport } from './routes/_authenticated.admin.cms-transferencia'
+import { Route as AuthenticatedAdminCorretoresRouteImport } from './routes/_authenticated.admin.corretores'
+import { Route as AuthenticatedAdminCrmOperacoesRouteImport } from './routes/_authenticated.admin.crm-operacoes'
+import { Route as AuthenticatedAdminDomainsRouteImport } from './routes/_authenticated.admin.domains'
+import { Route as AuthenticatedAdminEquipesRouteImport } from './routes/_authenticated.admin.equipes'
+import { Route as AuthenticatedAdminLeadsRouteImport } from './routes/_authenticated.admin.leads'
+import { Route as AuthenticatedAdminLeadsWorkspaceRouteImport } from './routes/_authenticated.admin.leads-workspace'
+import { Route as AuthenticatedAdminMarketingRouteImport } from './routes/_authenticated.admin.marketing'
+import { Route as AuthenticatedAdminMembershipsRouteImport } from './routes/_authenticated.admin.memberships'
+import { Route as AuthenticatedAdminMidiasRouteImport } from './routes/_authenticated.admin.midias'
+import { Route as AuthenticatedAdminMotivosRouteImport } from './routes/_authenticated.admin.motivos'
+import { Route as AuthenticatedAdminOrigensRouteImport } from './routes/_authenticated.admin.origens'
+import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated.admin.perfis'
+import { Route as AuthenticatedAdminPipelineRouteImport } from './routes/_authenticated.admin.pipeline'
+import { Route as AuthenticatedAdminPortaisRouteImport } from './routes/_authenticated.admin.portais'
+import { Route as AuthenticatedAdminSiteRouteImport } from './routes/_authenticated.admin.site'
+import { Route as AuthenticatedAdminTrackingRouteImport } from './routes/_authenticated.admin.tracking'
+import { Route as AuthenticatedSuperIndexRouteImport } from './routes/_authenticated.super.index'
+import { Route as AuthenticatedSuperControlPlaneRouteImport } from './routes/_authenticated.super.control-plane'
+import { Route as AuthenticatedSuperDlqRouteImport } from './routes/_authenticated.super.dlq'
+import { Route as AuthenticatedSuperDomainsRouteImport } from './routes/_authenticated.super.domains'
+import { Route as AuthenticatedSuperObservabilidadeRouteImport } from './routes/_authenticated.super.observabilidade'
+import { Route as ApiInternalDca02ProviderOrphanRecoveryRouteImport } from './routes/api/internal/dca-02-provider-orphan-recovery'
+import { Route as ApiInternalPca11ManagedBindingProvisionRouteImport } from './routes/api/internal/pca-11-managed-binding-provision'
+import { Route as ApiInternalPca15rManagedCustodyProvisionRouteImport } from './routes/api/internal/pca-15r-managed-custody-provision'
+import { Route as ApiInternalSpr03ManagedSecretProvisionRouteImport } from './routes/api/internal/spr-03-managed-secret-provision'
+import { Route as ApiPublicPortalLeadsRouteImport } from './routes/api/public/portal-leads'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedTenantSlugAdminIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.index'
-import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
-import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as ApiPublicHooksPortalDlqRetryRouteImport } from './routes/api/public/hooks/portal-dlq-retry'
-import { Route as AuthenticatedAdminPaginasIdRouteImport } from './routes/_authenticated.admin.paginas.$id'
-import { Route as AuthenticatedAdminLancamentosNovoRouteImport } from './routes/_authenticated.admin.lancamentos.novo'
-import { Route as AuthenticatedAdminLancamentosIdRouteImport } from './routes/_authenticated.admin.lancamentos.$id'
-import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
-import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authenticated.admin.imoveis.$id'
-import { Route as AuthenticatedAdminFormulariosIdRouteImport } from './routes/_authenticated.admin.formularios.$id'
-import { Route as AuthenticatedAdminCampanhasIdRouteImport } from './routes/_authenticated.admin.campanhas.$id'
-import { Route as AuthenticatedAdminBlogNovoRouteImport } from './routes/_authenticated.admin.blog.novo'
-import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated.admin.blog.$id'
-import { Route as AuthenticatedTenantSlugAdminTrackingRouteImport } from './routes/_authenticated.$tenantSlug.admin.tracking'
-import { Route as AuthenticatedTenantSlugAdminSiteRouteImport } from './routes/_authenticated.$tenantSlug.admin.site'
-import { Route as AuthenticatedTenantSlugAdminPortaisRouteImport } from './routes/_authenticated.$tenantSlug.admin.portais'
-import { Route as AuthenticatedTenantSlugAdminPipelineRouteImport } from './routes/_authenticated.$tenantSlug.admin.pipeline'
-import { Route as AuthenticatedTenantSlugAdminPerfisRouteImport } from './routes/_authenticated.$tenantSlug.admin.perfis'
-import { Route as AuthenticatedTenantSlugAdminOrigensRouteImport } from './routes/_authenticated.$tenantSlug.admin.origens'
-import { Route as AuthenticatedTenantSlugAdminMotivosRouteImport } from './routes/_authenticated.$tenantSlug.admin.motivos'
-import { Route as AuthenticatedTenantSlugAdminMidiasRouteImport } from './routes/_authenticated.$tenantSlug.admin.midias'
-import { Route as AuthenticatedTenantSlugAdminMembershipsRouteImport } from './routes/_authenticated.$tenantSlug.admin.memberships'
-import { Route as AuthenticatedTenantSlugAdminMarketingRouteImport } from './routes/_authenticated.$tenantSlug.admin.marketing'
-import { Route as AuthenticatedTenantSlugAdminLeadsWorkspaceRouteImport } from './routes/_authenticated.$tenantSlug.admin.leads-workspace'
-import { Route as AuthenticatedTenantSlugAdminLeadsRouteImport } from './routes/_authenticated.$tenantSlug.admin.leads'
-import { Route as AuthenticatedTenantSlugAdminEquipesRouteImport } from './routes/_authenticated.$tenantSlug.admin.equipes'
-import { Route as AuthenticatedTenantSlugAdminDomainsRouteImport } from './routes/_authenticated.$tenantSlug.admin.domains'
-import { Route as AuthenticatedTenantSlugAdminCrmOperacoesRouteImport } from './routes/_authenticated.$tenantSlug.admin.crm-operacoes'
-import { Route as AuthenticatedTenantSlugAdminCorretoresRouteImport } from './routes/_authenticated.$tenantSlug.admin.corretores'
-import { Route as AuthenticatedTenantSlugAdminCmsTransferenciaRouteImport } from './routes/_authenticated.$tenantSlug.admin.cms-transferencia'
-import { Route as AuthenticatedTenantSlugAdminCmsInventarioRouteImport } from './routes/_authenticated.$tenantSlug.admin.cms-inventario'
-import { Route as AuthenticatedTenantSlugAdminCmsAuditoriaRouteImport } from './routes/_authenticated.$tenantSlug.admin.cms-auditoria'
-import { Route as AuthenticatedTenantSlugAdminCidadesRouteImport } from './routes/_authenticated.$tenantSlug.admin.cidades'
-import { Route as AuthenticatedTenantSlugAdminBlogRouteImport } from './routes/_authenticated.$tenantSlug.admin.blog'
-import { Route as AuthenticatedTenantSlugAdminBairrosRouteImport } from './routes/_authenticated.$tenantSlug.admin.bairros'
 import { Route as AuthenticatedTenantSlugAdminAuditoriaRouteImport } from './routes/_authenticated.$tenantSlug.admin.auditoria'
-import { Route as AuthenticatedTenantSlugAdminPaginasIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.paginas.index'
-import { Route as AuthenticatedTenantSlugAdminLancamentosIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.lancamentos.index'
-import { Route as AuthenticatedTenantSlugAdminImoveisIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.imoveis.index'
-import { Route as AuthenticatedTenantSlugAdminFormulariosIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.formularios.index'
-import { Route as AuthenticatedTenantSlugAdminCampanhasIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.campanhas.index'
+import { Route as AuthenticatedTenantSlugAdminBairrosRouteImport } from './routes/_authenticated.$tenantSlug.admin.bairros'
+import { Route as AuthenticatedTenantSlugAdminBlogRouteImport } from './routes/_authenticated.$tenantSlug.admin.blog'
+import { Route as AuthenticatedTenantSlugAdminCidadesRouteImport } from './routes/_authenticated.$tenantSlug.admin.cidades'
+import { Route as AuthenticatedTenantSlugAdminCmsAuditoriaRouteImport } from './routes/_authenticated.$tenantSlug.admin.cms-auditoria'
+import { Route as AuthenticatedTenantSlugAdminCmsInventarioRouteImport } from './routes/_authenticated.$tenantSlug.admin.cms-inventario'
+import { Route as AuthenticatedTenantSlugAdminCmsTransferenciaRouteImport } from './routes/_authenticated.$tenantSlug.admin.cms-transferencia'
+import { Route as AuthenticatedTenantSlugAdminCorretoresRouteImport } from './routes/_authenticated.$tenantSlug.admin.corretores'
+import { Route as AuthenticatedTenantSlugAdminCrmOperacoesRouteImport } from './routes/_authenticated.$tenantSlug.admin.crm-operacoes'
+import { Route as AuthenticatedTenantSlugAdminDomainsRouteImport } from './routes/_authenticated.$tenantSlug.admin.domains'
+import { Route as AuthenticatedTenantSlugAdminEquipesRouteImport } from './routes/_authenticated.$tenantSlug.admin.equipes'
+import { Route as AuthenticatedTenantSlugAdminLeadsRouteImport } from './routes/_authenticated.$tenantSlug.admin.leads'
+import { Route as AuthenticatedTenantSlugAdminLeadsWorkspaceRouteImport } from './routes/_authenticated.$tenantSlug.admin.leads-workspace'
+import { Route as AuthenticatedTenantSlugAdminMarketingRouteImport } from './routes/_authenticated.$tenantSlug.admin.marketing'
+import { Route as AuthenticatedTenantSlugAdminMembershipsRouteImport } from './routes/_authenticated.$tenantSlug.admin.memberships'
+import { Route as AuthenticatedTenantSlugAdminMidiasRouteImport } from './routes/_authenticated.$tenantSlug.admin.midias'
+import { Route as AuthenticatedTenantSlugAdminMotivosRouteImport } from './routes/_authenticated.$tenantSlug.admin.motivos'
+import { Route as AuthenticatedTenantSlugAdminOrigensRouteImport } from './routes/_authenticated.$tenantSlug.admin.origens'
+import { Route as AuthenticatedTenantSlugAdminPerfisRouteImport } from './routes/_authenticated.$tenantSlug.admin.perfis'
+import { Route as AuthenticatedTenantSlugAdminPipelineRouteImport } from './routes/_authenticated.$tenantSlug.admin.pipeline'
+import { Route as AuthenticatedTenantSlugAdminPortaisRouteImport } from './routes/_authenticated.$tenantSlug.admin.portais'
+import { Route as AuthenticatedTenantSlugAdminSiteRouteImport } from './routes/_authenticated.$tenantSlug.admin.site'
+import { Route as AuthenticatedTenantSlugAdminTrackingRouteImport } from './routes/_authenticated.$tenantSlug.admin.tracking'
+import { Route as AuthenticatedAdminBlogIndexRouteImport } from './routes/_authenticated.admin.blog.index'
+import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated.admin.blog.$id'
+import { Route as AuthenticatedAdminBlogNovoRouteImport } from './routes/_authenticated.admin.blog.novo'
+import { Route as AuthenticatedAdminCampanhasIndexRouteImport } from './routes/_authenticated.admin.campanhas.index'
+import { Route as AuthenticatedAdminCampanhasIdRouteImport } from './routes/_authenticated.admin.campanhas.$id'
+import { Route as AuthenticatedAdminFormulariosIndexRouteImport } from './routes/_authenticated.admin.formularios.index'
+import { Route as AuthenticatedAdminFormulariosIdRouteImport } from './routes/_authenticated.admin.formularios.$id'
+import { Route as AuthenticatedAdminImoveisIndexRouteImport } from './routes/_authenticated.admin.imoveis.index'
+import { Route as AuthenticatedAdminImoveisIdRouteImport } from './routes/_authenticated.admin.imoveis.$id'
+import { Route as AuthenticatedAdminImoveisNovoRouteImport } from './routes/_authenticated.admin.imoveis.novo'
+import { Route as AuthenticatedAdminLancamentosIndexRouteImport } from './routes/_authenticated.admin.lancamentos.index'
+import { Route as AuthenticatedAdminLancamentosIdRouteImport } from './routes/_authenticated.admin.lancamentos.$id'
+import { Route as AuthenticatedAdminLancamentosNovoRouteImport } from './routes/_authenticated.admin.lancamentos.novo'
+import { Route as AuthenticatedAdminPaginasIndexRouteImport } from './routes/_authenticated.admin.paginas.index'
+import { Route as AuthenticatedAdminPaginasIdRouteImport } from './routes/_authenticated.admin.paginas.$id'
+import { Route as ApiPublicHooksPortalDlqRetryRouteImport } from './routes/api/public/hooks/portal-dlq-retry'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as AuthenticatedTenantSlugAdminBlogIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.blog.index'
-import { Route as ApiPublicFeedsPortalTokenRouteImport } from './routes/api/public/feeds.$portal.$token'
-import { Route as AuthenticatedTenantSlugAdminPaginasIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.paginas.$id'
-import { Route as AuthenticatedTenantSlugAdminLancamentosNovoRouteImport } from './routes/_authenticated.$tenantSlug.admin.lancamentos.novo'
-import { Route as AuthenticatedTenantSlugAdminLancamentosIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.lancamentos.$id'
-import { Route as AuthenticatedTenantSlugAdminImoveisNovoRouteImport } from './routes/_authenticated.$tenantSlug.admin.imoveis.novo'
-import { Route as AuthenticatedTenantSlugAdminImoveisIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.imoveis.$id'
-import { Route as AuthenticatedTenantSlugAdminFormulariosIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.formularios.$id'
-import { Route as AuthenticatedTenantSlugAdminCampanhasIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.campanhas.$id'
-import { Route as AuthenticatedTenantSlugAdminBlogNovoRouteImport } from './routes/_authenticated.$tenantSlug.admin.blog.novo'
 import { Route as AuthenticatedTenantSlugAdminBlogIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.blog.$id'
+import { Route as AuthenticatedTenantSlugAdminBlogNovoRouteImport } from './routes/_authenticated.$tenantSlug.admin.blog.novo'
+import { Route as AuthenticatedTenantSlugAdminCampanhasIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.campanhas.index'
+import { Route as AuthenticatedTenantSlugAdminCampanhasIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.campanhas.$id'
+import { Route as AuthenticatedTenantSlugAdminFormulariosIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.formularios.index'
+import { Route as AuthenticatedTenantSlugAdminFormulariosIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.formularios.$id'
+import { Route as AuthenticatedTenantSlugAdminImoveisIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.imoveis.index'
+import { Route as AuthenticatedTenantSlugAdminImoveisIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.imoveis.$id'
+import { Route as AuthenticatedTenantSlugAdminImoveisNovoRouteImport } from './routes/_authenticated.$tenantSlug.admin.imoveis.novo'
+import { Route as AuthenticatedTenantSlugAdminLancamentosIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.lancamentos.index'
+import { Route as AuthenticatedTenantSlugAdminLancamentosIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.lancamentos.$id'
+import { Route as AuthenticatedTenantSlugAdminLancamentosNovoRouteImport } from './routes/_authenticated.$tenantSlug.admin.lancamentos.novo'
+import { Route as AuthenticatedTenantSlugAdminPaginasIndexRouteImport } from './routes/_authenticated.$tenantSlug.admin.paginas.index'
+import { Route as AuthenticatedTenantSlugAdminPaginasIdRouteImport } from './routes/_authenticated.$tenantSlug.admin.paginas.$id'
+import { Route as ApiPublicFeedsPortalTokenRouteImport } from './routes/api/public/feeds.$portal.$token'
 
-const UnsubscribeRoute = UnsubscribeRouteImport.update({
-  id: '/unsubscribe',
-  path: '/unsubscribe',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SobreRoute = SobreRouteImport.update({
-  id: '/sobre',
-  path: '/sobre',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacidadeRoute = PrivacidadeRouteImport.update({
-  id: '/privacidade',
-  path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LancamentosRoute = LancamentosRouteImport.update({
-  id: '/lancamentos',
-  path: '/lancamentos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImoveisRoute = ImoveisRouteImport.update({
-  id: '/imoveis',
-  path: '/imoveis',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DesignSystemRoute = DesignSystemRouteImport.update({
-  id: '/design-system',
-  path: '/design-system',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemonstracaoRoute = DemonstracaoRouteImport.update({
-  id: '/demonstracao',
-  path: '/demonstracao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContatoRoute = ContatoRouteImport.update({
-  id: '/contato',
-  path: '/contato',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnuncieRoute = AnuncieRouteImport.update({
@@ -192,48 +146,69 @@ const AnuncieRoute = AnuncieRouteImport.update({
   path: '/anuncie',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogIndexRoute = BlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
+const DemonstracaoRoute = DemonstracaoRouteImport.update({
+  id: '/demonstracao',
+  path: '/demonstracao',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PSlugRoute = PSlugRouteImport.update({
-  id: '/p/$slug',
-  path: '/p/$slug',
+const DesignSystemRoute = DesignSystemRouteImport.update({
+  id: '/design-system',
+  path: '/design-system',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LancamentosSlugRoute = LancamentosSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => LancamentosRoute,
-} as any)
-const ImovelSlugRoute = ImovelSlugRouteImport.update({
-  id: '/imovel/$slug',
-  path: '/imovel/$slug',
+const ImoveisRoute = ImoveisRouteImport.update({
+  id: '/imoveis',
+  path: '/imoveis',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
-  id: '/email/unsubscribe',
-  path: '/email/unsubscribe',
+const LancamentosRoute = LancamentosRouteImport.update({
+  id: '/lancamentos',
+  path: '/lancamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/blog/$slug',
-  path: '/blog/$slug',
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSuperRoute = AuthenticatedSuperRouteImport.update({
-  id: '/super',
-  path: '/super',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SobreRoute = SobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TenantSlugAuthRoute = TenantSlugAuthRouteImport.update({
+  id: '/$tenantSlug/auth',
+  path: '/$tenantSlug/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedInvitationsRoute =
@@ -242,187 +217,78 @@ const AuthenticatedInvitationsRoute =
     path: '/invitations',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthenticatedSuperRoute = AuthenticatedSuperRouteImport.update({
+  id: '/super',
+  path: '/super',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const TenantSlugAuthRoute = TenantSlugAuthRouteImport.update({
-  id: '/$tenantSlug/auth',
-  path: '/$tenantSlug/auth',
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSuperIndexRoute = AuthenticatedSuperIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedSuperRoute,
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImovelSlugRoute = ImovelSlugRouteImport.update({
+  id: '/imovel/$slug',
+  path: '/imovel/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LancamentosSlugRoute = LancamentosSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => LancamentosRoute,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTenantSlugAdminRoute =
+  AuthenticatedTenantSlugAdminRouteImport.update({
+    id: '/$tenantSlug/admin',
+    path: '/$tenantSlug/admin',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
-  id: '/lovable/email/suppression',
-  path: '/lovable/email/suppression',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicPortalLeadsRoute = ApiPublicPortalLeadsRouteImport.update({
-  id: '/api/public/portal-leads',
-  path: '/api/public/portal-leads',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalSpr03ManagedSecretProvisionRoute =
-  ApiInternalSpr03ManagedSecretProvisionRouteImport.update({
-    id: '/api/internal/spr-03-managed-secret-provision',
-    path: '/api/internal/spr-03-managed-secret-provision',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiInternalPca15rManagedCustodyProvisionRoute =
-  ApiInternalPca15rManagedCustodyProvisionRouteImport.update({
-    id: '/api/internal/pca-15r-managed-custody-provision',
-    path: '/api/internal/pca-15r-managed-custody-provision',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiInternalPca11ManagedBindingProvisionRoute =
-  ApiInternalPca11ManagedBindingProvisionRouteImport.update({
-    id: '/api/internal/pca-11-managed-binding-provision',
-    path: '/api/internal/pca-11-managed-binding-provision',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiInternalDca02ProviderOrphanRecoveryRoute =
-  ApiInternalDca02ProviderOrphanRecoveryRouteImport.update({
-    id: '/api/internal/dca-02-provider-orphan-recovery',
-    path: '/api/internal/dca-02-provider-orphan-recovery',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedSuperObservabilidadeRoute =
-  AuthenticatedSuperObservabilidadeRouteImport.update({
-    id: '/observabilidade',
-    path: '/observabilidade',
-    getParentRoute: () => AuthenticatedSuperRoute,
-  } as any)
-const AuthenticatedSuperDomainsRoute =
-  AuthenticatedSuperDomainsRouteImport.update({
-    id: '/domains',
-    path: '/domains',
-    getParentRoute: () => AuthenticatedSuperRoute,
-  } as any)
-const AuthenticatedSuperDlqRoute = AuthenticatedSuperDlqRouteImport.update({
-  id: '/dlq',
-  path: '/dlq',
-  getParentRoute: () => AuthenticatedSuperRoute,
-} as any)
-const AuthenticatedSuperControlPlaneRoute =
-  AuthenticatedSuperControlPlaneRouteImport.update({
-    id: '/control-plane',
-    path: '/control-plane',
-    getParentRoute: () => AuthenticatedSuperRoute,
-  } as any)
-const AuthenticatedAdminTrackingRoute =
-  AuthenticatedAdminTrackingRouteImport.update({
-    id: '/tracking',
-    path: '/tracking',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
-  id: '/site',
-  path: '/site',
+const AuthenticatedAdminSplatRoute = AuthenticatedAdminSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminPortaisRoute =
-  AuthenticatedAdminPortaisRouteImport.update({
-    id: '/portais',
-    path: '/portais',
+const AuthenticatedAdminAuditoriaRoute =
+  AuthenticatedAdminAuditoriaRouteImport.update({
+    id: '/auditoria',
+    path: '/auditoria',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminPipelineRoute =
-  AuthenticatedAdminPipelineRouteImport.update({
-    id: '/pipeline',
-    path: '/pipeline',
+const AuthenticatedAdminBairrosRoute =
+  AuthenticatedAdminBairrosRouteImport.update({
+    id: '/bairros',
+    path: '/bairros',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminPerfisRoute =
-  AuthenticatedAdminPerfisRouteImport.update({
-    id: '/perfis',
-    path: '/perfis',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminOrigensRoute =
-  AuthenticatedAdminOrigensRouteImport.update({
-    id: '/origens',
-    path: '/origens',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminMotivosRoute =
-  AuthenticatedAdminMotivosRouteImport.update({
-    id: '/motivos',
-    path: '/motivos',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminMidiasRoute =
-  AuthenticatedAdminMidiasRouteImport.update({
-    id: '/midias',
-    path: '/midias',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminMembershipsRoute =
-  AuthenticatedAdminMembershipsRouteImport.update({
-    id: '/memberships',
-    path: '/memberships',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminMarketingRoute =
-  AuthenticatedAdminMarketingRouteImport.update({
-    id: '/marketing',
-    path: '/marketing',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminLeadsWorkspaceRoute =
-  AuthenticatedAdminLeadsWorkspaceRouteImport.update({
-    id: '/leads-workspace',
-    path: '/leads-workspace',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
+const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminEquipesRoute =
-  AuthenticatedAdminEquipesRouteImport.update({
-    id: '/equipes',
-    path: '/equipes',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminDomainsRoute =
-  AuthenticatedAdminDomainsRouteImport.update({
-    id: '/domains',
-    path: '/domains',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminCrmOperacoesRoute =
-  AuthenticatedAdminCrmOperacoesRouteImport.update({
-    id: '/crm-operacoes',
-    path: '/crm-operacoes',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminCorretoresRoute =
-  AuthenticatedAdminCorretoresRouteImport.update({
-    id: '/corretores',
-    path: '/corretores',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminCmsTransferenciaRoute =
-  AuthenticatedAdminCmsTransferenciaRouteImport.update({
-    id: '/cms-transferencia',
-    path: '/cms-transferencia',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminCmsInventarioRoute =
-  AuthenticatedAdminCmsInventarioRouteImport.update({
-    id: '/cms-inventario',
-    path: '/cms-inventario',
+const AuthenticatedAdminCidadesRoute =
+  AuthenticatedAdminCidadesRouteImport.update({
+    id: '/cidades',
+    path: '/cidades',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminCmsAuditoriaRoute =
@@ -431,300 +297,178 @@ const AuthenticatedAdminCmsAuditoriaRoute =
     path: '/cms-auditoria',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminCidadesRoute =
-  AuthenticatedAdminCidadesRouteImport.update({
-    id: '/cidades',
-    path: '/cidades',
+const AuthenticatedAdminCmsInventarioRoute =
+  AuthenticatedAdminCmsInventarioRouteImport.update({
+    id: '/cms-inventario',
+    path: '/cms-inventario',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminBlogRoute = AuthenticatedAdminBlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
+const AuthenticatedAdminCmsTransferenciaRoute =
+  AuthenticatedAdminCmsTransferenciaRouteImport.update({
+    id: '/cms-transferencia',
+    path: '/cms-transferencia',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCorretoresRoute =
+  AuthenticatedAdminCorretoresRouteImport.update({
+    id: '/corretores',
+    path: '/corretores',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCrmOperacoesRoute =
+  AuthenticatedAdminCrmOperacoesRouteImport.update({
+    id: '/crm-operacoes',
+    path: '/crm-operacoes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminDomainsRoute =
+  AuthenticatedAdminDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminEquipesRoute =
+  AuthenticatedAdminEquipesRouteImport.update({
+    id: '/equipes',
+    path: '/equipes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLeadsRoute = AuthenticatedAdminLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedAdminBairrosRoute =
-  AuthenticatedAdminBairrosRouteImport.update({
-    id: '/bairros',
-    path: '/bairros',
+const AuthenticatedAdminLeadsWorkspaceRoute =
+  AuthenticatedAdminLeadsWorkspaceRouteImport.update({
+    id: '/leads-workspace',
+    path: '/leads-workspace',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminAuditoriaRoute =
-  AuthenticatedAdminAuditoriaRouteImport.update({
-    id: '/auditoria',
-    path: '/auditoria',
+const AuthenticatedAdminMarketingRoute =
+  AuthenticatedAdminMarketingRouteImport.update({
+    id: '/marketing',
+    path: '/marketing',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminSplatRoute = AuthenticatedAdminSplatRouteImport.update({
-  id: '/$',
-  path: '/$',
+const AuthenticatedAdminMembershipsRoute =
+  AuthenticatedAdminMembershipsRouteImport.update({
+    id: '/memberships',
+    path: '/memberships',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminMidiasRoute =
+  AuthenticatedAdminMidiasRouteImport.update({
+    id: '/midias',
+    path: '/midias',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminMotivosRoute =
+  AuthenticatedAdminMotivosRouteImport.update({
+    id: '/motivos',
+    path: '/motivos',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminOrigensRoute =
+  AuthenticatedAdminOrigensRouteImport.update({
+    id: '/origens',
+    path: '/origens',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPerfisRoute =
+  AuthenticatedAdminPerfisRouteImport.update({
+    id: '/perfis',
+    path: '/perfis',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPipelineRoute =
+  AuthenticatedAdminPipelineRouteImport.update({
+    id: '/pipeline',
+    path: '/pipeline',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPortaisRoute =
+  AuthenticatedAdminPortaisRouteImport.update({
+    id: '/portais',
+    path: '/portais',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSiteRoute = AuthenticatedAdminSiteRouteImport.update({
+  id: '/site',
+  path: '/site',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
-const AuthenticatedTenantSlugAdminRoute =
-  AuthenticatedTenantSlugAdminRouteImport.update({
-    id: '/$tenantSlug/admin',
-    path: '/$tenantSlug/admin',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedAdminPaginasIndexRoute =
-  AuthenticatedAdminPaginasIndexRouteImport.update({
-    id: '/paginas/',
-    path: '/paginas/',
+const AuthenticatedAdminTrackingRoute =
+  AuthenticatedAdminTrackingRouteImport.update({
+    id: '/tracking',
+    path: '/tracking',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
-const AuthenticatedAdminLancamentosIndexRoute =
-  AuthenticatedAdminLancamentosIndexRouteImport.update({
-    id: '/lancamentos/',
-    path: '/lancamentos/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+const AuthenticatedSuperIndexRoute = AuthenticatedSuperIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedSuperRoute,
+} as any)
+const AuthenticatedSuperControlPlaneRoute =
+  AuthenticatedSuperControlPlaneRouteImport.update({
+    id: '/control-plane',
+    path: '/control-plane',
+    getParentRoute: () => AuthenticatedSuperRoute,
   } as any)
-const AuthenticatedAdminImoveisIndexRoute =
-  AuthenticatedAdminImoveisIndexRouteImport.update({
-    id: '/imoveis/',
-    path: '/imoveis/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+const AuthenticatedSuperDlqRoute = AuthenticatedSuperDlqRouteImport.update({
+  id: '/dlq',
+  path: '/dlq',
+  getParentRoute: () => AuthenticatedSuperRoute,
+} as any)
+const AuthenticatedSuperDomainsRoute =
+  AuthenticatedSuperDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedSuperRoute,
   } as any)
-const AuthenticatedAdminFormulariosIndexRoute =
-  AuthenticatedAdminFormulariosIndexRouteImport.update({
-    id: '/formularios/',
-    path: '/formularios/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+const AuthenticatedSuperObservabilidadeRoute =
+  AuthenticatedSuperObservabilidadeRouteImport.update({
+    id: '/observabilidade',
+    path: '/observabilidade',
+    getParentRoute: () => AuthenticatedSuperRoute,
   } as any)
-const AuthenticatedAdminCampanhasIndexRoute =
-  AuthenticatedAdminCampanhasIndexRouteImport.update({
-    id: '/campanhas/',
-    path: '/campanhas/',
-    getParentRoute: () => AuthenticatedAdminRoute,
+const ApiInternalDca02ProviderOrphanRecoveryRoute =
+  ApiInternalDca02ProviderOrphanRecoveryRouteImport.update({
+    id: '/api/internal/dca-02-provider-orphan-recovery',
+    path: '/api/internal/dca-02-provider-orphan-recovery',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedAdminBlogIndexRoute =
-  AuthenticatedAdminBlogIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedAdminBlogRoute,
+const ApiInternalPca11ManagedBindingProvisionRoute =
+  ApiInternalPca11ManagedBindingProvisionRouteImport.update({
+    id: '/api/internal/pca-11-managed-binding-provision',
+    path: '/api/internal/pca-11-managed-binding-provision',
+    getParentRoute: () => rootRouteImport,
   } as any)
+const ApiInternalPca15rManagedCustodyProvisionRoute =
+  ApiInternalPca15rManagedCustodyProvisionRouteImport.update({
+    id: '/api/internal/pca-15r-managed-custody-provision',
+    path: '/api/internal/pca-15r-managed-custody-provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalSpr03ManagedSecretProvisionRoute =
+  ApiInternalSpr03ManagedSecretProvisionRouteImport.update({
+    id: '/api/internal/spr-03-managed-secret-provision',
+    path: '/api/internal/spr-03-managed-secret-provision',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicPortalLeadsRoute = ApiPublicPortalLeadsRouteImport.update({
+  id: '/api/public/portal-leads',
+  path: '/api/public/portal-leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTenantSlugAdminIndexRoute =
   AuthenticatedTenantSlugAdminIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const LovableEmailTransactionalSendRoute =
-  LovableEmailTransactionalSendRouteImport.update({
-    id: '/lovable/email/transactional/send',
-    path: '/lovable/email/transactional/send',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksPortalDlqRetryRoute =
-  ApiPublicHooksPortalDlqRetryRouteImport.update({
-    id: '/api/public/hooks/portal-dlq-retry',
-    path: '/api/public/hooks/portal-dlq-retry',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedAdminPaginasIdRoute =
-  AuthenticatedAdminPaginasIdRouteImport.update({
-    id: '/paginas/$id',
-    path: '/paginas/$id',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminLancamentosNovoRoute =
-  AuthenticatedAdminLancamentosNovoRouteImport.update({
-    id: '/lancamentos/novo',
-    path: '/lancamentos/novo',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminLancamentosIdRoute =
-  AuthenticatedAdminLancamentosIdRouteImport.update({
-    id: '/lancamentos/$id',
-    path: '/lancamentos/$id',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminImoveisNovoRoute =
-  AuthenticatedAdminImoveisNovoRouteImport.update({
-    id: '/imoveis/novo',
-    path: '/imoveis/novo',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminImoveisIdRoute =
-  AuthenticatedAdminImoveisIdRouteImport.update({
-    id: '/imoveis/$id',
-    path: '/imoveis/$id',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminFormulariosIdRoute =
-  AuthenticatedAdminFormulariosIdRouteImport.update({
-    id: '/formularios/$id',
-    path: '/formularios/$id',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminCampanhasIdRoute =
-  AuthenticatedAdminCampanhasIdRouteImport.update({
-    id: '/campanhas/$id',
-    path: '/campanhas/$id',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminBlogNovoRoute =
-  AuthenticatedAdminBlogNovoRouteImport.update({
-    id: '/novo',
-    path: '/novo',
-    getParentRoute: () => AuthenticatedAdminBlogRoute,
-  } as any)
-const AuthenticatedAdminBlogIdRoute =
-  AuthenticatedAdminBlogIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedAdminBlogRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminTrackingRoute =
-  AuthenticatedTenantSlugAdminTrackingRouteImport.update({
-    id: '/tracking',
-    path: '/tracking',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminSiteRoute =
-  AuthenticatedTenantSlugAdminSiteRouteImport.update({
-    id: '/site',
-    path: '/site',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminPortaisRoute =
-  AuthenticatedTenantSlugAdminPortaisRouteImport.update({
-    id: '/portais',
-    path: '/portais',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminPipelineRoute =
-  AuthenticatedTenantSlugAdminPipelineRouteImport.update({
-    id: '/pipeline',
-    path: '/pipeline',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminPerfisRoute =
-  AuthenticatedTenantSlugAdminPerfisRouteImport.update({
-    id: '/perfis',
-    path: '/perfis',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminOrigensRoute =
-  AuthenticatedTenantSlugAdminOrigensRouteImport.update({
-    id: '/origens',
-    path: '/origens',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminMotivosRoute =
-  AuthenticatedTenantSlugAdminMotivosRouteImport.update({
-    id: '/motivos',
-    path: '/motivos',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminMidiasRoute =
-  AuthenticatedTenantSlugAdminMidiasRouteImport.update({
-    id: '/midias',
-    path: '/midias',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminMembershipsRoute =
-  AuthenticatedTenantSlugAdminMembershipsRouteImport.update({
-    id: '/memberships',
-    path: '/memberships',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminMarketingRoute =
-  AuthenticatedTenantSlugAdminMarketingRouteImport.update({
-    id: '/marketing',
-    path: '/marketing',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminLeadsWorkspaceRoute =
-  AuthenticatedTenantSlugAdminLeadsWorkspaceRouteImport.update({
-    id: '/leads-workspace',
-    path: '/leads-workspace',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminLeadsRoute =
-  AuthenticatedTenantSlugAdminLeadsRouteImport.update({
-    id: '/leads',
-    path: '/leads',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminEquipesRoute =
-  AuthenticatedTenantSlugAdminEquipesRouteImport.update({
-    id: '/equipes',
-    path: '/equipes',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminDomainsRoute =
-  AuthenticatedTenantSlugAdminDomainsRouteImport.update({
-    id: '/domains',
-    path: '/domains',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminCrmOperacoesRoute =
-  AuthenticatedTenantSlugAdminCrmOperacoesRouteImport.update({
-    id: '/crm-operacoes',
-    path: '/crm-operacoes',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminCorretoresRoute =
-  AuthenticatedTenantSlugAdminCorretoresRouteImport.update({
-    id: '/corretores',
-    path: '/corretores',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminCmsTransferenciaRoute =
-  AuthenticatedTenantSlugAdminCmsTransferenciaRouteImport.update({
-    id: '/cms-transferencia',
-    path: '/cms-transferencia',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminCmsInventarioRoute =
-  AuthenticatedTenantSlugAdminCmsInventarioRouteImport.update({
-    id: '/cms-inventario',
-    path: '/cms-inventario',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminCmsAuditoriaRoute =
-  AuthenticatedTenantSlugAdminCmsAuditoriaRouteImport.update({
-    id: '/cms-auditoria',
-    path: '/cms-auditoria',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminCidadesRoute =
-  AuthenticatedTenantSlugAdminCidadesRouteImport.update({
-    id: '/cidades',
-    path: '/cidades',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminBlogRoute =
-  AuthenticatedTenantSlugAdminBlogRouteImport.update({
-    id: '/blog',
-    path: '/blog',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminBairrosRoute =
-  AuthenticatedTenantSlugAdminBairrosRouteImport.update({
-    id: '/bairros',
-    path: '/bairros',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
 const AuthenticatedTenantSlugAdminAuditoriaRoute =
@@ -733,35 +477,261 @@ const AuthenticatedTenantSlugAdminAuditoriaRoute =
     path: '/auditoria',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
-const AuthenticatedTenantSlugAdminPaginasIndexRoute =
-  AuthenticatedTenantSlugAdminPaginasIndexRouteImport.update({
-    id: '/paginas/',
-    path: '/paginas/',
+const AuthenticatedTenantSlugAdminBairrosRoute =
+  AuthenticatedTenantSlugAdminBairrosRouteImport.update({
+    id: '/bairros',
+    path: '/bairros',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
-const AuthenticatedTenantSlugAdminLancamentosIndexRoute =
-  AuthenticatedTenantSlugAdminLancamentosIndexRouteImport.update({
-    id: '/lancamentos/',
-    path: '/lancamentos/',
+const AuthenticatedTenantSlugAdminBlogRoute =
+  AuthenticatedTenantSlugAdminBlogRouteImport.update({
+    id: '/blog',
+    path: '/blog',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
-const AuthenticatedTenantSlugAdminImoveisIndexRoute =
-  AuthenticatedTenantSlugAdminImoveisIndexRouteImport.update({
-    id: '/imoveis/',
-    path: '/imoveis/',
+const AuthenticatedTenantSlugAdminCidadesRoute =
+  AuthenticatedTenantSlugAdminCidadesRouteImport.update({
+    id: '/cidades',
+    path: '/cidades',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
-const AuthenticatedTenantSlugAdminFormulariosIndexRoute =
-  AuthenticatedTenantSlugAdminFormulariosIndexRouteImport.update({
-    id: '/formularios/',
-    path: '/formularios/',
+const AuthenticatedTenantSlugAdminCmsAuditoriaRoute =
+  AuthenticatedTenantSlugAdminCmsAuditoriaRouteImport.update({
+    id: '/cms-auditoria',
+    path: '/cms-auditoria',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
-const AuthenticatedTenantSlugAdminCampanhasIndexRoute =
-  AuthenticatedTenantSlugAdminCampanhasIndexRouteImport.update({
+const AuthenticatedTenantSlugAdminCmsInventarioRoute =
+  AuthenticatedTenantSlugAdminCmsInventarioRouteImport.update({
+    id: '/cms-inventario',
+    path: '/cms-inventario',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminCmsTransferenciaRoute =
+  AuthenticatedTenantSlugAdminCmsTransferenciaRouteImport.update({
+    id: '/cms-transferencia',
+    path: '/cms-transferencia',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminCorretoresRoute =
+  AuthenticatedTenantSlugAdminCorretoresRouteImport.update({
+    id: '/corretores',
+    path: '/corretores',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminCrmOperacoesRoute =
+  AuthenticatedTenantSlugAdminCrmOperacoesRouteImport.update({
+    id: '/crm-operacoes',
+    path: '/crm-operacoes',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminDomainsRoute =
+  AuthenticatedTenantSlugAdminDomainsRouteImport.update({
+    id: '/domains',
+    path: '/domains',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminEquipesRoute =
+  AuthenticatedTenantSlugAdminEquipesRouteImport.update({
+    id: '/equipes',
+    path: '/equipes',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminLeadsRoute =
+  AuthenticatedTenantSlugAdminLeadsRouteImport.update({
+    id: '/leads',
+    path: '/leads',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminLeadsWorkspaceRoute =
+  AuthenticatedTenantSlugAdminLeadsWorkspaceRouteImport.update({
+    id: '/leads-workspace',
+    path: '/leads-workspace',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminMarketingRoute =
+  AuthenticatedTenantSlugAdminMarketingRouteImport.update({
+    id: '/marketing',
+    path: '/marketing',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminMembershipsRoute =
+  AuthenticatedTenantSlugAdminMembershipsRouteImport.update({
+    id: '/memberships',
+    path: '/memberships',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminMidiasRoute =
+  AuthenticatedTenantSlugAdminMidiasRouteImport.update({
+    id: '/midias',
+    path: '/midias',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminMotivosRoute =
+  AuthenticatedTenantSlugAdminMotivosRouteImport.update({
+    id: '/motivos',
+    path: '/motivos',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminOrigensRoute =
+  AuthenticatedTenantSlugAdminOrigensRouteImport.update({
+    id: '/origens',
+    path: '/origens',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminPerfisRoute =
+  AuthenticatedTenantSlugAdminPerfisRouteImport.update({
+    id: '/perfis',
+    path: '/perfis',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminPipelineRoute =
+  AuthenticatedTenantSlugAdminPipelineRouteImport.update({
+    id: '/pipeline',
+    path: '/pipeline',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminPortaisRoute =
+  AuthenticatedTenantSlugAdminPortaisRouteImport.update({
+    id: '/portais',
+    path: '/portais',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminSiteRoute =
+  AuthenticatedTenantSlugAdminSiteRouteImport.update({
+    id: '/site',
+    path: '/site',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminTrackingRoute =
+  AuthenticatedTenantSlugAdminTrackingRouteImport.update({
+    id: '/tracking',
+    path: '/tracking',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedAdminBlogIndexRoute =
+  AuthenticatedAdminBlogIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminBlogRoute,
+  } as any)
+const AuthenticatedAdminBlogIdRoute =
+  AuthenticatedAdminBlogIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminBlogRoute,
+  } as any)
+const AuthenticatedAdminBlogNovoRoute =
+  AuthenticatedAdminBlogNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AuthenticatedAdminBlogRoute,
+  } as any)
+const AuthenticatedAdminCampanhasIndexRoute =
+  AuthenticatedAdminCampanhasIndexRouteImport.update({
     id: '/campanhas/',
     path: '/campanhas/',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCampanhasIdRoute =
+  AuthenticatedAdminCampanhasIdRouteImport.update({
+    id: '/campanhas/$id',
+    path: '/campanhas/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFormulariosIndexRoute =
+  AuthenticatedAdminFormulariosIndexRouteImport.update({
+    id: '/formularios/',
+    path: '/formularios/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminFormulariosIdRoute =
+  AuthenticatedAdminFormulariosIdRouteImport.update({
+    id: '/formularios/$id',
+    path: '/formularios/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminImoveisIndexRoute =
+  AuthenticatedAdminImoveisIndexRouteImport.update({
+    id: '/imoveis/',
+    path: '/imoveis/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminImoveisIdRoute =
+  AuthenticatedAdminImoveisIdRouteImport.update({
+    id: '/imoveis/$id',
+    path: '/imoveis/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminImoveisNovoRoute =
+  AuthenticatedAdminImoveisNovoRouteImport.update({
+    id: '/imoveis/novo',
+    path: '/imoveis/novo',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLancamentosIndexRoute =
+  AuthenticatedAdminLancamentosIndexRouteImport.update({
+    id: '/lancamentos/',
+    path: '/lancamentos/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLancamentosIdRoute =
+  AuthenticatedAdminLancamentosIdRouteImport.update({
+    id: '/lancamentos/$id',
+    path: '/lancamentos/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLancamentosNovoRoute =
+  AuthenticatedAdminLancamentosNovoRouteImport.update({
+    id: '/lancamentos/novo',
+    path: '/lancamentos/novo',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPaginasIndexRoute =
+  AuthenticatedAdminPaginasIndexRouteImport.update({
+    id: '/paginas/',
+    path: '/paginas/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminPaginasIdRoute =
+  AuthenticatedAdminPaginasIdRouteImport.update({
+    id: '/paginas/$id',
+    path: '/paginas/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const ApiPublicHooksPortalDlqRetryRoute =
+  ApiPublicHooksPortalDlqRetryRouteImport.update({
+    id: '/api/public/hooks/portal-dlq-retry',
+    path: '/api/public/hooks/portal-dlq-retry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedTenantSlugAdminBlogIndexRoute =
   AuthenticatedTenantSlugAdminBlogIndexRouteImport.update({
@@ -769,46 +739,22 @@ const AuthenticatedTenantSlugAdminBlogIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedTenantSlugAdminBlogRoute,
   } as any)
-const ApiPublicFeedsPortalTokenRoute =
-  ApiPublicFeedsPortalTokenRouteImport.update({
-    id: '/api/public/feeds/$portal/$token',
-    path: '/api/public/feeds/$portal/$token',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedTenantSlugAdminBlogIdRoute =
+  AuthenticatedTenantSlugAdminBlogIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedTenantSlugAdminBlogRoute,
   } as any)
-const AuthenticatedTenantSlugAdminPaginasIdRoute =
-  AuthenticatedTenantSlugAdminPaginasIdRouteImport.update({
-    id: '/paginas/$id',
-    path: '/paginas/$id',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+const AuthenticatedTenantSlugAdminBlogNovoRoute =
+  AuthenticatedTenantSlugAdminBlogNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => AuthenticatedTenantSlugAdminBlogRoute,
   } as any)
-const AuthenticatedTenantSlugAdminLancamentosNovoRoute =
-  AuthenticatedTenantSlugAdminLancamentosNovoRouteImport.update({
-    id: '/lancamentos/novo',
-    path: '/lancamentos/novo',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminLancamentosIdRoute =
-  AuthenticatedTenantSlugAdminLancamentosIdRouteImport.update({
-    id: '/lancamentos/$id',
-    path: '/lancamentos/$id',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminImoveisNovoRoute =
-  AuthenticatedTenantSlugAdminImoveisNovoRouteImport.update({
-    id: '/imoveis/novo',
-    path: '/imoveis/novo',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminImoveisIdRoute =
-  AuthenticatedTenantSlugAdminImoveisIdRouteImport.update({
-    id: '/imoveis/$id',
-    path: '/imoveis/$id',
-    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
-  } as any)
-const AuthenticatedTenantSlugAdminFormulariosIdRoute =
-  AuthenticatedTenantSlugAdminFormulariosIdRouteImport.update({
-    id: '/formularios/$id',
-    path: '/formularios/$id',
+const AuthenticatedTenantSlugAdminCampanhasIndexRoute =
+  AuthenticatedTenantSlugAdminCampanhasIndexRouteImport.update({
+    id: '/campanhas/',
+    path: '/campanhas/',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
 const AuthenticatedTenantSlugAdminCampanhasIdRoute =
@@ -817,17 +763,71 @@ const AuthenticatedTenantSlugAdminCampanhasIdRoute =
     path: '/campanhas/$id',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
-const AuthenticatedTenantSlugAdminBlogNovoRoute =
-  AuthenticatedTenantSlugAdminBlogNovoRouteImport.update({
-    id: '/novo',
-    path: '/novo',
-    getParentRoute: () => AuthenticatedTenantSlugAdminBlogRoute,
+const AuthenticatedTenantSlugAdminFormulariosIndexRoute =
+  AuthenticatedTenantSlugAdminFormulariosIndexRouteImport.update({
+    id: '/formularios/',
+    path: '/formularios/',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
-const AuthenticatedTenantSlugAdminBlogIdRoute =
-  AuthenticatedTenantSlugAdminBlogIdRouteImport.update({
-    id: '/$id',
-    path: '/$id',
-    getParentRoute: () => AuthenticatedTenantSlugAdminBlogRoute,
+const AuthenticatedTenantSlugAdminFormulariosIdRoute =
+  AuthenticatedTenantSlugAdminFormulariosIdRouteImport.update({
+    id: '/formularios/$id',
+    path: '/formularios/$id',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminImoveisIndexRoute =
+  AuthenticatedTenantSlugAdminImoveisIndexRouteImport.update({
+    id: '/imoveis/',
+    path: '/imoveis/',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminImoveisIdRoute =
+  AuthenticatedTenantSlugAdminImoveisIdRouteImport.update({
+    id: '/imoveis/$id',
+    path: '/imoveis/$id',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminImoveisNovoRoute =
+  AuthenticatedTenantSlugAdminImoveisNovoRouteImport.update({
+    id: '/imoveis/novo',
+    path: '/imoveis/novo',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminLancamentosIndexRoute =
+  AuthenticatedTenantSlugAdminLancamentosIndexRouteImport.update({
+    id: '/lancamentos/',
+    path: '/lancamentos/',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminLancamentosIdRoute =
+  AuthenticatedTenantSlugAdminLancamentosIdRouteImport.update({
+    id: '/lancamentos/$id',
+    path: '/lancamentos/$id',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminLancamentosNovoRoute =
+  AuthenticatedTenantSlugAdminLancamentosNovoRouteImport.update({
+    id: '/lancamentos/novo',
+    path: '/lancamentos/novo',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminPaginasIndexRoute =
+  AuthenticatedTenantSlugAdminPaginasIndexRouteImport.update({
+    id: '/paginas/',
+    path: '/paginas/',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const AuthenticatedTenantSlugAdminPaginasIdRoute =
+  AuthenticatedTenantSlugAdminPaginasIdRouteImport.update({
+    id: '/paginas/$id',
+    path: '/paginas/$id',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
+const ApiPublicFeedsPortalTokenRoute =
+  ApiPublicFeedsPortalTokenRouteImport.update({
+    id: '/api/public/feeds/$portal/$token',
+    path: '/api/public/feeds/$portal/$token',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -1602,88 +1602,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/unsubscribe': {
-      id: '/unsubscribe'
-      path: '/unsubscribe'
-      fullPath: '/unsubscribe'
-      preLoaderRoute: typeof UnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sobre': {
-      id: '/sobre'
-      path: '/sobre'
-      fullPath: '/sobre'
-      preLoaderRoute: typeof SobreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacidade': {
-      id: '/privacidade'
-      path: '/privacidade'
-      fullPath: '/privacidade'
-      preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lancamentos': {
-      id: '/lancamentos'
-      path: '/lancamentos'
-      fullPath: '/lancamentos'
-      preLoaderRoute: typeof LancamentosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/imoveis': {
-      id: '/imoveis'
-      path: '/imoveis'
-      fullPath: '/imoveis'
-      preLoaderRoute: typeof ImoveisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/design-system': {
-      id: '/design-system'
-      path: '/design-system'
-      fullPath: '/design-system'
-      preLoaderRoute: typeof DesignSystemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demonstracao': {
-      id: '/demonstracao'
-      path: '/demonstracao'
-      fullPath: '/demonstracao'
-      preLoaderRoute: typeof DemonstracaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contato': {
-      id: '/contato'
-      path: '/contato'
-      fullPath: '/contato'
-      preLoaderRoute: typeof ContatoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/anuncie': {
-      id: '/anuncie'
-      path: '/anuncie'
-      fullPath: '/anuncie'
-      preLoaderRoute: typeof AnuncieRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -1693,60 +1616,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/anuncie': {
+      id: '/anuncie'
+      path: '/anuncie'
+      fullPath: '/anuncie'
+      preLoaderRoute: typeof AnuncieRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/': {
-      id: '/blog/'
-      path: '/blog'
-      fullPath: '/blog/'
-      preLoaderRoute: typeof BlogIndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/p/$slug': {
-      id: '/p/$slug'
-      path: '/p/$slug'
-      fullPath: '/p/$slug'
-      preLoaderRoute: typeof PSlugRouteImport
+    '/contato': {
+      id: '/contato'
+      path: '/contato'
+      fullPath: '/contato'
+      preLoaderRoute: typeof ContatoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lancamentos/$slug': {
-      id: '/lancamentos/$slug'
-      path: '/$slug'
-      fullPath: '/lancamentos/$slug'
-      preLoaderRoute: typeof LancamentosSlugRouteImport
-      parentRoute: typeof LancamentosRoute
-    }
-    '/imovel/$slug': {
-      id: '/imovel/$slug'
-      path: '/imovel/$slug'
-      fullPath: '/imovel/$slug'
-      preLoaderRoute: typeof ImovelSlugRouteImport
+    '/demonstracao': {
+      id: '/demonstracao'
+      path: '/demonstracao'
+      fullPath: '/demonstracao'
+      preLoaderRoute: typeof DemonstracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/email/unsubscribe': {
-      id: '/email/unsubscribe'
-      path: '/email/unsubscribe'
-      fullPath: '/email/unsubscribe'
-      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+    '/design-system': {
+      id: '/design-system'
+      path: '/design-system'
+      fullPath: '/design-system'
+      preLoaderRoute: typeof DesignSystemRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/blog/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
+    '/imoveis': {
+      id: '/imoveis'
+      path: '/imoveis'
+      fullPath: '/imoveis'
+      preLoaderRoute: typeof ImoveisRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/super': {
-      id: '/_authenticated/super'
-      path: '/super'
-      fullPath: '/super'
-      preLoaderRoute: typeof AuthenticatedSuperRouteImport
+    '/lancamentos': {
+      id: '/lancamentos'
+      path: '/lancamentos'
+      fullPath: '/lancamentos'
+      preLoaderRoute: typeof LancamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sobre': {
+      id: '/sobre'
+      path: '/sobre'
+      fullPath: '/sobre'
+      preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$tenantSlug/auth': {
+      id: '/$tenantSlug/auth'
+      path: '/$tenantSlug/auth'
+      fullPath: '/$tenantSlug/auth'
+      preLoaderRoute: typeof TenantSlugAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/invitations': {
@@ -1756,263 +1721,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInvitationsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+    '/_authenticated/super': {
+      id: '/_authenticated/super'
+      path: '/super'
+      fullPath: '/super'
+      preLoaderRoute: typeof AuthenticatedSuperRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/$tenantSlug/auth': {
-      id: '/$tenantSlug/auth'
-      path: '/$tenantSlug/auth'
-      fullPath: '/$tenantSlug/auth'
-      preLoaderRoute: typeof TenantSlugAuthRouteImport
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/super/': {
-      id: '/_authenticated/super/'
-      path: '/'
-      fullPath: '/super/'
-      preLoaderRoute: typeof AuthenticatedSuperIndexRouteImport
-      parentRoute: typeof AuthenticatedSuperRoute
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/imovel/$slug': {
+      id: '/imovel/$slug'
+      path: '/imovel/$slug'
+      fullPath: '/imovel/$slug'
+      preLoaderRoute: typeof ImovelSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lancamentos/$slug': {
+      id: '/lancamentos/$slug'
+      path: '/$slug'
+      fullPath: '/lancamentos/$slug'
+      preLoaderRoute: typeof LancamentosSlugRouteImport
+      parentRoute: typeof LancamentosRoute
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/$tenantSlug/admin': {
+      id: '/_authenticated/$tenantSlug/admin'
+      path: '/$tenantSlug/admin'
+      fullPath: '/$tenantSlug/admin'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/lovable/email/suppression': {
-      id: '/lovable/email/suppression'
-      path: '/lovable/email/suppression'
-      fullPath: '/lovable/email/suppression'
-      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/portal-leads': {
-      id: '/api/public/portal-leads'
-      path: '/api/public/portal-leads'
-      fullPath: '/api/public/portal-leads'
-      preLoaderRoute: typeof ApiPublicPortalLeadsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/spr-03-managed-secret-provision': {
-      id: '/api/internal/spr-03-managed-secret-provision'
-      path: '/api/internal/spr-03-managed-secret-provision'
-      fullPath: '/api/internal/spr-03-managed-secret-provision'
-      preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/pca-15r-managed-custody-provision': {
-      id: '/api/internal/pca-15r-managed-custody-provision'
-      path: '/api/internal/pca-15r-managed-custody-provision'
-      fullPath: '/api/internal/pca-15r-managed-custody-provision'
-      preLoaderRoute: typeof ApiInternalPca15rManagedCustodyProvisionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/pca-11-managed-binding-provision': {
-      id: '/api/internal/pca-11-managed-binding-provision'
-      path: '/api/internal/pca-11-managed-binding-provision'
-      fullPath: '/api/internal/pca-11-managed-binding-provision'
-      preLoaderRoute: typeof ApiInternalPca11ManagedBindingProvisionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/dca-02-provider-orphan-recovery': {
-      id: '/api/internal/dca-02-provider-orphan-recovery'
-      path: '/api/internal/dca-02-provider-orphan-recovery'
-      fullPath: '/api/internal/dca-02-provider-orphan-recovery'
-      preLoaderRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/super/observabilidade': {
-      id: '/_authenticated/super/observabilidade'
-      path: '/observabilidade'
-      fullPath: '/super/observabilidade'
-      preLoaderRoute: typeof AuthenticatedSuperObservabilidadeRouteImport
-      parentRoute: typeof AuthenticatedSuperRoute
-    }
-    '/_authenticated/super/domains': {
-      id: '/_authenticated/super/domains'
-      path: '/domains'
-      fullPath: '/super/domains'
-      preLoaderRoute: typeof AuthenticatedSuperDomainsRouteImport
-      parentRoute: typeof AuthenticatedSuperRoute
-    }
-    '/_authenticated/super/dlq': {
-      id: '/_authenticated/super/dlq'
-      path: '/dlq'
-      fullPath: '/super/dlq'
-      preLoaderRoute: typeof AuthenticatedSuperDlqRouteImport
-      parentRoute: typeof AuthenticatedSuperRoute
-    }
-    '/_authenticated/super/control-plane': {
-      id: '/_authenticated/super/control-plane'
-      path: '/control-plane'
-      fullPath: '/super/control-plane'
-      preLoaderRoute: typeof AuthenticatedSuperControlPlaneRouteImport
-      parentRoute: typeof AuthenticatedSuperRoute
-    }
-    '/_authenticated/admin/tracking': {
-      id: '/_authenticated/admin/tracking'
-      path: '/tracking'
-      fullPath: '/admin/tracking'
-      preLoaderRoute: typeof AuthenticatedAdminTrackingRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/site': {
-      id: '/_authenticated/admin/site'
-      path: '/site'
-      fullPath: '/admin/site'
-      preLoaderRoute: typeof AuthenticatedAdminSiteRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/portais': {
-      id: '/_authenticated/admin/portais'
-      path: '/portais'
-      fullPath: '/admin/portais'
-      preLoaderRoute: typeof AuthenticatedAdminPortaisRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/pipeline': {
-      id: '/_authenticated/admin/pipeline'
-      path: '/pipeline'
-      fullPath: '/admin/pipeline'
-      preLoaderRoute: typeof AuthenticatedAdminPipelineRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/perfis': {
-      id: '/_authenticated/admin/perfis'
-      path: '/perfis'
-      fullPath: '/admin/perfis'
-      preLoaderRoute: typeof AuthenticatedAdminPerfisRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/origens': {
-      id: '/_authenticated/admin/origens'
-      path: '/origens'
-      fullPath: '/admin/origens'
-      preLoaderRoute: typeof AuthenticatedAdminOrigensRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/motivos': {
-      id: '/_authenticated/admin/motivos'
-      path: '/motivos'
-      fullPath: '/admin/motivos'
-      preLoaderRoute: typeof AuthenticatedAdminMotivosRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/midias': {
-      id: '/_authenticated/admin/midias'
-      path: '/midias'
-      fullPath: '/admin/midias'
-      preLoaderRoute: typeof AuthenticatedAdminMidiasRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/memberships': {
-      id: '/_authenticated/admin/memberships'
-      path: '/memberships'
-      fullPath: '/admin/memberships'
-      preLoaderRoute: typeof AuthenticatedAdminMembershipsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/marketing': {
-      id: '/_authenticated/admin/marketing'
-      path: '/marketing'
-      fullPath: '/admin/marketing'
-      preLoaderRoute: typeof AuthenticatedAdminMarketingRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/leads-workspace': {
-      id: '/_authenticated/admin/leads-workspace'
-      path: '/leads-workspace'
-      fullPath: '/admin/leads-workspace'
-      preLoaderRoute: typeof AuthenticatedAdminLeadsWorkspaceRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/leads': {
-      id: '/_authenticated/admin/leads'
-      path: '/leads'
-      fullPath: '/admin/leads'
-      preLoaderRoute: typeof AuthenticatedAdminLeadsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/equipes': {
-      id: '/_authenticated/admin/equipes'
-      path: '/equipes'
-      fullPath: '/admin/equipes'
-      preLoaderRoute: typeof AuthenticatedAdminEquipesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/domains': {
-      id: '/_authenticated/admin/domains'
-      path: '/domains'
-      fullPath: '/admin/domains'
-      preLoaderRoute: typeof AuthenticatedAdminDomainsRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/crm-operacoes': {
-      id: '/_authenticated/admin/crm-operacoes'
-      path: '/crm-operacoes'
-      fullPath: '/admin/crm-operacoes'
-      preLoaderRoute: typeof AuthenticatedAdminCrmOperacoesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/corretores': {
-      id: '/_authenticated/admin/corretores'
-      path: '/corretores'
-      fullPath: '/admin/corretores'
-      preLoaderRoute: typeof AuthenticatedAdminCorretoresRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/cms-transferencia': {
-      id: '/_authenticated/admin/cms-transferencia'
-      path: '/cms-transferencia'
-      fullPath: '/admin/cms-transferencia'
-      preLoaderRoute: typeof AuthenticatedAdminCmsTransferenciaRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/cms-inventario': {
-      id: '/_authenticated/admin/cms-inventario'
-      path: '/cms-inventario'
-      fullPath: '/admin/cms-inventario'
-      preLoaderRoute: typeof AuthenticatedAdminCmsInventarioRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/cms-auditoria': {
-      id: '/_authenticated/admin/cms-auditoria'
-      path: '/cms-auditoria'
-      fullPath: '/admin/cms-auditoria'
-      preLoaderRoute: typeof AuthenticatedAdminCmsAuditoriaRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/cidades': {
-      id: '/_authenticated/admin/cidades'
-      path: '/cidades'
-      fullPath: '/admin/cidades'
-      preLoaderRoute: typeof AuthenticatedAdminCidadesRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/blog': {
-      id: '/_authenticated/admin/blog'
-      path: '/blog'
-      fullPath: '/admin/blog'
-      preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/bairros': {
-      id: '/_authenticated/admin/bairros'
-      path: '/bairros'
-      fullPath: '/admin/bairros'
-      preLoaderRoute: typeof AuthenticatedAdminBairrosRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/auditoria': {
-      id: '/_authenticated/admin/auditoria'
-      path: '/auditoria'
-      fullPath: '/admin/auditoria'
-      preLoaderRoute: typeof AuthenticatedAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/$': {
@@ -2022,319 +1791,249 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSplatRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin': {
-      id: '/_authenticated/$tenantSlug/admin'
-      path: '/$tenantSlug/admin'
-      fullPath: '/$tenantSlug/admin'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/admin/paginas/': {
-      id: '/_authenticated/admin/paginas/'
-      path: '/paginas'
-      fullPath: '/admin/paginas/'
-      preLoaderRoute: typeof AuthenticatedAdminPaginasIndexRouteImport
+    '/_authenticated/admin/auditoria': {
+      id: '/_authenticated/admin/auditoria'
+      path: '/auditoria'
+      fullPath: '/admin/auditoria'
+      preLoaderRoute: typeof AuthenticatedAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/lancamentos/': {
-      id: '/_authenticated/admin/lancamentos/'
-      path: '/lancamentos'
-      fullPath: '/admin/lancamentos/'
-      preLoaderRoute: typeof AuthenticatedAdminLancamentosIndexRouteImport
+    '/_authenticated/admin/bairros': {
+      id: '/_authenticated/admin/bairros'
+      path: '/bairros'
+      fullPath: '/admin/bairros'
+      preLoaderRoute: typeof AuthenticatedAdminBairrosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/imoveis/': {
-      id: '/_authenticated/admin/imoveis/'
-      path: '/imoveis'
-      fullPath: '/admin/imoveis/'
-      preLoaderRoute: typeof AuthenticatedAdminImoveisIndexRouteImport
+    '/_authenticated/admin/blog': {
+      id: '/_authenticated/admin/blog'
+      path: '/blog'
+      fullPath: '/admin/blog'
+      preLoaderRoute: typeof AuthenticatedAdminBlogRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/formularios/': {
-      id: '/_authenticated/admin/formularios/'
-      path: '/formularios'
-      fullPath: '/admin/formularios/'
-      preLoaderRoute: typeof AuthenticatedAdminFormulariosIndexRouteImport
+    '/_authenticated/admin/cidades': {
+      id: '/_authenticated/admin/cidades'
+      path: '/cidades'
+      fullPath: '/admin/cidades'
+      preLoaderRoute: typeof AuthenticatedAdminCidadesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/campanhas/': {
-      id: '/_authenticated/admin/campanhas/'
-      path: '/campanhas'
-      fullPath: '/admin/campanhas/'
-      preLoaderRoute: typeof AuthenticatedAdminCampanhasIndexRouteImport
+    '/_authenticated/admin/cms-auditoria': {
+      id: '/_authenticated/admin/cms-auditoria'
+      path: '/cms-auditoria'
+      fullPath: '/admin/cms-auditoria'
+      preLoaderRoute: typeof AuthenticatedAdminCmsAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
-    '/_authenticated/admin/blog/': {
-      id: '/_authenticated/admin/blog/'
+    '/_authenticated/admin/cms-inventario': {
+      id: '/_authenticated/admin/cms-inventario'
+      path: '/cms-inventario'
+      fullPath: '/admin/cms-inventario'
+      preLoaderRoute: typeof AuthenticatedAdminCmsInventarioRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/cms-transferencia': {
+      id: '/_authenticated/admin/cms-transferencia'
+      path: '/cms-transferencia'
+      fullPath: '/admin/cms-transferencia'
+      preLoaderRoute: typeof AuthenticatedAdminCmsTransferenciaRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/corretores': {
+      id: '/_authenticated/admin/corretores'
+      path: '/corretores'
+      fullPath: '/admin/corretores'
+      preLoaderRoute: typeof AuthenticatedAdminCorretoresRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/crm-operacoes': {
+      id: '/_authenticated/admin/crm-operacoes'
+      path: '/crm-operacoes'
+      fullPath: '/admin/crm-operacoes'
+      preLoaderRoute: typeof AuthenticatedAdminCrmOperacoesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/domains': {
+      id: '/_authenticated/admin/domains'
+      path: '/domains'
+      fullPath: '/admin/domains'
+      preLoaderRoute: typeof AuthenticatedAdminDomainsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/equipes': {
+      id: '/_authenticated/admin/equipes'
+      path: '/equipes'
+      fullPath: '/admin/equipes'
+      preLoaderRoute: typeof AuthenticatedAdminEquipesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/leads': {
+      id: '/_authenticated/admin/leads'
+      path: '/leads'
+      fullPath: '/admin/leads'
+      preLoaderRoute: typeof AuthenticatedAdminLeadsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/leads-workspace': {
+      id: '/_authenticated/admin/leads-workspace'
+      path: '/leads-workspace'
+      fullPath: '/admin/leads-workspace'
+      preLoaderRoute: typeof AuthenticatedAdminLeadsWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/marketing': {
+      id: '/_authenticated/admin/marketing'
+      path: '/marketing'
+      fullPath: '/admin/marketing'
+      preLoaderRoute: typeof AuthenticatedAdminMarketingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/memberships': {
+      id: '/_authenticated/admin/memberships'
+      path: '/memberships'
+      fullPath: '/admin/memberships'
+      preLoaderRoute: typeof AuthenticatedAdminMembershipsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/midias': {
+      id: '/_authenticated/admin/midias'
+      path: '/midias'
+      fullPath: '/admin/midias'
+      preLoaderRoute: typeof AuthenticatedAdminMidiasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/motivos': {
+      id: '/_authenticated/admin/motivos'
+      path: '/motivos'
+      fullPath: '/admin/motivos'
+      preLoaderRoute: typeof AuthenticatedAdminMotivosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/origens': {
+      id: '/_authenticated/admin/origens'
+      path: '/origens'
+      fullPath: '/admin/origens'
+      preLoaderRoute: typeof AuthenticatedAdminOrigensRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/perfis': {
+      id: '/_authenticated/admin/perfis'
+      path: '/perfis'
+      fullPath: '/admin/perfis'
+      preLoaderRoute: typeof AuthenticatedAdminPerfisRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/pipeline': {
+      id: '/_authenticated/admin/pipeline'
+      path: '/pipeline'
+      fullPath: '/admin/pipeline'
+      preLoaderRoute: typeof AuthenticatedAdminPipelineRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/portais': {
+      id: '/_authenticated/admin/portais'
+      path: '/portais'
+      fullPath: '/admin/portais'
+      preLoaderRoute: typeof AuthenticatedAdminPortaisRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/site': {
+      id: '/_authenticated/admin/site'
+      path: '/site'
+      fullPath: '/admin/site'
+      preLoaderRoute: typeof AuthenticatedAdminSiteRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/tracking': {
+      id: '/_authenticated/admin/tracking'
+      path: '/tracking'
+      fullPath: '/admin/tracking'
+      preLoaderRoute: typeof AuthenticatedAdminTrackingRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/super/': {
+      id: '/_authenticated/super/'
       path: '/'
-      fullPath: '/admin/blog/'
-      preLoaderRoute: typeof AuthenticatedAdminBlogIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminBlogRoute
+      fullPath: '/super/'
+      preLoaderRoute: typeof AuthenticatedSuperIndexRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/super/control-plane': {
+      id: '/_authenticated/super/control-plane'
+      path: '/control-plane'
+      fullPath: '/super/control-plane'
+      preLoaderRoute: typeof AuthenticatedSuperControlPlaneRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/super/dlq': {
+      id: '/_authenticated/super/dlq'
+      path: '/dlq'
+      fullPath: '/super/dlq'
+      preLoaderRoute: typeof AuthenticatedSuperDlqRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/super/domains': {
+      id: '/_authenticated/super/domains'
+      path: '/domains'
+      fullPath: '/super/domains'
+      preLoaderRoute: typeof AuthenticatedSuperDomainsRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/_authenticated/super/observabilidade': {
+      id: '/_authenticated/super/observabilidade'
+      path: '/observabilidade'
+      fullPath: '/super/observabilidade'
+      preLoaderRoute: typeof AuthenticatedSuperObservabilidadeRouteImport
+      parentRoute: typeof AuthenticatedSuperRoute
+    }
+    '/api/internal/dca-02-provider-orphan-recovery': {
+      id: '/api/internal/dca-02-provider-orphan-recovery'
+      path: '/api/internal/dca-02-provider-orphan-recovery'
+      fullPath: '/api/internal/dca-02-provider-orphan-recovery'
+      preLoaderRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/pca-11-managed-binding-provision': {
+      id: '/api/internal/pca-11-managed-binding-provision'
+      path: '/api/internal/pca-11-managed-binding-provision'
+      fullPath: '/api/internal/pca-11-managed-binding-provision'
+      preLoaderRoute: typeof ApiInternalPca11ManagedBindingProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/pca-15r-managed-custody-provision': {
+      id: '/api/internal/pca-15r-managed-custody-provision'
+      path: '/api/internal/pca-15r-managed-custody-provision'
+      fullPath: '/api/internal/pca-15r-managed-custody-provision'
+      preLoaderRoute: typeof ApiInternalPca15rManagedCustodyProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/spr-03-managed-secret-provision': {
+      id: '/api/internal/spr-03-managed-secret-provision'
+      path: '/api/internal/spr-03-managed-secret-provision'
+      fullPath: '/api/internal/spr-03-managed-secret-provision'
+      preLoaderRoute: typeof ApiInternalSpr03ManagedSecretProvisionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/portal-leads': {
+      id: '/api/public/portal-leads'
+      path: '/api/public/portal-leads'
+      fullPath: '/api/public/portal-leads'
+      preLoaderRoute: typeof ApiPublicPortalLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/$tenantSlug/admin/': {
       id: '/_authenticated/$tenantSlug/admin/'
       path: '/'
       fullPath: '/$tenantSlug/admin/'
       preLoaderRoute: typeof AuthenticatedTenantSlugAdminIndexRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/lovable/email/transactional/send': {
-      id: '/lovable/email/transactional/send'
-      path: '/lovable/email/transactional/send'
-      fullPath: '/lovable/email/transactional/send'
-      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/webhook': {
-      id: '/lovable/email/auth/webhook'
-      path: '/lovable/email/auth/webhook'
-      fullPath: '/lovable/email/auth/webhook'
-      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/portal-dlq-retry': {
-      id: '/api/public/hooks/portal-dlq-retry'
-      path: '/api/public/hooks/portal-dlq-retry'
-      fullPath: '/api/public/hooks/portal-dlq-retry'
-      preLoaderRoute: typeof ApiPublicHooksPortalDlqRetryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/admin/paginas/$id': {
-      id: '/_authenticated/admin/paginas/$id'
-      path: '/paginas/$id'
-      fullPath: '/admin/paginas/$id'
-      preLoaderRoute: typeof AuthenticatedAdminPaginasIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/lancamentos/novo': {
-      id: '/_authenticated/admin/lancamentos/novo'
-      path: '/lancamentos/novo'
-      fullPath: '/admin/lancamentos/novo'
-      preLoaderRoute: typeof AuthenticatedAdminLancamentosNovoRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/lancamentos/$id': {
-      id: '/_authenticated/admin/lancamentos/$id'
-      path: '/lancamentos/$id'
-      fullPath: '/admin/lancamentos/$id'
-      preLoaderRoute: typeof AuthenticatedAdminLancamentosIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/imoveis/novo': {
-      id: '/_authenticated/admin/imoveis/novo'
-      path: '/imoveis/novo'
-      fullPath: '/admin/imoveis/novo'
-      preLoaderRoute: typeof AuthenticatedAdminImoveisNovoRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/imoveis/$id': {
-      id: '/_authenticated/admin/imoveis/$id'
-      path: '/imoveis/$id'
-      fullPath: '/admin/imoveis/$id'
-      preLoaderRoute: typeof AuthenticatedAdminImoveisIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/formularios/$id': {
-      id: '/_authenticated/admin/formularios/$id'
-      path: '/formularios/$id'
-      fullPath: '/admin/formularios/$id'
-      preLoaderRoute: typeof AuthenticatedAdminFormulariosIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/campanhas/$id': {
-      id: '/_authenticated/admin/campanhas/$id'
-      path: '/campanhas/$id'
-      fullPath: '/admin/campanhas/$id'
-      preLoaderRoute: typeof AuthenticatedAdminCampanhasIdRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/blog/novo': {
-      id: '/_authenticated/admin/blog/novo'
-      path: '/novo'
-      fullPath: '/admin/blog/novo'
-      preLoaderRoute: typeof AuthenticatedAdminBlogNovoRouteImport
-      parentRoute: typeof AuthenticatedAdminBlogRoute
-    }
-    '/_authenticated/admin/blog/$id': {
-      id: '/_authenticated/admin/blog/$id'
-      path: '/$id'
-      fullPath: '/admin/blog/$id'
-      preLoaderRoute: typeof AuthenticatedAdminBlogIdRouteImport
-      parentRoute: typeof AuthenticatedAdminBlogRoute
-    }
-    '/_authenticated/$tenantSlug/admin/tracking': {
-      id: '/_authenticated/$tenantSlug/admin/tracking'
-      path: '/tracking'
-      fullPath: '/$tenantSlug/admin/tracking'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminTrackingRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/site': {
-      id: '/_authenticated/$tenantSlug/admin/site'
-      path: '/site'
-      fullPath: '/$tenantSlug/admin/site'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminSiteRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/portais': {
-      id: '/_authenticated/$tenantSlug/admin/portais'
-      path: '/portais'
-      fullPath: '/$tenantSlug/admin/portais'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPortaisRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/pipeline': {
-      id: '/_authenticated/$tenantSlug/admin/pipeline'
-      path: '/pipeline'
-      fullPath: '/$tenantSlug/admin/pipeline'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPipelineRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/perfis': {
-      id: '/_authenticated/$tenantSlug/admin/perfis'
-      path: '/perfis'
-      fullPath: '/$tenantSlug/admin/perfis'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPerfisRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/origens': {
-      id: '/_authenticated/$tenantSlug/admin/origens'
-      path: '/origens'
-      fullPath: '/$tenantSlug/admin/origens'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminOrigensRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/motivos': {
-      id: '/_authenticated/$tenantSlug/admin/motivos'
-      path: '/motivos'
-      fullPath: '/$tenantSlug/admin/motivos'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMotivosRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/midias': {
-      id: '/_authenticated/$tenantSlug/admin/midias'
-      path: '/midias'
-      fullPath: '/$tenantSlug/admin/midias'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMidiasRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/memberships': {
-      id: '/_authenticated/$tenantSlug/admin/memberships'
-      path: '/memberships'
-      fullPath: '/$tenantSlug/admin/memberships'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMembershipsRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/marketing': {
-      id: '/_authenticated/$tenantSlug/admin/marketing'
-      path: '/marketing'
-      fullPath: '/$tenantSlug/admin/marketing'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMarketingRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/leads-workspace': {
-      id: '/_authenticated/$tenantSlug/admin/leads-workspace'
-      path: '/leads-workspace'
-      fullPath: '/$tenantSlug/admin/leads-workspace'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLeadsWorkspaceRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/leads': {
-      id: '/_authenticated/$tenantSlug/admin/leads'
-      path: '/leads'
-      fullPath: '/$tenantSlug/admin/leads'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLeadsRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/equipes': {
-      id: '/_authenticated/$tenantSlug/admin/equipes'
-      path: '/equipes'
-      fullPath: '/$tenantSlug/admin/equipes'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminEquipesRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/domains': {
-      id: '/_authenticated/$tenantSlug/admin/domains'
-      path: '/domains'
-      fullPath: '/$tenantSlug/admin/domains'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminDomainsRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/crm-operacoes': {
-      id: '/_authenticated/$tenantSlug/admin/crm-operacoes'
-      path: '/crm-operacoes'
-      fullPath: '/$tenantSlug/admin/crm-operacoes'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCrmOperacoesRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/corretores': {
-      id: '/_authenticated/$tenantSlug/admin/corretores'
-      path: '/corretores'
-      fullPath: '/$tenantSlug/admin/corretores'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCorretoresRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/cms-transferencia': {
-      id: '/_authenticated/$tenantSlug/admin/cms-transferencia'
-      path: '/cms-transferencia'
-      fullPath: '/$tenantSlug/admin/cms-transferencia'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCmsTransferenciaRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/cms-inventario': {
-      id: '/_authenticated/$tenantSlug/admin/cms-inventario'
-      path: '/cms-inventario'
-      fullPath: '/$tenantSlug/admin/cms-inventario'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCmsInventarioRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/cms-auditoria': {
-      id: '/_authenticated/$tenantSlug/admin/cms-auditoria'
-      path: '/cms-auditoria'
-      fullPath: '/$tenantSlug/admin/cms-auditoria'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCmsAuditoriaRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/cidades': {
-      id: '/_authenticated/$tenantSlug/admin/cidades'
-      path: '/cidades'
-      fullPath: '/$tenantSlug/admin/cidades'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCidadesRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/blog': {
-      id: '/_authenticated/$tenantSlug/admin/blog'
-      path: '/blog'
-      fullPath: '/$tenantSlug/admin/blog'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBlogRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/bairros': {
-      id: '/_authenticated/$tenantSlug/admin/bairros'
-      path: '/bairros'
-      fullPath: '/$tenantSlug/admin/bairros'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBairrosRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
     '/_authenticated/$tenantSlug/admin/auditoria': {
@@ -2344,40 +2043,306 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTenantSlugAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin/paginas/': {
-      id: '/_authenticated/$tenantSlug/admin/paginas/'
-      path: '/paginas'
-      fullPath: '/$tenantSlug/admin/paginas/'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPaginasIndexRouteImport
+    '/_authenticated/$tenantSlug/admin/bairros': {
+      id: '/_authenticated/$tenantSlug/admin/bairros'
+      path: '/bairros'
+      fullPath: '/$tenantSlug/admin/bairros'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBairrosRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin/lancamentos/': {
-      id: '/_authenticated/$tenantSlug/admin/lancamentos/'
-      path: '/lancamentos'
-      fullPath: '/$tenantSlug/admin/lancamentos/'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLancamentosIndexRouteImport
+    '/_authenticated/$tenantSlug/admin/blog': {
+      id: '/_authenticated/$tenantSlug/admin/blog'
+      path: '/blog'
+      fullPath: '/$tenantSlug/admin/blog'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBlogRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin/imoveis/': {
-      id: '/_authenticated/$tenantSlug/admin/imoveis/'
-      path: '/imoveis'
-      fullPath: '/$tenantSlug/admin/imoveis/'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminImoveisIndexRouteImport
+    '/_authenticated/$tenantSlug/admin/cidades': {
+      id: '/_authenticated/$tenantSlug/admin/cidades'
+      path: '/cidades'
+      fullPath: '/$tenantSlug/admin/cidades'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCidadesRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin/formularios/': {
-      id: '/_authenticated/$tenantSlug/admin/formularios/'
-      path: '/formularios'
-      fullPath: '/$tenantSlug/admin/formularios/'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminFormulariosIndexRouteImport
+    '/_authenticated/$tenantSlug/admin/cms-auditoria': {
+      id: '/_authenticated/$tenantSlug/admin/cms-auditoria'
+      path: '/cms-auditoria'
+      fullPath: '/$tenantSlug/admin/cms-auditoria'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCmsAuditoriaRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin/campanhas/': {
-      id: '/_authenticated/$tenantSlug/admin/campanhas/'
+    '/_authenticated/$tenantSlug/admin/cms-inventario': {
+      id: '/_authenticated/$tenantSlug/admin/cms-inventario'
+      path: '/cms-inventario'
+      fullPath: '/$tenantSlug/admin/cms-inventario'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCmsInventarioRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/cms-transferencia': {
+      id: '/_authenticated/$tenantSlug/admin/cms-transferencia'
+      path: '/cms-transferencia'
+      fullPath: '/$tenantSlug/admin/cms-transferencia'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCmsTransferenciaRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/corretores': {
+      id: '/_authenticated/$tenantSlug/admin/corretores'
+      path: '/corretores'
+      fullPath: '/$tenantSlug/admin/corretores'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCorretoresRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/crm-operacoes': {
+      id: '/_authenticated/$tenantSlug/admin/crm-operacoes'
+      path: '/crm-operacoes'
+      fullPath: '/$tenantSlug/admin/crm-operacoes'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCrmOperacoesRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/domains': {
+      id: '/_authenticated/$tenantSlug/admin/domains'
+      path: '/domains'
+      fullPath: '/$tenantSlug/admin/domains'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminDomainsRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/equipes': {
+      id: '/_authenticated/$tenantSlug/admin/equipes'
+      path: '/equipes'
+      fullPath: '/$tenantSlug/admin/equipes'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminEquipesRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/leads': {
+      id: '/_authenticated/$tenantSlug/admin/leads'
+      path: '/leads'
+      fullPath: '/$tenantSlug/admin/leads'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLeadsRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/leads-workspace': {
+      id: '/_authenticated/$tenantSlug/admin/leads-workspace'
+      path: '/leads-workspace'
+      fullPath: '/$tenantSlug/admin/leads-workspace'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLeadsWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/marketing': {
+      id: '/_authenticated/$tenantSlug/admin/marketing'
+      path: '/marketing'
+      fullPath: '/$tenantSlug/admin/marketing'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMarketingRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/memberships': {
+      id: '/_authenticated/$tenantSlug/admin/memberships'
+      path: '/memberships'
+      fullPath: '/$tenantSlug/admin/memberships'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMembershipsRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/midias': {
+      id: '/_authenticated/$tenantSlug/admin/midias'
+      path: '/midias'
+      fullPath: '/$tenantSlug/admin/midias'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMidiasRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/motivos': {
+      id: '/_authenticated/$tenantSlug/admin/motivos'
+      path: '/motivos'
+      fullPath: '/$tenantSlug/admin/motivos'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminMotivosRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/origens': {
+      id: '/_authenticated/$tenantSlug/admin/origens'
+      path: '/origens'
+      fullPath: '/$tenantSlug/admin/origens'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminOrigensRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/perfis': {
+      id: '/_authenticated/$tenantSlug/admin/perfis'
+      path: '/perfis'
+      fullPath: '/$tenantSlug/admin/perfis'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPerfisRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/pipeline': {
+      id: '/_authenticated/$tenantSlug/admin/pipeline'
+      path: '/pipeline'
+      fullPath: '/$tenantSlug/admin/pipeline'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPipelineRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/portais': {
+      id: '/_authenticated/$tenantSlug/admin/portais'
+      path: '/portais'
+      fullPath: '/$tenantSlug/admin/portais'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPortaisRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/site': {
+      id: '/_authenticated/$tenantSlug/admin/site'
+      path: '/site'
+      fullPath: '/$tenantSlug/admin/site'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminSiteRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/tracking': {
+      id: '/_authenticated/$tenantSlug/admin/tracking'
+      path: '/tracking'
+      fullPath: '/$tenantSlug/admin/tracking'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminTrackingRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/admin/blog/': {
+      id: '/_authenticated/admin/blog/'
+      path: '/'
+      fullPath: '/admin/blog/'
+      preLoaderRoute: typeof AuthenticatedAdminBlogIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminBlogRoute
+    }
+    '/_authenticated/admin/blog/$id': {
+      id: '/_authenticated/admin/blog/$id'
+      path: '/$id'
+      fullPath: '/admin/blog/$id'
+      preLoaderRoute: typeof AuthenticatedAdminBlogIdRouteImport
+      parentRoute: typeof AuthenticatedAdminBlogRoute
+    }
+    '/_authenticated/admin/blog/novo': {
+      id: '/_authenticated/admin/blog/novo'
+      path: '/novo'
+      fullPath: '/admin/blog/novo'
+      preLoaderRoute: typeof AuthenticatedAdminBlogNovoRouteImport
+      parentRoute: typeof AuthenticatedAdminBlogRoute
+    }
+    '/_authenticated/admin/campanhas/': {
+      id: '/_authenticated/admin/campanhas/'
       path: '/campanhas'
-      fullPath: '/$tenantSlug/admin/campanhas/'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCampanhasIndexRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+      fullPath: '/admin/campanhas/'
+      preLoaderRoute: typeof AuthenticatedAdminCampanhasIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/campanhas/$id': {
+      id: '/_authenticated/admin/campanhas/$id'
+      path: '/campanhas/$id'
+      fullPath: '/admin/campanhas/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCampanhasIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/formularios/': {
+      id: '/_authenticated/admin/formularios/'
+      path: '/formularios'
+      fullPath: '/admin/formularios/'
+      preLoaderRoute: typeof AuthenticatedAdminFormulariosIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/formularios/$id': {
+      id: '/_authenticated/admin/formularios/$id'
+      path: '/formularios/$id'
+      fullPath: '/admin/formularios/$id'
+      preLoaderRoute: typeof AuthenticatedAdminFormulariosIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/imoveis/': {
+      id: '/_authenticated/admin/imoveis/'
+      path: '/imoveis'
+      fullPath: '/admin/imoveis/'
+      preLoaderRoute: typeof AuthenticatedAdminImoveisIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/imoveis/$id': {
+      id: '/_authenticated/admin/imoveis/$id'
+      path: '/imoveis/$id'
+      fullPath: '/admin/imoveis/$id'
+      preLoaderRoute: typeof AuthenticatedAdminImoveisIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/imoveis/novo': {
+      id: '/_authenticated/admin/imoveis/novo'
+      path: '/imoveis/novo'
+      fullPath: '/admin/imoveis/novo'
+      preLoaderRoute: typeof AuthenticatedAdminImoveisNovoRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/lancamentos/': {
+      id: '/_authenticated/admin/lancamentos/'
+      path: '/lancamentos'
+      fullPath: '/admin/lancamentos/'
+      preLoaderRoute: typeof AuthenticatedAdminLancamentosIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/lancamentos/$id': {
+      id: '/_authenticated/admin/lancamentos/$id'
+      path: '/lancamentos/$id'
+      fullPath: '/admin/lancamentos/$id'
+      preLoaderRoute: typeof AuthenticatedAdminLancamentosIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/lancamentos/novo': {
+      id: '/_authenticated/admin/lancamentos/novo'
+      path: '/lancamentos/novo'
+      fullPath: '/admin/lancamentos/novo'
+      preLoaderRoute: typeof AuthenticatedAdminLancamentosNovoRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/paginas/': {
+      id: '/_authenticated/admin/paginas/'
+      path: '/paginas'
+      fullPath: '/admin/paginas/'
+      preLoaderRoute: typeof AuthenticatedAdminPaginasIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/paginas/$id': {
+      id: '/_authenticated/admin/paginas/$id'
+      path: '/paginas/$id'
+      fullPath: '/admin/paginas/$id'
+      preLoaderRoute: typeof AuthenticatedAdminPaginasIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/api/public/hooks/portal-dlq-retry': {
+      id: '/api/public/hooks/portal-dlq-retry'
+      path: '/api/public/hooks/portal-dlq-retry'
+      fullPath: '/api/public/hooks/portal-dlq-retry'
+      preLoaderRoute: typeof ApiPublicHooksPortalDlqRetryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/$tenantSlug/admin/blog/': {
       id: '/_authenticated/$tenantSlug/admin/blog/'
@@ -2386,53 +2351,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTenantSlugAdminBlogIndexRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminBlogRoute
     }
-    '/api/public/feeds/$portal/$token': {
-      id: '/api/public/feeds/$portal/$token'
-      path: '/api/public/feeds/$portal/$token'
-      fullPath: '/api/public/feeds/$portal/$token'
-      preLoaderRoute: typeof ApiPublicFeedsPortalTokenRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/$tenantSlug/admin/blog/$id': {
+      id: '/_authenticated/$tenantSlug/admin/blog/$id'
+      path: '/$id'
+      fullPath: '/$tenantSlug/admin/blog/$id'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBlogIdRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminBlogRoute
     }
-    '/_authenticated/$tenantSlug/admin/paginas/$id': {
-      id: '/_authenticated/$tenantSlug/admin/paginas/$id'
-      path: '/paginas/$id'
-      fullPath: '/$tenantSlug/admin/paginas/$id'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPaginasIdRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    '/_authenticated/$tenantSlug/admin/blog/novo': {
+      id: '/_authenticated/$tenantSlug/admin/blog/novo'
+      path: '/novo'
+      fullPath: '/$tenantSlug/admin/blog/novo'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBlogNovoRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminBlogRoute
     }
-    '/_authenticated/$tenantSlug/admin/lancamentos/novo': {
-      id: '/_authenticated/$tenantSlug/admin/lancamentos/novo'
-      path: '/lancamentos/novo'
-      fullPath: '/$tenantSlug/admin/lancamentos/novo'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLancamentosNovoRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/lancamentos/$id': {
-      id: '/_authenticated/$tenantSlug/admin/lancamentos/$id'
-      path: '/lancamentos/$id'
-      fullPath: '/$tenantSlug/admin/lancamentos/$id'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLancamentosIdRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/imoveis/novo': {
-      id: '/_authenticated/$tenantSlug/admin/imoveis/novo'
-      path: '/imoveis/novo'
-      fullPath: '/$tenantSlug/admin/imoveis/novo'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminImoveisNovoRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/imoveis/$id': {
-      id: '/_authenticated/$tenantSlug/admin/imoveis/$id'
-      path: '/imoveis/$id'
-      fullPath: '/$tenantSlug/admin/imoveis/$id'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminImoveisIdRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
-    }
-    '/_authenticated/$tenantSlug/admin/formularios/$id': {
-      id: '/_authenticated/$tenantSlug/admin/formularios/$id'
-      path: '/formularios/$id'
-      fullPath: '/$tenantSlug/admin/formularios/$id'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminFormulariosIdRouteImport
+    '/_authenticated/$tenantSlug/admin/campanhas/': {
+      id: '/_authenticated/$tenantSlug/admin/campanhas/'
+      path: '/campanhas'
+      fullPath: '/$tenantSlug/admin/campanhas/'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminCampanhasIndexRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
     '/_authenticated/$tenantSlug/admin/campanhas/$id': {
@@ -2442,19 +2379,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTenantSlugAdminCampanhasIdRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin/blog/novo': {
-      id: '/_authenticated/$tenantSlug/admin/blog/novo'
-      path: '/novo'
-      fullPath: '/$tenantSlug/admin/blog/novo'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBlogNovoRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminBlogRoute
+    '/_authenticated/$tenantSlug/admin/formularios/': {
+      id: '/_authenticated/$tenantSlug/admin/formularios/'
+      path: '/formularios'
+      fullPath: '/$tenantSlug/admin/formularios/'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminFormulariosIndexRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
-    '/_authenticated/$tenantSlug/admin/blog/$id': {
-      id: '/_authenticated/$tenantSlug/admin/blog/$id'
-      path: '/$id'
-      fullPath: '/$tenantSlug/admin/blog/$id'
-      preLoaderRoute: typeof AuthenticatedTenantSlugAdminBlogIdRouteImport
-      parentRoute: typeof AuthenticatedTenantSlugAdminBlogRoute
+    '/_authenticated/$tenantSlug/admin/formularios/$id': {
+      id: '/_authenticated/$tenantSlug/admin/formularios/$id'
+      path: '/formularios/$id'
+      fullPath: '/$tenantSlug/admin/formularios/$id'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminFormulariosIdRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/imoveis/': {
+      id: '/_authenticated/$tenantSlug/admin/imoveis/'
+      path: '/imoveis'
+      fullPath: '/$tenantSlug/admin/imoveis/'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminImoveisIndexRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/imoveis/$id': {
+      id: '/_authenticated/$tenantSlug/admin/imoveis/$id'
+      path: '/imoveis/$id'
+      fullPath: '/$tenantSlug/admin/imoveis/$id'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminImoveisIdRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/imoveis/novo': {
+      id: '/_authenticated/$tenantSlug/admin/imoveis/novo'
+      path: '/imoveis/novo'
+      fullPath: '/$tenantSlug/admin/imoveis/novo'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminImoveisNovoRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/lancamentos/': {
+      id: '/_authenticated/$tenantSlug/admin/lancamentos/'
+      path: '/lancamentos'
+      fullPath: '/$tenantSlug/admin/lancamentos/'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLancamentosIndexRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/lancamentos/$id': {
+      id: '/_authenticated/$tenantSlug/admin/lancamentos/$id'
+      path: '/lancamentos/$id'
+      fullPath: '/$tenantSlug/admin/lancamentos/$id'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLancamentosIdRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/lancamentos/novo': {
+      id: '/_authenticated/$tenantSlug/admin/lancamentos/novo'
+      path: '/lancamentos/novo'
+      fullPath: '/$tenantSlug/admin/lancamentos/novo'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLancamentosNovoRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/paginas/': {
+      id: '/_authenticated/$tenantSlug/admin/paginas/'
+      path: '/paginas'
+      fullPath: '/$tenantSlug/admin/paginas/'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPaginasIndexRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/_authenticated/$tenantSlug/admin/paginas/$id': {
+      id: '/_authenticated/$tenantSlug/admin/paginas/$id'
+      path: '/paginas/$id'
+      fullPath: '/$tenantSlug/admin/paginas/$id'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminPaginasIdRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
+    '/api/public/feeds/$portal/$token': {
+      id: '/api/public/feeds/$portal/$token'
+      path: '/api/public/feeds/$portal/$token'
+      fullPath: '/api/public/feeds/$portal/$token'
+      preLoaderRoute: typeof ApiPublicFeedsPortalTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
