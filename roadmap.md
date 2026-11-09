@@ -4,7 +4,9 @@
 - [x] Etapa 2: CRM (funil Kanban, ficha, histórico, próxima ação) — aguarda aprovação no preview
 - [x] Etapa 3: Imóveis (aguarda aprovação no preview)
 - [ ] Ajustar tela do Blog do painel ao original RM Prime
-- [ ] Etapa 4b (pedido atual): importar Campanhas do RM Prime, preservar regras e interface, verificar no preview
+- [x] Etapa 4b: Campanhas — lista/formulário, 2 cadastros, 5 artes, revisão, copy/roteiro com IA e gravação verificados no preview
+- [ ] Complemento de Campanhas: geração de imagens, vídeo e publicação Meta — não implementados nesta entrega
 - [ ] Etapa 4: Módulos de apoio
-- [ ] Importar campanhas, landing page, marketing, taxas e faixas MCMV (junto das partes 4/5)
+- [x] Importar campanhas e landing page
+- [ ] Importar marketing, taxas e faixas MCMV (partes seguintes)
 - [ ] Convites de acesso aos 4 corretores (aguarda autorização do owner)

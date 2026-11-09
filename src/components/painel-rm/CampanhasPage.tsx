@@ -287,9 +287,9 @@ function FormularioCampanha({
                 key={url}
                 type="button"
                 onClick={() => alternarFoto(url)}
-                className={cn("relative h-auto min-h-0 w-full aspect-square overflow-hidden rounded-md border-2 p-0", marcada ? "border-primary" : "border-transparent opacity-70")}
+                className={cn("relative block h-auto min-h-0 w-full aspect-square overflow-hidden rounded-md border-2 p-0", marcada ? "border-primary" : "border-transparent opacity-70")}
               >
-                <img src={url} alt="" className="h-full w-full object-cover" />
+                <img src={url} alt={`Foto ${imovel.fotos.indexOf(url) + 1}`} className="absolute inset-0 h-full w-full object-cover" />
                 {marcada ? <Check className="absolute right-1 top-1 h-5 w-5 rounded-full bg-primary p-0.5 text-primary-foreground" /> : null}
               </Button>
             );
