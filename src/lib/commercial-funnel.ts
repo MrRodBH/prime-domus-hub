@@ -1,4 +1,4 @@
-export type FunnelLead = { id: string; nome: string; status: string; assigned_to: string | null; created_at: string; updated_at: string };
+export type FunnelLead = { id: string; nome: string; status: string; assigned_to: string | null; created_at: string; updated_at: string; origem?: string | null };
 export const FUNNEL_STAGES = ["novo", "conversando", "visita", "proposta", "ganho"] as const;
 const OPEN = ["novo", "conversando", "visita", "proposta"];
 

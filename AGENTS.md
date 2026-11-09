@@ -12,3 +12,5 @@ Functional fixes must not move these entries into horizontal tabs, hide them beh
 Only an explicit user request for that presentation change supersedes the approval; passing CI or a deployment is not visual approval.
 Keep server authorization and explicit tenant access intact. Do not replace unavailable real operations with demonstration data.
 Evolve the navigation regression tests explicitly and include them in final-head checks.
+
+- RM Prime monolith imports: copy approved UI from the RM Prime project into tenant routes, but feed it only through existing tenant-scoped server functions (requireTenant); never direct table reads or fabricated data. Why: keeps one approved model for all tenants without breaking tenant isolation.
