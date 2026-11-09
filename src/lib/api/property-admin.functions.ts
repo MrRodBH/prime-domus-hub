@@ -47,7 +47,7 @@ const imovelSchema = z.object({
   descricao: z.string().optional().nullable(),
   finalidade: z.enum(["venda", "aluguel", "lancamento"]),
   tipo: z.string().min(1),
-  status: z.enum(["ativo", "rascunho", "vendido", "reservado"]).default("ativo"),
+  status: z.enum(["ativo", "rascunho", "vendido", "reservado", "inativo"]).default("ativo"),
   preco: z.number().nullable().optional(),
   preco_sob_consulta: z.boolean().default(false),
   condominio: z.number().nullable().optional(),
@@ -163,7 +163,7 @@ export const adminListarImoveis = createServerFn({ method: "GET" })
     const { tenantId } = await authorizePropertyOperation(context, "list");
     const { data, error } = await context.supabase
       .from("imoveis")
-      .select("id, codigo, titulo, slug, finalidade, tipo, status, preco, destaque, updated_at, bairro:bairros(tenant_id, nome)")
+      .select("id, codigo, titulo, slug, finalidade, tipo, status, preco, destaque, updated_at, imagem_capa, bairro:bairros(tenant_id, nome)")
       .eq("tenant_id", tenantId)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
