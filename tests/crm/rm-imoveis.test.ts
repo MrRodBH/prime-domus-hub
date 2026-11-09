@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { bairroDoEndereco, montarEndereco, statusPainel } from "./imoveis";
+import { describe, expect, it } from "bun:test";
+import { bairroDoEndereco, montarEndereco, statusPainel } from "../../src/lib/rm-crm/imoveis";
 
 describe("imóveis RM Prime", () => {
   it("rascunho e reservado aparecem como inativo", () => {
