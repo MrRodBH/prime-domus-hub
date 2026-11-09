@@ -90,8 +90,8 @@ export function ImoveisPage() {
   const limiteDestaqueAtingido = destaquesUsados >= 6;
 
   const salvar = useMutation({
-    mutationFn: async (payload: Parameters<typeof adminSalvarImovel>[0]["data"]) => {
-      const { id } = await adminSalvarImovel({ data: payload });
+    mutationFn: async (payload: Record<string, unknown>) => {
+      const { id } = await adminSalvarImovel({ data: payload as never });
       await sincronizarFotos(id);
       return id;
     },
@@ -241,7 +241,7 @@ export function ImoveisPage() {
       mostrar_rua: form.get("exibir_endereco_exato") === "on",
       mostrar_endereco_completo: form.get("exibir_endereco_exato") === "on",
       destaque,
-    } as Parameters<typeof adminSalvarImovel>[0]["data"]);
+    });
   }
 
   const inicial = edicao;
