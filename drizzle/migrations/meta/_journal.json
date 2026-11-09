@@ -8,6 +8,13 @@
       "when": 1794258411412,
       "tag": "0000_crm_digest_search_path",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794259364923,
+      "tag": "0001_crm_lead_writers_transition_flag",
+      "breakpoints": true
     }
   ]
 }
