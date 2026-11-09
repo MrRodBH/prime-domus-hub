@@ -333,6 +333,8 @@
   --crm-fechado: oklch(0.58 0.20 250);
   --crm-perdido: oklch(0.66 0.18 50);
   --crm-descartado: oklch(0.55 0.02 245);
+  --shadow-cartao: 0 1px 2px oklch(0.29 0.06 199 / 0.08), 0 12px 24px -18px oklch(0.29 0.06 199 / 0.28);
+  --shadow-elevado: 0 20px 45px -25px oklch(0.29 0.06 199 / 0.35);
   -webkit-font-smoothing: antialiased;
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
