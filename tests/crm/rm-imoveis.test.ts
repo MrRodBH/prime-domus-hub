@@ -1,0 +1,15 @@
+import { describe, expect, it } from "bun:test";
+import { bairroDoEndereco, montarEndereco, statusPainel } from "../../src/lib/rm-crm/imoveis";
+
+describe("imóveis RM Prime", () => {
+  it("rascunho e reservado aparecem como inativo", () => {
+    expect(statusPainel("rascunho")).toBe("inativo");
+    expect(statusPainel("reservado")).toBe("inativo");
+    expect(statusPainel("vendido")).toBe("vendido");
+  });
+  it("bairro ida e volta pelo endereço", () => {
+    const e = montarEndereco({ logradouro: "Rua Maria Heilbuth Surette", numero: "609", bairro: "Buritis" });
+    expect(e).toBe("Rua Maria Heilbuth Surette, 609 - Buritis");
+    expect(bairroDoEndereco(e)).toBe("Buritis");
+  });
+});
