@@ -118,6 +118,18 @@ function SuperTenantsPage() {
               <span className="text-sm text-muted-foreground">Registrar solicitações recebidas e acompanhar a resolução.</span>
             </Link>
           </div>
+          <button
+            type="button"
+            onClick={async () => {
+              const { supabase } = await import("@/integrations/supabase/client");
+              await supabase.auth.signOut();
+              window.location.assign("/rmprime/auth?next=%2Frmprime%2Fadmin");
+            }}
+            className="w-full rounded-lg border border-dashed p-4 text-left hover:bg-muted focus-visible:outline focus-visible:outline-2"
+          >
+            <strong className="block">Atalho temporário: abrir painel RM Prime</strong>
+            <span className="text-sm text-muted-foreground">Encerra a sessão Super Admin e abre o login da RM Prime. Entre com a conta Admin da empresa.</span>
+          </button>
           <p className="text-sm text-muted-foreground">Website, CMS, conexão do domínio e operação comercial ficam no ambiente da empresa, em Conteúdo. O acesso é feito por uma conta autorizada da equipe. Esta conta Super Admin permanece na gestão da plataforma.</p>
         </section>
         <PlatformUsers />
