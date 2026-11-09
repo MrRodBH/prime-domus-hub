@@ -345,7 +345,6 @@
   letter-spacing: normal;
 }
 .rm-painel .font-sans { font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; }
-.rm-painel * { border-color: var(--border); }
 
 @utility superficie-cartao {
   border-radius: var(--radius);
