@@ -78,7 +78,7 @@ export const Route = createFileRoute("/imovel/$slug")({
     };
   },
   errorComponent: ({ error }) => (
-    <Shell><p className="text-muted-foreground">{error.message}</p></Shell>
+    <Shell><p className="text-muted-foreground">{error instanceof Error ? error.message : "Falha ao carregar o imóvel."}</p></Shell>
   ),
   notFoundComponent: () => (
     <Shell>

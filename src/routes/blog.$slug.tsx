@@ -46,7 +46,7 @@ export const Route = createFileRoute("/blog/$slug")({
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 max-w-3xl mx-auto px-6 py-32">
-        <p className="text-muted-foreground">Erro ao carregar post: {error.message}</p>
+        <p className="text-muted-foreground">Erro ao carregar post: {error instanceof Error ? error.message : "falha inesperada"}</p>
       </main>
       <Footer />
     </div>

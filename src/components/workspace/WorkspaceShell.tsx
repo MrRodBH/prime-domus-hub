@@ -36,7 +36,10 @@ export function WorkspaceShell() {
   const queryClient = useQueryClient();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const { isSuperAdmin: isSuper, user } = useRouteContext({ from: '/_authenticated' });
+  const { isSuperAdmin: isSuper, user } = useRouteContext({ from: '/_authenticated' }) as {
+    isSuperAdmin: boolean;
+    user: { id: string };
+  };
   const { data: tenantId } = useQuery({
     queryKey: ["meu-tenant-id", user.id],
     queryFn: () => meuTenantId(),

@@ -44,7 +44,7 @@ export const Route = createFileRoute("/p/$slug")({
     };
   },
   component: PaginaPublica,
-  errorComponent: ({ error }) => <div className="p-8 text-center text-destructive">Erro: {error.message}</div>,
+  errorComponent: ({ error }) => <div className="p-8 text-center text-destructive">Erro: {error instanceof Error ? error.message : "falha inesperada"}</div>,
   notFoundComponent: () => (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center">
       <h1 className="text-3xl font-serif mb-2">Página não encontrada</h1>

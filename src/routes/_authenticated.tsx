@@ -21,10 +21,11 @@ export const Route = createFileRoute("/_authenticated")({
   errorComponent: WorkspaceAccessError,
 });
 
-export function WorkspaceAccessError({ error, reset }: { error: Error; reset: () => void }) {
+export function WorkspaceAccessError({ error, reset }: { error: unknown; reset: () => void }) {
   const exit = useLogout();
-  const platformAccount = error.message === 'platform_account_on_tenant';
-  const tenantAccount = error.message === 'tenant_account_on_platform';
+  const message = error instanceof Error ? error.message : '';
+  const platformAccount = message === 'platform_account_on_tenant';
+  const tenantAccount = message === 'tenant_account_on_platform';
   return <main className="min-h-screen bg-background flex items-center justify-center p-6">
     <section role="alert" className="max-w-lg space-y-4 rounded-xl border bg-card p-6">
       <h1 className="font-display text-2xl">{platformAccount ? 'Entre com a conta Admin da empresa' : tenantAccount ? 'Esta conta pertence ao ambiente da empresa' : 'Não foi possível verificar seu acesso'}</h1>
