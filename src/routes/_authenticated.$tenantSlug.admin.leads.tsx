@@ -1,14 +1,8 @@
-// Rota legada — mantém links antigos funcionando sem transportar comandos ou
-// parâmetros de apresentação incompatíveis para o pipeline read-only.
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { migrateLegacyLeadsSearch } from "@/components/pipeline/search-schema";
+// CRM aprovado da RM Prime (funil Kanban, ficha do lead, histórico e próxima ação).
+import { createFileRoute } from "@tanstack/react-router";
+import { CrmPage } from "@/components/painel-rm/CrmPage";
 
 export const Route = createFileRoute("/_authenticated/$tenantSlug/admin/leads")({
-  beforeLoad: ({ search }) => {
-    throw redirect({
-      to: "/admin/pipeline",
-      search: migrateLegacyLeadsSearch(search),
-    });
-  },
-  component: () => null,
+  head: () => ({ meta: [{ title: "CRM — Painel da empresa" }, { name: "robots", content: "noindex" }] }),
+  component: CrmPage,
 });
