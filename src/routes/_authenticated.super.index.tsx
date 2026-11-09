@@ -1,3 +1,4 @@
+import { ExecutiveOverview } from "@/components/super/ExecutiveOverview";
 import { PlatformUsers } from "@/components/onboarding/PlatformUsers";
 import { PersistentOnboarding } from "@/components/onboarding/PersistentOnboarding";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -76,7 +77,7 @@ function SuperTenantsPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-teal-700">Dashboard</p>
-          <h1 className="font-display text-4xl font-semibold">A visão completa do seu SaaS</h1>
+          <h1 className="font-display text-4xl font-semibold">Visão executiva da plataforma</h1>
           <p className="text-sm text-muted-foreground">
             Gerencie os planos e as empresas da sua plataforma.
           </p>
@@ -99,6 +100,8 @@ function SuperTenantsPage() {
           />
         </Dialog>
       </div>
+
+      {view === "dashboard" && <ExecutiveOverview kpis={kpis} tenants={tenants as TenantRow[]} stats={stats as TenantStats} />}
 
       <PersistentOnboarding currentView={view ?? "dashboard"} onViewChange={next => { void navigate({ to: "/super", search: { view: next } }); }} />
 
