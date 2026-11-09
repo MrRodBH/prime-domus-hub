@@ -6,6 +6,10 @@ import { requirePublicTenantFromRequest } from "@/lib/tenant.server";
 import type { ConteudoLandingPage } from "@/lib/rm-marketing/landing-page-form";
 
 type Ctx = { tenantId: string; supabase: any };
+const ctxDe = (context: unknown): Ctx => {
+  const c = context as { tenant: { tenantId: string }; supabase: any };
+  return { tenantId: c.tenant.tenantId, supabase: c.supabase };
+};
 
 async function exigirAdmin(context: Ctx) {
   const { data, error } = await context.supabase.rpc("is_active_tenant_admin", { _tenant_id: context.tenantId });
@@ -24,7 +28,7 @@ export interface LandingPageAdmin {
 export const listarLandingPagesAdmin = createServerFn({ method: "GET" })
   .middleware([requireTenant])
   .handler(async ({ context }): Promise<LandingPageAdmin[]> => {
-    const ctx = context as unknown as Ctx;
+    const ctx = ctxDe(context);
     await exigirAdmin(ctx);
     const { data, error } = await ctx.supabase
       .from("tenant_landing_pages")
@@ -55,7 +59,7 @@ export const salvarLandingPage = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((entrada: DadosLandingPage) => lpSchema.parse(entrada))
   .handler(async ({ data, context }) => {
-    const ctx = context as unknown as Ctx;
+    const ctx = ctxDe(context);
     await exigirAdmin(ctx);
     const { id, ...c } = data;
     const payload = {
@@ -78,7 +82,7 @@ export const excluirLandingPage = createServerFn({ method: "POST" })
   .middleware([requireTenant])
   .inputValidator((entrada: { id: string }) => z.object({ id: z.string().uuid() }).parse(entrada))
   .handler(async ({ data, context }) => {
-    const ctx = context as unknown as Ctx;
+    const ctx = ctxDe(context);
     await exigirAdmin(ctx);
     const { error } = await ctx.supabase.from("tenant_landing_pages").delete().eq("id", data.id).eq("tenant_id", ctx.tenantId);
     if (error) throw new Error("Não foi possível excluir a landing page.");
@@ -91,7 +95,7 @@ export const gerarDescricaoLandingPage = createServerFn({ method: "POST" })
   .inputValidator((e: { imovel_id: string; texto_base?: string }) =>
     z.object({ imovel_id: z.string().uuid(), texto_base: z.string().trim().max(5000).optional() }).parse(e))
   .handler(async ({ data, context }): Promise<{ texto: string }> => {
-    const ctx = context as unknown as Ctx;
+    const ctx = ctxDe(context);
     await exigirAdmin(ctx);
     const { data: im, error } = await ctx.supabase
       .from("imoveis")
