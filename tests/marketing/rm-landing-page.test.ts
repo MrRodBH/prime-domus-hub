@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { normalizarSlug, sugerirSlugLandingPage } from "../../src/lib/rm-marketing/landing-page-form";
 
 describe("landing page slug", () => {
