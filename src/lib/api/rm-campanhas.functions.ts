@@ -85,9 +85,12 @@ export const listarCriativosSociais = createServerFn({ method:"GET" }).middlewar
   const campanha=await campanhaAtual(context.supabase,auth.tenantId,data.id);
   const {data:rows,error}=await context.supabase.from("tenant_social_campaign_creatives").select("*").eq("tenant_id",auth.tenantId).eq("campanha_id",data.id).order("ordem");
   if(error) throw new Error("Não foi possível carregar os criativos.");
+  // Storage signing follows the existing property-media authority boundary:
+  // verified tenant/campaign/path first, privileged signing only afterwards.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return Promise.all(rows.filter((row)=>campanha.fotos[row.ordem]===row.foto_origem).map(async(row)=> {
     if(!row.caminho.startsWith(`${auth.tenantId}/${campanha.imovel_id}/`)) throw new Error("Arte fora da empresa.");
-    const signed=await context.supabase.storage.from("imoveis").createSignedUrl(row.caminho,900);
+    const signed=await supabaseAdmin.storage.from("imoveis").createSignedUrl(row.caminho,900);
     if(signed.error) throw new Error("Não foi possível abrir a arte.");
     return {...row,url:signed.data.signedUrl};
   }));
