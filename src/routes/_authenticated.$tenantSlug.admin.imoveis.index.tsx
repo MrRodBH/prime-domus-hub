@@ -1,13 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
-import { PropertyInventoryReadOnlyPage } from "@/components/properties/PropertyInventoryReadOnlyPage";
-import { propertyInventorySearchSchema } from "@/components/properties/search-schema";
+// Tela de Imóveis aprovada da RM Prime (lista em cartões, cadastro em janela, fotos ordenáveis).
+import { createFileRoute } from "@tanstack/react-router";
+import { ImoveisPage } from "@/components/painel-rm/ImoveisPage";
 
 export const Route = createFileRoute("/_authenticated/$tenantSlug/admin/imoveis/")({
-  validateSearch: (search) => propertyInventorySearchSchema.parse(search),
-  component: PropertyInventoryRoute,
+  head: () => ({ meta: [{ title: "Imóveis — Painel da empresa" }, { name: "robots", content: "noindex" }] }),
+  component: ImoveisPage,
 });
-
-function PropertyInventoryRoute() {
-  return <div className="space-y-4"><Button asChild><Link to="/admin/imoveis/novo">Cadastrar imóvel</Link></Button><PropertyInventoryReadOnlyPage search={Route.useSearch()} /></div>;
-}
