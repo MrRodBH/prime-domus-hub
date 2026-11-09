@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizarSlug, sugerirSlugLandingPage } from "./landing-page-form";
+import { normalizarSlug, sugerirSlugLandingPage } from "../../src/lib/rm-marketing/landing-page-form";
 
 describe("landing page slug", () => {
   it("remove acentos, espaços e palavras de ligação na sugestão", () => {
