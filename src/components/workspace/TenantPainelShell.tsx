@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { meuPerfilNoTenant } from "@/lib/api/tenant.functions";
 import { workspaceTenantMark, type WorkspaceTenantIdentity } from "@/components/brand/TenantBrand";
 import { cn } from "@/lib/utils";
+import logoRmPrime from "@/assets/logo-rm-prime.png.asset.json";
+
+const PAINEL_FONTS = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap";
 
 const PAPEL: Record<string, string> = { owner: "Administrador", admin: "Administrador", manager: "Gerente", broker: "Corretor", captador: "Captador", secretaria: "Secretária", viewer: "Visualizador" };
 
@@ -36,10 +39,15 @@ export function TenantPainelShell({ tenant, children }: { tenant: WorkspaceTenan
   const logo = workspaceTenantMark(tenant);
   const atual = MENU.find((i) => i.sub !== null && (i.sub === "" ? caminho === base || caminho === `${base}/` : caminho.startsWith(base + i.sub)));
 
+  // Logo aprovada da RM Prime (h-24 em fundo claro), idêntica ao /painel original.
+  const logoSrc = tenant.slug === "rmprime" ? logoRmPrime.url : logo;
   const marca = (
-    <span className="inline-flex w-full items-center justify-center gap-3 rounded-md bg-card px-4 py-4 text-primary">
-      {logo ? <img src={logo} alt={`Logomarca da ${tenant.name}`} className="h-16 w-auto object-contain" /> : null}
-      <span className="font-heading text-sm font-semibold uppercase leading-tight tracking-wide">{tenant.name}</span>
+    <span className="inline-flex w-full items-center justify-center rounded-md bg-card px-4 py-4">
+      {logoSrc ? (
+        <img src={logoSrc} alt={`Logomarca da ${tenant.name}`} className="h-24 w-auto max-w-full object-contain" />
+      ) : (
+        <span className="font-heading text-sm font-semibold uppercase text-primary">{tenant.name}</span>
+      )}
     </span>
   );
 
@@ -77,6 +85,7 @@ export function TenantPainelShell({ tenant, children }: { tenant: WorkspaceTenan
 
   return (
     <div className="rm-painel flex h-dvh overflow-hidden bg-background text-foreground" data-workspace-shell="tenant-painel">
+      <link rel="stylesheet" href={PAINEL_FONTS} precedence="default" />
       <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="border-b border-sidebar-border p-4">{marca}</div>
         {nav}
