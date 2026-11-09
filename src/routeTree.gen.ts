@@ -25,6 +25,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as LpSlugRouteImport } from './routes/lp.$slug'
 import { Route as LancamentosSlugRouteImport } from './routes/lancamentos.$slug'
 import { Route as ImovelSlugRouteImport } from './routes/imovel.$slug'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -104,6 +105,7 @@ import { Route as AuthenticatedTenantSlugAdminMembershipsRouteImport } from './r
 import { Route as AuthenticatedTenantSlugAdminMarketingRouteImport } from './routes/_authenticated.$tenantSlug.admin.marketing'
 import { Route as AuthenticatedTenantSlugAdminLeadsWorkspaceRouteImport } from './routes/_authenticated.$tenantSlug.admin.leads-workspace'
 import { Route as AuthenticatedTenantSlugAdminLeadsRouteImport } from './routes/_authenticated.$tenantSlug.admin.leads'
+import { Route as AuthenticatedTenantSlugAdminLandingPagesRouteImport } from './routes/_authenticated.$tenantSlug.admin.landing-pages'
 import { Route as AuthenticatedTenantSlugAdminEquipesRouteImport } from './routes/_authenticated.$tenantSlug.admin.equipes'
 import { Route as AuthenticatedTenantSlugAdminDomainsRouteImport } from './routes/_authenticated.$tenantSlug.admin.domains'
 import { Route as AuthenticatedTenantSlugAdminCrmOperacoesRouteImport } from './routes/_authenticated.$tenantSlug.admin.crm-operacoes'
@@ -209,6 +211,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
 const PSlugRoute = PSlugRouteImport.update({
   id: '/p/$slug',
   path: '/p/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LpSlugRoute = LpSlugRouteImport.update({
+  id: '/lp/$slug',
+  path: '/lp/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LancamentosSlugRoute = LancamentosSlugRouteImport.update({
@@ -667,6 +674,12 @@ const AuthenticatedTenantSlugAdminLeadsRoute =
     path: '/leads',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
+const AuthenticatedTenantSlugAdminLandingPagesRoute =
+  AuthenticatedTenantSlugAdminLandingPagesRouteImport.update({
+    id: '/landing-pages',
+    path: '/landing-pages',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
 const AuthenticatedTenantSlugAdminEquipesRoute =
   AuthenticatedTenantSlugAdminEquipesRouteImport.update({
     id: '/equipes',
@@ -852,6 +865,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/lp/$slug': typeof LpSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/$tenantSlug/admin': typeof AuthenticatedTenantSlugAdminRouteWithChildren
@@ -902,6 +916,7 @@ export interface FileRoutesByFullPath {
   '/$tenantSlug/admin/crm-operacoes': typeof AuthenticatedTenantSlugAdminCrmOperacoesRoute
   '/$tenantSlug/admin/domains': typeof AuthenticatedTenantSlugAdminDomainsRoute
   '/$tenantSlug/admin/equipes': typeof AuthenticatedTenantSlugAdminEquipesRoute
+  '/$tenantSlug/admin/landing-pages': typeof AuthenticatedTenantSlugAdminLandingPagesRoute
   '/$tenantSlug/admin/leads': typeof AuthenticatedTenantSlugAdminLeadsRoute
   '/$tenantSlug/admin/leads-workspace': typeof AuthenticatedTenantSlugAdminLeadsWorkspaceRoute
   '/$tenantSlug/admin/marketing': typeof AuthenticatedTenantSlugAdminMarketingRoute
@@ -973,6 +988,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/lp/$slug': typeof LpSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog': typeof BlogIndexRoute
   '/admin/$': typeof AuthenticatedAdminSplatRoute
@@ -1020,6 +1036,7 @@ export interface FileRoutesByTo {
   '/$tenantSlug/admin/crm-operacoes': typeof AuthenticatedTenantSlugAdminCrmOperacoesRoute
   '/$tenantSlug/admin/domains': typeof AuthenticatedTenantSlugAdminDomainsRoute
   '/$tenantSlug/admin/equipes': typeof AuthenticatedTenantSlugAdminEquipesRoute
+  '/$tenantSlug/admin/landing-pages': typeof AuthenticatedTenantSlugAdminLandingPagesRoute
   '/$tenantSlug/admin/leads': typeof AuthenticatedTenantSlugAdminLeadsRoute
   '/$tenantSlug/admin/leads-workspace': typeof AuthenticatedTenantSlugAdminLeadsWorkspaceRoute
   '/$tenantSlug/admin/marketing': typeof AuthenticatedTenantSlugAdminMarketingRoute
@@ -1095,6 +1112,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/imovel/$slug': typeof ImovelSlugRoute
   '/lancamentos/$slug': typeof LancamentosSlugRoute
+  '/lp/$slug': typeof LpSlugRoute
   '/p/$slug': typeof PSlugRoute
   '/blog/': typeof BlogIndexRoute
   '/_authenticated/$tenantSlug/admin': typeof AuthenticatedTenantSlugAdminRouteWithChildren
@@ -1145,6 +1163,7 @@ export interface FileRoutesById {
   '/_authenticated/$tenantSlug/admin/crm-operacoes': typeof AuthenticatedTenantSlugAdminCrmOperacoesRoute
   '/_authenticated/$tenantSlug/admin/domains': typeof AuthenticatedTenantSlugAdminDomainsRoute
   '/_authenticated/$tenantSlug/admin/equipes': typeof AuthenticatedTenantSlugAdminEquipesRoute
+  '/_authenticated/$tenantSlug/admin/landing-pages': typeof AuthenticatedTenantSlugAdminLandingPagesRoute
   '/_authenticated/$tenantSlug/admin/leads': typeof AuthenticatedTenantSlugAdminLeadsRoute
   '/_authenticated/$tenantSlug/admin/leads-workspace': typeof AuthenticatedTenantSlugAdminLeadsWorkspaceRoute
   '/_authenticated/$tenantSlug/admin/marketing': typeof AuthenticatedTenantSlugAdminMarketingRoute
@@ -1220,6 +1239,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/lp/$slug'
     | '/p/$slug'
     | '/blog/'
     | '/$tenantSlug/admin'
@@ -1270,6 +1290,7 @@ export interface FileRouteTypes {
     | '/$tenantSlug/admin/crm-operacoes'
     | '/$tenantSlug/admin/domains'
     | '/$tenantSlug/admin/equipes'
+    | '/$tenantSlug/admin/landing-pages'
     | '/$tenantSlug/admin/leads'
     | '/$tenantSlug/admin/leads-workspace'
     | '/$tenantSlug/admin/marketing'
@@ -1341,6 +1362,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/lp/$slug'
     | '/p/$slug'
     | '/blog'
     | '/admin/$'
@@ -1388,6 +1410,7 @@ export interface FileRouteTypes {
     | '/$tenantSlug/admin/crm-operacoes'
     | '/$tenantSlug/admin/domains'
     | '/$tenantSlug/admin/equipes'
+    | '/$tenantSlug/admin/landing-pages'
     | '/$tenantSlug/admin/leads'
     | '/$tenantSlug/admin/leads-workspace'
     | '/$tenantSlug/admin/marketing'
@@ -1462,6 +1485,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/imovel/$slug'
     | '/lancamentos/$slug'
+    | '/lp/$slug'
     | '/p/$slug'
     | '/blog/'
     | '/_authenticated/$tenantSlug/admin'
@@ -1512,6 +1536,7 @@ export interface FileRouteTypes {
     | '/_authenticated/$tenantSlug/admin/crm-operacoes'
     | '/_authenticated/$tenantSlug/admin/domains'
     | '/_authenticated/$tenantSlug/admin/equipes'
+    | '/_authenticated/$tenantSlug/admin/landing-pages'
     | '/_authenticated/$tenantSlug/admin/leads'
     | '/_authenticated/$tenantSlug/admin/leads-workspace'
     | '/_authenticated/$tenantSlug/admin/marketing'
@@ -1583,6 +1608,7 @@ export interface RootRouteChildren {
   BlogSlugRoute: typeof BlogSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ImovelSlugRoute: typeof ImovelSlugRoute
+  LpSlugRoute: typeof LpSlugRoute
   PSlugRoute: typeof PSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiInternalDca02ProviderOrphanRecoveryRoute: typeof ApiInternalDca02ProviderOrphanRecoveryRoute
@@ -1712,6 +1738,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$slug'
       fullPath: '/p/$slug'
       preLoaderRoute: typeof PSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lp/$slug': {
+      id: '/lp/$slug'
+      path: '/lp/$slug'
+      fullPath: '/lp/$slug'
+      preLoaderRoute: typeof LpSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lancamentos/$slug': {
@@ -2267,6 +2300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTenantSlugAdminLeadsRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
+    '/_authenticated/$tenantSlug/admin/landing-pages': {
+      id: '/_authenticated/$tenantSlug/admin/landing-pages'
+      path: '/landing-pages'
+      fullPath: '/$tenantSlug/admin/landing-pages'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminLandingPagesRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
     '/_authenticated/$tenantSlug/admin/equipes': {
       id: '/_authenticated/$tenantSlug/admin/equipes'
       path: '/equipes'
@@ -2617,6 +2657,7 @@ interface AuthenticatedTenantSlugAdminRouteChildren {
   AuthenticatedTenantSlugAdminCrmOperacoesRoute: typeof AuthenticatedTenantSlugAdminCrmOperacoesRoute
   AuthenticatedTenantSlugAdminDomainsRoute: typeof AuthenticatedTenantSlugAdminDomainsRoute
   AuthenticatedTenantSlugAdminEquipesRoute: typeof AuthenticatedTenantSlugAdminEquipesRoute
+  AuthenticatedTenantSlugAdminLandingPagesRoute: typeof AuthenticatedTenantSlugAdminLandingPagesRoute
   AuthenticatedTenantSlugAdminLeadsRoute: typeof AuthenticatedTenantSlugAdminLeadsRoute
   AuthenticatedTenantSlugAdminLeadsWorkspaceRoute: typeof AuthenticatedTenantSlugAdminLeadsWorkspaceRoute
   AuthenticatedTenantSlugAdminMarketingRoute: typeof AuthenticatedTenantSlugAdminMarketingRoute
@@ -2668,6 +2709,8 @@ const AuthenticatedTenantSlugAdminRouteChildren: AuthenticatedTenantSlugAdminRou
       AuthenticatedTenantSlugAdminDomainsRoute,
     AuthenticatedTenantSlugAdminEquipesRoute:
       AuthenticatedTenantSlugAdminEquipesRoute,
+    AuthenticatedTenantSlugAdminLandingPagesRoute:
+      AuthenticatedTenantSlugAdminLandingPagesRoute,
     AuthenticatedTenantSlugAdminLeadsRoute:
       AuthenticatedTenantSlugAdminLeadsRoute,
     AuthenticatedTenantSlugAdminLeadsWorkspaceRoute:
@@ -2775,6 +2818,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogSlugRoute: BlogSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ImovelSlugRoute: ImovelSlugRoute,
+  LpSlugRoute: LpSlugRoute,
   PSlugRoute: PSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiInternalDca02ProviderOrphanRecoveryRoute:
