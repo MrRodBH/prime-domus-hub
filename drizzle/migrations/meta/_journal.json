@@ -15,6 +15,13 @@
       "when": 1794259364923,
       "tag": "0001_crm_lead_writers_transition_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794260654947,
+      "tag": "0002_tenant_admin_property_policies",
+      "breakpoints": true
     }
   ]
 }

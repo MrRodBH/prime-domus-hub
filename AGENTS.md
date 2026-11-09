@@ -14,3 +14,4 @@ Keep server authorization and explicit tenant access intact. Do not replace unav
 Evolve the navigation regression tests explicitly and include them in final-head checks.
 
 - RM Prime monolith imports: copy approved UI from the RM Prime project into tenant routes, but feed it only through existing tenant-scoped server functions (requireTenant); never direct table reads or fabricated data. Why: keeps one approved model for all tenants without breaking tenant isolation.
+- Tenant owner/admin members (tenant_members) get table access through the `is_active_tenant_admin(tenant_id)` RLS helper, alongside the restrictive tenant_isolation policy. Why: company admins have no global app_role, so has_role-only policies hid inactive records and blocked saves.
