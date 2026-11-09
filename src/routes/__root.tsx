@@ -15,6 +15,17 @@ import { PLATFORM_NAME, PLATFORM_FAVICON } from "../lib/brand-assets";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { structuredLog } from "../lib/structured-log";
 import { loadRequiredPublicRootDataForPath } from "../lib/public-tenant-read-guards";
+import type { PublicTrackingSnapshotDto } from "../lib/tracking/tracking-contracts";
+
+type RootLoaderData = {
+  tenantIndependent: boolean;
+  tenantLogin: boolean;
+  faviconUrl: string | null;
+  tracking: PublicTrackingSnapshotDto | null;
+  brandingV2: Record<string, string | undefined>;
+  seoGlobal: Record<string, string | undefined>;
+  siteName: string;
+};
 import { WhatsAppFab } from "../components/site/WhatsAppFab";
 import { CmsPreviewOverlay } from "../components/site/CmsPreviewOverlay";
 import { CampaignRenderer } from "../components/site/CampaignRenderer";
@@ -43,7 +54,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   structuredLog({
     level: "error",
     event: "browser.root_boundary_failed",
@@ -89,7 +100,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  loader: async ({ location }) => {
+  loader: async ({ location }): Promise<RootLoaderData> => {
     const publicRootData = await loadRequiredPublicRootDataForPath(
       location.pathname,
       async () => {
@@ -121,8 +132,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       tenantLogin: false,
       faviconUrl: settings.branding.favicon_url ?? null,
       tracking,
-      brandingV2: settings.branding_v2 ?? {},
-      seoGlobal: settings.seo_global ?? {},
+      brandingV2: (settings.branding_v2 ?? {}) as Record<string, string | undefined>,
+      seoGlobal: (settings.seo_global ?? {}) as Record<string, string | undefined>,
       siteName: settings.branding.site_name || "Imóveis",
     };
   },
@@ -239,7 +250,7 @@ function RootComponent() {
       <Outlet />
       {loaderData.tenantIndependent ? null : <WhatsAppFab />}
       {loaderData.tenantIndependent || preview ? null : <CampaignRenderer />}
-      {loaderData.tenantIndependent || preview ? null : (
+      {loaderData.tenantIndependent || preview || !loaderData.tracking ? null : (
         <PublicTrackingRuntime snapshot={loaderData.tracking} />
       )}
       <Toaster />
