@@ -250,7 +250,7 @@ function RootComponent() {
       <Outlet />
       {loaderData.tenantIndependent ? null : <WhatsAppFab />}
       {loaderData.tenantIndependent || preview ? null : <CampaignRenderer />}
-      {loaderData.tenantIndependent || preview ? null : (
+      {loaderData.tenantIndependent || preview || !loaderData.tracking ? null : (
         <PublicTrackingRuntime snapshot={loaderData.tracking} />
       )}
       <Toaster />
