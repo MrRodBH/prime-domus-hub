@@ -7,6 +7,7 @@ import { BarChart3, Building2, FileText, Home, LogOut, Megaphone, Menu, Newspape
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { meuPerfilNoTenant } from "@/lib/api/tenant.functions";
+import { getTenantDomainState } from "@/lib/api/tenant-domain.functions";
 import { workspaceTenantMark, type WorkspaceTenantIdentity } from "@/components/brand/TenantBrand";
 import { cn } from "@/lib/utils";
 import logoRmPrime from "@/assets/logo-rm-prime.png.asset.json";
@@ -35,6 +36,10 @@ export function TenantPainelShell({ tenant, children }: { tenant: WorkspaceTenan
   const [aberto, setAberto] = useState(false);
   const perfilFn = useServerFn(meuPerfilNoTenant);
   const { data: perfil } = useQuery({ queryKey: ["painel-perfil", tenant.id], queryFn: () => perfilFn(), staleTime: 5 * 60_000 });
+  const dominiosFn = useServerFn(getTenantDomainState);
+  const { data: dominios } = useQuery({ queryKey: ["painel-site", tenant.id], queryFn: () => dominiosFn(), staleTime: 5 * 60_000, retry: false });
+  const dominioAtivo = dominios?.domains.find((d) => d.enabled && d.status === "active" && d.hostnameKind === "canonical") ?? dominios?.domains.find((d) => d.enabled && d.status === "active");
+  const urlSite = dominioAtivo ? `https://${dominioAtivo.normalizedHostname}` : null;
   const base = `/${tenant.slug}/admin`;
   const logo = workspaceTenantMark(tenant);
   const atual = MENU.find((i) => i.sub !== null && (i.sub === "" ? caminho === base || caminho === `${base}/` : caminho.startsWith(base + i.sub)));
@@ -121,6 +126,13 @@ export function TenantPainelShell({ tenant, children }: { tenant: WorkspaceTenan
               ) : null}
             </div>
           </div>
+          {atual?.sub === "" && urlSite ? (
+            <div className="flex items-center gap-2">
+              <Button asChild variant="outline">
+                <a href={urlSite} target="_blank" rel="noopener noreferrer">Ver o site</a>
+              </Button>
+            </div>
+          ) : null}
         </header>
         <main id="workspace-main" className="flex-1 px-4 py-8 md:px-8">{children}</main>
       </div>
