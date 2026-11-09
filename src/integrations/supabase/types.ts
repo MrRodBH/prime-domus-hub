@@ -8481,6 +8481,7 @@ export type Database = {
         }
         Returns: Json
       }
+      is_active_tenant_admin: { Args: { _tenant_id: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       issue_domain_ownership_challenge: {
         Args: {
