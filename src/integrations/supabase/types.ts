@@ -6121,6 +6121,54 @@ export type Database = {
           },
         ]
       }
+      tenant_landing_pages: {
+        Row: {
+          atualizado_em: string
+          conteudo: Json
+          criado_em: string
+          id: string
+          imovel_id: string
+          publicada: boolean
+          slug: string
+          tenant_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          conteudo?: Json
+          criado_em?: string
+          id?: string
+          imovel_id: string
+          publicada?: boolean
+          slug: string
+          tenant_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          conteudo?: Json
+          criado_em?: string
+          id?: string
+          imovel_id?: string
+          publicada?: boolean
+          slug?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_landing_pages_imovel_id_fkey"
+            columns: ["imovel_id"]
+            isOneToOne: false
+            referencedRelation: "imoveis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_landing_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_marketing_connector_versions: {
         Row: {
           availability_state: string
