@@ -8,7 +8,16 @@ import { adminListarImoveis } from "@/lib/api/property-admin.functions";
 import { summarizeOperational } from "@/lib/operational-dashboard";
 
 const ROTULO: Record<string, string> = { novo: "Novo", conversando: "Conversando", visita: "Visita", proposta: "Proposta", ganho: "Negócio fechado", perdido: "Perdido", descartado: "Descartado" };
-const CORES = ["var(--primary)", "var(--accent)", "var(--secondary-foreground)", "var(--muted-foreground)", "var(--ring)"];
+const CORES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+const CORES_ETAPA: Record<string, string> = {
+  novo: "var(--crm-novo)",
+  conversando: "var(--crm-conversando)",
+  visita: "var(--crm-visita)",
+  proposta: "var(--crm-proposta)",
+  ganho: "var(--crm-fechado)",
+  perdido: "var(--muted-foreground)",
+  descartado: "var(--muted-foreground)",
+};
 const TOOLTIP = { border: "1px solid var(--border)", borderRadius: 6, background: "var(--popover)", color: "var(--popover-foreground)", fontSize: 12 };
 const EIXO = { fill: "var(--muted-foreground)", fontSize: 11 };
 
@@ -51,7 +60,7 @@ export function OperationalDashboard() {
                 <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={EIXO} />
                 <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={EIXO} />
                 <Tooltip contentStyle={TOOLTIP} />
-                <Line type="monotone" dataKey="total" name="Leads" stroke="var(--primary)" strokeWidth={3} dot={{ fill: "var(--primary)", r: 3 }} />
+                <Line type="monotone" dataKey="total" name="Leads" stroke="var(--chart-2)" strokeWidth={3} dot={{ fill: "var(--chart-2)", r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </Grafico>
@@ -62,7 +71,9 @@ export function OperationalDashboard() {
                 <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={EIXO} />
                 <YAxis type="category" dataKey="etapa" width={100} axisLine={false} tickLine={false} tick={EIXO} />
                 <Tooltip contentStyle={TOOLTIP} />
-                <Bar dataKey="total" name="Leads" fill="var(--primary)" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="total" name="Leads" radius={[0, 4, 4, 0]}>
+                  {etapas.map((e) => <Cell key={e.etapa} fill={CORES_ETAPA[e.etapa] ?? "var(--primary)"} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </Grafico>
@@ -96,7 +107,7 @@ export function OperationalDashboard() {
                   <XAxis dataKey="nome" axisLine={false} tickLine={false} interval={0} angle={-20} textAnchor="end" height={54} tick={EIXO} />
                   <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={EIXO} />
                   <Tooltip contentStyle={TOOLTIP} />
-                  <Bar dataKey="total" name="Leads" fill="var(--accent)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name="Leads" fill="var(--chart-4)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <Vazio />}
