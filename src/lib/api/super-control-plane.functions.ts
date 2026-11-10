@@ -535,7 +535,7 @@ export const getSuperFinanceUsage = createServerFn({ method: "GET" })
         monthlyAmountMinor: plan ? monthly.get(plan.id) ?? null : null,
         imoveisAtivos: count(imoveis.data, t.id, (r) => r.status === "ativo"), imoveisTotal: count(imoveis.data, t.id),
         leads30d: count(leads.data, t.id), corretoresAtivos: count(corretores.data, t.id, (r) => r.ativo),
-        fotos: count(fotos.data, t.id), membros: count(membros.data, t.id, (r) => r.status === "active"), limits,
+        fotos: count(fotos.data, t.id), membros: count(membros.data, t.id, (r) => r.membership_status === "active"), limits,
       };
     });
     return { generatedAt: new Date().toISOString(), tenants: result, plans: (plans.data ?? []).map((p: any) => ({ code: p.code, name: p.name, status: p.status })) };
