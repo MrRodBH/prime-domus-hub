@@ -513,7 +513,7 @@ export const getSuperFinanceUsage = createServerFn({ method: "GET" })
       admin.from("leads").select("tenant_id").in("tenant_id", ids).gte("created_at", since30).limit(20000),
       admin.from("corretores").select("tenant_id, ativo").in("tenant_id", ids).limit(5000),
       admin.from("imovel_imagens").select("tenant_id").in("tenant_id", ids).limit(50000),
-      admin.from("tenant_members").select("tenant_id, status").in("tenant_id", ids).limit(5000),
+      admin.from("tenant_members").select("tenant_id, membership_status").in("tenant_id", ids).limit(5000),
     ]);
     for (const r of [tenants, plans, prices, subs, ents, imoveis, leads, corretores, fotos, membros]) if (r.error) throw new Error("Não foi possível carregar financeiro e consumo.");
     const planById = new Map((plans.data ?? []).map((p: any) => [p.id, p]));
@@ -535,7 +535,7 @@ export const getSuperFinanceUsage = createServerFn({ method: "GET" })
         monthlyAmountMinor: plan ? monthly.get(plan.id) ?? null : null,
         imoveisAtivos: count(imoveis.data, t.id, (r) => r.status === "ativo"), imoveisTotal: count(imoveis.data, t.id),
         leads30d: count(leads.data, t.id), corretoresAtivos: count(corretores.data, t.id, (r) => r.ativo),
-        fotos: count(fotos.data, t.id), membros: count(membros.data, t.id, (r) => r.status === "active"), limits,
+        fotos: count(fotos.data, t.id), membros: count(membros.data, t.id, (r) => r.membership_status === "active"), limits,
       };
     });
     return { generatedAt: new Date().toISOString(), tenants: result, plans: (plans.data ?? []).map((p: any) => ({ code: p.code, name: p.name, status: p.status })) };
