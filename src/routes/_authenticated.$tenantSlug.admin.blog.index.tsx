@@ -1,13 +1,8 @@
-// Bloco 3.1 — migração: /admin/blog agora é EntityWorkspace (descriptor: post).
+// Tela de Blog aprovada da RM Prime.
 import { createFileRoute } from "@tanstack/react-router";
-import { EntityWorkspace, entitySearchSchema, ENTITIES } from "@/components/workspace/entities";
+import { BlogPage } from "@/components/painel-rm/BlogPage";
 
 export const Route = createFileRoute("/_authenticated/$tenantSlug/admin/blog/")({
-  validateSearch: (s) => entitySearchSchema.parse(s),
-  component: BlogWorkspaceRoute,
+  head: () => ({ meta: [{ title: "Blog — Painel da empresa" }, { name: "robots", content: "noindex" }] }),
+  component: BlogPage,
 });
-
-function BlogWorkspaceRoute() {
-  const search = Route.useSearch();
-  return <EntityWorkspace descriptor={ENTITIES.post} search={search} />;
-}
