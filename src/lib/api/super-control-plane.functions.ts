@@ -513,7 +513,7 @@ export const getSuperFinanceUsage = createServerFn({ method: "GET" })
       admin.from("leads").select("tenant_id").in("tenant_id", ids).gte("created_at", since30).limit(20000),
       admin.from("corretores").select("tenant_id, ativo").in("tenant_id", ids).limit(5000),
       admin.from("imovel_imagens").select("tenant_id").in("tenant_id", ids).limit(50000),
-      admin.from("tenant_members").select("tenant_id, status").in("tenant_id", ids).limit(5000),
+      admin.from("tenant_members").select("tenant_id, membership_status").in("tenant_id", ids).limit(5000),
     ]);
     for (const r of [tenants, plans, prices, subs, ents, imoveis, leads, corretores, fotos, membros]) if (r.error) throw new Error("Não foi possível carregar financeiro e consumo.");
     const planById = new Map((plans.data ?? []).map((p: any) => [p.id, p]));
