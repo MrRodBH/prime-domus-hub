@@ -8,6 +8,10 @@
 - [x] Etapa 4b: Campanhas — lista/formulário, 2 cadastros, 5 artes, copy com IA e gravação verificados no preview; roteiro com IA implementado, teste pendente
 - [ ] Complemento de Campanhas: geração de imagens, vídeo e publicação Meta — não implementados nesta entrega
 - [ ] Etapa 4: Módulos de apoio
+- [x] SaaS Etapa 1: destravar Financeiro, Consumo e Atendimento
+- [x] SaaS Etapa 3: tela de domínios simplificada
+- [ ] SaaS Etapa 2 (backlog): Financeiro e Consumo completos
+- [ ] SaaS Etapa 4 (backlog): dashboard com gráficos ricos e IA
 - [x] Importar campanhas e landing page
 - [ ] Importar marketing, taxas e faixas MCMV (partes seguintes)
 - [ ] Convites de acesso aos 4 corretores (aguarda autorização do owner)
