@@ -540,3 +540,54 @@ export const getSuperFinanceUsage = createServerFn({ method: "GET" })
     });
     return { generatedAt: new Date().toISOString(), tenants: result, plans: (plans.data ?? []).map((p: any) => ({ code: p.code, name: p.name, status: p.status })) };
   });
+
+export const getSuperLeadTrend = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertGlobalSuperAdmin(context);
+    const admin = await adminClient();
+    const ids = await operationalTenantIds(admin);
+    const since = new Date(Date.now() - 29 * 86400_000); since.setHours(0, 0, 0, 0);
+    const { data, error } = await admin.from("leads").select("created_at").in("tenant_id", ids).gte("created_at", since.toISOString()).limit(50000);
+    if (error) throw new Error("Não foi possível carregar a evolução de leads.");
+    const days: { dia: string; leads: number }[] = [];
+    for (let i = 0; i < 30; i++) { const d = new Date(since.getTime() + i * 86400_000); days.push({ dia: d.toISOString().slice(0, 10), leads: 0 }); }
+    for (const r of data ?? []) { const k = String(r.created_at).slice(0, 10); const d = days.find((x) => x.dia === k); if (d) d.leads++; }
+    return days;
+  });
+
+export const generateSuperAiInsights = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertGlobalSuperAdmin(context);
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("A análise por IA precisa de ajuste de configuração.");
+    const admin = await adminClient();
+    const ids = await operationalTenantIds(admin);
+    const since30 = new Date(Date.now() - 30 * 86400_000).toISOString();
+    const [tenants, imoveis, leads, corretores, support] = await Promise.all([
+      admin.from("tenants").select("id, nome, status, dominio_principal, plano_codigo").in("id", ids),
+      admin.from("imoveis").select("tenant_id, status").in("tenant_id", ids).limit(20000),
+      admin.from("leads").select("tenant_id, created_at, corretor_id").in("tenant_id", ids).gte("created_at", since30).limit(20000),
+      admin.from("corretores").select("tenant_id, ativo").in("tenant_id", ids).limit(5000),
+      admin.from("platform_support_cases").select("status, priority").limit(500),
+    ]);
+    const summary = (tenants.data ?? []).map((t: any) => ({
+      empresa: t.nome, status: t.status, dominio: t.dominio_principal ?? null, plano: t.plano_codigo ?? null,
+      imoveisAtivos: (imoveis.data ?? []).filter((r: any) => r.tenant_id === t.id && r.status === "ativo").length,
+      leads30d: (leads.data ?? []).filter((r: any) => r.tenant_id === t.id).length,
+      leadsSemCorretor: (leads.data ?? []).filter((r: any) => r.tenant_id === t.id && !r.corretor_id).length,
+      corretoresAtivos: (corretores.data ?? []).filter((r: any) => r.tenant_id === t.id && r.ativo).length,
+    }));
+    const suporteAberto = (support.data ?? []).filter((s: any) => !["resolved", "closed"].includes(s.status)).length;
+    const { z } = await import("zod");
+    const { campaignText } = await import("@/lib/rm-marketing/ai/campaign-text.server");
+    const schema = z.object({
+      resumo: z.string(),
+      insights: z.array(z.object({ tipo: z.enum(["oportunidade", "risco", "acao"]), titulo: z.string(), detalhe: z.string() })),
+    });
+    const out = await campaignText(key, schema,
+      "Você é analista de negócios de uma plataforma SaaS para imobiliárias. Responda em português do Brasil, objetivo e prático. Use apenas os dados fornecidos; nunca invente números. Gere de 3 a 6 insights.",
+      `Dados reais da plataforma (últimos 30 dias):\n${JSON.stringify({ empresas: summary, suporteAberto })}`);
+    return { ...out, geradoEm: new Date().toISOString() };
+  });
