@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -14,7 +15,8 @@ import appCss from "../styles.css?url";
 import { PLATFORM_NAME, PLATFORM_FAVICON } from "../lib/brand-assets";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { structuredLog } from "../lib/structured-log";
-import { loadRequiredPublicRootDataForPath } from "../lib/public-tenant-read-guards";
+import { loadRequiredPublicRootDataForPath, shouldRedirectToPlatformAccess } from "../lib/public-tenant-read-guards";
+import { getPublicEntryResolutionReason } from "../lib/api/public-entry.functions";
 import type { PublicTrackingSnapshotDto } from "../lib/tracking/tracking-contracts";
 
 type RootLoaderData = {
@@ -100,6 +102,13 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async ({ location }) => {
+    if (location.pathname !== "/") return;
+    const reason = await getPublicEntryResolutionReason();
+    if (shouldRedirectToPlatformAccess(location.pathname, reason)) {
+      throw redirect({ to: "/auth", replace: true });
+    }
+  },
   loader: async ({ location }): Promise<RootLoaderData> => {
     const publicRootData = await loadRequiredPublicRootDataForPath(
       location.pathname,

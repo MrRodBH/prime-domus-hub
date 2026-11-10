@@ -1,5 +1,10 @@
 export type TenantScopedRow = { tenant_id: string };
 
+/** An unbound development entry belongs to platform access, not any tenant. */
+export function shouldRedirectToPlatformAccess(pathname: string, unresolvedReason: string | null): boolean {
+  return pathname === "/" && unresolvedReason === "unmapped_development_host";
+}
+
 export function assertTenantScopedRows<T extends TenantScopedRow>(
   tenantId: string,
   rows: readonly T[] | null | undefined,
