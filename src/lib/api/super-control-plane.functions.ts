@@ -187,7 +187,7 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
       admin.from("tenant_portal_jobs").select("id, current_state", { count: "exact", head: false }).in("tenant_id", operationalIds).limit(5000),
       admin.from("tenant_marketing_connectors").select("id, channel_key, availability_state, verification_state, active").in("tenant_id", operationalIds).limit(5000),
       admin.from("tenant_marketing_ingestion_events").select("id, ingestion_state", { count: "exact", head: false }).in("tenant_id", operationalIds).gte("received_at", since7d).limit(5000),
-      admin.from("tenant_tracking_connectors").select("id, provider_key, availability_state, active").in("tenant_id", operationalIds).limit(5000),
+      admin.from("tenant_tracking_connectors").select("id, provider_key, availability_state, enabled").in("tenant_id", operationalIds).limit(5000),
       admin.from("tenant_tracking_diagnostics").select("id, state", { count: "exact", head: false }).in("tenant_id", operationalIds).gte("created_at", since7d).limit(5000),
       admin.from("audit_log").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).gte("created_at", since24h),
       admin.from("audit_log").select("id, tenant_id, user_id, action, entity, entity_id, created_at").in("tenant_id", operationalIds).order("created_at", { ascending: false }).limit(100),
