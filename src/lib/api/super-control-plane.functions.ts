@@ -188,7 +188,7 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
       admin.from("tenant_marketing_connectors").select("id, channel_key, availability_state, verification_state, active").in("tenant_id", operationalIds).limit(5000),
       admin.from("tenant_marketing_ingestion_events").select("id, ingestion_state", { count: "exact", head: false }).in("tenant_id", operationalIds).gte("received_at", since7d).limit(5000),
       admin.from("tenant_tracking_connectors").select("id, provider_key, availability_state, enabled").in("tenant_id", operationalIds).limit(5000),
-      admin.from("tenant_tracking_diagnostics").select("id, state", { count: "exact", head: false }).in("tenant_id", operationalIds).gte("created_at", since7d).limit(5000),
+      admin.from("tenant_tracking_diagnostics").select("id, diagnostic_state", { count: "exact", head: false }).in("tenant_id", operationalIds).gte("created_at", since7d).limit(5000),
       admin.from("audit_log").select("id", { count: "exact", head: true }).in("tenant_id", operationalIds).gte("created_at", since24h),
       admin.from("audit_log").select("id, tenant_id, user_id, action, entity, entity_id, created_at").in("tenant_id", operationalIds).order("created_at", { ascending: false }).limit(100),
       admin.from("platform_incidents").select("id, incident_key, scope, tenant_id, severity, status, title, summary, source, started_at, resolved_at, updated_at").or(`tenant_id.is.null,tenant_id.in.(${operationalIds.join(",")})`).order("started_at", { ascending: false }).limit(200),
@@ -322,7 +322,7 @@ export const getSuperControlPlaneSnapshot = createServerFn({ method: "GET" })
         marketingVerificationStates: groupCount((marketingConnectors.data ?? []) as Array<Record<string, unknown>>, "verification_state"),
         marketingIngestionStates7d: groupCount((marketingEvents.data ?? []) as Array<Record<string, unknown>>, "ingestion_state"),
         trackingProviderStates: groupCount((trackingConnectors.data ?? []) as Array<Record<string, unknown>>, "availability_state"),
-        trackingDiagnosticStates7d: groupCount((trackingDiagnostics.data ?? []) as Array<Record<string, unknown>>, "state"),
+        trackingDiagnosticStates7d: groupCount((trackingDiagnostics.data ?? []) as Array<Record<string, unknown>>, "diagnostic_state"),
       },
       operations: {
         registry: operationRegistry,
