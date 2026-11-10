@@ -11,7 +11,7 @@
 - [x] SaaS Etapa 1: destravar Financeiro, Consumo e Atendimento
 - [x] SaaS Etapa 3: tela de domínios simplificada
 - [x] SaaS Etapa 2: Financeiro e Consumo completos
-- [ ] SaaS Etapa 4 (backlog): dashboard com gráficos ricos e IA
+- [x] SaaS Etapa 4: dashboard com gráficos ricos e IA
 - [x] Importar campanhas e landing page
 - [ ] Importar marketing, taxas e faixas MCMV (partes seguintes)
 - [ ] Convites de acesso aos 4 corretores (aguarda autorização do owner)

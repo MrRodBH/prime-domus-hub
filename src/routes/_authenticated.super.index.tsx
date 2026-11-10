@@ -1,4 +1,5 @@
 import { ExecutiveOverview } from "@/components/super/ExecutiveOverview";
+import { ExecutiveCharts } from "@/components/super/ExecutiveCharts";
 import { PlatformUsers } from "@/components/onboarding/PlatformUsers";
 import { PersistentOnboarding } from "@/components/onboarding/PersistentOnboarding";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -102,6 +103,7 @@ function SuperTenantsPage() {
       </div>
 
       {view === "dashboard" && <ExecutiveOverview kpis={kpis} tenants={tenants as TenantRow[]} stats={stats as TenantStats} />}
+      {view === "dashboard" && <ExecutiveCharts />}
 
       <PersistentOnboarding currentView={view ?? "dashboard"} onViewChange={next => { void navigate({ to: "/super", search: { view: next } }); }} />
 
