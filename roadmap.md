@@ -1,4 +1,5 @@
 # Roadmap — importação do modelo RM Prime
+- [ ] Corrigir GET / no preview sem atribuir uma empresa por padrão
 - [x] Etapa 1a: dashboard operacional (KPIs, 4 gráficos, alertas) no painel da empresa
 - [x] Etapa 1b: barra lateral verde RM Prime + Dashboard com nomes reais (aguarda aprovação no preview)
 - [x] Etapa 2: CRM (funil Kanban, ficha, histórico, próxima ação) — aguarda aprovação no preview
