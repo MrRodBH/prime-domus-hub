@@ -487,3 +487,56 @@ export const mutatePlatformSupportCase = createServerFn({ method: "POST" })
     if (error) throw new Error("platform_support_mutation_failed");
     return toJson(result);
   });
+
+export type SuperFinanceUsageTenant = {
+  id: string; nome: string; slug: string; status: string; createdAt: string;
+  planCode: string | null; planName: string | null; subscriptionStatus: string | null; monthlyAmountMinor: number | null;
+  imoveisAtivos: number; imoveisTotal: number; leads30d: number; corretoresAtivos: number; fotos: number; membros: number;
+  limits: Record<string, number>;
+};
+export type SuperFinanceUsage = { generatedAt: string; tenants: SuperFinanceUsageTenant[]; plans: Array<{ code: string; name: string; status: string }> };
+
+export const getSuperFinanceUsage = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<SuperFinanceUsage> => {
+    await assertGlobalSuperAdmin(context);
+    const admin = await adminClient();
+    const ids = await operationalTenantIds(admin);
+    const since30 = new Date(Date.now() - 30 * 86400_000).toISOString();
+    const [tenants, plans, prices, subs, ents, imoveis, leads, corretores, fotos, membros] = await Promise.all([
+      admin.from("tenants").select("id, nome, slug, status, created_at, plano_codigo").in("id", ids),
+      admin.from("commercial_plans").select("id, code, name, status"),
+      admin.from("commercial_plan_prices").select("plan_id, unit_amount_minor, billing_interval, interval_count, status").eq("status", "active"),
+      admin.from("tenant_subscriptions").select("tenant_id, plan_id, status, created_at").in("tenant_id", ids).order("created_at", { ascending: false }),
+      admin.from("tenant_entitlements").select("tenant_id, entitlement_key, value_int").in("tenant_id", ids).not("value_int", "is", null),
+      admin.from("imoveis").select("tenant_id, status").in("tenant_id", ids).limit(20000),
+      admin.from("leads").select("tenant_id").in("tenant_id", ids).gte("created_at", since30).limit(20000),
+      admin.from("corretores").select("tenant_id, ativo").in("tenant_id", ids).limit(5000),
+      admin.from("imovel_imagens").select("tenant_id").in("tenant_id", ids).limit(50000),
+      admin.from("tenant_members").select("tenant_id, status").in("tenant_id", ids).limit(5000),
+    ]);
+    for (const r of [tenants, plans, prices, subs, ents, imoveis, leads, corretores, fotos, membros]) if (r.error) throw new Error("Não foi possível carregar financeiro e consumo.");
+    const planById = new Map((plans.data ?? []).map((p: any) => [p.id, p]));
+    const planByCode = new Map((plans.data ?? []).map((p: any) => [p.code, p]));
+    const monthly = new Map<string, number>();
+    for (const p of prices.data ?? []) {
+      const months = p.billing_interval === "year" ? 12 * (p.interval_count || 1) : p.billing_interval === "month" ? (p.interval_count || 1) : 0;
+      if (months && !monthly.has(p.plan_id)) monthly.set(p.plan_id, Math.round(p.unit_amount_minor / months));
+    }
+    const count = (rows: any[] | null, id: string, pred: (r: any) => boolean = () => true) => (rows ?? []).filter((r) => r.tenant_id === id && pred(r)).length;
+    const result = (tenants.data ?? []).map((t: any): SuperFinanceUsageTenant => {
+      const sub = (subs.data ?? []).find((s: any) => s.tenant_id === t.id);
+      const plan: any = sub ? planById.get(sub.plan_id) : planByCode.get(t.plano_codigo);
+      const limits: Record<string, number> = {};
+      for (const e of ents.data ?? []) if (e.tenant_id === t.id && e.value_int != null) limits[e.entitlement_key] = e.value_int;
+      return {
+        id: t.id, nome: t.nome, slug: t.slug, status: t.status, createdAt: t.created_at,
+        planCode: plan?.code ?? t.plano_codigo ?? null, planName: plan?.name ?? null, subscriptionStatus: sub?.status ?? null,
+        monthlyAmountMinor: plan ? monthly.get(plan.id) ?? null : null,
+        imoveisAtivos: count(imoveis.data, t.id, (r) => r.status === "ativo"), imoveisTotal: count(imoveis.data, t.id),
+        leads30d: count(leads.data, t.id), corretoresAtivos: count(corretores.data, t.id, (r) => r.ativo),
+        fotos: count(fotos.data, t.id), membros: count(membros.data, t.id, (r) => r.status === "active"), limits,
+      };
+    });
+    return { generatedAt: new Date().toISOString(), tenants: result, plans: (plans.data ?? []).map((p: any) => ({ code: p.code, name: p.name, status: p.status })) };
+  });

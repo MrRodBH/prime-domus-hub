@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FinancePanel, UsagePanel } from "@/components/super/FinanceUsagePanels";
 import { AdminRecoveryRequest } from '@/components/support/AdminRecoveryRequest';
 import { getSuperControlPlaneSnapshot, mutatePlatformSupportCase, type SuperControlPlaneSnapshot, type PlatformSupportInput } from "@/lib/api/super-control-plane.functions";
 
@@ -53,16 +54,8 @@ function SuperControlPlanePage() {
   const integration = data.integrations;
   const commercial = data.commercialVisibility;
 
-  if (section === "financeiro") return <Panel title="Financeiro" icon={<CircleDollarSign className="size-4" />}>
-    <KeyValue label="Planos cadastrados" value={commercial.plans.length} />
-    <KeyValue label="Eventos de cobrança — 7 dias" value={commercial.billingEvents7d} />
-    <p>Receita prevista e realizada ainda não estão disponíveis. Cadastrar um plano não inicia cobranças.</p>
-  </Panel>;
-  if (section === "consumo") return <Panel title="Consumo" icon={<Activity className="size-4" />}>
-    <p>A medição de consumo por plano ainda não está disponível neste painel.</p>
-    <KeyValue label="Usuários com vínculo" value={executive.distinctMembershipUsers} />
-    <p className="text-sm text-muted-foreground">A contagem de usuários não representa consumo faturável.</p>
-  </Panel>;
+  if (section === "financeiro") return <FinancePanel />;
+  if (section === "consumo") return <UsagePanel />;
   if (section === "suporte") return <CustomerService data={data} />;
 
   return (
