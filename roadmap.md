@@ -15,7 +15,7 @@
 - [x] Importar campanhas e landing page
 - [x] Parte 4c: Marketing (Meta Pixel ativo, GTM e GA4)
 - [x] Parte 5b: Simulação SFH (taxas e faixas MCMV)
-- [ ] Parte 5c: Usuários
+- [x] Parte 5c: Usuários
 - [ ] Parte 5d: Follow CRs
 - [ ] Homologar IA do Real One
 - [ ] Convites de acesso aos 4 corretores (aguarda autorização do owner)

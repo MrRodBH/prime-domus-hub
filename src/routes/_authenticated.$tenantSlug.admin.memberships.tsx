@@ -1,3 +1,7 @@
+// Tela "Usuários e permissões" aprovada da RM Prime.
 import { createFileRoute } from "@tanstack/react-router";
-import { TenantUsersPage } from "@/components/admin/TenantUsersPage";
-export const Route = createFileRoute("/_authenticated/$tenantSlug/admin/memberships")({component:TenantUsersPage});
+import { UsuariosPage } from "@/components/painel-rm/UsuariosPage";
+export const Route = createFileRoute("/_authenticated/$tenantSlug/admin/memberships")({
+  head: () => ({ meta: [{ title: "Usuários — Painel da empresa" }, { name: "robots", content: "noindex" }] }),
+  component: UsuariosPage,
+});
