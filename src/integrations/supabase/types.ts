@@ -5840,6 +5840,50 @@ export type Database = {
           },
         ]
       }
+      tenant_bank_rates: {
+        Row: {
+          atualizado_em: string
+          banco: string
+          data_referencia: string
+          fonte: string
+          id: string
+          modalidade: string
+          sistema: string
+          taxa_aa: number
+          tenant_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          banco: string
+          data_referencia?: string
+          fonte?: string
+          id?: string
+          modalidade?: string
+          sistema: string
+          taxa_aa: number
+          tenant_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          banco?: string
+          data_referencia?: string
+          fonte?: string
+          id?: string
+          modalidade?: string
+          sistema?: string
+          taxa_aa?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_bank_rates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_billing_provider_mappings: {
         Row: {
           created_at: string
@@ -6699,6 +6743,62 @@ export type Database = {
           },
           {
             foreignKeyName: "tenant_marketing_manual_imports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_mcmv_faixas: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          cota_maxima: number
+          id: string
+          nome: string
+          observacao: string | null
+          ordem: number
+          prazo_max_meses: number
+          renda_max: number
+          renda_min: number
+          taxa_aa: number
+          tenant_id: string
+          teto_imovel: number
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          cota_maxima?: number
+          id?: string
+          nome: string
+          observacao?: string | null
+          ordem: number
+          prazo_max_meses?: number
+          renda_max?: number
+          renda_min?: number
+          taxa_aa: number
+          tenant_id: string
+          teto_imovel?: number
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          cota_maxima?: number
+          id?: string
+          nome?: string
+          observacao?: string | null
+          ordem?: number
+          prazo_max_meses?: number
+          renda_max?: number
+          renda_min?: number
+          taxa_aa?: number
+          tenant_id?: string
+          teto_imovel?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_mcmv_faixas_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

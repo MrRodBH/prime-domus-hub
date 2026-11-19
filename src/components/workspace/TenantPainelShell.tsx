@@ -17,7 +17,7 @@ const PAINEL_FONTS = "https://fonts.googleapis.com/css2?family=Manrope:wght@400;
 const PAPEL: Record<string, string> = { owner: "Administrador", admin: "Administrador", manager: "Gerente", broker: "Corretor", captador: "Captador", secretaria: "Secretária", viewer: "Visualizador" };
 
 // `sub` null = módulo ainda não importado (próximas partes).
-const MENU: { rotulo: string; sub: string | null; to?: "/$tenantSlug/admin" | "/$tenantSlug/admin/leads" | "/$tenantSlug/admin/imoveis" | "/$tenantSlug/admin/blog" | "/$tenantSlug/admin/campanhas" | "/$tenantSlug/admin/landing-pages" | "/$tenantSlug/admin/site" | "/$tenantSlug/admin/marketing" | "/$tenantSlug/admin/memberships"; icone: typeof Home }[] = [
+const MENU: { rotulo: string; sub: string | null; to?: "/$tenantSlug/admin" | "/$tenantSlug/admin/leads" | "/$tenantSlug/admin/imoveis" | "/$tenantSlug/admin/blog" | "/$tenantSlug/admin/campanhas" | "/$tenantSlug/admin/landing-pages" | "/$tenantSlug/admin/site" | "/$tenantSlug/admin/marketing" | "/$tenantSlug/admin/memberships" | "/$tenantSlug/admin/taxas"; icone: typeof Home }[] = [
   { rotulo: "Dashboard", sub: "", to: "/$tenantSlug/admin" as const, icone: Home },
   { rotulo: "CRM", sub: "/leads", to: "/$tenantSlug/admin/leads" as const, icone: Users },
   { rotulo: "Imóveis", sub: "/imoveis", to: "/$tenantSlug/admin/imoveis" as const, icone: Building2 },
@@ -25,7 +25,7 @@ const MENU: { rotulo: string; sub: string | null; to?: "/$tenantSlug/admin" | "/
   { rotulo: "Campanhas", sub: "/campanhas", to: "/$tenantSlug/admin/campanhas" as const, icone: Target },
   { rotulo: "Landing pages", sub: "/landing-pages", to: "/$tenantSlug/admin/landing-pages" as const, icone: Rocket },
   { rotulo: "Conteúdo do site", sub: "/site", to: "/$tenantSlug/admin/site" as const, icone: FileText },
-  { rotulo: "Simulação SFH", sub: null, icone: Percent },
+  { rotulo: "Simulação SFH", sub: "/taxas", to: "/$tenantSlug/admin/taxas" as const, icone: Percent },
   { rotulo: "Marketing", sub: "/marketing", to: "/$tenantSlug/admin/marketing" as const, icone: Megaphone },
   { rotulo: "Follow CRs", sub: null, icone: BarChart3 },
   { rotulo: "Usuários", sub: "/memberships", to: "/$tenantSlug/admin/memberships" as const, icone: ShieldCheck },

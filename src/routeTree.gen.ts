@@ -95,6 +95,7 @@ import { Route as AuthenticatedTenantSlugAdminPerfisRouteImport } from './routes
 import { Route as AuthenticatedTenantSlugAdminPipelineRouteImport } from './routes/_authenticated.$tenantSlug.admin.pipeline'
 import { Route as AuthenticatedTenantSlugAdminPortaisRouteImport } from './routes/_authenticated.$tenantSlug.admin.portais'
 import { Route as AuthenticatedTenantSlugAdminSiteRouteImport } from './routes/_authenticated.$tenantSlug.admin.site'
+import { Route as AuthenticatedTenantSlugAdminTaxasRouteImport } from './routes/_authenticated.$tenantSlug.admin.taxas'
 import { Route as AuthenticatedTenantSlugAdminTrackingRouteImport } from './routes/_authenticated.$tenantSlug.admin.tracking'
 import { Route as AuthenticatedAdminBlogIndexRouteImport } from './routes/_authenticated.admin.blog.index'
 import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated.admin.blog.$id'
@@ -616,6 +617,12 @@ const AuthenticatedTenantSlugAdminSiteRoute =
     path: '/site',
     getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
   } as any)
+const AuthenticatedTenantSlugAdminTaxasRoute =
+  AuthenticatedTenantSlugAdminTaxasRouteImport.update({
+    id: '/taxas',
+    path: '/taxas',
+    getParentRoute: () => AuthenticatedTenantSlugAdminRoute,
+  } as any)
 const AuthenticatedTenantSlugAdminTrackingRoute =
   AuthenticatedTenantSlugAdminTrackingRouteImport.update({
     id: '/tracking',
@@ -928,6 +935,7 @@ export interface FileRoutesByFullPath {
   '/$tenantSlug/admin/pipeline': typeof AuthenticatedTenantSlugAdminPipelineRoute
   '/$tenantSlug/admin/portais': typeof AuthenticatedTenantSlugAdminPortaisRoute
   '/$tenantSlug/admin/site': typeof AuthenticatedTenantSlugAdminSiteRoute
+  '/$tenantSlug/admin/taxas': typeof AuthenticatedTenantSlugAdminTaxasRoute
   '/$tenantSlug/admin/tracking': typeof AuthenticatedTenantSlugAdminTrackingRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
@@ -1048,6 +1056,7 @@ export interface FileRoutesByTo {
   '/$tenantSlug/admin/pipeline': typeof AuthenticatedTenantSlugAdminPipelineRoute
   '/$tenantSlug/admin/portais': typeof AuthenticatedTenantSlugAdminPortaisRoute
   '/$tenantSlug/admin/site': typeof AuthenticatedTenantSlugAdminSiteRoute
+  '/$tenantSlug/admin/taxas': typeof AuthenticatedTenantSlugAdminTaxasRoute
   '/$tenantSlug/admin/tracking': typeof AuthenticatedTenantSlugAdminTrackingRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
@@ -1175,6 +1184,7 @@ export interface FileRoutesById {
   '/_authenticated/$tenantSlug/admin/pipeline': typeof AuthenticatedTenantSlugAdminPipelineRoute
   '/_authenticated/$tenantSlug/admin/portais': typeof AuthenticatedTenantSlugAdminPortaisRoute
   '/_authenticated/$tenantSlug/admin/site': typeof AuthenticatedTenantSlugAdminSiteRoute
+  '/_authenticated/$tenantSlug/admin/taxas': typeof AuthenticatedTenantSlugAdminTaxasRoute
   '/_authenticated/$tenantSlug/admin/tracking': typeof AuthenticatedTenantSlugAdminTrackingRoute
   '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/_authenticated/admin/blog/novo': typeof AuthenticatedAdminBlogNovoRoute
@@ -1302,6 +1312,7 @@ export interface FileRouteTypes {
     | '/$tenantSlug/admin/pipeline'
     | '/$tenantSlug/admin/portais'
     | '/$tenantSlug/admin/site'
+    | '/$tenantSlug/admin/taxas'
     | '/$tenantSlug/admin/tracking'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
@@ -1422,6 +1433,7 @@ export interface FileRouteTypes {
     | '/$tenantSlug/admin/pipeline'
     | '/$tenantSlug/admin/portais'
     | '/$tenantSlug/admin/site'
+    | '/$tenantSlug/admin/taxas'
     | '/$tenantSlug/admin/tracking'
     | '/admin/blog/$id'
     | '/admin/blog/novo'
@@ -1548,6 +1560,7 @@ export interface FileRouteTypes {
     | '/_authenticated/$tenantSlug/admin/pipeline'
     | '/_authenticated/$tenantSlug/admin/portais'
     | '/_authenticated/$tenantSlug/admin/site'
+    | '/_authenticated/$tenantSlug/admin/taxas'
     | '/_authenticated/$tenantSlug/admin/tracking'
     | '/_authenticated/admin/blog/$id'
     | '/_authenticated/admin/blog/novo'
@@ -2230,6 +2243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTenantSlugAdminSiteRouteImport
       parentRoute: typeof AuthenticatedTenantSlugAdminRoute
     }
+    '/_authenticated/$tenantSlug/admin/taxas': {
+      id: '/_authenticated/$tenantSlug/admin/taxas'
+      path: '/taxas'
+      fullPath: '/$tenantSlug/admin/taxas'
+      preLoaderRoute: typeof AuthenticatedTenantSlugAdminTaxasRouteImport
+      parentRoute: typeof AuthenticatedTenantSlugAdminRoute
+    }
     '/_authenticated/$tenantSlug/admin/tracking': {
       id: '/_authenticated/$tenantSlug/admin/tracking'
       path: '/tracking'
@@ -2669,6 +2689,7 @@ interface AuthenticatedTenantSlugAdminRouteChildren {
   AuthenticatedTenantSlugAdminPipelineRoute: typeof AuthenticatedTenantSlugAdminPipelineRoute
   AuthenticatedTenantSlugAdminPortaisRoute: typeof AuthenticatedTenantSlugAdminPortaisRoute
   AuthenticatedTenantSlugAdminSiteRoute: typeof AuthenticatedTenantSlugAdminSiteRoute
+  AuthenticatedTenantSlugAdminTaxasRoute: typeof AuthenticatedTenantSlugAdminTaxasRoute
   AuthenticatedTenantSlugAdminTrackingRoute: typeof AuthenticatedTenantSlugAdminTrackingRoute
   AuthenticatedTenantSlugAdminIndexRoute: typeof AuthenticatedTenantSlugAdminIndexRoute
   AuthenticatedTenantSlugAdminCampanhasIdRoute: typeof AuthenticatedTenantSlugAdminCampanhasIdRoute
@@ -2733,6 +2754,8 @@ const AuthenticatedTenantSlugAdminRouteChildren: AuthenticatedTenantSlugAdminRou
       AuthenticatedTenantSlugAdminPortaisRoute,
     AuthenticatedTenantSlugAdminSiteRoute:
       AuthenticatedTenantSlugAdminSiteRoute,
+    AuthenticatedTenantSlugAdminTaxasRoute:
+      AuthenticatedTenantSlugAdminTaxasRoute,
     AuthenticatedTenantSlugAdminTrackingRoute:
       AuthenticatedTenantSlugAdminTrackingRoute,
     AuthenticatedTenantSlugAdminIndexRoute:
