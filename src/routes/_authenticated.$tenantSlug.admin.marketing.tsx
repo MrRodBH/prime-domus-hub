@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { MarketingPage } from "@/components/painel-rm/MarketingPage";
 import { friendlyStatus } from "@/lib/ui-labels";
 import {
   AlertTriangle,
@@ -50,8 +51,20 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/$tenantSlug/admin/marketing")({
-  component: MarketingOperationsCenter,
+  component: MarketingRoute,
 });
+
+function MarketingRoute() {
+  return (
+    <>
+      <MarketingPage />
+      <details className="mt-10 rounded-lg border p-4">
+        <summary className="cursor-pointer text-sm font-medium">Ferramentas avançadas: entrada de leads de anúncios e importação</summary>
+        <div className="mt-4"><MarketingOperationsCenter /></div>
+      </details>
+    </>
+  );
+}
 
 type Connector = {
   id: string;
