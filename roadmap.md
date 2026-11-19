@@ -13,5 +13,9 @@
 - [x] SaaS Etapa 2: Financeiro e Consumo completos
 - [x] SaaS Etapa 4: dashboard com gráficos ricos e IA
 - [x] Importar campanhas e landing page
-- [ ] Importar marketing, taxas e faixas MCMV (partes seguintes)
+- [x] Parte 4c: Marketing (Meta Pixel ativo, GTM e GA4)
+- [ ] Parte 5b: Simulação SFH (taxas e faixas MCMV)
+- [ ] Parte 5c: Usuários
+- [ ] Parte 5d: Follow CRs
+- [ ] Homologar IA do Real One
 - [ ] Convites de acesso aos 4 corretores (aguarda autorização do owner)
